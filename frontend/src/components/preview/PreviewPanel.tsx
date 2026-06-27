@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { RefreshCw, ExternalLink, Globe } from 'lucide-react'
+import clsx from 'clsx'
 import { useBuildStore } from '../../store/buildStore'
+
 
 interface PreviewPanelProps {
   previewUrl?: string
@@ -66,30 +68,58 @@ export function PreviewPanel({ previewUrl }: PreviewPanelProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Preview toolbar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-forge-border bg-forge-surface">
-        <div className="flex-1 bg-forge-bg border border-forge-border rounded-xl px-3 py-2 text-xs text-forge-text-secondary font-mono truncate">
-          {previewUrl || 'https://your-app.forge.dev'}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-forge-border bg-forge-surface/80 backdrop-blur">
+        <div className="flex-1 rounded-xl border border-forge-border/70 bg-forge-bg/70 px-3 py-2 text-xs text-forge-text-secondary font-mono truncate">
+          {previewUrl || 'http://localhost:3000'}
         </div>
-        <button
-          type="button"
-          aria-label="Refresh preview"
-          onClick={() => setRefreshKey(k => k + 1)}
-          className="bb-btn bb-btn-ghost bb-btn-icon"
-        >
-          <RefreshCw size={13} />
-        </button>
-        {previewUrl && (
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Open preview in a new tab"
-            className="bb-btn bb-btn-ghost bb-btn-icon"
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Running"
+            className={clsx(
+              'hidden sm:inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition',
+              status === 'success'
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                : status === 'running'
+                  ? 'border-violet-500/30 bg-violet-500/10 text-violet-300'
+                  : 'border-forge-border/70 bg-forge-surface/70 text-forge-text-secondary'
+            )}
           >
-            <ExternalLink size={13} />
-          </a>
-        )}
+            {status === 'running' ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" /> Running
+              </span>
+            ) : status === 'success' ? (
+              'Ready'
+            ) : (
+              'Idle'
+            )}
+          </button>
+
+          <button
+            type="button"
+            aria-label="Refresh preview"
+            onClick={() => setRefreshKey(k => k + 1)}
+            className="bb-btn bb-btn-ghost bb-btn-icon rounded-xl"
+          >
+            <RefreshCw size={13} />
+          </button>
+
+          {previewUrl && (
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open preview in a new tab"
+              className="bb-btn bb-btn-ghost bb-btn-icon rounded-xl"
+            >
+              <ExternalLink size={13} />
+            </a>
+          )}
+        </div>
       </div>
+
 
       {/* iframe */}
       {previewUrl ? (

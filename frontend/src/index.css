@@ -83,20 +83,57 @@
   --error: #ef4444;
 }
 
+/* Glass surfaces & soft shadows */
+.glass {
+  background: rgba(17, 17, 24, 0.62);
+  border: 1px solid rgba(30, 30, 46, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.glass-strong {
+  background: rgba(17, 17, 24, 0.78);
+  border: 1px solid rgba(30, 30, 46, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Consistent focus outline offset */
+.bb-focus-ring {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+
   .agent-active {
-    animation: none;
+    animation: none !important;
+  }
+
+  .bb-animate,
+  .agent-active {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
+
 
 
 * { box-sizing: border-box; }
 
 body {
-  background: var(--bg);
+  margin: 0;
+  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.16), transparent 24%), var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100vh;
 }
 
 /* Scrollbar */

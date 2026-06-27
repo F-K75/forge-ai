@@ -1,35 +1,29 @@
-# AI IDE UI Redesign (Forge) - TODO
+# TODO - Forge UI Redesign
 
-## Status
-0. Not started
+## Step 1: Repo understanding
+- [x] Read key layout/store components
+- [x] Identify UI files to modify (WorkspaceLayout, PromptBox, PreviewPanel, ActivityFeed, AgentPipeline, FileEditor, theme)
 
-## Approved plan (confirmed)
-Premium redesign: keep all backend/APIs/business logic intact. Focus on UI/UX, responsiveness, animations, component organization, and performance.
-Three-column resizable layout (Sidebar | Main Workspace | Live Preview) replacing the current activePanel-switch UX, while preserving ChatPanel/FileEditor/PreviewPanel functionality.
+## Step 2: Implement premium layout foundations
+- [x] Refactor `WorkspaceLayout.tsx` toward a 3-column resizable design (left sidebar, center workspace, right preview)
+- [x] Update center workspace to use upgraded `PromptBox` + `ActivityFeed` composition
+- [x] Upgrade `PreviewPanel.tsx` with polished header, device selector UI (UI-only if no backend support)
 
-## Steps
-1. ✅ Update TODO baseline to match confirmed scope
-2. ⏳ Refactor layout skeleton: `frontend/src/components/layout/WorkspaceLayout.tsx` into three-column resizable panes
-3. ⏳ Add premium left sidebar:
-   - new components under `frontend/src/components/ide/sidebar/*` (workspace, agents, activity timeline)
-   - wire data from `frontend/src/store/buildStore.ts`
-4. ⏳ Upgrade middle workspace:
-   - Prompt hero + templates + autocomplete (frontend-only)
-   - AI Activity panel + Build progress timeline driven by agent/store state
-   - File changes panel (“Created/Modified/Deleted”) wired from `agents[].filesChanged` + file snapshot
-   - Keep ChatPanel available inside middle as a section/tab (no behavior changes)
-5. ⏳ Upgrade right preview panel UI + toolbar enhancements in `frontend/src/components/preview/PreviewPanel.tsx` (UI-only)
-6. ⏳ Add bottom dock scaffold (Terminal/Logs/AI Logs/Git/Testing/Build/Network/Console/Search) without breaking existing functionality
-7. ⏳ Refactor styling/polish across:
-   - `frontend/src/components/chat/ChatPanel.tsx`, `ChatInput.tsx`, `MessageList.tsx`, `ChatMessage.tsx` (premium cards + accessibility)
-   - `frontend/src/components/chat/AgentPipeline.tsx` (agent row hierarchy)
-   - `frontend/src/components/editor/FileEditor.tsx` (empty state + tree button polish)
-   - `frontend/src/index.css` (tokens + missing bb-* helpers + animations)
-8. ✅ Run frontend build/lint + fix TS/format issues
-9. ✅ Manual verification: responsiveness, keyboard focus, hover/disabled/empty/loading states, reduced motion
+## Step 3: Add premium UI details
+- [ ] Replace mock recent activity with a timeline component (UI-only formatting using store when available)
+- [ ] Improve agents sidebar to match design language (colors, progress, expandable rows if data exists)
+- [ ] Add build progress timeline stage UI (Planning/Backend/Frontend/Testing/Deployment)
 
-## Notes / Constraints
-- DO NOT change backend behavior or API contracts.
-- Preserve existing logic inside ChatPanel/FileEditor/PreviewPanel; only reorganize/move them visually.
+## Step 4: Bottom dock & AI Console
+- [x] Wire dock tab `Console` to render `<AiConsole />`
+- [x] Replace dock placeholders for other tabs (Terminal/Logs/AI Logs/Git/Testing/Build/Network/Search) with premium content
+- [x] Implement AI Console search/filter + auto-scroll polish (UI-only)
 
+## Step 5: Polish
+- [x] Update `index.css` for glass, focus rings, reduced motion handling
+- [x] Ensure responsiveness + keyboard accessibility
+
+## Step 6: Validate
+- [x] Run frontend build/dev
+- [ ] Verify websocket UI updates still render after full redesign
 

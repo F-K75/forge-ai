@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useBuildStore } from '../../store/buildStore'
-import { ChatInput } from './ChatInput'
 import { MessageList } from './MessageList'
 import type { Message } from './ChatMessage'
+import { PromptBox } from '../layout/PromptBox'
 
 const DEFAULT_EXAMPLE_PROMPTS = [
   'A SaaS CRM with contacts, deals pipeline, and email tracking',
@@ -15,24 +15,16 @@ const DEFAULT_EXAMPLE_PROMPTS = [
 interface ChatPanelProps {
   projectId: string
   onBuildStart?: (buildId: string, prompt: string) => void
-  
-  // Phase 2: Handler customization
   onSubmit?: (input: string) => Promise<{ id: string; content: string }>
   apiHandler?: (prompt: string) => Promise<any>
-  
-  // Phase 2: Optional store props (override store values if provided)
   isLoading?: boolean
   streamingContent?: string
   examples?: string[]
   inputPlaceholder?: string
-  
-  // Phase 2: Custom rendering
   renderMessage?: (content: string) => React.ReactNode
   userMessageClassName?: string
   assistantMessageClassName?: string
   emptyState?: React.ReactNode
-  
-  // Phase 3: Error handling & lifecycle
   onError?: (error: Error) => Promise<string | void>
   onMessageAdd?: (message: Message) => void
   onBeforeSubmit?: (input: string) => void
@@ -62,20 +54,16 @@ export function ChatPanel({
   const [localIsLoading, setLocalIsLoading] = useState(false)
   const { status, streamBuffer } = useBuildStore()
 
-  // Use external props or fall back to store
   const isBuilding = externalIsLoading ?? ['pending', 'running', 'debugging'].includes(status)
   const streamingBuffer = externalStreamingContent ?? streamBuffer
 
-  // Handle example click
   const handleExampleClick = (example: string) => {
     setInput(example)
   }
 
-  // Default submission handler (build creation)
   const defaultSubmitHandler = async (prompt: string) => {
     const { buildsApi, projectsApi } = await import('../../lib/api')
 
-    // Create project if no projectId
     let pid = projectId
     if (!pid) {
       const project = await projectsApi.create({
@@ -94,17 +82,14 @@ export function ChatPanel({
     }
   }
 
-  // Handle form submission
   const handleSubmit = async () => {
     if (!input.trim() || isBuilding) return
 
     const prompt = input.trim()
     setInput('')
 
-    // Phase 3: Lifecycle hook
     onBeforeSubmit?.(prompt)
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -118,7 +103,6 @@ export function ChatPanel({
     setLocalIsLoading(true)
 
     try {
-      // Use custom submit handler, API handler, or default
       let result
       if (customSubmit) {
         result = await customSubmit(prompt)
@@ -137,13 +121,12 @@ export function ChatPanel({
       }
       setMessages(prev => [...prev, assistantMessage])
       onMessageAdd?.(assistantMessage)
-      
+
       onAfterSubmit?.(prompt, true)
     } catch (err) {
       const error = err as Error
       let errorMessage = 'Something went wrong. Check that the backend is running.'
 
-      // Phase 3: Custom error handler
       if (onError) {
         const customErrorMsg = await onError(error)
         if (customErrorMsg) {
@@ -160,14 +143,13 @@ export function ChatPanel({
       }
       setMessages(prev => [...prev, errorMessageObj])
       onMessageAdd?.(errorMessageObj)
-      
+
       onAfterSubmit?.(prompt, false)
     } finally {
       setLocalIsLoading(false)
     }
   }
 
-  // Auto-scroll to bottom when messages update
   useEffect(() => {
     const scrollDiv = document.querySelector('[data-chat-messages]')
     if (scrollDiv) {
@@ -175,31 +157,37 @@ export function ChatPanel({
     }
   }, [messages, streamingBuffer])
 
-  // Build empty state with examples
   const customEmptyState = emptyState || (
-    <div className="flex flex-col items-center justify-center h-full gap-6 text-center px-4">
-      <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-600/30 flex items-center justify-center">
-        {/* Icon handled by MessageList default empty state */}
+    <div className="flex flex-col items-center justify-center h-full gap-4 rounded-[24px] border border-dashed border-forge-border/70 bg-forge-surface/50 p-8 text-center">
+      <p className="text-sm text-forge-text-secondary">Start with a product brief or a concrete feature request.</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        {examples.slice(0, 4).map((example, index) => (
+          <button
+            key={`${example}-${index}`}
+            type="button"
+            onClick={() => handleExampleClick(example)}
+            className="rounded-full border border-forge-border bg-forge-bg/70 px-3 py-1.5 text-xs text-forge-text-secondary transition hover:border-violet-500/30 hover:text-forge-text"
+          >
+            {example}
+          </button>
+        ))}
       </div>
-      {examples && examples.length > 0 && (
-        <div className="flex flex-col gap-2 w-full max-w-sm">
-          {examples.slice(0, 3).map((p, i) => (
-            <button
-              key={i}
-              onClick={() => handleExampleClick(p)}
-              className="text-left text-xs text-forge-text-secondary px-3 py-2 rounded-lg border border-forge-border hover:border-violet-600/50 hover:text-forge-text transition-all"
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 
   return (
-    <div className="flex flex-col h-full">
-      <div data-chat-messages>
+    <div className="flex h-full flex-col overflow-hidden rounded-[24px] border border-forge-border/70 bg-forge-surface/70 p-3 shadow-[0_18px_60px_rgba(0,0,0,0.16)]">
+      <div className="flex-shrink-0">
+        <PromptBox
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+          isLoading={isBuilding || localIsLoading}
+          placeholder={inputPlaceholder}
+        />
+      </div>
+
+      <div className="mt-3 min-h-0 flex-1 rounded-[20px] border border-forge-border/70 bg-forge-bg/70 p-2" data-chat-messages>
         <MessageList
           messages={messages}
           streamBuffer={streamingBuffer}
@@ -208,17 +196,6 @@ export function ChatPanel({
           renderMessage={renderMessage}
           userMessageClassName={userMessageClassName}
           assistantMessageClassName={assistantMessageClassName}
-        />
-      </div>
-
-      <div aria-label="Chat composer">
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          disabled={isBuilding}
-          placeholder={inputPlaceholder}
-          isLoading={isBuilding}
         />
       </div>
     </div>
