@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast'
 import { Mail } from 'lucide-react'
 import { useAuthStore } from './store/authStore'
 import { api } from './lib/api'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
 
 const WorkspaceLayout = lazy(() => import('./components/layout/WorkspaceLayout'))
 const Login = lazy(() => import('./pages/Login'))
@@ -94,6 +95,14 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <LoadingSpinner />
   }
 
+  // Admin check: verify via user object from /auth/me
+  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean)
+  const isAdmin = adminEmails.includes(user?.email || '')
+  
+  if (!isAdmin) {
+    return <Navigate to="/" replace />
+  }
+
   return <>{children}</>
 }
 
@@ -120,7 +129,7 @@ function ForgotPassword() {
     try {
       await api.post('/auth/forgot-password', { email })
       setSubmitted(true)
-    } catch {
+    } catch (_err: unknown) {
       // still return success to prevent email enumeration
       setSubmitted(true)
     } finally {
@@ -209,16 +218,16 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<PublicRoute><Suspense fallback={<RouteSkeleton />}><Login /></Suspense></PublicRoute>} />
-          <Route path="/signup" element={<PublicRoute><Suspense fallback={<RouteSkeleton />}><Signup /></Suspense></PublicRoute>} />
-          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-          <Route path="/onboarding" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ProtectedRoute>} />
-          <Route path="/billing" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Billing /></Suspense></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Settings /></Suspense></ProtectedRoute>} />
-          <Route path="/admin" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><Admin /></Suspense></AdminRoute>} />
-          <Route path="/marketplace" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Marketplace /></Suspense></ProtectedRoute>} />
-          <Route path="/" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute>} />
-          <Route path="/project/:projectId" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute>} />
+          <Route path="/login" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Login /></Suspense></PublicRoute></ErrorBoundary>} />
+          <Route path="/signup" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Signup /></Suspense></PublicRoute></ErrorBoundary>} />
+          <Route path="/forgot-password" element={<ErrorBoundary><PublicRoute><ForgotPassword /></PublicRoute></ErrorBoundary>} />
+          <Route path="/onboarding" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          <Route path="/billing" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Billing /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Settings /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          <Route path="/admin" element={<ErrorBoundary><AdminRoute><Suspense fallback={<RouteSkeleton />}><Admin /></Suspense></AdminRoute></ErrorBoundary>} />
+          <Route path="/marketplace" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Marketplace /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          <Route path="/" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          <Route path="/project/:projectId" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute></ErrorBoundary>} />
         </Routes>
         <Toaster
           position="bottom-right"

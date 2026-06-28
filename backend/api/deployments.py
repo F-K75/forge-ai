@@ -14,6 +14,7 @@ from git import Repo, Actor
 from core.models import Deployment, DeploymentStatus, WSEvent, WSEventType, User
 from core.database import get_db
 from core.config import get_settings
+from core.encryption import encrypt_field, decrypt_field
 from services.ws_manager import manager
 from api.auth import get_current_user
 
@@ -379,7 +380,12 @@ async def push_to_github(
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
 
-    github_token = req.github_token or current_user.github_token
+    # Get GitHub token - prefer user's stored encrypted token
+    github_token = req.github_token
+    if not github_token and current_user.github_token:
+        # Decrypt the stored token
+        github_token = decrypt_field(current_user.github_token)
+    
     if not github_token:
         raise HTTPException(
             status_code=400,
@@ -589,14 +595,22 @@ async def _github_push_background(
     try:
         temp_dir = tempfile.mkdtemp(prefix="forge-github-push-")
         try:
-            repo_url = req.repo_url.replace(
-                "https://", f"https://oauth2:{github_token}@"
-            )
+            # Use GIT_ASKPASS to pass token securely instead of embedding in URL
+            import subprocess
+            askpass_script = os.path.join(temp_dir, ".git-askpass.sh")
+            with open(askpass_script, "w") as f:
+                f.write("#!/bin/sh\necho \"$GITHUB_TOKEN\"\n")
+            os.chmod(askpass_script, 0o700)
+
+            env = os.environ.copy()
+            env["GIT_ASKPASS"] = askpass_script
+            env["GITHUB_TOKEN"] = github_token
 
             repo = await asyncio.to_thread(
                 Repo.clone_from,
-                repo_url,
+                req.repo_url,
                 temp_dir,
+                env=env,
             )
 
             files = build.get("files", {})

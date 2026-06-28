@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 import uuid
 import hashlib
 
-from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role
+from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog
 from core.database import get_db
 from core.config import get_settings
+from core.security import validate_password_strength
 from auth import (
     hash_password,
     verify_password,
@@ -15,6 +16,7 @@ from auth import (
     create_refresh_token,
     decode_token,
 )
+from core.encryption import encrypt_field, decrypt_field
 
 settings = get_settings()
 
@@ -100,7 +102,12 @@ async def get_current_user(
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")
 
-        user = User(**user_doc)
+        # Decrypt sensitive fields
+        user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+        if "github_token" in user_data and user_data["github_token"]:
+            user_data["github_token"] = decrypt_field(user_data["github_token"])
+        
+        user = User(**user_data)
         new_access = create_access_token({"sub": user.id, "email": user.email})
         new_refresh = create_refresh_token({"sub": user.id, "email": user.email})
 
@@ -121,7 +128,13 @@ async def get_current_user(
     user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
-    return User(**user_doc)
+    
+    # Decrypt sensitive fields
+    user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+    if "github_token" in user_data and user_data["github_token"]:
+        user_data["github_token"] = decrypt_field(user_data["github_token"])
+    
+    return User(**user_data)
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -131,6 +144,11 @@ async def register(req: RegisterRequest, response: Response):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # Enforce password strength
+    valid, msg = validate_password_strength(req.password)
+    if not valid:
+        raise HTTPException(status_code=400, detail=msg)
+
     user = User(
         email=req.email,
         name=req.name,
@@ -139,6 +157,11 @@ async def register(req: RegisterRequest, response: Response):
     )
     user_dict = user.model_dump()
     user_dict["hashed_password"] = hash_password(req.password)
+    
+    # Encrypt sensitive fields if present
+    if "github_token" in user_dict and user_dict["github_token"]:
+        user_dict["github_token"] = encrypt_field(user_dict["github_token"])
+    
     await db.users.insert_one(user_dict)
 
     access_token = create_access_token({"sub": user.id, "email": user.email})
@@ -147,18 +170,12 @@ async def register(req: RegisterRequest, response: Response):
     response.set_cookie(
         "access_token",
         access_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
     )
     response.set_cookie(
         "refresh_token",
         refresh_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=30 * 24 * 60 * 60,
+        **_get_cookie_kwargs(30 * 24 * 60 * 60),
     )
 
     return TokenResponse(
@@ -175,7 +192,12 @@ async def login(req: LoginRequest, response: Response):
     if not user_doc:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    user = User(**{k: v for k, v in user_doc.items() if k in User.model_fields})
+    # Decrypt sensitive fields before validation
+    user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+    if "github_token" in user_data and user_data["github_token"]:
+        user_data["github_token"] = decrypt_field(user_data["github_token"])
+    
+    user = User(**user_data)
     hashed = user_doc.get("hashed_password", "")
     if not verify_password(req.password, hashed):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -186,18 +208,12 @@ async def login(req: LoginRequest, response: Response):
     response.set_cookie(
         "access_token",
         access_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
     )
     response.set_cookie(
         "refresh_token",
         refresh_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=30 * 24 * 60 * 60,
+        **_get_cookie_kwargs(30 * 24 * 60 * 60),
     )
 
     return TokenResponse(
@@ -219,25 +235,24 @@ async def refresh(req: RefreshRequest, response: Response):
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 
-    user = User(**{k: v for k, v in user_doc.items() if k in User.model_fields})
+    # Decrypt sensitive fields
+    user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+    if "github_token" in user_data and user_data["github_token"]:
+        user_data["github_token"] = decrypt_field(user_data["github_token"])
+    
+    user = User(**user_data)
     access_token = create_access_token({"sub": user.id, "email": user.email})
     new_refresh = create_refresh_token({"sub": user.id, "email": user.email})
 
     response.set_cookie(
         "access_token",
         access_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
     )
     response.set_cookie(
         "refresh_token",
         new_refresh,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=30 * 24 * 60 * 60,
+        **_get_cookie_kwargs(30 * 24 * 60 * 60),
     )
 
     return TokenResponse(
@@ -254,12 +269,28 @@ async def logout(response: Response):
     return {"ok": True}
 
 
+@router.post("/ws-token")
+async def create_ws_token(user: User = Depends(get_current_user)):
+    """Generate a short-lived WebSocket token (5 min expiry)."""
+    ws_token = create_access_token(
+        {"sub": user.id, "email": user.email},
+        expires_delta=timedelta(minutes=5),
+        token_type="ws",
+    )
+    return {"token": ws_token}
+
+
 @router.get("/me")
 async def get_me(user: User = Depends(get_current_user)):
     db = await get_db()
     user_doc = await db.users.find_one(
         {"id": user.id}, {"_id": 0, "hashed_password": 0}
     )
+    
+    # Decrypt sensitive fields
+    if user_doc and "github_token" in user_doc and user_doc["github_token"]:
+        user_doc["github_token"] = decrypt_field(user_doc["github_token"])
+    
     return user_doc
 
 
@@ -271,6 +302,11 @@ async def update_profile(
     update = {k: v for k, v in req.model_dump().items() if v is not None}
     if not update:
         return {"ok": True}
+    
+    # Encrypt sensitive fields if being updated
+    if "github_token" in update and update["github_token"]:
+        update["github_token"] = encrypt_field(update["github_token"])
+    
     await db.users.update_one({"id": user.id}, {"$set": update})
     return {"ok": True}
 
@@ -289,6 +325,18 @@ async def change_password(
     await db.users.update_one(
         {"id": user.id}, {"$set": {"hashed_password": new_hashed}}
     )
+    
+    # Log password change for audit
+    audit_log = AuditLog(
+        actor_id=user.id,
+        actor_email=user.email,
+        action="change_password",
+        resource_type="user",
+        resource_id=user.id,
+        changes={"timestamp": datetime.utcnow().isoformat()},
+    )
+    await db.audit_logs.insert_one(audit_log.model_dump())
+    
     return {"ok": True}
 
 
@@ -493,10 +541,11 @@ async def invite_member(
         invited_by=user.id,
     )
     invite_dict = invite.model_dump()
-    invite_dict["hashed_token"] = _hash_token(invite_dict.pop("token"))
+    raw_token = invite_dict.pop("token")
+    invite_dict["hashed_token"] = _hash_token(raw_token)
     await db.invitations.insert_one(invite_dict)
 
-    return {"ok": True, "invitation_id": invite.id, "token": invite.token}
+    return {"ok": True, "invitation_id": invite.id, "token": raw_token}
 
 
 @router.post("/organizations/invitations/{token}/accept")

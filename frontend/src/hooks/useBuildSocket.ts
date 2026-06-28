@@ -1,8 +1,9 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useBuildStore } from '../store/buildStore'
 import { parseWSEvent } from '../lib/wsContract'
+import { api } from '../lib/api'
 
-const WS_URL = (import.meta as any).env?.VITE_WS_URL || 'ws://localhost:8000'
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
 
 export function useBuildSocket(buildId: string | null) {
   const wsRef = useRef<WebSocket | null>(null)
@@ -48,17 +49,20 @@ export function useBuildSocket(buildId: string | null) {
       const baseDelayMs = 500
       const maxDelayMs = 10_000
 
-      const connectOnce = () => {
+      const connectOnce = async () => {
         if (generationRef.current !== gen) return
 
-        const token = (document.cookie || "")
-          .split(';')
-          .map(c => c.trim())
-          .find(c => c.startsWith('access_token='))
-          ?.split('=')[1]
+        let wsToken: string | null = null
+        try {
+          const { data } = await api.get('/auth/ws-token')
+          wsToken = data.token
+        } catch {
+          setConnectionStatus('error')
+          return
+        }
 
         // Backend expects token via query param; fail closed if token missing.
-        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}?token=${encodeURIComponent(token || '')}`)
+        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}?token=${encodeURIComponent(wsToken || '')}`)
 
         wsRef.current = ws
 

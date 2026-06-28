@@ -16,5 +16,6 @@ docker==7.1.0
 celery==5.4.0
 stripe==8.9.0
 resend==2.6.0
+cryptography==42.0.5
 pytest==8.2.0
 pytest-asyncio==0.23.7

@@ -6,6 +6,7 @@ from datetime import datetime, date
 from core.models import User, Build, BuildStatus, PlanTier, FeatureFlag, AuditLog, SecurityEvent
 from core.database import get_db, get_redis
 from core.config import get_settings
+from core.security import sanitize_string
 from api.auth import get_current_user
 
 settings = get_settings()
@@ -180,7 +181,7 @@ class AnalyticsOverview(BaseModel):
 @router.get("/users", response_model=PaginatedUsers)
 async def list_users(
     page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    per_page: int = Query(20, ge=1, le=50),
     plan: Optional[PlanTier] = Query(None),
     banned: Optional[bool] = Query(None),
     search: Optional[str] = Query(None),
@@ -194,9 +195,11 @@ async def list_users(
     if banned is not None:
         query["banned"] = banned
     if search:
+        # Sanitize search input to prevent ReDoS attacks
+        sanitized = sanitize_string(search, max_length=100)
         query["$or"] = [
-            {"email": {"$regex": search, "$options": "i"}},
-            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": sanitized, "$options": "i"}},
+            {"name": {"$regex": sanitized, "$options": "i"}},
         ]
     
     skip = (page - 1) * per_page
@@ -268,7 +271,7 @@ async def update_user(
 @router.get("/builds", response_model=PaginatedBuilds)
 async def list_builds(
     page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    per_page: int = Query(20, ge=1, le=50),
     status: Optional[BuildStatus] = Query(None),
     user_id: Optional[str] = Query(None),
     date_from: Optional[datetime] = Query(None),

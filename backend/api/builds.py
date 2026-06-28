@@ -10,9 +10,9 @@ from fastapi import (
     Request,
     Query,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from core.models import (
     Build,
@@ -49,7 +49,7 @@ CREDIT_COSTS = {
 
 class CreateBuildRequest(BaseModel):
     project_id: str
-    prompt: str
+    prompt: str = Field(..., max_length=50000)
 
 
 @router.post("/")
@@ -92,6 +92,22 @@ async def create_build(
     if not reserved:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
+    # Build deduplication: prevent duplicate builds for the same project within 30 seconds
+    thirty_seconds_ago = datetime.utcnow() - timedelta(seconds=30)
+    recent_build = await db.builds.find_one(
+        {
+            "project_id": req.project_id,
+            "user_id": current_user.id,
+            "status": {"$in": ["pending", "building"]},
+            "created_at": {"$gte": thirty_seconds_ago.isoformat()},
+        },
+        {"_id": 0},
+    )
+    if recent_build:
+        raise HTTPException(
+            status_code=429,
+            detail="A build is already in progress for this project. Please wait.",
+        )
 
     build = Build(
         project_id=req.project_id,
@@ -109,7 +125,6 @@ async def create_build(
         current_user.id,
         max_credits,
     )
-
 
     return {"build_id": build.id, "status": build.status}
 
@@ -141,13 +156,24 @@ async def _run_build_background(
     # On success: refund un-used credits.
     # On failure: refund reserved credits.
     try:
-        await orchestrator.run_build(build, emit=emit, sandbox_runner=sandbox)
+        await asyncio.wait_for(
+            orchestrator.run_build(build, emit=emit, sandbox_runner=sandbox),
+            timeout=settings.build_timeout,
+        )
         await db.builds.update_one({"id": build.id}, {"$set": build.model_dump()})
 
         used = int(build.credits_used or 0)
         refund = max(0, reserved_credits - used)
         if refund:
-            await db.users.update_one({"id": user_id}, {"$inc": {"credits": refund}})
+            # Atomic refund with guard: only refund if user still has deducted credits
+            result = await db.users.find_one_and_update(
+                {"id": user_id, "credits": {"$gte": reserved_credits - used}},
+                {"$inc": {"credits": refund}},
+                return_document=True,
+            )
+            if not result:
+                # Credits were already modified (shouldn't happen, but fail safe)
+                pass
 
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "credits": 1})
         remaining = int((user_doc or {}).get("credits", 0))

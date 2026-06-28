@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -10,6 +11,13 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def check_jwt_secret(cls, v):
+        if len(v) < 32:
+            raise ValueError("jwt_secret must be at least 32 characters long")
+        return v
     jwt_expire_minutes: int = 10080  # 7 days
     github_client_id: str = ""
     github_client_secret: str = ""
@@ -30,7 +38,7 @@ class Settings(BaseSettings):
     # App
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
-    allowed_origins: str = "http://localhost:3000,http://localhost:5173"
+    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
     # Admin
     admin_emails: str = "admin@forge.ai"
@@ -43,6 +51,7 @@ class Settings(BaseSettings):
     trusted_proxies: str = "127.0.0.1,::1"
     max_request_size: int = 10 * 1024 * 1024
     anthropic_timeout: int = 120
+    build_timeout: int = 600  # 10 minutes max per build
 
     class Config:
         env_file = ".env"

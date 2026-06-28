@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 
 from api.builds import router as builds_router
@@ -30,12 +31,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Add trusted host middleware to prevent host header attacks
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "127.0.0.1", "*.forge.ai", "*.local"],
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins.split(",") if settings.allowed_origins else ["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    max_age=600,
 )
 
 app.middleware("http")(request_size_limit_middleware)

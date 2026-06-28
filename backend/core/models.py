@@ -124,6 +124,8 @@ class Project(BaseModel):
     github_branch: str = "main"
     deployed_url: Optional[str] = None
     tech_stack: Dict[str, str] = {}
+    template: Optional[str] = None  # Onboarding template ID (e.g., "saas-starter", "ecommerce")
+    template_data: Dict[str, Any] = {}  # Template-specific configuration
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
