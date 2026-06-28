@@ -3,33 +3,11 @@ import axios from 'axios'
 // Vite env typing fallback (prevents TS error in some toolchains)
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
 
-const isDemoMode = () => {
-  const user = localStorage.getItem('forge-demo-mode')
-  return user === 'true'
-}
-
 export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 })
-
-api.interceptors.response.use(
-  r => r,
-  async (error) => {
-    // Demo fallback mode
-    if (error.response?.status === 401 || error.response?.status === 404 || !error.response) {
-      return Promise.resolve({
-        data: {},
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {},
-      })
-    }
-    return Promise.reject(error)
-  }
-)
 
 // Auth
 export const authApi = {

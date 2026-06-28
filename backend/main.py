@@ -12,7 +12,7 @@ from api.marketplace import router as marketplace_router
 from api.growth import router as growth_router
 from core.database import close_connections
 from core.config import get_settings
-from core.security import rate_limit_middleware
+from core.security import rate_limit_middleware, request_size_limit_middleware
 
 settings = get_settings()
 
@@ -38,6 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.middleware("http")(request_size_limit_middleware)
 app.middleware("http")(rate_limit_middleware)
 
 app.include_router(auth_router)

@@ -51,7 +51,15 @@ export function useBuildSocket(buildId: string | null) {
       const connectOnce = () => {
         if (generationRef.current !== gen) return
 
-        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}`)
+        const token = (document.cookie || "")
+          .split(';')
+          .map(c => c.trim())
+          .find(c => c.startsWith('access_token='))
+          ?.split('=')[1]
+
+        // Backend expects token via query param; fail closed if token missing.
+        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}?token=${encodeURIComponent(token || '')}`)
+
         wsRef.current = ws
 
         heartbeatRef.current = setInterval(() => {

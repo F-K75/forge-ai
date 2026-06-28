@@ -19,48 +19,25 @@ interface AuthState {
   register: (email: string, name: string, password: string) => Promise<void>
   logout: () => Promise<void>
   fetchMe: () => Promise<void>
-  demoMode: boolean
-}
-
-const DEMO_USER: User = {
-  id: 'demo-user-1',
-  email: 'demo@forge.ai',
-  name: 'Demo User',
-  plan: 'free',
-  credits: 10,
-  created_at: new Date().toISOString(),
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  demoMode: false,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true })
-    try {
-      const res = await api.post('/auth/login', { email, password })
-      set({ user: res.data.user, isAuthenticated: true, isLoading: false })
-      await get().fetchMe()
-    } catch (e) {
-      // Demo mode fallback - auto-login with demo user
-      console.log('Login failed, entering demo mode')
-      set({ user: DEMO_USER, isAuthenticated: true, isLoading: false, demoMode: true })
-    }
+    const res = await api.post('/auth/login', { email, password })
+    set({ user: res.data.user, isAuthenticated: true, isLoading: false })
+    await get().fetchMe()
   },
 
   register: async (email: string, name: string, password: string) => {
     set({ isLoading: true })
-    try {
-      const res = await api.post('/auth/register', { email, name, password })
-      set({ user: res.data.user, isAuthenticated: true, isLoading: false })
-      await get().fetchMe()
-    } catch (e) {
-      // Demo mode fallback
-      console.log('Register failed, entering demo mode')
-      set({ user: DEMO_USER, isAuthenticated: true, isLoading: false, demoMode: true })
-    }
+    const res = await api.post('/auth/register', { email, name, password })
+    set({ user: res.data.user, isAuthenticated: true, isLoading: false })
+    await get().fetchMe()
   },
 
   logout: async () => {
@@ -69,16 +46,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // ignore
     }
-    set({ user: null, isAuthenticated: false, demoMode: false })
+    set({ user: null, isAuthenticated: false })
   },
 
   fetchMe: async () => {
-    try {
-      const res = await api.get('/auth/me')
-      set({ user: res.data, isAuthenticated: true, isLoading: false })
-    } catch {
-      // Demo mode fallback - show demo user
-      set({ user: DEMO_USER, isAuthenticated: true, isLoading: false, demoMode: true })
-    }
+    const res = await api.get('/auth/me')
+    set({ user: res.data, isAuthenticated: true, isLoading: false })
   },
 }))

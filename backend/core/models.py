@@ -56,6 +56,7 @@ class Role(str, Enum):
 
 # --- User ---
 
+
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
@@ -72,6 +73,7 @@ class User(BaseModel):
 
 
 # --- Organization ---
+
 
 class Organization(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -101,12 +103,16 @@ class Invitation(BaseModel):
     role: Role = Role.MEMBER
     invited_by: str
     token: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
+    hashed_token: Optional[str] = None
+    expires_at: datetime = Field(
+        default_factory=lambda: datetime.utcnow() + timedelta(days=7)
+    )
     accepted_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 # --- Project ---
+
 
 class Project(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -123,6 +129,7 @@ class Project(BaseModel):
 
 
 # --- Build ---
+
 
 class AgentStep(BaseModel):
     agent: AgentType
@@ -151,6 +158,7 @@ class Build(BaseModel):
 
 # --- Message ---
 
+
 class Message(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     project_id: str
@@ -162,6 +170,7 @@ class Message(BaseModel):
 
 
 # --- Billing ---
+
 
 class Subscription(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -201,6 +210,7 @@ class CreditPurchase(BaseModel):
 
 # --- Deployment ---
 
+
 class Deployment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     project_id: str
@@ -217,6 +227,7 @@ class Deployment(BaseModel):
 
 
 # --- Analytics ---
+
 
 class AnalyticsEvent(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -239,6 +250,7 @@ class OnboardingProgress(BaseModel):
 
 # --- Marketplace ---
 
+
 class MarketplaceItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: str  # prompt | template
@@ -255,6 +267,7 @@ class MarketplaceItem(BaseModel):
 
 
 # --- Admin ---
+
 
 class FeatureFlag(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -281,6 +294,7 @@ class AuditLog(BaseModel):
 
 # --- Security ---
 
+
 class RateLimitRule(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     key: str  # user_id | ip | endpoint
@@ -301,6 +315,7 @@ class SecurityEvent(BaseModel):
 
 
 # --- WebSocket events ---
+
 
 class WSEventType(str, Enum):
     # Agent lifecycle
@@ -325,7 +340,6 @@ class WSEventType(str, Enum):
     DEBUG_START = "debug_start"
     STREAM_TOKEN = "stream_token"
     CREDITS_UPDATE = "credits_update"
-
 
 
 class WSEvent(BaseModel):

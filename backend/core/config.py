@@ -26,18 +26,23 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_publishable_key: str = ""
-    
+
     # App
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
     allowed_origins: str = "http://localhost:3000,http://localhost:5173"
-    
+
     # Admin
     admin_emails: str = "admin@forge.ai"
-    
+
     # Growth
     resend_api_key: str = ""
     from_email: str = "noreply@forge.ai"
+
+    # Security
+    trusted_proxies: str = "127.0.0.1,::1"
+    max_request_size: int = 10 * 1024 * 1024
+    anthropic_timeout: int = 120
 
     class Config:
         env_file = ".env"

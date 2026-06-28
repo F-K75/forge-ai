@@ -6,11 +6,12 @@ import asyncio
 import os
 import tempfile
 import shutil
+import hashlib
 
 import docker
 from git import Repo, Actor
 
-from core.models import Deployment, DeploymentStatus, Project, Build, WSEventType, User
+from core.models import Deployment, DeploymentStatus, WSEvent, WSEventType, User
 from core.database import get_db
 from core.config import get_settings
 from services.ws_manager import manager
@@ -142,9 +143,7 @@ async def list_deployments(
         query["project_id"] = project_id
 
     deployments = (
-        await db.deployments.find(query, {"_id": 0})
-        .sort("created_at", -1)
-        .to_list(50)
+        await db.deployments.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
     )
     return DeploymentListResponse(
         deployments=deployments,
@@ -260,7 +259,12 @@ async def cancel_deployment(
 
     await db.deployments.update_one(
         {"id": deployment_id},
-        {"$set": {"status": DeploymentStatus.CANCELLED, "logs": deployment.get("logs", "") + "\nCancelled by user"}},
+        {
+            "$set": {
+                "status": DeploymentStatus.CANCELLED,
+                "logs": deployment.get("logs", "") + "\nCancelled by user",
+            }
+        },
     )
 
     if status in (DeploymentStatus.BUILDING, DeploymentStatus.DEPLOYING):
@@ -348,8 +352,10 @@ async def get_deployment_url(
 
     url = deployment.get("url")
     if not url:
-        container_name = f"forge-deploy-{deployment_id}"
-        url = f"http://localhost:{8000 + hash(deployment_id) % 1000}"
+        port = 8000 + (
+            int(hashlib.sha256(deployment_id.encode()).hexdigest(), 16) % 1000
+        )
+        url = f"http://localhost:{port}"
 
     return DeploymentUrlResponse(url=url)
 
@@ -406,7 +412,12 @@ async def _run_deployment_background(
     try:
         await db.deployments.update_one(
             {"id": deployment.id},
-            {"$set": {"status": DeploymentStatus.BUILDING, "logs": "Starting build process..."}},
+            {
+                "$set": {
+                    "status": DeploymentStatus.BUILDING,
+                    "logs": "Starting build process...",
+                }
+            },
         )
         await manager.emit(
             WSEvent(
@@ -428,13 +439,20 @@ async def _run_deployment_background(
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
 
-            dockerfile_content = _infer_dockerfile(temp_dir, project.get("tech_stack", {}))
+            dockerfile_content = _infer_dockerfile(
+                temp_dir, project.get("tech_stack", {})
+            )
             with open(os.path.join(temp_dir, "Dockerfile"), "w", encoding="utf-8") as f:
                 f.write(dockerfile_content)
 
             await db.deployments.update_one(
                 {"id": deployment.id},
-                {"$set": {"status": DeploymentStatus.DEPLOYING, "logs": "Building Docker image..."}},
+                {
+                    "$set": {
+                        "status": DeploymentStatus.DEPLOYING,
+                        "logs": "Building Docker image...",
+                    }
+                },
             )
             await manager.emit(
                 WSEvent(
@@ -463,7 +481,9 @@ async def _run_deployment_background(
 
                 image = client.images.get(image_tag)
 
-                port = 8000 + (hash(deployment.id) % 1000)
+                port = 8000 + (
+                    int(hashlib.sha256(deployment.id.encode()).hexdigest(), 16) % 1000
+                )
                 env_vars = deployment.env_vars or {}
                 env_vars.setdefault("PORT", str(port))
                 env_vars.setdefault("HOST", "0.0.0.0")
@@ -484,12 +504,14 @@ async def _run_deployment_background(
 
             await db.deployments.update_one(
                 {"id": deployment.id},
-                {"$set": {
-                    "status": DeploymentStatus.LIVE,
-                    "url": container_url,
-                    "logs": f"{deployment.logs}\nBuild complete.\n{build_logs}",
-                    "deployed_at": datetime.utcnow().isoformat(),
-                }},
+                {
+                    "$set": {
+                        "status": DeploymentStatus.LIVE,
+                        "url": container_url,
+                        "logs": f"{deployment.logs}\nBuild complete.\n{build_logs}",
+                        "deployed_at": datetime.utcnow().isoformat(),
+                    }
+                },
             )
             await manager.emit(
                 WSEvent(
@@ -508,14 +530,24 @@ async def _run_deployment_background(
 
         await db.projects.update_one(
             {"id": deployment.project_id},
-            {"$set": {"deployed_url": container_url, "updated_at": datetime.utcnow().isoformat()}},
+            {
+                "$set": {
+                    "deployed_url": container_url,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            },
         )
 
     except docker.errors.BuildError as e:
         error_msg = f"Docker build failed: {e}"
         await db.deployments.update_one(
             {"id": deployment.id},
-            {"$set": {"status": DeploymentStatus.FAILED, "logs": f"{deployment.logs}\n{error_msg}"}},
+            {
+                "$set": {
+                    "status": DeploymentStatus.FAILED,
+                    "logs": f"{deployment.logs}\n{error_msg}",
+                }
+            },
         )
         await manager.emit(
             WSEvent(
@@ -528,7 +560,12 @@ async def _run_deployment_background(
         error_msg = f"Deployment failed: {str(e)}"
         await db.deployments.update_one(
             {"id": deployment.id},
-            {"$set": {"status": DeploymentStatus.FAILED, "logs": f"{deployment.logs}\n{error_msg}"}},
+            {
+                "$set": {
+                    "status": DeploymentStatus.FAILED,
+                    "logs": f"{deployment.logs}\n{error_msg}",
+                }
+            },
         )
         await manager.emit(
             WSEvent(
@@ -552,12 +589,9 @@ async def _github_push_background(
     try:
         temp_dir = tempfile.mkdtemp(prefix="forge-github-push-")
         try:
-            auth_url = (
-                f"https://{github_token[:4]}...{github_token[-4:]}:{github_token}@"
-                if False
-                else f"https://{github_token}@"
+            repo_url = req.repo_url.replace(
+                "https://", f"https://oauth2:{github_token}@"
             )
-            repo_url = req.repo_url.replace("https://", f"https://{github_token}@")
 
             repo = await asyncio.to_thread(
                 Repo.clone_from,
@@ -587,7 +621,11 @@ async def _github_push_background(
                 WSEvent(
                     type=WSEventType.BUILD_COMPLETE,
                     build_id=req.build_id,
-                    data={"status": "pushed", "repo": req.repo_url, "branch": req.branch},
+                    data={
+                        "status": "pushed",
+                        "repo": req.repo_url,
+                        "branch": req.branch,
+                    },
                 )
             )
         finally:
@@ -604,8 +642,16 @@ async def _github_push_background(
 
 def _infer_dockerfile(project_dir: str, tech_stack: Dict[str, Any]) -> str:
     tech = {k.lower(): v.lower() for k, v in tech_stack.items()}
-    has_node = "node" in tech or "javascript" in tech or "typescript" in tech or "react" in tech or "nextjs" in tech
-    has_python = "python" in tech or "fastapi" in tech or "flask" in tech or "django" in tech
+    has_node = (
+        "node" in tech
+        or "javascript" in tech
+        or "typescript" in tech
+        or "react" in tech
+        or "nextjs" in tech
+    )
+    has_python = (
+        "python" in tech or "fastapi" in tech or "flask" in tech or "django" in tech
+    )
     has_next = "nextjs" in tech or "next.js" in tech
 
     if has_next:
@@ -618,7 +664,7 @@ def _infer_dockerfile(project_dir: str, tech_stack: Dict[str, Any]) -> str:
             "RUN npm run build\n"
             "ENV NODE_ENV=production\n"
             "EXPOSE 8000\n"
-            "CMD [\"npm\", \"start\"]\n"
+            'CMD ["npm", "start"]\n'
         )
 
     if has_node and not has_python:
@@ -631,7 +677,7 @@ def _infer_dockerfile(project_dir: str, tech_stack: Dict[str, Any]) -> str:
             "ENV PORT=8000\n"
             "ENV NODE_ENV=production\n"
             "EXPOSE 8000\n"
-            "CMD [\"node\", \"index.js\"]\n"
+            'CMD ["node", "index.js"]\n'
         )
 
     if has_python:
@@ -644,7 +690,7 @@ def _infer_dockerfile(project_dir: str, tech_stack: Dict[str, Any]) -> str:
             "ENV PORT=8000\n"
             "ENV PYTHONUNBUFFERED=1\n"
             "EXPOSE 8000\n"
-            "CMD [\"python\", \"main.py\"]\n"
+            'CMD ["python", "main.py"]\n'
         )
 
     return (
@@ -656,5 +702,5 @@ def _infer_dockerfile(project_dir: str, tech_stack: Dict[str, Any]) -> str:
         "ENV PORT=8000\n"
         "ENV PYTHONUNBUFFERED=1\n"
         "EXPOSE 8000\n"
-        "CMD [\"python\", \"-m\", \"http.server\", \"8000\"]\n"
+        'CMD ["python", "-m", "http.server", "8000"]\n'
     )

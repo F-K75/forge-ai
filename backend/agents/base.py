@@ -13,7 +13,10 @@ class BaseAgent(ABC):
     system_prompt: str
 
     def __init__(self):
-        self.client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+        self.client = anthropic.AsyncAnthropic(
+            api_key=settings.anthropic_api_key,
+            timeout=settings.anthropic_timeout,
+        )
         self.model = settings.default_model
 
     async def stream(
