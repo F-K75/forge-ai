@@ -34,11 +34,19 @@ class Orchestrator:
         emit: Callable,  # async fn(WSEvent)
         sandbox_runner=None,
     ) -> Build:
+
         """
         Full pipeline: architect → designer → developer → integration → PM → (debug loop)
         emit: coroutine that sends WSEvent to connected WebSocket clients
         """
         try:
+            # --- 0. BUILD START ---
+            await emit(WSEvent(
+                type=WSEventType.BUILD_START,
+                build_id=build.id,
+                data={"project_id": build.project_id}
+            ))
+
             # --- 1. ARCHITECT ---
             await self._start_agent(build, AgentType.ARCHITECT, emit)
             blueprint = await self.architect.blueprint(
@@ -46,11 +54,21 @@ class Orchestrator:
                 conversation_history=None,
             )
             await self._complete_agent(build, AgentType.ARCHITECT, emit, output=json.dumps(blueprint))
+
+            await emit(WSEvent(
+                type=WSEventType.AGENT_UPDATE,
+                build_id=build.id,
+                data={"agent": "architect", "message": "Architecture blueprint created"}
+            ))
+
             await emit(WSEvent(
                 type=WSEventType.AGENT_COMPLETE,
                 build_id=build.id,
-                data={"agent": "architect", "blueprint": blueprint}
+                data={"agent": "architect", "files_changed": []}
             ))
+
+
+
 
             # --- 2. BUSINESS MODEL IMPROVER ---
             await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit)
@@ -62,18 +80,37 @@ class Orchestrator:
                 output=json.dumps(business_model),
             )
             await emit(WSEvent(
+                type=WSEventType.AGENT_UPDATE,
+                build_id=build.id,
+                data={"agent": "business_model", "message": "Business model updated"},
+            ))
+            await emit(WSEvent(
                 type=WSEventType.AGENT_COMPLETE,
                 build_id=build.id,
-                data={"agent": "business_model", "business_model": business_model},
+                data={"agent": "business_model", "files_changed": []},
             ))
+
+
 
             # --- 3. DESIGNER ---
             await self._start_agent(build, AgentType.DESIGNER, emit)
             design = await self.designer.design(blueprint)
             await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design))
 
+            await emit(WSEvent(
+                type=WSEventType.AGENT_UPDATE,
+                build_id=build.id,
+                data={"agent": "designer", "message": "Design complete"},
+            ))
+
             # --- 3. DEVELOPER (with streaming) ---
             await self._start_agent(build, AgentType.DEVELOPER, emit)
+
+            await emit(WSEvent(
+                type=WSEventType.AGENT_PROGRESS,
+                build_id=build.id,
+                data={"agent": "developer", "progress": 0, "message": "Generating files"}
+            ))
 
             stream_buffer = []
             async def stream_token(chunk: str):
@@ -94,11 +131,26 @@ class Orchestrator:
                 output=f"Generated {len(build.files)} files",
                 files_changed=list(build.files.keys())
             )
+
+            await emit(WSEvent(
+                type=WSEventType.AGENT_UPDATE,
+                build_id=build.id,
+                data={"agent": "developer", "message": "Developer finished generating files"},
+            ))
+
             await emit(WSEvent(
                 type=WSEventType.FILE_UPDATE,
                 build_id=build.id,
                 data={"files": build.files}
             ))
+
+
+            await emit(WSEvent(
+                type=WSEventType.AGENT_PROGRESS,
+                build_id=build.id,
+                data={"agent": "developer", "progress": 100, "message": "Files generated"}
+            ))
+
 
             # --- 4. INTEGRATION ---
             integrations = blueprint.get("integrations", [])
@@ -108,9 +160,16 @@ class Orchestrator:
                 build.files.update(int_result.get("files", {}))
                 await self._complete_agent(
                     build, AgentType.INTEGRATION, emit,
-                    output=int_result.get("instructions", ""),
+                output=int_result.get("instructions", ""),
                     files_changed=list(int_result.get("files", {}).keys())
                 )
+                
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_UPDATE,
+                    build_id=build.id,
+                    data={"agent": "integration", "message": "Integration complete"},
+                ))
+
 
             # --- 5. SANDBOX (if available) ---
             errors = None
@@ -168,6 +227,14 @@ class Orchestrator:
                 }
             ))
 
+            # Frontend expects preview_update/error events; we keep previewUrl best-effort.
+            await emit(WSEvent(
+                type=WSEventType.FILE_UPDATE,
+                build_id=build.id,
+                data={"preview_url": None, "files": build.files}
+            ))
+
+
         except Exception as e:
             build.status = BuildStatus.FAILED
             await emit(WSEvent(
@@ -175,7 +242,14 @@ class Orchestrator:
                 build_id=build.id,
                 data={"error": str(e)}
             ))
+            # Frontend 'error' event compatibility
+            await emit(WSEvent(
+                type=WSEventType.BUILD_FAILED,
+                build_id=build.id,
+                data={"error": str(e)}
+            ))
             raise
+
 
         return build
 

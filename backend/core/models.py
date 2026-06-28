@@ -100,15 +100,29 @@ class Message(BaseModel):
 # --- WebSocket events ---
 
 class WSEventType(str, Enum):
+    # Agent lifecycle
     AGENT_START = "agent_start"
+    AGENT_UPDATE = "agent_update"
     AGENT_PROGRESS = "agent_progress"
     AGENT_COMPLETE = "agent_complete"
-    FILE_UPDATE = "file_update"
+
+    # Build lifecycle
+    BUILD_START = "build_start"
     BUILD_COMPLETE = "build_complete"
     BUILD_FAILED = "build_failed"
+
+    # File + preview updates
+    FILE_UPDATE = "file_update"
+    PREVIEW_UPDATE = "preview_update"
+
+    # Errors
+    ERROR = "error"
+
+    # Existing internal/debug events
     DEBUG_START = "debug_start"
     STREAM_TOKEN = "stream_token"
     CREDITS_UPDATE = "credits_update"
+
 
 
 class WSEvent(BaseModel):

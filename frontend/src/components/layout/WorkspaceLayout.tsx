@@ -1,10 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+
+import { buildsApi, projectsApi } from '../../lib/api'
+
+
 import { Activity, Bot, Boxes, Cpu, FileCode2, FolderKanban, Gauge, MonitorPlay, PanelsTopLeft, Search, Settings, Sparkles, TerminalSquare, Workflow } from 'lucide-react'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { useBuildStore } from '../../store/buildStore'
+
 import { useBuildSocket } from '../../hooks/useBuildSocket'
+
 import { ResizablePanel } from './ResizablePanel'
 import { SidebarItem } from './SidebarItem'
 import { ProjectOverview } from './ProjectOverview'
@@ -51,7 +58,10 @@ const bottomTabs: { id: BottomTab; label: string }[] = [
 ]
 
 export function WorkspaceLayout() {
-  const [projectId] = useState('default-project')
+  const params = useParams<{ projectId?: string }>()
+  const projectId = params.projectId || 'default-project'
+
+
   const [bottomTab, setBottomTab] = useState<BottomTab>('terminal')
   const [dockHeight, setDockHeight] = useState(280)
 
@@ -68,11 +78,18 @@ export function WorkspaceLayout() {
     streamBuffer,
   } = useBuildStore()
 
-  useBuildSocket(buildId)
+  const { connectionStatus } = useBuildSocket(buildId)
 
-  const handleBuildStart = (id: string, promptText: string) => {
-    startBuild(id, promptText)
+
+  const handleBuildStart = async (promptText: string) => {
+    // Create build for the active project and then start websocket streaming.
+    const created = await buildsApi.create({ project_id: projectId, prompt: promptText })
+    const newBuildId = created.build_id || created.buildId || created.build_id
+    useBuildStore.setState({ buildId: newBuildId })
+    startBuild(newBuildId, promptText)
+
   }
+
 
   const fileCount = Object.keys(files).length
   const activeAgents = agents.filter(agent => agent.status === 'running').length
@@ -106,6 +123,11 @@ export function WorkspaceLayout() {
             label={status === 'success' ? 'Build ready' : status === 'running' ? 'Building' : 'Stand by'}
             tone={status === 'success' ? 'success' : status === 'running' ? 'info' : 'neutral'}
           />
+          <StatusBadge
+            label={connectionStatus === 'online' ? 'WS connected' : connectionStatus === 'connecting' ? 'WS connecting' : connectionStatus === 'error' ? 'WS error' : 'WS offline'}
+            tone={connectionStatus === 'online' ? 'success' : connectionStatus === 'connecting' ? 'info' : connectionStatus === 'error' ? 'danger' : 'neutral'}
+          />
+
           <StatusBadge label={`${fileCount} files`} tone="neutral" compact />
         </div>
       </header>
@@ -172,7 +194,8 @@ export function WorkspaceLayout() {
                     <PromptBox
                       value={prompt}
                       onChange={v => useBuildStore.setState({ prompt: v })}
-                      onSubmit={() => buildId && handleBuildStart(buildId, prompt)}
+                      onSubmit={() => handleBuildStart(prompt)}
+
                       isLoading={status === 'running'}
                     />
                     <ProjectOverview />

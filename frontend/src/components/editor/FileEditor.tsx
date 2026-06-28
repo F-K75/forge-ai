@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
 import Editor from '@monaco-editor/react'
+
 import { FileCode, ChevronRight, Folder } from 'lucide-react'
 import clsx from 'clsx'
 import { useBuildStore } from '../../store/buildStore'
@@ -34,10 +36,13 @@ export function FileEditor() {
   const fileList = Object.keys(allFiles).sort()
   const tree = buildFileTree(allFiles)
 
-  // Auto-select first file when files arrive
-  if (!selectedFile && fileList.length > 0) {
-    setSelectedFile(fileList[0])
-  }
+  // Auto-select first file when files arrive (StrictMode-safe)
+  useEffect(() => {
+    if (!selectedFile && fileList.length > 0) {
+      setSelectedFile(fileList[0])
+    }
+  }, [fileList, selectedFile])
+
 
   if (fileList.length === 0) {
     return (
@@ -72,24 +77,24 @@ export function FileEditor() {
               {paths.map(path => {
                 const name = path.split('/').pop() || path
                 return (
-                    <button
-                      key={path}
-                      type="button"
-                      onClick={() => setSelectedFile(path)}
-                      aria-label={`Open ${name}`}
-                      aria-pressed={selectedFile === path}
-                      className={clsx(
-                        'w-full flex items-center gap-1.5 px-3 py-2 text-left transition-colors',
-                        'bb-focus-ring',
-                        dir !== 'root' && 'pl-6',
-                        selectedFile === path
-                          ? 'bg-violet-600/20 text-violet-200'
-                          : 'text-forge-text-secondary hover:bg-forge-border/30 hover:text-forge-text'
-                      )}
-                    >
-                      <FileCode size={11} className="flex-shrink-0" />
-                      <span className="text-[11px] truncate">{name}</span>
-                    </button>
+                  <button
+                    key={path}
+                    type="button"
+                    onClick={() => setSelectedFile(path)}
+                    aria-label={`Open ${name}`}
+                    aria-pressed={selectedFile === path}
+                    className={clsx(
+                      'w-full flex items-center gap-1.5 px-3 py-2 text-left transition-colors',
+                      'bb-focus-ring',
+                      dir !== 'root' && 'pl-6',
+                      selectedFile === path
+                        ? 'bg-violet-600/20 text-violet-200'
+                        : 'text-forge-text-secondary hover:bg-forge-border/30 hover:text-forge-text'
+                    )}
+                  >
+                    <FileCode size={11} className="flex-shrink-0" />
+                    <span className="text-[11px] truncate">{name}</span>
+                  </button>
                 )
               })}
             </div>
@@ -144,3 +149,5 @@ export function FileEditor() {
     </div>
   )
 }
+
+

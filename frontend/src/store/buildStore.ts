@@ -1,6 +1,8 @@
 import { create } from 'zustand'
+import type { AnyWSEvent } from '../lib/wsContract'
 
 export type AgentStatus = 'idle' | 'running' | 'complete' | 'failed'
+
 
 export interface AgentState {
   type: string
@@ -23,7 +25,9 @@ export interface BuildState {
 
   // Actions
   startBuild: (buildId: string, prompt: string) => void
-  handleEvent: (event: any) => void
+  handleEvent: (event: AnyWSEvent) => void
+
+  setBuildId: (buildId: string | null) => void
   setFiles: (files: Record<string, string>) => void
   reset: () => void
 }
@@ -63,7 +67,9 @@ export const useBuildStore = create<BuildState>((set, get) => ({
     error: null,
   }),
 
-  handleEvent: (event) => {
+  setBuildId: (buildId: string | null) => set({ buildId }),
+
+  handleEvent: (event: AnyWSEvent) => {
     const { type, data } = event
 
     set(state => {
@@ -75,10 +81,19 @@ export const useBuildStore = create<BuildState>((set, get) => ({
           return { agents, status: 'running' }
         }
 
+        case 'agent_progress': {
+          // No UI mapping yet; ignore safely.
+          return state
+        }
+
         case 'agent_complete': {
           const agents = state.agents.map(a =>
             a.type === data.agent
-              ? { ...a, status: 'complete' as AgentStatus, filesChanged: data.files_changed || [] }
+              ? {
+                  ...a,
+                  status: 'complete' as AgentStatus,
+                  filesChanged: data.files_changed || [],
+                }
               : a
           )
           return { agents }
@@ -100,7 +115,7 @@ export const useBuildStore = create<BuildState>((set, get) => ({
             status: 'success',
             files: data.files || state.files,
             validation: data.validation,
-            creditsUsed: data.credits_used || state.creditsUsed,
+            creditsUsed: data.credits_used ?? state.creditsUsed,
             streamBuffer: '',
           }
         }
@@ -112,15 +127,23 @@ export const useBuildStore = create<BuildState>((set, get) => ({
         case 'debug_start': {
           return {
             status: 'debugging',
-            debugIterations: data.iteration || state.debugIterations + 1,
+            debugIterations: data.iteration ?? state.debugIterations + 1,
+          }
+        }
+
+        case 'credits_update': {
+          return {
+            creditsUsed: data.credits_used ?? state.creditsUsed,
           }
         }
 
         default:
-          return {}
+          return state
       }
     })
   },
+
+
 
   setFiles: (files) => set({ files }),
 
