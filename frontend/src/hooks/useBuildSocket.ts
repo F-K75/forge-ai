@@ -2,23 +2,36 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { useBuildStore } from '../store/buildStore'
 import { parseWSEvent } from '../lib/wsContract'
 
-
-// Vite env typing fallback (prevents TS error in some toolchains)
 const WS_URL = (import.meta as any).env?.VITE_WS_URL || 'ws://localhost:8000'
 
 export function useBuildSocket(buildId: string | null) {
   const wsRef = useRef<WebSocket | null>(null)
+  const heartbeatRef = useRef<number | null>(null)
   const generationRef = useRef(0)
   const reconnectAttemptsRef = useRef(0)
+  const reconnectTimeoutRef = useRef<number | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<'offline' | 'connecting' | 'online' | 'error'>('offline')
 
   const { handleEvent } = useBuildStore()
+
+  const clearHeartbeat = useCallback(() => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current)
+      heartbeatRef.current = null
+    }
+  }, [])
+
+  const clearReconnectTimeout = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+  }, [])
 
   const connect = useCallback(
     (id: string) => {
       if (!id) return
 
-      // Close any previous socket to avoid duplicate subscriptions.
       if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
         try {
           wsRef.current.close()
@@ -41,20 +54,13 @@ export function useBuildSocket(buildId: string | null) {
         const ws = new WebSocket(`${WS_URL}/builds/ws/${id}`)
         wsRef.current = ws
 
-        const heartbeat = setInterval(() => {
+        heartbeatRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            // Backend ignores payloads, so keep it best-effort.
             ws.send('ping')
           }
         }, 30_000)
 
         ws.onopen = () => {
-          clearInterval(heartbeat)
-          // restart heartbeat on open (interval should continue)
-          const hb = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) ws.send('ping')
-          }, 30_000)
-          ;(ws as any).__hb = hb
           reconnectAttemptsRef.current = 0
           setConnectionStatus('online')
         }
@@ -73,7 +79,6 @@ export function useBuildSocket(buildId: string | null) {
           const event = parseWSEvent(parsed)
           if (!event) return
 
-          // Guard: ignore events for other builds.
           if (event.build_id !== id) return
 
           handleEvent(event)
@@ -84,9 +89,9 @@ export function useBuildSocket(buildId: string | null) {
         }
 
         ws.onclose = () => {
-          const hb = (ws as any).__hb
-          if (hb) clearInterval(hb)
+          clearHeartbeat()
           wsRef.current = null
+          
           if (generationRef.current !== gen) return
 
           const attempt = ++reconnectAttemptsRef.current
@@ -95,29 +100,28 @@ export function useBuildSocket(buildId: string | null) {
             return
           }
 
+          clearReconnectTimeout()
           const delay = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1))
           setConnectionStatus('offline')
-          window.setTimeout(connectOnce, delay)
+          reconnectTimeoutRef.current = window.setTimeout(connectOnce, delay)
         }
       }
 
       connectOnce()
     },
-    [handleEvent]
+    [handleEvent, clearHeartbeat, clearReconnectTimeout]
   )
 
   useEffect(() => {
     if (!buildId) return
     connect(buildId)
     return () => {
-      // Invalidate current generation so reconnect stops.
       generationRef.current += 1
+      clearHeartbeat()
+      clearReconnectTimeout()
       wsRef.current?.close()
     }
-  }, [buildId, connect])
+  }, [buildId, connect, clearHeartbeat, clearReconnectTimeout])
 
   return { ws: wsRef.current, connectionStatus }
-
 }
-
-

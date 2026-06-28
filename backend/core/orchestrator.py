@@ -242,11 +242,10 @@ class Orchestrator:
                 build_id=build.id,
                 data={"error": str(e)}
             ))
-            # Frontend 'error' event compatibility
             await emit(WSEvent(
-                type=WSEventType.BUILD_FAILED,
+                type=WSEventType.ERROR,
                 build_id=build.id,
-                data={"error": str(e)}
+                data={"error": str(e), "agent": "orchestrator"}
             ))
             raise
 

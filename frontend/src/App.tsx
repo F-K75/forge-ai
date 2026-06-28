@@ -1,7 +1,18 @@
+import { useEffect, useState, Suspense, lazy } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { WorkspaceLayout } from './components/layout/WorkspaceLayout'
+import { Mail } from 'lucide-react'
+import { useAuthStore } from './store/authStore'
+
+const WorkspaceLayout = lazy(() => import('./components/layout/WorkspaceLayout'))
+const Login = lazy(() => import('./pages/Login'))
+const Signup = lazy(() => import('./pages/Signup'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
+const Billing = lazy(() => import('./pages/Billing'))
+const Admin = lazy(() => import('./pages/Admin'))
+const Marketplace = lazy(() => import('./pages/Marketplace'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -9,13 +20,144 @@ const queryClient = new QueryClient({
   },
 })
 
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen bg-forge-bg flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
+
+function RouteSkeleton() {
+  return (
+    <div className="min-h-screen bg-forge-bg flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-forge-text-secondary">Loading...</p>
+      </div>
+    </div>
+  )
+}
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, fetchMe } = useAuthStore()
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    fetchMe().finally(() => setChecking(false))
+  }, [fetchMe])
+
+  if (checking || isLoading) {
+    return <LoadingSpinner />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, fetchMe } = useAuthStore()
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    fetchMe().finally(() => setChecking(false))
+  }, [fetchMe])
+
+  if (checking || isLoading) {
+    return <LoadingSpinner />
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, fetchMe, isAuthenticated } = useAuthStore()
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    fetchMe().finally(() => setChecking(false))
+  }, [fetchMe])
+
+  if (checking || !isAuthenticated) {
+    return <LoadingSpinner />
+  }
+
+  const adminEmails = (import.meta as any).env?.VITE_ADMIN_EMAILS?.split(',') || ['admin@forge.ai']
+  if (user && !adminEmails.includes(user.email)) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
+function ForgotPassword() {
+  return (
+    <div className="min-h-screen bg-forge-bg flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 mb-4">
+            <Mail className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Reset password</h1>
+          <p className="text-forge-text-secondary">Enter your email to receive a reset link</p>
+        </div>
+
+        <form className="bg-forge-surface border border-forge-border rounded-2xl p-6 space-y-4" noValidate>
+          <div>
+            <label htmlFor="reset-email" className="block text-sm text-forge-text-secondary mb-2">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-forge-muted" aria-hidden="true" />
+              <input
+                id="reset-email"
+                type="email"
+                placeholder="you@example.com"
+                className="w-full bg-forge-bg border border-forge-border rounded-xl pl-10 pr-4 py-3 text-white placeholder-forge-muted focus:outline-none focus:ring-2 focus:ring-violet-500"
+                autoComplete="email"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full text-white font-medium py-3 rounded-xl bg-violet-600 hover:bg-violet-500 transition focus:outline-none focus:ring-2 focus:ring-violet-500"
+          >
+            Send reset link
+          </button>
+
+          <p className="text-center text-sm text-forge-text-secondary">
+            <Link to="/login" className="text-violet-400 hover:text-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-500 rounded">
+              Back to sign in
+            </Link>
+          </p>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<WorkspaceLayout />} />
-          <Route path="/project/:projectId" element={<WorkspaceLayout />} />
+          <Route path="/login" element={<PublicRoute><Suspense fallback={<RouteSkeleton />}><Login /></Suspense></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><Suspense fallback={<RouteSkeleton />}><Signup /></Suspense></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/onboarding" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ProtectedRoute>} />
+          <Route path="/billing" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Billing /></Suspense></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Settings /></Suspense></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><Admin /></Suspense></AdminRoute>} />
+          <Route path="/marketplace" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Marketplace /></Suspense></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute>} />
+          <Route path="/project/:projectId" element={<ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute>} />
         </Routes>
         <Toaster
           position="bottom-right"

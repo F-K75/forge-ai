@@ -5,18 +5,21 @@ export default {
     extend: {
       colors: {
         forge: {
-          bg: '#0a0a0f',
-          surface: '#111118',
-          border: '#1e1e2e',
-          accent: '#7c3aed',
-          'accent-hover': '#6d28d9',
-          muted: '#3f3f5a',
-          text: '#e2e2f0',
-          'text-secondary': '#8b8ba8',
+          bg: '#0f0f0f',
+          surface: '#1a1a1a',
+          border: '#333333',
+          accent: '#8b5cf6',
+          'accent-hover': '#a78bfa',
+          muted: '#707070',
+          text: '#ffffff',
+          'text-secondary': '#a0a0a0',
+          'electric-blue': '#00d4ff',
+          'teal': '#14b8a6',
+          'orange': '#fb923c',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Geist', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       animation: {

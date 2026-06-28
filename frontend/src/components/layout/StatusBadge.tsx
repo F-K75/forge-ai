@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import React from 'react'
 
 interface StatusBadgeProps {
   label: string
@@ -6,7 +7,7 @@ interface StatusBadgeProps {
   compact?: boolean
 }
 
-export function StatusBadge({ label, tone = 'neutral', compact = false }: StatusBadgeProps) {
+export const StatusBadge = React.memo(function StatusBadge({ label, tone = 'neutral', compact = false }: StatusBadgeProps) {
   const toneClasses = {
     success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
     warning: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
@@ -20,4 +21,4 @@ export function StatusBadge({ label, tone = 'neutral', compact = false }: Status
       {label}
     </span>
   )
-}
+})

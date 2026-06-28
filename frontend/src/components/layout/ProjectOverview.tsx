@@ -1,70 +1,111 @@
 import { motion } from 'framer-motion'
-import { Cpu, GitBranch, HardDrive, Sparkles, TimerReset } from 'lucide-react'
+import { Cpu, HardDrive, Sparkles, Send } from 'lucide-react'
 import { useBuildStore } from '../../store/buildStore'
+import { type FC, useState } from 'react'
 
-const overviewItems = [
-  { label: 'Framework', value: 'React + Vite', icon: Sparkles },
-  { label: 'Database', value: 'Postgres', icon: HardDrive },
-  { label: 'Backend', value: 'FastAPI', icon: Cpu },
-  { label: 'Frontend', value: 'Tailwind + TS', icon: Sparkles },
+const techStack = [
+  { label: 'React', value: 'Framework' },
+  { label: 'PostgreSQL', value: 'Database' },
+  { label: 'FastAPI', value: 'Backend' },
+  { label: 'Tailwind', value: 'Frontend' },
 ]
 
-export function ProjectOverview() {
-  const { status, prompt, agents, creditsUsed, debugIterations } = useBuildStore()
+export const ProjectOverview: FC = () => {
+  const { status, prompt, agents, creditsUsed, debugIterations, startBuild } = useBuildStore()
+  const [intentInput, setIntentInput] = useState(prompt)
+
   const activeAgents = agents.filter(agent => agent.status === 'running').length
   const completedAgents = agents.filter(agent => agent.status === 'complete').length
+
+  const handleSubmit = () => {
+    if (intentInput.trim()) {
+      startBuild('new-build', intentInput)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && intentInput.trim()) {
+      e.preventDefault()
+      handleSubmit()
+    }
+  }
 
   return (
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-[24px] border border-forge-border/80 bg-gradient-to-br from-forge-surface/80 to-forge-surface/40 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.25)]"
+      className="rounded-xl border border-forge-border bg-forge-surface p-5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.24em] text-forge-text-secondary">Project overview</p>
-          <h2 className="mt-1 text-xl font-semibold text-forge-text">Forge AI Workspace</h2>
-        </div>
-        <div className="rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
-          {status === 'success' ? 'Build ready' : status === 'running' ? 'Building' : 'Waiting'}
-        </div>
-      </div>
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-xl font-semibold text-forge-text">Forge AI Workspace</h2>
+            <span className="text-xs text-forge-text-secondary bg-forge-border/30 px-2 py-1 rounded-md">
+              {status === 'success' ? 'Build ready' : status === 'running' ? 'Running' : 'Waiting'}
+            </span>
+          </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {overviewItems.map(item => {
-          const Icon = item.icon
-          return (
-            <div key={item.label} className="rounded-2xl border border-forge-border/70 bg-forge-bg/70 p-3">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-forge-text-secondary">
-                <Icon size={12} />
-                {item.label}
-              </div>
-              <p className="mt-2 text-sm font-medium text-forge-text">{item.value}</p>
+          <div className="mb-4">
+            <h3 className="text-xs uppercase tracking-wider text-forge-text-secondary mb-2">Stack</h3>
+            <div className="flex flex-wrap gap-2">
+              {techStack.map(item => (
+                <span key={item.label} className="inline-flex items-center rounded-full bg-forge-border/20 px-3 py-1 text-xs text-forge-text-secondary">
+                  <span className="font-medium text-forge-text">{item.label}</span>
+                  <span className="mx-1 opacity-50">•</span>
+                  <span>{item.value}</span>
+                </span>
+              ))}
             </div>
-          )
-        })}
-      </div>
+          </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1.3fr_0.8fr]">
-        <div className="rounded-2xl border border-forge-border/70 bg-forge-bg/70 p-4">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-forge-text-secondary">
-            <TimerReset size={12} />
-            Current intent
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 text-xs">
+            <div>
+              <span className="text-forge-text-secondary">Agents</span>
+              <span className="ml-2 text-forge-text">{activeAgents}/{agents.length}</span>
+            </div>
+            <div>
+              <span className="text-forge-text-secondary">Completed</span>
+              <span className="ml-2 text-forge-text">{completedAgents}</span>
+            </div>
+            <div>
+              <span className="text-forge-text-secondary">Credits</span>
+              <span className="ml-2 text-forge-text">{creditsUsed}</span>
+            </div>
+            {debugIterations > 0 && (
+              <div>
+                <span className="text-amber-400">Debug</span>
+                <span className="ml-2 text-forge-text">{debugIterations}</span>
+              </div>
+            )}
           </div>
-          <p className="mt-2 text-sm text-forge-text">
-            {prompt || 'Ask Forge to build something impressive.'}
-          </p>
         </div>
-        <div className="rounded-2xl border border-forge-border/70 bg-forge-bg/70 p-4">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-forge-text-secondary">
-            <GitBranch size={12} />
-            Runtime status
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-forge-border bg-forge-surface/80 px-2.5 py-1 text-forge-text-secondary">Agents: {activeAgents}/{agents.length}</span>
-            <span className="rounded-full border border-forge-border bg-forge-surface/80 px-2.5 py-1 text-forge-text-secondary">Completed: {completedAgents}</span>
-            <span className="rounded-full border border-forge-border bg-forge-surface/80 px-2.5 py-1 text-forge-text-secondary">Credits: {creditsUsed}</span>
-            {debugIterations > 0 && <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-amber-300">Debug: {debugIterations}</span>}
+
+        <div className="w-full lg:w-96">
+          <label className="block text-xs uppercase tracking-wider text-forge-text-secondary mb-2" htmlFor="current-intent">
+            Current intent
+          </label>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                id="current-intent"
+                type="text"
+                value={intentInput}
+                onChange={e => setIntentInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter your command..."
+                className="w-full rounded-lg border border-forge-border bg-forge-bg text-sm text-forge-text placeholder-forge-text-secondary/50 px-3 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                aria-label="Current intent"
+              />
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!intentInput.trim() || status === 'running'}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-violet-600 p-1.5 text-white hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition focus:outline-none focus:ring-2 focus:ring-violet-500"
+                aria-label="Submit intent"
+              >
+                <Send size={14} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

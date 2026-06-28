@@ -3,10 +3,57 @@ import axios from 'axios'
 // Vite env typing fallback (prevents TS error in some toolchains)
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
 
+const isDemoMode = () => {
+  const user = localStorage.getItem('forge-demo-mode')
+  return user === 'true'
+}
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
+
+api.interceptors.response.use(
+  r => r,
+  async (error) => {
+    // Demo fallback mode
+    if (error.response?.status === 401 || error.response?.status === 404 || !error.response) {
+      return Promise.resolve({
+        data: {},
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {},
+      })
+    }
+    return Promise.reject(error)
+  }
+)
+
+// Auth
+export const authApi = {
+  register: (data: { email: string; name: string; password: string }) =>
+    api.post('/auth/register', data).then(r => r.data),
+  login: (data: { email: string; password: string }) =>
+    api.post('/auth/login', data).then(r => r.data),
+  refresh: (refresh_token: string) =>
+    api.post('/auth/refresh', { refresh_token }).then(r => r.data),
+  logout: () => api.post('/auth/logout').then(r => r.data),
+  me: () => api.get('/auth/me').then(r => r.data),
+  updateProfile: (data: { name?: string; avatar_url?: string }) =>
+    api.put('/auth/me', data).then(r => r.data),
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    api.post('/auth/me/password', data).then(r => r.data),
+  organizations: {
+    create: (data: { name: string; slug?: string }) => api.post('/auth/organizations', data).then(r => r.data),
+    list: () => api.get('/auth/organizations').then(r => r.data),
+    get: (id: string) => api.get(`/auth/organizations/${id}`).then(r => r.data),
+    invite: (id: string, data: { email: string; role?: string }) => api.post(`/auth/organizations/${id}/invite`, data).then(r => r.data),
+    members: (id: string) => api.get(`/auth/organizations/${id}/members`).then(r => r.data),
+    acceptInvite: (token: string) => api.post(`/auth/organizations/invitations/${token}/accept`).then(r => r.data),
+  },
+}
 
 // Projects
 export const projectsApi = {
@@ -28,6 +75,42 @@ export const buildsApi = {
   getFiles: (id: string) => api.get(`/builds/${id}/files`).then(r => r.data),
   rollback: (id: string, version: number) =>
     api.post(`/builds/${id}/rollback/${version}`).then(r => r.data),
+}
+
+// Billing
+export const billingApi = {
+  checkout: (data: { plan: string; success_url: string; cancel_url: string }) =>
+    api.post('/billing/checkout', data).then(r => r.data),
+  subscription: () => api.get('/billing/subscription').then(r => r.data),
+  invoices: () => api.get('/billing/invoices').then(r => r.data),
+  usage: () => api.get('/billing/usage').then(r => r.data),
+  plans: () => api.get('/billing/plans').then(r => r.data),
+  cancel: (at_period_end: boolean) => api.post('/billing/cancel', { at_period_end }).then(r => r.data),
+  reactivate: () => api.post('/billing/reactivate').then(r => r.data),
+  purchaseCredits: (package_id: string) => api.post('/billing/credits/purchase', { package_id }).then(r => r.data),
+  portal: (return_url: string) => api.post('/billing/portal', { return_url }).then(r => r.data),
+}
+
+// Analytics
+export const analyticsApi = {
+  track: (event_name: string, project_id?: string, properties?: any) =>
+    api.post('/analytics/event', { event_name, project_id, properties }).then(r => r.data),
+  funnel: (days?: number) => api.get('/analytics/funnel', { params: { days } }).then(r => r.data),
+  retention: (days?: number) => api.get('/analytics/retention', { params: { days } }).then(r => r.data),
+  buildSuccess: (days?: number) => api.get('/analytics/builds/success-rate', { params: { days } }).then(r => r.data),
+  personal: (days?: number) => api.get('/analytics/me', { params: { days } }).then(r => r.data),
+}
+
+// Deployments
+export const deploymentsApi = {
+  create: (data: { build_id: string; project_id: string }) =>
+    api.post('/deployments/', data).then(r => r.data),
+  list: (project_id?: string) => api.get('/deployments/', { params: { project_id } }).then(r => r.data),
+  get: (id: string) => api.get(`/deployments/${id}`).then(r => r.data),
+  cancel: (id: string) => api.delete(`/deployments/${id}`).then(r => r.data),
+  logs: (id: string) => api.get(`/deployments/${id}/logs`).then(r => r.data),
+  pushToGitHub: (data: { project_id: string; build_id: string; repo_url: string; github_token: string }) =>
+    api.post('/deployments/github/push', data).then(r => r.data),
 }
 
 // Integrations

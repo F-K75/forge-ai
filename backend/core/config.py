@@ -3,35 +3,41 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # LLM
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     default_model: str = "claude-sonnet-4-6"
-
-    # DB
     mongodb_url: str = "mongodb://localhost:27017/forge"
     redis_url: str = "redis://localhost:6379"
-
-    # Auth
-    jwt_secret: str = "dev_secret_change_in_prod"
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
-
-    # GitHub OAuth
+    jwt_expire_minutes: int = 10080  # 7 days
     github_client_id: str = ""
     github_client_secret: str = ""
-
-    # Sandbox
     sandbox_host: str = "localhost"
-    sandbox_timeout: int = 120  # seconds per build action
-
-    # Credits per action
+    sandbox_timeout: int = 120
     credits_architect: int = 3
     credits_designer: int = 2
     credits_developer: int = 5
     credits_integration: int = 2
     credits_pm: int = 1
     credits_debug: int = 2
+
+    # Billing
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_publishable_key: str = ""
+    
+    # App
+    app_url: str = "http://localhost:3000"
+    api_url: str = "http://localhost:8000"
+    allowed_origins: str = "http://localhost:3000,http://localhost:5173"
+    
+    # Admin
+    admin_emails: str = "admin@forge.ai"
+    
+    # Growth
+    resend_api_key: str = ""
+    from_email: str = "noreply@forge.ai"
 
     class Config:
         env_file = ".env"

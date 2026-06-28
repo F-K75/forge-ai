@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Geist+Sans:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -21,7 +21,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all select-none bb-focus-ring;
   }
 
-.bb-btn-primary {
+  .bb-btn-primary {
     @apply bg-violet-600 text-white hover:bg-violet-500 active:bg-violet-400 disabled:bg-violet-600/40 disabled:text-white/60 disabled:cursor-not-allowed;
   }
 
@@ -70,17 +70,31 @@
 
 
 :root {
-  --bg: #0a0a0f;
-  --surface: #111118;
-  --surface-2: #16161f;
-  --border: #1e1e2e;
-  --accent: #7c3aed;
-  --accent-glow: rgba(124, 58, 237, 0.15);
-  --text: #e2e2f0;
-  --text-secondary: #8b8ba8;
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface-2: #262626;
+  --border: #333333;
+  --accent: #8b5cf6;
+  --accent-hover: #a78bfa;
+  --accent-glow: rgba(139, 92, 246, 0.15);
+  --text: #ffffff;
+  --text-secondary: #a0a0a0;
+  --muted: #707070;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
+  --electric-blue: #00d4ff;
+  --electric-blue-glow: rgba(0, 212, 255, 0.25);
+  --teal: #14b8a6;
+  --teal-glow: rgba(20, 184, 166, 0.25);
+  --orange: #fb923c;
+  --orange-glow: rgba(251, 146, 60, 0.25);
+}
+
+/* Accessible focus styles */
+:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
 }
 
 /* Glass surfaces & soft shadows */
@@ -98,14 +112,12 @@
   -webkit-backdrop-filter: blur(18px);
 }
 
-/* Consistent focus outline offset */
-.bb-focus-ring {
-  outline: none;
-}
-
+/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
   }
 
   .agent-active {
@@ -119,7 +131,6 @@
     transition-duration: 0.001ms !important;
   }
 }
-
 
 
 * { box-sizing: border-box; }
@@ -150,6 +161,31 @@ body {
 
 .agent-active {
   animation: agent-pulse 1.5s ease-in-out infinite;
+}
+
+.shadow-blue-glow {
+  box-shadow: 0 0 0 2px var(--electric-blue-glow);
+}
+
+.shadow-teal-glow {
+  box-shadow: 0 0 0 2px var(--teal-glow);
+}
+
+.shadow-orange-glow {
+  box-shadow: 0 0 0 2px var(--orange-glow);
+}
+
+/* Accent glow utilities */
+.glow-blue {
+  box-shadow: 0 0 20px var(--electric-blue-glow);
+}
+
+.glow-teal {
+  box-shadow: 0 0 20px var(--teal-glow);
+}
+
+.glow-orange {
+  box-shadow: 0 0 20px var(--orange-glow);
 }
 
 /* Typing cursor for streaming */

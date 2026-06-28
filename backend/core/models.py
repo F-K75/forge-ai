@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 import uuid
 
@@ -30,6 +30,30 @@ class PlanTier(str, Enum):
     ENTERPRISE = "enterprise"
 
 
+class SubscriptionStatus(str, Enum):
+    ACTIVE = "active"
+    CANCELED = "canceled"
+    PAST_DUE = "past_due"
+    INCOMPLETE = "incomplete"
+    TRIALING = "trialing"
+
+
+class DeploymentStatus(str, Enum):
+    PENDING = "pending"
+    BUILDING = "building"
+    DEPLOYING = "deploying"
+    LIVE = "live"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class Role(str, Enum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+
 # --- User ---
 
 class User(BaseModel):
@@ -40,6 +64,45 @@ class User(BaseModel):
     github_token: Optional[str] = None
     plan: PlanTier = PlanTier.FREE
     credits: int = 10
+    stripe_customer_id: Optional[str] = None
+    banned: bool = False
+    trial_ends_at: Optional[datetime] = None
+    downgraded_to: Optional[PlanTier] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- Organization ---
+
+class Organization(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    slug: str
+    owner_id: str
+    plan: PlanTier = PlanTier.FREE
+    seats: int = 1
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TeamMember(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    org_id: str
+    user_id: str
+    role: Role = Role.MEMBER
+    invited_by: Optional[str] = None
+    joined_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Invitation(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    org_id: str
+    email: str
+    role: Role = Role.MEMBER
+    invited_by: str
+    token: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
+    accepted_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -48,6 +111,7 @@ class User(BaseModel):
 class Project(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
+    org_id: Optional[str] = None
     name: str
     description: str = ""
     github_repo: Optional[str] = None
@@ -94,6 +158,145 @@ class Message(BaseModel):
     role: str  # user | assistant
     content: str
     build_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- Billing ---
+
+class Subscription(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    stripe_subscription_id: str
+    stripe_price_id: str
+    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    plan: PlanTier = PlanTier.FREE
+    current_period_start: Optional[datetime] = None
+    current_period_end: Optional[datetime] = None
+    cancel_at_period_end: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Invoice(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    stripe_invoice_id: str
+    amount: int
+    currency: str = "usd"
+    status: str = "draft"
+    hosted_invoice_url: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CreditPurchase(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    stripe_payment_intent_id: str
+    credits: int
+    amount: int
+    currency: str = "usd"
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- Deployment ---
+
+class Deployment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    user_id: str
+    build_id: Optional[str] = None
+    status: DeploymentStatus = DeploymentStatus.PENDING
+    provider: str = "docker"
+    url: Optional[str] = None
+    logs: str = ""
+    env_vars: Dict[str, str] = {}
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    deployed_at: Optional[datetime] = None
+
+
+# --- Analytics ---
+
+class AnalyticsEvent(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None
+    project_id: Optional[str] = None
+    event_name: str
+    properties: Dict[str, Any] = {}
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class OnboardingProgress(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    step: str = "signup"
+    completed_steps: List[str] = []
+    current_step: str = "signup"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- Marketplace ---
+
+class MarketplaceItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # prompt | template
+    title: str
+    description: str
+    prompt: str
+    author_id: str
+    rating: float = 0.0
+    rating_count: int = 0
+    tags: List[str] = []
+    downloads: int = 0
+    is_public: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- Admin ---
+
+class FeatureFlag(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    key: str
+    enabled: bool = False
+    description: str = ""
+    updated_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AuditLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    actor_id: str
+    actor_email: str
+    action: str
+    resource_type: str
+    resource_id: Optional[str] = None
+    changes: Dict[str, Any] = {}
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- Security ---
+
+class RateLimitRule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    key: str  # user_id | ip | endpoint
+    limit: int
+    window: int  # seconds
+    remaining: int = 0
+    reset_at: Optional[datetime] = None
+
+
+class SecurityEvent(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None
+    event_type: str  # login_failed | rate_limit | anomaly | etc
+    severity: str = "low"  # low | medium | high | critical
+    ip_address: Optional[str] = None
+    metadata: Dict[str, Any] = {}
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

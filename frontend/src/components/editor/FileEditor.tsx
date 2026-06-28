@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
-
-import Editor from '@monaco-editor/react'
-
+import { lazy, Suspense, useMemo, useState, useEffect } from 'react'
 import { FileCode, ChevronRight, Folder } from 'lucide-react'
 import clsx from 'clsx'
 import { useBuildStore } from '../../store/buildStore'
+
+const Editor = lazy(() => import('@monaco-editor/react'))
 
 function getLanguage(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase()
@@ -27,16 +26,26 @@ function buildFileTree(files: Record<string, string>) {
   return tree
 }
 
+function EditorSkeleton() {
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-forge-text-secondary">Loading editor...</p>
+      </div>
+    </div>
+  )
+}
+
 export function FileEditor() {
   const { files, status } = useBuildStore()
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [localFiles, setLocalFiles] = useState<Record<string, string>>({})
 
-  const allFiles = { ...files, ...localFiles }
-  const fileList = Object.keys(allFiles).sort()
-  const tree = buildFileTree(allFiles)
+  const allFiles = useMemo(() => ({ ...files, ...localFiles }), [files, localFiles])
+  const fileList = useMemo(() => Object.keys(allFiles).sort(), [allFiles])
+  const tree = useMemo(() => buildFileTree(allFiles), [allFiles])
 
-  // Auto-select first file when files arrive (StrictMode-safe)
   useEffect(() => {
     if (!selectedFile && fileList.length > 0) {
       setSelectedFile(fileList[0])
@@ -60,7 +69,6 @@ export function FileEditor() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* File tree */}
       <div className="w-56 flex-shrink-0 border-r border-forge-border overflow-y-auto bg-forge-surface">
         <div className="px-4 py-2 text-[10px] font-semibold text-forge-text-secondary uppercase tracking-wider border-b border-forge-border">
           Files ({fileList.length})
@@ -102,7 +110,6 @@ export function FileEditor() {
         </div>
       </div>
 
-      {/* Editor */}
       <div className="flex-1 overflow-hidden">
         {selectedFile && allFiles[selectedFile] !== undefined ? (
           <div className="h-full flex flex-col">
@@ -111,28 +118,30 @@ export function FileEditor() {
               <span className="truncate">{selectedFile}</span>
             </div>
             <div className="flex-1">
-              <Editor
-                height="100%"
-                language={getLanguage(selectedFile)}
-                value={allFiles[selectedFile]}
-                theme="vs-dark"
-                onChange={(val) => {
-                  if (val !== undefined) {
-                    setLocalFiles(prev => ({ ...prev, [selectedFile]: val }))
-                  }
-                }}
-                options={{
-                  fontSize: 12,
-                  fontFamily: 'JetBrains Mono, Fira Code, monospace',
-                  minimap: { enabled: false },
-                  padding: { top: 12, bottom: 12 },
-                  scrollBeyondLastLine: false,
-                  renderLineHighlight: 'none',
-                  lineNumbers: 'on',
-                  tabSize: 2,
-                  wordWrap: 'on',
-                }}
-              />
+              <Suspense fallback={<EditorSkeleton />}>
+                <Editor
+                  height="100%"
+                  language={getLanguage(selectedFile)}
+                  value={allFiles[selectedFile]}
+                  theme="vs-dark"
+                  onChange={(val) => {
+                    if (val !== undefined) {
+                      setLocalFiles(prev => ({ ...prev, [selectedFile]: val }))
+                    }
+                  }}
+                  options={{
+                    fontSize: 12,
+                    fontFamily: 'JetBrains Mono, Fira Code, monospace',
+                    minimap: { enabled: false },
+                    padding: { top: 12, bottom: 12 },
+                    scrollBeyondLastLine: false,
+                    renderLineHighlight: 'none',
+                    lineNumbers: 'on',
+                    tabSize: 2,
+                    wordWrap: 'on',
+                  }}
+                />
+              </Suspense>
             </div>
           </div>
         ) : (
@@ -149,5 +158,3 @@ export function FileEditor() {
     </div>
   )
 }
-
-

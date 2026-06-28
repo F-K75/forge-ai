@@ -1,54 +1,93 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, BackgroundTasks
-from pydantic import BaseModel
-from typing import Optional
 import asyncio
+import time
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, BackgroundTasks, Request
+from pydantic import BaseModel
+from typing import Optional, Dict, Any
+from datetime import datetime
 
-from core.models import Build, BuildStatus, Project
-from core.orchestrator import Orchestrator
+from core.models import Build, BuildStatus, Project, User, PlanTier, WSEvent, WSEventType
+from core.orchestrator import Orchestrator, MAX_DEBUG_ITERATIONS
 from core.database import get_db
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager
+from api.auth import get_current_user
+from core.config import get_settings
 
 router = APIRouter(prefix="/builds", tags=["builds"])
 orchestrator = Orchestrator()
 sandbox = SandboxRunner()
+settings = get_settings()
+
+
+# Credit costs
+CREDIT_COSTS = {
+    "architect": settings.credits_architect,
+    "designer": settings.credits_designer,
+    "developer": settings.credits_developer,
+    "integration": settings.credits_integration,
+    "pm": settings.credits_pm,
+    "debug": settings.credits_debug,
+}
 
 
 class CreateBuildRequest(BaseModel):
     project_id: str
     prompt: str
-    user_id: str = "dev"  # TODO: replace with real auth
 
 
 @router.post("/")
-async def create_build(req: CreateBuildRequest, background_tasks: BackgroundTasks):
+async def create_build(req: CreateBuildRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user)):
     db = await get_db()
+
+    project = await db.projects.find_one({"id": req.project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # User isolation: check if user owns project or belongs to org
+    if project.get("user_id") != current_user.id:
+        org_id = project.get("org_id")
+        if org_id:
+            membership = await db.team_members.find_one({"org_id": org_id, "user_id": current_user.id}, {"_id": 0})
+            if not membership:
+                raise HTTPException(status_code=404, detail="Project not found")
+        else:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+    # Credit check
+    estimated_credits = sum(CREDIT_COSTS.values()) * (len(project.get("tech_stack", {})) + 1)
+    max_credits = max(MAX_DEBUG_ITERATIONS * CREDIT_COSTS.get("debug", 2), estimated_credits)
+    
+    if current_user.credits < max_credits:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {max_credits}, have {current_user.credits}")
 
     build = Build(
         project_id=req.project_id,
-        user_id=req.user_id,
+        user_id=current_user.id,
         prompt=req.prompt,
         status=BuildStatus.PENDING,
     )
 
     await db.builds.insert_one(build.model_dump())
 
-    # Run the orchestrator in background
     background_tasks.add_task(
         _run_build_background,
         build,
         req.project_id,
+        current_user.id,
     )
 
     return {"build_id": build.id, "status": build.status}
 
 
-async def _run_build_background(build: Build, project_id: str):
+async def _run_build_background(build: Build, project_id: str, user_id: str):
     db = await get_db()
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        return
 
     async def emit(event):
         await manager.emit(event)
-        # Also persist agent steps to DB
         await db.builds.update_one(
             {"id": build.id},
             {"$set": {
@@ -58,13 +97,28 @@ async def _run_build_background(build: Build, project_id: str):
                 "credits_used": build.credits_used,
             }}
         )
-
+    
+    # Deduct credits after successful build
     try:
         await orchestrator.run_build(build, emit=emit, sandbox_runner=sandbox)
         await db.builds.update_one(
             {"id": build.id},
             {"$set": build.model_dump()}
         )
+        
+        # Update user credits
+        if build.credits_used > 0:
+            await db.users.update_one(
+                {"id": user_id},
+                {"$inc": {"credits": -build.credits_used}}
+            )
+            await manager.emit(
+                WSEvent(
+                    type=WSEventType.CREDITS_UPDATE,
+                    build_id=build.id,
+                    data={"credits_used": build.credits_used, "remaining": user.get("credits", 0) - build.credits_used}
+                )
+            )
     except Exception as e:
         await db.builds.update_one(
             {"id": build.id},
@@ -73,29 +127,37 @@ async def _run_build_background(build: Build, project_id: str):
 
 
 @router.get("/{build_id}")
-async def get_build(build_id: str):
+async def get_build(build_id: str, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    build = await db.builds.find_one({"id": build_id}, {"_id": 0})
+    build = await db.builds.find_one({"id": build_id, "user_id": current_user.id}, {"_id": 0})
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
     return build
 
 
 @router.get("/{build_id}/files")
-async def get_build_files(build_id: str):
+async def get_build_files(build_id: str, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    build = await db.builds.find_one({"id": build_id}, {"_id": 0, "files": 1})
+    build = await db.builds.find_one({"id": build_id, "user_id": current_user.id}, {"_id": 0, "files": 1})
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
     return build.get("files", {})
 
 
 @router.post("/{build_id}/rollback/{version}")
-async def rollback_build(build_id: str, version: int):
+async def rollback_build(build_id: str, version: int, current_user: User = Depends(get_current_user)):
     """Roll back to a previous build version."""
     db = await get_db()
+    build = await db.builds.find_one({"id": build_id, "user_id": current_user.id}, {"_id": 0})
+    if not build:
+        raise HTTPException(status_code=404, detail="Build not found")
+    
+    project_id = build.get("project_id")
+    if not project_id:
+        raise HTTPException(status_code=400, detail="Build has no project_id")
+    
     builds = await db.builds.find(
-        {"project_id": {"$exists": True}},
+        {"project_id": project_id, "user_id": current_user.id},
         {"_id": 0}
     ).sort("created_at", 1).to_list(None)
 
@@ -111,7 +173,6 @@ async def websocket_endpoint(websocket: WebSocket, build_id: str):
     await manager.connect(websocket, build_id)
     try:
         while True:
-            # Keep connection alive; server pushes events
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket, build_id)

@@ -11,6 +11,12 @@ export interface AgentState {
   filesChanged: string[]
 }
 
+export interface ValidationState {
+  score?: number
+  missing_features?: string[]
+  [key: string]: unknown
+}
+
 export interface BuildState {
   buildId: string | null
   status: 'idle' | 'pending' | 'running' | 'success' | 'failed' | 'debugging'
@@ -20,7 +26,7 @@ export interface BuildState {
   streamBuffer: string
   creditsUsed: number
   debugIterations: number
-  validation: any | null
+  validation: ValidationState | null
   error: string | null
 
   // Actions

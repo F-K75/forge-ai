@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { CheckCircle2, Cpu, Sparkles } from 'lucide-react'
 import { useBuildStore } from '../../store/buildStore'
+import type { FC } from 'react'
 
 type ActivityState = 'complete' | 'running' | 'pending'
 
@@ -21,6 +22,66 @@ function getAgentState(agents: { type: string; status: string }[], stage: Activi
   if (agent.status === 'complete') return 'complete'
   if (agent.status === 'failed') return 'pending'
   return 'pending'
+}
+
+export const ActivityFeed: FC = () => {
+  const { status, agents } = useBuildStore()
+
+  return (
+    <div className="rounded-xl border border-forge-border bg-forge-surface p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs uppercase tracking-wider text-forge-text-secondary">AI Activity</h3>
+        <span className={`text-xs px-2 py-1 rounded-md ${status === 'running' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-forge-border/30 text-forge-text-secondary'}`}>
+          {status === 'running' ? 'Running' : 'Waiting'}
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {STAGES.map((item, index) => {
+          const itemState = getAgentState(agents, item.stage)
+          const isRunning = itemState === 'running'
+          const isPending = itemState === 'pending'
+
+          const rightText = isRunning ? 'Updating' : isPending ? 'Queued' : 'Done'
+          const rightTone = isRunning ? 'text-violet-300' : isPending ? 'text-forge-text-secondary' : 'text-emerald-300'
+
+          return (
+            <motion.div
+              key={item.key}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex items-center justify-between rounded-lg border border-forge-border bg-forge-bg px-3 py-2"
+            >
+              <div className="flex items-center gap-2">
+                {isRunning ? (
+                  <Cpu size={14} className="text-violet-300" />
+                ) : (
+                  <CheckCircle2 size={14} className={isPending ? 'text-forge-text-secondary' : 'text-emerald-300'} />
+                )}
+                <span className="text-sm text-forge-text">{item.label}</span>
+              </div>
+              <span className={`text-xs ${rightTone}`}>{rightText}</span>
+            </motion.div>
+          )
+        })}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-forge-border bg-forge-bg p-3">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-forge-text-secondary mb-2">
+          <Sparkles size={12} />
+          Agent status
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {agents.map(agent => (
+            <span key={agent.type} className="rounded-full border border-forge-border bg-forge-border/30 px-2 py-0.5 text-xs text-forge-text-secondary">
+              {agent.type}: {agent.status}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function ActivityFeed() {

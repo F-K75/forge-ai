@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, ChevronRight, Circle, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import clsx from 'clsx'
+import React from 'react'
 import type { AgentState } from '../../store/buildStore'
 
 const META: Record<string, { emoji: string; label: string }> = {
@@ -38,12 +39,11 @@ function statusIcon(status: AgentState['status']) {
   }
 }
 
-export function AgentCard({ agent, index }: { agent: AgentState; index: number }) {
+export const AgentCard = React.memo(function AgentCard({ agent, index }: { agent: AgentState; index: number }) {
   const [open, setOpen] = useState(false)
 
   const tone = useMemo(() => statusTone(agent.status), [agent.status])
   const progress = useMemo(() => {
-    // Best-effort UI-only progress mapping
     if (agent.status === 'complete') return 1
     if (agent.status === 'running') return 0.72
     if (agent.status === 'failed') return 0.15
@@ -131,5 +131,4 @@ export function AgentCard({ agent, index }: { agent: AgentState; index: number }
       </AnimatePresence>
     </div>
   )
-}
-
+})

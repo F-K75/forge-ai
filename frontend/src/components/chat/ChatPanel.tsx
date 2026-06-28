@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useBuildStore } from '../../store/buildStore'
 import { MessageList } from './MessageList'
 import type { Message } from './ChatMessage'
@@ -53,15 +53,24 @@ export function ChatPanel({
   const [messages, setMessages] = useState<Message[]>([])
   const [localIsLoading, setLocalIsLoading] = useState(false)
   const { status, streamBuffer } = useBuildStore()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const isBuilding = externalIsLoading ?? ['pending', 'running', 'debugging'].includes(status)
   const streamingBuffer = externalStreamingContent ?? streamBuffer
 
-  const handleExampleClick = (example: string) => {
-    setInput(example)
-  }
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
 
-  const defaultSubmitHandler = async (prompt: string) => {
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, streamingBuffer, scrollToBottom])
+
+  const handleExampleClick = useCallback((example: string) => {
+    setInput(example)
+  }, [])
+
+  const defaultSubmitHandler = useCallback(async (prompt: string) => {
     const { buildsApi, projectsApi } = await import('../../lib/api')
 
     let pid = projectId
@@ -80,9 +89,9 @@ export function ChatPanel({
       id: (Date.now() + 1).toString(),
       content: `Starting build for: **${prompt}**\n\nI've kicked off the agent pipeline. Watch the agents work in real-time →`,
     }
-  }
+  }, [projectId, onBuildStart])
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!input.trim() || isBuilding) return
 
     const prompt = input.trim()
@@ -148,25 +157,18 @@ export function ChatPanel({
     } finally {
       setLocalIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    const scrollDiv = document.querySelector('[data-chat-messages]')
-    if (scrollDiv) {
-      scrollDiv.scrollTop = scrollDiv.scrollHeight
-    }
-  }, [messages, streamingBuffer])
+  }, [input, isBuilding, customSubmit, apiHandler, defaultSubmitHandler, onBeforeSubmit, onMessageAdd, onAfterSubmit, onError])
 
   const customEmptyState = emptyState || (
     <div className="flex flex-col items-center justify-center h-full gap-4 rounded-[24px] border border-dashed border-forge-border/70 bg-forge-surface/50 p-8 text-center">
       <p className="text-sm text-forge-text-secondary">Start with a product brief or a concrete feature request.</p>
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="Example prompts">
         {examples.slice(0, 4).map((example, index) => (
           <button
             key={`${example}-${index}`}
             type="button"
             onClick={() => handleExampleClick(example)}
-            className="rounded-full border border-forge-border bg-forge-bg/70 px-3 py-1.5 text-xs text-forge-text-secondary transition hover:border-violet-500/30 hover:text-forge-text"
+            className="rounded-full border border-forge-border bg-forge-bg/70 px-3 py-1.5 text-xs text-forge-text-secondary transition hover:border-violet-500/30 hover:text-forge-text focus:ring-2 focus:ring-violet-500"
           >
             {example}
           </button>
@@ -187,7 +189,7 @@ export function ChatPanel({
         />
       </div>
 
-      <div className="mt-3 min-h-0 flex-1 rounded-[20px] border border-forge-border/70 bg-forge-bg/70 p-2" data-chat-messages>
+      <div className="mt-3 min-h-0 flex-1 rounded-[20px] border border-forge-border/70 bg-forge-bg/70 p-2">
         <MessageList
           messages={messages}
           streamBuffer={streamingBuffer}
@@ -197,6 +199,7 @@ export function ChatPanel({
           userMessageClassName={userMessageClassName}
           assistantMessageClassName={assistantMessageClassName}
         />
+        <div ref={messagesEndRef} />
       </div>
     </div>
   )
