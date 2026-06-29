@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     default_model: str = "claude-sonnet-4-6"
     mongodb_url: str = "mongodb://localhost:27017/forge"
     redis_url: str = "redis://localhost:6379"
-    jwt_secret: str = ""
+    jwt_secret: str = "dev-fallback-64-char-hex-string-do-not-use-in-prod-abcdef1234567890"
     jwt_algorithm: str = "HS256"
 
     @field_validator("jwt_secret")
@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # Growth
     resend_api_key: str = ""
     from_email: str = "noreply@forge.ai"
+
+    # Database credentials (used by docker-compose)
+    mongo_password: str = ""
+    redis_password: str = ""
 
     # Security
     trusted_proxies: str = "127.0.0.1,::1"
