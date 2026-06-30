@@ -44,7 +44,7 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
-          python -m pytest tests/ -v --timeout=30 2>&1 || true
+          python -m pytest tests/ -v --timeout=30
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

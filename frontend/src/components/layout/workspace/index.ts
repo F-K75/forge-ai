@@ -1,8 +1,0 @@
-export { WorkspaceHeader } from './WorkspaceHeader'
-export { WorkspaceSidebar, MobileNavigation } from './WorkspaceSidebar'
-export { WorkspaceMetrics } from './WorkspaceMetrics'
-export { BottomDock } from './BottomDock'
-export { TabletSidebar, MobileBottomNav } from './WorkspacePanels'
-export { WORKSPACE_SIDEBAR_ITEMS } from './constants'
-export type { SidebarItemData } from './constants'
-export { default as SaaSWorkspace } from './SaaSWorkspace'

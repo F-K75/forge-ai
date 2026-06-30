@@ -29,6 +29,7 @@ from sandbox.runner import SandboxRunner
 from services.ws_manager import manager, get_ws_user
 from api.auth import get_current_user
 from core.config import get_settings
+from core.security import sanitize_prompt
 
 router = APIRouter(prefix="/builds", tags=["builds"])
 orchestrator = Orchestrator()
@@ -112,7 +113,7 @@ async def create_build(
     build = Build(
         project_id=req.project_id,
         user_id=current_user.id,
-        prompt=req.prompt,
+        prompt=sanitize_prompt(req.prompt),
         status=BuildStatus.PENDING,
     )
 

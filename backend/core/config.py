@@ -9,12 +9,28 @@ class Settings(BaseSettings):
     default_model: str = "claude-sonnet-4-6"
     mongodb_url: str = "mongodb://localhost:27017/forge"
     redis_url: str = "redis://localhost:6379"
-    jwt_secret: str = "dev-fallback-64-char-hex-string-do-not-use-in-prod-abcdef1234567890"
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
 
     @field_validator("jwt_secret")
     @classmethod
     def check_jwt_secret(cls, v):
+        # Block known dev fallback patterns even in testing
+        blocked_patterns = [
+            "dev-fallback",
+            "do-not-use",
+            "placeholder",
+            "your_",
+        ]
+        if v and any(pattern in v for pattern in blocked_patterns):
+            raise ValueError("jwt_secret must not contain placeholder or fallback values")
+        
+        # Allow empty for test environments
+        if not v:
+            import os
+            if os.environ.get("TESTING"):
+                return v
+            raise ValueError("jwt_secret is required and must not be empty")
         if len(v) < 32:
             raise ValueError("jwt_secret must be at least 32 characters long")
         return v

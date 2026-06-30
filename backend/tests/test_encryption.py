@@ -1,10 +1,13 @@
 """
 Test suite for encryption/decryption flows
 """
+import os
+os.environ["TESTING"] = "true"
+
 import pytest
 from datetime import datetime
 from core.encryption import encrypt_field, decrypt_field, mask_token
-from core.security import sanitize_string, validate_password_strength, generate_csrf_token
+from core.security import sanitize_string, validate_password_strength, generate_csrf_token, sanitize_prompt
 
 
 class TestEncryption:
@@ -104,6 +107,32 @@ class TestInputSanitization:
         result = sanitize_string("test[regex]special", max_length=50)
         # Should escape regex special characters
         assert "\\[" in result or "[" not in result
+
+
+class TestPromptSanitization:
+    """Test prompt sanitization for LLM injection prevention"""
+
+    async def test_sanitize_normal_prompt(self):
+        """Test sanitization of normal prompt"""
+        result = sanitize_prompt("Build a todo app with React and Firebase")
+        assert result == "Build a todo app with React and Firebase"
+
+    async def test_sanitize_null_bytes(self):
+        """Test removal of null bytes"""
+        result = sanitize_prompt("Build a\x00todo\x00app")
+        assert result == "Build atodoapp"
+
+    async def test_sanitize_control_chars(self):
+        """Test removal of control characters"""
+        result = sanitize_prompt("Build\u0000\u0001\u0002app")
+        assert "\x00" not in result
+        assert "\x01" not in result
+
+    async def test_sanitize_length_limit(self):
+        """Test length limiting"""
+        long_string = "a" * 100000
+        result = sanitize_prompt(long_string, max_length=50000)
+        assert len(result) == 50000
 
 
 class TestPasswordValidation:

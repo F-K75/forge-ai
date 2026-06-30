@@ -8,7 +8,7 @@ import secrets
 import hashlib
 
 from core.database import get_db, get_redis
-from core.models import SecurityEvent
+from core.models import SecurityEvent, User
 from core.config import get_settings
 
 settings = get_settings()
@@ -17,6 +17,12 @@ DEFAULT_RATE_LIMITS = {
     "auth": {"limit": 10, "window": 60},
     "build": {"limit": 5, "window": 60},
     "api": {"limit": 100, "window": 60},
+}
+
+# User-based rate limits
+USER_RATE_LIMITS = {
+    "build": 100,  # max builds per hour
+    "api": 1000,   # max API calls per hour
 }
 
 # CSRF token storage (in production, use Redis)
@@ -136,20 +142,33 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     return True, ""
 
 
-def sanitize_string(value: str, max_length: int = 1000) -> str:
-    """Sanitize string input to prevent injection attacks."""
+async def csrf_protection_middleware(request: Request, call_next):
+    """Validate CSRF token on state-changing requests."""
+    if request.method in ("POST", "PUT", "DELETE", "PATCH"):
+        csrf_header = request.headers.get("X-CSRF-Token")
+        if not csrf_header:
+            # For endpoints using cookies, CSRF is required
+            if not request.url.path.startswith("/auth/login") and not request.url.path.startswith("/auth/register"):
+                raise HTTPException(status_code=403, detail="CSRF token required")
+    
+    response = await call_next(request)
+    return response
+
+
+def sanitize_prompt(value: str, max_length: int = 50000) -> str:
+    """Sanitize user prompt for LLM injection attacks."""
     if not isinstance(value, str):
         raise ValueError("Input must be a string")
     
-    # Remove null bytes
+    # Remove null bytes and control characters
     value = value.replace("\x00", "")
+    value = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", value)
     
     # Limit length
     if len(value) > max_length:
         value = value[:max_length]
     
-    # Escape regex special characters for MongoDB queries
-    return re.escape(value) if max_length < 100 else value
+    return value
 
 
 def generate_csrf_token() -> str:
@@ -157,21 +176,30 @@ def generate_csrf_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-def verify_csrf_token(token: str, session_token: str) -> bool:
-    """Verify CSRF token matches session."""
-    if not token or not session_token:
+async def store_csrf_token(session_token: str, csrf_token: str, expires_in_minutes: int = 60) -> None:
+    """Store CSRF token in Redis with expiration."""
+    try:
+        redis = await get_redis()
+        key = f"csrf:{session_token}"
+        await redis.setex(key, expires_in_minutes * 60, csrf_token)
+    except Exception:
+        pass
+
+
+async def validate_csrf_token(session_token: str, csrf_token: str) -> bool:
+    """Validate CSRF token from Redis."""
+    if not session_token or not csrf_token:
         return False
     
-    stored = _csrf_tokens.get(session_token)
-    if not stored:
+    try:
+        redis = await get_redis()
+        key = f"csrf:{session_token}"
+        stored = await redis.get(key)
+        if not stored:
+            return False
+        return secrets.compare_digest(stored, csrf_token)
+    except Exception:
         return False
-    
-    stored_token, expires = stored
-    if datetime.utcnow() > expires:
-        del _csrf_tokens[session_token]
-        return False
-    
-    return secrets.compare_digest(token, stored_token)
 
 
 async def check_anomalies(user_id: str, action: str, db) -> Optional[SecurityEvent]:

@@ -95,3 +95,17 @@ export const deploymentsApi = {
 export const integrationsApi = {
   getPlaybooks: () => api.get('/integrations/playbooks').then(r => r.data),
 }
+
+// API Keys
+export const apiKeysApi = {
+  list: () => api.get('/api-keys/').then(r => r.data),
+  create: (data: { name: string; scopes?: string[] }) => api.post('/api-keys/', data).then(r => r.data),
+  delete: (id: string) => api.delete(`/api-keys/${id}`).then(r => r.data),
+}
+
+// Webhooks
+export const webhooksApi = {
+  list: () => api.get('/webhooks/').then(r => r.data),
+  create: (data: { url: string; events?: string[] }) => api.post('/webhooks/', data).then(r => r.data),
+  delete: (id: string) => api.delete(`/webhooks/${id}`).then(r => r.data),
+}

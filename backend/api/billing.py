@@ -166,6 +166,10 @@ async def create_checkout_session(req: CheckoutRequest, user: User = Depends(get
 
     if req.plan == PlanTier.FREE:
         raise HTTPException(status_code=400, detail="Cannot checkout for free plan")
+
+    # Validate Stripe is properly configured
+    if not settings.stripe_secret_key or settings.stripe_secret_key == "your_stripe_secret_key_here":
+        raise HTTPException(status_code=503, detail="Billing not configured. Please contact support.")
     
     if not req.price_id:
         if not req.plan:

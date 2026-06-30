@@ -7,14 +7,24 @@ import { useAuthStore } from './store/authStore'
 import { api } from './lib/api'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 
-const WorkspaceLayout = lazy(() => import('./components/layout/WorkspaceLayout'))
+const AuthPage = lazy(() => import('./pages/AuthPage'))
 const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
-const Settings = lazy(() => import('./pages/Settings'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
-const Billing = lazy(() => import('./pages/Billing'))
 const Admin = lazy(() => import('./pages/Admin'))
-const Marketplace = lazy(() => import('./pages/Marketplace'))
+
+// App shell + routed pages (step 1)
+const AppShell        = lazy(() => import('./components/AppShell'))
+const ProjectsPage    = lazy(() => import('./pages/ProjectsPage'))
+const MarketplacePage = lazy(() => import('./pages/MarketplacePage'))
+const BillingPage     = lazy(() => import('./pages/BillingPage'))
+const SettingsPage    = lazy(() => import('./pages/SettingsPage'))
+const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
+// Step 3: in-shell surfaces
+const AdminConsole    = lazy(() => import('./pages/AdminConsole'))
+const ProjectHistory  = lazy(() => import('./pages/ProjectHistory'))
+// Step 5: public marketing surface (independent theme, no shell, no auth)
+const LandingPage     = lazy(() => import('./pages/LandingPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -218,16 +228,38 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Login /></Suspense></PublicRoute></ErrorBoundary>} />
+          {/* Step 5: public landing — independent theme, no shell, no auth gate */}
+          <Route path="/home" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><LandingPage /></Suspense></ErrorBoundary>} />
+
+          <Route path="/login" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><AuthPage /></Suspense></ErrorBoundary>} />
           <Route path="/signup" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Signup /></Suspense></PublicRoute></ErrorBoundary>} />
           <Route path="/forgot-password" element={<ErrorBoundary><PublicRoute><ForgotPassword /></PublicRoute></ErrorBoundary>} />
-          <Route path="/onboarding" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ProtectedRoute></ErrorBoundary>} />
-          <Route path="/billing" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Billing /></Suspense></ProtectedRoute></ErrorBoundary>} />
-          <Route path="/settings" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Settings /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          <Route path="/onboarding" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ErrorBoundary>} />
           <Route path="/admin" element={<ErrorBoundary><AdminRoute><Suspense fallback={<RouteSkeleton />}><Admin /></Suspense></AdminRoute></ErrorBoundary>} />
-          <Route path="/marketplace" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Marketplace /></Suspense></ProtectedRoute></ErrorBoundary>} />
-          <Route path="/" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute></ErrorBoundary>} />
-          <Route path="/project/:projectId" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspaceLayout /></Suspense></ProtectedRoute></ErrorBoundary>} />
+
+          {/* App shell — rail + four routed pages */}
+          <Route
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <AppShell />
+                  </Suspense>
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          >
+            <Route index element={<Suspense fallback={<RouteSkeleton />}><ProjectsPage /></Suspense>} />
+            <Route path="/marketplace" element={<Suspense fallback={<RouteSkeleton />}><MarketplacePage /></Suspense>} />
+            <Route path="/billing" element={<Suspense fallback={<RouteSkeleton />}><BillingPage /></Suspense>} />
+            <Route path="/settings" element={<Suspense fallback={<RouteSkeleton />}><SettingsPage /></Suspense>} />
+            {/* Step 3: in-shell surfaces */}
+            <Route path="/admin-console" element={<Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense>} />
+            <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />
+          </Route>
+
+          {/* Workspace — full-screen, no shell (step 4 fills this) */}
+          <Route path="/build/:projectId" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspacePage /></Suspense></ProtectedRoute></ErrorBoundary>} />
         </Routes>
         <Toaster
           position="bottom-right"

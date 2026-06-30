@@ -102,6 +102,13 @@ async def get_current_user(
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")
 
+        # Check if token is blacklisted (logout)
+        token_jti = payload.get("jti") or payload.get("exp")  # Use exp as fallback identifier
+        if token_jti:
+            blacklisted = await db.token_blacklist.find_one({"token": access_token})
+            if blacklisted:
+                raise HTTPException(status_code=401, detail="Token revoked")
+
         # Decrypt sensitive fields
         user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
         if "github_token" in user_data and user_data["github_token"]:
@@ -122,6 +129,11 @@ async def get_current_user(
             **_get_cookie_kwargs(30 * 24 * 60 * 60),
         )
         return user
+
+    # Check if access token is blacklisted
+    blacklisted = await db.token_blacklist.find_one({"token": access_token})
+    if blacklisted:
+        raise HTTPException(status_code=401, detail="Token revoked")
 
     user_id = payload.get("sub")
     db = await get_db()

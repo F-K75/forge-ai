@@ -107,6 +107,31 @@ async def _ensure_indexes(db):
 
         # Feature flags index
         await db.feature_flags.create_index("key", unique=True)
+
+        # API keys index
+        await db.api_keys.create_index([("user_id", 1)])
+        await db.api_keys.create_index([("key_hash", 1)], unique=True)
+
+        # Webhooks index
+        await db.webhooks.create_index([("user_id", 1)])
+    except Exception:
+        pass
+
+
+async def cache_get(key: str, ttl: int = 300) -> Optional[str]:
+    """Get value from Redis cache."""
+    try:
+        redis = await get_redis()
+        return await redis.get(key)
+    except Exception:
+        return None
+
+
+async def cache_set(key: str, value: str, ttl: int = 300) -> None:
+    """Set value in Redis cache."""
+    try:
+        redis = await get_redis()
+        await redis.setex(key, ttl, value)
     except Exception:
         pass
 
