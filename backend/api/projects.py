@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from core.models import Project, User
 from core.database import get_db
@@ -10,14 +10,14 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 class CreateProjectRequest(BaseModel):
-    name: str
-    description: str = ""
+    name: str = Field(max_length=200)
+    description: str = Field(max_length=5000)
 
 
 class UpdateProjectRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    github_repo: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=200)
+    description: Optional[str] = Field(None, max_length=5000)
+    github_repo: Optional[str] = Field(None, max_length=500)
 
 
 @router.post("/")

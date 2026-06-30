@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Cookie, Response
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime, timedelta
 import uuid
@@ -24,14 +24,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
-    name: str
-    password: str
+    email: EmailStr = Field(max_length=255)
+    name: str = Field(max_length=100)
+    password: str = Field(max_length=128)
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+    email: EmailStr = Field(max_length=255)
+    password: str = Field(max_length=128)
 
 
 class TokenResponse(BaseModel):
@@ -46,22 +46,22 @@ class RefreshRequest(BaseModel):
 
 
 class UpdateProfileRequest(BaseModel):
-    name: Optional[str] = None
-    avatar_url: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=100)
+    avatar_url: Optional[str] = Field(None, max_length=500)
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str
+    current_password: str = Field(max_length=128)
+    new_password: str = Field(max_length=128)
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    email: EmailStr = Field(max_length=255)
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str
+    token: str = Field(max_length=255)
+    new_password: str = Field(max_length=128)
 
 
 def _get_cookie_kwargs(max_age: int) -> dict:

@@ -1,0 +1,663 @@
+{
+  "summary": {
+    "total_tasks": 26,
+    "deployment_blockers": 16,
+    "estimated_hours": 139
+  },
+  "sprints": [
+    {
+      "name": "Sprint 1",
+      "description": "Critical deployment blockers — all findings with production_blocker: true regardless of severity. These must be resolved before any production deployment.",
+      "tasks": [
+        {
+          "id": "SEC-001",
+          "title": "Remove Docker-in-Docker and unmount Docker socket from production",
+          "severity": "Critical",
+          "business_impact": "Full host compromise. Any authenticated user can trigger deployments that execute arbitrary Docker commands on the host, achieving container escape and remote code execution on the host machine. This is the single highest-risk finding in the application.",
+          "technical_root_cause": "backend/Dockerfile installs docker.io, deployments.py uses docker.from_env() to connect to the host Docker socket, and docker-compose.yml mounts the backend directory as a writable volume. Build output files controlled by attackers can achieve RCE on the host.",
+          "affected_files": ["backend/Dockerfile", "backend/api/deployments.py", "docker-compose.yml"],
+          "dependencies": ["SEC-003 (sandbox isolation reduces the blast radius of container escape)"],
+          "estimated_hours": 24,
+          "acceptance_criteria": [
+            "docker.io is removed from Dockerfile",
+            "No docker.from_env() call exists in deployments.py",
+            "Docker socket is not mounted in docker-compose.yml for production",
+            "Deployments use a sidecar container or Kubernetes API with proper RBAC",
+            "CI/CD pipeline handles image building and deployment, not the application runtime"
+          ],
+          "validation": [
+            "Confirm Docker SDK is not importable in the application container",
+            "Verify no process inside the container can communicate with the host Docker daemon",
+            "Run a deployment end-to-end via the new CI/CD path",
+            "Pen-test: attempt Docker socket access from within the container"
+          ],
+          "rollback": "Revert to previous deployment that used CI/CD pipeline; if none exists, revert all changed files and deploy with the old Docker socket pattern only in a tightly locked-down environment",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-002",
+          "title": "Remove plaintext secrets from version control and rotate all credentials",
+          "severity": "Critical",
+          "business_impact": "12 plaintext secrets committed to git history. If pushed to remote, API keys for Anthropic, OpenAI, GitHub, Stripe, Resend, MongoDB, Redis, and JWT signing would all be exposed. JWT_SECRET compromise allows forging authentication tokens for any user.",
+          "technical_root_cause": ".env file containing production-equivalent secrets is tracked in version control with no .gitignore entry. No pre-commit secret scanning is configured.",
+          "affected_files": [".env", ".gitignore"],
+          "dependencies": [],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            ".env is added to .gitignore and removed from git tracking",
+            ".env.example is created with placeholder values only",
+            "All existing secrets are rotated (new keys generated)",
+            "CI/CD pipeline injects real secrets via environment variables",
+            "Pre-commit hook for secret detection is installed and functional",
+            "git-secrets or similar scanning is configured in CI/CD"
+          ],
+          "validation": [
+            "git ls-files .env confirms file is no longer tracked",
+            "Run `git log --all --diff-filter=A -- .env` to confirm .env removal from history (or use git-filter-repo)",
+            "CI/CD pipeline fails a build if a secret pattern is detected in a PR",
+            "Verify new API keys authenticate successfully with each service"
+          ],
+          "rollback": "Restore .env from a secure backup if needed for local development; re-add to .gitignore",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-003",
+          "title": "Containerize sandbox runner with read-only filesystem and seccomp profiles",
+          "severity": "Critical",
+          "business_impact": "Attacker-controlled AI build output is compiled on the host via subprocess. Combined with Docker socket access (SEC-001), this achieves full host compromise. Even without Docker socket, malicious Python code can exfiltrate data, mine cryptocurrency, or pivot to internal services.",
+          "technical_root_cause": "SandboxRunner._check_python() executes `python3 -m py_compile` on user-generated file content written to disk. The subprocess runs on the host without any sandbox isolation.",
+          "affected_files": ["backend/sandbox/runner.py", "backend/api/builds.py"],
+          "dependencies": ["SEC-001 (container escape path must be sealed before or alongside this fix)"],
+          "estimated_hours": 16,
+          "acceptance_criteria": [
+            "Sandbox executes in an isolated Docker container, not on the host",
+            "Container uses a read-only root filesystem",
+            "Strict seccomp profile is applied to the sandbox container",
+            "Memory and CPU resource limits are enforced",
+            "Timeout is enforced on all sandbox operations (max 30s)",
+            "Network access is blocked from the sandbox container"
+          ],
+          "validation": [
+            "Trigger a build with known malicious Python code; verify it does not escape the container",
+            "Verify resource limits prevent fork bombs and memory exhaustion",
+            "Verify timeout enforcement kills long-running sandbox processes",
+            "Unit test: sandbox rejects code that attempts host filesystem access"
+          ],
+          "rollback": "Temporarily disable sandbox checking (revert to pass-through) while container issues are debugged, then re-enable once fixed",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-004",
+          "title": "Fix credit refund race condition with atomic guard and idempotency key",
+          "severity": "Critical",
+          "business_impact": "Direct revenue loss through credit inflation. Two concurrent build failures both trigger the error refund handler, each refunding the full reserved_credits amount without checking if the refund was already applied. Attackers can inflate credits and use them for paid features without payment.",
+          "technical_root_cause": "Error path in _run_build_background (builds.py:189-193) uses plain update_one with $inc, while the success path uses atomic find_one_and_update with guard condition. The error path lacks the idempotency guard.",
+          "affected_files": ["backend/api/builds.py"],
+          "dependencies": [],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "Error refund path uses find_one_and_update with guard condition matching the success path pattern",
+            "Each build has a unique idempotency key checked before credit adjustment",
+            "Race condition test: 10 concurrent build failures result in exactly 1 refund, not 10",
+            "Credit adjustment is wrapped in a database transaction where supported"
+          ],
+          "validation": [
+            "Write a concurrent test that triggers 10 simultaneous build failures and asserts credits are refunded exactly once",
+            "Verify MongoDB logs show only one atomic update per build failure",
+            "Code review: confirm no other monetary operations lack idempotency guards"
+          ],
+          "rollback": "Revert to previous atomic refund logic by reverting builds.py changes",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-005",
+          "title": "Replace email-based admin detection with database-stored admin role",
+          "severity": "Critical",
+          "business_impact": "Any attacker who registers with email 'admin@forge.ai' gains full administrative access: user management, credit adjustment, audit logs, system health checks. The application has zero admin access control.",
+          "technical_root_cause": "is_admin() in admin.py compares user.email against a comma-separated config string. Registration has no domain validation or uniqueness enforcement against the admin email address. Frontend AdminRoute uses the same vulnerable pattern.",
+          "affected_files": ["backend/api/admin.py", "backend/core/models.py", "frontend/src/App.tsx"],
+          "dependencies": [],
+          "estimated_hours": 6,
+          "acceptance_criteria": [
+            "User model has a database field for admin role (e.g., `role: str = 'user'`)",
+            "is_admin() checks database role instead of email string comparison",
+            "Registration endpoint blocks email addresses that match admin emails",
+            "Email verification is required before admin privileges are granted",
+            "Frontend AdminRoute checks user role from authentication state, not VITE_ADMIN_EMAILS",
+            "Existing user 'admin@forge.ai' is flagged for role migration"
+          ],
+          "validation": [
+            "Register with email 'admin@forge.ai'; verify 403 Forbidden or error message",
+            "Set admin role in database; verify the user gains admin access",
+            "Verify frontend AdminRoute blocks non-admin users even with spoofed env vars",
+            "Verify existing admin users retain access after migration"
+          ],
+          "rollback": "Revert to email-based admin check by reverting admin.py and App.tsx changes; add a migration to restore email config if the new role-based system has issues",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-006",
+          "title": "Replace all unbounded MongoDB to_list(None) queries with paginated limits",
+          "severity": "High",
+          "business_impact": "Guaranteed production outage at scale. An attacker who creates many team memberships or marketplace items can cause Out-Of-Memory crashes on the server. For 10M users, this is a guaranteed DoS vector.",
+          "technical_root_cause": "Six locations use `to_list(None)` which loads ALL matching documents into RAM. Found in auth.py (lines 462, 470, 599, 603), marketplace.py (line 78), and billing.py (line 368).",
+          "affected_files": ["backend/api/auth.py", "backend/api/marketplace.py", "backend/api/billing.py"],
+          "dependencies": [],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "All to_list(None) calls are replaced with to_list(max_limit) where max_limit ≤ 1000",
+            "Pagination parameters (skip, limit) are implemented for list endpoints",
+            "Maximum document limit is enforced at the database layer",
+            "Endpoints document their pagination behavior in response metadata"
+          ],
+          "validation": [
+            "Code grep confirms zero instances of to_list(None) in the codebase",
+            "Load test: create 100,000 marketplace items, verify list endpoint returns ≤ 1000 and does not OOM",
+            "Verify pagination cursors or page tokens work correctly"
+          ],
+          "rollback": "Revert to unbounded queries by reverting the three affected files; monitor memory usage as a temporary mitigation",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-007",
+          "title": "Implement trial enforcement middleware with trial_ends_at checks",
+          "severity": "High",
+          "business_impact": "Free users with expired trials can continue using the platform indefinitely. The platform's monetization model is completely broken — users never need to subscribe.",
+          "technical_root_cause": "User model has trial_ends_at field (models.py:70) but it is never checked anywhere. The credit check in builds.py:87-91 only checks remaining credits without verifying trial status.",
+          "affected_files": ["backend/core/models.py", "backend/api/builds.py", "backend/core/orchestrator.py"],
+          "dependencies": [],
+          "estimated_hours": 6,
+          "acceptance_criteria": [
+            "trial_ends_at is automatically set to 14 days from signup on user creation",
+            "create_build endpoint rejects requests from users with expired trials",
+            "Middleware checks trial validity on all protected API endpoints",
+            "Users receive a notification (email or in-app) before trial expiry",
+            "Trial expiry date is displayed in the user's settings UI"
+          ],
+          "validation": [
+            "Create a user with an expired trial date; verify build endpoint returns 403",
+            "Verify a user within trial period can create builds normally",
+            "Verify trial expiry notification is triggered",
+            "Verify API error message clearly explains trial expiry and subscription upgrade path"
+          ],
+          "rollback": "Remove trial_ends_at checks by reverting changes to builds.py and orchestrator.py; re-enable free builds temporarily",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-008",
+          "title": "Fix password reset flow: implement email sending and frontend reset route",
+          "severity": "High",
+          "business_impact": "Users who forget their password are permanently locked out with no recovery path. This is a critical user experience failure and a support burden. Password reset is a baseline authentication feature.",
+          "technical_root_cause": "forgot-password endpoint generates a reset token but never sends the email. RESEND_API_KEY defaults to empty string. Frontend has no /reset-password/:token route.",
+          "affected_files": ["backend/api/auth.py", "backend/core/config.py", "frontend/src/App.tsx"],
+          "dependencies": ["SEC-002 (secrets must be configured for email provider)"],
+          "estimated_hours": 8,
+          "acceptance_criteria": [
+            "forgot-password endpoint sends an email with a reset link",
+            "Reset link points to frontend route /reset-password/:token",
+            "Frontend route /reset-password/:token exists and accepts a new password",
+            "Reset token has a TTL of 1 hour and is single-use",
+            "RESEND_API_KEY is configurable and validated at startup",
+            "Fallback email provider is configured if Resend is unavailable"
+          ],
+          "validation": [
+            "Request password reset; verify email is received with a valid reset link",
+            "Click reset link; verify it loads the password reset form",
+            "Submit new password; verify login works with the new password",
+            "Verify expired or used reset tokens return a clear error"
+          ],
+          "rollback": "Disable the forgot-password endpoint by returning a static 'contact support' message; revert frontend route changes",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-009",
+          "title": "Add authorization ownership checks to container kill/remove operations",
+          "severity": "High",
+          "business_impact": "Any authenticated user can kill or remove containers owned by other users by guessing deployment IDs. This causes denial of service for other users' deployments and breaks multi-tenant isolation.",
+          "technical_root_cause": "cancel_deployment endpoint constructs container name from deployment_id without verifying ownership. No authorization boundary exists between users' containers.",
+          "affected_files": ["backend/api/deployments.py"],
+          "dependencies": ["SEC-001 (container operations should not depend on direct Docker socket access)"],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "cancel_deployment verifies the deployment belongs to the requesting user before executing container operations",
+            "Container names are namespaced with user_id prefix",
+            "Authorization failure returns 403 Forbidden, not 404 (prevents deployment ID enumeration)",
+            "All container lifecycle operations are audited with user identity"
+          ],
+          "validation": [
+            "User A tries to cancel User B's deployment; verify 403 Forbidden",
+            "User A cancels their own deployment; verify it succeeds",
+            "Verify audit log entry captures the user identity and action"
+          ],
+          "rollback": "Revert authorization checks in deployments.py; operation falls back to unchecked behavior (not recommended)",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-010",
+          "title": "Sanitize file paths from build output to prevent path traversal",
+          "severity": "High",
+          "business_impact": "Build output files with malicious paths (e.g., ../../etc/crontab) can escape the temp directory and write to arbitrary filesystem locations. Combined with Docker build context, this enables container escape and host compromise.",
+          "technical_root_cause": "deployments.py:442-446 uses os.path.join(temp_dir, path) without sanitizing the path parameter. sandbox/runner.py:26-28 writes files at unsanitized paths.",
+          "affected_files": ["backend/api/deployments.py", "backend/sandbox/runner.py"],
+          "dependencies": ["SEC-001 (path traversal is one route to container escape)"],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "All file paths from build output are validated before writing",
+            "Paths containing '..' or starting with '/' are rejected",
+            "pathlib.resolve() is used to verify the final path stays within the intended temp directory",
+            "A file path allowlist or blocklist is implemented",
+            "Path traversal tests are added to the test suite"
+          ],
+          "validation": [
+            "Submit a build with file path '../../etc/crontab'; verify it is rejected",
+            "Submit a build with file path '/proc/self/cmdline'; verify it is rejected",
+            "Submit a build with a valid path; verify it writes correctly within the temp directory",
+            "Unit test: 10 path traversal payloads all return rejection errors"
+          ],
+          "rollback": "Revert path sanitization in deployments.py and runner.py; paths go back to unsanitized behavior (not recommended)",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-011",
+          "title": "Implement marketplace content moderation pipeline with admin approval",
+          "severity": "High",
+          "business_impact": "Attackers can use the marketplace to distribute phishing links, malicious prompts, or spam to all users. Without moderation, the marketplace becomes a malware distribution vector that undermines trust in the platform.",
+          "technical_root_cause": "Marketplace create_item endpoint accepts any title, description, and prompt from any authenticated user with zero validation, spam detection, or content review.",
+          "affected_files": ["backend/api/marketplace.py"],
+          "dependencies": [],
+          "estimated_hours": 8,
+          "acceptance_criteria": [
+            "New marketplace items are created in a 'pending' state by default",
+            "Admin approval is required before items become visible to other users",
+            "Spam detection is applied to item titles and descriptions",
+            "Prompts are scanned for malicious patterns (injections, phishing URLs)",
+            "Content reporting system is implemented for users to flag inappropriate items",
+            "Rate limiting is enforced on marketplace submissions (max 5 per user per hour)"
+          ],
+          "validation": [
+            "Create a marketplace item as a regular user; verify it is in 'pending' state and not visible to others",
+            "Approve the item as admin; verify it becomes visible",
+            "Submit an item containing a known phishing URL pattern; verify it is rejected",
+            "Submit 6 items in one hour; verify the 6th is rate-limited"
+          ],
+          "rollback": "Set all marketplace items to 'approved' immediately via database migration to bypass moderation if needed",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-012",
+          "title": "Create UserResponse Pydantic model to prevent sensitive data exposure",
+          "severity": "High",
+          "business_impact": "Raw MongoDB documents are returned to clients, potentially exposing sensitive user data (user ID, email, credits, trial status, etc.). While hashed passwords are not in the current model, future additions could leak accidentally.",
+          "technical_root_cause": "Auth endpoints return the full user_doc MongoDB document or user_dict directly to the client without projecting through a response model.",
+          "affected_files": ["backend/api/auth.py"],
+          "dependencies": [],
+          "estimated_hours": 3,
+          "acceptance_criteria": [
+            "UserResponse Pydantic model is created with explicit field allowlist",
+            "All auth endpoints (register, login, get_user) use UserResponse",
+            "Raw MongoDB documents are never returned to clients",
+            "Sensitive fields (hashed_password, github_token, etc.) are explicitly excluded"
+          ],
+          "validation": [
+            "Call login endpoint; verify response contains only expected fields",
+            "Call register endpoint; verify response contains only expected fields",
+            "Code review: confirm no endpoint returns a raw MongoDB document"
+          ],
+          "rollback": "Revert to raw document responses by reverting auth.py changes",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-013",
+          "title": "Protect GitHub token from logging and exposure in request/response",
+          "severity": "High",
+          "business_impact": "GitHub tokens flow through request bodies in plaintext and are passed to subprocesses via environment variables. Tokens could be logged, leaked in error messages, or captured by host-level processes. Compromised tokens give attackers access to user repositories.",
+          "technical_root_cause": "push_to_github endpoint accepts github_token as a plaintext request field and passes it to a subprocess as GITHUB_TOKEN environment variable. No token masking or short-lived token enforcement.",
+          "affected_files": ["backend/api/deployments.py"],
+          "dependencies": [],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "GitHub tokens are masked in all log outputs and error messages",
+            "Tokens are passed to subprocesses via a temporary file descriptor, not environment variable",
+            "Request logging middleware explicitly excludes the github_token field",
+            "Token is never returned in API responses",
+            "Documentation recommends short-lived OAuth tokens with minimal scopes"
+          ],
+          "validation": [
+            "Trigger a push_to_github request; verify logs do not contain the token",
+            "Verify the token is not visible in the API response",
+            "Verify an error during GitHub push does not leak the token in error details"
+          ],
+          "rollback": "Revert token masking in deployments.py; tokens return to plaintext handling (not recommended)",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-014",
+          "title": "Harden rate limiter IP detection with proper proxy trust configuration",
+          "severity": "High",
+          "business_impact": "Attackers can bypass rate limiting entirely by spoofing X-Forwarded-For headers. This enables credential stuffing, brute force attacks, and API abuse without restriction.",
+          "technical_root_cause": "get_client_ip only trusts X-Forwarded-For when request.client.host is in trusted_proxies ('127.0.0.1,::1'). In production behind a load balancer, the real client IP is in X-Forwarded-For but request.client.host is the load balancer IP, which is not trusted.",
+          "affected_files": ["backend/core/security.py"],
+          "dependencies": [],
+          "estimated_hours": 3,
+          "acceptance_criteria": [
+            "trusted_proxies configuration accepts production load balancer IPs",
+            "X-Forwarded-For parsing handles multiple proxy hops correctly (rightmost trusted IP)",
+            "Rate limiting by authenticated user ID is added as a fallback when IP cannot be determined",
+            "Proxy configuration is documented in production deployment guide",
+            "A configuration validation check warns if trusted_proxies is set to localhost-only in production"
+          ],
+          "validation": [
+            "Send requests with spoofed X-Forwarded-For headers; verify the rate limiter uses the correct client IP",
+            "Verify rate limiting still works when IP cannot be determined (falls back to user ID)",
+            "Verify documented proxy configuration in STAGING_DEPLOYMENT.md or equivalent"
+          ],
+          "rollback": "Revert trusted_proxies configuration; IP detection falls back to request.client.host only",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-015",
+          "title": "Enforce MongoDB TLS/SSL for all database connections in production",
+          "severity": "Medium",
+          "business_impact": "Database traffic between application servers and MongoDB is transmitted in plaintext. If the internal network is compromised, an attacker can intercept all database traffic including user data, credentials, and billing information.",
+          "technical_root_cause": "MongoDB connection string in .env and database.py does not include tls=true or tlsCAFile parameters. The connection defaults to unencrypted.",
+          "affected_files": ["backend/core/database.py", "backend/core/config.py", ".env.example"],
+          "dependencies": [],
+          "estimated_hours": 2,
+          "acceptance_criteria": [
+            "MONGODB_URL includes tls=true and tlsCAFile parameters for production",
+            "TLS configuration is validated at application startup",
+            "Connection fails explicitly if TLS cannot be negotiated in production mode",
+            "Development environment defaults to localhost without TLS as expected"
+          ],
+          "validation": [
+            "Start the application with a MongoDB URL requiring TLS; verify successful TLS handshake in MongoDB logs",
+            "Attempt to connect with a non-TLS URL in production mode; verify startup failure",
+            "Verify TLS certificate is validated (not just requested)"
+          ],
+          "rollback": "Remove tls=true from MongoDB URL; connections revert to unencrypted (not recommended)",
+          "production_blocker": true
+        },
+        {
+          "id": "SEC-016",
+          "title": "Remove production volume mounts and switch to immutable container images",
+          "severity": "Medium",
+          "business_impact": "Any process that can write to the mounted directory can modify the running application code. In production, this allows arbitrary code execution within the container. Violates immutable infrastructure best practices and prevents reliable rollbacks.",
+          "technical_root_cause": "docker-compose.yml mounts ./backend:/app as a writable volume (line 16). This is suitable for development hot-reload but dangerous in production.",
+          "affected_files": ["docker-compose.yml", "backend/Dockerfile"],
+          "dependencies": ["SEC-001 (overlapping Docker infrastructure changes)"],
+          "estimated_hours": 2,
+          "acceptance_criteria": [
+            "Production docker-compose.yml does not mount any backend code volumes",
+            "Development mounts are isolated in docker-compose.override.yml",
+            "CI/CD pipeline builds and deploys immutable container images",
+            "Rolling back a deployment means deploying the previous image, not modifying running code"
+          ],
+          "validation": [
+            "Deploy the production configuration; verify that code changes do not take effect until a new image is built and deployed",
+            "Verify docker-compose.override.yml is gitignored or clearly marked as development-only"
+          ],
+          "rollback": "Re-add the volume mount to docker-compose.yml for hot-reload debugging",
+          "production_blocker": true
+        }
+      ]
+    },
+    {
+      "name": "Sprint 2",
+      "description": "High severity issues that do not directly block production deployment but pose serious security risks and should be addressed immediately after Sprint 1.",
+      "tasks": [
+        {
+          "id": "SEC-017",
+          "title": "Implement persistent CSRF protection with stateless Double Submit Cookie pattern",
+          "severity": "High",
+          "business_impact": "CSRF tokens are stored in-memory and lost on server restart. The implementation does not support multiple server instances, making horizontal scaling impossible. CSRF verification is never actually called from any endpoint, meaning all state-changing endpoints are unprotected against CSRF attacks.",
+          "technical_root_cause": "CSRF tokens stored in an in-memory Python dict (_csrf_tokens) rather than Redis or stateless double-submit cookie pattern. The verifier function is never registered as middleware or called from any endpoint.",
+          "affected_files": ["backend/core/security.py"],
+          "dependencies": [],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "CSRF protection uses stateless Double Submit Cookie pattern (no server-side storage)",
+            "CSRF middleware is registered in the application middleware stack",
+            "All state-changing endpoints (POST, PUT, DELETE, PATCH) require CSRF token validation",
+            "SameSite=Strict is configured on all session cookies",
+            "CSRF token has a reasonable expiry (e.g., 1 hour)"
+          ],
+          "validation": [
+            "Submit a POST request without a CSRF token; verify it is rejected",
+            "Submit a POST request with a valid CSRF token; verify it succeeds",
+            "Verify CSRF token validation works across multiple server instances",
+            "Verify SameSite=Strict cookie attribute is set"
+          ],
+          "rollback": "Disable CSRF middleware by removing it from middleware stack in main.py",
+          "production_blocker": false
+        }
+      ]
+    },
+    {
+      "name": "Sprint 3",
+      "description": "Medium severity findings. These represent genuine security risks but have lower immediate impact or require lower attack complexity to exploit.",
+      "tasks": [
+        {
+          "id": "SEC-018",
+          "title": "Fix Stripe webhook signature verification with specific exception handling",
+          "severity": "Medium",
+          "business_impact": "The webhook endpoint catches ALL exceptions as 'Invalid webhook', including genuine Stripe events that fail for other reasons. Attackers could replay or tamper with webhook events. Legitimate payment events could be silently dropped, causing billing failures.",
+          "technical_root_cause": "billing.py:557-565 catches bare `Exception` instead of specifically `stripe.error.SignatureVerificationError`. Any error in webhook processing (network, parsing, database) is masked as 'Invalid webhook'.",
+          "affected_files": ["backend/api/billing.py"],
+          "dependencies": [],
+          "estimated_hours": 3,
+          "acceptance_criteria": [
+            "SignatureVerificationError is caught specifically and separately from other exceptions",
+            "Non-signature errors are logged with full details for debugging",
+            "Idempotency checking is implemented for webhook events",
+            "Webhook event ID uniqueness is verified",
+            "Failed webhook events trigger an alert"
+          ],
+          "validation": [
+            "Send a webhook with an invalid signature; verify 400 with 'Invalid webhook'",
+            "Send a webhook with a valid signature but malformed payload; verify it returns a 500-level error (not 400) and logs the real error",
+            "Send the same valid webhook twice; verify the second is rejected due to idempotency check"
+          ],
+          "rollback": "Revert to bare Exception catch by reverting billing.py changes",
+          "production_blocker": false
+        },
+        {
+          "id": "SEC-019",
+          "title": "Make CORS origins configurable via environment variable for production",
+          "severity": "Medium",
+          "business_impact": "CORS origins are hardcoded to localhost. In production, the actual domain must be added. If misconfigured, CORS could allow cross-origin attacks or block legitimate users. The frontend API URL is also hardcoded to localhost.",
+          "technical_root_cause": "config.py:41 hardcodes allowed_origins to ['http://localhost:3000', 'http://localhost:5173']. api.ts:4 hardcodes API URL to localhost:8000.",
+          "affected_files": ["backend/core/config.py", "frontend/src/lib/api.ts"],
+          "dependencies": [],
+          "estimated_hours": 1,
+          "acceptance_criteria": [
+            "allowed_origins is configurable via CORS_ORIGINS environment variable",
+            "Production CORS configuration is documented in deployment guide",
+            "Frontend API URL uses relative paths or build-time environment variables",
+            "Default configuration still works for local development"
+          ],
+          "validation": [
+            "Set CORS_ORIGINS to a custom domain; verify the API accepts requests from that domain",
+            "Verify requests from non-allowed origins are rejected with appropriate CORS headers",
+            "Verify frontend connects to the correct API URL in production build"
+          ],
+          "rollback": "Revert to hardcoded localhost origins by reverting config.py changes",
+          "production_blocker": false
+        },
+        {
+          "id": "SEC-020",
+          "title": "Restrict TrustedHostMiddleware to exact production domain names",
+          "severity": "Medium",
+          "business_impact": "Wildcard host patterns ('*.forge.ai', '*.local') allow host header injection. An attacker can craft a Host header matching the wildcard, enabling cache poisoning or password reset poisoning attacks.",
+          "technical_root_cause": "main.py:35-38 configures TrustedHostMiddleware with '*.forge.ai' and '*.local' wildcard patterns instead of exact domain names.",
+          "affected_files": ["backend/main.py"],
+          "dependencies": [],
+          "estimated_hours": 1,
+          "acceptance_criteria": [
+            "allowed_hosts is restricted to exact production domain names",
+            "Wildcard patterns are removed",
+            "Host validation is also enforced at the reverse proxy level"
+          ],
+          "validation": [
+            "Send a request with Host header set to an unexpected domain; verify 400 response",
+            "Send a request with the correct production Host header; verify it succeeds",
+            "Verify the reverse proxy (if any) also validates the Host header"
+          ],
+          "rollback": "Revert to wildcard patterns by reverting main.py changes",
+          "production_blocker": false
+        },
+        {
+          "id": "SEC-021",
+          "title": "Implement prompt injection detection and sanitization for AI agent inputs",
+          "severity": "Medium",
+          "business_impact": "Attackers can craft prompts that cause AI agents to generate malicious code, leak system prompts, execute unauthorized operations, or produce harmful content. The application's core value proposition (AI-generated builds) is also the primary attack surface for injection.",
+          "technical_root_cause": "Build prompts are passed directly to AI agents without any sanitization. The SandboxRunner's basic checks (brace balance) are insufficient to detect malicious content.",
+          "affected_files": ["backend/api/builds.py", "backend/core/orchestrator.py", "backend/core/security.py", "backend/sandbox/runner.py"],
+          "dependencies": ["SEC-003 (sandbox isolation mitigates damage from malicious generated code)"],
+          "estimated_hours": 8,
+          "acceptance_criteria": [
+            "Prompt injection detection patterns are implemented (e.g., role override attempts, delimiter leaking)",
+            "System prompts are hardened with clear boundaries",
+            "AI-generated output is validated for malicious patterns before execution",
+            "Rate limiting is enforced on build prompts per user (max 20 builds per hour)",
+            "Injection attempts are logged for security monitoring"
+          ],
+          "validation": [
+            "Submit a prompt that attempts to override the system role; verify it is detected and rejected",
+            "Submit a prompt asking the AI to reveal system instructions; verify it is detected",
+            "Submit a prompt that generates code with known malicious patterns; verify the output is blocked",
+            "Verify rate limiting prevents prompt injection brute force"
+          ],
+          "rollback": "Disable prompt injection detection by removing the middleware or sanitization function",
+          "production_blocker": false
+        },
+        {
+          "id": "SEC-022",
+          "title": "Migrate JWT from HS256 to RS256 with key rotation and token revocation capability",
+          "severity": "Medium",
+          "business_impact": "With a symmetric HS256 algorithm, JWT_SECRET compromise allows forging tokens for any user, past and future. No key rotation, no token revocation, and 7-day token expiry mean compromised tokens remain valid for a week. Attackers can maintain persistent unauthorized access.",
+          "technical_root_cause": "auth.py:20-38 uses HS256 with a single JWT_SECRET. No key rotation mechanism exists. decode_token silently returns None on any error, providing no differentiation between expired, malformed, or invalid tokens.",
+          "affected_files": ["backend/auth.py", "backend/core/config.py"],
+          "dependencies": ["SEC-002 (JWT_SECRET must be rotated after this change)"],
+          "estimated_hours": 8,
+          "acceptance_criteria": [
+            "JWT signing uses RS256 with an RSA key pair",
+            "Public key is exposed via a well-known endpoint for verification",
+            "Key rotation mechanism is implemented (key version identifier in token header)",
+            "Token revocation capability is added (check against Redis or database)",
+            "Access token expiry is reduced to 15 minutes",
+            "Refresh token is implemented for obtaining new access tokens",
+            "Error handling differentiates between expired, malformed, and invalid tokens"
+          ],
+          "validation": [
+            "Issue a token with the current key; verify it validates successfully",
+            "Rotate the key; issue a new token; verify old tokens with old key version still validate",
+            "Revoke a token; verify it is rejected on the next request",
+            "Verify an expired token returns a clear 'token expired' error (not generic 'invalid')",
+            "Verify an invalid signature returns 'invalid signature' error"
+          ],
+          "rollback": "Revert to HS256 by reverting auth.py and config.py changes; keep the RS256 key pair for gradual migration",
+          "production_blocker": false
+        }
+      ]
+    },
+    {
+      "name": "Sprint 4",
+      "description": "Low severity findings. These represent defense-in-depth improvements, monitoring enhancements, and hardening that should be addressed after all higher-priority items.",
+      "tasks": [
+        {
+          "id": "SEC-023",
+          "title": "Implement rate limiting on WebSocket connections",
+          "severity": "Low",
+          "business_impact": "Attackers can open unlimited WebSocket connections to exhaust server resources. The current rate limiting middleware applies only to HTTP paths, leaving WebSockets unprotected.",
+          "technical_root_cause": "Rate limiting middleware in security.py checks request.url.path against HTTP pattern. WebSocket upgrade requests bypass this check entirely.",
+          "affected_files": ["backend/core/security.py", "backend/api/builds.py"],
+          "dependencies": [],
+          "estimated_hours": 3,
+          "acceptance_criteria": [
+            "Per-IP rate limiting is implemented for WebSocket connections (max 10 connections per minute per IP)",
+            "Per-user rate limiting is implemented for authenticated WebSocket connections",
+            "Concurrent WebSocket connections per user are limited (max 5)",
+            "Rate limit headers are included in WebSocket upgrade response",
+            "Rate limit exceeded closes the WebSocket with 1014 status code"
+          ],
+          "validation": [
+            "Open 11 WebSocket connections from the same IP in one minute; verify the 11th is rejected",
+            "Open 6 concurrent WebSocket connections as the same user; verify the 6th is rejected",
+            "Verify rate limit resets after the window expires"
+          ],
+          "rollback": "Remove WebSocket rate limiting by reverting security.py changes",
+          "production_blocker": false
+        },
+        {
+          "id": "SEC-024",
+          "title": "Populate IP address and user agent in all audit log entries",
+          "severity": "Low",
+          "business_impact": "Security incident investigation cannot identify the source of malicious actions. Without IP addresses and user agents in audit logs, it is impossible to determine whether an attack came from a specific IP range, country, or device type.",
+          "technical_root_cause": "AuditLog model has ip_address and user_agent fields marked as Optional, but they are never populated in any of the three audit log creation locations (admin.py:264, admin.py:622, auth.py:330).",
+          "affected_files": ["backend/core/models.py", "backend/api/admin.py", "backend/api/auth.py"],
+          "dependencies": [],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "IP address is extracted from the request context and stored in all audit log entries",
+            "User agent is extracted from the request headers and stored in all audit log entries",
+            "Middleware for automatic audit logging is added for sensitive operations",
+            "All existing audit log creation calls are updated to pass request context"
+          ],
+          "validation": [
+            "Perform an admin action; verify the audit log entry contains the correct IP and user agent",
+            "Perform a sensitive auth action (login, password change); verify audit log contains IP and user agent",
+            "Verify audit log entries created before the fix have null values (backward compatible)"
+          ],
+          "rollback": "Revert to not populating IP and user agent; audit log creation reverts to previous behavior",
+          "production_blocker": false
+        },
+        {
+          "id": "SEC-025",
+          "title": "Fix decryption failure handler to return sanitized error instead of ciphertext",
+          "severity": "Low",
+          "business_impact": "When decryption fails, the raw encrypted string is returned to the user as plaintext. This leaks encrypted data that could be used for cryptanalysis or directly exposes sensitive information if the encryption is weak.",
+          "technical_root_cause": "encryption.py:30 catches all exceptions and returns the encrypted_value as-is due to a bare except clause.",
+          "affected_files": ["backend/core/encryption.py"],
+          "dependencies": [],
+          "estimated_hours": 1,
+          "acceptance_criteria": [
+            "Decryption failures log the error with full details for debugging",
+            "Decryption failures return a sanitized error message (e.g., 'Failed to decrypt field')",
+            "Raw encrypted data is never returned to the user on failure"
+          ],
+          "validation": [
+            "Corrupt an encrypted field in the database; verify the API returns a sanitized error, not the ciphertext",
+            "Verify the error is logged with sufficient detail for debugging"
+          ],
+          "rollback": "Revert to returning encrypted_value on failure by reverting encryption.py changes",
+          "production_blocker": false
+        },
+        {
+          "id": "SEC-026",
+          "title": "Use a separate independent encryption key instead of deriving from JWT secret",
+          "severity": "Low",
+          "business_impact": "Encryption key is derived from JWT_SECRET using SHA256. If JWT_SECRET is compromised, all encrypted fields (github_token) can be decrypted. The comment in the source code itself acknowledges 'not ideal but better than plaintext'.",
+          "technical_root_cause": "encryption.py:10-13 derives the Fernet encryption key from settings.jwt_secret via hashlib.sha256(jwt_secret.encode()).digest(), coupling encryption and authentication security.",
+          "affected_files": ["backend/core/encryption.py", "backend/core/config.py"],
+          "dependencies": ["SEC-002 (new encryption key must be stored securely)"],
+          "estimated_hours": 4,
+          "acceptance_criteria": [
+            "A separate ENCRYPTION_KEY is added to configuration",
+            "Fernet key is derived from ENCRYPTION_KEY, not JWT_SECRET",
+            "Existing encrypted data is migrated to the new key (re-encrypt all fields)",
+            "ENCRYPTION_KEY is stored in the secrets manager, not in code or git",
+            "Key rotation is supported by the encryption module"
+          ],
+          "validation": [
+            "Verify encrypted fields can be decrypted with the new key",
+            "Verify setting a new ENCRYPTION_KEY re-encrypts data correctly",
+            "Verify old encrypted data is migrated and accessible",
+            "Pen-test: compromise JWT_SECRET and verify encrypted fields remain protected"
+          ],
+          "rollback": "Revert to deriving from JWT_SECRET by reverting encryption.py changes; re-encrypt fields with the old key",
+          "production_blocker": false
+        }
+      ]
+    }
+  ]
+}

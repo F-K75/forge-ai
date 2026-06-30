@@ -1,0 +1,339 @@
+[
+  {
+    "id": "PLAT-001",
+    "title": "Implement file locking for all JSON state file operations",
+    "severity": "P0",
+    "category": "Concurrency",
+    "business_impact": "Race conditions cause data corruption, lost updates, and inconsistent task states under concurrent access",
+    "technical_root_cause": "helpers.py uses plain open() without any locking; multiple threads/processes can read/write simultaneously causing TOCTOU races",
+    "affected_components": ["helpers.py", "all engine components"],
+    "affected_files": ["orchestration/helpers.py"],
+    "dependencies": [],
+    "estimated_hours": 16,
+    "implementation_strategy": "Introduce SQLite-backed storage with ACID transactions replacing JSON file operations, with optional file lock fallback for compatibility",
+    "acceptance_criteria": [
+      "All read/write operations to TASK_REGISTRY.json are protected by exclusive locks",
+      "Concurrent writes do not result in data loss or corruption",
+      "Read operations are atomic snapshots",
+      "Lock timeout prevents indefinite blocking"
+    ],
+    "validation_plan": [
+      "Run 20 concurrent update_task() calls on same task",
+      "Verify no data loss or corruption in TASK_REGISTRY.json",
+      "Stress test with 100 parallel workers updating different tasks"
+    ],
+    "rollback_strategy": "Revert to previous helpers.py; disable concurrent engine instances"
+  },
+  {
+    "id": "PLAT-002",
+    "title": "Implement atomic task claiming to prevent duplicate dispatch",
+    "severity": "P0",
+    "category": "Task Ownership",
+    "business_impact": "Same task can be dispatched to multiple agents simultaneously causing duplicate work and inconsistent states",
+    "technical_root_cause": "dispatcher.dispatch() calls assign_task() which does read-modify-write without atomicity check",
+    "affected_components": ["dispatcher.py", "helpers.py", "scheduler.py"],
+    "affected_files": ["orchestration/engine/dispatcher.py", "orchestration/helpers.py"],
+    "dependencies": ["PLAT-001"],
+    "estimated_hours": 8,
+    "implementation_strategy": "Add expected_status parameter to update_task(); verify old status matches before claim; return failure if mismatch",
+    "acceptance_criteria": [
+      "Multiple dispatchers calling dispatch() on same task results in exactly one claiming success",
+      "Other dispatchers receive distinct error/failure indication",
+      "Task ownership is recorded atomically"
+    ],
+    "validation_plan": [
+      "Spin up 10 dispatcher threads on same READY task",
+      "Verify exactly one succeeds, others receive failure",
+      "Verify task.owner is set correctly"
+    ],
+    "rollback_strategy": "Remove atomic claim logic; accept duplicate dispatch risk for single-instance operation"
+  },
+  {
+    "id": "PLAT-003",
+    "title": "Implement lease-based task ownership with TTL expiration",
+    "severity": "P0",
+    "category": "Task Ownership",
+    "business_impact": "Tasks claimed by crashed/misbehaving workers remain stuck indefinitely, blocking workflow progress",
+    "technical_root_cause": "No ownership expiration mechanism; once assigned, task stays in ASSIGNED until explicitly transitioned",
+    "affected_components": ["helpers.py", "scheduler.py", "dispatcher.py"],
+    "affected_files": ["orchestration/helpers.py", "orchestration/engine/scheduler.py"],
+    "dependencies": ["PLAT-002"],
+    "estimated_hours": 12,
+    "implementation_strategy": "Add lease_expires_at timestamp to task; scheduler returns expired tasks to READY; heartbeat extends lease",
+    "acceptance_criteria": [
+      "Tasks with expired leases are automatically returned to READY state",
+      "Heartbeat extends lease by configured interval",
+      "Lease expiration is checked during scheduling",
+      "Expired task history records lease timeout event"
+    ],
+    "validation_plan": [
+      "Create task, assign with 5-second lease",
+      "Wait 6 seconds without heartbeat",
+      "Verify task is returned to READY state",
+      "Verify original owner no longer owns task"
+    ],
+    "rollback_strategy": "Remove lease expiration checks; manual task recovery only"
+  },
+  {
+    "id": "PLAT-004",
+    "title": "Implement heartbeat endpoint for worker liveness detection",
+    "severity": "P0",
+    "category": "Worker Management",
+    "business_impact": "Dead workers continue to hold task ownership silently, causing workflow to stall",
+    "technical_root_cause": "No periodic worker check-in; state machine has no liveness awareness",
+    "affected_components": ["api.py", "scheduler.py", "helpers.py"],
+    "affected_files": ["orchestration/api.py", "orchestration/helpers.py", "orchestration/engine/scheduler.py"],
+    "dependencies": ["PLAT-003"],
+    "estimated_hours": 8,
+    "implementation_strategy": "Add POST /orchestration/engine/heartbeat endpoint; workers call periodically; scheduler extends lease on valid heartbeat",
+    "acceptance_criteria": [
+      "Workers can send heartbeat with their task ID",
+      "Valid heartbeat extends task lease by TTL interval",
+      "Heartbeat fails if worker doesn't own task",
+      "Heartbeat is rate-limited per worker"
+    ],
+    "validation_plan": [
+      "Start task ownership",
+      "Send heartbeat every 3 seconds",
+      "Verify lease extends each time",
+      "Stop heartbeats and verify expiration triggers"
+    ],
+    "rollback_strategy": "Disable heartbeat verification; rely on manual lease tuning"
+  },
+  {
+    "id": "PLAT-005",
+    "title": "Implement automatic worker timeout detection and task recovery",
+    "severity": "P0",
+    "category": "Fault Tolerance",
+    "business_impact": "Worker crashes result in orphaned tasks that never complete, requiring manual intervention",
+    "technical_root_cause": "recovery.py only handles engine-level recovery; no worker-level timeout detection",
+    "affected_components": ["scheduler.py", "recovery.py", "helpers.py"],
+    "affected_files": ["orchestration/engine/scheduler.py", "orchestration/engine/recovery.py"],
+    "dependencies": ["PLAT-004"],
+    "estimated_hours": 12,
+    "implementation_strategy": "Add timeout_checker to scheduler; scan for expired leases; reset to READY/ASSIGNED; publish RECOVERY_NEEDED event",
+    "acceptance_criteria": [
+      "Tasks with expired leases are automatically detected within 30 seconds",
+      "Expired tasks are reset to ASSIGNED state for re-dispatch",
+      "Recovery event is published for monitoring",
+      "Original owner is removed from task"
+    ],
+    "validation_plan": [
+      "Assign task with 5-second lease",
+      "Kill worker without extending lease",
+      "Wait for timeout detection",
+      "Verify task reset and re-dispatch"
+    ],
+    "rollback_strategy": "Increase lease timeout to maximum; disable auto-recovery"
+  },
+  {
+    "id": "PLAT-006",
+    "title": "Implement circular dependency detection to prevent infinite loops",
+    "severity": "P0",
+    "category": "Scheduling",
+    "business_impact": "Circular task dependencies cause infinite recursion in get_dependency_chain() and scheduler starvation",
+    "technical_root_cause": "dependency_resolver.get_dependency_chain() has visited set but doesn't detect cycles in task definitions themselves",
+    "affected_components": ["dependency_resolver.py"],
+    "affected_files": ["orchestration/engine/dependency_resolver.py"],
+    "dependencies": [],
+    "estimated_hours": 6,
+    "implementation_strategy": "Add cycle detection in resolve_dependencies(); detect A→B→A patterns; mark tasks with cycles as blocked with clear error",
+    "acceptance_criteria": [
+      "Circular dependencies are detected in O(n) time",
+      "Tasks with circular deps return 'blocked' status with reason",
+      "No infinite loops in dependency resolution",
+      "Cycle information stored in task warnings"
+    ],
+    "validation_plan": [
+      "Create tasks A depends on B, B depends on A",
+      "Call can_execute() on both tasks",
+      "Verify both return blocked with cycle error",
+      "Verify no stack overflow or infinite loop"
+    ],
+    "rollback_strategy": "Remove cycle detection; accept infinite loop risk for trusted task definitions"
+  },
+  {
+    "id": "PLAT-007",
+    "title": "Implement event deduplication and idempotency",
+    "severity": "P0",
+    "category": "Event Processing",
+    "business_impact": "Duplicate events cause duplicate state transitions, duplicate task dispatch, and inconsistent metrics",
+    "technical_root_cause": "event_bus.publish() never checks if identical event was already processed; handlers execute regardless",
+    "affected_components": ["event_bus.py", "workflow_engine.py"],
+    "affected_files": ["orchestration/engine/event_bus.py"],
+    "dependencies": [],
+    "estimated_hours": 8,
+    "implementation_strategy": "Add event deduplication window; track recent event_ids; skip if duplicate within 5-second window",
+    "acceptance_criteria": [
+      "Duplicate events within deduplication window are ignored",
+      "Event_id uniqueness is enforced per task+type+timestamp window",
+      "Deduplication is bounded (max 1000 recent events)",
+      "Duplicate detection is O(1) lookup"
+    ],
+    "validation_plan": [
+      "Publish same event 10 times rapidly",
+      "Verify handler called once",
+      "Verify duplicate count in stats",
+      "Verify original event preserved"
+    ],
+    "rollback_strategy": "Disable deduplication; accept duplicate processing risk"
+  },
+  {
+    "id": "PLAT-008",
+    "title": "Implement atomic checkpoint writes with write-ahead log",
+    "severity": "P0",
+    "category": "Recovery",
+    "business_impact": "Partial checkpoint writes due to crashes cause unrecoverable state and data loss",
+    "technical_root_cob": "recovery.py writes checkpoint directly to file without atomic write guarantee; crash during write corrupts checkpoint",
+    "affected_components": ["recovery.py"],
+    "affected_files": ["orchestration/engine/recovery.py"],
+    "dependencies": [],
+    "estimated_hours": 10,
+    "implementation_strategy": "Write to temp file with checksum; verify write complete; atomic rename; keep previous checkpoint as backup",
+    "acceptance_criteria": [
+      "Checkpoint writes use atomic rename pattern",
+      "Corrupted checkpoints are detected and skipped",
+      "Previous checkpoint retained until new one verified",
+      "Checksum verification on checkpoint load"
+    ],
+    "validation_plan": [
+      "Create large checkpoint during active workflow",
+      "Kill process mid-write",
+      "Restart and verify recovery uses previous checkpoint",
+      "Verify no corrupted checkpoint loaded"
+    ],
+    "rollback_strategy": "Disable atomic writes; accept partial write corruption risk"
+  },
+  {
+    "id": "PLAT-009",
+    "title": "Implement checksum and schema validation for checkpoints",
+    "severity": "P0",
+    "category": "Recovery",
+    "business_impact": "Corrupted or tampered checkpoints cause recovery failures or security vulnerabilities",
+    "technical_root_cause": "recovery.py loads checkpoints without verification; any JSON is accepted as valid",
+    "affected_components": ["recovery.py"],
+    "affected_files": ["orchestration/engine/recovery.py"],
+    "dependencies": ["PLAT-008"],
+    "estimated_hours": 6,
+    "implementation_strategy": "Add SHA256 checksum to checkpoint; verify on load; validate schema before restore",
+    "acceptance_criteria": [
+      "Checkpoints include SHA256 checksum of content",
+      "Checksum is verified before recovery load",
+      "Schema validation ensures all required fields present",
+      "Invalid checkpoints are rejected with clear error"
+    ],
+    "validation_plan": [
+      "Create valid checkpoint",
+      "Corrupt file externally",
+      "Attempt recovery",
+      "Verify rejection with checksum error",
+      "Verify clean checkpoint still recovers"
+    ],
+    "rollback_strategy": "Skip checksum verification; trust checkpoint integrity"
+  },
+  {
+    "id": "PLAT-010",
+    "title": "Implement fair task scheduling to prevent starvation",
+    "severity": "P0",
+    "category": "Scheduling",
+    "business_impact": "High-priority tasks starve out lower-priority ones; same tasks may never be dispatched under load",
+    "technical_root_cause": "scheduler._score_tasks() always returns same order; no round-robin or fairness mechanism",
+    "affected_components": ["scheduler.py"],
+    "affected_files": ["orchestration/engine/scheduler.py"],
+    "dependencies": [],
+    "estimated_hours": 8,
+    "implementation_strategy": "Add task age factor to scoring; implement fair queuing; track last dispatch time; boost older READY tasks",
+    "acceptance_criteria": [
+      "Tasks waiting > 60s get priority boost",
+      "No task waits > 5 minutes without dispatch opportunity",
+      "Same priority tasks get round-robin distribution",
+      "Fairness factor is configurable weight"
+    ],
+    "validation_plan": [
+      "Create 100 READY tasks with P3 priority",
+      "Add one P0 task",
+      "Run scheduler for 5 minutes",
+      "Verify low-priority tasks are dispatched",
+      "Verify no task older than 5 minutes unhandled"
+    ],
+    "rollback_strategy": "Disable fairness boost; accept potential starvation"
+  },
+  {
+    "id": "PLAT-011",
+    "title": "Implement queue starvation prevention with guaranteed minimum dispatch rate",
+    "severity": "P0",
+    "category": "Scheduling",
+    "business_impact": "Low-priority tasks may never execute under continuous high-priority load, causing workflow stagnation",
+    "technical_root_cause": "scheduler.get_next_task() always returns highest-scoring task; no minimum throughput guarantee for any priority",
+    "affected_components": ["scheduler.py"],
+    "affected_files": ["orchestration/engine/scheduler.py"],
+    "dependencies": ["PLAT-010"],
+    "estimated_hours": 6,
+    "implementation_strategy": "Add priority slot allocation; reserve N% of capacity for each priority level; implement weighted fair queuing",
+    "acceptance_criteria": [
+      "Each priority level gets minimum dispatch slots",
+      "P0: 50%, P1: 30%, P2: 15%, P3: 5% of capacity",
+      "Starved tasks eventually get dispatch opportunity",
+      "Slot allocation is configurable"
+    ],
+    "validation_plan": [
+      "Create 50 P0 tasks and 50 P3 tasks",
+      "Run scheduler for 10 minutes",
+      "Verify P3 tasks are dispatched within time window",
+      "Verify slot allocation ratios approximately met"
+    ],
+    "rollback_strategy": "Disable slot allocation; FIFO within priority score ordering"
+  },
+  {
+    "id": "PLAT-012",
+    "title": "Implement duplicate execution prevention across engine restarts",
+    "severity": "P0",
+    "category": "Task Execution",
+    "business_impact": "Task completion events may be reprocessed on recovery, causing duplicate agent execution and side effects",
+    "technical_root_cause": "No execution tracking; events reprocessed; agents called multiple times for same completion",
+    "affected_components": ["recovery.py", "dispatcher.py", "workflow_engine.py"],
+    "affected_files": ["orchestration/engine/recovery.py", "orchestration/engine/dispatcher.py"],
+    "dependencies": ["PLAT-009"],
+    "estimated_hours": 10,
+    "implementation_strategy": "Add execution_log with task+agent+transition tuples; check before dispatch; prevent re-execution of completed transitions",
+    "acceptance_criteria": [
+      "Each (task_id, agent_name, transition) tuple stored in execution log",
+      "Re-dispatch check fails if tuple already processed",
+      "Replay protection survives engine restart",
+      "Log is bounded (last 10000 entries)"
+    ],
+    "validation_plan": [
+      "Dispatch task to agent and complete",
+      "Restart engine (simulated recovery)",
+      "Verify task not re-dispatched to same agent",
+      "Verify transition history preserved"
+    ],
+    "rollback_strategy": "Disable duplicate prevention; accept re-execution risk for idempotent operations"
+  },
+  {
+    "id": "PLAT-013",
+    "title": "Implement write-once task lifecycle with immutable history",
+    "severity": "P0",
+    "category": "Data Integrity",
+    "business_impact": "History entries can be lost or duplicated under high concurrency; task data can be corrupted",
+    "technical_root_cause": "update_task() does not use atomic operations; history append is not protected from race conditions",
+    "affected_components": ["helpers.py", "state_machine.py"],
+    "affected_files": ["orchestration/helpers.py"],
+    "dependencies": ["PLAT-001"],
+    "estimated_hours": 8,
+    "implementation_strategy": "Add transaction log for task updates; enforce immutability of history; use atomic file writes; add version field",
+    "acceptance_criteria": [
+      "Each task update creates entry in transaction log",
+      "History cannot be modified after fact",
+      "Updates are replayable from transaction log",
+      "Concurrent updates are serialized"
+    ],
+    "validation_plan": [
+      "Apply 50 concurrent random updates to same task",
+      "Verify all updates applied in deterministic order",
+      "Verify no history entries lost",
+      "Verify task state consistent after recovery"
+    ],
+    "rollback_strategy": "Disable transaction log; rely on JSON integrity"
+  }
+]

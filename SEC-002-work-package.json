@@ -1,0 +1,26 @@
+{
+"task_id": "SEC-002",
+"title": "Remove plaintext secrets from version control and rotate all credentials",
+"severity": "Critical",
+"estimated_hours": 4,
+"affected_files": [
+".env",
+".gitignore"
+],
+"acceptance_criteria": [
+".env is added to .gitignore and removed from git tracking",
+".env.example is created with placeholder values only",
+"All existing secrets are rotated (new keys generated)",
+"CI/CD pipeline injects real secrets via environment variables",
+"Pre-commit hook for secret detection is installed and functional",
+"git-secrets or similar scanning is configured in CI/CD"
+],
+"validation_steps": [
+"git ls-files .env confirms file is no longer tracked",
+"Run `git log --all --diff-filter=A -- .env` to confirm .env removal from history (or use git-filter-repo)",
+"CI/CD pipeline fails a build if a secret pattern is detected in a PR",
+"Verify new API keys authenticate successfully with each service"
+],
+"rollback_plan": "Restore .env from a secure backup if needed for local development; re-add to .gitignore",
+"dependencies": []
+}

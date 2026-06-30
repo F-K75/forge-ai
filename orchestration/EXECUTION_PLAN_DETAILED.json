@@ -1,0 +1,2039 @@
+{
+  "project_summary": {
+    "name": "Forge-AI",
+    "category": "AI-powered full-stack application generator (PaaS)",
+    "maturity_score": 3.8,
+    "maturity_scale": "1-10",
+    "total_estimated_hours": 212,
+    "total_tasks": 47,
+    "total_phases": 5,
+    "total_agents": 8,
+    "current_sprint": "Sprint 1",
+    "repository": "https://github.com/F-K75/forge-ai.git",
+    "latest_commit": "1372ec3cf3420dd48702ae45ecd373e621de702f",
+    "overall_risk": "CRITICAL"
+  },
+  "execution_strategy": {
+    "approach": "Phased delivery with gating criteria",
+    "gating_phases": ["Phase 1: Security & Infrastructure", "Phase 2: Architecture & Database"],
+    "parallelization_strategy": "Max 5 concurrent tasks per agent, parallel execution where dependencies allow",
+    "deployment_strategy": "No public deployment until Phase 1 and Phase 2 complete",
+    "risk_tolerance": "ZERO — all P0 and P1 issues must be resolved before production",
+    "quality_gates": ["Security scan passes", "Lint passes", "Tests pass (70% coverage)", "Build passes", "Performance budget passes"]
+  },
+  "phase_plan": [
+    {
+      "phase": 1,
+      "name": "Security & Infrastructure Lockdown",
+      "goal": "Eliminate all P0-CRITICAL security vulnerabilities and productionize Docker infrastructure",
+      "priority": "P0-CRITICAL",
+      "status": "pending",
+      "estimated_hours": 48,
+      "entry_criteria": ["Project repository accessible", "Docker environment functional"],
+      "exit_criteria": [
+        "No P0-CRITICAL security vulnerabilities remain",
+        "Docker socket mount removed",
+        "CSRF protection enabled on all state-changing endpoints",
+        "WebSocket authentication uses one-time token (not URL query param)",
+        "JWT secret enforced to minimum 32 characters",
+        "Rate limiting uses Redis INCR/EXPIRE (not MongoDB)",
+        "All string inputs have Pydantic max_length validators",
+        "Dockerfile uses --workers 4, no --reload",
+        ".dockerignore excludes secrets and cache files",
+        "GitHub Actions CI pipeline operational"
+      ],
+      "deliverables": [
+        "Security-hardened docker-compose.yml",
+        "CSRF middleware implementation",
+        "WebSocket auth protocol fix",
+        "JWT secret validation",
+        "Prompt injection defense",
+        "GitHub token credential handling fix",
+        "Redis-based rate limiting",
+        "Input validation bounds",
+        "Production-ready Dockerfile",
+        "CI/CD pipeline"
+      ],
+      "responsible_agents": ["Security Engineer", "DevOps Engineer"],
+      "max_concurrent_tasks": 5
+    },
+    {
+      "phase": 2,
+      "name": "Architecture & Database Hardening",
+      "goal": "Fix fundamental architecture blockers and database scalability issues",
+      "priority": "P0-CRITICAL",
+      "status": "pending",
+      "estimated_hours": 60,
+      "entry_criteria": ["Phase 1 complete", "No P0-CRITICAL security issues"],
+      "exit_criteria": [
+        "Builds execute in Celery worker pool (not BackgroundTasks)",
+        "Build timeout enforced (600s default)",
+        "Build cancellation endpoint functional with credit refund",
+        "Circuit breaker protects Anthropic API calls",
+        "Thread-safe singleton pattern for MongoDB and Redis",
+        "MongoDB connection pooling configured (maxPoolSize=50)",
+        "WebSocket events broadcast via Redis pub/sub",
+        "Build files stored in separate collection (16MB limit resolved)",
+        "All missing database indexes created",
+        "TTL indexes on time-series collections",
+        "User email unique constraint enforced",
+        "Invitation token plaintext removed"
+      ],
+      "deliverables": [
+        "Celery worker pool configuration",
+        "Circuit breaker implementation",
+        "Redis pub/sub WebSocket layer",
+        "Build state machine",
+        "Database indexes (6 compound + 4 TTL)",
+        "build_files collection",
+        "Connection pooling",
+        "Rate limiting migration to Redis"
+      ],
+      "responsible_agents": ["Backend Engineer", "Database Architect"],
+      "max_concurrent_tasks": 5
+    },
+    {
+      "phase": 3,
+      "name": "Product Bug Fixes & Frontend Stability",
+      "goal": "Fix broken user flows and stabilize frontend",
+      "priority": "P0-CRITICAL",
+      "status": "pending",
+      "estimated_hours": 48,
+      "entry_criteria": ["Phase 2 complete", "Architecture stable"],
+      "exit_criteria": [
+        "Password reset flow end-to-end functional",
+        "Template field accepted and stored in project creation",
+        "Admin user export returns valid CSV",
+        "GitHub OAuth flow complete (redirect, callback, token storage)",
+        "Trial enforcement blocks builds for expired trials",
+        "Credit usage alerts sent at 80%, 50%, 20% thresholds",
+        "All routes wrapped in ErrorBoundary",
+        "Auth store race condition resolved",
+        "Admin role check server-side (not client-side)",
+        "localStorage remember-me email sanitized",
+        "Build state guards prevent duplicate builds"
+      ],
+      "deliverables": [
+        "Password reset system",
+        "Template selection fix",
+        "Admin export endpoint",
+        "GitHub OAuth implementation",
+        "Trial enforcement middleware",
+        "Credit alert system",
+        "Error boundaries",
+        "Auth race condition fix",
+        "Admin authorization fix",
+        "localStorage sanitization"
+      ],
+      "responsible_agents": ["Frontend Engineer", "Product Engineer"],
+      "max_concurrent_tasks": 5
+    },
+    {
+      "phase": 4,
+      "name": "Test Suite Foundation",
+      "goal": "Achieve 70%+ test coverage and regression safety",
+      "priority": "P0-CRITICAL",
+      "status": "pending",
+      "estimated_hours": 40,
+      "entry_criteria": ["Phase 3 complete", "Core user flows functional"],
+      "exit_criteria": [
+        "pytest-cov reports 70%+ line coverage",
+        "All 6 agent unit tests pass with mocked Anthropic responses",
+        "Full build pipeline integration test passes",
+        "Credit race condition test validates zero inflation under concurrency",
+        "Auth JWT lifecycle test covers creation, refresh, expiration, blacklist",
+        "Stripe webhook test validates signature, rejects invalid, ignores duplicates",
+        "CI pipeline runs pytest on every PR"
+      ],
+      "deliverables": [
+        "Agent unit tests (6 agents)",
+        "Build pipeline integration tests",
+        "WebSocket event flow tests",
+        "Credit system tests",
+        "Auth lifecycle tests",
+        "Stripe webhook tests",
+        "API endpoint tests",
+        "CI integration"
+      ],
+      "responsible_agents": ["QA Engineer"],
+      "max_concurrent_tasks": 5
+    },
+    {
+      "phase": 5,
+      "name": "Performance Optimization",
+      "goal": "Optimize critical hot paths for production scale",
+      "priority": "P1-HIGH",
+      "status": "pending",
+      "estimated_hours": 16,
+      "entry_criteria": ["Phase 4 complete", "Test coverage >70%"],
+      "exit_criteria": [
+        "WebSocket FILE_UPDATE events contain only deltas (not full file dict)",
+        "get_current_user Redis cache hit rate >90%",
+        "Admin user listing uses $facet aggregation (single query)",
+        "/billing/plans cached in Redis (1-hour TTL)",
+        "/marketplace cached in Redis (5-minute TTL)",
+        "WebSocket permessage-deflate compression enabled",
+        "Load testing shows p95 < 200ms for API endpoints"
+      ],
+      "deliverables": [
+        "Delta-based WebSocket updates",
+        "Redis caching for auth",
+        "Admin pagination optimization",
+        "Billing plans cache",
+        "Marketplace cache",
+        "WebSocket compression"
+      ],
+      "responsible_agents": ["Performance Engineer"],
+      "max_concurrent_tasks": 3
+    }
+  ],
+  "task_registry": [
+    {
+      "task_id": "SEC-001",
+      "title": "Remove Docker socket mount from backend container",
+      "description": "Remove /var/run/docker.sock volume mount from docker-compose.yml to prevent container escape and full host compromise",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["docker-compose.yml"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "docker-compose.yml has no Docker socket volume mount",
+        "Backend container cannot access host Docker daemon",
+        "Application functionality unaffected"
+      ],
+      "validation_steps": [
+        "Run docker-compose config",
+        "Inspect backend container volumes",
+        "Verify docker ps from inside container fails"
+      ],
+      "rollback_plan": "Restore volume mount from git history",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-002",
+      "title": "Implement CSRF protection middleware",
+      "description": "Add CSRF middleware to all state-changing endpoints (POST, PUT, DELETE) with token validation",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Medium",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/main.py", "backend/core/security.py", "backend/api/auth.py", "backend/api/builds.py", "backend/api/projects.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "CSRF token required for all POST/PUT/DELETE requests",
+        "CSRF token returned in response headers",
+        "Requests without token receive 403 Forbidden",
+        "No authentication regressions"
+      ],
+      "validation_steps": [
+        "curl POST without CSRF token: expect 403",
+        "curl POST with CSRF token: expect 200",
+        "Run integration tests",
+        "Verify browser login flow"
+      ],
+      "rollback_plan": "Revert middleware commit, remove CSRF header requirement",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-003",
+      "title": "Fix WebSocket authentication protocol",
+      "description": "Replace JWT in URL query parameter with one-time token via Sec-WebSocket-Protocol header",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Medium",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/api/auth.py", "backend/services/ws_manager.py", "frontend/src/hooks/useBuildSocket.ts"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "WebSocket token fetched from /auth/ws-token endpoint",
+        "Token passed in Sec-WebSocket-Protocol header",
+        "Token not logged or leaked in URLs",
+        "Token expires after 5 minutes"
+      ],
+      "validation_steps": [
+        "Inspect WebSocket connection headers",
+        "Verify token not in URL",
+        "Test token expiration",
+        "Verify reconnection flow"
+      ],
+      "rollback_plan": "Revert to URL query param (temporary)",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-004",
+      "title": "Enforce JWT secret minimum length",
+      "description": "Add Pydantic field validator to enforce JWT_SECRET minimum 32 characters at config load time",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/core/config.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Settings() instantiation fails if JWT_SECRET < 32 chars",
+        "Clear error message displayed",
+        "Application does not start with weak secret"
+      ],
+      "validation_steps": [
+        "Set JWT_SECRET=short and start app: expect validation error",
+        "Set JWT_SECRET=32charsminimumminimummini and start: expect success"
+      ],
+      "rollback_plan": "Remove field validator",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-005",
+      "title": "Implement prompt injection defense",
+      "description": "Add boundary tokens, input pattern filtering, and output scanning to prevent prompt injection attacks",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "High",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/agents/base.py", "backend/agents/architect.py", "backend/agents/developer.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "User input wrapped with boundary tokens",
+        "Injection patterns filtered before AI API call",
+        "AI output scanned for injection attempts",
+        "Suspicious input logged and rejected"
+      ],
+      "validation_steps": [
+        "Send prompt with injection attempt: expect rejection",
+        "Send normal prompt: expect success",
+        "Review logs for injection attempts"
+      ],
+      "rollback_plan": "Remove boundary tokens and filters",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-006",
+      "title": "Fix GitHub token credential handling",
+      "description": "Replace URL-embedded GitHub tokens with GIT_ASKPASS script for secure authentication",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Medium",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/api/deployments.py", "backend/core/security.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "GitHub tokens not visible in ps aux or .git/config",
+        "GIT_ASKPASS script used for authentication",
+        "Token rotation supported"
+      ],
+      "validation_steps": [
+        "Check ps aux during git operation: no token visible",
+        "Check .git/config: no token embedded",
+        "Verify git clone succeeds"
+      ],
+      "rollback_plan": "Revert to URL embedding (temporary)",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-007",
+      "title": "Implement per-email and per-IP rate limiting",
+      "description": "Add Redis-based rate limiting with per-email and per-IP tracking, exponential backoff on failed login",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Medium",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/core/security.py", "backend/api/auth.py"],
+      "dependencies": ["SEC-008"],
+      "acceptance_criteria": [
+        "Rate limits enforced per-email and per-IP",
+        "Redis INCR/EXPIRE used (not MongoDB)",
+        "X-Forwarded-For spoofing prevented",
+        "Exponential backoff on failed login attempts"
+      ],
+      "validation_steps": [
+        "Send 10 requests from same IP: expect rate limit after threshold",
+        "Send 10 requests from different IPs: expect all pass",
+        "Verify Redis keys expire correctly"
+      ],
+      "rollback_plan": "Revert to MongoDB-based rate limiting",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-008",
+      "title": "Migrate rate limiting from MongoDB to Redis",
+      "description": "Replace MongoDB-based rate limiting with Redis INCR/EXPIRE for O(1) performance",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Medium",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/core/security.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Zero MongoDB writes per rate-limited request",
+        "Redis INCR/EXPIRE used for rate limit tracking",
+        "Performance <1ms per request",
+        "X-RateLimit-Limit and X-RateLimit-Remaining headers present"
+      ],
+      "validation_steps": [
+        "Monitor MongoDB writes during rate-limited requests",
+        "Verify Redis keys created and expired",
+        "Benchmark request latency"
+      ],
+      "rollback_plan": "Revert to MongoDB rate limiting",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-009",
+      "title": "Add Pydantic max_length validators to all string inputs",
+      "description": "Add input length validation bounds on all critical string fields to prevent OOM attacks",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Low",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/core/models.py", "backend/api/builds.py", "backend/api/auth.py", "backend/api/projects.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "All string fields have max_length validators",
+        "Prompt field capped at 50,000 characters",
+        "OOM attacks prevented",
+        "Clear validation error messages"
+      ],
+      "validation_steps": [
+        "Send request with 100k char prompt: expect 422 validation error",
+        "Send request with 10k char prompt: expect success",
+        "Review all Pydantic models for missing validators"
+      ],
+      "rollback_plan": "Remove max_length validators",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-010",
+      "title": "Enforce cookie security flags",
+      "description": "Set SameSite=Strict and Secure=True on all authentication cookies in production",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/api/auth.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "All auth cookies have SameSite=Strict",
+        "Secure=True when is_production",
+        "HttpOnly=True on sensitive cookies"
+      ],
+      "validation_steps": [
+        "Inspect Set-Cookie headers in production mode",
+        "Verify SameSite and Secure flags present",
+        "Test cross-site request: expect rejection"
+      ],
+      "rollback_plan": "Revert cookie configuration",
+      "status": "Pending"
+    },
+    {
+      "task_id": "SEC-011",
+      "title": "Add security headers audit",
+      "description": "Implement and validate security headers: CSP, HSTS, X-Frame-Options, X-Content-Type-Options",
+      "category": "Security",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Low",
+      "assigned_agent": "Security Engineer",
+      "affected_files": ["backend/main.py", "backend/core/security.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "CSP header present and restrictive",
+        "HSTS header with max-age>=31536000",
+        "X-Frame-Options: DENY",
+        "X-Content-Type-Options: nosniff"
+      ],
+      "validation_steps": [
+        "curl -I https://api.example.com",
+        "Verify all security headers present",
+        "Test with securityheaders.com scanner"
+      ],
+      "rollback_plan": "Remove security headers middleware",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DEV-001",
+      "title": "Fix backend Dockerfile for production",
+      "description": "Remove --reload flag, add --workers 4, add --limit-concurrency to Uvicorn CMD",
+      "category": "DevOps",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 1,
+      "complexity": "Low",
+      "assigned_agent": "DevOps Engineer",
+      "affected_files": ["backend/Dockerfile"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "CMD uses uvicorn with --workers 4",
+        "No --reload flag in production",
+        "--limit-concurrency set to prevent resource exhaustion"
+      ],
+      "validation_steps": [
+        "Build Docker image",
+        "Run container",
+        "Check running processes: expect 4 workers"
+      ],
+      "rollback_plan": "Restore previous Dockerfile",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DEV-002",
+      "title": "Create .dockerignore file",
+      "description": "Exclude .env, .git, node_modules, __pycache__, .venv, *.pyc from Docker build context",
+      "category": "DevOps",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 1,
+      "complexity": "Low",
+      "assigned_agent": "DevOps Engineer",
+      "affected_files": [".dockerignore"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        ".env not in Docker image layers",
+        ".git not in Docker image layers",
+        "node_modules and __pycache__ excluded",
+        "Docker build context size reduced"
+      ],
+      "validation_steps": [
+        "Build Docker image",
+        "Inspect image layers: no .env or .git",
+        "Check build context size"
+      ],
+      "rollback_plan": "Delete .dockerignore",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DEV-003",
+      "title": "Create GitHub Actions CI pipeline",
+      "description": "Implement CI workflow: ruff lint → pytest test → docker compose build → trivy security scan",
+      "category": "DevOps",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "DevOps Engineer",
+      "affected_files": [".github/workflows/ci.yml"],
+      "dependencies": ["DEV-001", "DEV-002"],
+      "acceptance_criteria": [
+        "CI triggers on push to main and PRs",
+        "Lint job runs ruff check and format",
+        "Test job runs pytest with coverage",
+        "Build job creates Docker images",
+        "Trivy scan checks for vulnerabilities",
+        "All jobs must pass before merge"
+      ],
+      "validation_steps": [
+        "Push test commit to trigger CI",
+        "Verify all jobs execute",
+        "Introduce lint error: expect CI failure",
+        "Fix error: expect CI pass"
+      ],
+      "rollback_plan": "Delete .github/workflows/ci.yml",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DEV-004",
+      "title": "Verify docker-compose health checks",
+      "description": "Validate all docker-compose services have working healthcheck commands and start_period",
+      "category": "DevOps",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "DevOps Engineer",
+      "affected_files": ["docker-compose.yml"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "All 4 services have healthcheck defined",
+        "Healthcheck commands execute successfully",
+        "start_period allows services to initialize",
+        "depends_on conditions use service_healthy"
+      ],
+      "validation_steps": [
+        "Run docker-compose up",
+        "Check docker-compose ps: all services healthy",
+        "Kill mongo: expect backend to wait"
+      ],
+      "rollback_plan": "Revert healthcheck changes",
+      "status": "Pending"
+    },
+    {
+      "task_id": "BE-001",
+      "title": "Offload build execution to Celery workers",
+      "description": "Configure Celery worker pool with Redis broker to execute builds outside FastAPI worker processes",
+      "category": "Backend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 8,
+      "complexity": "High",
+      "assigned_agent": "Backend Engineer",
+      "affected_files": ["backend/core/orchestrator.py", "backend/main.py", "backend/core/config.py"],
+      "dependencies": ["DEV-003"],
+      "acceptance_criteria": [
+        "Celery workers separate from web processes",
+        "Builds execute in worker pool",
+        "Web workers available during builds",
+        "Celery broker uses Redis"
+      ],
+      "validation_steps": [
+        "Start Celery worker",
+        "Trigger build",
+        "Verify worker processes build",
+        "Verify web workers remain responsive"
+      ],
+      "rollback_plan": "Revert to BackgroundTasks",
+      "status": "Pending"
+    },
+    {
+      "task_id": "BE-002",
+      "title": "Implement build timeout and cancellation",
+      "description": "Add asyncio.wait_for wrapper with configurable BUILD_TIMEOUT and POST /builds/{id}/cancel endpoint",
+      "category": "Backend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "Backend Engineer",
+      "affected_files": ["backend/core/orchestrator.py", "backend/api/builds.py", "backend/core/config.py"],
+      "dependencies": ["BE-001"],
+      "acceptance_criteria": [
+        "Builds timeout after BUILD_TIMEOUT (600s default)",
+        "POST /builds/{id}/cancel cancels running build",
+        "Credits refunded atomically on cancellation",
+        "Timeout configurable via environment variable"
+      ],
+      "validation_steps": [
+        "Set BUILD_TIMEOUT=10s",
+        "Trigger build that takes 20s",
+        "Expect cancellation after 10s",
+        "Verify credits refunded"
+      ],
+      "rollback_plan": "Remove timeout wrapper and cancel endpoint",
+      "status": "Pending"
+    },
+    {
+      "task_id": "BE-003",
+      "title": "Implement circuit breaker for Anthropic API",
+      "description": "Add circuit breaker pattern to BaseAgent with exponential backoff and jitter for Anthropic API calls",
+      "category": "Backend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "High",
+      "assigned_agent": "Backend Engineer",
+      "affected_files": ["backend/agents/base.py", "backend/core/config.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Circuit breaker trips after 5 consecutive 5xx/429 errors",
+        "Circuit opens for 30 seconds",
+        "Exponential backoff: base=1s, max=30s, full jitter",
+        "Probe request sent when circuit half-open"
+      ],
+      "validation_steps": [
+        "Mock 5 consecutive 5xx responses",
+        "Verify circuit opens",
+        "Wait 30s: expect probe request",
+        "Verify backoff timing"
+      ],
+      "rollback_plan": "Remove circuit breaker, restore direct API calls",
+      "status": "Pending"
+    },
+    {
+      "task_id": "BE-004",
+      "title": "Fix thread-safe singleton pattern",
+      "description": "Implement asyncio.Lock double-check locking for MongoDB and Redis client initialization",
+      "category": "Backend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Medium",
+      "assigned_agent": "Backend Engineer",
+      "affected_files": ["backend/core/database.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Concurrent get_db() calls return same client instance",
+        "No race condition in initialization",
+        "Lock released after initialization"
+      ],
+      "validation_steps": [
+        "Spawn 10 concurrent get_db() calls",
+        "Verify all return same client instance",
+        "Check for initialization errors"
+      ],
+      "rollback_plan": "Revert to previous singleton implementation",
+      "status": "Pending"
+    },
+    {
+      "task_id": "BE-005",
+      "title": "Configure MongoDB connection pooling",
+      "description": "Add maxPoolSize=50, minPoolSize=10, serverSelectionTimeoutMS=5000, connectTimeoutMS=10000",
+      "category": "Backend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Backend Engineer",
+      "affected_files": ["backend/core/database.py", "backend/core/config.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "maxPoolSize=50",
+        "minPoolSize=10",
+        "serverSelectionTimeoutMS=5000",
+        "connectTimeoutMS=10000"
+      ],
+      "validation_steps": [
+        "Start application",
+        "Check MongoDB connection pool stats",
+        "Verify pool size limits"
+      ],
+      "rollback_plan": "Revert to default connection settings",
+      "status": "Pending"
+    },
+    {
+      "task_id": "BE-006",
+      "title": "Implement Redis pub/sub for WebSocket broadcasting",
+      "description": "Add Redis pub/sub layer in ws_manager.py for cross-worker WebSocket event broadcasting",
+      "category": "Backend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "High",
+      "assigned_agent": "Backend Engineer",
+      "affected_files": ["backend/services/ws_manager.py", "backend/main.py"],
+      "dependencies": ["BE-001"],
+      "acceptance_criteria": [
+        "WebSocket events published to Redis channels",
+        "Subscribers forward events to connected clients",
+        "Events from worker-1 received by client on worker-2",
+        "No event loss during worker restart"
+      ],
+      "validation_steps": [
+        "Start 2 Celery workers",
+        "Connect WebSocket to worker-1",
+        "Trigger event from worker-2",
+        "Verify event received by client"
+      ],
+      "rollback_plan": "Revert to in-memory WebSocket registry",
+      "status": "Pending"
+    },
+    {
+      "task_id": "BE-007",
+      "title": "Implement build state machine",
+      "description": "Refactor orchestrator to use state machine pattern: PENDING → RUNNING → SUCCESS/FAILED with validated transitions",
+      "category": "Backend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 8,
+      "complexity": "High",
+      "assigned_agent": "Backend Engineer",
+      "affected_files": ["backend/core/orchestrator.py", "backend/core/models.py"],
+      "dependencies": ["BE-001"],
+      "acceptance_criteria": [
+        "Build states: PENDING, RUNNING, SUCCESS, FAILED",
+        "Invalid state transitions rejected",
+        "State transitions logged",
+        "State persisted to MongoDB"
+      ],
+      "validation_steps": [
+        "Create build: expect PENDING",
+        "Start build: expect RUNNING",
+        "Attempt invalid transition: expect error",
+        "Complete build: expect SUCCESS"
+      ],
+      "rollback_plan": "Revert to direct attribute mutation",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DB-001",
+      "title": "Create missing compound database indexes",
+      "description": "Add 6 compound indexes on hot query paths: projects.user_id+updated_at, builds.project_id+user_id+created_at, team_members.org_id+user_id, analytics_events.user_id+event_name+created_at, marketplace_items.type+is_public+downloads, deployments.user_id+project_id+created_at",
+      "category": "Database",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Medium",
+      "assigned_agent": "Database Architect",
+      "affected_files": ["backend/core/database.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "All 6 compound indexes created",
+        "Indexes verified with getIndexes()",
+        "Query plans use indexes (verified with explain())",
+        "No full collection scans on hot paths"
+      ],
+      "validation_steps": [
+        "Run db.collection.getIndexes()",
+        "Run explain() on hot queries",
+        "Verify IXSCAN in query plan"
+      ],
+      "rollback_plan": "Drop indexes",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DB-002",
+      "title": "Create build_files collection",
+      "description": "Refactor build files from embedded dict to separate build_files collection to resolve 16MB BSON limit",
+      "category": "Database",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 8,
+      "complexity": "High",
+      "assigned_agent": "Database Architect",
+      "affected_files": ["backend/core/models.py", "backend/api/builds.py", "backend/core/database.py"],
+      "dependencies": ["DB-001"],
+      "acceptance_criteria": [
+        "Build files stored in build_files collection",
+        "One document per file per build version",
+        "16MB BSON limit no longer reachable",
+        "File reads use projection to fetch only needed files"
+      ],
+      "validation_steps": [
+        "Create build with 200 files",
+        "Verify files in build_files collection",
+        "Check document sizes < 16MB",
+        "Query build with files: expect success"
+      ],
+      "rollback_plan": "Revert to embedded files dict",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DB-003",
+      "title": "Create TTL indexes on time-series collections",
+      "description": "Add TTL indexes: analytics_events (90d), security_events (90d), rate_limits (5min), audit_logs (1yr)",
+      "category": "Database",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Database Architect",
+      "affected_files": ["backend/core/database.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "TTL index on analytics_events.created_at (90d)",
+        "TTL index on security_events.created_at (90d)",
+        "TTL index on rate_limits.reset_at (5min)",
+        "TTL index on audit_logs.created_at (1yr)"
+      ],
+      "validation_steps": [
+        "Insert document with past created_at",
+        "Wait for TTL monitor (60s)",
+        "Verify document deleted"
+      ],
+      "rollback_plan": "Drop TTL indexes",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DB-004",
+      "title": "Enforce user email unique constraint",
+      "description": "Add unique index on user email with DuplicateKeyError handling in registration flow",
+      "category": "Database",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Database Architect",
+      "affected_files": ["backend/core/database.py", "backend/api/auth.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Unique index on users.email",
+        "DuplicateKeyError caught in registration",
+        "User-friendly error message returned"
+      ],
+      "validation_steps": [
+        "Register user with email A: expect success",
+        "Register user with email A: expect 409 conflict",
+        "Verify only one user document exists"
+      ],
+      "rollback_plan": "Remove unique index",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DB-005",
+      "title": "Fix invitation token plaintext storage",
+      "description": "Remove plaintext token field before insert, store only hashed_token in database",
+      "category": "Database",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Database Architect",
+      "affected_files": ["backend/core/models.py", "backend/api/auth.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "token field removed before insert_one",
+        "Only hashed_token stored in database",
+        "Invitation acceptance still functional"
+      ],
+      "validation_steps": [
+        "Create invitation",
+        "Query database: verify no plaintext token",
+        "Accept invitation with token: expect success"
+      ],
+      "rollback_plan": "Restore token field storage",
+      "status": "Pending"
+    },
+    {
+      "task_id": "DB-006",
+      "title": "Eliminate to_list(None) from all queries",
+      "description": "Replace unbounded to_list(None) with .limit() and cursor-based pagination on admin and builds queries",
+      "category": "Database",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Medium",
+      "assigned_agent": "Database Architect",
+      "affected_files": ["backend/api/admin.py", "backend/api/builds.py", "backend/api/projects.py"],
+      "dependencies": ["DB-001"],
+      "acceptance_criteria": [
+        "No to_list(None) in any API endpoint",
+        "All list endpoints use pagination",
+        "Default limit: 50, max limit: 200",
+        "Cursor-based pagination for large datasets"
+      ],
+      "validation_steps": [
+        "Code review: grep for to_list(None)",
+        "Test with 10,000 documents: expect pagination",
+        "Verify memory usage stable"
+      ],
+      "rollback_plan": "Revert to to_list(None) (temporary)",
+      "status": "Pending"
+    },
+    {
+      "task_id": "FE-001",
+      "title": "Wrap all routes with ErrorBoundary",
+      "description": "Add ErrorBoundary component to every route with meaningful fallback UI and retry button",
+      "category": "Frontend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Low",
+      "assigned_agent": "Frontend Engineer",
+      "affected_files": ["frontend/src/App.tsx", "frontend/src/components/ui/ErrorBoundary.tsx"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Every route wrapped in ErrorBoundary",
+        "Fallback UI shows error details",
+        "Retry button resets component state",
+        "Error logged to monitoring service"
+      ],
+      "validation_steps": [
+        "Trigger error in component",
+        "Verify ErrorBoundary catches it",
+        "Click retry: expect component resets",
+        "Check error logged"
+      ],
+      "rollback_plan": "Remove ErrorBoundary wrappers",
+      "status": "Pending"
+    },
+    {
+      "task_id": "FE-002",
+      "title": "Fix WebSocket token authentication",
+      "description": "Fetch one-time token from /auth/ws-token endpoint instead of extracting JWT from cookies",
+      "category": "Frontend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Medium",
+      "assigned_agent": "Frontend Engineer",
+      "affected_files": ["frontend/src/hooks/useBuildSocket.ts"],
+      "dependencies": ["SEC-003"],
+      "acceptance_criteria": [
+        "Token fetched from /auth/ws-token before WebSocket connection",
+        "Token passed in Sec-WebSocket-Protocol header",
+        "JWT not transmitted in URL",
+        "Reconnection fetches new token"
+      ],
+      "validation_steps": [
+        "Inspect WebSocket connection: no JWT in URL",
+        "Verify token in Sec-WebSocket-Protocol header",
+        "Test reconnection: expect new token fetched"
+      ],
+      "rollback_plan": "Revert to cookie extraction",
+      "status": "Pending"
+    },
+    {
+      "task_id": "FE-003",
+      "title": "Fix auth store race condition in register flow",
+      "description": "Remove redundant fetchMe() call after register, use user data from register response directly",
+      "category": "Frontend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Frontend Engineer",
+      "affected_files": ["frontend/src/store/authStore.ts"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "No fetchMe() after register",
+        "User data from register response used directly",
+        "No user=null but isAuthenticated=true state"
+      ],
+      "validation_steps": [
+        "Register new user",
+        "Verify user state populated immediately",
+        "Check no additional API call made"
+      ],
+      "rollback_plan": "Restore fetchMe() call",
+      "status": "Pending"
+    },
+    {
+      "task_id": "FE-004",
+      "title": "Implement server-side admin role check",
+      "description": "Verify admin access via is_admin field in /auth/me response, not client-side email list",
+      "category": "Frontend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Frontend Engineer",
+      "affected_files": ["frontend/src/pages/Admin.tsx", "frontend/src/App.tsx"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "AdminRoute checks is_admin from /auth/me",
+        "Non-admin users redirected to Forbidden",
+        "Client-side email list removed"
+      ],
+      "validation_steps": [
+        "Login as non-admin: expect redirect from /admin",
+        "Login as admin: expect access",
+        "Check network: /auth/me called"
+      ],
+      "rollback_plan": "Revert to client-side email check",
+      "status": "Pending"
+    },
+    {
+      "task_id": "FE-005",
+      "title": "Sanitize remember-me email in localStorage",
+      "description": "Base64-encode email before localStorage write, sanitize on read to prevent XSS",
+      "category": "Frontend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Frontend Engineer",
+      "affected_files": ["frontend/src/pages/Login.tsx", "frontend/src/store/authStore.ts"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Email base64-encoded before localStorage.setItem",
+        "Email sanitized on read",
+        "No plaintext email in localStorage"
+      ],
+      "validation_steps": [
+        "Check localStorage: expect base64 string",
+        "Decode: expect valid email",
+        "Test with XSS payload: expect sanitized"
+      ],
+      "rollback_plan": "Revert to plaintext storage",
+      "status": "Pending"
+    },
+    {
+      "task_id": "FE-006",
+      "title": "Add build state guards",
+      "description": "Prevent starting builds when status is pending/running/debugging to avoid duplicate builds",
+      "category": "Frontend",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Frontend Engineer",
+      "affected_files": ["frontend/src/store/buildStore.ts"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "startBuild rejects if status not idle",
+        "User sees error message",
+        "Button disabled during active build"
+      ],
+      "validation_steps": [
+        "Start build: expect running",
+        "Click start again: expect rejection",
+        "Verify button disabled"
+      ],
+      "rollback_plan": "Remove state guard",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PROD-001",
+      "title": "Implement password reset flow",
+      "description": "Add forgot-password endpoint, email token generation, reset-password page, and token validation",
+      "category": "Product",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "Product Engineer",
+      "affected_files": ["backend/api/auth.py", "frontend/src/App.tsx", "frontend/src/pages/ResetPassword.tsx"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "POST /forgot-password generates token",
+        "Email sent with reset link",
+        "Token expires after 1 hour",
+        "POST /reset-password validates token and updates password",
+        "User can login with new password"
+      ],
+      "validation_steps": [
+        "Request password reset",
+        "Click link in email",
+        "Enter new password",
+        "Login with new password: expect success"
+      ],
+      "rollback_plan": "Remove password reset endpoints",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PROD-002",
+      "title": "Accept template field in project creation",
+      "description": "Add template field to CreateProjectRequest, store in project metadata, pass to orchestrator",
+      "category": "Product",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Low",
+      "assigned_agent": "Product Engineer",
+      "affected_files": ["backend/api/projects.py", "backend/core/models.py", "backend/core/orchestrator.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "CreateProjectRequest accepts template field",
+        "Template stored in project metadata",
+        "Template passed to orchestrator as build context"
+      ],
+      "validation_steps": [
+        "Create project with template=saas-starter",
+        "Query project: expect template field present",
+        "Trigger build: expect template in agent context"
+      ],
+      "rollback_plan": "Remove template field",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PROD-003",
+      "title": "Implement admin user export endpoint",
+      "description": "Add GET /admin/users/export endpoint returning CSV with all user fields",
+      "category": "Product",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Low",
+      "assigned_agent": "Product Engineer",
+      "affected_files": ["backend/api/admin.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "GET /admin/users/export returns CSV",
+        "Content-Type: text/csv",
+        "CSV includes: id, email, name, plan, credits, created_at",
+        "Only admins can access"
+      ],
+      "validation_steps": [
+        "GET /admin/users/export as admin: expect CSV",
+        "Open CSV: expect valid format",
+        "GET as non-admin: expect 403"
+      ],
+      "rollback_plan": "Remove export endpoint",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PROD-004",
+      "title": "Implement GitHub OAuth flow",
+      "description": "Add GitHub OAuth endpoints: redirect to GitHub, handle callback, exchange code for token, store encrypted token",
+      "category": "Product",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "Product Engineer",
+      "affected_files": ["backend/api/auth.py", "frontend/src/components/layout/workspace/WorkspaceLayout.tsx"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "POST /auth/github redirects to GitHub",
+        "GET /auth/github/callback handles OAuth response",
+        "Token exchanged for access token",
+        "Token stored encrypted on User model"
+      ],
+      "validation_steps": [
+        "Click GitHub login button",
+        "Authorize on GitHub",
+        "Verify redirect back to app",
+        "Check user.github_token present (encrypted)"
+      ],
+      "rollback_plan": "Revert to console.log stubs",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PROD-005",
+      "title": "Implement trial enforcement middleware",
+      "description": "Block build creation when trial_ends_at is past and user has no active subscription",
+      "category": "Product",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 3,
+      "complexity": "Medium",
+      "assigned_agent": "Product Engineer",
+      "affected_files": ["backend/core/security.py", "backend/api/builds.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Build creation blocked if trial expired + no active subscription",
+        "Clear error message returned",
+        "Users with active subscription unaffected"
+      ],
+      "validation_steps": [
+        "Set trial_ends_at to past",
+        "Attempt build creation: expect 403",
+        "Add active subscription: expect success"
+      ],
+      "rollback_plan": "Remove trial enforcement",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PROD-006",
+      "title": "Implement credit usage alerts",
+      "description": "Send email alerts at 80%, 50%, 20% remaining credit thresholds via Resend",
+      "category": "Product",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Medium",
+      "assigned_agent": "Product Engineer",
+      "affected_files": ["backend/api/growth.py", "backend/core/orchestrator.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Alert sent when credits < 80%",
+        "Alert sent when credits < 50%",
+        "Alert sent when credits < 20%",
+        "Email sent via Resend"
+      ],
+      "validation_steps": [
+        "Set credits to 8 (80% of 10)",
+        "Trigger credit-consuming action",
+        "Verify email sent",
+        "Repeat for 50% and 20%"
+      ],
+      "rollback_plan": "Remove credit alert logic",
+      "status": "Pending"
+    },
+    {
+      "task_id": "QA-001",
+      "title": "Create test fixtures and conftest",
+      "description": "Set up async fixtures for test MongoDB, mock Anthropic client, test Redis, and test user factory",
+      "category": "Testing",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "QA Engineer",
+      "affected_files": ["backend/tests/conftest.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Async fixtures for test MongoDB",
+        "Mock Anthropic client with streaming responses",
+        "Test Redis instance",
+        "User factory for test data"
+      ],
+      "validation_steps": [
+        "Run pytest: expect fixtures load",
+        "Verify test database isolated",
+        "Check mock client returns test data"
+      ],
+      "rollback_plan": "Remove conftest.py",
+      "status": "Pending"
+    },
+    {
+      "task_id": "QA-002",
+      "title": "Write agent unit tests",
+      "description": "Unit tests for all 6 agents (Architect, Designer, Developer, Integration, PM, BusinessModel) with mocked Anthropic responses",
+      "category": "Testing",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 12,
+      "complexity": "High",
+      "assigned_agent": "QA Engineer",
+      "affected_files": ["backend/tests/test_agents.py"],
+      "dependencies": ["QA-001"],
+      "acceptance_criteria": [
+        "All 6 agents have unit tests",
+        "Anthropic API calls mocked",
+        "Agent output parsing validated",
+        "Error handling tested"
+      ],
+      "validation_steps": [
+        "Run pytest backend/tests/test_agents.py",
+        "Verify all tests pass",
+        "Check coverage report"
+      ],
+      "rollback_plan": "Delete test file",
+      "status": "Pending"
+    },
+    {
+      "task_id": "QA-003",
+      "title": "Write build pipeline integration tests",
+      "description": "Integration test for full build pipeline: mock AI → orchestrator → MongoDB → assertions",
+      "category": "Testing",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 8,
+      "complexity": "High",
+      "assigned_agent": "QA Engineer",
+      "affected_files": ["backend/tests/test_orchestrator.py"],
+      "dependencies": ["QA-001", "BE-007"],
+      "acceptance_criteria": [
+        "Full pipeline test passes",
+        "Mock AI responses used",
+        "Build state transitions validated",
+        "MongoDB state verified"
+      ],
+      "validation_steps": [
+        "Run pytest backend/tests/test_orchestrator.py",
+        "Verify pipeline completes",
+        "Check database state"
+      ],
+      "rollback_plan": "Delete integration tests",
+      "status": "Pending"
+    },
+    {
+      "task_id": "QA-004",
+      "title": "Write WebSocket event flow tests",
+      "description": "Test WebSocket emit → receive → store update flow with mock WebSocket client",
+      "category": "Testing",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "QA Engineer",
+      "affected_files": ["backend/tests/test_websocket.py"],
+      "dependencies": ["QA-001"],
+      "acceptance_criteria": [
+        "Mock WS client connects",
+        "Events emitted and received",
+        "Store updated correctly",
+        "Event payload validated"
+      ],
+      "validation_steps": [
+        "Run pytest backend/tests/test_websocket.py",
+        "Verify events received",
+        "Check payload structure"
+      ],
+      "rollback_plan": "Delete WebSocket tests",
+      "status": "Pending"
+    },
+    {
+      "task_id": "QA-005",
+      "title": "Write credit system tests",
+      "description": "Test credit deduction, refund, race conditions, and max debug iterations",
+      "category": "Testing",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "High",
+      "assigned_agent": "QA Engineer",
+      "affected_files": ["backend/tests/test_builds.py"],
+      "dependencies": ["QA-001"],
+      "acceptance_criteria": [
+        "Credit deduction on build start",
+        "Credit refund on failure",
+        "Partial refund on success",
+        "Race condition: 10 concurrent builds, zero inflation",
+        "Max debug iterations enforced"
+      ],
+      "validation_steps": [
+        "Run credit race condition test",
+        "Verify zero credit inflation",
+        "Test refund scenarios"
+      ],
+      "rollback_plan": "Delete credit tests",
+      "status": "Pending"
+    },
+    {
+      "task_id": "QA-006",
+      "title": "Write auth JWT lifecycle tests",
+      "description": "Test JWT creation, verification, refresh, expiration, and blacklisting",
+      "category": "Testing",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "QA Engineer",
+      "affected_files": ["backend/tests/test_auth.py"],
+      "dependencies": ["QA-001"],
+      "acceptance_criteria": [
+        "Token creation and verification",
+        "Refresh cycle works",
+        "Expired tokens rejected",
+        "Blacklisted tokens rejected after logout"
+      ],
+      "validation_steps": [
+        "Run pytest backend/tests/test_auth.py",
+        "Verify all JWT scenarios",
+        "Check expiration handling"
+      ],
+      "rollback_plan": "Delete auth tests",
+      "status": "Pending"
+    },
+    {
+      "task_id": "QA-007",
+      "title": "Write Stripe webhook tests",
+      "description": "Test Stripe webhook signature verification, invalid signature rejection, duplicate event handling",
+      "category": "Testing",
+      "severity": "P0",
+      "priority": "Critical",
+      "estimated_hours": 4,
+      "complexity": "Medium",
+      "assigned_agent": "QA Engineer",
+      "affected_files": ["backend/tests/test_billing.py"],
+      "dependencies": ["QA-001"],
+      "acceptance_criteria": [
+        "Valid signature accepted",
+        "Invalid signature rejected",
+        "Duplicate events ignored",
+        "Webhook retry handling"
+      ],
+      "validation_steps": [
+        "Send webhook with valid signature",
+        "Send webhook with invalid signature",
+        "Send duplicate event",
+        "Verify correct behavior"
+      ],
+      "rollback_plan": "Delete webhook tests",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PERF-001",
+      "title": "Implement delta-based WebSocket file updates",
+      "description": "Track file versions and emit only changed files, not full file dict",
+      "category": "Performance",
+      "severity": "P1",
+      "priority": "High",
+      "estimated_hours": 6,
+      "complexity": "Medium",
+      "assigned_agent": "Performance Engineer",
+      "affected_files": ["backend/core/orchestrator.py", "backend/services/ws_manager.py"],
+      "dependencies": ["BE-007"],
+      "acceptance_criteria": [
+        "FILE_UPDATE events contain only changed files",
+        "File versions tracked",
+        "WebSocket payload reduced by 90%",
+        "No full file dict transmission"
+      ],
+      "validation_steps": [
+        "Trigger build with file changes",
+        "Inspect WebSocket events",
+        "Verify only deltas sent",
+        "Measure payload size"
+      ],
+      "rollback_plan": "Revert to full file dict transmission",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PERF-002",
+      "title": "Add Redis caching for get_current_user",
+      "description": "Cache user data in Redis with 5-min TTL to reduce MongoDB queries on authenticated requests",
+      "category": "Performance",
+      "severity": "P1",
+      "priority": "High",
+      "estimated_hours": 3,
+      "complexity": "Medium",
+      "assigned_agent": "Performance Engineer",
+      "affected_files": ["backend/api/auth.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "User data cached in Redis with 5-min TTL",
+        "Cache hit returns in <1ms",
+        "Cache miss falls back to MongoDB",
+        "Cache invalidated on user update"
+      ],
+      "validation_steps": [
+        "Call /auth/me 10 times",
+        "Verify Redis hit rate >90%",
+        "Measure response time",
+        "Update user: expect cache invalidated"
+      ],
+      "rollback_plan": "Remove Redis cache, revert to MongoDB",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PERF-003",
+      "title": "Optimize admin user listing with $facet aggregation",
+      "description": "Replace count_documents + find pattern with single $facet aggregation for pagination",
+      "category": "Performance",
+      "severity": "P1",
+      "priority": "High",
+      "estimated_hours": 3,
+      "complexity": "Medium",
+      "assigned_agent": "Performance Engineer",
+      "affected_files": ["backend/api/admin.py"],
+      "dependencies": ["DB-001"],
+      "acceptance_criteria": [
+        "Single $facet aggregation replaces 2 queries",
+        "Pagination and total count in one query",
+        "Response time reduced",
+        "No OOM on large datasets"
+      ],
+      "validation_steps": [
+        "Query admin with 10,000 users",
+        "Verify single query executed",
+        "Check response time",
+        "Verify pagination works"
+      ],
+      "rollback_plan": "Revert to count+find pattern",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PERF-004",
+      "title": "Add Redis caching for billing plans",
+      "description": "Cache /billing/plans response in Redis with 1-hour TTL, invalidate on Stripe webhook",
+      "category": "Performance",
+      "severity": "P1",
+      "priority": "High",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Performance Engineer",
+      "affected_files": ["backend/api/billing.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Plans cached in Redis with 1-hour TTL",
+        "Cache invalidated on Stripe webhook",
+        "10 concurrent requests: 1 DB query, 9 cache hits"
+      ],
+      "validation_steps": [
+        "Call /billing/plans 10 times concurrently",
+        "Verify 1 DB query, 9 cache hits",
+        "Trigger Stripe webhook: expect cache cleared"
+      ],
+      "rollback_plan": "Remove Redis cache",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PERF-005",
+      "title": "Add Redis caching for marketplace listing",
+      "description": "Cache /marketplace list endpoint in Redis with 5-minute TTL, invalidate on CRUD",
+      "category": "Performance",
+      "severity": "P1",
+      "priority": "High",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Performance Engineer",
+      "affected_files": ["backend/api/marketplace.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Marketplace list cached with 5-min TTL",
+        "Cache invalidated on create/update/delete",
+        "Response time <50ms"
+      ],
+      "validation_steps": [
+        "Call /marketplace: expect cache set",
+        "Call again: expect cache hit",
+        "Create item: expect cache cleared"
+      ],
+      "rollback_plan": "Remove Redis cache",
+      "status": "Pending"
+    },
+    {
+      "task_id": "PERF-006",
+      "title": "Enable WebSocket permessage-deflate compression",
+      "description": "Enable permessage-deflate extension for WebSocket when client supports it",
+      "category": "Performance",
+      "severity": "P1",
+      "priority": "High",
+      "estimated_hours": 2,
+      "complexity": "Low",
+      "assigned_agent": "Performance Engineer",
+      "affected_files": ["backend/services/ws_manager.py"],
+      "dependencies": [],
+      "acceptance_criteria": [
+        "WebSocket compression enabled when supported",
+        "Events >1KB compressed",
+        "No compression overhead for small events"
+      ],
+      "validation_steps": [
+        "Connect WebSocket with compression",
+        "Send large event (>1KB)",
+        "Verify compression applied",
+        "Check payload size reduced"
+      ],
+      "rollback_plan": "Disable compression",
+      "status": "Pending"
+    }
+  ],
+  "dependency_graph": [
+    {"task": "SEC-001", "depends_on": [], "blocks": ["SEC-002", "SEC-003", "SEC-004", "SEC-005", "SEC-006", "SEC-007", "SEC-008", "SEC-009", "SEC-010", "SEC-011"]},
+    {"task": "SEC-002", "depends_on": ["SEC-001"], "blocks": ["BE-001", "BE-002", "BE-003", "BE-004", "BE-005", "BE-006", "BE-007"]},
+    {"task": "SEC-003", "depends_on": ["SEC-001"], "blocks": ["FE-002"]},
+    {"task": "SEC-004", "depends_on": ["SEC-001"], "blocks": []},
+    {"task": "SEC-005", "depends_on": ["SEC-001"], "blocks": ["BE-003"]},
+    {"task": "SEC-006", "depends_on": ["SEC-001"], "blocks": []},
+    {"task": "SEC-007", "depends_on": ["SEC-008"], "blocks": []},
+    {"task": "SEC-008", "depends_on": ["SEC-001"], "blocks": ["SEC-007"]},
+    {"task": "SEC-009", "depends_on": ["SEC-001"], "blocks": ["BE-002"]},
+    {"task": "SEC-010", "depends_on": ["SEC-001"], "blocks": []},
+    {"task": "SEC-011", "depends_on": ["SEC-001"], "blocks": []},
+    {"task": "DEV-001", "depends_on": [], "blocks": ["DEV-003"]},
+    {"task": "DEV-002", "depends_on": [], "blocks": ["DEV-003"]},
+    {"task": "DEV-003", "depends_on": ["DEV-001", "DEV-002"], "blocks": ["BE-001"]},
+    {"task": "DEV-004", "depends_on": [], "blocks": []},
+    {"task": "BE-001", "depends_on": ["SEC-002", "DEV-003"], "blocks": ["BE-002", "BE-006", "BE-007", "PERF-001"]},
+    {"task": "BE-002", "depends_on": ["BE-001", "SEC-009"], "blocks": []},
+    {"task": "BE-003", "depends_on": ["SEC-005"], "blocks": []},
+    {"task": "BE-004", "depends_on": [], "blocks": ["BE-005", "BE-006", "BE-007"]},
+    {"task": "BE-005", "depends_on": ["BE-004"], "blocks": []},
+    {"task": "BE-006", "depends_on": ["BE-001", "BE-004"], "blocks": []},
+    {"task": "BE-007", "depends_on": ["BE-001", "BE-004"], "blocks": ["PERF-001", "QA-003"]},
+    {"task": "DB-001", "depends_on": [], "blocks": ["DB-002", "DB-006", "PERF-003"]},
+    {"task": "DB-002", "depends_on": ["DB-001"], "blocks": []},
+    {"task": "DB-003", "depends_on": [], "blocks": []},
+    {"task": "DB-004", "depends_on": [], "blocks": []},
+    {"task": "DB-005", "depends_on": [], "blocks": []},
+    {"task": "DB-006", "depends_on": ["DB-001"], "blocks": []},
+    {"task": "FE-001", "depends_on": [], "blocks": []},
+    {"task": "FE-002", "depends_on": ["SEC-003"], "blocks": []},
+    {"task": "FE-003", "depends_on": [], "blocks": []},
+    {"task": "FE-004", "depends_on": [], "blocks": []},
+    {"task": "FE-005", "depends_on": [], "blocks": []},
+    {"task": "FE-006", "depends_on": [], "blocks": []},
+    {"task": "PROD-001", "depends_on": [], "blocks": []},
+    {"task": "PROD-002", "depends_on": [], "blocks": []},
+    {"task": "PROD-003", "depends_on": [], "blocks": []},
+    {"task": "PROD-004", "depends_on": [], "blocks": []},
+    {"task": "PROD-005", "depends_on": [], "blocks": []},
+    {"task": "PROD-006", "depends_on": [], "blocks": []},
+    {"task": "QA-001", "depends_on": [], "blocks": ["QA-002", "QA-003", "QA-004", "QA-005", "QA-006", "QA-007"]},
+    {"task": "QA-002", "depends_on": ["QA-001"], "blocks": []},
+    {"task": "QA-003", "depends_on": ["QA-001", "BE-007"], "blocks": []},
+    {"task": "QA-004", "depends_on": ["QA-001"], "blocks": []},
+    {"task": "QA-005", "depends_on": ["QA-001"], "blocks": []},
+    {"task": "QA-006", "depends_on": ["QA-001"], "blocks": []},
+    {"task": "QA-007", "depends_on": ["QA-001"], "blocks": []},
+    {"task": "PERF-001", "depends_on": ["BE-007"], "blocks": []},
+    {"task": "PERF-002", "depends_on": [], "blocks": []},
+    {"task": "PERF-003", "depends_on": ["DB-001"], "blocks": []},
+    {"task": "PERF-004", "depends_on": [], "blocks": []},
+    {"task": "PERF-005", "depends_on": [], "blocks": []},
+    {"task": "PERF-006", "depends_on": [], "blocks": []}
+  ],
+  "parallel_execution_groups": [
+    {
+      "group": 1,
+      "phase": 1,
+      "name": "Security Foundation",
+      "tasks": ["SEC-001", "SEC-004", "SEC-008", "SEC-009", "SEC-010", "SEC-011", "DEV-001", "DEV-002", "DEV-004"],
+      "estimated_hours": 18,
+      "can_run_parallel": true
+    },
+    {
+      "group": 2,
+      "phase": 1,
+      "name": "Security Hardening",
+      "tasks": ["SEC-002", "SEC-003", "SEC-005", "SEC-006", "SEC-007", "DEV-003"],
+      "estimated_hours": 24,
+      "depends_on_group": 1,
+      "can_run_parallel": true
+    },
+    {
+      "group": 3,
+      "phase": 2,
+      "name": "Database Foundation",
+      "tasks": ["DB-001", "DB-003", "DB-004", "DB-005", "BE-004", "BE-005"],
+      "estimated_hours": 13,
+      "depends_on_group": 2,
+      "can_run_parallel": true
+    },
+    {
+      "group": 4,
+      "phase": 2,
+      "name": "Architecture Hardening",
+      "tasks": ["BE-001", "BE-002", "BE-003", "BE-006", "BE-007", "DB-002", "DB-006"],
+      "estimated_hours": 39,
+      "depends_on_group": 3,
+      "can_run_parallel": true
+    },
+    {
+      "group": 5,
+      "phase": 3,
+      "name": "Frontend Stability",
+      "tasks": ["FE-001", "FE-002", "FE-003", "FE-004", "FE-005", "FE-006"],
+      "estimated_hours": 14,
+      "depends_on_group": 4,
+      "can_run_parallel": true
+    },
+    {
+      "group": 6,
+      "phase": 3,
+      "name": "Product Fixes",
+      "tasks": ["PROD-001", "PROD-002", "PROD-003", "PROD-004", "PROD-005", "PROD-006"],
+      "estimated_hours": 24,
+      "depends_on_group": 4,
+      "can_run_parallel": true
+    },
+    {
+      "group": 7,
+      "phase": 4,
+      "name": "Test Suite",
+      "tasks": ["QA-001", "QA-002", "QA-003", "QA-004", "QA-005", "QA-006", "QA-007"],
+      "estimated_hours": 40,
+      "depends_on_group": 5,
+      "can_run_parallel": true
+    },
+    {
+      "group": 8,
+      "phase": 5,
+      "name": "Performance",
+      "tasks": ["PERF-001", "PERF-002", "PERF-003", "PERF-004", "PERF-005", "PERF-006"],
+      "estimated_hours": 16,
+      "depends_on_group": 7,
+      "can_run_parallel": true
+    }
+  ],
+  "agent_workloads": {
+    "Security Engineer": {
+      "total_tasks": 11,
+      "total_hours": 35,
+      "tasks": ["SEC-001", "SEC-002", "SEC-003", "SEC-004", "SEC-005", "SEC-006", "SEC-007", "SEC-008", "SEC-009", "SEC-010", "SEC-011"],
+      "utilization": "87.5%",
+      "max_concurrent": 5
+    },
+    "DevOps Engineer": {
+      "total_tasks": 4,
+      "total_hours": 11,
+      "tasks": ["DEV-001", "DEV-002", "DEV-003", "DEV-004"],
+      "utilization": "68.75%",
+      "max_concurrent": 3
+    },
+    "Backend Engineer": {
+      "total_tasks": 7,
+      "total_hours": 33,
+      "tasks": ["BE-001", "BE-002", "BE-003", "BE-004", "BE-005", "BE-006", "BE-007"],
+      "utilization": "82.5%",
+      "max_concurrent": 4
+    },
+    "Database Architect": {
+      "total_tasks": 6,
+      "total_hours": 19,
+      "tasks": ["DB-001", "DB-002", "DB-003", "DB-004", "DB-005", "DB-006"],
+      "utilization": "95%",
+      "max_concurrent": 4
+    },
+    "Frontend Engineer": {
+      "total_tasks": 6,
+      "total_hours": 14,
+      "tasks": ["FE-001", "FE-002", "FE-003", "FE-004", "FE-005", "FE-006"],
+      "utilization": "58.3%",
+      "max_concurrent": 4
+    },
+    "Product Engineer": {
+      "total_tasks": 6,
+      "total_hours": 24,
+      "tasks": ["PROD-001", "PROD-002", "PROD-003", "PROD-004", "PROD-005", "PROD-006"],
+      "utilization": "100%",
+      "max_concurrent": 4
+    },
+    "QA Engineer": {
+      "total_tasks": 7,
+      "total_hours": 40,
+      "tasks": ["QA-001", "QA-002", "QA-003", "QA-004", "QA-005", "QA-006", "QA-007"],
+      "utilization": "100%",
+      "max_concurrent": 5
+    },
+    "Performance Engineer": {
+      "total_tasks": 6,
+      "total_hours": 16,
+      "tasks": ["PERF-001", "PERF-002", "PERF-003", "PERF-004", "PERF-005", "PERF-006"],
+      "utilization": "100%",
+      "max_concurrent": 3
+    }
+  },
+  "deployment_gates": {
+    "gate_1": {
+      "name": "Security Gate",
+      "phase": "Phase 1",
+      "criteria": [
+        "No P0-CRITICAL security vulnerabilities",
+        "Docker socket removed",
+        "CSRF protection enabled",
+        "WebSocket auth fixed",
+        "JWT secret enforced",
+        "Rate limiting uses Redis",
+        "Input validation complete",
+        "CI pipeline operational"
+      ],
+      "blocking": true
+    },
+    "gate_2": {
+      "name": "Architecture Gate",
+      "phase": "Phase 2",
+      "criteria": [
+        "Builds run in Celery workers",
+        "Build timeout enforced",
+        "Circuit breaker active",
+        "Thread-safe singletons",
+        "MongoDB pooling configured",
+        "Redis pub/sub WebSocket layer",
+        "Build state machine implemented",
+        "Database indexes complete",
+        "16MB BSON limit resolved"
+      ],
+      "blocking": true
+    },
+    "gate_3": {
+      "name": "Product Gate",
+      "phase": "Phase 3",
+      "criteria": [
+        "Password reset functional",
+        "Template selection works",
+        "Admin export returns CSV",
+        "GitHub OAuth complete",
+        "Trial enforcement active",
+        "Credit alerts operational",
+        "Error boundaries on all routes",
+        "Auth race conditions resolved"
+      ],
+      "blocking": true
+    },
+    "gate_4": {
+      "name": "Quality Gate",
+      "phase": "Phase 4",
+      "criteria": [
+        "Test coverage >= 70%",
+        "All tests pass",
+        "CI runs on every PR",
+        "No critical bugs open",
+        "Security scan passes"
+      ],
+      "blocking": true
+    },
+    "gate_5": {
+      "name": "Performance Gate",
+      "phase": "Phase 5",
+      "criteria": [
+        "Delta-based WebSocket updates",
+        "Redis caching active",
+        "Admin pagination optimized",
+        "p95 latency < 200ms",
+        "Load testing passes"
+      ],
+      "blocking": false
+    }
+  },
+  "blocked_tasks": [
+    {
+      "task_id": "SEC-002",
+      "blocked_by": ["SEC-001"],
+      "reason": "CSRF middleware should not be implemented before Docker socket removed"
+    },
+    {
+      "task_id": "SEC-003",
+      "blocked_by": ["SEC-001"],
+      "reason": "WebSocket auth fix should not be implemented before Docker socket removed"
+    },
+    {
+      "task_id": "SEC-007",
+      "blocked_by": ["SEC-008"],
+      "reason": "Per-email rate limiting requires Redis rate limiting foundation"
+    },
+    {
+      "task_id": "BE-001",
+      "blocked_by": ["SEC-002", "DEV-003"],
+      "reason": "Celery offload requires security hardening and CI pipeline"
+    },
+    {
+      "task_id": "BE-002",
+      "blocked_by": ["BE-001", "SEC-009"],
+      "reason": "Build timeout requires Celery workers and input validation"
+    },
+    {
+      "task_id": "BE-006",
+      "blocked_by": ["BE-001", "BE-004"],
+      "reason": "Redis pub/sub requires Celery workers and thread-safe singletons"
+    },
+    {
+      "task_id": "BE-007",
+      "blocked_by": ["BE-001", "BE-004"],
+      "reason": "State machine requires Celery workers and thread-safe singletons"
+    },
+    {
+      "task_id": "DB-002",
+      "blocked_by": ["DB-001"],
+      "reason": "build_files collection requires indexes first"
+    },
+    {
+      "task_id": "DB-006",
+      "blocked_by": ["DB-001"],
+      "reason": "Pagination requires compound indexes"
+    },
+    {
+      "task_id": "FE-002",
+      "blocked_by": ["SEC-003"],
+      "reason": "Frontend WebSocket fix requires backend auth protocol change"
+    },
+    {
+      "task_id": "PERF-001",
+      "blocked_by": ["BE-007"],
+      "reason": "Delta-based updates require build state machine"
+    },
+    {
+      "task_id": "PERF-003",
+      "blocked_by": ["DB-001"],
+      "reason": "$facet aggregation requires compound indexes"
+    },
+    {
+      "task_id": "QA-003",
+      "blocked_by": ["QA-001", "BE-007"],
+      "reason": "Integration tests require fixtures and state machine"
+    }
+  ],
+  "critical_path": [
+    "SEC-001 (2h)",
+    "SEC-008 (3h)",
+    "SEC-007 (4h)",
+    "DEV-001 (1h)",
+    "DEV-002 (1h)",
+    "DEV-003 (6h)",
+    "SEC-002 (4h)",
+    "BE-004 (3h)",
+    "BE-005 (2h)",
+    "BE-001 (8h)",
+    "BE-007 (8h)",
+    "DB-001 (4h)",
+    "DB-002 (8h)",
+    "FE-001 (3h)",
+    "PROD-001 (6h)",
+    "QA-001 (6h)",
+    "QA-002 (12h)",
+    "QA-003 (8h)",
+    "QA-004 (6h)",
+    "QA-005 (6h)",
+    "QA-006 (6h)",
+    "QA-007 (4h)"
+  ],
+  "risk_register": [
+    {
+      "task_id": "SEC-001",
+      "risk": "Docker socket removal breaks container-to-container communication",
+      "impact": "High",
+      "likelihood": "Medium",
+      "mitigation": "Use Docker API over TCP with TLS, or implement DinD (Docker-in-Docker)",
+      "fallback": "Use remote Docker daemon with TLS authentication"
+    },
+    {
+      "task_id": "SEC-002",
+      "risk": "CSRF protection breaks existing client requests",
+      "impact": "High",
+      "likelihood": "High",
+      "mitigation": "Update all frontend API calls to include CSRF token, comprehensive integration testing",
+      "fallback": "Disable CSRF for specific endpoints if needed"
+    },
+    {
+      "task_id": "BE-001",
+      "risk": "Celery integration introduces complexity and new failure modes",
+      "impact": "High",
+      "likelihood": "Medium",
+      "mitigation": "Extensive testing, monitoring, graceful degradation to BackgroundTasks if Celery fails",
+      "fallback": "Revert to BackgroundTasks with timeout improvements"
+    },
+    {
+      "task_id": "BE-003",
+      "risk": "Circuit breaker triggers falsely during Anthropic API degradation",
+      "impact": "Medium",
+      "likelihood": "Medium",
+      "mitigation": "Tune threshold and recovery timing, implement half-open state probing",
+      "fallback": "Disable circuit breaker, rely on timeout only"
+    },
+    {
+      "task_id": "DB-002",
+      "risk": "Data migration from embedded files to separate collection fails",
+      "impact": "Critical",
+      "likelihood": "Low",
+      "mitigation": "Write migration script, test on staging, backup before migration",
+      "fallback": "Rollback to previous schema, keep embedded files"
+    },
+    {
+      "task_id": "QA-002",
+      "risk": "Mocking Anthropic API does not reflect real behavior",
+      "impact": "Medium",
+      "likelihood": "Medium",
+      "mitigation": "Use integration tests with real API in staging, comprehensive mock scenarios",
+      "fallback": "Increase integration test coverage"
+    },
+    {
+      "task_id": "PERF-001",
+      "risk": "Delta-based updates miss edge cases (file renames, deletions)",
+      "impact": "Medium",
+      "likelihood": "Medium",
+      "mitigation": "Comprehensive testing of file operations, version tracking",
+      "fallback": "Send full file dict for complex operations"
+    }
+  ],
+  "success_metrics": {
+    "security": {
+      "p0_vulnerabilities": "0",
+      "security_scan": "Pass",
+      "csrf_enabled": "100%",
+      "rate_limiting": "Redis-based"
+    },
+    "architecture": {
+      "build_timeout": "600s enforced",
+      "celery_workers": "4+",
+      "circuit_breaker": "Active",
+      "websocket_availability": "100% (Redis pub/sub)",
+      "bson_limit": "Resolved (separate collection)"
+    },
+    "testing": {
+      "coverage": ">=70%",
+      "pass_rate": "100%",
+      "ci_integration": "Active"
+    },
+    "performance": {
+      "p95_latency": "<200ms",
+      "websocket_payload": "<10% of original",
+      "cache_hit_rate": ">90%"
+    },
+    "product": {
+      "password_reset": "Functional",
+      "github_oauth": "Complete",
+      "trial_enforcement": "Active",
+      "credit_alerts": "Operational"
+    }
+  },
+  "estimated_completion": {
+    "total_hours": 212,
+    "working_days_8h": 26.5,
+    "working_days_6h": 35.3,
+    "calendar_days_8h_with_parallelization": 18,
+    "calendar_days_6h_with_parallelization": 24,
+    "phase_1_completion": "48 hours (6 days)",
+    "phase_2_completion": "108 hours (13.5 days)",
+    "phase_3_completion": "156 hours (19.5 days)",
+    "phase_4_completion": "196 hours (24.5 days)",
+    "phase_5_completion": "212 hours (26.5 days)",
+    "optimistic_with_full_parallelization": "15 days",
+    "realistic_with_dependencies": "26 days",
+    "pessimistic_with_delays": "35 days"
+  },
+  "next_actions": [
+    "Review and approve execution plan",
+    "Assign Security Engineer to Phase 1 tasks",
+    "Assign DevOps Engineer to Phase 1 tasks",
+    "Begin SEC-001: Remove Docker socket mount",
+    "Begin SEC-008: Migrate rate limiting to Redis",
+    "Begin DEV-001: Fix backend Dockerfile",
+    "Begin DEV-002: Create .dockerignore",
+    "Set up project tracking board with 47 tasks",
+    "Configure CI/CD pipeline repository secrets",
+    "Schedule Phase 1 review meeting (48h from start)"
+  ]
+}

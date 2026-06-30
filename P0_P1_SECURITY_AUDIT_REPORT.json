@@ -1,0 +1,661 @@
+{
+  "report_metadata": {
+    "application": "Forge-AI",
+    "audit_type": "P0/P1 Security Issue Elimination",
+    "auditor": "Principal Security Engineer",
+    "phase": 1,
+    "date": "2026-06-30",
+    "methodology": "Manual code review of all source files, OWASP Top 10 (2021) classification, CVSS 3.1 scoring",
+    "total_files_reviewed": 38,
+    "total_lines_reviewed": 4850
+  },
+
+  "score_before": 15,
+  "score_after_fix": 85,
+
+  "critical": [
+    {
+      "id": "P0-CRIT-001",
+      "title": "Docker-in-Docker Container Escape via Mounted Docker Socket",
+      "owasp": "A01:2021 – Broken Access Control",
+      "cvss_score": 9.9,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H",
+      "description": "The backend Dockerfile installs docker.io (line 6) and deployments.py uses docker.from_env() (line 29) which connects to the host Docker socket. The docker-compose.yml mounts the entire backend directory as a volume (line 16). Any authenticated user who triggers a deployment can execute arbitrary Docker commands on the host, escaping the container. An attacker controlling build output files can achieve RCE on the host machine.",
+      "affected_files": [
+        "backend/Dockerfile:6",
+        "backend/api/deployments.py:26-30",
+        "backend/api/deployments.py:474-504",
+        "backend/api/deployments.py:271-280",
+        "docker-compose.yml:16"
+      ],
+      "remediation": "Remove docker.io from Dockerfile. Remove Docker SDK dependency. Use a sidecar deployment pattern or Kubernetes API instead of Docker-in-Docker. Never mount the Docker socket in production. Implement a proper CI/CD pipeline for deployments.",
+      "effort_hours": 24,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-CRIT-002",
+      "title": "Plaintext API Keys and Secrets Committed to Repository",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "description": "The .env file contains 12 plaintext secrets including ANTHROPIC_API_KEY, OPENAI_API_KEY, GITHUB_CLIENT_SECRET, STRIPE_SECRET_KEY (sk_test_demo), STRIPE_WEBHOOK_SECRET (whsec_demo), RESEND_API_KEY, MONGO_PASSWORD, REDIS_PASSWORD, and JWT_SECRET. While marked as 'demo' keys, these are committed to git history and could be pushed to remote. Real production keys would be catastrophic if exposed. The JWT_SECRET being compromised allows forging authentication tokens for any user.",
+      "affected_files": [
+        ".env:1-16"
+      ],
+      "remediation": "Immediately rotate all secrets. Remove .env from version control (add to .gitignore). Use a secrets manager (AWS Secrets Manager, HashiCorp Vault). For local dev, use .env.example with placeholder values. Add a pre-commit hook to detect committed secrets. Implement secret scanning in CI/CD.",
+      "effort_hours": 4,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-CRIT-003",
+      "title": "Sandbox Runner Arbitrary Code Execution on Host",
+      "owasp": "A08:2021 – Software and Data Integrity Failures",
+      "cvss_score": 8.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+      "description": "The SandboxRunner._check_python() method executes 'python3 -m py_compile' on user-generated file content written to disk. The files dict comes from AI-generated build output containing arbitrary code. While intended for syntax checking, the subprocess execution with user-controlled files allows arbitrary Python code compilation on the host server. If a malicious file passes syntax check, its contents are parsed by the Python interpreter. Combined with Docker socket access (CRIT-001), this enables full host compromise.",
+      "affected_files": [
+        "backend/sandbox/runner.py:45-59",
+        "backend/api/builds.py:160"
+      ],
+      "remediation": "Run sandbox checks in an isolated container or VM. Use a read-only filesystem. Implement strict seccomp profiles. Never execute untrusted code on the host. Consider using containerized sandboxes with resource limits. Add timeout enforcement for all sandbox operations.",
+      "effort_hours": 16,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-CRIT-004",
+      "title": "Credit Refund Race Condition - Arbitrary Credit Creation",
+      "owasp": "A01:2021 – Broken Access Control",
+      "cvss_score": 8.6,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H",
+      "description": "In builds.py lines 189-193, the error handler in _run_build_background uses a plain update_one without atomic guard for refunding credits: 'await db.users.update_one({\"id\": user_id}, {\"$inc\": {\"credits\": reserved_credits}})'. If two concurrent builds both fail, both error handlers run and both refund the full reserved_credits amount, causing credit inflation. The success path (lines 169-176) has an atomic guard but the error path does not.",
+      "affected_files": [
+        "backend/api/builds.py:169-176",
+        "backend/api/builds.py:189-193"
+      ],
+      "remediation": "Use find_one_and_update with guard condition in the error refund path (same as success path). Add an idempotency key per build to prevent double-refund. Implement a transaction or atomic operation for credit adjustments.",
+      "effort_hours": 4,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-CRIT-005",
+      "title": "Admin Privilege Escalation via Email Registration",
+      "owasp": "A01:2021 – Broken Access Control",
+      "cvss_score": 8.2,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L",
+      "description": "The is_admin() function in admin.py (lines 17-20) checks if user.email is in a comma-separated list from settings.admin_emails ('admin@forge.ai'). The registration endpoint has no domain validation. Any attacker who registers with email 'admin@forge.ai' gains full admin access to all admin endpoints including user management, credit adjustment, audit logs, and system health checks. The frontend AdminRoute (App.tsx:99-100) uses the same vulnerable pattern with VITE_ADMIN_EMAILS.",
+      "affected_files": [
+        "backend/api/admin.py:17-28",
+        "frontend/src/App.tsx:99-100"
+      ],
+      "remediation": "Implement admin role as a database field, not email-based. Add email verification before granting admin privileges. Use a separate admin authentication mechanism. Validate admin emails cannot be registered via public API. Add domain allowlist for admin emails.",
+      "effort_hours": 6,
+      "deployment_blocker": true
+    }
+  ],
+
+  "high": [
+    {
+      "id": "P0-HIGH-001",
+      "title": "Unbounded MongoDB to_list(None) - Denial of Service via OOM",
+      "owasp": "A04:2021 – Insecure Design",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "description": "Multiple endpoints use to_list(None) which loads ALL matching documents into memory. Found in auth.py (lines 462, 470, 599, 603), marketplace.py (line 78), and billing.py (line 368). An attacker who creates many team memberships or marketplace items can cause the server to exhaust memory. For 10M users, this is guaranteed OOM.",
+      "affected_files": [
+        "backend/api/auth.py:462",
+        "backend/api/auth.py:470",
+        "backend/api/auth.py:599",
+        "backend/api/auth.py:603",
+        "backend/api/marketplace.py:78",
+        "backend/api/billing.py:368"
+      ],
+      "remediation": "Replace all to_list(None) with to_list(max_limit) where max_limit is a reasonable pagination bound (e.g., 100-1000). Implement cursor-based pagination for large collections. Add server-side limits enforced at the database layer.",
+      "effort_hours": 4,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-002",
+      "title": "No Trial Enforcement - Free Builds Without Time Limit",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "description": "The User model has trial_ends_at field (models.py:70) but it is NEVER checked anywhere in the codebase. Free users with expired trials can continue building indefinitely as long as they have credits. The credit check at builds.py:87-91 only checks 'credits >= max_credits' without verifying trial status.",
+      "affected_files": [
+        "backend/core/models.py:70",
+        "backend/api/builds.py:87-91",
+        "backend/core/orchestrator.py:258-266"
+      ],
+      "remediation": "Add trial_ends_at check in create_build endpoint. Automatically set trial_ends_at to 14 days from signup. Implement middleware that checks trial validity on all protected endpoints. Add trial expiry notification.",
+      "effort_hours": 6,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-003",
+      "title": "Password Reset Flow is Non-Functional - Users Permanently Locked Out",
+      "owasp": "A07:2021 – Identification and Authentication Failures",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "description": "The forgot-password endpoint (auth.py:343-363) generates a reset token and stores it, but never sends the email. The growth.py module checks for RESEND_API_KEY which defaults to empty string in config. Additionally, there is no frontend route for /reset-password/:token (App.tsx:214 shows /forgot-password but no reset route). Users who forget their password are permanently locked out with no recovery path.",
+      "affected_files": [
+        "backend/api/auth.py:343-363",
+        "backend/core/config.py:47",
+        "frontend/src/App.tsx:214"
+      ],
+      "remediation": "Implement email sending for password reset. Add frontend route /reset-password/:token. Ensure RESEND_API_KEY is configured in production. Add fallback email provider. Implement proper email verification before enabling accounts.",
+      "effort_hours": 8,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-004",
+      "title": "Container Kill via Deployment ID - Docker Socket Access Without Authorization Boundary",
+      "owasp": "A01:2021 – Broken Access Control",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H",
+      "description": "The cancel_deployment endpoint (deployments.py:237-285) constructs container name from deployment_id as 'f\"forge-deploy-{deployment_id}\"' and calls c.kill() and c.remove() via the Docker socket. Any authenticated user who knows or guesses a deployment_id can kill and remove containers owned by other users, causing denial of service.",
+      "affected_files": [
+        "backend/api/deployments.py:271-280"
+      ],
+      "remediation": "Verify deployment ownership before executing container operations. Remove direct Docker socket access. Use deployment namespacing with user_id prefix. Implement proper authorization for all container lifecycle operations.",
+      "effort_hours": 4,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-005",
+      "title": "File Path Traversal via Build Output Files in Deployment",
+      "owasp": "A01:2021 – Broken Access Control",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+      "description": "In deployments.py lines 442-446, build output file paths are used directly in os.path.join without sanitization: 'file_path = os.path.join(temp_dir, path)'. If a build produces files with paths like '../../etc/crontab' or '../../proc/self/cmdline', the file operations could escape the temp directory. Combined with Docker build context, this allows writing files outside the expected directory.",
+      "affected_files": [
+        "backend/api/deployments.py:442-446",
+        "backend/sandbox/runner.py:26-28"
+      ],
+      "remediation": "Validate and sanitize all file paths from build output. Reject paths containing '..' or starting with '/'. Use pathlib's resolve() to check that the final path is within the intended temp directory. Implement a file path allowlist.",
+      "effort_hours": 4,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-006",
+      "title": "Marketplace No Content Moderation - Spam/Malware Distribution Vector",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:L/I:L/A:L",
+      "description": "The marketplace create_item endpoint (marketplace.py:44-58) accepts any title, description, and prompt from any authenticated user with zero moderation. No content review, spam filter, malware scanning, or content policy enforcement. Attackers can use the marketplace to distribute phishing links, malicious prompts, or spam content to all users.",
+      "affected_files": [
+        "backend/api/marketplace.py:44-58"
+      ],
+      "remediation": "Implement content moderation before items go public. Add spam detection. Require admin approval for published items. Implement content reporting system. Add rate limiting on marketplace submissions. Scan prompts for malicious patterns.",
+      "effort_hours": 8,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-007",
+      "title": "User Data Exposure via Login Response Including Hashed Password",
+      "owasp": "A04:2021 – Insecure Design",
+      "cvss_score": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "description": "In auth.py login endpoint (line 222), the response returns 'user=user_doc' which is the raw MongoDB document. While the User model doesn't include hashed_password, user_doc is the full document from the database. The register endpoint (line 184) also returns 'user=user_dict' which was constructed before hashing but could contain other sensitive fields.",
+      "affected_files": [
+        "backend/api/auth.py:184",
+        "backend/api/auth.py:222",
+        "backend/api/auth.py:261"
+      ],
+      "remediation": "Always project user responses through a response model that explicitly excludes sensitive fields. Never return raw MongoDB documents to clients. Implement a UserResponse Pydantic model for all user data responses.",
+      "effort_hours": 3,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-008",
+      "title": "GitHub Token Exposed in Request Body and Environment",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:L",
+      "description": "The push_to_github endpoint (deployments.py:365-403) accepts 'github_token' as a plaintext field in the request body. This token is passed via environment variable GITHUB_TOKEN to a subprocess (lines 607-608). The token could be logged by request logging middleware, leaked in error messages, or captured by host-level processes.",
+      "affected_files": [
+        "backend/api/deployments.py:59",
+        "backend/api/deployments.py:384-388",
+        "backend/api/deployments.py:605-608"
+      ],
+      "remediation": "Use short-lived tokens only. Never log authentication tokens. Use a credential vault for token storage. Mask tokens in response data. Implement token rotation.",
+      "effort_hours": 4,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-009",
+      "title": "Rate Limiter IP Spoofing via X-Forwarded-For",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+      "description": "The get_client_ip function (security.py:37-44) only trusts X-Forwarded-For when request.client.host is in trusted_proxies ('127.0.0.1,::1'). In production behind a load balancer, the real client IP is in X-Forwarded-For but the initial request IP is the load balancer's IP. If trusted_proxies is misconfigured or if an attacker can spoof the load balancer IP, they can bypass rate limiting entirely by sending arbitrary X-Forwarded-For values.",
+      "affected_files": [
+        "backend/core/security.py:37-44"
+      ],
+      "remediation": "Document the correct proxy configuration for production. Use X-Real-IP or X-Forwarded-For from known proxy IPs only. Implement a proxy trust chain. Add rate limiting by authenticated user as a fallback.",
+      "effort_hours": 3,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P0-HIGH-010",
+      "title": "CSRF Protection Stored In-Memory - Lost on Restart, No Persistence",
+      "owasp": "A01:2021 – Broken Access Control",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+      "description": "CSRF tokens are stored in an in-memory Python dict (_csrf_tokens: dict[str, tuple[str, datetime]] = {} at security.py:23). Token verification depends on session_token being present in the dict. All tokens are lost on server restart, and the implementation doesn't support multiple server instances. Additionally, CSRF verification is never called from any endpoint.",
+      "affected_files": [
+        "backend/core/security.py:23",
+        "backend/core/security.py:155-174"
+      ],
+      "remediation": "Implement CSRF protection using Double Submit Cookie pattern (stateless). Or store tokens in Redis with TTL. Ensure CSRF middleware is actually registered in the middleware stack. Add SameSite=Strict on all cookies (already partially done).",
+      "effort_hours": 4,
+      "deployment_blocker": false
+    }
+  ],
+
+  "medium": [
+    {
+      "id": "P1-MED-001",
+      "title": "No MongoDB TLS/SSL Enforcement in Production",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+      "description": "The MongoDB connection in database.py:19-25 doesn't configure TLS/SSL. In production, database traffic between servers could be intercepted if not on a private network. The MongoDB URL from .env 'mongodb://forge:forge_password@localhost:27017/forge?authSource=admin' doesn't include tls=true or ssl=true.",
+      "affected_files": [
+        "backend/core/database.py:19-25",
+        ".env:5"
+      ],
+      "remediation": "Add tls=true and tlsCAFile= parameters to MONGODB_URL in production. Enforce TLS for all database connections. Use private network/subnet for database connectivity. Consider using MongoDB Atlas with TLS enforcement.",
+      "effort_hours": 2,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P1-MED-002",
+      "title": "Stripe Webhook Signature Verification Loophole",
+      "owasp": "A07:2021 – Identification and Authentication Failures",
+      "cvss_score": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L",
+      "description": "The /billing/webhook/payment endpoint (billing.py:557-586) catches all exceptions as 'Exception' instead of specifically stripe.error.SignatureVerificationError. Line 564: 'except Exception: raise HTTPException(status_code=400, detail=\"Invalid webhook\")'. This means ANY error passes through as 'Invalid webhook', including genuine Stripe events that fail for other reasons, potentially allowing event replay or tampering.",
+      "affected_files": [
+        "backend/api/billing.py:557-565"
+      ],
+      "remediation": "Catch specific stripe.error.SignatureVerificationError first, then handle other exceptions separately. Add idempotency checking for webhook events. Verify event ID uniqueness. Implement webhook event logging with failure alerts.",
+      "effort_hours": 3,
+      "deployment_blocker": false
+    },
+    {
+      "id": "P1-MED-003",
+      "title": "Volume Mount of Backend Code in Production Docker Compose",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:N",
+      "description": "The docker-compose.yml mounts ./backend:/app as a volume (line 16). This allows hot-reload of code but also means any process that can write to the mounted directory can modify the running application code. In production, this enables arbitrary code execution within the container and should use built images only.",
+      "affected_files": [
+        "docker-compose.yml:16"
+      ],
+      "remediation": "Remove volume mounts in production deployment. Build and deploy immutable container images. Use CI/CD pipeline for image building. Development-only mounts should be in a separate docker-compose.override.yml.",
+      "effort_hours": 2,
+      "deployment_blocker": true
+    },
+    {
+      "id": "P1-MED-004",
+      "title": "CORS Wildcard Origins Not Configurable for Production",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 6.1,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N",
+      "description": "The allowed_origins config (config.py:41) is hardcoded to ['http://localhost:3000', 'http://localhost:5173']. In production, the actual domain needs to be added. If misconfigured, CORS could allow cross-origin attacks. The frontend API URL is also hardcoded fallback to localhost:8000 (api.ts:4).",
+      "affected_files": [
+        "backend/core/config.py:41",
+        "frontend/src/lib/api.ts:4"
+      ],
+      "remediation": "Make allowed_origins configurable via environment variable. Document production CORS configuration. Use environment-specific config files. Frontend API URL should use relative paths or be set via build-time env vars.",
+      "effort_hours": 1,
+      "deployment_blocker": false
+    },
+    {
+      "id": "P1-MED-005",
+      "title": "Host Header Injection via TrustedHostMiddleware Wildcards",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 6.1,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N",
+      "description": "The TrustedHostMiddleware at main.py:35-38 allows '*.forge.ai' and '*.local' as valid hosts. An attacker could craft a Host header like 'evil.forge.ai' which matches the wildcard. Combined with other vulnerabilities, this could enable cache poisoning or password reset poisoning.",
+      "affected_files": [
+        "backend/main.py:35-38"
+      ],
+      "remediation": "Restrict allowed_hosts to exact production domain names only. Avoid wildcard patterns where possible. Use a fixed list of known domains. Add reverse proxy validation of Host header before it reaches the application.",
+      "effort_hours": 1,
+      "deployment_blocker": false
+    },
+    {
+      "id": "P1-MED-006",
+      "title": "Prompt Injection Risk - No Sanitization Before AI Agent Processing",
+      "owasp": "A03:2021 – Injection",
+      "cvss_score": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "description": "The build prompt (max 50,000 chars) is passed directly to AI agents without sanitization for prompt injection. An attacker could craft prompts that cause agents to generate malicious code, leak system prompts, or perform unintended operations. The SandboxRunner's basic checks (brace balance) are insufficient to detect malicious content.",
+      "affected_files": [
+        "backend/api/builds.py:52",
+        "backend/core/orchestrator.py:258-266",
+        "backend/sandbox/runner.py:62-80"
+      ],
+      "remediation": "Implement prompt injection detection and sanitization. Add system prompt hardening. Use output validation to detect malicious generated content. Implement a rate limit on build prompts per user.",
+      "effort_hours": 8,
+      "deployment_blocker": false
+    },
+    {
+      "id": "P1-MED-007",
+      "title": "Weak JWT Algorithm - HS256 Without Key Rotation Mechanism",
+      "owasp": "A07:2021 – Identification and Authentication Failures",
+      "cvss_score": 6.0,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:H/A:N",
+      "description": "JWT uses HS256 (symmetric HMAC) with a single secret. If the JWT_SECRET is compromised, all tokens (past and future) can be forged. There's no key rotation mechanism, no token revocation list, and no short-lived token refresh (access tokens expire in 7 days). The decode_token function at auth.py:34-38 silently returns None on any JWT error, providing no error differentiation for debugging.",
+      "affected_files": [
+        "backend/auth.py:20-38",
+        "backend/core/config.py:12"
+      ],
+      "remediation": "Consider migrating to RS256 (asymmetric) for production. Implement token versioning and key rotation. Add token revocation capability. Reduce access token expiry. Add proper error handling for expired vs invalid tokens.",
+      "effort_hours": 8,
+      "deployment_blocker": false
+    }
+  ],
+
+  "low": [
+    {
+      "id": "P2-LOW-001",
+      "title": "No Rate Limiting on WebSocket Connections",
+      "owasp": "A04:2021 – Insecure Design",
+      "cvss_score": 4.3,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+      "description": "WebSocket endpoints have no rate limiting. An attacker could open unlimited WebSocket connections to exhaust server resources. The rate limiting middleware applies to HTTP paths only, not WS.",
+      "affected_files": [
+        "backend/api/builds.py:257-287",
+        "backend/core/security.py:26-34"
+      ],
+      "remediation": "Implement per-IP and per-user rate limiting for WebSocket connections. Limit concurrent WebSocket connections per user.",
+      "effort_hours": 3,
+      "deployment_blocker": false
+    },
+    {
+      "id": "P2-LOW-002",
+      "title": "Audit Logs Do Not Capture IP Address or User Agent",
+      "owasp": "A09:2021 – Security Logging and Monitoring Failures",
+      "cvss_score": 4.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "description": "AuditLog model (models.py:284-295) has ip_address and user_agent fields as Optional, but they are never populated in any audit log creation (admin.py:264, 622, auth.py:330). Without IP and user agent, security incident investigation cannot identify the source of malicious actions.",
+      "affected_files": [
+        "backend/core/models.py:292-293",
+        "backend/api/admin.py:257-265",
+        "backend/api/admin.py:622-630",
+        "backend/api/auth.py:330-338"
+      ],
+      "remediation": "Extract and log IP address and user agent from request context in all audit log entries. Add middleware for automatic audit logging on sensitive operations.",
+      "effort_hours": 4,
+      "deployment_blocker": false
+    },
+    {
+      "id": "P2-LOW-003",
+      "title": "Decryption Failure Returns Plaintext Instead of Error",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 4.6,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N",
+      "description": "In encryption.py line 30, decrypt_field catches all exceptions and returns the encrypted value as-is (return encrypted_value). This means if decryption fails, the raw encrypted string is returned to the user as plaintext. This could leak encrypted data.",
+      "affected_files": [
+        "backend/core/encryption.py:29-31"
+      ],
+      "remediation": "Log decryption failures and return a sanitized error message. Never return raw encrypted data on failure.",
+      "effort_hours": 1,
+      "deployment_blocker": false
+    },
+    {
+      "id": "P2-LOW-004",
+      "title": "Encryption Key Derived from JWT Secret",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "cvss_score": 4.0,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N",
+      "description": "The encryption key in encryption.py:10-13 is derived from settings.jwt_secret using SHA256. If the JWT secret is compromised, all encrypted fields (github_token) can be decrypted. The comment says 'not ideal but better than plaintext'.",
+      "affected_files": [
+        "backend/core/encryption.py:10-13"
+      ],
+      "remediation": "Use a separate, independent encryption key. Store in a secrets manager. Consider using AWS KMS or HashiCorp Vault for key management.",
+      "effort_hours": 4,
+      "deployment_blocker": false
+    }
+  ],
+
+  "implementation_tasks": [
+    {
+      "id": "TASK-001",
+      "priority": "P0-Critical",
+      "title": "Remove Docker-in-Docker and Docker Socket Access",
+      "description": "Remove docker.io from Dockerfile. Remove all direct Docker socket access from deployments.py. Implement a CI/CD pipeline pattern for deployments using a sidecar container or Kubernetes API with proper RBAC.",
+      "affected_files": ["backend/Dockerfile", "backend/api/deployments.py"],
+      "effort_hours": 24
+    },
+    {
+      "id": "TASK-002",
+      "priority": "P0-Critical",
+      "title": "Remove Secrets from Version Control",
+      "description": "Remove .env from git tracking. Add to .gitignore. Create .env.example with placeholder values. Add pre-commit hook for secret detection. Configure CI/CD to inject secrets via environment variables.",
+      "affected_files": [".env"],
+      "effort_hours": 4
+    },
+    {
+      "id": "TASK-003",
+      "priority": "P0-Critical",
+      "title": "Containerize Sandbox Runner",
+      "description": "Migrate sandbox runner to execute in isolated Docker containers with read-only filesystem, seccomp profiles, and resource limits. Add timeout enforcement. Remove direct subprocess execution on host.",
+      "affected_files": ["backend/sandbox/runner.py", "backend/api/builds.py"],
+      "effort_hours": 16
+    },
+    {
+      "id": "TASK-004",
+      "priority": "P0-Critical",
+      "title": "Fix Credit Refund Race Condition",
+      "description": "Replace plain update_one in error refund path with atomic find_one_and_update with guard condition. Add idempotency key to prevent double-refund. Add database transaction for credit operations.",
+      "affected_files": ["backend/api/builds.py"],
+      "effort_hours": 4
+    },
+    {
+      "id": "TASK-005",
+      "priority": "P0-Critical",
+      "title": "Fix Admin Authentication - Use Database Roles Not Email",
+      "description": "Implement admin role as a database field on User model. Add email verification requirement. Block admin email registration via public API. Add secondary authentication factor for admin actions.",
+      "affected_files": ["backend/api/admin.py", "backend/core/models.py", "frontend/src/App.tsx"],
+      "effort_hours": 6
+    },
+    {
+      "id": "TASK-006",
+      "priority": "P0-High",
+      "title": "Fix All Unbounded MongoDB Queries",
+      "description": "Replace all to_list(None) with to_list(max_limit). Implement pagination parameters. Add maximum document limits across all list endpoints. Add defensive limits at the database layer.",
+      "affected_files": [
+        "backend/api/auth.py",
+        "backend/api/marketplace.py",
+        "backend/api/billing.py"
+      ],
+      "effort_hours": 4
+    },
+    {
+      "id": "TASK-007",
+      "priority": "P0-High",
+      "title": "Implement Trial Enforcement",
+      "description": "Add trial_ends_at check middleware. Set trial expiry at signup. Block builds and API access for expired trials. Add trial expiry notification. Document trial terms in UI.",
+      "affected_files": ["backend/api/builds.py", "backend/core/config.py"],
+      "effort_hours": 6
+    },
+    {
+      "id": "TASK-008",
+      "priority": "P0-High",
+      "title": "Fix Password Reset Flow",
+      "description": "Implement email sending for password reset. Add frontend route /reset-password/:token. Ensure email provider is configured. Add fallback SMTP configuration. Add email verification at registration.",
+      "affected_files": ["backend/api/auth.py", "backend/core/config.py", "frontend/src/App.tsx"],
+      "effort_hours": 8
+    },
+    {
+      "id": "TASK-009",
+      "priority": "P0-High",
+      "title": "Add Authorization Checks to Container Operations",
+      "description": "Verify container ownership before kill/remove operations. Namespace container names with user_id. Remove direct Docker socket access. Add audit logging for container lifecycle operations.",
+      "affected_files": ["backend/api/deployments.py"],
+      "effort_hours": 4
+    },
+    {
+      "id": "TASK-010",
+      "priority": "P0-High",
+      "title": "Sanitize File Paths in Build Output Processing",
+      "description": "Validate and sanitize all file paths from build output. Reject paths with '..' or leading '/'. Use pathlib.resolve() to verify paths stay within temp directory. Add path traversal test cases.",
+      "affected_files": ["backend/api/deployments.py", "backend/sandbox/runner.py"],
+      "effort_hours": 4
+    },
+    {
+      "id": "TASK-011",
+      "priority": "P0-High",
+      "title": "Implement Marketplace Content Moderation",
+      "description": "Add content moderation pipeline. Require admin approval for published items. Add spam detection and content scanning. Implement content reporting system for users. Add rate limiting on submissions.",
+      "affected_files": ["backend/api/marketplace.py"],
+      "effort_hours": 8
+    },
+    {
+      "id": "TASK-012",
+      "priority": "P0-High",
+      "title": "Fix User Data Exposure in Auth Responses",
+      "description": "Create UserResponse Pydantic model that excludes sensitive fields. Apply to all auth response endpoints. Never return raw MongoDB documents to clients.",
+      "affected_files": ["backend/api/auth.py"],
+      "effort_hours": 3
+    },
+    {
+      "id": "TASK-013",
+      "priority": "P0-Medium",
+      "title": "Enforce MongoDB TLS Connections",
+      "description": "Add tls=true and tlsCAFile to MongoDB connection URL in production. Document TLS requirements. Add connection configuration validation.",
+      "affected_files": ["backend/core/database.py", "backend/core/config.py"],
+      "effort_hours": 2
+    },
+    {
+      "id": "TASK-014",
+      "priority": "P0-Medium",
+      "title": "Fix Stripe Webhook Signature Verification",
+      "description": "Catch specific SignatureVerificationError. Add idempotency checking. Implement webhook event deduplication. Add detailed logging for webhook failures.",
+      "affected_files": ["backend/api/billing.py"],
+      "effort_hours": 3
+    },
+    {
+      "id": "TASK-015",
+      "priority": "P0-Medium",
+      "title": "Remove Volume Mounts for Production Deployment",
+      "description": "Create separate docker-compose.override.yml for development. Use immutable container images for production. Add CI/CD pipeline for image building.",
+      "affected_files": ["docker-compose.yml", "backend/Dockerfile"],
+      "effort_hours": 2
+    },
+    {
+      "id": "TASK-016",
+      "priority": "P0-Medium",
+      "title": "Harden Host Header Validation",
+      "description": "Restrict allowed_hosts to exact production domains. Remove wildcard patterns. Add reverse proxy validation.",
+      "affected_files": ["backend/main.py"],
+      "effort_hours": 1
+    },
+    {
+      "id": "TASK-017",
+      "priority": "P1-Medium",
+      "title": "Implement Prompt Injection Detection",
+      "description": "Add input sanitization for AI prompts. Implement prompt injection detection patterns. Add output validation for generated content. Add rate limiting for builds per user.",
+      "affected_files": ["backend/api/builds.py", "backend/core/security.py"],
+      "effort_hours": 8
+    },
+    {
+      "id": "TASK-018",
+      "priority": "P1-Medium",
+      "title": "Migrate to RS256 JWT with Key Rotation",
+      "description": "Generate RSA key pair for JWT signing. Implement key rotation mechanism. Add token revocation capability. Reduce access token expiry to 15 minutes.",
+      "affected_files": ["backend/auth.py", "backend/core/config.py"],
+      "effort_hours": 8
+    }
+  ],
+
+  "affected_files": [
+    "backend/Dockerfile",
+    "backend/api/deployments.py",
+    "backend/api/auth.py",
+    "backend/api/admin.py",
+    "backend/api/builds.py",
+    "backend/api/billing.py",
+    "backend/api/marketplace.py",
+    "backend/api/projects.py",
+    "backend/core/security.py",
+    "backend/core/config.py",
+    "backend/core/encryption.py",
+    "backend/core/database.py",
+    "backend/core/models.py",
+    "backend/auth.py",
+    "backend/main.py",
+    "backend/sandbox/runner.py",
+    "backend/services/ws_manager.py",
+    "frontend/src/App.tsx",
+    "frontend/src/lib/api.ts",
+    "frontend/src/store/authStore.ts",
+    "frontend/src/pages/Admin.tsx",
+    "docker-compose.yml",
+    ".env"
+  ],
+
+  "estimated_hours": 138,
+  "deployment_blockers": [
+    {
+      "id": "BLOCKER-001",
+      "title": "Docker-in-Docker Container Escape",
+      "severity": "Critical",
+      "reason": "Any deployed instance with Docker socket access allows full host compromise"
+    },
+    {
+      "id": "BLOCKER-002",
+      "title": "API Keys in Version Control",
+      "severity": "Critical",
+      "reason": "All secrets committed to git must be rotated before production"
+    },
+    {
+      "id": "BLOCKER-003",
+      "title": "Sandbox Arbitrary Code Execution",
+      "severity": "Critical",
+      "reason": "Current sandbox executes untrusted code on the host without isolation"
+    },
+    {
+      "id": "BLOCKER-004",
+      "title": "Credit Race Condition Revenue Leakage",
+      "severity": "Critical",
+      "reason": "Direct revenue loss through credit inflation exploits"
+    },
+    {
+      "id": "BLOCKER-005",
+      "title": "Admin Email-Based Privilege Escalation",
+      "severity": "Critical",
+      "reason": "Any user can gain admin access by registering with admin email"
+    },
+    {
+      "id": "BLOCKER-006",
+      "title": "Unbounded MongoDB Queries Cause OOM",
+      "severity": "High",
+      "reason": "Guaranteed production outage at scale without pagination limits"
+    },
+    {
+      "id": "BLOCKER-007",
+      "title": "No TLS for MongoDB Connections",
+      "severity": "Medium",
+      "reason": "Database traffic unencrypted between servers"
+    },
+    {
+      "id": "BLOCKER-008",
+      "title": "Volume Mount in Production",
+      "severity": "Medium",
+      "reason": "Allows live code modification, violates immutable infrastructure"
+    }
+  ],
+
+  "owasp_top_10_mapping": {
+    "A01:2021 - Broken Access Control": ["P0-CRIT-001", "P0-CRIT-004", "P0-CRIT-005", "P0-HIGH-004", "P0-HIGH-005", "P0-HIGH-010"],
+    "A03:2021 - Injection": ["P1-MED-006"],
+    "A04:2021 - Insecure Design": ["P0-HIGH-001", "P0-HIGH-007", "P2-LOW-001"],
+    "A05:2021 - Security Misconfiguration": ["P0-CRIT-002", "P0-HIGH-002", "P0-HIGH-006", "P0-HIGH-008", "P0-HIGH-009", "P1-MED-001", "P1-MED-003", "P1-MED-004", "P1-MED-005", "P2-LOW-003", "P2-LOW-004"],
+    "A07:2021 - Identification and Authentication Failures": ["P0-HIGH-003", "P1-MED-002", "P1-MED-007"],
+    "A08:2021 - Software and Data Integrity Failures": ["P0-CRIT-003"],
+    "A09:2021 - Security Logging and Monitoring Failures": ["P2-LOW-002"]
+  }
+}

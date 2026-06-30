@@ -1,12 +1,66 @@
-.env
-.git
-.gitignore
+# Dependencies
+node_modules
 __pycache__
-*.pyc
 .venv
 venv
-node_modules
+env
+.git
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
 .vscode
 .idea
-*.md
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Build outputs
+dist
+build
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+*.log
+logs
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Scripts
+scripts/
+
+# Orchestration (internal)
+orchestration/
+
+# Temporary files
+tmp
+temp
+*.tmp

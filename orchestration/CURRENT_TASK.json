@@ -1,0 +1,25 @@
+{
+  "task_id": "DEV-004",
+  "title": "Verify docker-compose health checks",
+  "status": "ASSIGNED",
+  "assigned_to": "Implementation Engineer",
+  "assigned_at": "2026-06-30T06:11:00+05:30",
+  "phase": 1,
+  "priority": "P0",
+  "estimated_hours": 2,
+  "description": "Validate all docker-compose services have working healthcheck commands and start_period",
+  "affected_files": ["docker-compose.yml"],
+  "dependencies": [],
+  "acceptance_criteria": [
+    "All 4 services have healthcheck defined",
+    "Healthcheck commands execute successfully",
+    "start_period allows services to initialize",
+    "depends_on conditions use service_healthy"
+  ],
+  "validation_steps": [
+    "Run docker-compose up",
+    "Check docker-compose ps: all services healthy",
+    "Kill mongo: expect backend to wait"
+  ],
+  "rollback_plan": "Revert healthcheck changes"
+}
