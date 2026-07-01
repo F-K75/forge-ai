@@ -14,9 +14,10 @@ from api.growth import router as growth_router
 from api.api_keys import router as api_keys_router
 from api.webhooks import router as webhooks_router
 from api.gdpr import router as gdpr_router
+from api.deployments import router as deployments_router
 from core.database import close_connections
 from core.config import get_settings
-from core.security import rate_limit_middleware, request_size_limit_middleware, csrf_protection_middleware
+from core.security import rate_limit_middleware, request_size_limit_middleware
 
 settings = get_settings()
 
@@ -51,7 +52,6 @@ app.add_middleware(
 
 app.middleware("http")(request_size_limit_middleware)
 app.middleware("http")(rate_limit_middleware)
-app.middleware("http")(csrf_protection_middleware)
 
 app.include_router(auth_router)
 app.include_router(builds_router)
@@ -64,6 +64,7 @@ app.include_router(growth_router)
 app.include_router(api_keys_router)
 app.include_router(webhooks_router)
 app.include_router(gdpr_router)
+app.include_router(deployments_router)
 
 
 @app.get("/health")

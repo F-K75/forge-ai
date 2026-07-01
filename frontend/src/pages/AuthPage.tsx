@@ -2,20 +2,35 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Hammer, Mail, Lock, Github, Chrome, Check } from "lucide-react";
 import { AGENTS } from "../lib/agents";
+import { useAuthStore } from "../store/authStore";
 
 type Mode = "signin" | "signup";
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const login = useAuthStore((s) => s.login);
+  const register = useAuthStore((s) => s.register);
   const [mode, setMode] = useState<Mode>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = () => {
-    if (mode === "signup") {
-      navigate("/onboarding");
-    } else {
-      navigate("/");
+  const handleSubmit = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        await register(email, email.split("@")[0] || "Builder", password);
+        navigate("/onboarding");
+      } else {
+        await login(email, password);
+        navigate("/");
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -147,6 +162,7 @@ export default function AuthPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 placeholder="••••••••"
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 className="w-full bg-panel-alt border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition motion-reduce:transition-none"
@@ -154,13 +170,20 @@ export default function AuthPage() {
             </div>
           </div>
 
+          {error && (
+            <div role="alert" className="mb-5 bg-error/10 border border-error/30 text-error px-3.5 py-2.5 rounded-xl text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Primary submit */}
           <button
             type="button"
             onClick={handleSubmit}
-            className="w-full py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base mb-5"
+            disabled={loading || !email || !password}
+            className="w-full py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base disabled:opacity-50 disabled:cursor-not-allowed mb-5"
           >
-            {mode === "signup" ? "Create account" : "Sign in"}
+            {loading ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
           </button>
 
           {/* Mode toggle */}

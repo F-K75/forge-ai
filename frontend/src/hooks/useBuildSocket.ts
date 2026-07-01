@@ -66,6 +66,7 @@ export function useBuildSocket(buildId: string | null) {
 
         wsRef.current = ws
 
+        clearHeartbeat()
         heartbeatRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send('ping')

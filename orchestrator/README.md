@@ -18,7 +18,9 @@ agents/*.json ─▶ loader ─▶ trigger scoping ─▶ runner (parallel) ─�
 
 | File | Responsibility |
 |------|----------------|
+| `__init__.py` | Package marker. |
 | `config.py` | Env-driven settings (`pydantic-settings`). |
+| `requirements.txt` | Python dependencies. |
 | `models.py` | Pydantic v2 models: `AgentConfig`, `AgentReport`, `ReviewRun`, `BacklogItem`, … |
 | `loader.py` | Load + validate `agents/*.json`; fail loudly on schema violations. |
 | `context.py` | File-tree + content bundling, glob **trigger scoping**, and token-budget guard. |

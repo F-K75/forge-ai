@@ -44,6 +44,7 @@ export default function BillingPage() {
         <div className="bg-panel border border-border rounded-xl p-4 space-y-3">
           {AGENT_SPEND.map(({ agent: agentId, credits }) => {
             const agent = agentById(agentId);
+            if (!agent) return null;
             const pct = (credits / maxSpend) * 100;
             return (
               <div key={agentId} className="flex items-center gap-3">

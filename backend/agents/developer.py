@@ -50,7 +50,17 @@ class DeveloperAgent(BaseAgent):
         blueprint: dict,
         design: dict,
         stream_callback=None,
+        existing_files: dict = None,
     ) -> dict:
+        existing_files_block = ""
+        if existing_files:
+            existing_files_block = (
+                f"\n\nExisting files from the previous build. This is a follow-up "
+                f"prompt amending that app: preserve unrelated files/features as-is "
+                f"and only change what the updated blueprint requires.\n"
+                f"{json.dumps(existing_files, indent=2)}"
+            )
+
         messages = [
             {
                 "role": "user",
@@ -58,6 +68,7 @@ class DeveloperAgent(BaseAgent):
                     f"Generate all code files.\n\n"
                     f"Blueprint:\n{json.dumps(blueprint, indent=2)}\n\n"
                     f"Design:\n{json.dumps(design, indent=2)}"
+                    f"{existing_files_block}"
                 )
             }
         ]

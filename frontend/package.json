@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "python3 ../backend/scripts/export_ws_events.py",
     "dev": "vite",
+    "prebuild": "python3 ../backend/scripts/export_ws_events.py",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

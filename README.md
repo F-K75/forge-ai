@@ -1,6 +1,6 @@
 # Forge — AI-powered full-stack app builder
 
-A clone of Emergent.sh built from scratch. Describe your app in natural language and a coordinated team of AI agents builds the full stack — frontend, backend, database, and integrations.
+Describe your app in natural language and a coordinated team of AI agents builds the full stack — frontend, backend, database, and integrations.
 
 ## Architecture
 

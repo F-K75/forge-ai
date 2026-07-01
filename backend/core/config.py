@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     credits_integration: int = 2
     credits_pm: int = 1
     credits_debug: int = 2
+    credits_business_model: int = 2
 
     # Billing
     stripe_secret_key: str = ""

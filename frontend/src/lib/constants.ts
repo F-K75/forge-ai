@@ -16,7 +16,7 @@ export const BUILD_STATUS_TONES: Record<string, 'success' | 'warning' | 'info' |
   debugging: 'warning',
 } as const
 
-export const AGENT_TYPES = ['architect', 'designer', 'developer', 'integration', 'pm'] as const
+export const AGENT_TYPES = ['architect', 'business_improver', 'designer', 'developer', 'integration', 'pm'] as const
 
 export const SIDEBAR_ITEMS = [
   { label: 'Workspace', to: '/' },

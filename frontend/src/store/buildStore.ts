@@ -61,6 +61,7 @@ export interface BuildState {
   agents: AgentRunState[]
 
   validation: ValidationState | null
+  businessModel: Record<string, unknown> | null
   error: string | null
 
   // Actions
@@ -73,7 +74,7 @@ export interface BuildState {
   reset: () => void
 }
 
-const AGENT_ORDER: Agent['id'][] = ['architect', 'designer', 'developer', 'integration', 'pm']
+const AGENT_ORDER: Agent['id'][] = ['architect', 'business_improver', 'designer', 'developer', 'integration', 'pm']
 
 const initialAgents = (): AgentRunState[] =>
   AGENT_ORDER.map(type => ({
@@ -88,10 +89,12 @@ const initialAgentStates = (): Record<string, PipelineNodeState> =>
 
 const AGENT_LABELS: Record<string, string> = {
   architect: 'Architect',
+  business_improver: 'Business Model',
   designer: 'Designer',
   developer: 'Developer',
   integration: 'Integration',
   pm: 'PM',
+  debugger: 'Debugger',
 }
 
 export const useBuildStore = create<BuildState>((set, get) => ({
@@ -118,6 +121,7 @@ export const useBuildStore = create<BuildState>((set, get) => ({
   agents: initialAgents(),
 
   validation: null,
+  businessModel: null,
   error: null,
 
   startBuild: (buildId, prompt) => set({
@@ -136,6 +140,7 @@ export const useBuildStore = create<BuildState>((set, get) => ({
     debugIterations: 0,
     agents: initialAgents(),
     validation: null,
+    businessModel: null,
     error: null,
   }),
 
@@ -164,6 +169,17 @@ export const useBuildStore = create<BuildState>((set, get) => ({
           }
         }
 
+        case 'agent_update': {
+          const agent = data.agent
+          const label = agent ? AGENT_LABELS[agent] ?? agent : null
+          return {
+            messages: [
+              ...state.messages,
+              { from: 'system', text: label ? `${label}: ${data.message}` : data.message },
+            ],
+          }
+        }
+
         case 'agent_progress': {
           // No UI mapping yet; ignore safely.
           return state
@@ -172,7 +188,10 @@ export const useBuildStore = create<BuildState>((set, get) => ({
         case 'agent_complete': {
           const agent = data.agent
           return {
-            agentStates: { ...state.agentStates, [agent]: 'done' },
+            agentStates:
+              agent === 'debugger'
+                ? { ...state.agentStates, debugger: 'done', developer: 'done' }
+                : { ...state.agentStates, [agent]: 'done' },
             activeAgent: state.activeAgent === agent ? null : state.activeAgent,
             agents: state.agents.map(a =>
               a.type === agent
@@ -208,6 +227,7 @@ export const useBuildStore = create<BuildState>((set, get) => ({
             files,
             openFile: state.openFile ?? (paths.length > 0 ? paths[0] : null),
             validation: data.validation ?? null,
+            businessModel: data.business_model ?? state.businessModel,
             qaScore: typeof score === 'number' ? score : null,
             creditsUsed: data.credits_used ?? state.creditsUsed,
             streamBuffer: '',
@@ -245,6 +265,10 @@ export const useBuildStore = create<BuildState>((set, get) => ({
           return { creditsUsed: data.credits_used ?? state.creditsUsed }
         }
 
+        case 'error': {
+          return { error: data.error ?? state.error }
+        }
+
         default:
           return state
       }
@@ -270,6 +294,7 @@ export const useBuildStore = create<BuildState>((set, get) => ({
     debugIterations: 0,
     agents: initialAgents(),
     validation: null,
+    businessModel: null,
     error: null,
   }),
 }))

@@ -154,6 +154,7 @@ class Build(BaseModel):
     context_tokens: int = 0
     files: Dict[str, str] = {}  # path -> content
     debug_iterations: int = 0
+    business_model: Optional[Dict[str, Any]] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
 
@@ -346,9 +347,8 @@ class WSEventType(str, Enum):
     BUILD_COMPLETE = "build_complete"
     BUILD_FAILED = "build_failed"
 
-    # File + preview updates
+    # File updates
     FILE_UPDATE = "file_update"
-    PREVIEW_UPDATE = "preview_update"
 
     # Errors
     ERROR = "error"

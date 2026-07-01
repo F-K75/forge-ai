@@ -1,9 +1,12 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 from core.config import get_settings
+from typing import Optional
 import asyncio
+import logging
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 _mongo_client: AsyncIOMotorClient = None
 _redis_client: Redis = None
@@ -115,7 +118,7 @@ async def _ensure_indexes(db):
         # Webhooks index
         await db.webhooks.create_index([("user_id", 1)])
     except Exception:
-        pass
+        logger.exception("Failed to ensure one or more MongoDB indexes")
 
 
 async def cache_get(key: str, ttl: int = 300) -> Optional[str]:

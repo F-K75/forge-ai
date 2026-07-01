@@ -151,6 +151,7 @@ function StatCard({ stat }: { stat: AdminStat }) {
 
 function HealthRow({ health }: { health: AgentHealth }) {
   const agent = agentById(health.agent);
+  if (!agent) return null;
   const Icon = agent.icon;
   const flagged = health.uptime < 99;
 

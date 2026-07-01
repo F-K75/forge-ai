@@ -8,29 +8,57 @@ The orchestration system manages the AI engineering platform's multi-agent pipel
 
 ```
 orchestration/
-├── helpers.py              # Core helper functions for state management
-├── api.py                  # FastAPI REST endpoints
-├── engine/                 # Workflow Engine (NEW)
+├── helpers.py                 # Core helper functions for state management
+├── api.py                     # FastAPI REST endpoints
+├── agent_runtime.py           # Agent runtime orchestration
+├── benchmark_runner.py        # Performance benchmarking
+├── evidence_collector.py      # Evidence collection for audits
+├── knowledge_service.py       # Engineering memory / pattern search
+├── storage.py                 # JSON file persistence layer
+├── tool_gateway.py            # MCP / tool routing
+├── engine/                    # Workflow Engine
 │   ├── __init__.py
-│   ├── workflow_engine.py  # Main engine orchestrator
-│   ├── state_machine.py    # Task state transition enforcement
-│   ├── event_bus.py        # Publish/subscribe event system
-│   ├── dependency_resolver.py  # Prerequisite validation
-│   ├── scheduler.py        # Task prioritization and scheduling
-│   ├── dispatcher.py       # Agent assignment and dispatch
-│   ├── retry_engine.py     # Validation failure handling
-│   ├── recovery.py         # State recovery and checkpoints
-│   ├── metrics.py          # Performance metrics tracking
-│   ├── ARCHITECTURE.md     # Detailed architecture docs
-│   └── API_CHANGES.md      # API documentation
-├── PROJECT_MANIFEST.json   # Project metadata and configuration
-├── TASK_REGISTRY.json      # All tasks with status and dependencies
-├── ENGINEERING_MEMORY.json # Reusable patterns and solutions
-├── METRICS.json            # Performance and quality metrics
-├── EXECUTION_LOG.json      # Detailed execution history
-├── AGENT_REGISTRY.json     # Agent definitions and capabilities
-├── WORKFLOW_STATE.json     # Current workflow phase and queue
-└── DASHBOARD_DATA.json     # Aggregated dashboard data
+│   ├── workflow_engine.py     # Main engine orchestrator
+│   ├── state_machine.py       # Task state transition enforcement
+│   ├── event_bus.py           # Publish/subscribe event system
+│   ├── dependency_resolver.py # Prerequisite validation
+│   ├── dispatcher.py          # Agent assignment and dispatch
+│   ├── scheduler.py           # Task prioritization and scheduling
+│   ├── retry_engine.py        # Validation failure handling
+│   ├── recovery.py            # State recovery and checkpoints
+│   ├── metrics.py             # Performance metrics tracking
+│   ├── INTEGRATION.md         # Integration guide
+│   ├── ARCHITECTURE.md        # Detailed architecture docs
+│   └── API_CHANGES.md         # API documentation
+├── tests/
+│   └── test_storage.py        # Storage layer tests
+├── PROJECT_MANIFEST.json      # Project metadata and configuration
+├── TASK_REGISTRY.json         # All tasks with status and dependencies
+├── TASK_REGISTRY.json.lock    # Task registry write lock
+├── CURRENT_TASK.json          # Currently active task
+├── ENGINEERING_MEMORY.json    # Reusable patterns and solutions
+├── WORKFLOW_STATE.json        # Current workflow phase and queue
+├── WORKFLOW_STATE.json.lock   # Workflow state write lock
+├── EXECUTION_LOG.json         # Detailed execution history
+├── EXECUTION_LOG.json.lock    # Execution log write lock
+├── METRICS.json               # Performance and quality metrics
+├── AGENT_REGISTRY.json        # Agent definitions and capabilities
+├── AGENT_CONTRACT.md          # Agent interface contract
+├── AGENT_RUNTIME_SUMMARY.md   # Runtime execution summary
+├── BENCHMARK_REPORT.json      # Benchmark results
+├── DASHBOARD_DATA.json        # Aggregated dashboard data
+├── PLATFORM_ARCHITECTURE.md   # Platform-level architecture
+├── PLATFORM_HARDENING_REPORT.md # Security hardening report
+├── OPERATIONAL_READINESS.md   # Operational readiness checklist
+├── TESTING_PLAN.md            # Testing strategy and plans
+├── SPRINT_0_BACKLOG.json      # Sprint 0 task backlog
+├── EXECUTION_PLAN_DETAILED.json # Detailed execution plan
+├── EVIDENCE_COLLECTOR_REPORT_PHASE_1.json # Phase 1 evidence
+├── PHASE_1_COMPLETION_SUMMARY.json # Phase 1 completion summary
+├── VALIDATION_SUMMARY_PHASE_1.json # Phase 1 validation summary
+├── SCHEDULER_OUTPUT.json      # Scheduler run output
+├── recovery_checkpoint.json.lock # Recovery checkpoint lock
+└── IMPLEMENTATION_REPORT_*.json # Per-task implementation reports
 ```
 
 ## Quick Start

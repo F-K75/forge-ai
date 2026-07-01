@@ -1,14 +1,79 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Clock, GitBranch, RefreshCw, Zap } from "lucide-react";
+import toast from "react-hot-toast";
 import { BUILD_HISTORY, PROJECTS, type BuildRun } from "../lib/mockData";
-import { AGENTS } from "../lib/agents";
+import { AGENTS, type Agent } from "../lib/agents";
+import { LIVE_MODE } from "../lib/env";
+import { projectsApi, buildsApi } from "../lib/api";
+import { formatRelativeTime } from "../lib/format";
 import { StatusPill } from "../components/StatusPill";
 import {
   AgentPipeline,
   type PipelineNode,
   type AgentState,
 } from "../components/AgentPipeline";
+
+const KNOWN_AGENT_IDS = new Set(AGENTS.map((a) => a.id as string));
+
+interface RawAgentStep {
+  agent: string;
+  status: string;
+  files_changed?: string[];
+  output?: string;
+}
+
+interface RawBuild {
+  id: string;
+  project_id: string;
+  prompt: string;
+  status: string;
+  agents: RawAgentStep[];
+  credits_used: number;
+  debug_iterations: number;
+  created_at: string;
+}
+
+function extractQaScore(agents: RawAgentStep[]): number | null {
+  for (let i = agents.length - 1; i >= 0; i--) {
+    const step = agents[i];
+    if (step.agent !== "pm" || !step.output) continue;
+    try {
+      const parsed = JSON.parse(step.output);
+      if (typeof parsed.score === "number") return parsed.score;
+    } catch {
+      // malformed PM output — skip
+    }
+  }
+  return null;
+}
+
+function toBuildRun(raw: RawBuild): BuildRun {
+  const ranAgentIds = Array.from(new Set(raw.agents.map((a) => a.agent))).filter((id) =>
+    KNOWN_AGENT_IDS.has(id)
+  ) as Agent["id"][];
+
+  const filesChanged = new Set<string>();
+  for (const step of raw.agents) {
+    for (const f of step.files_changed ?? []) filesChanged.add(f);
+  }
+
+  let status: BuildRun["status"] = "debugging";
+  if (raw.status === "success") status = "complete";
+  else if (raw.status === "failed") status = "failed";
+
+  return {
+    id: raw.id,
+    label: raw.prompt?.trim() ? raw.prompt.slice(0, 60) : "Untitled build",
+    time: formatRelativeTime(raw.created_at),
+    status,
+    qaScore: extractQaScore(raw.agents),
+    credits: raw.credits_used,
+    agents: ranAgentIds,
+    filesChanged: filesChanged.size,
+    debugLoops: raw.debug_iterations,
+  };
+}
 
 function buildNodes(build: BuildRun): PipelineNode[] {
   return AGENTS.map((agent) => {
@@ -28,10 +93,70 @@ function buildNodes(build: BuildRun): PipelineNode[] {
 
 export default function ProjectHistory() {
   const { projectId } = useParams<{ projectId: string }>();
-  const project = PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0];
-  const [selectedId, setSelectedId] = useState<string>(BUILD_HISTORY[0].id);
 
-  const selected = BUILD_HISTORY.find((b) => b.id === selectedId) ?? BUILD_HISTORY[0];
+  const mockProject = PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0];
+
+  const [liveProjectName, setLiveProjectName] = useState<string | null>(null);
+  const [rawBuilds, setRawBuilds] = useState<RawBuild[] | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [rollingBack, setRollingBack] = useState(false);
+
+  const refreshBuilds = () => {
+    if (!LIVE_MODE || !projectId) return;
+    projectsApi
+      .getBuilds(projectId)
+      .then((data: RawBuild[]) => {
+        setRawBuilds(data);
+        setSelectedId((current) => current ?? data[0]?.id ?? null);
+      })
+      .catch(() => toast.error("Failed to load build history"));
+  };
+
+  useEffect(() => {
+    if (!LIVE_MODE || !projectId) return;
+    projectsApi
+      .get(projectId)
+      .then((p) => setLiveProjectName(p.name))
+      .catch(() => setLiveProjectName("Unknown project"));
+    refreshBuilds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  const builds: BuildRun[] = LIVE_MODE ? (rawBuilds ?? []).map(toBuildRun) : BUILD_HISTORY;
+  const selected = builds.find((b) => b.id === selectedId) ?? builds[0];
+
+  const projectName = LIVE_MODE ? liveProjectName ?? "Loading…" : mockProject.name;
+  const projectLive = LIVE_MODE ? true : mockProject.live;
+
+  // Backend rollback takes a "version" index into builds sorted oldest-first;
+  // the API returns newest-first, so reverse before looking up the index.
+  const ascendingBuilds = useMemo(() => [...(rawBuilds ?? [])].reverse(), [rawBuilds]);
+
+  const handleRollback = async () => {
+    if (!LIVE_MODE || !selected) return;
+    const version = ascendingBuilds.findIndex((b) => b.id === selected.id);
+    if (version < 0) return;
+
+    setRollingBack(true);
+    try {
+      await buildsApi.rollback(selected.id, version);
+      toast.success("Rolled back — a new build was created from that version");
+      refreshBuilds();
+    } catch {
+      toast.error("Rollback failed");
+    } finally {
+      setRollingBack(false);
+    }
+  };
+
+  if (LIVE_MODE && !selected) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-faint">
+        {rawBuilds === null ? "Loading build history…" : "No builds yet for this project."}
+      </div>
+    );
+  }
+
   const nodes = buildNodes(selected);
 
   return (
@@ -46,24 +171,24 @@ export default function ProjectHistory() {
           <div className="flex items-center gap-2 mb-0.5">
             <span
               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                project.live ? "bg-ok" : "bg-faint"
+                projectLive ? "bg-ok" : "bg-faint"
               }`}
-              aria-label={project.live ? "Live" : "Idle"}
+              aria-label={projectLive ? "Live" : "Idle"}
             />
             <span className="font-mono text-sm font-medium text-ink">
-              {project.name}
+              {projectName}
             </span>
           </div>
           <p className="text-xs text-muted pl-3.5">
-            {BUILD_HISTORY.length} builds ·{" "}
-            {project.live ? "live" : "idle"}
+            {builds.length} builds ·{" "}
+            {projectLive ? "live" : "idle"}
           </p>
         </div>
 
         {/* Build list */}
         <nav aria-label="Builds" className="flex-1 p-2 overflow-y-auto">
-          {BUILD_HISTORY.map((build) => {
-            const isSelected = build.id === selectedId;
+          {builds.map((build) => {
+            const isSelected = build.id === selected.id;
             return (
               <button
                 key={build.id}
@@ -113,13 +238,26 @@ export default function ProjectHistory() {
             </h2>
             <StatusPill status={selected.status} />
           </div>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel border border-border text-xs text-ink hover:bg-panel-alt transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent shrink-0"
-          >
-            <GitBranch size={12} aria-hidden="true" />
-            View diff
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {LIVE_MODE && (
+              <button
+                type="button"
+                onClick={handleRollback}
+                disabled={rollingBack}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel border border-border text-xs text-ink hover:bg-panel-alt transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                <RefreshCw size={12} aria-hidden="true" />
+                {rollingBack ? "Rolling back…" : "Roll back to this version"}
+              </button>
+            )}
+            <button
+              type="button"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel border border-border text-xs text-ink hover:bg-panel-alt transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <GitBranch size={12} aria-hidden="true" />
+              View diff
+            </button>
+          </div>
         </div>
 
         {/* Summary chips */}

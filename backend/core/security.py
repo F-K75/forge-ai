@@ -171,6 +171,24 @@ def sanitize_prompt(value: str, max_length: int = 50000) -> str:
     return value
 
 
+def sanitize_string(value: str, max_length: int = 200) -> str:
+    """Sanitize free-text input for safe use in a MongoDB $regex query.
+
+    Strips control characters and escapes regex metacharacters so the
+    caller-supplied value can't be used for ReDoS or regex injection.
+    """
+    if not isinstance(value, str):
+        raise ValueError("Input must be a string")
+
+    value = value.replace("\x00", "")
+    value = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", value)
+
+    if len(value) > max_length:
+        value = value[:max_length]
+
+    return re.escape(value)
+
+
 def generate_csrf_token() -> str:
     """Generate a secure CSRF token."""
     return secrets.token_urlsafe(32)

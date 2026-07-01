@@ -26,6 +26,7 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
     <ol aria-label="Agent pipeline">
       {nodes.map((node, i) => {
         const agent = agentById(node.id);
+        if (!agent) return null;
         const isLast = i === nodes.length - 1;
         const Icon = agent.icon;
 

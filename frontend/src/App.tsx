@@ -8,7 +8,6 @@ import { api } from './lib/api'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 
 const AuthPage = lazy(() => import('./pages/AuthPage'))
-const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Admin = lazy(() => import('./pages/Admin'))
@@ -254,7 +253,7 @@ export default function App() {
             <Route path="/billing" element={<Suspense fallback={<RouteSkeleton />}><BillingPage /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={<RouteSkeleton />}><SettingsPage /></Suspense>} />
             {/* Step 3: in-shell surfaces */}
-            <Route path="/admin-console" element={<Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense>} />
+            <Route path="/admin-console" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense></AdminRoute>} />
             <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />
           </Route>
 

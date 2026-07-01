@@ -30,6 +30,7 @@ from services.ws_manager import manager, get_ws_user
 from api.auth import get_current_user
 from core.config import get_settings
 from core.security import sanitize_prompt
+from core.permissions import has_build_access
 
 router = APIRouter(prefix="/builds", tags=["builds"])
 orchestrator = Orchestrator()
@@ -40,6 +41,7 @@ settings = get_settings()
 # Credit costs
 CREDIT_COSTS = {
     "architect": settings.credits_architect,
+    "business_model": settings.credits_business_model,
     "designer": settings.credits_designer,
     "developer": settings.credits_developer,
     "integration": settings.credits_integration,
@@ -119,19 +121,54 @@ async def create_build(
 
     await db.builds.insert_one(build.model_dump())
 
+    conversation_history, existing_files = await _get_prior_build_context(
+        db, req.project_id
+    )
+
     background_tasks.add_task(
         _run_build_background,
         build,
         req.project_id,
         current_user.id,
         max_credits,
+        conversation_history,
+        existing_files,
     )
 
     return {"build_id": build.id, "status": build.status}
 
 
+async def _get_prior_build_context(db, project_id: str):
+    """Fetch the most recent successful build for this project so a follow-up
+    prompt can amend the existing app instead of regenerating it from scratch."""
+    prior_build = await db.builds.find_one(
+        {"project_id": project_id, "status": BuildStatus.SUCCESS},
+        {"_id": 0},
+        sort=[("created_at", -1)],
+    )
+    if not prior_build:
+        return None, None
+
+    conversation_history = None
+    for step in prior_build.get("agents", []):
+        if step.get("agent") == "architect" and step.get("output"):
+            conversation_history = [
+                {"role": "user", "content": f"Previous app idea: {prior_build.get('prompt', '')}"},
+                {"role": "assistant", "content": step["output"]},
+            ]
+            break
+
+    existing_files = prior_build.get("files") or None
+    return conversation_history, existing_files
+
+
 async def _run_build_background(
-    build: Build, project_id: str, user_id: str, reserved_credits: int
+    build: Build,
+    project_id: str,
+    user_id: str,
+    reserved_credits: int,
+    conversation_history: Optional[list] = None,
+    existing_files: Optional[Dict[str, str]] = None,
 ):
     db = await get_db()
 
@@ -140,7 +177,8 @@ async def _run_build_background(
         return
 
     async def emit(event):
-        await manager.emit(event)
+        # Persist before broadcasting so a REST fallback triggered by a client
+        # reacting to this event can never observe pre-update state.
         await db.builds.update_one(
             {"id": build.id},
             {
@@ -149,16 +187,24 @@ async def _run_build_background(
                     "agents": [a.model_dump() for a in build.agents],
                     "files": build.files,
                     "credits_used": build.credits_used,
+                    "business_model": build.business_model,
                 }
             },
         )
+        await manager.emit(event)
 
     # Build already reserved credits at creation time.
-    # On success: refund un-used credits.
-    # On failure: refund reserved credits.
+    # On success or failure: refund whatever portion of the reservation
+    # wasn't actually consumed by agents that ran before completion/failure.
     try:
         await asyncio.wait_for(
-            orchestrator.run_build(build, emit=emit, sandbox_runner=sandbox),
+            orchestrator.run_build(
+                build,
+                emit=emit,
+                sandbox_runner=sandbox,
+                conversation_history=conversation_history,
+                existing_files=existing_files,
+            ),
             timeout=settings.build_timeout,
         )
         await db.builds.update_one({"id": build.id}, {"$set": build.model_dump()})
@@ -186,16 +232,19 @@ async def _run_build_background(
             )
         )
     except Exception as e:
-        # refund everything reserved since build didn't complete
-        if reserved_credits:
+        # Refund only the unused portion of the reservation — agents that
+        # already ran before the failure already spent their share.
+        used = int(build.credits_used or 0)
+        refund = max(0, reserved_credits - used)
+        if refund:
             await db.users.update_one(
                 {"id": user_id},
-                {"$inc": {"credits": reserved_credits}},
+                {"$inc": {"credits": refund}},
             )
 
         await db.builds.update_one(
             {"id": build.id},
-            {"$set": {"status": BuildStatus.FAILED, "error": str(e)}},
+            {"$set": {"status": BuildStatus.FAILED, "error": str(e), "credits_used": used}},
         )
 
 
@@ -203,10 +252,8 @@ async def _run_build_background(
 @router.get("/{build_id}")
 async def get_build(build_id: str, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    build = await db.builds.find_one(
-        {"id": build_id, "user_id": current_user.id}, {"_id": 0}
-    )
-    if not build:
+    build = await db.builds.find_one({"id": build_id}, {"_id": 0})
+    if not build or not await has_build_access(db, current_user.id, build):
         raise HTTPException(status_code=404, detail="Build not found")
     return build
 
@@ -217,9 +264,9 @@ async def get_build_files(
 ):
     db = await get_db()
     build = await db.builds.find_one(
-        {"id": build_id, "user_id": current_user.id}, {"_id": 0, "files": 1}
+        {"id": build_id}, {"_id": 0, "user_id": 1, "project_id": 1, "files": 1}
     )
-    if not build:
+    if not build or not await has_build_access(db, current_user.id, build):
         raise HTTPException(status_code=404, detail="Build not found")
     return build.get("files", {})
 
@@ -228,12 +275,11 @@ async def get_build_files(
 async def rollback_build(
     build_id: str, version: int, current_user: User = Depends(get_current_user)
 ):
-    """Roll back to a previous build version."""
+    """Roll back to a previous build version by creating a new build record
+    that restores that version's files as the current state."""
     db = await get_db()
-    build = await db.builds.find_one(
-        {"id": build_id, "user_id": current_user.id}, {"_id": 0}
-    )
-    if not build:
+    build = await db.builds.find_one({"id": build_id}, {"_id": 0})
+    if not build or not await has_build_access(db, current_user.id, build):
         raise HTTPException(status_code=404, detail="Build not found")
 
     project_id = build.get("project_id")
@@ -241,18 +287,30 @@ async def rollback_build(
         raise HTTPException(status_code=400, detail="Build has no project_id")
 
     builds = (
-        await db.builds.find(
-            {"project_id": project_id, "user_id": current_user.id}, {"_id": 0}
-        )
+        await db.builds.find({"project_id": project_id}, {"_id": 0})
         .sort("created_at", 1)
         .to_list(None)
     )
 
-    if version >= len(builds):
+    if version < 0 or version >= len(builds):
         raise HTTPException(status_code=400, detail="Version not found")
 
     target = builds[version]
-    return {"files": target.get("files", {}), "version": version}
+    rollback_build_record = Build(
+        project_id=project_id,
+        user_id=current_user.id,
+        prompt=f"Rollback to build {target['id']} (version {version})",
+        status=BuildStatus.SUCCESS,
+        files=target.get("files", {}),
+        completed_at=datetime.utcnow(),
+    )
+    await db.builds.insert_one(rollback_build_record.model_dump())
+
+    return {
+        "build_id": rollback_build_record.id,
+        "files": rollback_build_record.files,
+        "version": version,
+    }
 
 
 @router.websocket("/ws/{build_id}")
@@ -269,10 +327,8 @@ async def websocket_endpoint(
         return
 
     db = await get_db()
-    build = await db.builds.find_one(
-        {"id": build_id, "user_id": user.id}, {"_id": 0}
-    )
-    if not build:
+    build = await db.builds.find_one({"id": build_id}, {"_id": 0})
+    if not build or not await has_build_access(db, user.id, build):
         await websocket.close(code=4003, reason="Foreign build")
         return
 

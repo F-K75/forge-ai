@@ -1,28 +1,55 @@
-import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
 import { useBuildStore } from "../store/buildStore";
 import { useBuildSocket } from "../hooks/useBuildSocket";
 import { runMockBuild } from "../lib/mockEmitter";
+import { buildsApi, projectsApi } from "../lib/api";
 import { PROJECTS } from "../lib/mockData";
+import { LIVE_MODE } from "../lib/env";
 import { TopBar } from "../components/build/TopBar";
 import { ChatPanel } from "../components/build/ChatPanel";
 import { EditorPanel } from "../components/build/EditorPanel";
 import { PreviewPanel } from "../components/build/PreviewPanel";
 import { StatusBar } from "../components/build/StatusBar";
 
+interface WorkspaceProject {
+  id: string;
+  name: string;
+}
+
 export default function WorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const project = PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0];
+  const location = useLocation();
+
+  const [project, setProject] = useState<WorkspaceProject | null>(
+    LIVE_MODE ? null : PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0]
+  );
+
+  useEffect(() => {
+    if (!LIVE_MODE || !projectId) return;
+    let cancelled = false;
+    projectsApi
+      .get(projectId)
+      .then((p) => {
+        if (!cancelled) setProject({ id: p.id, name: p.name });
+      })
+      .catch(() => {
+        if (!cancelled) setProject({ id: projectId, name: "Unknown project" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   const [buildId, setBuildId] = useState<string | null>(null);
   const startBuild = useBuildStore((s) => s.startBuild);
   const sendMessage = useBuildStore((s) => s.sendMessage);
   const handleEvent = useBuildStore((s) => s.handleEvent);
 
-  const { connectionStatus } = useBuildSocket(buildId);
+  const { connectionStatus } = useBuildSocket(LIVE_MODE ? buildId : null);
 
   useEffect(() => {
-    if (!buildId) return;
+    if (!buildId || LIVE_MODE) return;
     // Demo driver: dispatches real, typed events through the same
     // handleEvent path the live socket uses — a drop-in for the real thing.
     const cancel = runMockBuild(buildId, handleEvent);
@@ -32,13 +59,53 @@ export default function WorkspacePage() {
   const handleSubmit = useCallback(
     async (prompt: string) => {
       sendMessage({ from: "user", text: prompt });
+
+      if (LIVE_MODE) {
+        if (!project) return;
+        try {
+          const { build_id } = await buildsApi.create({ project_id: project.id, prompt });
+          startBuild(build_id, prompt);
+          setBuildId(build_id);
+        } catch (err: any) {
+          const message = err?.response?.data?.detail || "Failed to start build";
+          handleEvent({
+            type: "build_failed",
+            build_id: buildId ?? "unknown",
+            data: { error: message },
+          });
+        }
+        return;
+      }
+
       // Mock POST /builds — returns a fake buildId until a backend exists.
       const newBuildId = `build-${Date.now().toString(36)}`;
       startBuild(newBuildId, prompt);
       setBuildId(newBuildId);
     },
-    [sendMessage, startBuild]
+    [sendMessage, startBuild, handleEvent, buildId, project]
   );
+
+  // A prompt typed on the Projects page (hero input or a starter chip)
+  // arrives via router state — kick the build off immediately instead of
+  // making the presenter retype it here.
+  const autoSubmitted = useRef(false);
+  useEffect(() => {
+    const incomingPrompt = (location.state as { prompt?: string } | null)?.prompt;
+    if (incomingPrompt && !autoSubmitted.current) {
+      autoSubmitted.current = true;
+      handleSubmit(incomingPrompt);
+    }
+    // Only ever fires once per workspace mount, off the prompt handed in at nav time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!project) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-base">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-base">
