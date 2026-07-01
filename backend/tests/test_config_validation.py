@@ -3,16 +3,18 @@ from pydantic import ValidationError
 from core.config import Settings
 
 
-def test_jwt_secret_required():
+def test_jwt_secret_required(monkeypatch):
     """JWT_SECRET must be provided - no default fallback."""
+    monkeypatch.delenv("TESTING", raising=False)
     with pytest.raises(ValidationError) as exc_info:
         Settings(jwt_secret="")
     
     assert "jwt_secret is required" in str(exc_info.value)
 
 
-def test_jwt_secret_minimum_length():
+def test_jwt_secret_minimum_length(monkeypatch):
     """JWT_SECRET must be at least 32 characters."""
+    monkeypatch.delenv("TESTING", raising=False)
     with pytest.raises(ValidationError) as exc_info:
         Settings(jwt_secret="short")
     
