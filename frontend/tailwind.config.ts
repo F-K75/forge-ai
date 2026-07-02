@@ -26,30 +26,31 @@ export default {
         "agent-pm":                "#34D399",
 
         // Public landing page (marketing site) palette — namespaced with
-        // "land-" because it's a light theme that intentionally reuses names
-        // (ink, accent, border, muted...) already bound to dark-mode values
-        // above for the authenticated app. Do not rename these to bare
-        // "ink"/"accent"/etc: 15+ app files rely on the dark values.
-        "land-paper":            "#FBFBFA",
-        "land-surface":          "#FFFFFF",
-        "land-border":           "#E7E7E2",
-        "land-border-soft":      "#F1F1ED",
-        "land-ink":              "#1B1B1F",
-        "land-muted":            "#71717A",
-        "land-faint":            "#A8A8AD",
-        "land-accent":           "#4F46E5",
-        "land-accent-soft":      "#EEEDFB",
-        "land-live":             "#3F6212",
-        "land-architect":        "#5B6CB8",
-        "land-architect-tint":   "#EEF0F8",
-        "land-designer":         "#9A6BAE",
-        "land-designer-tint":    "#F4EEF6",
-        "land-developer":        "#3E8C9B",
-        "land-developer-tint":   "#EAF3F4",
-        "land-integration":      "#C08A3E",
-        "land-integration-tint": "#F7F0E6",
-        "land-pm":               "#5E8C57",
-        "land-pm-tint":          "#EDF3EB",
+        // "land-" so it can diverge from the authenticated app's dark tokens
+        // above. Minimalist dark theme (mirrors the Lovable reference design:
+        // near-black ground, monochrome type, a single blue accent). Do not
+        // rename these to bare "ink"/"accent"/etc: 15+ app files rely on the
+        // dark values already bound to those names.
+        "land-paper":            "#0A0A0B",
+        "land-surface":          "#111113",
+        "land-border":           "#232326",
+        "land-border-soft":      "#1A1A1D",
+        "land-ink":              "#F2F2F5",
+        "land-muted":            "#9B9BA3",
+        "land-faint":            "#6B6B72",
+        "land-accent":           "#3B82F6",
+        "land-accent-soft":      "rgba(59,130,246,0.14)",
+        "land-live":             "#3B82F6",
+        "land-architect":        "#818CF8",
+        "land-architect-tint":   "rgba(129,140,248,0.14)",
+        "land-designer":         "#C084FC",
+        "land-designer-tint":    "rgba(192,132,252,0.14)",
+        "land-developer":        "#22D3EE",
+        "land-developer-tint":   "rgba(34,211,238,0.14)",
+        "land-integration":      "#FBBF24",
+        "land-integration-tint": "rgba(251,191,36,0.14)",
+        "land-pm":               "#34D399",
+        "land-pm-tint":          "rgba(52,211,153,0.14)",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

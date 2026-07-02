@@ -54,6 +54,17 @@ const AGENT_TOKENS: Record<Agent["id"], AgentTokens> = {
   pm: { fill: "bg-land-pm", tint: "bg-land-pm-tint", text: "text-land-pm" },
 };
 
+// Short technical fragments for the terminal-transcript hero mock — kept
+// separate from Agent.line (used by the Pipeline section) since a terminal
+// reads better with fragments than full sentences.
+const AGENT_STATUS_LINES: Record<Agent["id"], string> = {
+  architect: "designing service graph",
+  designer: "generating design tokens",
+  developer: "scaffolding 32 files, 9 endpoints",
+  integration: "wiring Stripe + auth",
+  pm: "218 checks · quality gate",
+};
+
 const AGENT_CYCLE_MS = 1600;
 
 // ─── Reduced motion + agent auto-cycle ─────────────────────────────────────────
@@ -92,13 +103,13 @@ function useAgentCycle() {
 // ─── Page ───────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  const { activeIndex, setActiveIndex } = useAgentCycle();
+  const { activeIndex } = useAgentCycle();
 
   return (
     <div className="min-h-screen bg-land-paper text-land-ink antialiased">
       <Nav />
       <main>
-        <Hero activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
+        <Hero activeIndex={activeIndex} />
         <Pipeline activeIndex={activeIndex} />
         <Features />
         <Testimonial />
@@ -159,7 +170,7 @@ function Nav() {
           </Link>
           <Link
             to="/login"
-            className="px-3.5 py-2 rounded-lg text-sm font-medium bg-land-accent text-white hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
+            className="px-3.5 py-2 rounded-lg text-sm font-medium bg-land-ink text-land-paper hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
           >
             Start building
           </Link>
@@ -171,13 +182,7 @@ function Nav() {
 
 // ─── Hero ───────────────────────────────────────────────────────────────────────
 
-function Hero({
-  activeIndex,
-  setActiveIndex,
-}: {
-  activeIndex: number;
-  setActiveIndex: (i: number) => void;
-}) {
+function Hero({ activeIndex }: { activeIndex: number }) {
   return (
     <section id="top" className="px-4 md:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
       <div className="max-w-3xl mx-auto text-center">
@@ -189,7 +194,7 @@ function Hero({
         <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05] mb-5">
           Describe your app.
           <br />
-          <span className="text-land-accent">Watch a team build it.</span>
+          <span className="text-land-muted">Watch a team build it.</span>
         </h1>
 
         <p className="text-base md:text-lg text-land-muted max-w-xl mx-auto mb-8">
@@ -200,14 +205,14 @@ function Hero({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-land-accent text-white text-sm font-medium hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-land-ink text-land-paper text-sm font-medium hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
           >
             Start building free
             <ArrowRight size={14} aria-hidden="true" />
           </Link>
           <a
             href="#build-demo"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-land-border text-land-ink text-sm font-medium hover:bg-land-border-soft transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-land-muted text-sm font-medium hover:text-land-ink transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
           >
             <Play size={14} aria-hidden="true" />
             Watch a build
@@ -215,63 +220,38 @@ function Hero({
         </div>
       </div>
 
-      {/* Mock build window */}
+      {/* Terminal-style build transcript */}
       <div id="build-demo" className="max-w-2xl mx-auto">
-        <div className="rounded-2xl border border-land-border bg-land-surface shadow-[0_8px_30px_rgba(20,20,30,0.06)] overflow-hidden">
+        <div className="rounded-2xl border border-land-border bg-land-surface shadow-[0_8px_30px_rgba(0,0,0,0.45)] overflow-hidden">
           <div className="flex items-center gap-2 px-4 h-10 border-b border-land-border">
             <div className="flex items-center gap-1.5" aria-hidden="true">
               <span className="w-2 h-2 rounded-full bg-land-border" />
               <span className="w-2 h-2 rounded-full bg-land-border" />
               <span className="w-2 h-2 rounded-full bg-land-border" />
             </div>
-            <span className="flex-1 text-center font-mono text-[11px] text-land-faint">forge.dev/build</span>
+            <span className="font-mono text-[11px] text-land-faint">forge · build session</span>
           </div>
 
-          <div className="p-5">
-            <div className="inline-block max-w-[85%] rounded-xl rounded-tl-sm bg-land-accent-soft text-land-ink text-sm px-3.5 py-2.5 mb-5">
-              Build a habit tracker with streaks and reminders.
-            </div>
+          <div className="p-5 font-mono text-xs leading-relaxed" role="group" aria-label="Live build transcript">
+            <p className="text-land-ink mb-4 whitespace-pre-wrap break-words">
+              <span className="text-land-faint">$</span> forge build{" "}
+              <span className="text-land-muted">"Build a habit tracker with streaks and reminders."</span>
+            </p>
 
-            <div className="grid grid-cols-5 gap-2" role="group" aria-label="Pipeline agents">
+            <div className="space-y-2">
               {AGENTS.map((agent, i) => {
-                const tokens = AGENT_TOKENS[agent.id];
-                const Icon = agent.icon;
-                const isActive = i === activeIndex;
                 const isDone = i < activeIndex;
+                const isActive = i === activeIndex;
+                const status = isDone ? "ok" : isActive ? "running" : "queued";
+                const statusClass = isDone || isActive ? "text-land-accent" : "text-land-faint";
                 return (
-                  <button
-                    key={agent.id}
-                    type="button"
-                    onClick={() => setActiveIndex(i)}
-                    aria-pressed={isActive}
-                    aria-label={`${agent.label}${isActive ? " — active" : isDone ? " — done" : ""}`}
-                    className={[
-                      "flex flex-col items-center gap-1.5 rounded-lg py-2.5 px-1 transition-colors motion-reduce:transition-none",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent",
-                      isActive ? tokens.tint : "",
-                    ].join(" ")}
-                  >
-                    <span
-                      className={[
-                        "w-7 h-7 rounded-lg flex items-center justify-center",
-                        isActive ? tokens.fill : isDone ? tokens.tint : "bg-land-border-soft",
-                      ].join(" ")}
-                    >
-                      {isDone ? (
-                        <Check size={13} className={tokens.text} aria-hidden="true" />
-                      ) : (
-                        <Icon size={13} className={isActive ? "text-white" : "text-land-faint"} aria-hidden="true" />
-                      )}
+                  <div key={agent.id} className="flex items-baseline gap-3">
+                    <span className="w-20 shrink-0 font-medium text-land-ink">{agent.id.replace("_", " ")}</span>
+                    <span className="flex-1 min-w-0 truncate text-land-faint">
+                      {AGENT_STATUS_LINES[agent.id]}
                     </span>
-                    <span
-                      className={[
-                        "text-[10px] font-medium",
-                        isActive ? tokens.text : isDone ? "text-land-muted" : "text-land-faint",
-                      ].join(" ")}
-                    >
-                      {agent.label}
-                    </span>
-                  </button>
+                    <span className={["shrink-0", statusClass].join(" ")}>→ {status}</span>
+                  </div>
                 );
               })}
             </div>
@@ -515,7 +495,7 @@ function Pricing() {
 function PricingCard({ plan }: { plan: PricingPlan }) {
   if (plan.featured) {
     return (
-      <div className="rounded-2xl bg-land-accent text-white p-6 shadow-[0_12px_32px_rgba(79,70,229,0.25)] md:-translate-y-2">
+      <div className="rounded-2xl bg-land-accent text-white p-6 shadow-[0_12px_32px_rgba(59,130,246,0.25)] md:-translate-y-2">
         <span className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/15 mb-4">
           Most popular
         </span>
