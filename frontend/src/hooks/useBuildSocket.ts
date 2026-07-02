@@ -54,15 +54,16 @@ export function useBuildSocket(buildId: string | null) {
 
         let wsToken: string | null = null
         try {
-          const { data } = await api.get('/auth/ws-token')
+          const { data } = await api.post('/auth/ws-token')
           wsToken = data.token
         } catch {
           setConnectionStatus('error')
           return
         }
 
-        // Backend expects token via query param; fail closed if token missing.
-        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}?token=${encodeURIComponent(wsToken || '')}`)
+        // Auth is sent as the first message over the socket rather than a query
+        // param, so tokens don't leak into proxy/access logs.
+        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}`)
 
         wsRef.current = ws
 
@@ -74,6 +75,7 @@ export function useBuildSocket(buildId: string | null) {
         }, 30_000)
 
         ws.onopen = () => {
+          ws.send(JSON.stringify({ type: 'auth', token: wsToken }))
           reconnectAttemptsRef.current = 0
           setConnectionStatus('online')
         }

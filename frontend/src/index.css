@@ -6,15 +6,15 @@
 
 @layer components {
   .bb-focus-ring {
-    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black/0;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black/0;
   }
 
   .bb-panel {
-    @apply bg-forge-surface border border-forge-border rounded-2xl;
+    @apply bg-panel border border-border rounded-2xl;
   }
 
   .bb-card {
-    @apply bg-forge-surface/60 border border-forge-border rounded-xl;
+    @apply bg-panel/60 border border-border rounded-xl;
   }
 
   .bb-btn {
@@ -22,7 +22,7 @@
   }
 
   .bb-btn-primary {
-    @apply bg-violet-600 text-white hover:bg-violet-500 active:bg-violet-400 disabled:bg-violet-600/40 disabled:text-white/60 disabled:cursor-not-allowed;
+    @apply bg-accent text-white hover:opacity-90 active:opacity-80 disabled:bg-accent/40 disabled:text-white/60 disabled:cursor-not-allowed;
   }
 
   .bb-btn-primary:disabled {
@@ -31,11 +31,11 @@
 
 
   .bb-btn-ghost {
-    @apply bg-transparent text-forge-text-secondary hover:text-forge-text hover:bg-forge-border/50 active:bg-forge-border/70;
+    @apply bg-transparent text-muted hover:text-ink hover:bg-border/50 active:bg-border/70;
   }
 
   .bb-btn-subtle {
-    @apply bg-forge-border/30 text-forge-text-secondary hover:bg-forge-border/50 hover:text-forge-text active:bg-forge-border/70;
+    @apply bg-border/30 text-muted hover:bg-border/50 hover:text-ink active:bg-border/70;
   }
 
   .bb-btn-icon {
@@ -43,7 +43,7 @@
   }
 
   .bb-input {
-    @apply w-full rounded-xl border border-forge-border bg-forge-surface text-sm text-forge-text placeholder-forge-muted px-3 py-2 outline-none transition-colors;
+    @apply w-full rounded-xl border border-border bg-panel text-sm text-ink placeholder-muted px-3 py-2 outline-none transition-colors;
   }
 
   .bb-input:focus {
@@ -60,7 +60,7 @@
 
 
   .bb-input-disabled {
-    @apply bg-forge-surface/50 text-forge-text-secondary/80 cursor-not-allowed;
+    @apply bg-panel/50 text-muted/80 cursor-not-allowed;
   }
 
   .bb-badge {

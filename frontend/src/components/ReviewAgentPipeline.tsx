@@ -1,6 +1,6 @@
 import { Loader2, Check, X, Bot } from "lucide-react";
 
-// Visually consistent with components/AgentPipeline.tsx (same forge-* tokens,
+// Visually consistent with components/AgentPipeline.tsx (same base/panel/ink tokens,
 // ping-halo/spinner for active, check for done) but NOT a reuse of it: review
 // agent ids come from agents/*.json (config-driven, can grow) rather than the
 // fixed roster in lib/agents.ts, so there's no per-agent icon/hue lookup here

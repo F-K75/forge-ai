@@ -50,7 +50,7 @@ export function ClipboardCopyButton({ text, onSuccess, onError }: ClipboardCopyB
     <button
       type="button"
       onClick={handleCopy}
-      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-forge-bg border border-forge-border rounded-lg hover:bg-forge-surface transition focus:outline-none focus:ring-2 focus:ring-violet-500"
+      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-base border border-border rounded-lg hover:bg-panel transition focus:outline-none focus:ring-2 focus:ring-accent"
       aria-label="Copy to clipboard"
     >
       {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
