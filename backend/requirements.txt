@@ -18,6 +18,7 @@ celery==5.4.0
 stripe==8.9.0
 resend==2.6.0
 cryptography==49.0.0
+sentry-sdk==2.15.0
 pytest==8.2.0
 pytest-asyncio==0.23.7
 pytest-timeout==2.4.0

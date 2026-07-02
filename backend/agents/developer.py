@@ -1,6 +1,5 @@
 from agents.base import BaseAgent
 from core.models import AgentType
-from typing import AsyncGenerator
 import json
 
 
@@ -51,6 +50,10 @@ class DeveloperAgent(BaseAgent):
         design: dict,
         stream_callback=None,
         existing_files: dict = None,
+        user_id: str = None,
+        build_id: str = None,
+        project_id: str = None,
+        org_id: str = None,
     ) -> dict:
         existing_files_block = ""
         if existing_files:
@@ -75,11 +78,11 @@ class DeveloperAgent(BaseAgent):
 
         if stream_callback:
             full = ""
-            async for chunk in self.stream(messages, max_tokens=16000):
+            async for chunk in self.stream(messages, max_tokens=16000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id):
                 full += chunk
                 await stream_callback(chunk)
         else:
-            full = await self.run(messages, max_tokens=16000)
+            full = await self.run(messages, max_tokens=16000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
 
         clean = full.strip()
         # Strip markdown fences if present
@@ -97,6 +100,10 @@ class DeveloperAgent(BaseAgent):
         existing_files: dict,
         error_report: str,
         blueprint: dict,
+        user_id: str = None,
+        build_id: str = None,
+        project_id: str = None,
+        org_id: str = None,
     ) -> dict:
         """Fix errors found during sandbox execution."""
         messages = [
@@ -111,6 +118,6 @@ class DeveloperAgent(BaseAgent):
                 )
             }
         ]
-        full = await self.run(messages, max_tokens=8192)
+        full = await self.run(messages, max_tokens=8192, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
         clean = full.strip().strip("```json").strip("```").strip()
         return json.loads(clean)

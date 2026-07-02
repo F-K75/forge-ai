@@ -12,12 +12,14 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 class CreateProjectRequest(BaseModel):
     name: str = Field(max_length=200)
     description: str = Field(max_length=5000)
+    template: Optional[str] = Field(None, max_length=100)
 
 
 class UpdateProjectRequest(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = Field(None, max_length=5000)
     github_repo: Optional[str] = Field(None, max_length=500)
+    template: Optional[str] = Field(None, max_length=100)
 
 
 @router.post("/")
@@ -27,6 +29,7 @@ async def create_project(req: CreateProjectRequest, current_user: User = Depends
         user_id=current_user.id,
         name=req.name,
         description=req.description,
+        template=req.template,
     )
     await db.projects.insert_one(project.model_dump())
     return project

@@ -49,15 +49,14 @@ Rules:
 - Output ONLY the JSON. No prose, no markdown, no explanation.
 """
 
-    async def blueprint(self, prompt: str, conversation_history: list = None) -> dict:
+    async def blueprint(self, prompt: str, conversation_history: list = None, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
         messages = []
         if conversation_history:
             messages.extend(conversation_history)
         messages.append({"role": "user", "content": f"App idea: {prompt}"})
 
-        response = await self.run(messages, max_tokens=4096)
+        response = await self.run(messages, max_tokens=4096, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
 
-        # Strip any markdown fences
         clean = response.strip()
         if clean.startswith("```"):
             clean = clean.split("```")[1]

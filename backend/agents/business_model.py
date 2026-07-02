@@ -109,7 +109,7 @@ Rules:
 - Output ONLY valid JSON.
 """
 
-    async def improve(self, app_prompt: str, blueprint=None) -> dict:
+    async def improve(self, app_prompt: str, blueprint=None, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
         messages = [
             {
                 "role": "user",
@@ -121,7 +121,7 @@ Rules:
             }
         ]
 
-        full = await self.run(messages, max_tokens=3500)
+        full = await self.run(messages, max_tokens=3500, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
         clean = full.strip()
 
         if clean.startswith("```"):

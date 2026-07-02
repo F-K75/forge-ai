@@ -32,7 +32,7 @@ Rules:
 - Output ONLY valid JSON.
 """
 
-    async def validate(self, blueprint: dict, generated_files: dict) -> dict:
+    async def validate(self, blueprint: dict, generated_files: dict, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
         file_list = list(generated_files.keys())
         sample_files = {
             k: v[:500] + "..." if len(v) > 500 else v
@@ -51,6 +51,6 @@ Rules:
             }
         ]
 
-        full = await self.run(messages, max_tokens=2000)
+        full = await self.run(messages, max_tokens=2000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
         clean = full.strip().strip("```json").strip("```").strip()
         return json.loads(clean)

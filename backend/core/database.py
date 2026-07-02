@@ -48,6 +48,11 @@ async def _ensure_indexes(db):
         await db.builds.create_index([("id", 1)])
         await db.builds.create_index([("user_id", 1), ("created_at", -1)])
 
+        # Build files indexes
+        await db.build_files.create_index([("build_id", 1), ("path", 1)], unique=True)
+        await db.build_files.create_index([("build_id", 1)])
+        await db.build_files.create_index("created_at", expireAfterSeconds=7776000)  # TTL: 90 days
+
         # Team member indexes
         await db.team_members.create_index([("org_id", 1), ("user_id", 1)], unique=True)
 
@@ -114,6 +119,12 @@ async def _ensure_indexes(db):
         # API keys index
         await db.api_keys.create_index([("user_id", 1)])
         await db.api_keys.create_index([("key_hash", 1)], unique=True)
+
+        # Token blacklist index (JTI-based)
+        await db.token_blacklist.create_index([("jti", 1)], unique=True)
+        await db.token_blacklist.create_index(
+            "created_at", expireAfterSeconds=86400  # TTL: 24 hours
+        )
 
         # Webhooks index
         await db.webhooks.create_index([("user_id", 1)])

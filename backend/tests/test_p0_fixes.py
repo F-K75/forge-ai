@@ -28,7 +28,7 @@ def test_ws_ownership_checks_present():
 
     pb = Path(__file__).resolve().parents[1] / "api" / "builds.py"
     sb = pb.read_text(encoding="utf-8")
-    assert "get_ws_user(token, build_id=build_id" in sb
+    assert "authenticate_websocket(websocket, build_id=build_id)" in sb
 
 
 def test_ws_manager_accept_is_separate():

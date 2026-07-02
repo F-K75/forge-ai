@@ -1,6 +1,5 @@
-import asyncio
 import json
-from typing import Callable, AsyncGenerator
+from typing import Callable
 from datetime import datetime
 
 from agents.architect import ArchitectAgent
@@ -35,7 +34,7 @@ class Orchestrator:
         sandbox_runner=None,
         conversation_history: list = None,
         existing_files: dict = None,
-    ) -> Build:
+    ) -> tuple[Build, dict]:
 
         """
         Full pipeline: architect → business model → designer → developer → integration → PM → (debug loop via debugger)
@@ -44,10 +43,13 @@ class Orchestrator:
         conversation_history / existing_files: prior build's architect exchange
         and generated files, when this build amends an existing project instead
         of starting from scratch.
+
+        Returns (build, files): build output no longer carries a `files` field
+        (persisted separately in the build_files collection), so the generated
+        files are returned alongside the build for the caller to persist.
         """
+        files: dict = dict(existing_files) if existing_files else {}
         try:
-            if existing_files:
-                build.files.update(existing_files)
 
             # --- 0. BUILD START ---
             await emit(WSEvent(
@@ -61,6 +63,9 @@ class Orchestrator:
             blueprint = await self.architect.blueprint(
                 build.prompt,
                 conversation_history=conversation_history,
+                user_id=build.user_id,
+                build_id=build.id,
+                project_id=build.project_id,
             )
             await self._complete_agent(build, AgentType.ARCHITECT, emit, output=json.dumps(blueprint))
 
@@ -78,7 +83,7 @@ class Orchestrator:
 
             # --- 2. BUSINESS MODEL ---
             await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit)
-            business_model = await self.business_model.improve(build.prompt, blueprint=blueprint)
+            business_model = await self.business_model.improve(build.prompt, blueprint=blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
             build.business_model = business_model
             await self._complete_agent(
                 build, AgentType.BUSINESS_IMPROVER, emit, output=json.dumps(business_model)
@@ -92,7 +97,7 @@ class Orchestrator:
 
             # --- 3. DESIGNER ---
             await self._start_agent(build, AgentType.DESIGNER, emit)
-            design = await self.designer.design(blueprint)
+            design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
             await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design))
 
             await emit(WSEvent(
@@ -120,26 +125,35 @@ class Orchestrator:
                 ))
 
             files_result = await self.developer.generate_files(
-                blueprint, design, stream_callback=stream_token, existing_files=existing_files
+                blueprint, design, stream_callback=stream_token, existing_files=existing_files,
+                user_id=build.user_id, build_id=build.id, project_id=build.project_id,
             )
-            build.files.update(files_result.get("files", {}))
+            files.update(files_result.get("files", {}))
 
             await self._complete_agent(
                 build, AgentType.DEVELOPER, emit,
-                output=f"Generated {len(build.files)} files",
-                files_changed=list(build.files.keys())
+                output=f"Generated {len(files)} files",
+                files_changed=list(files_result.get("files", {}).keys())
             )
 
             await emit(WSEvent(
                 type=WSEventType.AGENT_UPDATE,
                 build_id=build.id,
-                data={"agent": "developer", "message": "Developer finished generating files"},
+                data={"agent": "developer", "message": "Developer finished generating files"}
+            ))
+
+            new_files = files_result.get("files", {})
+            delta = {"changed": new_files, "deleted": []}
+            await emit(WSEvent(
+                type=WSEventType.FILE_UPDATE,
+                build_id=build.id,
+                data={"delta": delta}
             ))
 
             await emit(WSEvent(
                 type=WSEventType.FILE_UPDATE,
                 build_id=build.id,
-                data={"files": build.files}
+                data={"files": files}
             ))
 
 
@@ -154,8 +168,8 @@ class Orchestrator:
             integrations = blueprint.get("integrations", [])
             if integrations:
                 await self._start_agent(build, AgentType.INTEGRATION, emit)
-                int_result = await self.integration.integrate(integrations, build.files)
-                build.files.update(int_result.get("files", {}))
+                int_result = await self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
+                files.update(int_result.get("files", {}))
                 await self._complete_agent(
                     build, AgentType.INTEGRATION, emit,
                 output=int_result.get("instructions", ""),
@@ -172,7 +186,7 @@ class Orchestrator:
             # --- 6. SANDBOX (best-effort static check, folded into the first PM pass) ---
             sandbox_errors = []
             if sandbox_runner:
-                raw = await sandbox_runner.run(build.files)
+                raw = await sandbox_runner.run(files)
                 sandbox_errors = [line for line in raw.split("\n") if line.strip()] if raw else []
 
             # --- 7. PM VALIDATION + DEBUG LOOP ---
@@ -184,7 +198,7 @@ class Orchestrator:
             validation = {}
             while True:
                 await self._start_agent(build, AgentType.PM, emit)
-                validation = await self.pm.validate(blueprint, build.files)
+                validation = await self.pm.validate(blueprint, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
                 await self._complete_agent(
                     build, AgentType.PM, emit,
                     output=json.dumps(validation)
@@ -214,7 +228,7 @@ class Orchestrator:
                         build_id=build.id,
                         data={"error": "; ".join(errors)[:2000]}
                     ))
-                    return build
+                    return build, files
 
                 build.status = BuildStatus.DEBUGGING
                 build.debug_iterations += 1
@@ -228,9 +242,10 @@ class Orchestrator:
 
                 await self._start_agent(build, AgentType.DEBUGGER, emit)
                 patched = await self.developer.patch_files(
-                    build.files, "\n".join(errors), blueprint
+                    files, "\n".join(errors), blueprint,
+                    user_id=build.user_id, build_id=build.id, project_id=build.project_id,
                 )
-                build.files.update(patched.get("files", {}))
+                files.update(patched.get("files", {}))
                 await self._complete_agent(
                     build, AgentType.DEBUGGER, emit,
                     output=f"Patched {len(patched.get('files', {}))} files",
@@ -240,7 +255,7 @@ class Orchestrator:
                 await emit(WSEvent(
                     type=WSEventType.FILE_UPDATE,
                     build_id=build.id,
-                    data={"files": patched.get("files", {}), "debug_iteration": iteration}
+                    data={"delta": {"changed": patched.get("files", {}), "deleted": []}, "debug_iteration": iteration}
                 ))
 
             # --- 8. DONE ---
@@ -251,18 +266,17 @@ class Orchestrator:
                 type=WSEventType.BUILD_COMPLETE,
                 build_id=build.id,
                 data={
-                    "files": build.files,
+                    "files": files,
                     "validation": validation,
                     "credits_used": build.credits_used,
                     "business_model": build.business_model,
                 }
             ))
 
-            # No live preview sandbox yet; preview_url is a placeholder for when one exists.
             await emit(WSEvent(
                 type=WSEventType.FILE_UPDATE,
                 build_id=build.id,
-                data={"preview_url": None, "files": build.files}
+                data={"delta": {"changed": files, "deleted": []}}
             ))
 
 
@@ -281,7 +295,7 @@ class Orchestrator:
             raise
 
 
-        return build
+        return build, files
 
     async def _start_agent(self, build: Build, agent_type: AgentType, emit: Callable):
         step = AgentStep(agent=agent_type, status=BuildStatus.RUNNING, started_at=datetime.utcnow())

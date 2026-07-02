@@ -17,7 +17,7 @@ from api.gdpr import router as gdpr_router
 from api.deployments import router as deployments_router
 from core.database import close_connections
 from core.config import get_settings
-from core.security import rate_limit_middleware, request_size_limit_middleware
+from core.security import rate_limit_middleware, request_size_limit_middleware, csrf_protection_middleware
 
 settings = get_settings()
 
@@ -35,6 +35,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+if settings.sentry_dsn:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.app_env,
+        traces_sample_rate=0.1,
+    )
+
 # Add trusted host middleware to prevent host header attacks
 app.add_middleware(
     TrustedHostMiddleware,
@@ -51,6 +59,7 @@ app.add_middleware(
 )
 
 app.middleware("http")(request_size_limit_middleware)
+app.middleware("http")(csrf_protection_middleware)
 app.middleware("http")(rate_limit_middleware)
 
 app.include_router(auth_router)

@@ -80,7 +80,7 @@ Rules:
 - Output ONLY valid JSON.
 """
 
-    async def integrate(self, integrations: list, existing_files: dict) -> dict:
+    async def integrate(self, integrations: list, existing_files: dict, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
         if not integrations:
             return {"files": {}, "env_vars_needed": [], "instructions": ""}
 
@@ -101,7 +101,7 @@ Rules:
             }
         ]
 
-        full = await self.run(messages, max_tokens=6000)
+        full = await self.run(messages, max_tokens=6000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
         clean = full.strip().strip("```json").strip("```").strip()
         return json.loads(clean)
 

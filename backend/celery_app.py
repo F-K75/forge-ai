@@ -5,8 +5,8 @@ settings = get_settings()
 
 celery_app = Celery(
     "forge",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    broker=settings.celery_broker_url or settings.redis_url,
+    backend=settings.celery_result_backend or settings.redis_url,
 )
 
 celery_app.conf.task_routes = {

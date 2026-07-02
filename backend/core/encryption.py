@@ -2,15 +2,19 @@ from cryptography.fernet import Fernet
 from core.config import get_settings
 import base64
 import hashlib
+import logging
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-# In production, store this key in a vault (AWS Secrets Manager, HashiCorp Vault)
-# For now, derive from JWT_SECRET (not ideal but better than plaintext)
-_key = base64.urlsafe_b64encode(
-    hashlib.sha256(settings.jwt_secret.encode()).digest()
-)
+# Use dedicated FIELD_ENCRYPTION_KEY (64 hex chars = 32 bytes) instead of
+# deriving from JWT_SECRET. This ensures that a JWT secret leak does not
+# compromise encrypted fields (github_tokens, etc.).
+_key_bytes = bytes.fromhex(settings.field_encryption_key)
+_key = base64.urlsafe_b64encode(_key_bytes)
 cipher = Fernet(_key)
+logger.info("Encryption initialized with dedicated FIELD_ENCRYPTION_KEY")
 
 
 def encrypt_field(value: str) -> str:

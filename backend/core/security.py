@@ -1,5 +1,4 @@
 from fastapi import Request, HTTPException
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from typing import Optional
 from datetime import datetime, timedelta
 import ipaddress
@@ -9,7 +8,7 @@ import secrets
 import hashlib
 
 from core.database import get_db, get_redis
-from core.models import SecurityEvent, User
+from core.models import SecurityEvent
 from core.config import get_settings
 
 settings = get_settings()
@@ -24,6 +23,12 @@ DEFAULT_RATE_LIMITS = {
 USER_RATE_LIMITS = {
     "build": 100,  # max builds per hour
     "api": 1000,   # max API calls per hour
+}
+
+# Per-email auth rate limits (for unauthenticated endpoints)
+EMAIL_RATE_LIMITS = {
+    "forgot_password": {"limit": 3, "window": 3600},    # 3/hour
+    "register":        {"limit": 5, "window": 3600},    # 5/hour
 }
 
 # CSRF token storage (in production, use Redis)
@@ -86,14 +91,32 @@ async def request_size_limit_middleware(request: Request, call_next):
     return response
 
 
-async def rate_limit_middleware(request: Request, call_next):
-    redis = None
-    try:
-        redis = await get_redis()
-    except Exception:
-        # Redis unavailable — fall through to bypass rate limiting
-        return await call_next(request)
+# In-memory fallback rate limiter for when Redis is unavailable
+_in_memory_rate_limits: dict[str, list[float]] = {}
+_IN_MEMORY_MAX_KEYS = 10000  # Prevent unbounded memory growth
 
+
+async def _check_in_memory_rate_limit(key: str, limit: int, window: int) -> tuple[bool, int]:
+    """Check rate limit using in-memory store as fallback when Redis is down.
+    Returns (is_allowed, remaining)."""
+    now = time.time()
+    # Clean old entries periodically
+    if len(_in_memory_rate_limits) > _IN_MEMORY_MAX_KEYS:
+        _in_memory_rate_limits.clear()
+    
+    timestamps = _in_memory_rate_limits.get(key, [])
+    # Remove timestamps outside the window
+    timestamps = [t for t in timestamps if now - t < window]
+    
+    if len(timestamps) >= limit:
+        return False, 0
+    
+    timestamps.append(now)
+    _in_memory_rate_limits[key] = timestamps
+    return True, limit - len(timestamps)
+
+
+async def rate_limit_middleware(request: Request, call_next):
     path = request.url.path
     client_ip = await get_client_ip(request)
     
@@ -105,44 +128,68 @@ async def rate_limit_middleware(request: Request, call_next):
     key = f"rl:{zone}:{client_ip}"
     limit = config["limit"]
     window = config["window"]
-
+    
+    redis_available = False
     try:
-        current = await redis.incr(key)
-        if current == 1:
-            await redis.expire(key, window)
-
-        remaining = max(0, limit - current)
-
-        if current > limit:
-            # Log rate limit event
-            try:
-                db = await get_db()
-                await db.security_events.insert_one(
-                    SecurityEvent(
-                        event_type="rate_limit",
-                        severity="medium",
-                        ip_address=client_ip,
-                        metadata={"path": path, "key": key, "count": current},
-                    ).model_dump()
-                )
-            except Exception:
-                pass
-
-            raise HTTPException(
-                status_code=429,
-                detail="Rate limit exceeded. Please try again later.",
-            )
-
-        response = await call_next(request)
-        response.headers["X-RateLimit-Limit"] = str(limit)
-        response.headers["X-RateLimit-Remaining"] = str(remaining)
-        return response
-
-    except HTTPException:
-        raise
+        redis = await get_redis()
+        # Test connectivity with a lightweight ping
+        await redis.ping()
+        redis_available = True
     except Exception:
-        # Redis error — fall through to avoid breaking the app
-        return await call_next(request)
+        redis_available = False
+    
+    if redis_available:
+        try:
+            current = await redis.incr(key)
+            if current == 1:
+                await redis.expire(key, window)
+
+            remaining = max(0, limit - current)
+
+            if current > limit:
+                # Log rate limit event
+                try:
+                    db = await get_db()
+                    await db.security_events.insert_one(
+                        SecurityEvent(
+                            event_type="rate_limit",
+                            severity="medium",
+                            ip_address=client_ip,
+                            metadata={"path": path, "key": key, "count": current},
+                        ).model_dump()
+                    )
+                except Exception:
+                    pass
+
+                raise HTTPException(
+                    status_code=429,
+                    detail="Rate limit exceeded. Please try again later.",
+                )
+
+            response = await call_next(request)
+            response.headers["X-RateLimit-Limit"] = str(limit)
+            response.headers["X-RateLimit-Remaining"] = str(remaining)
+            return response
+
+        except HTTPException:
+            raise
+        except Exception:
+            # Redis error — fall through to in-memory fallback
+            pass
+    
+    # Redis unavailable or error — use in-memory fallback (fail-closed)
+    allowed, remaining = await _check_in_memory_rate_limit(key, limit, window)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded. Please try again later.",
+        )
+    
+    response = await call_next(request)
+    response.headers["X-RateLimit-Limit"] = str(limit)
+    response.headers["X-RateLimit-Remaining"] = str(remaining)
+    response.headers["X-RateLimit-Fallback"] = "in-memory"
+    return response
 
 
 def validate_password_strength(password: str) -> tuple[bool, str]:
@@ -160,14 +207,60 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     return True, ""
 
 
+# Endpoints excluded from CSRF protection
+_CSRF_EXCLUDED_PATHS = [
+    "/auth/login",
+    "/auth/register",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+    "/auth/csrf-token",  # Token generation endpoint
+    "/health",
+    "/billing/webhook",  # Stripe webhook has its own signature verification
+]
+
+
 async def csrf_protection_middleware(request: Request, call_next):
-    """Validate CSRF token on state-changing requests."""
-    if request.method in ("POST", "PUT", "DELETE", "PATCH"):
-        csrf_header = request.headers.get("X-CSRF-Token")
-        if not csrf_header:
-            # For endpoints using cookies, CSRF is required
-            if not request.url.path.startswith("/auth/login") and not request.url.path.startswith("/auth/register"):
-                raise HTTPException(status_code=403, detail="CSRF token required")
+    """Validate CSRF token on state-changing requests.
+    
+    Uses the JWT 'jti' claim as the session identifier for CSRF token storage.
+    The CSRF token is fetched by the frontend via GET /auth/csrf-token and
+    included in the X-CSRF-Token header on all state-changing requests.
+    """
+    # Skip CSRF for safe methods and excluded paths
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return await call_next(request)
+    
+    path = request.url.path
+    for excluded in _CSRF_EXCLUDED_PATHS:
+        if path.startswith(excluded):
+            return await call_next(request)
+    
+    # Extract session token from the access_token cookie
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=403, detail="CSRF: No session token")
+    
+    # Decode the JWT to get the session identifier (jti)
+    from auth import decode_token
+    payload = decode_token(access_token)
+    if not payload or not payload.get("jti"):
+        raise HTTPException(status_code=403, detail="CSRF: Invalid session")
+    
+    session_token = payload["jti"]
+    csrf_header = request.headers.get("X-CSRF-Token")
+    
+    if not csrf_header:
+        raise HTTPException(
+            status_code=403,
+            detail="CSRF token required. Include X-CSRF-Token header.",
+        )
+    
+    valid = await validate_csrf_token(session_token, csrf_header)
+    if not valid:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid or expired CSRF token. Refresh the page.",
+        )
     
     response = await call_next(request)
     return response
@@ -271,3 +364,28 @@ async def check_anomalies(user_id: str, action: str, db) -> Optional[SecurityEve
         return event
 
     return None
+
+
+async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int]:
+    """Check per-email rate limit for unauthenticated auth endpoints.
+    Returns (is_allowed, remaining)."""
+    config = EMAIL_RATE_LIMITS.get(action)
+    if not config:
+        return True, 0
+
+    key = f"rl:auth:email:{hashlib.sha256(email.encode()).hexdigest()[:16]}"
+    limit = config["limit"]
+    window = config["window"]
+
+    try:
+        redis = await get_redis()
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, window)
+        remaining = max(0, limit - current)
+        if current > limit:
+            return False, 0
+        return True, remaining
+    except Exception:
+        # Fail open if Redis is down
+        return True, 0

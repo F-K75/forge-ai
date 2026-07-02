@@ -1,32 +1,25 @@
-import asyncio
-import time
 from fastapi import (
     APIRouter,
     HTTPException,
     WebSocket,
     WebSocketDisconnect,
     Depends,
-    BackgroundTasks,
-    Request,
-    Query,
 )
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 
 from core.models import (
     Build,
     BuildStatus,
-    Project,
     User,
     PlanTier,
-    WSEvent,
-    WSEventType,
+    BuildFile,
 )
 from core.orchestrator import Orchestrator, MAX_DEBUG_ITERATIONS
 from core.database import get_db
 from sandbox.runner import SandboxRunner
-from services.ws_manager import manager, get_ws_user
+from services.ws_manager import manager, authenticate_websocket
+from tasks.build_tasks import run_build
 from api.auth import get_current_user
 from core.config import get_settings
 from core.security import sanitize_prompt
@@ -58,7 +51,6 @@ class CreateBuildRequest(BaseModel):
 @router.post("/")
 async def create_build(
     req: CreateBuildRequest,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
     db = await get_db()
@@ -78,6 +70,22 @@ async def create_build(
                 raise HTTPException(status_code=404, detail="Project not found")
         else:
             raise HTTPException(status_code=404, detail="Project not found")
+
+    # Trial enforcement: check if trial has expired
+    if current_user.trial_ends_at and datetime.utcnow() > current_user.trial_ends_at:
+        if current_user.plan == PlanTier.FREE:
+            raise HTTPException(
+                status_code=402,
+                detail="Your trial has expired. Please upgrade to continue building.",
+            )
+
+    # Email verification: block builds for unverified users
+    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0, "email_verified": 1})
+    if user_doc and not user_doc.get("email_verified"):
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email before building. Check your inbox for the verification link.",
+        )
 
     # Credit reservation (atomic) to prevent concurrent deduction race.
     estimated_credits = sum(CREDIT_COSTS.values()) * (
@@ -125,9 +133,8 @@ async def create_build(
         db, req.project_id
     )
 
-    background_tasks.add_task(
-        _run_build_background,
-        build,
+    run_build.delay(
+        build.id,
         req.project_id,
         current_user.id,
         max_credits,
@@ -158,95 +165,9 @@ async def _get_prior_build_context(db, project_id: str):
             ]
             break
 
-    existing_files = prior_build.get("files") or None
+    build_files = await db.build_files.find({"build_id": prior_build["id"]}, {"_id": 0, "path": 1, "content": 1}).to_list(None)
+    existing_files = {f["path"]: f["content"] for f in build_files} if build_files else None
     return conversation_history, existing_files
-
-
-async def _run_build_background(
-    build: Build,
-    project_id: str,
-    user_id: str,
-    reserved_credits: int,
-    conversation_history: Optional[list] = None,
-    existing_files: Optional[Dict[str, str]] = None,
-):
-    db = await get_db()
-
-    user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user:
-        return
-
-    async def emit(event):
-        # Persist before broadcasting so a REST fallback triggered by a client
-        # reacting to this event can never observe pre-update state.
-        await db.builds.update_one(
-            {"id": build.id},
-            {
-                "$set": {
-                    "status": build.status,
-                    "agents": [a.model_dump() for a in build.agents],
-                    "files": build.files,
-                    "credits_used": build.credits_used,
-                    "business_model": build.business_model,
-                }
-            },
-        )
-        await manager.emit(event)
-
-    # Build already reserved credits at creation time.
-    # On success or failure: refund whatever portion of the reservation
-    # wasn't actually consumed by agents that ran before completion/failure.
-    try:
-        await asyncio.wait_for(
-            orchestrator.run_build(
-                build,
-                emit=emit,
-                sandbox_runner=sandbox,
-                conversation_history=conversation_history,
-                existing_files=existing_files,
-            ),
-            timeout=settings.build_timeout,
-        )
-        await db.builds.update_one({"id": build.id}, {"$set": build.model_dump()})
-
-        used = int(build.credits_used or 0)
-        refund = max(0, reserved_credits - used)
-        if refund:
-            # Atomic refund with guard: only refund if user still has deducted credits
-            result = await db.users.find_one_and_update(
-                {"id": user_id, "credits": {"$gte": reserved_credits - used}},
-                {"$inc": {"credits": refund}},
-                return_document=True,
-            )
-            if not result:
-                # Credits were already modified (shouldn't happen, but fail safe)
-                pass
-
-        user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "credits": 1})
-        remaining = int((user_doc or {}).get("credits", 0))
-        await manager.emit(
-            WSEvent(
-                type=WSEventType.CREDITS_UPDATE,
-                build_id=build.id,
-                data={"credits_used": used, "remaining": remaining},
-            )
-        )
-    except Exception as e:
-        # Refund only the unused portion of the reservation — agents that
-        # already ran before the failure already spent their share.
-        used = int(build.credits_used or 0)
-        refund = max(0, reserved_credits - used)
-        if refund:
-            await db.users.update_one(
-                {"id": user_id},
-                {"$inc": {"credits": refund}},
-            )
-
-        await db.builds.update_one(
-            {"id": build.id},
-            {"$set": {"status": BuildStatus.FAILED, "error": str(e), "credits_used": used}},
-        )
-
 
 
 @router.get("/{build_id}")
@@ -264,11 +185,12 @@ async def get_build_files(
 ):
     db = await get_db()
     build = await db.builds.find_one(
-        {"id": build_id}, {"_id": 0, "user_id": 1, "project_id": 1, "files": 1}
+        {"id": build_id}, {"_id": 0, "user_id": 1, "project_id": 1}
     )
     if not build or not await has_build_access(db, current_user.id, build):
         raise HTTPException(status_code=404, detail="Build not found")
-    return build.get("files", {})
+    files = await db.build_files.find({"build_id": build_id}, {"_id": 0, "path": 1, "content": 1}).to_list(None)
+    return {f["path"]: f["content"] for f in files}
 
 
 @router.post("/{build_id}/rollback/{version}")
@@ -296,19 +218,27 @@ async def rollback_build(
         raise HTTPException(status_code=400, detail="Version not found")
 
     target = builds[version]
+    target_files = await db.build_files.find({"build_id": target["id"]}, {"_id": 0, "path": 1, "content": 1}).to_list(None)
+    files_dict = {f["path"]: f["content"] for f in target_files} if target_files else {}
+
     rollback_build_record = Build(
         project_id=project_id,
         user_id=current_user.id,
         prompt=f"Rollback to build {target['id']} (version {version})",
         status=BuildStatus.SUCCESS,
-        files=target.get("files", {}),
         completed_at=datetime.utcnow(),
     )
     await db.builds.insert_one(rollback_build_record.model_dump())
 
+    if files_dict:
+        await db.build_files.insert_many([
+            BuildFile(build_id=rollback_build_record.id, path=path, content=content).model_dump()
+            for path, content in files_dict.items()
+        ])
+
     return {
         "build_id": rollback_build_record.id,
-        "files": rollback_build_record.files,
+        "files": files_dict,
         "version": version,
     }
 
@@ -317,24 +247,14 @@ async def rollback_build(
 async def websocket_endpoint(
     websocket: WebSocket,
     build_id: str,
-    token: Optional[str] = Query(None),
 ):
-    # Do not accept/register until auth + ownership checks have passed.
-    try:
-        user = await get_ws_user(token, build_id=build_id)
-    except HTTPException as e:
-        await websocket.close(code=4001, reason=str(e.detail))
+    # Auth happens via a first-message {"type": "auth", "token": ...} handshake
+    # rather than a query-string token, which leaks into proxy/access logs.
+    user = await authenticate_websocket(websocket, build_id=build_id)
+    if not user:
         return
 
-    db = await get_db()
-    build = await db.builds.find_one({"id": build_id}, {"_id": 0})
-    if not build or not await has_build_access(db, user.id, build):
-        await websocket.close(code=4003, reason="Foreign build")
-        return
-
-    # Ownership verified: register and accept.
     await manager.connect(websocket, build_id)
-    await manager.accept(websocket)
 
     try:
         while True:

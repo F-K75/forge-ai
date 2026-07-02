@@ -69,6 +69,7 @@ class User(BaseModel):
     banned: bool = False
     trial_ends_at: Optional[datetime] = None
     downgraded_to: Optional[PlanTier] = None
+    email_verified: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -102,7 +103,9 @@ class Invitation(BaseModel):
     email: str
     role: Role = Role.MEMBER
     invited_by: str
-    token: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    # NOTE: token is generated at creation time and hashed before storage.
+    # The plaintext token is returned in the API response but NEVER stored.
+    # Only hashed_token is persisted in the database.
     hashed_token: Optional[str] = None
     expires_at: datetime = Field(
         default_factory=lambda: datetime.utcnow() + timedelta(days=7)
@@ -152,11 +155,18 @@ class Build(BaseModel):
     agents: List[AgentStep] = []
     credits_used: int = 0
     context_tokens: int = 0
-    files: Dict[str, str] = {}  # path -> content
     debug_iterations: int = 0
     business_model: Optional[Dict[str, Any]] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
+
+
+class BuildFile(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    build_id: str
+    path: str
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 # --- Message ---

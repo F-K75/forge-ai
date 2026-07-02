@@ -12,6 +12,8 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379
       - SANDBOX_HOST=sandbox
       - JWT_SECRET=${JWT_SECRET:?}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?}@redis:6379/0
     volumes:
       - ./backend:/app
     depends_on:
@@ -25,6 +27,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  celery-worker:
+    build: ./backend
+    command: celery -A celery_app worker --loglevel=info --queues=build,deployment
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379
+      - JWT_SECRET=${JWT_SECRET:?}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?}@redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     deploy:
       resources:
         limits:

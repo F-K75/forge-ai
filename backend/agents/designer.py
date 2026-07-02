@@ -45,13 +45,13 @@ Rules:
 - Output ONLY the JSON. No prose, no markdown.
 """
 
-    async def design(self, blueprint: dict) -> dict:
+    async def design(self, blueprint: dict, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
         messages = [
             {
                 "role": "user",
                 "content": f"Create design system for this app:\n{json.dumps(blueprint, indent=2)}"
             }
         ]
-        response = await self.run(messages, max_tokens=3000)
+        response = await self.run(messages, max_tokens=3000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
         clean = response.strip().strip("```json").strip("```").strip()
         return json.loads(clean)

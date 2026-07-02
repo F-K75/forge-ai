@@ -1,14 +1,18 @@
-from fastapi import APIRouter, HTTPException, Depends, Cookie, Response
+from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime, timedelta
 import uuid
 import hashlib
+import logging
+
+import resend
 
 from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog
 from core.database import get_db
 from core.config import get_settings
-from core.security import validate_password_strength
+from core.security import validate_password_strength, check_email_rate_limit
+from core.encryption import encrypt_field, decrypt_field
 from auth import (
     hash_password,
     verify_password,
@@ -16,7 +20,6 @@ from auth import (
     create_refresh_token,
     decode_token,
 )
-from core.encryption import encrypt_field, decrypt_field
 
 settings = get_settings()
 
@@ -75,7 +78,16 @@ def _get_cookie_kwargs(max_age: int) -> dict:
 
 
 def _hash_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
+    """Hash a token using PBKDF2-SHA256 (slow hash) to resist brute-force
+    if the database is compromised. Uses 600,000 iterations (OWASP 2023
+    recommendation for SHA256)."""
+    salt = hashlib.sha256(token.encode()).digest()[:16]  # Derive salt from token
+    return hashlib.pbkdf2_hmac(
+        "sha256",
+        token.encode(),
+        salt,
+        600000,  # OWASP recommended iterations for SHA256
+    ).hex()
 
 
 async def get_current_user(
@@ -102,10 +114,10 @@ async def get_current_user(
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")
 
-        # Check if token is blacklisted (logout)
-        token_jti = payload.get("jti") or payload.get("exp")  # Use exp as fallback identifier
+        # Check if token is blacklisted by JTI
+        token_jti = payload.get("jti")
         if token_jti:
-            blacklisted = await db.token_blacklist.find_one({"token": access_token})
+            blacklisted = await db.token_blacklist.find_one({"jti": token_jti})
             if blacklisted:
                 raise HTTPException(status_code=401, detail="Token revoked")
 
@@ -130,13 +142,16 @@ async def get_current_user(
         )
         return user
 
-    # Check if access token is blacklisted
-    blacklisted = await db.token_blacklist.find_one({"token": access_token})
-    if blacklisted:
-        raise HTTPException(status_code=401, detail="Token revoked")
-
     user_id = payload.get("sub")
     db = await get_db()
+    
+    # Check if access token is blacklisted by JTI
+    token_jti = payload.get("jti")
+    if token_jti:
+        blacklisted = await db.token_blacklist.find_one({"jti": token_jti})
+        if blacklisted:
+            raise HTTPException(status_code=401, detail="Token revoked")
+
     user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
@@ -152,14 +167,17 @@ async def get_current_user(
 @router.post("/register", response_model=TokenResponse)
 async def register(req: RegisterRequest, response: Response):
     db = await get_db()
-    existing = await db.users.find_one({"email": req.email}, {"_id": 0})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Enforce password strength
     valid, msg = validate_password_strength(req.password)
     if not valid:
         raise HTTPException(status_code=400, detail=msg)
+
+    allowed, remaining = await check_email_rate_limit(req.email, "register", db)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many registration attempts. Please try again later.",
+        )
 
     user = User(
         email=req.email,
@@ -174,7 +192,39 @@ async def register(req: RegisterRequest, response: Response):
     if "github_token" in user_dict and user_dict["github_token"]:
         user_dict["github_token"] = encrypt_field(user_dict["github_token"])
     
-    await db.users.insert_one(user_dict)
+    # Use insert_one with a try/except to catch duplicate key errors
+    # from the unique index on email, preventing race conditions where
+    # two concurrent registrations with the same email both pass the
+    # find_one check above.
+    try:
+        await db.users.insert_one(user_dict)
+    except Exception as e:
+        if hasattr(e, 'code') and e.code == 11000:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        if 'duplicate key' in str(e).lower() or 'E11000' in str(e):
+            raise HTTPException(status_code=400, detail="Email already registered")
+        raise
+
+    verification_token = uuid.uuid4().hex
+    hashed_token = _hash_token(verification_token)
+    expires = datetime.utcnow() + timedelta(hours=24)
+    await db.users.update_one(
+        {"id": user.id},
+        {"$set": {"verification_token": hashed_token, "verification_expires": expires}},
+    )
+
+    if settings.resend_api_key:
+        try:
+            resend.api_key = settings.resend_api_key
+            verify_link = f"{settings.app_url}/verify-email?token={verification_token}"
+            resend.Emails.send({
+                "from": settings.from_email,
+                "to": req.email,
+                "subject": "Verify your Forge account",
+                "html": f"<p>Click <a href=\"{verify_link}\">here</a> to verify your email. This link expires in 24 hours.</p>",
+            })
+        except Exception:
+            logging.exception("Failed to send verification email")
 
     access_token = create_access_token({"sub": user.id, "email": user.email})
     refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
@@ -275,10 +325,58 @@ async def refresh(req: RefreshRequest, response: Response):
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    response: Response,
+    access_token: Optional[str] = Cookie(None),
+    user: User = Depends(get_current_user),
+):
+    db = await get_db()
+    
+    # Blacklist the access token by JTI for immediate revocation
+    if access_token:
+        payload = decode_token(access_token)
+        if payload and payload.get("jti"):
+            jti = payload["jti"]
+            # Use upsert to avoid duplicate key errors
+            await db.token_blacklist.update_one(
+                {"jti": jti},
+                {"$set": {"jti": jti, "created_at": datetime.utcnow()}},
+                upsert=True,
+            )
+    
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"ok": True}
+
+
+@router.get("/csrf-token")
+async def get_csrf_token(
+    request: Request,
+    user: User = Depends(get_current_user),
+):
+    """Generate a CSRF token for the current session.
+    
+    The token is stored in Redis with a 60-minute TTL and tied to the
+    session's JWT 'jti' claim. The frontend must include this token in
+    the X-CSRF-Token header on all state-changing requests.
+    """
+    from core.security import generate_csrf_token, store_csrf_token
+    
+    # Decode the access token to get the jti (session identifier)
+    from auth import decode_token
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    payload = decode_token(access_token)
+    if not payload or not payload.get("jti"):
+        raise HTTPException(status_code=401, detail="Invalid session")
+    
+    session_token = payload["jti"]
+    csrf_token = generate_csrf_token()
+    await store_csrf_token(session_token, csrf_token)
+    
+    return {"csrf_token": csrf_token}
 
 
 @router.post("/ws-token")
@@ -355,6 +453,14 @@ async def change_password(
 @router.post("/forgot-password")
 async def forgot_password(req: ForgotPasswordRequest):
     db = await get_db()
+
+    allowed, remaining = await check_email_rate_limit(req.email, "forgot_password", db)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many password reset attempts. Please try again later.",
+        )
+
     user_doc = await db.users.find_one(
         {"email": req.email},
         {"_id": 0},
@@ -372,6 +478,21 @@ async def forgot_password(req: ForgotPasswordRequest):
                 }
             },
         )
+
+        if settings.resend_api_key:
+            try:
+                import resend
+                resend.api_key = settings.resend_api_key
+                reset_link = f"{settings.app_url}/reset-password?token={reset_token}"
+                resend.Emails.send({
+                    "from": settings.from_email,
+                    "to": req.email,
+                    "subject": "Reset your Forge password",
+                    "html": f"<p>Click <a href=\"{reset_link}\">here</a> to reset your password. This link expires in 1 hour.</p>",
+                })
+            except Exception:
+                logging.exception("Failed to send password reset email")
+
     return {"ok": True}
 
 
@@ -404,6 +525,28 @@ async def reset_password(req: ResetPasswordRequest):
                 "password_reset_expires": None,
             }
         },
+    )
+    return {"ok": True}
+
+
+@router.get("/verify-email")
+async def verify_email(token: str):
+    db = await get_db()
+    hashed = _hash_token(token)
+    user_doc = await db.users.find_one(
+        {"verification_token": hashed},
+        {"_id": 0},
+    )
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+
+    expires = user_doc.get("verification_expires")
+    if not expires or datetime.utcnow() > expires:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+
+    await db.users.update_one(
+        {"verification_token": hashed},
+        {"$set": {"email_verified": True, "verification_token": None, "verification_expires": None}},
     )
     return {"ok": True}
 
@@ -546,15 +689,21 @@ async def invite_member(
     if member_count >= org.get("seats", 1):
         raise HTTPException(status_code=400, detail="Organization seat limit reached")
 
+    # Generate a raw token, hash it for storage, and return the raw token
+    # to the inviter so they can share it with the invitee.
+    raw_token = uuid.uuid4().hex
+    hashed = _hash_token(raw_token)
+    
     invite = Invitation(
         org_id=org_id,
         email=req.email,
         role=req.role,
         invited_by=user.id,
+        hashed_token=hashed,
     )
     invite_dict = invite.model_dump()
-    raw_token = invite_dict.pop("token")
-    invite_dict["hashed_token"] = _hash_token(raw_token)
+    # Remove the empty hashed_token from model_dump if it was set to None
+    # (it's set above, but model_dump includes all fields)
     await db.invitations.insert_one(invite_dict)
 
     return {"ok": True, "invitation_id": invite.id, "token": raw_token}

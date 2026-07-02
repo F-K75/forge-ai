@@ -89,12 +89,20 @@ class Settings(BaseSettings):
     mongo_password: str = ""
     redis_password: str = ""
 
+    # Celery
+    celery_broker_url: str = ""
+    celery_result_backend: str = ""
+
     # Security
     trusted_proxies: str = "127.0.0.1,::1"
     max_request_size: int = 10 * 1024 * 1024
     anthropic_timeout: int = 120
     build_timeout: int = 600  # 10 minutes max per build
     field_encryption_key: str = ""
+
+    # Observability
+    sentry_dsn: str = ""
+    app_env: str = "development"
 
     @field_validator("field_encryption_key")
     @classmethod
