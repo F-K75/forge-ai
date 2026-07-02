@@ -12,4 +12,4 @@ git secrets --add
 ghp_1234567890abcdefghijklmnopqrstuvwxyz
 
 # api_key assigned from a local generator call, not a literal secret value.
-api_key = _generate_key\(\)
+api_key = _generate_key
