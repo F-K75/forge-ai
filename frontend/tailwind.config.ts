@@ -25,36 +25,27 @@ export default {
         "agent-integration":       "#F59E0B",
         "agent-pm":                "#34D399",
 
-        // Public landing page (marketing site) palette — namespaced with
-        // "land-" so it can diverge from the authenticated app's dark tokens
-        // above. Minimalist dark theme (mirrors the Lovable reference design:
-        // near-black ground, monochrome type, a single blue accent). Do not
-        // rename these to bare "ink"/"accent"/etc: 15+ app files rely on the
-        // dark values already bound to those names.
-        "land-paper":            "#0A0A0B",
-        "land-surface":          "#111113",
-        "land-border":           "#232326",
-        "land-border-soft":      "#1A1A1D",
-        "land-ink":              "#F2F2F5",
-        "land-muted":            "#9B9BA3",
-        "land-faint":            "#6B6B72",
-        "land-accent":           "#3B82F6",
-        "land-accent-soft":      "rgba(59,130,246,0.14)",
-        "land-live":             "#3B82F6",
-        "land-architect":        "#818CF8",
-        "land-architect-tint":   "rgba(129,140,248,0.14)",
-        "land-designer":         "#C084FC",
-        "land-designer-tint":    "rgba(192,132,252,0.14)",
-        "land-developer":        "#22D3EE",
-        "land-developer-tint":   "rgba(34,211,238,0.14)",
-        "land-integration":      "#FBBF24",
-        "land-integration-tint": "rgba(251,191,36,0.14)",
-        "land-pm":               "#34D399",
-        "land-pm-tint":          "rgba(52,211,153,0.14)",
+        // Public/pre-auth surface palette (landing + sign-in/up) — namespaced
+        // with "land-" so it can diverge from the authenticated app's dark
+        // tokens above. Values are ported directly from the user's Lovable
+        // design (src/index.css CSS variables), a minimalist mono theme with
+        // a single restrained blue accent. The <alpha-value> placeholder lets
+        // Tailwind opacity modifiers (e.g. text-land-muted/60) work correctly.
+        // Do not rename these to bare "ink"/"accent"/etc: 15+ app files rely
+        // on the dark values already bound to those names.
+        "land-paper":       "hsl(0 0% 4% / <alpha-value>)",     // --background
+        "land-surface":     "hsl(0 0% 6% / <alpha-value>)",     // --card
+        "land-muted-bg":    "hsl(0 0% 9% / <alpha-value>)",     // --muted
+        "land-border":      "hsl(0 0% 12% / <alpha-value>)",    // --border
+        "land-ink":         "hsl(0 0% 96% / <alpha-value>)",    // --foreground
+        "land-muted":       "hsl(0 0% 55% / <alpha-value>)",    // --muted-foreground
+        "land-accent":      "hsl(217 90% 62% / <alpha-value>)", // --accent
+        "land-destructive": "hsl(0 70% 55% / <alpha-value>)",   // --destructive
       },
       fontFamily: {
+        display: ['"Space Grotesk"', "Inter", "sans-serif"],
         sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["ui-monospace", "SFMono-Regular", "monospace"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
     },
   },

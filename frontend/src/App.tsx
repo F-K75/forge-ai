@@ -6,6 +6,7 @@ import { Mail } from 'lucide-react'
 import { useAuthStore } from './store/authStore'
 import { api } from './lib/api'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
+import { LIVE_MODE } from './lib/env'
 
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const Signup = lazy(() => import('./pages/Signup'))
@@ -73,19 +74,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, fetchMe } = useAuthStore()
-  const [checking, setChecking] = useState(true)
+  // Demo mode has no real session — fetchMe() always reports "authenticated"
+  // so the rest of the app can be clicked through without a backend. Applying
+  // that here would make /signup and /forgot-password permanently
+  // unreachable in demo mode, so this check only applies in live mode.
+  const [checking, setChecking] = useState(LIVE_MODE)
 
   useEffect(() => {
+    if (!LIVE_MODE) return
     fetchMe().catch(() => {
       useAuthStore.setState({ isAuthenticated: false, user: null })
     }).finally(() => setChecking(false))
   }, [fetchMe])
 
-  if (checking || isLoading) {
+  if (checking || (LIVE_MODE && isLoading)) {
     return <LoadingSpinner />
   }
 
-  if (isAuthenticated) {
+  if (LIVE_MODE && isAuthenticated) {
     return <Navigate to="/" replace />
   }
 

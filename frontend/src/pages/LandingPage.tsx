@@ -1,342 +1,83 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  Hammer,
+  Sparkles,
   ArrowRight,
   Play,
   Check,
-  Star,
   Github,
-  Server,
   RefreshCw,
   BarChart3,
-  Workflow,
+  Workflow as WorkflowIcon,
   KeyRound,
-  Compass,
-  Palette,
-  Code2,
-  Plug,
-  ShieldCheck,
-  type LucideIcon,
+  Server,
 } from "lucide-react";
+import { AGENTS, type Agent } from "../lib/agents";
 
-// ─── Agent data (single source of truth for this page) ────────────────────────
+// ─── Primitives (ported from the Lovable design) ───────────────────────────
 
-interface Agent {
-  id: "architect" | "designer" | "developer" | "integration" | "pm";
-  label: string;
-  icon: LucideIcon;
-  line: string;
+function Eyebrow({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-land-muted mb-6">
+      <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" />
+      {children}
+    </div>
+  );
 }
 
-const AGENTS: Agent[] = [
-  { id: "architect", label: "Architect", icon: Compass, line: "Turns your prompt into a typed blueprint." },
-  { id: "designer", label: "Designer", icon: Palette, line: "Generates a real design system, not gray boxes." },
-  { id: "developer", label: "Developer", icon: Code2, line: "Writes the full stack, streaming every file." },
-  { id: "integration", label: "Integration", icon: Plug, line: "Wires up Stripe, Slack, auth, and more." },
-  { id: "pm", label: "PM", icon: ShieldCheck, line: "Validates the build and scores quality." },
-];
-
-// Per-agent Tailwind classes as whole literal strings — the JIT scanner
-// reads source text directly, so a template literal like `bg-land-${id}`
-// would never be picked up at build time.
-interface AgentTokens {
-  fill: string;
-  tint: string;
-  text: string;
+function SectionHead({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle?: string }) {
+  return (
+    <div className="max-w-2xl mb-16">
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.05] text-land-ink">
+        {title}
+      </h2>
+      {subtitle && <p className="mt-5 text-land-muted text-base md:text-lg leading-relaxed">{subtitle}</p>}
+    </div>
+  );
 }
 
-const AGENT_TOKENS: Record<Agent["id"], AgentTokens> = {
-  architect: { fill: "bg-land-architect", tint: "bg-land-architect-tint", text: "text-land-architect" },
-  designer: { fill: "bg-land-designer", tint: "bg-land-designer-tint", text: "text-land-designer" },
-  developer: { fill: "bg-land-developer", tint: "bg-land-developer-tint", text: "text-land-developer" },
-  integration: { fill: "bg-land-integration", tint: "bg-land-integration-tint", text: "text-land-integration" },
-  pm: { fill: "bg-land-pm", tint: "bg-land-pm-tint", text: "text-land-pm" },
+function Section({ id, children, className = "" }: { id?: string; children: ReactNode; className?: string }) {
+  return (
+    <section id={id} className={`py-32 border-t border-land-border ${className}`}>
+      <div className="max-w-6xl mx-auto px-6">{children}</div>
+    </section>
+  );
+}
+
+// ─── Agent descriptions for the "specialists" section — kept separate from
+// the terminal's short fragments since a grid card reads better with a full
+// sentence.
+const AGENT_DESCRIPTIONS: Record<Agent["id"], string> = {
+  architect: "Designs system topology, data models, and service boundaries.",
+  business_improver: "Sanity-checks the plan against real business constraints.",
+  designer: "Generates a real design system and UI, not gray boxes.",
+  developer: "Writes the full stack, streaming every file as it goes.",
+  integration: "Wires up Stripe, GitHub, and the other services your app needs.",
+  pm: "Validates the build against the plan and scores quality.",
 };
 
-// Short technical fragments for the terminal-transcript hero mock — kept
-// separate from Agent.line (used by the Pipeline section) since a terminal
-// reads better with fragments than full sentences.
 const AGENT_STATUS_LINES: Record<Agent["id"], string> = {
   architect: "designing service graph",
+  business_improver: "checking unit economics",
   designer: "generating design tokens",
   developer: "scaffolding 32 files, 9 endpoints",
   integration: "wiring Stripe + auth",
   pm: "218 checks · quality gate",
 };
 
-const AGENT_CYCLE_MS = 1600;
-
-// ─── Reduced motion + agent auto-cycle ─────────────────────────────────────────
-
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handler = () => setReduced(mq.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return reduced;
-}
-
-function useAgentCycle() {
-  const reducedMotion = usePrefersReducedMotion();
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setActiveIndex(0);
-      return;
-    }
-    const id = window.setInterval(() => {
-      setActiveIndex((i) => (i + 1) % AGENTS.length);
-    }, AGENT_CYCLE_MS);
-    return () => window.clearInterval(id);
-  }, [reducedMotion]);
-
-  return { activeIndex, setActiveIndex };
-}
-
-// ─── Page ───────────────────────────────────────────────────────────────────────
-
-export default function LandingPage() {
-  const { activeIndex } = useAgentCycle();
-
-  return (
-    <div className="min-h-screen bg-land-paper text-land-ink antialiased">
-      <Nav />
-      <main>
-        <Hero activeIndex={activeIndex} />
-        <Pipeline activeIndex={activeIndex} />
-        <Features />
-        <Testimonial />
-        <Pricing />
-        <Cta />
-      </main>
-      <Footer />
-    </div>
-  );
-}
-
-// ─── Nav ────────────────────────────────────────────────────────────────────────
-
-function Nav() {
-  return (
-    <nav
-      aria-label="Primary"
-      className="sticky top-0 z-50 backdrop-blur bg-land-paper/80 border-b border-land-border"
-    >
-      <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-        <a
-          href="#top"
-          className="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-        >
-          <span className="w-8 h-8 rounded-lg bg-land-accent flex items-center justify-center shrink-0">
-            <Hammer size={15} className="text-white" aria-hidden="true" />
-          </span>
-          <span className="font-semibold text-land-ink">Forge</span>
-        </a>
-
-        <div className="hidden md:flex items-center gap-8 text-sm text-land-muted">
-          <a
-            href="#pipeline"
-            className="hover:text-land-ink transition motion-reduce:transition-none rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-          >
-            How it works
-          </a>
-          <a
-            href="#pricing"
-            className="hover:text-land-ink transition motion-reduce:transition-none rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-          >
-            Pricing
-          </a>
-          <a
-            href="#"
-            className="hover:text-land-ink transition motion-reduce:transition-none rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-          >
-            Docs
-          </a>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            to="/login"
-            className="px-3 py-2 rounded-lg text-sm text-land-ink hover:bg-land-border-soft transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/login"
-            className="px-3.5 py-2 rounded-lg text-sm font-medium bg-land-ink text-land-paper hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-          >
-            Start building
-          </Link>
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-// ─── Hero ───────────────────────────────────────────────────────────────────────
-
-function Hero({ activeIndex }: { activeIndex: number }) {
-  return (
-    <section id="top" className="px-4 md:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
-      <div className="max-w-3xl mx-auto text-center">
-        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-land-accent-soft text-land-accent text-xs font-medium mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-land-live" aria-hidden="true" />
-          Five agents. One prompt. A full app.
-        </span>
-
-        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05] mb-5">
-          Describe your app.
-          <br />
-          <span className="text-land-muted">Watch a team build it.</span>
-        </h1>
-
-        <p className="text-base md:text-lg text-land-muted max-w-xl mx-auto mb-8">
-          Forge sends your prompt to five specialist agents that plan, design, build, wire up,
-          and validate a working app — while you watch it happen.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-land-ink text-land-paper text-sm font-medium hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-          >
-            Start building free
-            <ArrowRight size={14} aria-hidden="true" />
-          </Link>
-          <a
-            href="#build-demo"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-land-muted text-sm font-medium hover:text-land-ink transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-          >
-            <Play size={14} aria-hidden="true" />
-            Watch a build
-          </a>
-        </div>
-      </div>
-
-      {/* Terminal-style build transcript */}
-      <div id="build-demo" className="max-w-2xl mx-auto">
-        <div className="rounded-2xl border border-land-border bg-land-surface shadow-[0_8px_30px_rgba(0,0,0,0.45)] overflow-hidden">
-          <div className="flex items-center gap-2 px-4 h-10 border-b border-land-border">
-            <div className="flex items-center gap-1.5" aria-hidden="true">
-              <span className="w-2 h-2 rounded-full bg-land-border" />
-              <span className="w-2 h-2 rounded-full bg-land-border" />
-              <span className="w-2 h-2 rounded-full bg-land-border" />
-            </div>
-            <span className="font-mono text-[11px] text-land-faint">forge · build session</span>
-          </div>
-
-          <div className="p-5 font-mono text-xs leading-relaxed" role="group" aria-label="Live build transcript">
-            <p className="text-land-ink mb-4 whitespace-pre-wrap break-words">
-              <span className="text-land-faint">$</span> forge build{" "}
-              <span className="text-land-muted">"Build a habit tracker with streaks and reminders."</span>
-            </p>
-
-            <div className="space-y-2">
-              {AGENTS.map((agent, i) => {
-                const isDone = i < activeIndex;
-                const isActive = i === activeIndex;
-                const status = isDone ? "ok" : isActive ? "running" : "queued";
-                const statusClass = isDone || isActive ? "text-land-accent" : "text-land-faint";
-                return (
-                  <div key={agent.id} className="flex items-baseline gap-3">
-                    <span className="w-20 shrink-0 font-medium text-land-ink">{agent.id.replace("_", " ")}</span>
-                    <span className="flex-1 min-w-0 truncate text-land-faint">
-                      {AGENT_STATUS_LINES[agent.id]}
-                    </span>
-                    <span className={["shrink-0", statusClass].join(" ")}>→ {status}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-xs text-land-faint mt-5">
-          <Github size={12} aria-hidden="true" />
-          Syncs to GitHub
-          <span aria-hidden="true">·</span>
-          <Server size={12} aria-hidden="true" />
-          Containerized deploy
-          <span aria-hidden="true">·</span>
-          No setup
-        </p>
-      </div>
-    </section>
-  );
-}
-
-// ─── Pipeline ───────────────────────────────────────────────────────────────────
-
-function Pipeline({ activeIndex }: { activeIndex: number }) {
-  return (
-    <section id="pipeline" className="px-4 md:px-6 py-20 md:py-24">
-      <div className="max-w-3xl mx-auto">
-        <p className="text-xs font-semibold tracking-wider text-land-accent uppercase mb-3">The pipeline</p>
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-10">
-          Five specialists, not one generalist
-        </h2>
-
-        <ol className="divide-y divide-land-border-soft">
-          {AGENTS.map((agent, i) => {
-            const tokens = AGENT_TOKENS[agent.id];
-            const Icon = agent.icon;
-            const isActive = i === activeIndex;
-            return (
-              <li
-                key={agent.id}
-                className={[
-                  "flex items-center gap-4 rounded-xl px-4 py-4 transition-colors motion-reduce:transition-none",
-                  isActive ? tokens.tint : "",
-                ].join(" ")}
-              >
-                <span className="font-mono text-xs tabular-nums text-land-faint w-6 shrink-0">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span
-                  className={["w-9 h-9 rounded-lg flex items-center justify-center shrink-0", tokens.tint].join(" ")}
-                >
-                  <Icon size={16} className={tokens.text} aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-medium text-land-ink">{agent.label}</p>
-                    {isActive && (
-                      <span
-                        className={[
-                          "text-[10px] font-medium px-2 py-0.5 rounded-full",
-                          tokens.tint,
-                          tokens.text,
-                        ].join(" ")}
-                      >
-                        running
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-land-muted truncate">{agent.line}</p>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-// ─── Features ───────────────────────────────────────────────────────────────────
+const WORKFLOW_STEPS = [
+  { n: "01", t: "Describe", d: "Prompt Forge with what you want to build." },
+  { n: "02", t: "Plan", d: "Architect drafts a typed blueprint and service graph." },
+  { n: "03", t: "Build", d: "Designer and Developer ship the UI and backend in parallel." },
+  { n: "04", t: "Validate", d: "PM scores the build; a debug loop retries failures automatically." },
+  { n: "05", t: "Ship", d: "Every build syncs to GitHub and deploys as a container." },
+];
 
 interface Feature {
   title: string;
   description: string;
-  icon: LucideIcon;
-  tone: Agent["id"];
+  icon: typeof RefreshCw;
 }
 
 const FEATURES: Feature[] = [
@@ -344,102 +85,33 @@ const FEATURES: Feature[] = [
     title: "Self-correcting debug loop",
     description: "Reruns the responsible agent automatically, up to three times, until the build passes validation.",
     icon: RefreshCw,
-    tone: "developer",
   },
   {
     title: "QA score on every build",
     description: "Every build ships with a quality score, so you know what you're deploying.",
     icon: BarChart3,
-    tone: "pm",
   },
   {
     title: "Real stack, Docker deploy",
     description: "Production-grade code on a real stack, containerized and ready to deploy.",
     icon: Server,
-    tone: "architect",
   },
   {
     title: "Playbook integrations",
     description: "Stripe, Slack, and other services get wired in automatically when your app needs them.",
-    icon: Workflow,
-    tone: "integration",
+    icon: WorkflowIcon,
   },
   {
     title: "GitHub sync",
     description: "Every build pushes to a connected repo, so your code lives where your team already works.",
     icon: Github,
-    tone: "designer",
   },
   {
     title: "Bring your own key",
     description: "Use your own model key on the Pro plan for full control over usage and cost.",
     icon: KeyRound,
-    tone: "architect",
   },
 ];
-
-function Features() {
-  return (
-    <section className="bg-land-surface border-y border-land-border px-4 md:px-6 py-20 md:py-24">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center mb-12">
-          Built to be trusted with real work.
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {FEATURES.map((f) => {
-            const tokens = AGENT_TOKENS[f.tone];
-            const Icon = f.icon;
-            return (
-              <div key={f.title} className="rounded-xl border border-land-border-soft p-5">
-                <span
-                  className={["w-9 h-9 rounded-lg flex items-center justify-center mb-4", tokens.tint].join(" ")}
-                >
-                  <Icon size={16} className={tokens.text} aria-hidden="true" />
-                </span>
-                <p className="text-sm font-medium text-land-ink mb-1.5">{f.title}</p>
-                <p className="text-sm text-land-muted leading-relaxed">{f.description}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Testimonial ────────────────────────────────────────────────────────────────
-
-function Testimonial() {
-  return (
-    <section className="px-4 md:px-6 py-20 md:py-24">
-      <div className="max-w-2xl mx-auto text-center">
-        <div className="flex items-center justify-center gap-1 mb-6" aria-label="5 out of 5 stars">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} size={16} className="fill-land-integration text-land-integration" aria-hidden="true" />
-          ))}
-        </div>
-
-        <p className="text-xl md:text-2xl font-medium tracking-tight text-land-ink mb-8">
-          "Forge took a Tuesday-afternoon idea and had a working app, tests included, by the time I'd finished my
-          coffee."
-        </p>
-
-        <div className="flex items-center justify-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-land-accent flex items-center justify-center text-white text-xs font-semibold">
-            R
-          </span>
-          <div className="text-left">
-            <p className="text-sm font-medium text-land-ink">Renee Okafor</p>
-            <p className="text-xs text-land-muted">Founder, Loop Habits</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Pricing ────────────────────────────────────────────────────────────────────
 
 interface PricingPlan {
   name: string;
@@ -459,6 +131,13 @@ const PRICING_PLANS: PricingPlan[] = [
     cta: "Start free",
   },
   {
+    name: "Standard",
+    price: "$20",
+    credits: "100 credits / month",
+    features: ["Unlimited projects", "Private builds", "GitHub sync"],
+    cta: "Choose Standard",
+  },
+  {
     name: "Pro",
     price: "$60",
     credits: "750 credits / month",
@@ -466,147 +145,360 @@ const PRICING_PLANS: PricingPlan[] = [
     cta: "Start building",
     featured: true,
   },
+];
+
+const FAQS = [
   {
-    name: "Standard",
-    price: "$20",
-    credits: "100 credits / month",
-    features: ["Unlimited projects", "Private builds", "GitHub sync"],
-    cta: "Choose Standard",
+    q: "How is Forge different from a code-completion tool?",
+    a: "Autocomplete finishes a line. Forge's agents plan, build, and validate a full application from a single prompt.",
+  },
+  {
+    q: "Do I own the code Forge writes?",
+    a: "Yes. Every build can sync to a GitHub repository you control — no lock-in.",
+  },
+  {
+    q: "What happens if a build fails validation?",
+    a: "The debug loop automatically reruns the responsible agent, up to three times, before a build is marked failed.",
+  },
+  {
+    q: "Can I use my own model key?",
+    a: "Yes — on the Pro plan you can bring your own Anthropic key for full control over usage and cost.",
   },
 ];
 
-function Pricing() {
-  return (
-    <section id="pricing" className="px-4 md:px-6 py-20 md:py-24">
-      <div className="max-w-5xl mx-auto text-center mb-12">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-3">Start free. Scale when it ships.</h2>
-        <p className="text-sm text-land-muted">Credits cover agent work. A typical build runs about 13.</p>
-      </div>
+// ─── Page ───────────────────────────────────────────────────────────────────
 
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        {PRICING_PLANS.map((plan) => (
-          <PricingCard key={plan.name} plan={plan} />
-        ))}
-      </div>
-    </section>
-  );
-}
+export default function LandingPage() {
+  const [activeIndex, setActiveIndex] = useState(0);
 
-function PricingCard({ plan }: { plan: PricingPlan }) {
-  if (plan.featured) {
-    return (
-      <div className="rounded-2xl bg-land-accent text-white p-6 shadow-[0_12px_32px_rgba(59,130,246,0.25)] md:-translate-y-2">
-        <span className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/15 mb-4">
-          Most popular
-        </span>
-        <p className="text-base font-medium mb-1">{plan.name}</p>
-        <p className="text-3xl font-semibold tracking-tight mb-0.5">
-          {plan.price}
-          <span className="text-sm font-normal text-white/70">/mo</span>
-        </p>
-        <p className="text-xs text-white/70 mb-5">{plan.credits}</p>
-        <ul className="space-y-2.5 mb-6">
-          {plan.features.map((f) => (
-            <li key={f} className="flex items-center gap-2 text-sm">
-              <Check size={14} className="shrink-0" aria-hidden="true" />
-              {f}
-            </li>
-          ))}
-        </ul>
-        <Link
-          to="/login"
-          className="block text-center px-4 py-2.5 rounded-lg bg-white text-land-accent text-sm font-medium hover:bg-white/90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          {plan.cta}
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+    const id = window.setInterval(() => {
+      setActiveIndex((i) => (i + 1) % AGENTS.length);
+    }, 1600);
+    return () => window.clearInterval(id);
+  }, []);
 
   return (
-    <div className="rounded-2xl border border-land-border bg-land-surface p-6">
-      <p className="text-base font-medium text-land-ink mb-1">{plan.name}</p>
-      <p className="text-3xl font-semibold tracking-tight text-land-ink mb-0.5">
-        {plan.price}
-        <span className="text-sm font-normal text-land-faint">/mo</span>
-      </p>
-      <p className="text-xs text-land-faint mb-5">{plan.credits}</p>
-      <ul className="space-y-2.5 mb-6">
-        {plan.features.map((f) => (
-          <li key={f} className="flex items-center gap-2 text-sm text-land-muted">
-            <Check size={14} className="shrink-0 text-land-accent" aria-hidden="true" />
-            {f}
-          </li>
-        ))}
-      </ul>
-      <Link
-        to="/login"
-        className="block text-center px-4 py-2.5 rounded-lg border border-land-border text-land-ink text-sm font-medium hover:bg-land-border-soft transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-      >
-        {plan.cta}
-      </Link>
+    <div className="min-h-screen bg-land-paper text-land-ink antialiased font-sans">
+      <Nav />
+      <main>
+        <Hero activeIndex={activeIndex} />
+        <Agents />
+        <WorkflowSection />
+        <FeaturesSection />
+        <PricingSection />
+        <FAQSection />
+        <FinalCTA />
+      </main>
+      <Footer />
     </div>
   );
 }
 
-// ─── Closing CTA ────────────────────────────────────────────────────────────────
+// ─── Nav ────────────────────────────────────────────────────────────────────
 
-function Cta() {
+function Nav() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <section className="bg-land-accent-soft px-4 md:px-6 py-16 md:py-20">
-      <div className="max-w-2xl mx-auto text-center">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-land-ink mb-2">
-          Your next app is one prompt away
-        </h2>
-        <p className="text-sm text-land-muted mb-7">Free to start. No card. No setup.</p>
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-land-accent text-white text-sm font-medium hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-        >
-          Start building free
-          <ArrowRight size={14} aria-hidden="true" />
-        </Link>
+    <header
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? "bg-land-paper/80 backdrop-blur border-b border-land-border" : "border-b border-transparent"
+      }`}
+    >
+      <div className="max-w-6xl mx-auto px-6">
+        <nav aria-label="Primary" className="flex items-center justify-between h-16">
+          <a href="#top" className="flex items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent">
+            <div className="w-6 h-6 border border-land-ink flex items-center justify-center">
+              <Sparkles className="w-3 h-3" aria-hidden="true" />
+            </div>
+            <span className="font-display font-medium tracking-tight">Forge</span>
+          </a>
+
+          <div className="hidden md:flex items-center gap-8 text-sm text-land-muted">
+            <a href="#agents" className="hover:text-land-ink transition">Agents</a>
+            <a href="#workflow" className="hover:text-land-ink transition">Workflow</a>
+            <a href="#features" className="hover:text-land-ink transition">Features</a>
+            <a href="#pricing" className="hover:text-land-ink transition">Pricing</a>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Link to="/login" className="hidden sm:block text-sm text-land-muted hover:text-land-ink transition">
+              Sign in
+            </Link>
+            <Link
+              to="/signup"
+              className="inline-flex items-center px-3.5 py-2 rounded-md text-sm font-medium bg-land-ink text-land-paper hover:bg-land-ink/90 transition"
+            >
+              Build with Forge
+            </Link>
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+// ─── Hero ───────────────────────────────────────────────────────────────────
+
+function Hero({ activeIndex }: { activeIndex: number }) {
+  return (
+    <section id="top" className="pt-24 pb-32">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-3xl">
+          <div className="inline-flex items-center gap-2 text-xs text-land-muted mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-land-accent" aria-hidden="true" />
+            Multi-agent build pipeline — now live
+          </div>
+
+          <h1 className="font-display text-5xl md:text-7xl font-medium leading-[1.02] tracking-tight">
+            Ship production software.
+            <br />
+            <span className="text-land-muted">Powered by AI agents.</span>
+          </h1>
+
+          <p className="mt-8 text-lg text-land-muted max-w-xl leading-relaxed">
+            Forge sends your prompt to a team of specialist agents that plan, design, build, wire up
+            integrations, and validate a working app — then ship it to GitHub and deploy it as a container.
+          </p>
+
+          <div className="mt-10 flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/signup"
+              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition"
+            >
+              Build with Forge AI <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </Link>
+            <a
+              href="#build-demo"
+              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md text-sm font-medium text-land-muted hover:text-land-ink transition"
+            >
+              <Play className="w-4 h-4" aria-hidden="true" /> Watch demo
+            </a>
+          </div>
+        </div>
+
+        {/* Terminal-style build transcript */}
+        <div id="build-demo" className="mt-20 border border-land-border rounded-lg overflow-hidden max-w-4xl">
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-land-border bg-land-muted-bg/30">
+            <div className="flex gap-1.5" aria-hidden="true">
+              <span className="w-2.5 h-2.5 rounded-full bg-land-border" />
+              <span className="w-2.5 h-2.5 rounded-full bg-land-border" />
+              <span className="w-2.5 h-2.5 rounded-full bg-land-border" />
+            </div>
+            <span className="font-mono text-xs text-land-muted ml-2">forge · build session</span>
+          </div>
+          <div className="p-6 font-mono text-sm space-y-2 leading-relaxed" role="group" aria-label="Live build transcript">
+            <div className="text-land-muted">
+              $ forge build "Build a habit tracker with streaks and reminders."
+            </div>
+            {AGENTS.map((agent, i) => {
+              const isDone = i < activeIndex;
+              const isActive = i === activeIndex;
+              const status = isDone ? "ok" : isActive ? "running" : "queued";
+              const statusClass = isDone || isActive ? "text-land-accent" : "text-land-muted";
+              return (
+                <div key={agent.id}>
+                  <span className="text-land-ink">{agent.id.replace("_", " ")}</span>{"  "}
+                  <span className="text-land-muted">{AGENT_STATUS_LINES[agent.id]}</span>{"  "}
+                  <span className={statusClass}>→ {status}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-// ─── Footer ─────────────────────────────────────────────────────────────────────
+// ─── Agents ─────────────────────────────────────────────────────────────────
 
-function FooterLink({ children, href = "#" }: { children: ReactNode; href?: string }) {
+function Agents() {
   return (
-    <a
-      href={href}
-      className="text-sm text-land-muted hover:text-land-ink transition motion-reduce:transition-none rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent"
-    >
-      {children}
-    </a>
+    <Section id="agents">
+      <SectionHead
+        eyebrow="Multi-agent architecture"
+        title={<>Six specialists. One team.</>}
+        subtitle="Each Forge agent is tuned for one part of the build and hands off to the next."
+      />
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-land-border">
+        {AGENTS.map((agent) => {
+          const Icon = agent.icon;
+          return (
+            <div key={agent.id} className="bg-land-paper p-8">
+              <Icon className="w-5 h-5 mb-6 text-land-muted" strokeWidth={1.5} aria-hidden="true" />
+              <h3 className="font-display font-medium mb-2 text-land-ink">{agent.label}</h3>
+              <p className="text-sm text-land-muted leading-relaxed">{AGENT_DESCRIPTIONS[agent.id]}</p>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
   );
 }
 
+// ─── Workflow ───────────────────────────────────────────────────────────────
+
+function WorkflowSection() {
+  return (
+    <Section id="workflow">
+      <SectionHead eyebrow="Workflow" title="From prompt to production." />
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-land-border">
+        {WORKFLOW_STEPS.map((s) => (
+          <div key={s.n} className="bg-land-paper p-6">
+            <div className="font-mono text-xs text-land-muted mb-6">{s.n}</div>
+            <div className="font-display font-medium mb-1.5 text-land-ink">{s.t}</div>
+            <div className="text-sm text-land-muted leading-relaxed">{s.d}</div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ─── Features ───────────────────────────────────────────────────────────────
+
+function FeaturesSection() {
+  return (
+    <Section id="features">
+      <SectionHead eyebrow="Features" title="Built to be trusted with real work." />
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-land-border">
+        {FEATURES.map((f) => {
+          const Icon = f.icon;
+          return (
+            <div key={f.title} className="bg-land-paper p-8">
+              <Icon className="w-5 h-5 mb-5 text-land-muted" strokeWidth={1.5} aria-hidden="true" />
+              <h3 className="font-display font-medium mb-2 text-land-ink">{f.title}</h3>
+              <p className="text-sm text-land-muted leading-relaxed">{f.description}</p>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+// ─── Pricing ────────────────────────────────────────────────────────────────
+
+function PricingSection() {
+  return (
+    <Section id="pricing">
+      <SectionHead eyebrow="Pricing" title="Start free. Scale when it ships." subtitle="Credits cover agent work. A typical build runs about 13." />
+      <div className="grid md:grid-cols-3 gap-px bg-land-border border border-land-border">
+        {PRICING_PLANS.map((plan) => (
+          <div key={plan.name} className={`bg-land-paper p-8 flex flex-col ${plan.featured ? "relative" : ""}`}>
+            {plan.featured && <div className="absolute top-0 left-0 right-0 h-px bg-land-accent" aria-hidden="true" />}
+            <h3 className="font-display font-medium text-land-ink">{plan.name}</h3>
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="font-display text-4xl font-medium tracking-tight text-land-ink">{plan.price}</span>
+              <span className="text-sm text-land-muted">/mo</span>
+            </div>
+            <p className="text-xs text-land-muted mt-1 mb-6">{plan.credits}</p>
+            <Link
+              to="/signup"
+              className={`w-full text-center py-2.5 rounded-md text-sm font-medium transition ${
+                plan.featured
+                  ? "bg-land-ink text-land-paper hover:bg-land-ink/90"
+                  : "border border-land-border text-land-ink hover:bg-land-muted-bg"
+              }`}
+            >
+              {plan.cta}
+            </Link>
+            <ul className="mt-8 space-y-3 text-sm">
+              {plan.features.map((f) => (
+                <li key={f} className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-land-muted mt-0.5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                  <span className="text-land-muted">{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ─── FAQ ────────────────────────────────────────────────────────────────────
+
+function FAQSection() {
+  return (
+    <Section>
+      <div className="grid lg:grid-cols-[1fr_2fr] gap-16">
+        <div>
+          <Eyebrow>FAQ</Eyebrow>
+          <h2 className="font-display text-4xl md:text-5xl font-medium leading-[1.05] tracking-tight text-land-ink">
+            Questions, answered.
+          </h2>
+        </div>
+        <dl>
+          {FAQS.map((f) => (
+            <div key={f.q} className="border-b border-land-border py-5">
+              <dt className="font-medium text-land-ink">{f.q}</dt>
+              <dd className="text-land-muted leading-relaxed mt-2">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </Section>
+  );
+}
+
+// ─── Final CTA ──────────────────────────────────────────────────────────────
+
+function FinalCTA() {
+  return (
+    <Section>
+      <div className="max-w-3xl">
+        <h2 className="font-display text-5xl md:text-7xl font-medium tracking-tight leading-[1.02] text-land-ink">
+          Your next app is
+          <br />
+          <span className="text-land-muted">one prompt away.</span>
+        </h2>
+        <p className="mt-5 text-land-muted">Free to start. No card. No setup.</p>
+        <div className="mt-10">
+          <Link
+            to="/signup"
+            className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition"
+          >
+            Start building free <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+// ─── Footer ─────────────────────────────────────────────────────────────────
+
 function Footer() {
   return (
-    <footer className="bg-land-paper border-t border-land-border px-4 md:px-6 py-10">
-      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+    <footer className="border-t border-land-border py-16">
+      <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2">
-          <span className="w-6 h-6 rounded-md bg-land-accent flex items-center justify-center shrink-0">
-            <Hammer size={11} className="text-white" aria-hidden="true" />
-          </span>
-          <span className="text-sm font-medium text-land-ink">Forge</span>
+          <div className="w-6 h-6 border border-land-ink flex items-center justify-center">
+            <Sparkles className="w-3 h-3" aria-hidden="true" />
+          </div>
+          <span className="font-display font-medium text-land-ink">Forge</span>
         </div>
 
-        <nav aria-label="Footer" className="flex items-center gap-6">
-          <FooterLink>Docs</FooterLink>
-          <FooterLink>Privacy</FooterLink>
-          <FooterLink>
-            <span className="inline-flex items-center gap-1.5">
-              <Github size={13} aria-hidden="true" />
-              GitHub
-            </span>
-          </FooterLink>
+        <nav aria-label="Footer" className="flex items-center gap-6 text-sm text-land-muted">
+          <a href="#" className="hover:text-land-ink transition">Docs</a>
+          <a href="#" className="hover:text-land-ink transition">Privacy</a>
+          <a href="#" className="hover:text-land-ink transition inline-flex items-center gap-1.5">
+            <Github size={13} aria-hidden="true" /> GitHub
+          </a>
         </nav>
 
-        <p className="text-xs text-land-faint">© 2026 Forge</p>
+        <p className="text-xs text-land-muted">© {new Date().getFullYear()} Forge</p>
       </div>
     </footer>
   );
