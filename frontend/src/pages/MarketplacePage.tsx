@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Star, Download, Search } from "lucide-react";
+import toast from "react-hot-toast";
 import { TEMPLATES } from "../lib/mockData";
 import type { Template } from "../lib/mockData";
+import { LIVE_MODE } from "../lib/env";
+import { marketplaceApi } from "../lib/api";
 
 type FilterTab = "all" | "official" | "community";
 
@@ -11,20 +15,78 @@ const TABS: { value: FilterTab; label: string }[] = [
   { value: "community", label: "Community" },
 ];
 
+// The real marketplace model has no color field — pick a stable accent per
+// item from its id so cards stay visually distinct without a backend field.
+const HUES = ["#6366F1", "#A855F7", "#22D3EE", "#F59E0B", "#34D399", "#EC4899"];
+function hueForId(id: string): string {
+  let sum = 0;
+  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
+  return HUES[sum % HUES.length];
+}
+
+interface RawItem {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  rating: number;
+  downloads: number;
+}
+
+function toDisplayTemplate(raw: RawItem): Template {
+  return {
+    id: raw.id,
+    name: raw.title,
+    author: "Community",
+    source: "community",
+    description: raw.description,
+    tags: raw.tags,
+    rating: Math.round(raw.rating * 10) / 10,
+    installs: raw.downloads >= 1000 ? `${(raw.downloads / 1000).toFixed(1)}k` : String(raw.downloads),
+    hue: hueForId(raw.id),
+  };
+}
+
 export default function MarketplacePage() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
+  const [liveTemplates, setLiveTemplates] = useState<Template[] | null>(null);
 
-  const visible = TEMPLATES.filter(t => {
-    const matchesFilter = filter === "all" || t.source === filter;
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    marketplaceApi
+      .list({ search: search.trim() || undefined })
+      .then((items: RawItem[]) => setLiveTemplates(items.map(toDisplayTemplate)))
+      .catch(() => toast.error("Failed to load marketplace"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const source = LIVE_MODE ? liveTemplates ?? [] : TEMPLATES;
+
+  const visible = source.filter(t => {
+    // The real backend has no official/community distinction — the filter
+    // tabs only apply to demo-mode mock data.
+    const matchesFilter = LIVE_MODE || filter === "all" || t.source === filter;
     const q = search.trim().toLowerCase();
     const matchesSearch =
+      LIVE_MODE ||
       !q ||
       t.name.toLowerCase().includes(q) ||
       t.description.toLowerCase().includes(q) ||
       t.tags.some(tag => tag.includes(q));
     return matchesFilter && matchesSearch;
   });
+
+  const handleInstall = async (template: Template) => {
+    if (!LIVE_MODE) return;
+    try {
+      const { prompt } = await marketplaceApi.download(template.id);
+      navigate("/build/new", { state: { prompt } });
+    } catch {
+      toast.error("Failed to install template");
+    }
+  };
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto">
@@ -48,36 +110,40 @@ export default function MarketplacePage() {
         </div>
       </header>
 
-      {/* Filter tabs */}
-      <div
-        role="tablist"
-        aria-label="Filter templates"
-        className="flex gap-1 mb-6 bg-panel-alt rounded-lg p-1 w-fit"
-      >
-        {TABS.map(tab => (
-          <button
-            key={tab.value}
-            role="tab"
-            aria-selected={filter === tab.value}
-            onClick={() => setFilter(tab.value)}
-            className={[
-              "px-3 py-1.5 rounded-md text-sm font-medium transition-colors motion-reduce:transition-none",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-              filter === tab.value
-                ? "bg-panel text-ink shadow-sm"
-                : "text-muted hover:text-ink",
-            ].join(" ")}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Filter tabs — demo mode only, real backend has no official/community split */}
+      {!LIVE_MODE && (
+        <div
+          role="tablist"
+          aria-label="Filter templates"
+          className="flex gap-1 mb-6 bg-panel-alt rounded-lg p-1 w-fit"
+        >
+          {TABS.map(tab => (
+            <button
+              key={tab.value}
+              role="tab"
+              aria-selected={filter === tab.value}
+              onClick={() => setFilter(tab.value)}
+              className={[
+                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors motion-reduce:transition-none",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                filter === tab.value
+                  ? "bg-panel text-ink shadow-sm"
+                  : "text-muted hover:text-ink",
+              ].join(" ")}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Grid */}
-      {visible.length > 0 ? (
+      {LIVE_MODE && liveTemplates === null ? (
+        <p className="text-center text-muted text-sm py-20">Loading templates…</p>
+      ) : visible.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="list">
           {visible.map(template => (
-            <TemplateCard key={template.id} template={template} />
+            <TemplateCard key={template.id} template={template} onInstall={() => handleInstall(template)} />
           ))}
         </div>
       ) : (
@@ -89,7 +155,7 @@ export default function MarketplacePage() {
   );
 }
 
-function TemplateCard({ template }: { template: Template }) {
+function TemplateCard({ template, onInstall }: { template: Template; onInstall: () => void }) {
   return (
     <article
       role="listitem"
@@ -134,7 +200,7 @@ function TemplateCard({ template }: { template: Template }) {
           <span>{template.rating}</span>
         </div>
         <button
-          onClick={() => {/* install — no-op until backend */}}
+          onClick={onInstall}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt border border-border text-xs text-ink font-medium hover:bg-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none"
           aria-label={`Install ${template.name} — ${template.installs} installs`}
         >

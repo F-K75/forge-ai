@@ -101,6 +101,8 @@ export default function ProjectHistory() {
   const [rawBuilds, setRawBuilds] = useState<RawBuild[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rollingBack, setRollingBack] = useState(false);
+  const [diff, setDiff] = useState<{ added: string[]; modified: string[]; removed: string[] } | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
 
   const refreshBuilds = () => {
     if (!LIVE_MODE || !projectId) return;
@@ -122,6 +124,10 @@ export default function ProjectHistory() {
     refreshBuilds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  useEffect(() => {
+    setDiff(null);
+  }, [selectedId]);
 
   const builds: BuildRun[] = LIVE_MODE ? (rawBuilds ?? []).map(toBuildRun) : BUILD_HISTORY;
   const selected = builds.find((b) => b.id === selectedId) ?? builds[0];
@@ -147,6 +153,32 @@ export default function ProjectHistory() {
       toast.error("Rollback failed");
     } finally {
       setRollingBack(false);
+    }
+  };
+
+  const handleViewDiff = async () => {
+    if (!LIVE_MODE || !selected) return;
+    const selectedIndex = ascendingBuilds.findIndex((b) => b.id === selected.id);
+    const previous = selectedIndex > 0 ? ascendingBuilds[selectedIndex - 1] : null;
+
+    setDiffLoading(true);
+    try {
+      const [currentFiles, previousFiles] = await Promise.all([
+        buildsApi.getFiles(selected.id) as Promise<Record<string, string>>,
+        previous
+          ? (buildsApi.getFiles(previous.id) as Promise<Record<string, string>>)
+          : Promise.resolve({} as Record<string, string>),
+      ]);
+      const added = Object.keys(currentFiles).filter((f) => !(f in previousFiles));
+      const removed = Object.keys(previousFiles).filter((f) => !(f in currentFiles));
+      const modified = Object.keys(currentFiles).filter(
+        (f) => f in previousFiles && previousFiles[f] !== currentFiles[f]
+      );
+      setDiff({ added, modified, removed });
+    } catch {
+      toast.error("Failed to load diff");
+    } finally {
+      setDiffLoading(false);
     }
   };
 
@@ -251,15 +283,50 @@ export default function ProjectHistory() {
                 {rollingBack ? "Rolling back…" : "Roll back to this version"}
               </button>
             )}
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel border border-border text-xs text-ink hover:bg-panel-alt transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <GitBranch size={12} aria-hidden="true" />
-              View diff
-            </button>
+            {LIVE_MODE && (
+              <button
+                type="button"
+                onClick={handleViewDiff}
+                disabled={diffLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel border border-border text-xs text-ink hover:bg-panel-alt transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                <GitBranch size={12} aria-hidden="true" />
+                {diffLoading ? "Loading…" : "View diff"}
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Diff panel */}
+        {diff && (
+          <div className="mb-7 bg-panel border border-border rounded-xl p-4" role="region" aria-label="Changed files">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[10px] font-semibold text-faint uppercase tracking-wider">Changed files</h3>
+              <button
+                type="button"
+                onClick={() => setDiff(null)}
+                className="text-xs text-muted hover:text-ink transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
+              >
+                Close
+              </button>
+            </div>
+            {diff.added.length === 0 && diff.modified.length === 0 && diff.removed.length === 0 ? (
+              <p className="text-xs text-faint">No file changes vs. the previous build.</p>
+            ) : (
+              <ul className="space-y-1 font-mono text-xs">
+                {diff.added.map((f) => (
+                  <li key={`a-${f}`} className="text-ok">+ {f}</li>
+                ))}
+                {diff.modified.map((f) => (
+                  <li key={`m-${f}`} className="text-warn">~ {f}</li>
+                ))}
+                {diff.removed.map((f) => (
+                  <li key={`r-${f}`} className="text-error">− {f}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* Summary chips */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">

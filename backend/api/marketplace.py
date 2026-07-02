@@ -53,9 +53,9 @@ async def create_item(req: MarketplaceItemCreate, user: User = Depends(get_curre
         tags=req.tags,
         is_public=req.is_public,
     )
-    await db.marketplace_items.insert_one(item.model_dump())
-    
-    return item
+    await db.marketplace_items.insert_one(item.model_dump(mode="json"))
+
+    return item.model_dump(mode="json")
 
 
 @router.get("/", response_model=List[MarketplaceItemResponse])

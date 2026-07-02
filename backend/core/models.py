@@ -63,6 +63,7 @@ class User(BaseModel):
     name: str
     avatar_url: Optional[str] = None
     github_token: Optional[str] = None
+    preferences: dict = Field(default_factory=dict)
     plan: PlanTier = PlanTier.FREE
     credits: int = 10
     stripe_customer_id: Optional[str] = None

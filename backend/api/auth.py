@@ -51,6 +51,8 @@ class RefreshRequest(BaseModel):
 class UpdateProfileRequest(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
     avatar_url: Optional[str] = Field(None, max_length=500)
+    github_token: Optional[str] = Field(None, max_length=200)
+    preferences: Optional[dict] = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -75,6 +77,24 @@ def _get_cookie_kwargs(max_age: int) -> dict:
         "samesite": "strict",
         "max_age": max_age,
     }
+
+
+def _public_user_dict(user_doc: dict) -> dict:
+    """Strip fields that must never leave the server (password hash, raw
+    tokens, verification secrets) before a user document is sent to a client."""
+    public = {
+        k: v
+        for k, v in user_doc.items()
+        if k
+        not in {
+            "hashed_password",
+            "github_token",
+            "verification_token",
+            "verification_expires",
+        }
+    }
+    public["github_connected"] = bool(user_doc.get("github_token"))
+    return public
 
 
 def _hash_token(token: str) -> str:
@@ -243,7 +263,7 @@ async def register(req: RegisterRequest, response: Response):
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        user=user_dict,
+        user=_public_user_dict(user_dict),
     )
 
 
@@ -281,7 +301,7 @@ async def login(req: LoginRequest, response: Response):
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        user=user_doc,
+        user=_public_user_dict(user_doc),
     )
 
 
@@ -320,7 +340,7 @@ async def refresh(req: RefreshRequest, response: Response):
     return TokenResponse(
         access_token=access_token,
         refresh_token=new_refresh,
-        user=user_doc,
+        user=_public_user_dict(user_doc),
     )
 
 
@@ -393,15 +413,8 @@ async def create_ws_token(user: User = Depends(get_current_user)):
 @router.get("/me")
 async def get_me(user: User = Depends(get_current_user)):
     db = await get_db()
-    user_doc = await db.users.find_one(
-        {"id": user.id}, {"_id": 0, "hashed_password": 0}
-    )
-    
-    # Decrypt sensitive fields
-    if user_doc and "github_token" in user_doc and user_doc["github_token"]:
-        user_doc["github_token"] = decrypt_field(user_doc["github_token"])
-    
-    return user_doc
+    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+    return _public_user_dict(user_doc) if user_doc is not None else None
 
 
 @router.put("/me")
@@ -412,11 +425,17 @@ async def update_profile(
     update = {k: v for k, v in req.model_dump().items() if v is not None}
     if not update:
         return {"ok": True}
-    
-    # Encrypt sensitive fields if being updated
-    if "github_token" in update and update["github_token"]:
+
+    # Encrypt sensitive fields if being updated (empty string clears the
+    # connection and is stored as-is — nothing sensitive to encrypt).
+    if update.get("github_token"):
         update["github_token"] = encrypt_field(update["github_token"])
-    
+
+    # Shallow-merge preferences so one toggle's update doesn't clobber others.
+    preferences = update.pop("preferences", None)
+    if preferences:
+        update.update({f"preferences.{k}": v for k, v in preferences.items()})
+
     await db.users.update_one({"id": user.id}, {"$set": update})
     return {"ok": True}
 

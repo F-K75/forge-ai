@@ -2,18 +2,21 @@ interface ToggleProps {
   on: boolean;
   onChange: (v: boolean) => void;
   label?: string;
+  disabled?: boolean;
 }
 
-export function Toggle({ on, onChange, label }: ToggleProps) {
+export function Toggle({ on, onChange, label, disabled = false }: ToggleProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!on)}
       className={[
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full p-0.5",
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel",
         "transition-colors motion-reduce:transition-none",
         on ? "bg-accent" : "bg-border",

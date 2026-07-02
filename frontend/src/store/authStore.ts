@@ -10,6 +10,8 @@ export interface User {
   plan: 'free' | 'standard' | 'pro' | 'enterprise'
   credits: number
   created_at: string
+  github_connected?: boolean
+  preferences?: Record<string, unknown>
 }
 
 interface AuthState {

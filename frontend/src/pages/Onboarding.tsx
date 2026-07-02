@@ -22,6 +22,17 @@ const GOALS: GoalOption[] = [
 
 const STEP_LABELS = ["Welcome", "Goal", "Connect", "Ready"] as const;
 
+// A short starter prompt per goal, handed off to the workspace so the first
+// build isn't a blank prompt box — mirrors how Marketplace's "Install" flow
+// hands a prompt to /build/new (see WorkspacePage.tsx's location.state.prompt).
+const GOAL_STARTER_PROMPTS: Record<string, string> = {
+  "SaaS dashboard": "A SaaS admin dashboard with auth, billing, and usage charts.",
+  "Marketplace": "A two-sided marketplace with listings, search, and checkout.",
+  "Internal tool": "An internal tool for the team to manage records and approvals.",
+  "AI app": "An AI-powered app that takes user input and returns generated content.",
+  "API backend": "A REST API backend with auth, a Postgres-style data model, and docs.",
+};
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -34,7 +45,8 @@ export default function Onboarding() {
 
   const handlePrimary = () => {
     if (step === 3) {
-      navigate("/");
+      const prompt = goal ? GOAL_STARTER_PROMPTS[goal] : undefined;
+      navigate("/build/new", prompt ? { state: { prompt } } : undefined);
     } else {
       setStep((s) => Math.min(s + 1, 3));
     }

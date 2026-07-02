@@ -9,6 +9,55 @@ export const api = axios.create({
   withCredentials: true,
 })
 
+// The backend requires an X-CSRF-Token header on every state-changing
+// request (see backend/core/security.py's csrf_protection_middleware).
+// These paths are excluded server-side (no session yet, or have their own
+// signature verification) so there's no token to fetch for them.
+const CSRF_EXEMPT_PATHS = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/billing/webhook']
+
+let csrfTokenPromise: Promise<string> | null = null
+function getCsrfToken(): Promise<string> {
+  if (!csrfTokenPromise) {
+    csrfTokenPromise = api
+      .get('/auth/csrf-token')
+      .then(r => r.data.csrf_token)
+      .catch(err => {
+        csrfTokenPromise = null
+        throw err
+      })
+  }
+  return csrfTokenPromise
+}
+
+api.interceptors.request.use(async config => {
+  const method = (config.method || 'get').toLowerCase()
+  const isMutating = method !== 'get' && method !== 'head' && method !== 'options'
+  const exempt = CSRF_EXEMPT_PATHS.some(p => config.url?.includes(p))
+  if (isMutating && !exempt) {
+    try {
+      const token = await getCsrfToken()
+      config.headers = config.headers ?? {}
+      config.headers['X-CSRF-Token'] = token
+    } catch {
+      // Proceed without the header — the backend will 403 with a clear
+      // "CSRF token required" error rather than silently failing.
+    }
+  }
+  return config
+})
+
+// A stale/expired CSRF token means the next mutating request should fetch a
+// fresh one rather than keep reusing the rejected one.
+api.interceptors.response.use(
+  res => res,
+  err => {
+    if (err?.response?.status === 401 || err?.response?.status === 403) {
+      csrfTokenPromise = null
+    }
+    return Promise.reject(err)
+  }
+)
+
 // Auth
 export const authApi = {
   register: (data: { email: string; name: string; password: string }) =>
@@ -19,7 +68,7 @@ export const authApi = {
     api.post('/auth/refresh', { refresh_token }).then(r => r.data),
   logout: () => api.post('/auth/logout').then(r => r.data),
   me: () => api.get('/auth/me').then(r => r.data),
-  updateProfile: (data: { name?: string; avatar_url?: string }) =>
+  updateProfile: (data: { name?: string; avatar_url?: string; github_token?: string; preferences?: Record<string, unknown> }) =>
     api.put('/auth/me', data).then(r => r.data),
   changePassword: (data: { current_password: string; new_password: string }) =>
     api.post('/auth/me/password', data).then(r => r.data),
@@ -65,6 +114,7 @@ export const billingApi = {
   plans: () => api.get('/billing/plans').then(r => r.data),
   cancel: (at_period_end: boolean) => api.post('/billing/cancel', { at_period_end }).then(r => r.data),
   reactivate: () => api.post('/billing/reactivate').then(r => r.data),
+  downgrade: (plan: string) => api.post('/billing/downgrade', { plan }).then(r => r.data),
   purchaseCredits: (package_id: string) => api.post('/billing/credits/purchase', { package_id }).then(r => r.data),
   portal: (return_url: string) => api.post('/billing/portal', { return_url }).then(r => r.data),
 }
@@ -108,6 +158,18 @@ export const webhooksApi = {
   list: () => api.get('/webhooks/').then(r => r.data),
   create: (data: { url: string; events?: string[] }) => api.post('/webhooks/', data).then(r => r.data),
   delete: (id: string) => api.delete(`/webhooks/${id}`).then(r => r.data),
+}
+
+// Marketplace
+export const marketplaceApi = {
+  list: (params?: { type?: string; search?: string; limit?: number }) =>
+    api.get('/marketplace/', { params }).then(r => r.data),
+  get: (id: string) => api.get(`/marketplace/${id}`).then(r => r.data),
+  download: (id: string) => api.post(`/marketplace/${id}/download`).then(r => r.data),
+  rate: (id: string, rating: number) =>
+    api.post(`/marketplace/${id}/rate`, null, { params: { rating } }).then(r => r.data),
+  create: (data: { type?: string; title: string; description: string; prompt: string; tags?: string[]; is_public?: boolean }) =>
+    api.post('/marketplace/', data).then(r => r.data),
 }
 
 // Admin
