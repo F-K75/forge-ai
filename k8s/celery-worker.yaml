@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: forge-ai-prod
+  labels:
+    app: celery-worker
+    component: worker
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+      - name: celery
+        image: forge-backend:latest
+        imagePullPolicy: Always
+        command:
+        - celery
+        - -A
+        - celery_app.celery_app
+        - worker
+        - --loglevel=info
+        - --queues
+        - build,deployment
+        - --concurrency
+        - "4"
+        - --max-tasks-per-child
+        - "100"
+        env:
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: mongo-password
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: redis-password
+        - name: MONGODB_URL
+          value: "mongodb://forge:$(MONGO_PASSWORD)@mongodb-client:27017/forge?authSource=admin&replicaSet=rs0"
+        - name: REDIS_URL
+          value: "redis://:$(REDIS_PASSWORD)@redis:6379"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: jwt-secret
+        - name: FIELD_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: field-encryption-key
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: stripe-secret-key
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: anthropic-api-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: openai-api-key
+              optional: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "3000m"
+        livenessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - celery_app.celery_app
+            - inspect
+            - ping
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - celery_app.celery_app
+            - inspect
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: celery-worker-hpa
+  namespace: forge-ai-prod
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: celery-worker
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: External
+    external:
+      metric:
+        name: celery_queue_depth
+      target:
+        type: Value
+        value: "10"
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70

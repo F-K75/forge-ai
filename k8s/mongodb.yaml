@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: forge-ai-prod
+  labels:
+    app: mongodb
+    component: database
+spec:
+  serviceName: mongodb
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:7.0.5
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "forge"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: mongo-password
+        command:
+        - mongod
+        - --replSet
+        - rs0
+        - --keyFile
+        - /data/keyfile
+        volumeMounts:
+        - name: mongodb-data
+          mountPath: /data/db
+        - name: keyfile
+          mountPath: /data/keyfile
+          subPath: keyfile
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: keyfile
+        secret:
+          secretName: mongodb-keyfile
+  volumeClaimTemplates:
+  - metadata:
+      name: mongodb-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 10Gi
+---
+# Headless service for MongoDB replica set
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: forge-ai-prod
+  labels:
+    app: mongodb
+spec:
+  clusterIP: None
+  ports:
+  - port: 27017
+    name: mongodb
+  selector:
+    app: mongodb
+---
+# Client service for MongoDB (load-balanced connections)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-client
+  namespace: forge-ai-prod
+  labels:
+    app: mongodb
+spec:
+  ports:
+  - port: 27017
+    targetPort: 27017
+    name: mongodb
+  selector:
+    app: mongodb
+---
+# Init job to configure replica set
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-replica-init
+  namespace: forge-ai-prod
+spec:
+  template:
+    spec:
+      containers:
+      - name: mongo-init
+        image: mongo:7.0.5
+        command:
+        - bash
+        - -c
+        - |
+          sleep 10
+          mongosh mongodb://mongodb:27017/admin --eval '
+            rs.initiate({
+              _id: "rs0",
+              members: [
+                {_id: 0, host: "mongodb-0.mongodb:27017"},
+                {_id: 1, host: "mongodb-1.mongodb:27017"},
+                {_id: 2, host: "mongodb-2.mongodb:27017"}
+              ]
+            });
+          '
+      restartPolicy: Never
+  backoffLimit: 5
+  parallelism: 1

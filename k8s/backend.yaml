@@ -1,0 +1,187 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: forge-ai-prod
+  labels:
+    app: backend
+    component: api
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: forge-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: mongo-password
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: redis-password
+        - name: MONGODB_URL
+          value: "mongodb://forge:$(MONGO_PASSWORD)@mongodb-client:27017/forge?authSource=admin&replicaSet=rs0"
+        - name: REDIS_URL
+          value: "redis://:$(REDIS_PASSWORD)@redis:6379"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: jwt-secret
+        - name: FIELD_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: field-encryption-key
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: stripe-secret-key
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: stripe-webhook-secret
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: anthropic-api-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: openai-api-key
+              optional: true
+        - name: APP_URL
+          valueFrom:
+            configMapKeyRef:
+              name: forge-ai-config
+              key: app-url
+        - name: API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: forge-ai-config
+              key: api-url
+        - name: ALLOWED_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: forge-ai-config
+              key: allowed-origins
+        - name: ADMIN_EMAILS
+          valueFrom:
+            configMapKeyRef:
+              name: forge-ai-config
+              key: admin-emails
+        - name: RESEND_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: resend-api-key
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: github-client-id
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: github-client-secret
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/detailed
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: forge-ai-prod
+  labels:
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 8000
+    targetPort: http
+    name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: forge-ai-prod
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60

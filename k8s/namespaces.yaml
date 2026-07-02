@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: forge-ai-prod
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: forge-ai-staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: forge-ai-dev
