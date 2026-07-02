@@ -56,4 +56,38 @@ jobs:
 
       - name: Build frontend
         run: cd frontend && npm run build
-        continue-on-error: true
+
+  prod-artifacts:
+    runs-on: ubuntu-latest
+    env:
+      # Dummy values so `compose config` interpolation succeeds
+      DOMAIN: ci.invalid
+      LETSENCRYPT_EMAIL: ci@ci.invalid
+      GHCR_OWNER: ci
+      ANTHROPIC_API_KEY: ci-dummy
+      JWT_SECRET: ci-dummy-jwt-secret-0123456789abcdef
+      MONGO_PASSWORD: ci-dummy
+      REDIS_PASSWORD: ci-dummy
+      ADMIN_EMAILS: ci@ci.invalid
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate production compose file
+        run: docker compose -f docker-compose.prod.yml config -q
+
+      - name: Build backend production image
+        run: docker build backend/
+
+      - name: Build frontend production image
+        run: |
+          docker build frontend/ \
+            --build-arg VITE_API_URL=https://ci.invalid/api \
+            --build-arg VITE_WS_URL=wss://ci.invalid/api
+
+      - name: Frontend image build fails without VITE args
+        run: |
+          if docker build frontend/ -q 2>/dev/null; then
+            echo "ERROR: frontend build must fail when VITE_API_URL/VITE_WS_URL are missing"
+            exit 1
+          fi
