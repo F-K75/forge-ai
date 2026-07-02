@@ -7,7 +7,7 @@ export default function Launch() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative h-full w-full flex items-center justify-center overflow-hidden bg-land-paper">
+    <div className="relative h-screen w-screen flex items-center justify-center overflow-hidden bg-land-paper">
       <Globe />
 
       <button

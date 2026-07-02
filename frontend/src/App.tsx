@@ -243,7 +243,10 @@ export default function App() {
           <Route path="/onboarding" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ErrorBoundary>} />
           <Route path="/admin" element={<ErrorBoundary><AdminRoute><Suspense fallback={<RouteSkeleton />}><Admin /></Suspense></AdminRoute></ErrorBoundary>} />
 
-          {/* App shell — rail + four routed pages */}
+          {/* Launch — full-screen, no sidebar shell, still behind the auth gate */}
+          <Route path="/" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Launch /></Suspense></ProtectedRoute></ErrorBoundary>} />
+
+          {/* App shell — rail + routed pages */}
           <Route
             element={
               <ErrorBoundary>
@@ -255,7 +258,6 @@ export default function App() {
               </ErrorBoundary>
             }
           >
-            <Route index element={<Suspense fallback={<RouteSkeleton />}><Launch /></Suspense>} />
             <Route path="/projects" element={<Suspense fallback={<RouteSkeleton />}><ProjectsPage /></Suspense>} />
             <Route path="/marketplace" element={<Suspense fallback={<RouteSkeleton />}><MarketplacePage /></Suspense>} />
             <Route path="/billing" element={<Suspense fallback={<RouteSkeleton />}><BillingPage /></Suspense>} />
