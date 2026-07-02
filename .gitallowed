@@ -1,0 +1,15 @@
+# git-secrets false-positive allowlist.
+# Each line is a regex matched against scan output; a match here exempts
+# that line from being flagged as a secret. Keep entries narrow.
+
+# secret-scanning.yml's own git-secrets pattern definitions read back as
+# literal text and can satisfy the very patterns they define (e.g. the
+# redis pattern's "[^@]+@" matches itself).
+git secrets --add
+
+# Fixed placeholder GitHub token used in encryption/masking tests — always
+# this exact literal value, never a real credential.
+ghp_1234567890abcdefghijklmnopqrstuvwxyz
+
+# api_key assigned from a local generator call, not a literal secret value.
+api_key = _generate_key\(\)
