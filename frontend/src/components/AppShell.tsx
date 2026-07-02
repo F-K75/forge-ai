@@ -10,7 +10,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/",            label: "Projects",    icon: LayoutGrid, end: true  },
+  { to: "/projects",    label: "Projects",    icon: LayoutGrid, end: true  },
   { to: "/marketplace", label: "Marketplace", icon: Store                   },
   { to: "/billing",     label: "Billing",     icon: CreditCard              },
   { to: "/settings",    label: "Settings",    icon: Settings                },

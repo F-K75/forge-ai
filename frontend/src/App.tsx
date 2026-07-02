@@ -15,6 +15,7 @@ const Admin = lazy(() => import('./pages/Admin'))
 
 // App shell + routed pages (step 1)
 const AppShell        = lazy(() => import('./components/AppShell'))
+const Launch          = lazy(() => import('./pages/Launch'))
 const ProjectsPage    = lazy(() => import('./pages/ProjectsPage'))
 const MarketplacePage = lazy(() => import('./pages/MarketplacePage'))
 const BillingPage     = lazy(() => import('./pages/BillingPage'))
@@ -254,7 +255,8 @@ export default function App() {
               </ErrorBoundary>
             }
           >
-            <Route index element={<Suspense fallback={<RouteSkeleton />}><ProjectsPage /></Suspense>} />
+            <Route index element={<Suspense fallback={<RouteSkeleton />}><Launch /></Suspense>} />
+            <Route path="/projects" element={<Suspense fallback={<RouteSkeleton />}><ProjectsPage /></Suspense>} />
             <Route path="/marketplace" element={<Suspense fallback={<RouteSkeleton />}><MarketplacePage /></Suspense>} />
             <Route path="/billing" element={<Suspense fallback={<RouteSkeleton />}><BillingPage /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={<RouteSkeleton />}><SettingsPage /></Suspense>} />

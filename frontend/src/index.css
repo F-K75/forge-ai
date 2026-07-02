@@ -163,6 +163,12 @@ body {
   animation: agent-pulse 1.5s ease-in-out infinite;
 }
 
+/* Revolving globe on the Launch screen */
+@keyframes spin-globe {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+
 .shadow-blue-glow {
   box-shadow: 0 0 0 2px var(--electric-blue-glow);
 }
