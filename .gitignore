@@ -32,6 +32,8 @@ Thumbs.db
 # Build
 dist/
 build/
+# build/ above silently swallowed this source directory — keep it tracked
+!frontend/src/components/build/
 *.egg-info/
 
 # Docker
