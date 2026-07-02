@@ -5,6 +5,7 @@ All secrets (API keys, DB URLs) come from env vars — never hard-coded.
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -16,6 +17,18 @@ class Settings(BaseSettings):
     # --- Persistence ---
     mongodb_url: str = "mongodb://localhost:27017/forge"
     mongodb_db: str = "forge_review"
+
+    # --- CORS ---
+    # Union with str lets pydantic-settings fall back to the raw env value when
+    # it isn't JSON, so both JSON arrays and comma-separated strings work.
+    allowed_origins: list[str] | str = ["http://localhost:3000", "http://localhost:5173"]
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def split_allowed_origins(cls, v):
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     # --- Agent loading ---
     # Directory holding the agent *.json definitions. Relative paths are

@@ -47,6 +47,7 @@ async def execute_review(run: ReviewRun, diff: Optional[str] = None) -> ReviewRu
 
         triggered = select_triggered_agents(agents, files)
         run.triggered_agents = [a.id for a, _ in triggered]
+        run.candidate_files = len(files)
         run.status = RunStatus.running
         await update_run(run)
         await _emit(

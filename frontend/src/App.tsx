@@ -23,6 +23,9 @@ const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
 // Step 3: in-shell surfaces
 const AdminConsole    = lazy(() => import('./pages/AdminConsole'))
 const ProjectHistory  = lazy(() => import('./pages/ProjectHistory'))
+// Review board — orchestrator UI (separate backend service, see lib/orchestratorApi.ts)
+const ReviewsListPage  = lazy(() => import('./pages/reviews/ReviewsListPage'))
+const ReviewDetailPage = lazy(() => import('./pages/reviews/ReviewDetailPage'))
 // Step 5: public marketing surface (independent theme, no shell, no auth)
 const LandingPage     = lazy(() => import('./pages/LandingPage'))
 
@@ -263,6 +266,8 @@ export default function App() {
             {/* Step 3: in-shell surfaces */}
             <Route path="/admin-console" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense></AdminRoute>} />
             <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />
+            <Route path="/reviews" element={<Suspense fallback={<RouteSkeleton />}><ReviewsListPage /></Suspense>} />
+            <Route path="/reviews/:runId" element={<Suspense fallback={<RouteSkeleton />}><ReviewDetailPage /></Suspense>} />
           </Route>
 
           {/* Workspace — full-screen, no shell (step 4 fills this) */}

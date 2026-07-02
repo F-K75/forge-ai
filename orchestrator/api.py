@@ -32,7 +32,7 @@ from .models import (
     RunStatus,
 )
 from .service import execute_review
-from .store import get_backlog, get_run, save_run
+from .store import get_backlog, get_run, list_runs, save_run
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -60,6 +60,13 @@ async def create_review(
     await save_run(run)
     background_tasks.add_task(_run_in_background, run, req.diff)
     return CreateReviewResponse(run_id=run.run_id, status=run.status)
+
+
+@router.get("")
+@router.get("/", include_in_schema=False)
+async def list_reviews(limit: int = Query(50, ge=1, le=200)) -> dict:
+    runs = await list_runs(limit=limit)
+    return {"count": len(runs), "items": [r.model_dump(mode="json") for r in runs]}
 
 
 @router.get("/{run_id}")

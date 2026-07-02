@@ -206,6 +206,7 @@ class ReviewRun(BaseModel):
     consolidated: Optional[ConsolidatedReport] = None
     total_cost_usd: float = 0.0
     total_tokens: int = 0
+    candidate_files: int = 0
     triggered_agents: list[str] = Field(default_factory=list)
     error: Optional[str] = None
 

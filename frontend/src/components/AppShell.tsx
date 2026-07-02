@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutGrid, Store, CreditCard, Settings, Zap, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Store, CreditCard, Settings, ShieldCheck, Zap, type LucideIcon } from "lucide-react";
 import { CURRENT_USER } from "../lib/mockData";
 
 interface NavItem {
@@ -12,6 +12,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: "/projects",    label: "Projects",    icon: LayoutGrid, end: true  },
   { to: "/marketplace", label: "Marketplace", icon: Store                   },
+  { to: "/reviews",     label: "Reviews",     icon: ShieldCheck             },
   { to: "/billing",     label: "Billing",     icon: CreditCard              },
   { to: "/settings",    label: "Settings",    icon: Settings                },
 ];

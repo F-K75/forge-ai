@@ -75,6 +75,13 @@ async def get_run(run_id: str) -> Optional[ReviewRun]:
     return ReviewRun.model_validate(doc) if doc else None
 
 
+async def list_runs(limit: int = 50) -> list[ReviewRun]:
+    db = await get_db()
+    cursor = db[RUNS_COLLECTION].find({}, {"_id": 0}).sort("created_at", -1).limit(limit)
+    docs = await cursor.to_list(length=limit)
+    return [ReviewRun.model_validate(doc) for doc in docs]
+
+
 # --------------------------------------------------------------------------- #
 # Backlog
 # --------------------------------------------------------------------------- #

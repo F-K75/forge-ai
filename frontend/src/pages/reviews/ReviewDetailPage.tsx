@@ -1,0 +1,186 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import { ArrowLeft, Files, Bot as BotIcon, Zap, DollarSign, ListChecks } from "lucide-react";
+import { reviewsApi } from "../../lib/orchestratorApi";
+import { useReviewSocket } from "../../hooks/useReviewSocket";
+import { useReviewStore } from "../../store/reviewStore";
+import { StatusPill } from "../../components/StatusPill";
+import { SummaryChip } from "../../components/SummaryChip";
+import { ReviewAgentPipeline, type ReviewPipelineNode } from "../../components/ReviewAgentPipeline";
+
+interface BacklogItem {
+  id: string;
+  title: string;
+  description: string;
+  fix: string;
+  severity: "critical" | "high" | "medium" | "low";
+  effort: "S" | "M" | "L";
+  impact: number;
+  files: string[];
+}
+
+const SEVERITY_COLOR: Record<BacklogItem["severity"], string> = {
+  critical: "text-error",
+  high: "text-warn",
+  medium: "text-accent",
+  low: "text-faint",
+};
+
+const TERMINAL_STATUSES = new Set(["complete", "failed"]);
+
+export default function ReviewDetailPage() {
+  const { runId } = useParams<{ runId: string }>();
+  const [hydrated, setHydrated] = useState(false);
+  const [backlog, setBacklog] = useState<BacklogItem[] | null>(null);
+  const [backlogTotal, setBacklogTotal] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<"severity" | "impact">("severity");
+
+  const { hydrateFromRun, reset, status, mode, candidateFiles, triggeredAgents, agentStates, overallScore, recommendation, backlogCount, totalCostUsd, totalTokens } =
+    useReviewStore();
+
+  useEffect(() => {
+    if (!runId) return;
+    reset();
+    setHydrated(false);
+    reviewsApi
+      .get(runId)
+      .then((run) => {
+        hydrateFromRun(run);
+        setHydrated(true);
+      })
+      .catch(() => toast.error("Failed to load review run"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
+
+  const socketEnabled = hydrated && runId && !TERMINAL_STATUSES.has(status);
+  useReviewSocket(socketEnabled ? runId! : null);
+
+  useEffect(() => {
+    if (!runId || status !== "complete") return;
+    reviewsApi
+      .backlog(runId, sortBy)
+      .then((data) => {
+        setBacklog(data.items);
+        setBacklogTotal(data.count);
+      })
+      .catch(() => toast.error("Failed to load backlog"));
+  }, [runId, status, sortBy]);
+
+  if (!hydrated) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-faint">Loading review run…</div>
+    );
+  }
+
+  const nodes: ReviewPipelineNode[] = triggeredAgents.map((id) => ({
+    id,
+    state: agentStates[id]?.status ?? "idle",
+    detail:
+      agentStates[id]?.status === "done" || agentStates[id]?.status === "failed"
+        ? `${agentStates[id]?.issues ?? 0} issue${agentStates[id]?.issues === 1 ? "" : "s"}${
+            agentStates[id]?.error ? ` — ${agentStates[id]?.error}` : ""
+          }`
+        : undefined,
+  }));
+
+  return (
+    <div className="p-6 md:p-8 max-w-5xl mx-auto">
+      <Link to="/reviews" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition mb-5">
+        <ArrowLeft size={12} aria-hidden="true" />
+        Back to reviews
+      </Link>
+
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-base font-semibold text-ink font-mono">{runId}</h1>
+            <StatusPill status={status} />
+          </div>
+          <p className="text-xs text-muted">mode: {mode ?? "—"}</p>
+        </div>
+      </div>
+
+      {/* Summary chips */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+        <SummaryChip label="Candidate files" value={String(candidateFiles)} icon={<Files size={11} className="text-faint" aria-hidden="true" />} />
+        <SummaryChip label="Agents triggered" value={String(triggeredAgents.length)} icon={<BotIcon size={11} className="text-faint" aria-hidden="true" />} />
+        <SummaryChip
+          label="Overall score"
+          value={overallScore !== null ? String(overallScore) : "—"}
+          warn={recommendation === "NO_GO"}
+        />
+        <SummaryChip label="Recommendation" value={recommendation ?? "—"} warn={recommendation === "NO_GO"} />
+        <SummaryChip
+          label="Backlog items"
+          value={(backlogCount ?? backlogTotal) !== null ? String(backlogCount ?? backlogTotal) : "—"}
+          icon={<ListChecks size={11} className="text-faint" aria-hidden="true" />}
+        />
+        <SummaryChip label="Cost" value={`$${totalCostUsd.toFixed(4)}`} icon={<DollarSign size={11} className="text-faint" aria-hidden="true" />} />
+        <SummaryChip label="Tokens" value={totalTokens.toLocaleString()} icon={<Zap size={11} className="text-faint" aria-hidden="true" />} />
+      </div>
+
+      {/* Pipeline */}
+      <section aria-label="Review agent pipeline" className="mb-8">
+        <h2 className="text-[10px] font-semibold text-faint uppercase tracking-wider mb-4">Pipeline run</h2>
+        {nodes.length === 0 ? (
+          <p className="text-sm text-faint">Waiting for the run to start…</p>
+        ) : (
+          <div className="max-w-xs">
+            <ReviewAgentPipeline nodes={nodes} />
+          </div>
+        )}
+      </section>
+
+      {/* Backlog */}
+      {status === "complete" && (
+        <section aria-label="Backlog">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[10px] font-semibold text-faint uppercase tracking-wider">Backlog</h2>
+            <div className="flex gap-2">
+              {(["severity", "impact"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSortBy(s)}
+                  className={[
+                    "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition motion-reduce:transition-none",
+                    sortBy === s ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
+                  ].join(" ")}
+                >
+                  by {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {backlog === null ? (
+            <p className="text-sm text-faint">Loading backlog…</p>
+          ) : backlog.length === 0 ? (
+            <p className="text-sm text-faint">No issues found.</p>
+          ) : (
+            <ul className="space-y-2">
+              {backlog.map((item) => (
+                <li key={item.id} className="bg-panel border border-border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide ${SEVERITY_COLOR[item.severity]}`}>
+                      {item.severity}
+                    </span>
+                    <span className="text-[10px] text-faint">effort {item.effort}</span>
+                    <span className="text-[10px] text-faint">impact {item.impact}/10</span>
+                  </div>
+                  <p className="text-sm font-medium text-ink mb-1">{item.title}</p>
+                  {item.description && <p className="text-xs text-muted mb-1.5">{item.description}</p>}
+                  {item.fix && <p className="text-xs text-muted italic">Fix: {item.fix}</p>}
+                  {item.files.length > 0 && (
+                    <p className="text-[10px] font-mono text-faint mt-1.5 truncate">{item.files.join(", ")}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}

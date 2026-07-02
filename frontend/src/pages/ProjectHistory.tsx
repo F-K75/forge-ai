@@ -8,6 +8,7 @@ import { LIVE_MODE } from "../lib/env";
 import { projectsApi, buildsApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
 import { StatusPill } from "../components/StatusPill";
+import { SummaryChip } from "../components/SummaryChip";
 import {
   AgentPipeline,
   type PipelineNode,
@@ -286,34 +287,6 @@ export default function ProjectHistory() {
           </div>
         </section>
       </main>
-    </div>
-  );
-}
-
-function SummaryChip({
-  label,
-  value,
-  icon,
-  warn = false,
-}: {
-  label: string;
-  value: string;
-  icon?: React.ReactNode;
-  warn?: boolean;
-}) {
-  return (
-    <div className="bg-panel border border-border rounded-xl px-4 py-3">
-      <p className="text-[10px] text-faint mb-1">{label}</p>
-      <div className="flex items-center gap-1.5">
-        {icon}
-        <span
-          className={`font-mono text-base font-bold ${
-            warn ? "text-warn" : "text-ink"
-          }`}
-        >
-          {value}
-        </span>
-      </div>
     </div>
   );
 }
