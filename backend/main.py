@@ -38,7 +38,7 @@ app = FastAPI(
 # Add trusted host middleware to prevent host header attacks
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", "*.forge.ai", "*.local"],
+    allowed_hosts=[h.strip() for h in settings.allowed_hosts.split(",") if h.strip()],
 )
 
 app.add_middleware(

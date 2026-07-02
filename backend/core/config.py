@@ -55,7 +55,17 @@ class Settings(BaseSettings):
     # App
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
-    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # Union with str lets pydantic-settings fall back to the raw env value when
+    # it isn't JSON, so both JSON arrays and comma-separated strings work
+    allowed_origins: list[str] | str = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_hosts: str = "localhost,127.0.0.1,testserver"
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def split_allowed_origins(cls, v):
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     # Admin
     admin_emails: str = "admin@forge.ai"

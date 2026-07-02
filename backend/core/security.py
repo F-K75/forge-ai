@@ -2,6 +2,7 @@ from fastapi import Request, HTTPException
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from typing import Optional
 from datetime import datetime, timedelta
+import ipaddress
 import re
 import time
 import secrets
@@ -40,9 +41,26 @@ def _get_limit_config(path: str) -> tuple[str, dict]:
         return "general", {"limit": 60, "window": 60}
 
 
+def _is_trusted_proxy(host: str) -> bool:
+    try:
+        peer = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    for entry in settings.trusted_proxies.split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        try:
+            if peer in ipaddress.ip_network(entry, strict=False):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
 async def get_client_ip(request: Request) -> str:
     # Use X-Forwarded-For only if request is from trusted proxy
-    if request.client and request.client.host in settings.trusted_proxies.split(","):
+    if request.client and _is_trusted_proxy(request.client.host):
         forwarded = request.headers.get("X-Forwarded-For")
         if forwarded:
             return forwarded.split(",")[0].strip()
