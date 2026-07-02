@@ -37,7 +37,7 @@ export const ROUTES = {
   ONBOARDING: '/onboarding',
   BILLING: '/billing',
   SETTINGS: '/settings',
-  ADMIN: '/admin',
+  ADMIN: '/admin-console',
   MARKETPLACE: '/marketplace',
   WORKSPACE: '/',
   PROJECT: '/project/:projectId',

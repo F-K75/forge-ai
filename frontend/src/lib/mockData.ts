@@ -243,53 +243,6 @@ export const DEFAULT_SETTINGS: SettingsState = {
   debugIterations: 3,
 };
 
-// ─── Admin ────────────────────────────────────────────────────────────────────
-
-export interface AdminStat {
-  label: string;
-  value: string;
-  delta: string;
-  iconName: string;
-  hue: string;
-}
-
-export const ADMIN_STATS: AdminStat[] = [
-  { label: "Active users",     value: "3,482",  delta: "+12%", iconName: "users",       hue: "#6366F1" },
-  { label: "Builds today",     value: "1,209",  delta: "+8%",  iconName: "activity",    hue: "#22D3EE" },
-  { label: "MRR",              value: "$48.2k", delta: "+5%",  iconName: "credit-card", hue: "#34D399" },
-  { label: "Credits consumed", value: "892k",   delta: "+18%", iconName: "zap",         hue: "#F59E0B" },
-];
-
-export interface AgentHealth {
-  agent: Agent["id"];
-  uptime: number;
-  latency: string;
-}
-
-export const AGENT_HEALTH: AgentHealth[] = [
-  { agent: "architect",   uptime: 99.9, latency: "1.2s" },
-  { agent: "designer",    uptime: 99.7, latency: "1.8s" },
-  { agent: "developer",   uptime: 98.1, latency: "4.8s" },
-  { agent: "integration", uptime: 99.4, latency: "2.1s" },
-  { agent: "pm",          uptime: 99.8, latency: "0.9s" },
-];
-
-export interface AdminBuild {
-  user: string;
-  project: string;
-  status: "complete" | "debugging" | "failed";
-  qaScore: number | null;
-  credits: number;
-}
-
-export const RECENT_BUILDS: AdminBuild[] = [
-  { user: "sarah_dev",   project: "saas-starter",   status: "complete",  qaScore: 94,   credits: 13 },
-  { user: "marcos_ux",   project: "e-commerce-lite", status: "debugging", qaScore: null, credits: 21 },
-  { user: "priya_eng",   project: "api-gateway",     status: "complete",  qaScore: 88,   credits: 9  },
-  { user: "luka_ml",     project: "data-pipeline",   status: "failed",    qaScore: null, credits: 17 },
-  { user: "ana_product", project: "crm-dashboard",   status: "complete",  qaScore: 91,   credits: 11 },
-];
-
 // ─── Project history ──────────────────────────────────────────────────────────
 
 export interface BuildRun {

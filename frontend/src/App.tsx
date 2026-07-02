@@ -11,7 +11,6 @@ import { LIVE_MODE } from './lib/env'
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const Signup = lazy(() => import('./pages/Signup'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
-const Admin = lazy(() => import('./pages/Admin'))
 
 // App shell + routed pages (step 1)
 const AppShell        = lazy(() => import('./components/AppShell'))
@@ -241,7 +240,6 @@ export default function App() {
           <Route path="/signup" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Signup /></Suspense></PublicRoute></ErrorBoundary>} />
           <Route path="/forgot-password" element={<ErrorBoundary><PublicRoute><ForgotPassword /></PublicRoute></ErrorBoundary>} />
           <Route path="/onboarding" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ErrorBoundary>} />
-          <Route path="/admin" element={<ErrorBoundary><AdminRoute><Suspense fallback={<RouteSkeleton />}><Admin /></Suspense></AdminRoute></ErrorBoundary>} />
 
           {/* Launch — full-screen, no sidebar shell, still behind the auth gate */}
           <Route path="/" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Launch /></Suspense></ProtectedRoute></ErrorBoundary>} />

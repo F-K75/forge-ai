@@ -109,3 +109,13 @@ export const webhooksApi = {
   create: (data: { url: string; events?: string[] }) => api.post('/webhooks/', data).then(r => r.data),
   delete: (id: string) => api.delete(`/webhooks/${id}`).then(r => r.data),
 }
+
+// Admin
+export const adminApi = {
+  overview: () => api.get('/admin/analytics/overview').then(r => r.data),
+  systemHealth: () => api.get('/admin/system/health').then(r => r.data),
+  listUsers: (search?: string) => api.get('/admin/users', { params: { search } }).then(r => r.data),
+  listBuilds: () => api.get('/admin/builds', { params: { per_page: 20 } }).then(r => r.data),
+  adjustCredits: (data: { user_id: string; amount: number; reason: string }) =>
+    api.post('/admin/billing/adjust', data).then(r => r.data),
+}
