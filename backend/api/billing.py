@@ -65,8 +65,8 @@ PLAN_DETAILS = [
         "price_id": "price_free",
         "price_monthly": 0,
         "price_annual": 0,
-        "credits": 10,
-        "features": ["Basic agents", "10 credits/month", "Community support"],
+        "credits": 50,
+        "features": ["Basic agents", "50 credits", "Community support"],
         "max_projects": 3,
     },
     {

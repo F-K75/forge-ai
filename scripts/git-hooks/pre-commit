@@ -71,6 +71,12 @@ else
 fi
 
 # --- Grep fallback scanner ---
+# One `grep -nE` call per file against all patterns combined (IFS='|'),
+# instead of spawning a grep subprocess per line per pattern -- the
+# previous O(lines * patterns) approach took 2-5+ minutes on commits
+# touching a large generated file (e.g. package-lock.json).
+COMBINED_PATTERN=$(IFS='|'; echo "${SECRET_PATTERNS[*]}")
+
 for FILE in $STAGED_FILES; do
     # Skip allowlisted files
     if echo "$FILE" | grep -qE "$ALLOWLIST_REGEX"; then
@@ -83,23 +89,18 @@ for FILE in $STAGED_FILES; do
         continue
     fi
 
-    LINE_NUM=0
-    while IFS= read -r LINE; do
-        LINE_NUM=$((LINE_NUM + 1))
-
-        # Skip comments and empty lines
-        if [[ "$LINE" =~ ^[[:space:]]*# ]] || [[ "$LINE" =~ ^[[:space:]]*$ ]]; then
-            continue
-        fi
-
-        for PATTERN in "${SECRET_PATTERNS[@]}"; do
-            if echo "$LINE" | grep -qE "$PATTERN"; then
-                echo -e "${RED}❌ Secret pattern found in $FILE:$LINE_NUM${NC}"
-                echo "   Line: $(echo "$LINE" | sed 's/^[[:space:]]*//')"
-                EXIT_CODE=1
-            fi
-        done
-    done <<< "$STAGED_CONTENT"
+    # Drop comment-only/blank lines first so they can't match, then run
+    # every pattern in a single pass with line numbers preserved via -n.
+    MATCHES=$(echo "$STAGED_CONTENT" | grep -nE "$COMBINED_PATTERN" | grep -vE ':[[:space:]]*#' || true)
+    if [ -n "$MATCHES" ]; then
+        while IFS= read -r MATCH_LINE; do
+            LINE_NUM="${MATCH_LINE%%:*}"
+            LINE_CONTENT="${MATCH_LINE#*:}"
+            echo -e "${RED}❌ Secret pattern found in $FILE:$LINE_NUM${NC}"
+            echo "   Line: $(echo "$LINE_CONTENT" | sed 's/^[[:space:]]*//')"
+            EXIT_CODE=1
+        done <<< "$MATCHES"
+    fi
 done
 
 if [ $EXIT_CODE -ne 0 ]; then

@@ -65,7 +65,7 @@ class User(BaseModel):
     github_token: Optional[str] = None
     preferences: dict = Field(default_factory=dict)
     plan: PlanTier = PlanTier.FREE
-    credits: int = 10
+    credits: int = 50
     stripe_customer_id: Optional[str] = None
     banned: bool = False
     trial_ends_at: Optional[datetime] = None
