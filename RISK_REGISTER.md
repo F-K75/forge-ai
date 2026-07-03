@@ -534,3 +534,79 @@
 | After Sprint 3 | 1 | 2 | 6 | 0 |
 | After Sprint 4 | 1 | 1 | 4 | 0 |
 | After Sprint 5 (Launch) | 0 | 0 | 2 | 0 |
+
+---
+
+## Appendix A: P0/P1 Security Audit Report (2026-06-30, folded in — P0_P1_SECURITY_AUDIT_REPORT.json removed)
+
+**Methodology:** manual code review, 38 files / 4,850 lines, OWASP Top 10 (2021) classification, CVSS 3.1 scoring. Score before fixes: 15/100; projected score after fixes: 85/100. Total estimated remediation: 138 hours.
+
+> **ID-collision note:** this audit's finding IDs (`P0-CRIT-xxx`, `P0-HIGH-xxx`, `P1-MED-xxx`, `P2-LOW-xxx`, `TASK-xxx`) are from an independent numbering scheme, separate from the R-xxx risk IDs in this register and from the SEC-xxx IDs used in MASTER_EXECUTION_PLAN.md / EXECUTION_TRACKING.md §8. Per MASTER_EXECUTION_PLAN.md's 2026-07-03 refresh, several of the items below are already resolved in the current codebase (e.g., CSRF wiring, encryption-key/JWT-secret separation, JTI-based token blacklisting, WebSocket short-lived token auth, and the credit-refund race condition — see R-028 above for the refund-specific fix, which is a *different* bug in the same area than P0-CRIT-004 below describes). Treat this appendix as the historical audit record, not a live status tracker; confirm current state against MASTER_EXECUTION_PLAN.md §2 before acting on any row.
+
+### Critical (CVSS ≥ 8.0)
+
+| ID | Title | CVSS | OWASP | Hours | Deployment blocker |
+|----|-------|------|-------|-------|---------------------|
+| P0-CRIT-001 | Docker-in-Docker container escape via mounted Docker socket | 9.9 | A01 Broken Access Control | 24 | Yes |
+| P0-CRIT-002 | Plaintext API keys and secrets committed to repository (`.env`, 12 secrets incl. `JWT_SECRET`) | 9.8 | A05 Security Misconfiguration | 4 | Yes |
+| P0-CRIT-003 | Sandbox runner arbitrary code execution on host (`py_compile` on untrusted AI output) | 8.8 | A08 Software/Data Integrity | 16 | Yes |
+| P0-CRIT-004 | Credit refund race condition — arbitrary credit creation (error path lacked the atomic guard the success path had) | 8.6 | A01 Broken Access Control | 4 | Yes |
+| P0-CRIT-005 | Admin privilege escalation via email registration (`admin@forge.ai` string match, no DB-backed role) | 8.2 | A01 Broken Access Control | 6 | Yes |
+
+### High
+
+| ID | Title | CVSS | Hours | Deployment blocker |
+|----|-------|------|-------|---------------------|
+| P0-HIGH-001 | Unbounded MongoDB `to_list(None)` — DoS via OOM (auth.py, marketplace.py, billing.py) | 7.5 | 4 | Yes |
+| P0-HIGH-002 | No trial enforcement — `trial_ends_at` field never checked, free builds indefinitely | 7.5 | 6 | Yes |
+| P0-HIGH-003 | Password reset flow non-functional — token generated but email never sent, no frontend route | 7.5 | 8 | Yes |
+| P0-HIGH-004 | Container kill via deployment ID — no ownership check before Docker `kill()`/`remove()` | 7.5 | 4 | Yes |
+| P0-HIGH-005 | File path traversal via build output files in deployment (`os.path.join` unsanitized) | 7.5 | 4 | Yes |
+| P0-HIGH-006 | Marketplace has no content moderation — spam/malware distribution vector | 7.5 | 8 | Yes |
+| P0-HIGH-007 | Auth responses return raw MongoDB documents (login/register) | 7.4 | 3 | Yes |
+| P0-HIGH-008 | GitHub token exposed in request body and passed to subprocess via env var | 7.4 | 4 | Yes |
+| P0-HIGH-009 | Rate limiter IP spoofing via `X-Forwarded-For` (trusted-proxies misconfiguration) | 7.5 | 3 | Yes |
+| P0-HIGH-010 | CSRF protection stored in-memory only, never wired to any endpoint | 7.5 | 4 | No |
+
+### Medium
+
+| ID | Title | CVSS | Hours | Deployment blocker |
+|----|-------|------|-------|---------------------|
+| P1-MED-001 | No MongoDB TLS/SSL enforcement in production | 6.5 | 2 | Yes |
+| P1-MED-002 | Stripe webhook signature verification loophole (bare `except Exception`) | 6.5 | 3 | No |
+| P1-MED-003 | Volume mount of backend code in production `docker-compose.yml` | 6.5 | 2 | Yes |
+| P1-MED-004 | CORS origins hardcoded, not configurable for production | 6.1 | 1 | No |
+| P1-MED-005 | Host header injection via `TrustedHostMiddleware` wildcards (`*.forge.ai`, `*.local`) | 6.1 | 1 | No |
+| P1-MED-006 | Prompt injection risk — no sanitization before AI agent processing | 6.5 | 8 | No |
+| P1-MED-007 | Weak JWT algorithm — HS256, no key rotation, 7-day expiry, no revocation list | 6.0 | 8 | No |
+
+### Low
+
+| ID | Title | CVSS | Hours |
+|----|-------|------|-------|
+| P2-LOW-001 | No rate limiting on WebSocket connections | 4.3 | 3 |
+| P2-LOW-002 | Audit logs do not capture IP address or user agent | 4.8 | 4 |
+| P2-LOW-003 | Decryption failure returns raw ciphertext instead of a sanitized error | 4.6 | 1 |
+| P2-LOW-004 | Encryption key derived from JWT secret (coupled security domains) | 4.0 | 4 |
+
+**Deployment blockers called out separately in the source report:** Docker-in-Docker escape, API keys in version control, sandbox arbitrary code execution, credit race condition, admin email-based escalation (all Critical); unbounded MongoDB queries (High); no MongoDB TLS, production volume mount (Medium).
+
+---
+
+## Appendix B: SEC-002 — Plaintext Secrets in Version Control (work package + validation, folded in — SEC-002-work-package.json and SEC-002-validation-result.json removed)
+
+**Work package summary:** Critical severity, 4 estimated hours. Scope: remove `.env` from git tracking and `.gitignore` it, create `.env.example` with placeholders only, rotate all existing secrets, wire CI/CD to inject real secrets via environment variables, install a functional pre-commit secret-detection hook, and configure `git-secrets` (or equivalent) scanning in CI/CD. No dependencies on other tasks.
+
+**Validation result: PASS.** All 6 acceptance criteria verified:
+- `.env` removed from git tracking and `.gitignore`d (commit `1372ec3c`)
+- `.env.example` created with placeholder values only
+- Secrets rotated — `JWT_SECRET` changed from `change_this_in_production` to a generated 64-char hex value; `core/config.py` default updated to a 64-char fallback satisfying the ≥32-char validator
+- `.github/workflows/ci.yml` injects all secrets via `${{ secrets.* }}`
+- Pre-commit hook installed and proven functional (blocked an attempted commit of a staged `.env`)
+- `.github/workflows/secret-scanning.yml` configured (git-secrets, AWS patterns, custom API-key patterns, staged/history scanning, `.env`-in-PR detection, grep fallback)
+
+**Remaining risks noted at validation time (all explicitly out of SEC-002's scope, not blocking its PASS):**
+- `.env` still present in git history (commit `28f4a676`) with placeholder-only values; full history scrub via `git-filter-repo` was not performed — low risk since no real secrets were ever committed
+- Frontend TypeScript build has pre-existing failures (duplicate identifiers, missing module declarations, implicit `any`, undefined `Send`) unrelated to SEC-002
+- Backend unit tests failed to collect at the time due to a pre-existing pymongo/motor compatibility issue (`ImportError: cannot import name '_QUERY_OPTIONS'`) — unrelated to SEC-002 (see the CI-fix commit history for later resolution)
+- Backend had 41 pre-existing ruff lint errors (38 auto-fixable), unrelated to SEC-002
