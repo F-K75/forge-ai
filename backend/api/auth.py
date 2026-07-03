@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request
+from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request, Query
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import uuid
 import hashlib
 import logging
+import math
 
 import resend
 
@@ -645,6 +646,30 @@ class OrganizationResponse(BaseModel):
     created_at: datetime
 
 
+class PaginatedOrganizations(BaseModel):
+    organizations: List[OrganizationResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+class OrganizationMemberResponse(BaseModel):
+    id: str
+    email: Optional[str] = None
+    name: Optional[str] = None
+    role: str
+    joined_at: Optional[datetime] = None
+
+
+class PaginatedOrganizationMembers(BaseModel):
+    members: List[OrganizationMemberResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
 class InviteMemberRequest(BaseModel):
     email: EmailStr
     role: Role = Role.MEMBER
@@ -690,8 +715,12 @@ async def create_organization(
     )
 
 
-@router.get("/organizations", response_model=list[OrganizationResponse])
-async def list_organizations(user: User = Depends(get_current_user)):
+@router.get("/organizations", response_model=PaginatedOrganizations)
+async def list_organizations(
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
 
     memberships = await db.team_members.find({"user_id": user.id}, {"_id": 0}).to_list(
@@ -700,11 +729,15 @@ async def list_organizations(user: User = Depends(get_current_user)):
     org_ids = [m["org_id"] for m in memberships]
 
     if not org_ids:
-        return []
+        return PaginatedOrganizations(
+            organizations=[], total=0, page=page, per_page=per_page, total_pages=0
+        )
 
-    orgs = await db.organizations.find({"id": {"$in": org_ids}}, {"_id": 0}).to_list(
-        None
-    )
+    org_query = {"id": {"$in": org_ids}}
+    total = await db.organizations.count_documents(org_query)
+    orgs = await db.organizations.find(org_query, {"_id": 0}).skip(
+        (page - 1) * per_page
+    ).limit(per_page).to_list(per_page)
 
     result = []
     for org in orgs:
@@ -721,7 +754,13 @@ async def list_organizations(user: User = Depends(get_current_user)):
             )
         )
 
-    return result
+    return PaginatedOrganizations(
+        organizations=result,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.get("/organizations/{org_id}", response_model=OrganizationResponse)
@@ -827,8 +866,13 @@ async def accept_invitation(token: str, user: User = Depends(get_current_user)):
     return {"ok": True}
 
 
-@router.get("/organizations/{org_id}/members")
-async def list_members(org_id: str, user: User = Depends(get_current_user)):
+@router.get("/organizations/{org_id}/members", response_model=PaginatedOrganizationMembers)
+async def list_members(
+    org_id: str,
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
 
     membership = await db.team_members.find_one(
@@ -837,7 +881,11 @@ async def list_members(org_id: str, user: User = Depends(get_current_user)):
     if not membership:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    members = await db.team_members.find({"org_id": org_id}, {"_id": 0}).to_list(None)
+    member_query = {"org_id": org_id}
+    total = await db.team_members.count_documents(member_query)
+    members = await db.team_members.find(member_query, {"_id": 0}).skip(
+        (page - 1) * per_page
+    ).limit(per_page).to_list(per_page)
     user_ids = [m["user_id"] for m in members]
 
     users = await db.users.find(
@@ -845,7 +893,7 @@ async def list_members(org_id: str, user: User = Depends(get_current_user)):
     ).to_list(None)
     user_map = {u["id"]: u for u in users}
 
-    return [
+    result = [
         {
             "id": m["id"],
             "email": user_map.get(m["user_id"], {}).get("email"),
@@ -855,6 +903,14 @@ async def list_members(org_id: str, user: User = Depends(get_current_user)):
         }
         for m in members
     ]
+
+    return PaginatedOrganizationMembers(
+        members=result,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.put("/organizations/{org_id}/members/{member_id}/role")

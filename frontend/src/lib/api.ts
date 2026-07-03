@@ -74,24 +74,24 @@ export const authApi = {
     api.post('/auth/me/password', data).then(r => r.data),
   organizations: {
     create: (data: { name: string; slug?: string }) => api.post('/auth/organizations', data).then(r => r.data),
-    list: () => api.get('/auth/organizations').then(r => r.data),
+    list: () => api.get('/auth/organizations').then(r => r.data.organizations),
     get: (id: string) => api.get(`/auth/organizations/${id}`).then(r => r.data),
     invite: (id: string, data: { email: string; role?: string }) => api.post(`/auth/organizations/${id}/invite`, data).then(r => r.data),
-    members: (id: string) => api.get(`/auth/organizations/${id}/members`).then(r => r.data),
+    members: (id: string) => api.get(`/auth/organizations/${id}/members`).then(r => r.data.members),
     acceptInvite: (token: string) => api.post(`/auth/organizations/invitations/${token}/accept`).then(r => r.data),
   },
 }
 
 // Projects
 export const projectsApi = {
-  list: () => api.get('/projects/').then(r => r.data),
+  list: () => api.get('/projects/').then(r => r.data.projects),
   get: (id: string) => api.get(`/projects/${id}`).then(r => r.data),
   create: (data: { name: string; description?: string; template?: string }) =>
     api.post('/projects/', data).then(r => r.data),
   update: (id: string, data: any) =>
     api.put(`/projects/${id}`, data).then(r => r.data),
   delete: (id: string) => api.delete(`/projects/${id}`).then(r => r.data),
-  getBuilds: (id: string) => api.get(`/projects/${id}/builds`).then(r => r.data),
+  getBuilds: (id: string) => api.get(`/projects/${id}/builds`).then(r => r.data.builds),
 }
 
 // Builds
@@ -109,7 +109,7 @@ export const billingApi = {
   checkout: (data: { plan: string; success_url: string; cancel_url: string }) =>
     api.post('/billing/checkout', data).then(r => r.data),
   subscription: () => api.get('/billing/subscription').then(r => r.data),
-  invoices: () => api.get('/billing/invoices').then(r => r.data),
+  invoices: () => api.get('/billing/invoices').then(r => r.data.invoices),
   usage: () => api.get('/billing/usage').then(r => r.data),
   plans: () => api.get('/billing/plans').then(r => r.data),
   cancel: (at_period_end: boolean) => api.post('/billing/cancel', { at_period_end }).then(r => r.data),
@@ -148,22 +148,22 @@ export const integrationsApi = {
 
 // API Keys
 export const apiKeysApi = {
-  list: () => api.get('/api-keys/').then(r => r.data),
+  list: () => api.get('/api-keys/').then(r => r.data.api_keys),
   create: (data: { name: string; scopes?: string[] }) => api.post('/api-keys/', data).then(r => r.data),
   delete: (id: string) => api.delete(`/api-keys/${id}`).then(r => r.data),
 }
 
 // Webhooks
 export const webhooksApi = {
-  list: () => api.get('/webhooks/').then(r => r.data),
+  list: () => api.get('/webhooks/').then(r => r.data.webhooks),
   create: (data: { url: string; events?: string[] }) => api.post('/webhooks/', data).then(r => r.data),
   delete: (id: string) => api.delete(`/webhooks/${id}`).then(r => r.data),
 }
 
 // Marketplace
 export const marketplaceApi = {
-  list: (params?: { type?: string; search?: string; limit?: number }) =>
-    api.get('/marketplace/', { params }).then(r => r.data),
+  list: (params?: { type?: string; search?: string; page?: number; per_page?: number }) =>
+    api.get('/marketplace/', { params }).then(r => r.data.items),
   get: (id: string) => api.get(`/marketplace/${id}`).then(r => r.data),
   download: (id: string) => api.post(`/marketplace/${id}/download`).then(r => r.data),
   rate: (id: string, rating: number) =>

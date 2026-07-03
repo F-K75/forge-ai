@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, Request, Header
+from fastapi import APIRouter, HTTPException, Depends, Request, Header, Query
+import math
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -156,6 +157,14 @@ class InvoiceResponse(BaseModel):
     status: str
     hosted_invoice_url: Optional[str]
     created_at: datetime
+
+
+class PaginatedInvoices(BaseModel):
+    invoices: List[InvoiceResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
 
 
 class CreditPurchaseResponse(BaseModel):
@@ -414,14 +423,23 @@ async def get_subscription(user: User = Depends(get_current_user)):
     return sub
 
 
-@router.get("/invoices", response_model=List[InvoiceResponse])
-async def list_invoices(user: User = Depends(get_current_user)):
+@router.get("/invoices", response_model=PaginatedInvoices)
+async def list_invoices(
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
-    invoices = []
-    cursor = db.invoices.find({"user_id": user.id}, {"_id": 0}).sort("created_at", -1)
-    async for doc in cursor:
-        invoices.append(doc)
-    return invoices
+    query = {"user_id": user.id}
+    total = await db.invoices.count_documents(query)
+    invoices = await db.invoices.find(query, {"_id": 0}).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedInvoices(
+        invoices=invoices,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.post("/credits/purchase", response_model=Dict[str, str])

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+import math
 
 from core.models import MarketplaceItem, User
 from core.database import get_db
@@ -40,6 +41,14 @@ class MarketplaceItemResponse(BaseModel):
     created_at: str
 
 
+class PaginatedMarketplaceItems(BaseModel):
+    items: List[MarketplaceItemResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
 @router.post("/", response_model=MarketplaceItemResponse)
 async def create_item(req: MarketplaceItemCreate, user: User = Depends(get_current_user)):
     db = await get_db()
@@ -58,14 +67,15 @@ async def create_item(req: MarketplaceItemCreate, user: User = Depends(get_curre
     return item.model_dump(mode="json")
 
 
-@router.get("/", response_model=List[MarketplaceItemResponse])
+@router.get("/", response_model=PaginatedMarketplaceItems)
 async def list_items(
     type: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
 ):
     db = await get_db()
-    
+
     query: Dict[str, Any] = {"is_public": True}
     if type:
         query["type"] = type
@@ -74,9 +84,16 @@ async def list_items(
             {"title": {"$regex": search, "$options": "i"}},
             {"description": {"$regex": search, "$options": "i"}},
         ]
-    
-    items = await db.marketplace_items.find(query, {"_id": 0}).sort("downloads", -1).limit(limit).to_list(None)
-    return items
+
+    total = await db.marketplace_items.count_documents(query)
+    items = await db.marketplace_items.find(query, {"_id": 0}).sort("downloads", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedMarketplaceItems(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.get("/{item_id}", response_model=MarketplaceItemResponse)

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 import secrets
+import math
 
 from core.models import User
 from core.database import get_db
@@ -25,6 +26,14 @@ class WebhookResponse(BaseModel):
     active: bool
     created_at: datetime
     last_triggered: Optional[datetime]
+
+
+class PaginatedWebhooks(BaseModel):
+    webhooks: List[WebhookResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
 
 
 def _generate_secret() -> str:
@@ -66,14 +75,26 @@ async def create_webhook(
     )
 
 
-@router.get("/", response_model=List[WebhookResponse])
-async def list_webhooks(current_user: User = Depends(get_current_user)):
+@router.get("/", response_model=PaginatedWebhooks)
+async def list_webhooks(
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
+    query = {"user_id": current_user.id}
+    total = await db.webhooks.count_documents(query)
     webhooks = await db.webhooks.find(
-        {"user_id": current_user.id},
+        query,
         {"_id": 0, "secret": 0}
-    ).sort("created_at", -1).to_list(50)
-    return webhooks
+    ).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedWebhooks(
+        webhooks=webhooks,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.delete("/{webhook_id}")

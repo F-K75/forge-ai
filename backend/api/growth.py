@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import hashlib
+import math
 
 import resend
 
@@ -45,6 +46,22 @@ class NotificationResponse(BaseModel):
     read_at: Optional[datetime] = None
 
 
+class PaginatedReferrals(BaseModel):
+    referrals: List[ReferralResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+class PaginatedNotifications(BaseModel):
+    notifications: List[NotificationResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
 async def send_email(to: str, subject: str, html: str):
     if not settings.resend_api_key:
         return {"skipped": "no api key"}
@@ -85,11 +102,23 @@ async def create_referral(req: ReferralCreate, user: User = Depends(get_current_
     return {"ok": True, "referral_code": referral_code}
 
 
-@router.get("/referrals", response_model=List[ReferralResponse])
-async def list_referrals(user: User = Depends(get_current_user)):
+@router.get("/referrals", response_model=PaginatedReferrals)
+async def list_referrals(
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
-    referrals = await db.referrals.find({"referrer_id": user.id}, {"_id": 0}).sort("created_at", -1).to_list(50)
-    return referrals
+    query = {"referrer_id": user.id}
+    total = await db.referrals.count_documents(query)
+    referrals = await db.referrals.find(query, {"_id": 0}).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedReferrals(
+        referrals=referrals,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.post("/notifications", response_model=NotificationResponse)
@@ -109,13 +138,25 @@ async def create_notification(req: NotificationCreate, user: User = Depends(get_
     return notification
 
 
-@router.get("/notifications", response_model=List[NotificationResponse])
-async def list_notifications(user: User = Depends(get_current_user)):
+@router.get("/notifications", response_model=PaginatedNotifications)
+async def list_notifications(
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
+    query = {"user_id": user.id}
+    total = await db.notifications.count_documents(query)
     notifications = await db.notifications.find(
-        {"user_id": user.id}, {"_id": 0}
-    ).sort("created_at", -1).limit(50).to_list(None)
-    return notifications
+        query, {"_id": 0}
+    ).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedNotifications(
+        notifications=notifications,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.post("/notifications/{notification_id}/read")

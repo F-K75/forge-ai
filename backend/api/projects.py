@@ -1,12 +1,29 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Dict, Any
+import math
 from core.models import Project, User
 from core.database import get_db
 from datetime import datetime
 from api.auth import get_current_user
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+class PaginatedProjects(BaseModel):
+    projects: List[Dict[str, Any]]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+class PaginatedProjectBuilds(BaseModel):
+    builds: List[Dict[str, Any]]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
 
 
 class CreateProjectRequest(BaseModel):
@@ -35,13 +52,25 @@ async def create_project(req: CreateProjectRequest, current_user: User = Depends
     return project
 
 
-@router.get("/")
-async def list_projects(current_user: User = Depends(get_current_user)):
+@router.get("/", response_model=PaginatedProjects)
+async def list_projects(
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
+    query = {"user_id": current_user.id}
+    total = await db.projects.count_documents(query)
     projects = await db.projects.find(
-        {"user_id": current_user.id}, {"_id": 0}
-    ).sort("updated_at", -1).to_list(50)
-    return projects
+        query, {"_id": 0}
+    ).sort("updated_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedProjects(
+        projects=projects,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.get("/{project_id}")
@@ -53,17 +82,30 @@ async def get_project(project_id: str, current_user: User = Depends(get_current_
     return project
 
 
-@router.get("/{project_id}/builds")
-async def get_project_builds(project_id: str, current_user: User = Depends(get_current_user)):
+@router.get("/{project_id}/builds", response_model=PaginatedProjectBuilds)
+async def get_project_builds(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
     project = await db.projects.find_one({"id": project_id, "user_id": current_user.id}, {"_id": 0})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
+    query = {"project_id": project_id, "user_id": current_user.id}
+    total = await db.builds.count_documents(query)
     builds = await db.builds.find(
-        {"project_id": project_id, "user_id": current_user.id}, {"_id": 0, "files": 0}
-    ).sort("created_at", -1).to_list(20)
-    return builds
+        query, {"_id": 0, "files": 0}
+    ).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedProjectBuilds(
+        builds=builds,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.put("/{project_id}")

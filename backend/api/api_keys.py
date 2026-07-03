@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta
 import secrets
 import hashlib
+import math
 
 from core.models import User
 from core.database import get_db
@@ -26,6 +27,14 @@ class ApiKeyResponse(BaseModel):
     expires_at: Optional[datetime]
     created_at: datetime
     last_used_at: Optional[datetime]
+
+
+class PaginatedApiKeys(BaseModel):
+    api_keys: List[ApiKeyResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
 
 
 def _hash_key(key: str) -> str:
@@ -67,14 +76,26 @@ async def create_api_key(
     return ApiKeyResponse(**key_doc)
 
 
-@router.get("/", response_model=List[ApiKeyResponse])
-async def list_api_keys(current_user: User = Depends(get_current_user)):
+@router.get("/", response_model=PaginatedApiKeys)
+async def list_api_keys(
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
     db = await get_db()
+    query = {"user_id": current_user.id}
+    total = await db.api_keys.count_documents(query)
     keys = await db.api_keys.find(
-        {"user_id": current_user.id},
+        query,
         {"_id": 0, "key_hash": 0}
-    ).sort("created_at", -1).to_list(50)
-    return keys
+    ).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    return PaginatedApiKeys(
+        api_keys=keys,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=math.ceil(total / per_page) if total else 0,
+    )
 
 
 @router.delete("/{key_id}")
