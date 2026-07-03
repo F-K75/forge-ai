@@ -72,9 +72,6 @@ class Settings(BaseSettings):
     # it isn't JSON, so both JSON arrays and comma-separated strings work
     allowed_origins: list[str] | str = ["http://localhost:3000", "http://localhost:5173"]
     allowed_hosts: str = "localhost,127.0.0.1,testserver"
-    cors_allow_origins: str = (
-        ""  # Comma-separated list of allowed CORS origins for production
-    )
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

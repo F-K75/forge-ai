@@ -457,7 +457,7 @@ Forge is an AI-powered full-stack application builder with a compelling multi-ag
 
 | ID | Title | Category | Hours |
 |----|-------|----------|-------|
-| SEC-013 | Configure CORS for production domains | Security | 2 |
+| SEC-013 | ~~Configure CORS for production domains~~ **RESOLVED — verified 2026-07-04** (already correct: `docker-compose.prod.yml` sets `ALLOWED_ORIGINS=https://${DOMAIN}`, which `core/config.py`'s `allowed_origins` field picks up and `main.py` wires into `CORSMiddleware`; production was never actually wildcarded). Removed a dead, unused `cors_allow_origins` config field that was never read anywhere and only added confusion. | Security | 2 (est.) / ~0.25 (actual) |
 | BE-004 | Implement API versioning | API Design | 24 |
 | FE-002 | Implement responsive design verification | Frontend | 60 |
 | FE-004 | Enable TypeScript strict mode | Code Quality | 40 |
