@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, Copy } from "lucide-react";
+import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, Copy, LifeBuoy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { DEFAULT_SETTINGS } from "../lib/mockData";
 import { Row } from "../components/Row";
 import { Toggle } from "../components/Toggle";
 import { LIVE_MODE } from "../lib/env";
-import { authApi } from "../lib/api";
+import { authApi, supportApi } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
 
 type Settings = typeof DEFAULT_SETTINGS;
@@ -201,6 +201,26 @@ export default function SettingsPage() {
     setBackupCodes([]);
     setMfaSecret("");
     setMfaOtpauthUri("");
+  };
+
+  // Support
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportDescription, setSupportDescription] = useState("");
+  const [supportSubmitting, setSupportSubmitting] = useState(false);
+
+  const handleSubmitSupportTicket = async () => {
+    if (!supportSubject.trim() || !supportDescription.trim()) return;
+    setSupportSubmitting(true);
+    try {
+      await supportApi.create({ subject: supportSubject.trim(), description: supportDescription.trim() });
+      toast.success("Support ticket submitted");
+      setSupportSubject("");
+      setSupportDescription("");
+    } catch {
+      toast.error("Failed to submit ticket");
+    } finally {
+      setSupportSubmitting(false);
+    }
   };
 
   // Active sessions / devices
@@ -599,6 +619,47 @@ export default function SettingsPage() {
             </div>
           </section>
         )}
+
+        {/* Support */}
+        <section aria-labelledby="section-support">
+          <div className="flex items-center gap-2 mb-2">
+            <LifeBuoy size={13} className="text-muted" aria-hidden="true" />
+            <h2 id="section-support" className="text-sm font-semibold text-ink">Support</h2>
+          </div>
+          <div className="rounded-xl border border-border bg-panel p-4 space-y-3">
+            <div>
+              <label htmlFor="support-subject" className="block text-xs text-muted mb-1">Subject</label>
+              <input
+                id="support-subject"
+                type="text"
+                value={supportSubject}
+                onChange={(e) => setSupportSubject(e.target.value)}
+                placeholder="Briefly describe the issue"
+                maxLength={200}
+                className="w-full bg-panel-alt border border-border rounded-lg px-3 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              />
+            </div>
+            <div>
+              <label htmlFor="support-description" className="block text-xs text-muted mb-1">Description</label>
+              <textarea
+                id="support-description"
+                value={supportDescription}
+                onChange={(e) => setSupportDescription(e.target.value)}
+                placeholder="What happened, and what were you expecting?"
+                rows={4}
+                maxLength={5000}
+                className="w-full resize-none bg-panel-alt border border-border rounded-lg px-3 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              />
+            </div>
+            <button
+              onClick={handleSubmitSupportTicket}
+              disabled={supportSubmitting || !supportSubject.trim() || !supportDescription.trim()}
+              className="text-xs px-3 py-2 bg-accent hover:opacity-90 text-white rounded-lg transition-opacity motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+            >
+              {supportSubmitting ? "Submitting…" : "Submit ticket"}
+            </button>
+          </div>
+        </section>
 
       </div>
     </div>

@@ -21,6 +21,7 @@ from api.api_keys import router as api_keys_router
 from api.webhooks import router as webhooks_router
 from api.gdpr import router as gdpr_router
 from api.deployments import router as deployments_router
+from api.support import router as support_router
 from core.database import close_connections
 from core.config import get_settings
 from core.security import (
@@ -176,6 +177,7 @@ app.include_router(api_keys_router)
 app.include_router(webhooks_router)
 app.include_router(gdpr_router)
 app.include_router(deployments_router)
+app.include_router(support_router)
 
 
 @app.get("/health")

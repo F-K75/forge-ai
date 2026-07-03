@@ -173,6 +173,13 @@ export const webhooksApi = {
   delete: (id: string) => api.delete(`/webhooks/${id}`).then(r => r.data),
 }
 
+// Support
+export const supportApi = {
+  create: (data: { subject: string; description: string; priority?: string }) =>
+    api.post('/support/tickets', data).then(r => r.data),
+  list: (page?: number) => api.get('/support/tickets', { params: { page } }).then(r => r.data.tickets),
+}
+
 // Marketplace
 export const marketplaceApi = {
   list: (params?: { type?: string; search?: string; page?: number; per_page?: number }) =>
