@@ -7,7 +7,11 @@ import csv
 import io
 
 from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog
-from core.database import get_db, get_redis
+from core.database import get_db, get_redis, cache_get_json, cache_set_json
+
+ADMIN_ANALYTICS_CACHE_TTL = 120
+FEATURE_FLAGS_CACHE_KEY = "cache:admin:feature_flags:list"
+FEATURE_FLAGS_CACHE_TTL = 300
 from core.config import get_settings
 from core.security import sanitize_string
 from core.ai_usage import get_spending_dashboard
@@ -394,8 +398,16 @@ async def get_build(build_id: str, admin: User = Depends(admin_required)):
 
 @router.get("/analytics/overview", response_model=AnalyticsOverview)
 async def get_analytics_overview(admin: User = Depends(admin_required)):
+    cache_key = "cache:admin:analytics:overview"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return AnalyticsOverview(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     total_users = await db.users.estimated_document_count()
     total_builds = await db.builds.estimated_document_count()
     
@@ -436,7 +448,7 @@ async def get_analytics_overview(admin: User = Depends(admin_required)):
     
     active_subscriptions = await db.subscriptions.count_documents({"status": {"$ne": "canceled"}})
     
-    return AnalyticsOverview(
+    result = AnalyticsOverview(
         total_users=total_users,
         total_builds=total_builds,
         total_revenue=total_revenue,
@@ -446,6 +458,8 @@ async def get_analytics_overview(admin: User = Depends(admin_required)):
         revenue_month=revenue_month,
         active_subscriptions=active_subscriptions
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ADMIN_ANALYTICS_CACHE_TTL)
+    return result
 
 
 @router.get("/analytics/revenue", response_model=List[RevenueMetrics])
@@ -453,8 +467,16 @@ async def get_revenue_metrics(
     days: int = Query(30, ge=1, le=365),
     admin: User = Depends(admin_required)
 ):
+    cache_key = f"cache:admin:analytics:revenue:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return [RevenueMetrics(**d) for d in cached]
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     date_format = "%Y-%m-%d"
     pipeline = [
         {
@@ -477,7 +499,8 @@ async def get_revenue_metrics(
             subscriptions=doc.get("subscription_count", 0),
             credit_purchases=doc.get("credit_purchase_count", 0)
         ))
-    
+
+    await cache_set_json(cache_key, [m.model_dump() for m in metrics], ttl=ADMIN_ANALYTICS_CACHE_TTL)
     return metrics
 
 
@@ -486,8 +509,16 @@ async def get_ai_usage_metrics(
     days: int = Query(30, ge=1, le=365),
     admin: User = Depends(admin_required)
 ):
+    cache_key = f"cache:admin:analytics:ai_usage:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return [AIUsageMetrics(**d) for d in cached]
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     date_format = "%Y-%m-%d"
     pipeline = [
         {
@@ -514,7 +545,8 @@ async def get_ai_usage_metrics(
             completion_tokens=doc.get("completion_tokens", 0),
             cost_usd=float(doc.get("cost_usd", 0))
         ))
-    
+
+    await cache_set_json(cache_key, [m.model_dump() for m in metrics], ttl=ADMIN_ANALYTICS_CACHE_TTL)
     return metrics
 
 
@@ -584,19 +616,35 @@ async def create_or_update_feature_flag(
         await db.feature_flags.insert_one(flag_dict)
         flag_data["id"] = flag.id
         flag_data["created_at"] = flag.created_at
-    
+
+    # Invalidate the feature-flags list cache so this mutation is visible
+    # immediately instead of waiting out the TTL.
+    try:
+        redis = await get_redis()
+        await redis.delete(FEATURE_FLAGS_CACHE_KEY)
+    except Exception:
+        pass
+
     return FeatureFlagResponse(**flag_data)
 
 
 @router.get("/feature-flags", response_model=List[FeatureFlagResponse])
 async def list_feature_flags(admin: User = Depends(admin_required)):
+    cached = await cache_get_json(FEATURE_FLAGS_CACHE_KEY)
+    if cached is not None:
+        try:
+            return [FeatureFlagResponse(**d) for d in cached]
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     flags = []
     cursor = db.feature_flags.find({"_id": 0}).sort("created_at", -1)
     async for doc in cursor:
         flags.append(FeatureFlagResponse(**doc))
-    
+
+    await cache_set_json(FEATURE_FLAGS_CACHE_KEY, [f.model_dump() for f in flags], ttl=FEATURE_FLAGS_CACHE_TTL)
     return flags
 
 

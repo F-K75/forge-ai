@@ -4,8 +4,10 @@ from typing import Optional, List, Dict, Any
 import math
 
 from core.models import MarketplaceItem, User
-from core.database import get_db
+from core.database import get_db, cache_get_json, cache_set_json
 from api.auth import get_current_user
+
+MARKETPLACE_LIST_CACHE_TTL = 60
 
 router = APIRouter(prefix="/marketplace", tags=["marketplace"])
 
@@ -74,6 +76,14 @@ async def list_items(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
 ):
+    cache_key = f"cache:marketplace:list:{page}:{per_page}:{type}:{search}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return PaginatedMarketplaceItems(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
 
     query: Dict[str, Any] = {"is_public": True}
@@ -87,13 +97,15 @@ async def list_items(
 
     total = await db.marketplace_items.count_documents(query)
     items = await db.marketplace_items.find(query, {"_id": 0}).sort("downloads", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
-    return PaginatedMarketplaceItems(
+    result = PaginatedMarketplaceItems(
         items=items,
         total=total,
         page=page,
         per_page=per_page,
         total_pages=math.ceil(total / per_page) if total else 0,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=MARKETPLACE_LIST_CACHE_TTL)
+    return result
 
 
 @router.get("/{item_id}", response_model=MarketplaceItemResponse)

@@ -1,8 +1,9 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 from core.config import get_settings
-from typing import Optional
+from typing import Optional, Union
 import asyncio
+import json
 import logging
 
 settings = get_settings()
@@ -152,6 +153,27 @@ async def cache_set(key: str, value: str, ttl: int = 300) -> None:
     try:
         redis = await get_redis()
         await redis.setex(key, ttl, value)
+    except Exception:
+        pass
+
+
+async def cache_get_json(key: str) -> Optional[Union[dict, list]]:
+    """Get a JSON-decoded value from Redis cache. Fail-open: returns None on
+    any Redis error or JSON decode error."""
+    try:
+        raw = await cache_get(key)
+        if raw is None:
+            return None
+        return json.loads(raw)
+    except Exception:
+        return None
+
+
+async def cache_set_json(key: str, value: Union[dict, list], ttl: int = 300) -> None:
+    """JSON-encode and store a value in Redis cache. Fail-open: never raises."""
+    try:
+        raw = json.dumps(value, default=str)
+        await cache_set(key, raw, ttl=ttl)
     except Exception:
         pass
 

@@ -5,8 +5,11 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 from core.models import AnalyticsEvent, User, BuildStatus, PlanTier
-from core.database import get_db
+from core.database import get_db, cache_get_json, cache_set_json
 from api.auth import get_current_user
+from api.admin import admin_required
+
+ANALYTICS_CACHE_TTL = 120
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -127,12 +130,20 @@ async def track_event(
 @router.get("/funnel", response_model=FunnelMetrics)
 async def get_funnel_metrics(
     days: int = Query(30, ge=1, le=365),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(admin_required)
 ):
+    cache_key = f"cache:analytics:funnel:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return FunnelMetrics(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     signup_pipeline = [
         {"$match": {"event_name": "signup", "created_at": {"$gte": start_date}}},
         {"$group": {"_id": None, "count": {"$sum": 1}}},
@@ -172,24 +183,34 @@ async def get_funnel_metrics(
         "overall": round(total_first_success / total_signups * 100, 2) if total_signups > 0 else 0,
     }
     
-    return FunnelMetrics(
+    result = FunnelMetrics(
         total_signups=total_signups,
         total_first_project=total_first_project,
         total_first_build=total_first_build,
         total_first_success=total_first_success,
         conversion_rates=conversion_rates,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 @router.get("/retention", response_model=RetentionMetrics)
 async def get_retention_metrics(
     days: int = Query(30, ge=1, le=90),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(admin_required)
 ):
+    cache_key = f"cache:analytics:retention:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return RetentionMetrics(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     user_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
         {"$group": {"_id": None, "count": {"$sum": 1}}},
@@ -197,17 +218,19 @@ async def get_retention_metrics(
     total_users = 0
     async for doc in db.users.aggregate(user_pipeline):
         total_users = doc.get("count", 0)
-    
+
     day_1_retention = await _calculate_retention(db, 1, days)
     day_7_retention = await _calculate_retention(db, 7, days)
     day_30_retention = await _calculate_retention(db, 30, days)
-    
-    return RetentionMetrics(
+
+    result = RetentionMetrics(
         day_1=day_1_retention,
         day_7=day_7_retention,
         day_30=day_30_retention,
         total_users=total_users,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 async def _calculate_retention(db, days_after: int, period_days: int) -> float:
@@ -257,15 +280,23 @@ async def get_build_success_rate(
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user)
 ):
+    cache_key = f"cache:analytics:builds_success_rate:{current_user.id}:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return BuildSuccessRateMetrics(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     total_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},
         {"$group": {"_id": None, "count": {"$sum": 1}, "successful": {"$sum": {"$cond": [{"$eq": ["$status", BuildStatus.SUCCESS.value]}, 1, 0]}}}},
     ]
-    
+
     total_builds = 0
     successful_builds = 0
     
@@ -296,19 +327,21 @@ async def get_build_success_rate(
             "rate": round((doc.get("successful", 0) / doc.get("total", 1)) * 100, 2) if doc.get("total", 0) > 0 else 0.0,
         })
     
-    return BuildSuccessRateMetrics(
+    result = BuildSuccessRateMetrics(
         period=f"last_{days}_days",
         total_builds=total_builds,
         successful_builds=successful_builds,
         success_rate=success_rate,
         daily_breakdown=daily_breakdown,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 @router.get("/conversion", response_model=ConversionMetrics)
 async def get_conversion_metrics(
     days: int = Query(30, ge=1, le=365),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(admin_required)
 ):
     db = await get_db()
     
@@ -345,12 +378,20 @@ async def get_conversion_metrics(
 @router.get("/churn", response_model=ChurnMetrics)
 async def get_churn_metrics(
     days: int = Query(30, ge=1, le=365),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(admin_required)
 ):
+    cache_key = f"cache:analytics:churn:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return ChurnMetrics(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     churned_pipeline = [
         {"$match": {"status": "canceled", "updated_at": {"$gte": start_date}}},
         {"$group": {"_id": None, "count": {"$sum": 1}}},
@@ -382,12 +423,14 @@ async def get_churn_metrics(
     
     churn_revenue = 0.0
     
-    return ChurnMetrics(
+    result = ChurnMetrics(
         churned_users=churned_users,
         churn_rate=churn_rate,
         potential_churn_users=potential_churn_users,
         churn_revenue=churn_revenue,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 @router.get("/ai-cost", response_model=AICostData)
@@ -395,6 +438,18 @@ async def get_ai_cost_data(
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user)
 ):
+    # NOTE: despite ai-cost being classified as a non-user-scoped platform
+    # metric, the underlying pipelines below filter total_tokens/total_cost
+    # and cost_by_agent by current_user.id, so the response *is* per-user.
+    # Key on user_id to avoid leaking one user's cost breakdown to another.
+    cache_key = f"cache:analytics:ai_cost:{current_user.id}:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return AICostData(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
 
     start_date = datetime.utcnow() - timedelta(days=days)
@@ -432,20 +487,30 @@ async def get_ai_cost_data(
         user_id = doc.get("_id") or "unknown"
         cost_by_user[user_id] = round(doc.get("cost_usd", 0.0), 6)
 
-    return AICostData(
+    result = AICostData(
         total_tokens=total_tokens,
         total_cost_usd=total_cost_usd,
         cost_by_agent=cost_by_agent,
         cost_by_user=cost_by_user,
         period=f"last_{days}_days",
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 @router.get("/revenue", response_model=RevenueMetrics)
 async def get_revenue(
     days: int = Query(30, ge=1, le=365),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(admin_required)
 ):
+    cache_key = f"cache:analytics:revenue:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return RevenueMetrics(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
 
     active_subs_pipeline = [
@@ -477,33 +542,43 @@ async def get_revenue(
     churned_revenue = 0.0
     total_revenue = mrr
     
-    return RevenueMetrics(
+    result = RevenueMetrics(
         mrr=mrr,
         arr=arr,
         churned_revenue=churned_revenue,
         active_subscriptions=active_subscriptions,
         total_revenue=total_revenue,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 @router.get("/onboarding", response_model=OnboardingMetrics)
 async def get_onboarding_metrics(
     days: int = Query(30, ge=1, le=365),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(admin_required)
 ):
+    cache_key = f"cache:analytics:onboarding:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return OnboardingMetrics(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     total_users_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
         {"$group": {"_id": None, "count": {"$sum": 1}}},
     ]
-    
+
     total_users = 0
     async for doc in db.users.aggregate(total_users_pipeline):
         total_users = doc.get("count", 0)
-    
+
     completed_onboarding = 0
     completion_rate = round((completed_onboarding / total_users) * 100, 2) if total_users > 0 else 0.0
     
@@ -520,12 +595,14 @@ async def get_onboarding_metrics(
         if step:
             step_completion[step] = doc.get("count", 0)
     
-    return OnboardingMetrics(
+    result = OnboardingMetrics(
         total_users=total_users,
         completed_onboarding=completed_onboarding,
         completion_rate=completion_rate,
         step_completion=step_completion,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 @router.get("/me", response_model=PersonalAnalytics)
@@ -533,10 +610,18 @@ async def get_personal_analytics(
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user)
 ):
+    cache_key = f"cache:analytics:me:{current_user.id}:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return PersonalAnalytics(**cached)
+        except Exception:
+            pass
+
     db = await get_db()
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     builds_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},
         {"$group": {
@@ -577,7 +662,7 @@ async def get_personal_analytics(
     async for doc in db.projects.aggregate(projects_pipeline):
         projects_count = doc.get("count", 0)
     
-    return PersonalAnalytics(
+    result = PersonalAnalytics(
         builds_total=builds_total,
         builds_successful=builds_successful,
         builds_failed=builds_failed,
@@ -588,6 +673,8 @@ async def get_personal_analytics(
         favorite_agents=favorite_agents,
         projects_count=projects_count,
     )
+    await cache_set_json(cache_key, result.model_dump(), ttl=ANALYTICS_CACHE_TTL)
+    return result
 
 
 async def _get_avg_build_time(db, user_id: str, start_date: datetime) -> float:
