@@ -407,9 +407,9 @@ async def handle_invoice_payment_failed(db: Any, invoice: Dict[str, Any]):
     )
 
 
-_PRICE_TO_PLAN: Dict[str, PlanTier] = {
-    pid: plan for plan, pid in {**PLAN_PRICES, **ANNUAL_PLAN_PRICES}.items()
-}
+_PRICE_TO_PLAN: Dict[str, PlanTier] = {}
+_PRICE_TO_PLAN.update({pid: plan for plan, pid in PLAN_PRICES.items()})
+_PRICE_TO_PLAN.update({pid: plan for plan, pid in ANNUAL_PLAN_PRICES.items()})
 
 
 def _map_price_to_plan(price_id: str) -> PlanTier:
