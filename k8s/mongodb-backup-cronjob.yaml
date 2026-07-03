@@ -1,0 +1,91 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+  namespace: forge-ai-prod
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: mongodb-backup
+            image: mongo:7.0
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_DIR="/backup/${TIMESTAMP}"
+              
+              # Create backup directory
+              mkdir -p ${BACKUP_DIR}
+              
+              # Run mongodump
+              mongodump \
+                --uri="${MONGODB_URL}" \
+                --out="${BACKUP_DIR}" \
+                --gzip
+              
+              # Upload to S3 (if AWS credentials are available)
+              if [ -n "${AWS_ACCESS_KEY_ID}" ] && [ -n "${AWS_SECRET_ACCESS_KEY}" ] && [ -n "${S3_BUCKET}" ]; then
+                aws s3 sync ${BACKUP_DIR} s3://${S3_BUCKET}/mongodb-backups/${TIMESTAMP}/
+                echo "Backup uploaded to S3: s3://${S3_BUCKET}/mongodb-backups/${TIMESTAMP}/"
+              else
+                echo "S3 upload skipped (credentials not configured)"
+              fi
+              
+              # Clean up old backups (keep last 7 days locally)
+              find /backup -type d -mtime +7 -exec rm -rf {} \;
+              
+              echo "Backup completed successfully: ${BACKUP_DIR}"
+            env:
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: forge-ai-secrets
+                  key: mongodb-url
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: forge-ai-secrets
+                  key: aws-access-key-id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: forge-ai-secrets
+                  key: aws-secret-access-key
+                  optional: true
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: forge-ai-secrets
+                  key: s3-bucket
+                  optional: true
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: mongodb-backup-pvc
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-backup-pvc
+  namespace: forge-ai-prod
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
