@@ -1,3 +1,5 @@
+> **Superseded by MASTER_EXECUTION_PLAN.md** (later revision with reconciled findings, see REFRESH LOG section).
+
 # FORGE AI - Executive Execution Plan v2.0
 
 **Date:** July 3, 2026  

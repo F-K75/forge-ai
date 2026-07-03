@@ -1,3 +1,5 @@
+> **Historical baseline audit (2026-06-29, score 3.8/10). Superseded by later audits — see MASTER_EXECUTION_PLAN.md and PRODUCTION_AUDIT_REPORT.md for current state. Kept for historical reference only.**
+
 # FORGE-AI: COMPREHENSIVE ELITE AUDIT REPORT
 
 **Date:** 2026-06-29  
