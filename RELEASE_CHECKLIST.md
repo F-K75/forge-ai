@@ -32,7 +32,7 @@
 | B-04 | Task retry logic (3 retries) | ❌ | P0 | Task retried on failure |
 | B-05 | Authentication: JWT with JTI claims | ❌ | P0 | JWT includes `jti` field |
 | B-06 | Token blacklist uses JTI | ❌ | P0 | Blacklisted JTI rejects tokens |
-| B-07 | CSRF token validation on all state-changing endpoints | ❌ | P0 | Requests without token return 403 |
+| B-07 | CSRF token validation on all state-changing endpoints | ✅ (2026-07-03) | P0 | Requests without token return 403 — backend was already correct; fixed frontend to actually send the token (see ENGINEERING_BACKLOG.md SEC-001) |
 | B-08 | Rate limiting: fail-closed on Redis failure | ❌ | P0 | Redis down → 429 response |
 | B-09 | Rate limiting on auth endpoints | ❌ | P0 | Exceed limit → 429 |
 | B-10 | Password reset tokens use slow hash | ❌ | P0 | Token hash is pbkdf2/bcrypt |
@@ -81,8 +81,10 @@
 
 | # | Item | Status | Priority | Verification Method |
 |---|------|--------|----------|-------------------|
-| S-01 | CSRF token validated (not just presence) | ❌ | P0 | State-changing request without token → 403 |
+| S-01 | CSRF token validated (not just presence) | ✅ (2026-07-03) | P0 | State-changing request without token → 403; verified via curl: missing token → 403, valid token from `/auth/csrf-token` → 200 |
 | S-02 | Encryption key separate from JWT secret | ❌ | P0 | Verify FIELD_ENCRYPTION_KEY in vault |
+| S-23 *(new — the checklist already used S-14/S-15/S-16/S-17 for other items; using the next free ID)* | Password hashing functional (registration/login succeed) | ✅ (2026-07-03) | P0 | `bcrypt`/`passlib` incompatibility fixed (pinned `bcrypt==4.0.1`), verified with a real register+login round-trip — see ENGINEERING_BACKLOG.md SEC-014. Fixing this also surfaced and required fixing SEC-016 there (ObjectId serialization crash on registration; unrelated numbering — that's the backlog's ID scheme, not this checklist's). |
+| S-24 *(new, same reason)* | Auth responses don't leak password hash or raw tokens | ✅ (2026-07-03) | P0 | `GET /auth/me`, login/register/refresh responses contain no `hashed_password` or raw `github_token` — see ENGINEERING_BACKLOG.md SEC-015 |
 | S-03 | WebSocket authentication (token in first message) | ❌ | P0 | Connect without token → rejected |
 | S-04 | Rate limiting fail-closed (Redis down → 429) | ❌ | P0 | Stop Redis → all requests return 429 |
 | S-05 | JTI token blacklisting | ❌ | P0 | Blacklisted JTI rejected |
@@ -316,9 +318,9 @@
 | Category | Total Items | ❌ Not Started | 🔄 In Progress | ✅ Complete | Completion % |
 |----------|-------------|---------------|----------------|------------|--------------|
 | Architecture | 10 | 10 | 0 | 0 | 0% |
-| Backend | 21 | 21 | 0 | 0 | 0% |
+| Backend | 21 | 20 | 0 | 1 | 5% |
 | Frontend | 20 | 20 | 0 | 0 | 0% |
-| Security | 22 | 22 | 0 | 0 | 0% |
+| Security | 24 (+2 added 2026-07-03) | 21 | 0 | 3 | 13% |
 | Infrastructure | 17 | 17 | 0 | 0 | 0% |
 | Database | 10 | 10 | 0 | 0 | 0% |
 | Testing | 18 | 18 | 0 | 0 | 0% |
@@ -329,4 +331,6 @@
 | Legal & Compliance | 10 | 10 | 0 | 0 | 0% |
 | Deployment | 11 | 11 | 0 | 0 | 0% |
 | Operations | 10 | 10 | 0 | 0 | 0% |
-| **Total** | **208** | **208** | **0** | **0** | **0%** |
+| **Total** | **210** | **206** | **0** | **4** | **2%** |
+
+*Updated 2026-07-03: B-07 and S-01 (CSRF) resolved — the frontend now attaches the token. S-23 and S-24 (new items — password hashing and credential-leak, respectively) both resolved same day: S-23 was initially added as broken (blocking all registration/login) but was fixed within the same session — see ENGINEERING_BACKLOG.md SEC-014/SEC-015/SEC-016 for full detail. This checklist item's earlier draft numbering (S-14/S-15) collided with pre-existing unrelated items and was corrected to S-23/S-24.*

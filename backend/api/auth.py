@@ -81,12 +81,20 @@ def _get_cookie_kwargs(max_age: int) -> dict:
 
 def _public_user_dict(user_doc: dict) -> dict:
     """Strip fields that must never leave the server (password hash, raw
-    tokens, verification secrets) before a user document is sent to a client."""
+    tokens, verification secrets) before a user document is sent to a client.
+
+    Also strips `_id`: Motor's `insert_one()` mutates its input dict in place,
+    injecting a `bson.ObjectId` — if that same dict is reused to build a
+    response (as `register` does), Pydantic's serializer crashes on the
+    non-JSON-serializable ObjectId. Stripping it here makes this helper safe
+    regardless of whether the caller's dict has been through an insert.
+    """
     public = {
         k: v
         for k, v in user_doc.items()
         if k
         not in {
+            "_id",
             "hashed_password",
             "github_token",
             "verification_token",

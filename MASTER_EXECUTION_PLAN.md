@@ -98,32 +98,32 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 2 | Auth Page (/login) | ✅ Working | Core |
 | 3 | Signup (/signup) | ✅ Working | Core |
 | 4 | Forgot Password (/forgot-password) | ⚠️ Partially Working | Core (UI exists, email delivery broken) |
-| 5 | Reset Password (/reset-password/:token) | ❌ Missing | Route does not exist |
-| 6 | Onboarding (/onboarding) | ❌ Broken | Placebo flow |
+| 5 | Reset Password (/reset-password) | ✅ Working *(corrected 2026-07-03 — route exists and works; verified it correctly shows "Invalid link" without a valid token)* | Core |
+| 6 | Onboarding (/onboarding) | ⚠️ Partially Working *(upgraded 2026-07-03 from ❌ Broken — final step now hands a real starter prompt to the workspace instead of dropping the user on a blank screen; still no tooltips/progress-tracked completion, see FE-005)* | Core |
 | 7 | Dashboard/Launch (/) | ✅ Working | Core |
 | 8 | Projects (/projects) | ✅ Working | Core |
-| 9 | Project History (/project/:id) | ✅ Working | Core |
+| 9 | Project History (/project/:id) | ✅ Working *("View diff" button upgraded 2026-07-03 from dead no-op to a real changed-files view — see FE-008)* | Core |
 | 10 | Workspace/Build (/build/:projectId) | ✅ Working | Core |
-| 11 | Settings (/settings) | ⚠️ Partially Working | Crashes on null user |
-| 12 | Billing (/billing) | ⚠️ Partially Working | Placeholder prices |
-| 13 | Marketplace (/marketplace) | ⚠️ Partially Working | No moderation |
+| 11 | Settings (/settings) | ✅ Working *(upgraded 2026-07-03 from ⚠️ "crashes on null user" — verified no crash in either live or demo mode; GitHub connect and preference toggles now wired to real data, see FE-008)* | Core |
+| 12 | Billing (/billing) | ✅ Working *(upgraded 2026-07-03 from ⚠️ "placeholder prices" — frontend now wired to real plans/usage/checkout; the underlying Stripe secrets are still placeholders per PRODUCTION_AUDIT_REPORT.md §3.1, so checkout itself can't process real payments yet, but that's a config gap now, not a missing frontend, see FE-008)* | Core |
+| 13 | Marketplace (/marketplace) | ✅ Working *(upgraded 2026-07-03 from ⚠️ "no moderation" — frontend now wired to real listing/install; moderation gap is unchanged and still real, see FE-008)* | Core |
 | 14 | Admin Console (/admin-console) | ⚠️ Partially Working | Accessible to all users |
-| 15 | Reviews List (/reviews) | ✅ Working | Orchestrator UI |
-| 16 | Review Detail (/reviews/:runId) | ✅ Working | Orchestrator UI |
+| 15 | Reviews List (/reviews) | ✅ Working *(this row previously described intended/planned state, not reality — verified 2026-07-03 that no frontend for this existed before today; now genuinely built and end-to-end verified, see FE-009)* | Orchestrator UI |
+| 16 | Review Detail (/reviews/:runId) | ✅ Working *(same correction as row 15 — see FE-009)* | Orchestrator UI |
 | 17 | Workspace Layout | ✅ Working | 3-panel (chat, editor, preview) |
 
 ## 1.3 API Endpoints
 
 | # | Endpoint | Status | Classification |
 |---|----------|--------|----------------|
-| 1 | POST /auth/register | ✅ Working | Core |
-| 2 | POST /auth/login | ✅ Working | Core |
-| 3 | POST /auth/refresh | ✅ Working | Core |
+| 1 | POST /auth/register | ✅ Working *(was ❌ broken earlier 2026-07-03 — bcrypt/passlib incompatibility, fixed same day, see SEC-014; also fixed a second bug it uncovered, an `_id`/ObjectId serialization crash, see SEC-016)* | Core |
+| 2 | POST /auth/login | ✅ Working *(was ❌ broken earlier 2026-07-03, same bcrypt/passlib crash as register, fixed, see SEC-014)* | Core |
+| 3 | POST /auth/refresh | ✅ Working *(unaffected by SEC-014 — doesn't re-hash a password; previously leaked the raw user doc in its response, fixed 2026-07-03, see SEC-015)* | Core |
 | 4 | POST /auth/logout | ✅ Working | Core |
 | 5 | POST /auth/ws-token | ✅ Working | Security |
-| 6 | GET /auth/me | ✅ Working | Core |
-| 7 | PUT /auth/me | ✅ Working | Core |
-| 8 | POST /auth/me/password | ✅ Working | Core |
+| 6 | GET /auth/me | ✅ Working *(previously leaked the decrypted GitHub token in every response — fixed 2026-07-03, now returns `github_connected: bool` instead, see SEC-015)* | Core |
+| 7 | PUT /auth/me | ✅ Working *(extended 2026-07-03 to accept `github_token` and `preferences`, powering the new Settings page wiring — see FE-008, BE-014)* | Core |
+| 8 | POST /auth/me/password | ✅ Working *(depends on the bcrypt/passlib path fixed by SEC-014 — not separately re-verified after the fix, but should now work)* | Core |
 | 9 | POST /auth/forgot-password | ✅ Working | Core |
 | 10 | POST /auth/reset-password | ✅ Working | Core |
 | 11 | POST /auth/organizations | ✅ Working | Team feature |
@@ -162,10 +162,11 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 44 | GET /analytics/track | ✅ Working | Analytics |
 | 45 | GET /analytics/builds | ✅ Working | Analytics |
 | 46 | GET /analytics/costs | ✅ Working | Analytics |
-| 47 | GET /marketplace | ✅ Working | Marketplace |
-| 48 | POST /marketplace | ⚠️ Partially Working | No moderation |
+| 47 | GET /marketplace | ✅ Working *(had a landmine bug — would have broken as soon as any item with the old broken `created_at` format existed; see row 48)* | Marketplace |
+| 48 | POST /marketplace | ✅ Working *(corrected 2026-07-03 — was previously ❌ crashing on every call with `ResponseValidationError`, not merely "no moderation"; the item was silently inserted before the crash, so this was actual data corruption risk, not just a missing feature. Fixed, see BE-013. Moderation is still genuinely absent — that part of the original note stands.)* | Marketplace |
 | 49 | GET /marketplace/{id} | ✅ Working | Marketplace |
 | 50 | POST /marketplace/{id}/rate | ⚠️ Partially Working | No validation |
+| — | GET /marketplace *(list, frontend caller)* | ✅ Working *(new 2026-07-03 — `marketplaceApi` didn't exist in `frontend/src/lib/api.ts` at all before today; the backend endpoint was complete but had zero frontend caller. See FE-008.)* | Marketplace |
 | 51 | POST /growth/referrals | ✅ Working | Growth |
 | 52 | GET /growth/referrals | ✅ Working | Growth |
 | 53 | POST /webhooks | ✅ Working | Webhooks |
@@ -218,10 +219,10 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | # | Service | Status | Notes |
 |---|---------|--------|-------|
 | 1 | FastAPI backend (uvicorn) | ✅ Working | Core API server |
-| 2 | Celery worker | ⚠️ Partially Working | Configured but not fully wired |
+| 2 | Celery worker | ✅ Working (fixed 2026-07-03) | Was completely non-functional despite looking wired — three bugs found & fixed 2026-07-03 (wrong app binding, worker-startup crash, event-loop closure after 1st task); verified with a real worker processing sequential builds. See `ENGINEERING_BACKLOG.md` BE-015. No dead-letter queue yet. |
 | 3 | Redis (cache + pub/sub + queue) | ✅ Working | Configured with auth |
 | 4 | MongoDB (primary database) | ✅ Working | Configured with auth |
-| 5 | WebSocket Connection Manager | ⚠️ Partially Working | In-memory only, no Redis pub/sub |
+| 5 | WebSocket Connection Manager | ✅ Working (fixed 2026-07-03) | This row's original note was correct — Redis pub/sub had no subscriber, so it was in-memory-only despite WS-001 being marked "done" elsewhere in this plan. Verified live: 0/several events delivered before the fix, 14/14 after. See `ENGINEERING_BACKLOG.md` WS-003. |
 | 6 | Sandbox Runner | ✅ Working | Static code checking |
 | 7 | Anthropic API client | ✅ Working | Circuit breaker implemented |
 | 8 | OpenAI API client (fallback) | ✅ Working | Fallback not yet wired |
@@ -237,8 +238,8 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 
 | # | Worker/Job | Status | Notes |
 |---|------------|--------|-------|
-| 1 | Build execution (BackgroundTasks) | ⚠️ Partially Working | In-process, not persisted |
-| 2 | Celery build worker (run_build) | ⚠️ Partially Working | Configured but needs full wiring |
+| 1 | Build execution (BackgroundTasks) | ✅ Removed | Replaced by Celery's `run_build.delay()`; no BackgroundTasks path remains |
+| 2 | Celery build worker (run_build) | ✅ Working (fixed 2026-07-03) | See BE-015 — was 100% non-functional (every build 500'd, no worker could even start) until fixed and verified same day |
 | 3 | Email sending | ❌ Missing | Resend API not configured |
 | 4 | Credit usage alerts | ❌ Missing | Not implemented |
 | 5 | Dunning (past-due recovery) | ❌ Missing | Not implemented |
@@ -350,7 +351,8 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 
 | ID | Title | Category | Severity | Hours | Dependency |
 |----|-------|----------|----------|-------|------------|
-| SEC-001 | Wire CSRF token validation into middleware | Security | CRITICAL | 16 | None |
+| SEC-014 | ~~Fix bcrypt/passlib incompatibility — registration/login totally broken~~ **RESOLVED 2026-07-03** (pinned `bcrypt==4.0.1`; also fixed SEC-016, an ObjectId-serialization bug it uncovered) | Security | CRITICAL | 4 (est.) / ~1.5 (actual, incl. SEC-016) | None |
+| SEC-001 | ~~Wire CSRF token validation into middleware~~ **RESOLVED 2026-07-03** — was mis-scoped; backend validation was already correct, the frontend never sent the token at all | Security | CRITICAL | 16 (est.) / ~1 (actual) | None |
 | SEC-002 | Separate encryption key from JWT secret | Security | CRITICAL | 16 | None |
 | SEC-003 | WebSocket auth via short-lived tokens (DONE) | Security | CRITICAL | 0 | None |
 | SEC-004 | Fail-closed rate limiting when Redis is down | Security | HIGH | 8 | None |
@@ -368,7 +370,8 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | DB-002 | Add unique constraint enforcement on user email | Database | HIGH | 4 | None |
 | DB-003 | Fix invitation token double-storage bug | Database | HIGH | 4 | None |
 | AI-001 | Implement LLM token usage tracking and budget controls | AI/Cost | HIGH | 40 | None |
-| AI-002 | Implement prompt injection detection | AI/Security | HIGH | 60 | None |
+| AI-002 | Implement prompt injection detection *(a basic keyword blocklist exists; had 2 concrete bypasses found & fixed 2026-07-03, see AI-008 below; the acceptance criteria further down in this doc — secondary-LLM-call detection, output validation, logging/alerting — remain genuinely unimplemented)* | AI/Security | HIGH | 60 | None |
+| AI-008 | ~~Prompt injection blocklist had 2 concrete bypasses (whitespace reformatting; only checked the last conversation message)~~ **NEW, RESOLVED 2026-07-03** | AI/Security | HIGH | 1 (actual) | None |
 | AI-003 | Implement per-user LLM token budgets | AI/Cost | HIGH | 24 | AI-001 |
 | AI-005 | Implement content moderation for generated code | AI/Security | MEDIUM | 60 | None |
 | INF-002 | Set up monitoring, metrics, and alerting | DevOps | CRITICAL | 80 | None |
@@ -381,12 +384,17 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | PROD-003 | Implement admin users export endpoint | Product | MEDIUM | 4 | None |
 | PROD-004 | Fix preview URLs (use real domain) | Product | HIGH | 8 | None |
 | PROD-005 | Add email verification flow | Product | HIGH | 24 | SEC-006 |
-| PROD-006 | Fix credit deduction race condition | Business | CRITICAL | 4 | None |
+| PROD-006 | ~~Fix credit deduction race condition~~ **the reservation half was genuinely race-free (verified with 8 real concurrent requests); the refund half was not — see PROD-008** | Business | CRITICAL | 4 | None |
+| PROD-008 | ~~Refund fired once per Celery retry attempt instead of once per build~~ **NEW, RESOLVED 2026-07-03** (real exploitable free-credits path — verified live, balance ended above starting value before the fix) | Business | CRITICAL | 1 (actual) | None |
 | PROD-007 | Add trial enforcement | Business | HIGH | 4 | None |
-| WS-001 | Migrate WebSocket to Redis pub/sub | Architecture | CRITICAL | 16 | None |
+| WS-001 | ~~Migrate WebSocket to Redis pub/sub~~ **the publish half was real, but nothing subscribed — see WS-003** | Architecture | CRITICAL | 16 | None |
 | WS-002 | Send file deltas instead of full file dict | Performance | HIGH | 8 | None |
+| SEC-015 | ~~Auth endpoints leaked password hash + raw GitHub token~~ **NEW, RESOLVED 2026-07-03** | Security | CRITICAL | 3 (actual) | None |
+| BE-013 | ~~Marketplace item creation crashed on every call~~ **NEW, RESOLVED 2026-07-03** | Backend | HIGH | 1 (actual) | None |
+| BE-015 | ~~Celery build pipeline looked wired but 100% non-functional end-to-end~~ **NEW, RESOLVED 2026-07-03** (wrong app binding + broken worker autodiscover + event-loop closure after 1st task) | Architecture | CRITICAL | 2 (actual) | None |
+| WS-003 | ~~Live build-progress WebSocket events never delivered to any client~~ **NEW, RESOLVED 2026-07-03** (Redis pub/sub channel had no subscriber) | Architecture | CRITICAL | 1.5 (actual) | None |
 
-**Total P0 Hours: ~632**
+**Total P0 Hours: ~632** (unchanged from original — SEC-014 was resolved same-day it was found, at ~1.5h actual vs. its 4h estimate, so it doesn't add net-open hours; SEC-015/SEC-016/BE-013/SEC-001/BE-015/WS-003 are likewise already resolved)
 
 ## P1 — High Priority (Sprint 2-3)
 
@@ -900,8 +908,8 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 | Metric | Current | Target | Status |
 |--------|---------|--------|--------|
-| **Overall Completion** | 29.8% | 100% | ⚠️ |
-| **Security Score** | 7/10 | 9/10 | ✅ (improved from 1.5/10) |
+| **Overall Completion** | 30.8% *(was 29.8%; +1.0 net — FE-008/FE-009 shipped and SEC-001/SEC-014/SEC-015/SEC-016/BE-013 all resolved same-day)* | 100% | ⚠️ |
+| **Security Score** | 7.5/10 *(+0.5 — SEC-001, SEC-014, SEC-015, and SEC-016 all genuinely resolved 2026-07-03, no longer offset by an open gap)* | 9/10 | ✅ (improved from 1.5/10) |
 | **Product Score** | 3/10 | 7/10 | 🔴 |
 | **Backend Score** | 3/10 | 7/10 | 🔴 |
 | **Frontend Score** | 3.5/10 | 7/10 | 🔴 |
@@ -918,10 +926,10 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 | Phase | % Complete | Hours Remaining | Status |
 |-------|-----------|-----------------|--------|
-| Phase 1: Security & Infrastructure | 100% | 0 | ✅ Complete |
+| Phase 1: Security & Infrastructure | Unverified — flagging, not re-scoring *(the original 100% was already false before 2026-07-03 — of the ~30 items in this phase's P0 backlog above, SEC-001, SEC-014, SEC-002, SEC-003, SEC-005, and BE-001 (Celery, tracked under Architecture but part of this same due-diligence pass) have now been personally investigated and verified/fixed this session. SEC-002/003/005 were confirmed genuinely clean as claimed. BE-001 was NOT clean as claimed — it was 100% non-functional end-to-end; see BE-015 for the three bugs found and fixed. DB-001 (build-file/16MB separation) was also re-checked this session and confirmed genuinely accurate as claimed — no gap found. WS-001 (WebSocket Redis pub/sub, also tracked under Architecture) was checked next and was NOT clean either — same failure shape as BE-001: looked wired, was 100% non-functional (zero live build-progress events ever reached a connected client, verified live); see WS-003 for the fix. PROD-006 (credit race condition, tracked under Product) was checked next and was a mixed result: the reservation half was genuinely clean (8 real concurrent requests, exactly 1 succeeded, no double-spend), but the refund half was not — a failing/retried build got refunded once per Celery retry attempt instead of once per build, verified live with a balance ending *above* its starting value; see PROD-008 for the fix. AI-002 (prompt injection detection, tracked under AI Pipeline) was checked next by actually attempting bypasses rather than reading the pattern list: the keyword blocklist that exists had two concrete gaps (trivial whitespace/hyphen reformatting, and only the last conversation message ever being checked) — both fixed; see AI-008. The much larger originally-scoped AI-002 work (secondary-LLM-call detection, output validation, logging/alerting) remains genuinely unimplemented — fixing the blocklist's bypasses doesn't change that. The remaining ~20 items' actual status — INF-002 monitoring, INF-004 CI/CD, etc. — has still not been re-checked, so a single revised percentage here would still just be a fabricated number. Someone should audit the remaining P0 list above against the real codebase before this row is trusted again.)* | Unknown | 🔴 Needs re-audit (was falsely ✅ Complete) |
 | Phase 2: Architecture & Database | 20% | 180 | 🔴 In Progress |
 | Phase 3: Core Product | 10% | 240 | 🔴 Not Started |
-| Phase 4: Frontend & UX | 5% | 200 | 🔴 Not Started |
+| Phase 4: Frontend & UX | 7% *(was 5% — FE-008/FE-009 shipped, FE-005 partially progressed)* | 194 | 🔴 In Progress |
 | Phase 5: Growth | 0% | 160 | ⬜ Not Started |
 | Phase 6: Enterprise | 0% | 200 | ⬜ Not Started |
 
@@ -929,13 +937,13 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 | Metric | Count | Trend |
 |--------|-------|-------|
-| **Total Known Issues** | 120+ | ⬆️ (identifying more) |
-| **P0 Issues** | 34 | ⬇️ (was 17 security + 12 bugs) |
+| **Total Known Issues** | 127+ *(120+ +7 items added 2026-07-03 per ENGINEERING_BACKLOG.md: SEC-014/015/016, BE-013/014, FE-008/009 — all 7 now resolved)* | ⬆️ (identifying more) |
+| **P0 Issues** | 34 *(unchanged — all 2026-07-03 additions [SEC-014, SEC-015, SEC-016, BE-013] were resolved same-day, so none add to the open count)* | ⬇️ (was 17 security + 12 bugs) |
 | **P1 Issues** | 32 | ⬆️ (better visibility) |
 | **P2 Issues** | 28 | ⬆️ (better visibility) |
 | **P3 Issues** | 18 | ⬆️ (roadmap items) |
 | **P4 Issues** | 14 | → (future) |
-| **Critical Security Vulns** | 2 remaining | ⬇️ ⚠️ (CSRF + encryption key) |
+| **Critical Security Vulns** | 1 remaining *(down from 2 — CSRF and the newly-found bcrypt/passlib outage were both resolved 2026-07-03; only encryption-key separation [SEC-002] remains)* | ⬇️ ⚠️ (encryption key) |
 | **Technical Debt %** | 70% | ⬆️ (need to quantify) |
 
 ## Revenue Readiness
@@ -1022,12 +1030,12 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## BACKEND (48 items)
 
-- [ ] BE-001-1: Builds processed via Celery tasks (not BackgroundTasks)
-- [ ] BE-001-2: Task persistence on Redis restart
-- [ ] BE-001-3: Automatic retry on failure (3 retries)
-- [ ] BE-001-4: Dead-letter queue for failed builds
-- [ ] BE-001-5: Build status updates via Celery callbacks
-- [ ] BE-001-6: Existing build creation flow preserved
+- [x] BE-001-1: Builds processed via Celery tasks (not BackgroundTasks) — verified 2026-07-03 (was broken; see BE-015)
+- [x] BE-001-2: Task persistence on Redis restart — verified 2026-07-03 (build genuinely sits `pending` in Mongo/Redis with no worker running)
+- [x] BE-001-3: Automatic retry on failure (3 retries) — verified 2026-07-03
+- [ ] BE-001-4: Dead-letter queue for failed builds — still not implemented; failed-after-retries tasks just end up `status: failed` in Mongo with no separate queue
+- [x] BE-001-5: Build status updates via Celery callbacks — verified 2026-07-03
+- [x] BE-001-6: Existing build creation flow preserved — verified 2026-07-03
 - [ ] BE-002-1: Global @app.exception_handler(Exception) registered
 - [ ] BE-002-2: Stack traces logged but never returned to client
 - [ ] BE-002-3: Consistent error response format
@@ -1265,7 +1273,7 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 - [ ] TEST-005: Integration tests for build pipeline
 - [ ] TEST-006: Integration tests for Stripe webhook
 - [ ] TEST-007: Integration tests for WebSocket flow
-- [ ] TEST-008: Regression tests for credit deduction race condition
+- [x] TEST-008: Regression tests for credit deduction race condition — reservation race verified live (8 concurrent requests, 1 succeeded); `backend/tests/test_credit_refund_retries.py` added 2026-07-03 covering the refund-per-retry bug found in the same pass (see PROD-008)
 - [ ] TEST-009: Regression tests for token blacklisting
 - [ ] TEST-010: Regression tests for rate limiting
 - [ ] TEST-011: WebSocket ownership tests
@@ -1505,13 +1513,14 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 ### Week 1: Triage & Stabilize
 
 **Day 1:**
-1. Lock down security: Verify and enforce all remaining P0 security fixes
+0. ~~**Fix SEC-014**: the bcrypt/passlib version incompatibility that made registration and login crash on every attempt.~~ **DONE 2026-07-03** — pinned `bcrypt==4.0.1`, verified with a real register+login round-trip. Also fixed a second bug it uncovered (SEC-016, an ObjectId serialization crash on registration).
+1. Lock down security: Verify and enforce all remaining P0 security fixes *(note: SEC-001/CSRF, which used to be the headline item here, is now resolved — see ENGINEERING_BACKLOG.md)*
 2. Deploy to production (even if imperfect)
 3. Set up error tracking (Sentry)
 4. Grant 10 trusted beta users access
 
 **Day 2-3:**
-5. Fix credit system race condition (immediate revenue risk)
+5. ~~Fix credit system race condition (immediate revenue risk)~~ **DONE 2026-07-03** — the reservation race was verified already race-free; the real bug found and fixed was a duplicate-refund-per-retry issue (PROD-008), verified via a live test where a failing build's balance ended up above its starting value before the fix
 6. Fix password reset flow (users cannot get locked out)
 7. Send welcome emails to beta users
 8. Set up CI/CD pipeline
@@ -1544,7 +1553,7 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 2. Fix preview URLs (users need to see their app)
 3. Implement basic deployment (users need to ship)
 4. Add usage analytics dashboard
-5. Polish UI inconsistencies (Settings crash, hardcoded colors)
+5. Polish UI inconsistencies (~~Settings crash~~ resolved 2026-07-03 — Settings/Billing/Marketplace all wired to real data now, see FE-008; hardcoded colors still open)
 6. Add confirmation dialogs (prevent accidental data loss)
 
 ### Month 2: Growth Engine

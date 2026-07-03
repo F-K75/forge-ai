@@ -2,33 +2,34 @@
 
 **Version:** 1.0  
 **Date:** 2026-01-07  
-**Total Issues:** 59  
-**Total Estimated Hours:** 1,848
+**Total Issues:** 70 (59 original + 11 added 2026-07-03: SEC-014, SEC-015, SEC-016, BE-013, BE-014, BE-015, WS-003, PROD-008, AI-008, FE-008, FE-009 — all 11 now resolved)  
+**Total Estimated Hours:** 1,880
 
 ---
 
-## Epic: Security (13 issues)
+## Epic: Security (16 issues)
 
-### SEC-001: CSRF Protection is Incomplete
+### SEC-001: CSRF Protection is Incomplete — RESOLVED 2026-07-03
 - **ID:** SEC-001
 - **Title:** Implement proper CSRF token validation
-- **Description:** CSRF protection middleware only checks if `X-CSRF-Token` header is present, not if it's valid. `validate_csrf_token` and `store_csrf_token` functions exist but are never called.
+- **STATUS: RESOLVED.** The original description below was incorrect — verified 2026-07-03 that `backend/core/security.py`'s `csrf_protection_middleware` correctly calls `validate_csrf_token()` (real Redis-backed comparison via `secrets.compare_digest`, not a presence check) and rejects both missing and invalid tokens with 403. The actual, much more severe bug: **`frontend/src/lib/api.ts` never called `GET /auth/csrf-token` or attached `X-CSRF-Token` anywhere**, so every real browser session's POST/PUT/DELETE — create project, create build, rollback, billing checkout, everything — was silently rejected with 403. The backend was secure; the app was simply non-functional for any mutating action.
+- **Fix applied:** Added a request interceptor to the shared `api` axios instance in `frontend/src/lib/api.ts` that lazily fetches and caches the CSRF token, attaching it to all non-GET requests (excluding the few server-side-exempt paths: login, register, forgot/reset-password, billing webhook). A response interceptor clears the cached token on 401/403 so the next mutating request fetches a fresh one.
+- ~~**Description:** CSRF protection middleware only checks if `X-CSRF-Token` header is present, not if it's valid. `validate_csrf_token` and `store_csrf_token` functions exist but are never called.~~ *(incorrect — see STATUS above)*
 - **Category:** Security / Authentication
 - **Severity:** HIGH
 - **Priority:** P0
-- **Affected Files:** `backend/core/security.py` (line 145-155)
-- **Root Cause:** Incomplete implementation - validation functions defined but never wired into middleware
-- **Recommended Fix:** Wire `validate_csrf_token()` into middleware; generate and store CSRF tokens per session; validate on every state-changing request
+- **Affected Files:** `frontend/src/lib/api.ts` (the actual fix); `backend/core/security.py` (already correct, no change needed)
+- **Root Cause (corrected):** Frontend never implemented the CSRF token fetch/attach contract that the backend middleware expected, despite the middleware itself working correctly.
 - **Acceptance Criteria:**
-  - [ ] CSRF token validated on all POST/PUT/DELETE requests
-  - [ ] Tokens are generated per session and verified
-  - [ ] Existing test suite passes
-  - [ ] No false positives with valid requests
-- **Estimated Hours:** 16
+  - [x] CSRF token validated on all POST/PUT/DELETE requests (already true — backend was correct)
+  - [x] Tokens are generated per session and verified (already true)
+  - [x] Frontend fetches and attaches the token automatically on every mutating request
+  - [x] Verified via curl: `PUT /auth/me` 403s without a token, 200s with a valid one fetched from `/auth/csrf-token`
+- **Estimated Hours:** 16 (original estimate; actual fix was ~1h once root cause was correctly identified — the estimate was based on the wrong root cause)
 - **Dependencies:** None
 - **Owner:** Security Lead
 - **Risk:** Medium
-- **Verification Steps:** Attempt state-changing request without CSRF token → 403; with valid token → 200
+- **Verification Steps:** Attempt state-changing request without CSRF token → 403; with valid token → 200 (verified both cases 2026-07-03)
 
 ---
 
@@ -78,25 +79,25 @@
 
 ---
 
-### SEC-004: Rate Limiting Bypass When Redis is Down
+### SEC-004: Rate Limiting Bypass When Redis is Down — RESOLVED 2026-07-03 (re-scoped)
 - **ID:** SEC-004
 - **Title:** Implement fail-closed rate limiting
-- **Description:** `rate_limit_middleware` silently falls through on Redis connection failure allowing unlimited API calls.
+- **Description (original, stale):** ~~`rate_limit_middleware` silently falls through on Redis connection failure allowing unlimited API calls.~~ **This was already false by 2026-07-03** — `rate_limit_middleware` (the general per-IP limiter covering `/auth`, `/builds`, `/api`, etc.) already had a working in-memory fallback (`_check_in_memory_rate_limit`) that still enforces the configured limit when Redis is down. Re-auditing this item live found the *actual* remaining gap was narrower and in a different function: `check_email_rate_limit` (the per-email limiter behind `/auth/register` and `/auth/forgot-password`, 3-5 attempts/email/hour) had its own, separate `except Exception: return True, 0` — an explicit fail-*open*, not a fail-through. Any Redis blip (or an attacker able to trigger Redis errors) allowed unlimited registration or password-reset-token requests for a specific target email, with the per-IP limiter as the only backstop — and that's scoped per-IP, not per-email, looser (10 req/60s vs. 3-5/hour), and trivially bypassed by rotating source IPs.
 - **Category:** Security / Rate Limiting
 - **Severity:** HIGH
 - **Priority:** P0
-- **Affected Files:** `backend/core/security.py` (line 71-77)
-- **Root Cause:** Fail-open design for rate limiting
-- **Recommended Fix:** Return 429 or 503 when Redis is unavailable; implement in-memory fallback rate limiter
+- **Affected Files:** `backend/core/security.py` (`check_email_rate_limit`, ~line 369-392)
+- **Root Cause:** Fail-open exception handler in the per-email limiter, independent of the general middleware's (already-correct) fallback
+- **Fix Applied:** `check_email_rate_limit`'s `except Exception` now calls the same `_check_in_memory_rate_limit` helper `rate_limit_middleware` already uses, instead of unconditionally returning `(True, 0)`.
 - **Acceptance Criteria:**
-  - [ ] Requests return 429/503 when Redis is down
-  - [ ] In-memory fallback rate limiter operational
-  - [ ] Configurable fallback limits
-- **Estimated Hours:** 8
+  - [x] Requests are still bounded (in-memory fallback) when Redis is down, for both the general middleware and the per-email limiter
+  - [x] In-memory fallback rate limiter operational
+  - [ ] Fallback limits are conservative (50% of normal) — not done; fallback currently reuses the same limit as the Redis path (per-process, so real effective ceiling scales with worker/replica count during an outage)
+- **Estimated Hours:** 8 (est.) / ~1 (actual)
 - **Dependencies:** None
 - **Owner:** Security Lead
 - **Risk:** Low
-- **Verification Steps:** Stop Redis → make requests → receive 429/503
+- **Verification:** Added `backend/tests/test_email_rate_limit_failover.py` — simulates a Redis outage and confirms the 4th request in an hour is blocked (previously all would pass) and that the limit is scoped per-email (a different email is unaffected).
 
 ---
 
@@ -307,7 +308,74 @@
 
 ---
 
-## Epic: Backend (12 issues)
+### SEC-014: bcrypt/passlib Version Incompatibility — RESOLVED 2026-07-03
+- **ID:** SEC-014
+- **Title:** Fix bcrypt/passlib incompatibility blocking all password hashing
+- **Description:** Every call to `hash_password()`/`verify_password()` in `backend/auth.py` — i.e. every registration and every login — raised `ValueError: password cannot be longer than 72 bytes, truncate manually if necessary` from deep inside passlib's own internal compatibility self-test (`passlib/handlers/bcrypt.py`'s `detect_wrap_bug`), not from an actual oversized password. Root cause pinned down precisely: `bcrypt>=4.1` removed the `_bcrypt.__about__` module passlib 1.7.4 reads to detect the installed version; the resulting `AttributeError` cascades into passlib's fallback self-test, which is what actually raises the misleading "72 bytes" error.
+- **Category:** Security / Authentication / Availability
+- **Severity:** CRITICAL
+- **Priority:** P0
+- **Affected Files:** `backend/requirements.txt` (added explicit `bcrypt==4.0.1` pin below `passlib[bcrypt]==1.7.4`, with a comment explaining why it must not be bumped without also addressing passlib)
+- **Root Cause:** Pinned `passlib` version is incompatible with `bcrypt>=4.1`'s removal of `_bcrypt.__about__`.
+- **Fix Applied:** Pinned `bcrypt==4.0.1` (the last version with `__about__` intact) directly below the `passlib[bcrypt]` line, with a comment warning against bumping it without re-verifying. Confirmed via isolated repro that `bcrypt==5.0.0` (previously resolved) fails and `bcrypt==4.0.1` succeeds, before touching the pin.
+- **Acceptance Criteria:**
+  - [x] `POST /auth/register` succeeds end-to-end with a real password — verified via curl, fresh account, 200 response
+  - [x] `POST /auth/login` succeeds with the registered credentials — verified, same session
+  - [x] Existing test suite still passes — 66/66 `pytest` green after the fix
+  - [x] No regression in password strength validation — unaffected, different code path
+- **Estimated Hours:** 2-4 estimated, ~1 actual (diagnosis was the expensive part; the pin itself is one line)
+- **Dependencies:** None
+- **Owner:** Backend Lead
+- **Risk:** Was blocking 100% of new signups and logins; now resolved. **Fixing this uncovered a second, previously-unreachable bug — see SEC-016 below** (registration always crashed at the hashing step before, so nothing downstream of it had ever actually run).
+- **Verification Steps:** `curl -X POST /auth/register -d '{"email":"...","name":"...","password":"ValidPass123!"}'` → 200 with a token (verified 2026-07-03); immediate `curl -X POST /auth/login` with the same credentials → 200 with a token.
+
+---
+
+### SEC-016: `_id` (bson.ObjectId) Leaked Register Response into a 500 — RESOLVED 2026-07-03
+- **ID:** SEC-016
+- **Title:** Fix `PydanticSerializationError` on every successful registration
+- **Description:** Discovered while verifying SEC-014's fix — with password hashing actually working for the first time, `POST /auth/register` got further than ever before and hit a *new* crash: `PydanticSerializationError: Unable to serialize unknown type: <class 'bson.objectid.ObjectId'>`. Motor's `insert_one()` mutates its input dict in place, injecting a `bson.ObjectId` `_id` field after a successful insert. `register`'s handler reuses that same now-mutated `user_dict` to build its response via `_public_user_dict(user_dict)` (added for SEC-015), and `_public_user_dict` didn't strip `_id`, so FastAPI's response serializer choked on the non-JSON-serializable ObjectId. This bug predates SEC-015's fix — the same mutated-dict reuse existed in the original code too — it was simply unreachable because SEC-014 always crashed first.
+- **Category:** Backend / Data Serialization
+- **Severity:** CRITICAL (registration was still 100% broken even after SEC-014's fix, until this was found)
+- **Priority:** P0
+- **Affected Files:** `backend/api/auth.py` (`_public_user_dict`)
+- **Root Cause:** `_public_user_dict`'s strip-list didn't include `_id`, and its caller passed it a dict that Motor had mutated in place during `insert_one()`.
+- **Fix Applied:** Added `"_id"` to `_public_user_dict`'s strip set, with a comment explaining the Motor-mutation gotcha so future callers don't reintroduce it.
+- **Acceptance Criteria:**
+  - [x] `POST /auth/register` returns 200 with a clean JSON body (no `_id`, no `hashed_password`)
+  - [x] Verified with a fresh account end-to-end, immediately followed by a successful login
+- **Estimated Hours:** 0.5 (actual — found and fixed in the same session as SEC-014)
+- **Dependencies:** SEC-014 (this bug was unreachable until SEC-014 was fixed)
+- **Owner:** Backend Lead
+- **Risk:** Was Critical (total registration outage); now Resolved.
+- **Verification Steps:** `curl -X POST /auth/register -d '{...}'` → 200, response body has no `_id` or `hashed_password` key. Verified 2026-07-03.
+
+---
+
+### SEC-015: Auth Endpoints Leaked Password Hash and Raw GitHub Token — RESOLVED 2026-07-03
+- **ID:** SEC-015
+- **Title:** Auth response bodies exposed sensitive fields
+- **Description:** `GET /auth/me` decrypted and returned the user's live GitHub personal-access-token in its JSON response on every call (including from the `ProtectedRoute`/`PublicRoute` frontend guards that fire on nearly every page load). Separately, `POST /auth/login`, `POST /auth/register`, and `POST /auth/refresh` all returned the raw, unfiltered MongoDB user document as `TokenResponse.user`, exposing the bcrypt `hashed_password` field (and the encrypted-but-present `github_token` ciphertext) to every client. Found and fixed 2026-07-03 while implementing GitHub-connect UI in Settings.
+- **Category:** Security / Data Exposure
+- **Severity:** CRITICAL
+- **Priority:** P0
+- **Affected Files:** `backend/api/auth.py` (`get_me`, `login`, `register`, `refresh`)
+- **Root Cause:** No response sanitization layer existed between the MongoDB user document and the HTTP response body; endpoints either returned the doc directly or decrypted-and-returned sensitive fields believing they were "helpfully" resolving them for the client.
+- **Fix Applied:** Added `_public_user_dict()` helper — strips `hashed_password`, `github_token`, `verification_token`, `verification_expires` from any user dict before it's returned, and adds a `github_connected: bool` in place of the raw token. Applied uniformly across all four endpoints.
+- **Acceptance Criteria:**
+  - [x] `GET /auth/me` response contains no `hashed_password` or raw `github_token` field
+  - [x] `POST /auth/login`, `/register`, `/refresh` responses contain no `hashed_password`
+  - [x] `github_connected: bool` correctly reflects whether a token is stored, without exposing it
+  - [x] Verified via direct curl against a seeded test user
+- **Estimated Hours:** 3 (actual)
+- **Dependencies:** None
+- **Owner:** Security Lead
+- **Risk:** Was High (credential/PII exposure to every client and any network observer); now Resolved.
+- **Verification Steps:** `curl GET /auth/me` with a valid session → response has no `hashed_password`/`github_token` keys, has `github_connected` instead. Verified 2026-07-03.
+
+---
+
+## Epic: Backend (14 issues)
 
 ### BE-001: BackgroundTasks for Build Processing (No Message Queue)
 - **ID:** BE-001
@@ -320,17 +388,74 @@
 - **Root Cause:** Build pipeline uses `BackgroundTasks.add_task()` instead of Celery/Redis Queue
 - **Recommended Fix:** Replace `background_tasks.add_task(_run_build_background, ...)` with `run_build.delay(build_id, ...)`. Configure Celery with Redis broker, implement task persistence, retries, and dead-letter queues.
 - **Acceptance Criteria:**
-  - [ ] All builds processed via Celery tasks
-  - [ ] Task persistence on Redis restart
-  - [ ] Automatic retry on failure (3 retries)
-  - [ ] Dead-letter queue for failed builds
-  - [ ] Build status updates via Celery callbacks
-  - [ ] Existing build creation flow preserved
+  - [x] All builds processed via Celery tasks
+  - [x] Task persistence on Redis restart
+  - [x] Automatic retry on failure (3 retries)
+  - [ ] Dead-letter queue for failed builds (not implemented — failed tasks after max retries are just marked `status: failed` in Mongo, no separate DLQ)
+  - [x] Build status updates via Celery callbacks
+  - [x] Existing build creation flow preserved
 - **Estimated Hours:** 80
 - **Dependencies:** None
 - **Owner:** Staff Engineer
 - **Risk:** High (core architecture change)
 - **Verification Steps:** Create build → verify Celery task created → restart Celery → build resumes → verify completion
+- **⚠️ Update 2026-07-03:** The `.delay()` call itself was correctly wired (this part of the claim was accurate), but three separate bugs made the whole pipeline **100% non-functional end-to-end** — every real build creation request 500'd. All found by actually running a build with no worker, then with a worker, rather than trusting the code shape. All fixed same day — see **BE-015**.
+
+---
+
+### BE-015: Celery Build Pipeline Was Completely Non-Functional Despite Looking Correct — RESOLVED 2026-07-03
+- **ID:** BE-015
+- **Title:** Three independent bugs in the Celery wiring meant `run_build.delay()` never actually worked
+- **Category:** Architecture / Reliability
+- **Severity:** CRITICAL (P0) — every build creation request failed with HTTP 500
+- **Priority:** P0
+- **Discovered while:** Spot-verifying BE-001's "done" claim by actually creating a build against the running app instead of trusting that `run_build.delay()` existing in the code meant it worked.
+- **Bug 1 — task bound to the wrong Celery app:** `backend/tasks/build_tasks.py` did `from celery import current_app` and decorated tasks with `@current_app.task(...)`. `celery_app.py` (the module that actually builds a configured `Celery("forge", broker=<redis-url>, ...)` instance) is **never imported anywhere else in the running app**. So `current_app` resolved to Celery's generic bootstrap default app — `main='default'`, `broker_url=None` — which falls back to Celery's hardcoded default broker (`amqp://guest@localhost:5672`, RabbitMQ's port). Nothing listens there, so every `.delay()` call raised `kombu.exceptions.OperationalError: [Errno 111] Connection refused`. Confirmed by comparing `run_build.app is celery_app` (`False` before the fix) and by showing `celery_app.send_task('backend.tasks.build_tasks.run_build', ...)` (calling the real app object directly) succeeded in the same process where `run_build.delay(...)` failed.
+  - **Fix:** `tasks/build_tasks.py` now does `from celery_app import celery_app as current_app`, binding the task to the real, configured app. Verified `run_build.app is celery_app` is now `True`.
+- **Bug 2 — worker couldn't even start:** `celery_app.py` called `celery_app.autodiscover_tasks(["backend"])`, which imports `<pkg>.tasks` for each name in the list. There is no importable top-level `backend` package in this project's actual runtime layout (everything runs with `backend/` as the working directory, importing top-level as `tasks.build_tasks`, `api.builds`, etc. — never `backend.xxx`). Running `celery -A celery_app worker` crashed immediately at startup with `ModuleNotFoundError: No module named 'backend'`. This meant that even after fixing Bug 1, **no worker configuration in this repo could ever successfully start** to consume the correctly-enqueued tasks.
+  - **Fix:** Replaced `autodiscover_tasks(["backend"])` with a direct `import tasks.build_tasks` at the bottom of `celery_app.py`, which deterministically registers the tasks on app import regardless of package-discovery conventions.
+  - **Side finding:** `celery_app.conf.task_routes` keys (`"backend.tasks.deployment"`, `"backend.tasks.build"`) didn't match the real registered task names (`"backend.tasks.build_tasks.run_build"`, `"backend.tasks.build_tasks.update_build_status"`) and would never have routed anything to the `build`/`deployment` queues — corrected to the real task names. (There is no `deployment` Celery task anywhere in the codebase; that route entry was aspirational/dead and was dropped.)
+- **Bug 3 — worker could process exactly one task per process, ever:** Both Celery tasks in `build_tasks.py` ran their async body via `asyncio.run(_run())`, which creates a new event loop and **closes it** when the task returns. `core/database.py`'s Mongo client is a process-global singleton (`_mongo_client`), created once and cached for the process's lifetime, bound internally to whichever event loop was active when it was first used. Result: the **first** task a worker process picks up succeeds, but every task after that (including Celery's own automatic retries of the *same* task) permanently fails with `RuntimeError: Event loop is closed` — reproduced live: 8 queued tasks sent to one worker, exactly 1 succeeded, all 7 remaining (and all their retries) failed identically until retries were exhausted. In production this would have meant a worker could complete at most one build before silently failing every build after it.
+  - **Fix:** Added a small `_run_async()` helper in `build_tasks.py` that keeps one event loop alive for the lifetime of the worker process (created lazily on first use, reused — not closed — on every subsequent call) instead of creating and closing a fresh loop per task. Both `run_build` and `update_build_status` now go through it.
+- **Verification:** With no worker running, `POST /builds/` returns `200 {"status": "pending"}` and the build genuinely sits queued in Mongo (proving it isn't processed inline). Started a real `celery -A celery_app worker` and confirmed it (a) starts without crashing, (b) picks up the queued build, and (c) processed **two sequential real builds** end-to-end (fetched from Mongo, ran the orchestrator, wrote status/credit updates back) with neither hitting the closed-loop error — the only failures were an invalid `ANTHROPIC_API_KEY` in this dev environment's `.env` (a credentials/environment issue, unrelated to the Celery wiring) and the app's own LLM circuit breaker correctly tripping in response.
+- **Not fixed / out of scope:** No dead-letter queue exists for tasks that exhaust their retries — they just end up `status: failed` in Mongo with no separate inspection queue. Left as the pre-existing BE-001 gap it already was.
+- **Files Modified:** `backend/tasks/build_tasks.py`, `backend/celery_app.py`
+- **Owner:** Staff Engineer
+- **Estimated Hours:** 0 (found and fixed same day)
+
+---
+
+### WS-003: Live Build Progress Was Never Delivered to Any Client — RESOLVED 2026-07-03
+- **ID:** WS-003
+- **Title:** Redis pub/sub channel for WebSocket events had no subscriber; every build-progress event was silently dropped
+- **Category:** Architecture / Real-time UX
+- **Severity:** CRITICAL — the product's headline "watch AI build your app live" feature was completely non-functional
+- **Priority:** P0
+- **Discovered while:** Spot-verifying WS-001's "Migrate WebSocket to Redis pub/sub" claim, prompted directly by the BE-015 pattern (a claim that looked correct in the code but was unverified end-to-end).
+- **Root Cause:** `ConnectionManager.emit()`/`broadcast()` in `backend/services/ws_manager.py` published events to a Redis channel (`build:{build_id}`) and also tried a "local fallback" delivery to any WebSocket connections held by *that same process*. Nothing anywhere in the codebase ever subscribed to the Redis channel. Since fixing BE-015, **all** build processing runs inside the Celery **worker** process — which never accepts any WebSocket connections itself (only the FastAPI web process's `/builds/ws/{build_id}` endpoint does, in a completely separate OS process). So every `emit()` call's "local fallback" always found zero connections, and the Redis publish went nowhere. This wasn't a multi-instance-only edge case — it was broken for every single build, on a single-instance dev setup, 100% of the time. The frontend (`useBuildSocket.ts`) has no REST polling fallback at all, so the failure mode was a completely frozen build view, not degraded polling.
+- **Verification method:** Registered a WebSocket client to a real build's `/builds/ws/{id}` endpoint, created the build, and confirmed via server-side logs that `emit()` was called multiple times as the build progressed to a terminal (`failed`) state — then confirmed the connected client received **zero** of those messages. This is the same "actually run it, don't trust the code" methodology that found BE-015.
+- **Fix:** Added `ConnectionManager.start_pubsub_listener()` — a background `asyncio` task, started/stopped via `main.py`'s FastAPI `lifespan`, that subscribes to the `build:*` pattern and forwards matching messages to that process's local WebSocket connections. Each process tags its own published messages with a per-instance id so its own listener skips re-delivering what it already sent directly, avoiding double delivery. Same-process delivery still happens directly first (doesn't depend on the pub/sub round trip, so a brief Redis blip doesn't break same-process delivery).
+- **Verification after fix:** Restarted the Celery worker (it doesn't hot-reload — an easy trap to fall into mid-fix, and the cause of one false-negative retest along the way), connected a real WebSocket client to a real build, and confirmed the client received every one of 14 events emitted across the build's lifecycle (start, agent updates, failure, retries). Added 3 regression tests in `backend/tests/test_ws_pubsub_bridge.py` using an in-memory fake Redis (no live Redis needed in CI) covering: same-process delivery still works, a *different* `ConnectionManager` instance's event reaches this instance's connections (the actual bug), and a process never double-delivers its own event to itself.
+- **Files Modified:** `backend/services/ws_manager.py`, `backend/main.py`, `backend/tests/test_ws_pubsub_bridge.py` (new)
+- **Owner:** Backend Lead
+- **Estimated Hours:** 0 (found and fixed same day)
+
+---
+
+### PROD-008: Credit Refund Fired Once Per Retry Attempt, Not Once Per Build — RESOLVED 2026-07-03
+- **ID:** PROD-008
+- **Title:** A failing, retried build refunded its reservation multiple times, ending above its starting balance
+- **Category:** Business Logic / Billing Integrity
+- **Severity:** CRITICAL — real, exploitable "free credits" path, not just a rare edge case
+- **Priority:** P0
+- **Discovered while:** Spot-verifying PROD-006's claim ("Credit race condition — atomic `find_one_and_update` with `$gte` guard in refund path") by actually firing concurrent requests at the running app, per this session's standing methodology.
+- **What was actually verified clean:** The *reservation* path (`api/builds.py`'s atomic `find_one_and_update({"credits": {"$gte": max_credits}}, {"$inc": {"credits": -max_credits}})`) is genuinely race-free. Fired 8 truly concurrent `POST /builds/` requests (via a real `ThreadPoolExecutor`, not sequential calls) against a user with credits for exactly one build: exactly 1 of 8 succeeded, the other 7 correctly got `402 Insufficient credits`, no double-spend. PROD-006's original claim was accurate for this half.
+- **What was actually broken:** `BuildTask` is configured with `autoretry_for=(Exception,)` (`max_retries=3`), which makes Celery re-invoke `run_build`'s *entire function body* on every retry — including the `except Exception` block, which refunded credits and marked the build `failed` unconditionally on every single attempt, not just the final one. Verified live: a build that reserved 17 credits failed and retried 4 times (1 original + 3 retries, exactly as configured) due to an invalid `ANTHROPIC_API_KEY` in this dev environment — and the user's balance ended at **38 credits, higher than the starting 17**, instead of the mathematically correct 5 (17 reserved − 12 used = 5 refunded). Any build that reliably raises a retryable exception is a repeatable free-credits exploit, not a theoretical concern.
+- **Fix:** `run_build` is now `bind=True` and checks `self.request.retries` against `self.retry_kwargs["max_retries"]` inside the except block — refund and finalize-as-`failed` only fire on the last attempt Celery will make for a given task. Non-final attempts raise (so Celery still retries, unchanged resilience behavior) without touching credits or the build's terminal status.
+- **Verification after fix:** Repeated the exact same live scenario (17 credits reserved, build fails and retries 4 times due to the same invalid API key) — final balance was exactly 5, matching the correct single refund. Added 3 regression tests in `backend/tests/test_credit_refund_retries.py` using Celery's `push_request()`/`pop_request()` test hooks to simulate specific retry counts without needing a real broker; one test replays the full 0→1→2→3 attempt sequence and asserts the refund fires exactly once across all of them.
+- **Files Modified:** `backend/tasks/build_tasks.py`, `backend/tests/test_credit_refund_retries.py` (new)
+- **Owner:** Backend Lead
+- **Estimated Hours:** 0 (found and fixed same day)
 
 ---
 
@@ -429,26 +554,25 @@
 
 ---
 
-### BE-006: Build Timeout May Leak Resources
+### BE-006: Build Timeout May Leak Resources — RESOLVED 2026-07-03 (was worse than described)
 - **ID:** BE-006
 - **Title:** Ensure build timeout properly cleans up resources
-- **Description:** `asyncio.wait_for` wraps the orchestrator but timeout exception handling may not clean up resources. Builds can run indefinitely; resource exhaustion.
+- **Description (original, stale):** ~~`asyncio.wait_for` wraps the orchestrator but timeout exception handling may not clean up resources.~~ **This described pre-Celery code that no longer exists** — `backend/api/builds.py` has no `wait_for`/timeout logic at all anymore (confirmed by grep; it was apparently dropped during the BE-001/BE-015 migration to Celery and never re-implemented). The real state found on re-audit: `settings.build_timeout` ("10 minutes max per build") was referenced **nowhere** in the codebase outside its own definition in `core/config.py` — completely dead config. Nothing enforced any time limit on a build. A hung pipeline (agent retry storm, a stuck call outside the LLM client's own per-call timeout, a debug-loop bug bypassing `MAX_DEBUG_ITERATIONS`) would occupy a Celery worker slot forever with the user's credits reserved and never refunded — worse than "may leak resources," since there was no cleanup path to trigger at all.
 - **Category:** Reliability
 - **Severity:** MEDIUM
 - **Priority:** P1
-- **Affected Files:** `backend/api/builds.py` (line 160-163)
-- **Root Cause:** Timeout handling may leak resources
-- **Recommended Fix:** Add try/finally block to ensure cleanup; cancel Anthropic client on timeout; log timeout events; enforce maximum build duration
+- **Affected Files:** `backend/tasks/build_tasks.py`
+- **Root Cause:** Timeout enforcement was tied to the old BackgroundTasks implementation and silently dropped when build execution moved to Celery
+- **Fix Applied:** `run_build`'s task decorator now sets `soft_time_limit=settings.build_timeout` and `time_limit=settings.build_timeout + 30` (hard SIGKILL backstop). Added an `except SoftTimeLimitExceeded` clause that refunds the unused portion of the credit reservation and marks the build `failed` — deliberately *not* retried (`SoftTimeLimitExceeded` is a `BaseException`, outside `autoretry_for=(Exception,)`), since a hung pipeline would only hang again.
 - **Acceptance Criteria:**
-  - [ ] Try/finally ensures resource cleanup on timeout
-  - [ ] LLM API calls cancelled on timeout
-  - [ ] Timeout events logged with build ID and duration
-  - [ ] Configurable max build duration
-- **Estimated Hours:** 16
+  - [x] Configurable max build duration (was already configurable, now actually enforced)
+  - [x] Timeout triggers refund + build marked failed (equivalent of "try/finally ensures resource cleanup on timeout" for the current Celery architecture)
+  - [ ] Timeout events logged with build ID and duration — not done (error string is generic, no structured log/metric)
+- **Estimated Hours:** 16 (est.) / ~1 (actual)
 - **Dependencies:** None
 - **Owner:** Staff Engineer
 - **Risk:** Low
-- **Verification Steps:** Trigger build timeout → verify cleanup code runs → no leaked connections
+- **Verification:** Added `test_run_build_has_time_limit_wired_from_settings` (`tests/test_celery_tasks.py`) and `test_soft_time_limit_refunds_and_fails_build_without_retry` (`tests/test_credit_refund_retries.py`) — the latter simulates `SoftTimeLimitExceeded` and confirms exactly one refund and one `failed` status update, matching the existing retry-refund regression tests' style.
 
 ---
 
@@ -594,7 +718,50 @@
 
 ---
 
-## Epic: Frontend (7 issues)
+### BE-013: Marketplace Item Creation Crashed on Every Call — RESOLVED 2026-07-03
+- **ID:** BE-013
+- **Title:** Fix `POST /marketplace/` response serialization crash
+- **Description:** `create_item` in `backend/api/marketplace.py` always raised `fastapi.exceptions.ResponseValidationError` — `MarketplaceItem.created_at` is a Python `datetime`, but the model was inserted and returned in Python-mode dump while `MarketplaceItemResponse.created_at` expects `str`. The item was inserted into MongoDB successfully before the crash, so every "failed" create attempt actually left a real, orphaned document behind with a `datetime`-typed `created_at` that would also break subsequent `GET /marketplace/` and `GET /marketplace/{id}` calls once they encountered it. Found and fixed 2026-07-03 while wiring the (previously nonexistent) frontend Marketplace client.
+- **Category:** Backend / Data Integrity
+- **Severity:** HIGH
+- **Priority:** P1
+- **Affected Files:** `backend/api/marketplace.py` (`create_item`)
+- **Root Cause:** Insert and response both used `item.model_dump()` (Python mode, preserves `datetime` objects) instead of `item.model_dump(mode="json")` (ISO string dates), which the response model requires.
+- **Fix Applied:** Both the `insert_one` call and the return value now use `item.model_dump(mode="json")`, matching the pattern already used elsewhere in the codebase (e.g. `orchestrator/store.py`'s `ReviewRun.model_dump(mode="json")`).
+- **Acceptance Criteria:**
+  - [x] `POST /marketplace/` returns 200 with a valid response body
+  - [x] `GET /marketplace/` lists the created item correctly
+  - [x] `GET /marketplace/{id}` returns the item correctly
+- **Estimated Hours:** 1 (actual)
+- **Dependencies:** None
+- **Owner:** Backend Lead
+- **Risk:** Was Medium (silent data corruption — orphaned bad documents); now Resolved.
+- **Verification Steps:** `curl -X POST /marketplace/ -d '{...}'` → 200, not 500; verified via curl 2026-07-03, plus confirmed via browser that install → build handoff works end-to-end.
+
+---
+
+### BE-014: No User Preferences Storage — ADDED 2026-07-03
+- **ID:** BE-014
+- **Title:** Add a `User.preferences` field so Settings toggles persist
+- **Description:** The `User` model had no field to persist per-user preferences (notification opt-in, auto-deploy default, debug-iteration count) — `SettingsPage.tsx`'s toggles reset on every reload because there was nothing to persist them to. Added alongside the FE-008 Settings-wiring work.
+- **Category:** Backend / Data Model
+- **Severity:** LOW
+- **Priority:** P2
+- **Affected Files:** `backend/core/models.py` (`User.preferences: dict`), `backend/api/auth.py` (`UpdateProfileRequest.preferences`, shallow dot-notation `$set` merge in `update_profile` so one toggle's save doesn't clobber another's)
+- **Root Cause:** Field never existed; not an oversight so much as these settings simply not existing as a concept server-side before now.
+- **Fix Applied:** `preferences: dict = Field(default_factory=dict)` on `User`; `PUT /auth/me` accepts a partial `preferences` object and merges it key-by-key via MongoDB dot notation (`preferences.notifyOnBuild`, etc.) rather than overwriting the whole dict.
+- **Acceptance Criteria:**
+  - [x] Toggling a preference and reloading the page shows the same state
+  - [x] Setting one preference doesn't reset previously-set ones (verified: 3 sequential PUTs with different single keys, final GET shows all 3 merged correctly)
+- **Estimated Hours:** 1 (actual)
+- **Dependencies:** None
+- **Owner:** Backend Lead
+- **Risk:** Low
+- **Verification Steps:** `curl -X PUT /auth/me -d '{"preferences":{"notifyOnBuild":false}}'`, then a second call with `{"autoDeploy":true}`, then `GET /auth/me` → both keys present. Verified 2026-07-03.
+
+---
+
+## Epic: Frontend (9 issues)
 
 ### FE-001: No Accessibility (a11y) Implementation
 - **ID:** FE-001
@@ -703,15 +870,16 @@
 - **Priority:** P2
 - **Affected Files:** `frontend/src/pages/Onboarding.tsx`
 - **Root Cause:** Incomplete onboarding
+- **UPDATE 2026-07-03 (partial progress, item stays OPEN):** The wizard's final step now hands the user's selected goal off as a real starter prompt to `/build/new` (reusing the same `location.state.prompt` convention Marketplace's install flow uses), instead of dropping the user on a blank screen. Verified end-to-end: selecting "SaaS dashboard" → Skip → Open workspace correctly starts a build with a matching prompt. This does **not** close FE-005 — no tooltips, no progress-tracked analytics event, no "Hello World" sample project — but the GitHub/Anthropic "Connect" buttons in the Connect step were deliberately left as local-only/soft-skip (the step's own copy already says "connect later in Settings," and Settings' GitHub connect is now real — see FE-008).
 - **Recommended Fix:** Implement multi-step guided onboarding with sample project creation; add tooltips and walkthrough; measure completion rates
 - **Acceptance Criteria:**
   - [ ] Multi-step onboarding wizard implemented
-  - [ ] Sample "Hello World" project creation flow
+  - [x] Sample "Hello World" project creation flow *(partial: goal → starter prompt → real build, not a canned "Hello World")*
   - [ ] Tooltips for key features
   - [ ] Progress indicator in onboarding
-  - [ ] Skip option available
+  - [x] Skip option available (already existed)
   - [ ] Onboarding completion tracked in analytics
-- **Estimated Hours:** 60
+- **Estimated Hours:** 60 (52 remaining after 2026-07-03 partial progress, ~8h)
 - **Dependencies:** None
 - **Owner:** Frontend Lead / PM
 - **Risk:** Low
@@ -769,6 +937,56 @@
 
 ---
 
+### FE-008: Billing/Marketplace/Settings Pages Were 100% Mock Data — RESOLVED 2026-07-03
+- **ID:** FE-008
+- **Title:** Wire Billing, Marketplace, and Settings pages to real backend APIs
+- **Description:** `BillingPage.tsx`, `MarketplacePage.tsx`, and `SettingsPage.tsx` rendered entirely from `frontend/src/lib/mockData.ts` with no live-mode branching at all — unlike `ProjectsPage.tsx`/`WorkspacePage.tsx`/`ProjectHistory.tsx`, which already had a working `LIVE_MODE` real/mock split. Several buttons were explicit no-ops (plan select, template install, API-key replace); the GitHub "Connect" row in Settings was a plain `<span>`, not even a button. This was not previously logged as a distinct backlog item — the closest related items (BUS-002 Stripe price placeholders, FE-005 onboarding wizard) don't cover it.
+- **Category:** Frontend / Product
+- **Severity:** HIGH
+- **Priority:** P1
+- **Affected Files:** `frontend/src/pages/BillingPage.tsx`, `MarketplacePage.tsx`, `SettingsPage.tsx`, `frontend/src/lib/api.ts` (new `marketplaceApi`, `billingApi.downgrade`)
+- **Root Cause:** These three pages were built against mock data early and never received the `LIVE_MODE` wiring pass the rest of the app got.
+- **Fix Applied:**
+  - **Billing:** real `plans`/`usage`/`subscription` fetch; plan-select routes to `checkout` (paid tiers, redirects to Stripe URL) or `downgrade` (free tier); per-agent credit breakdown relabeled "Builds by agent" in live mode since the backend only tracks build counts, not a credit-per-agent breakdown.
+  - **Marketplace:** new `marketplaceApi` client (didn't exist before — `backend/api/marketplace.py` was fully built but had zero frontend caller); real listing with a deterministic per-item color (backend has no `hue`/`source` fields, so Official/Community filter tabs are hidden in live mode rather than shown non-functional); Install → `download()` → hands the returned prompt to `/build/new` via `location.state`, same convention `ProjectsPage.tsx` already uses.
+  - **Settings:** GitHub connect implemented as paste-a-PAT (see SEC-015's `_public_user_dict`/`github_connected` work — this is the UI consumer of that fix); BYOK section kept visible but disabled with a "Coming soon" badge (backend has zero storage/consumption path for a per-user Anthropic key — building that for real is a much larger feature, out of scope here); notification/auto-deploy/debug-iteration toggles now persist via a new `User.preferences` dict field (see BE-014 below) instead of resetting on reload.
+- **Acceptance Criteria:**
+  - [x] Billing shows real plan tiers, usage, and a working checkout/downgrade flow
+  - [x] Marketplace lists real items and Install hands a real prompt to the workspace
+  - [x] Settings GitHub connect/disconnect works and persists across reload
+  - [x] Settings preference toggles persist across reload (see BE-014)
+  - [x] Demo mode (no `VITE_WS_URL`) unchanged — verified via screenshot diff against pre-change baseline
+- **Estimated Hours:** 12 (actual)
+- **Dependencies:** SEC-015 (GitHub connect needs the leak fix's `github_connected` field), BE-014 (preferences storage)
+- **Owner:** Frontend Lead
+- **Risk:** Low — additive, demo mode verified unaffected.
+- **Verification Steps:** With a real backend running: visit `/billing` → see real tiers; `/marketplace` → create + install an item, confirm prompt arrives at `/build/new`; `/settings` → connect GitHub, toggle preferences, reload, confirm both persisted. All verified via Playwright + curl 2026-07-03.
+
+---
+
+### FE-009: Review Board (Orchestrator) Had No Frontend — RESOLVED 2026-07-03
+- **ID:** FE-009
+- **Title:** Build a UI for the orchestrator review-board service
+- **Description:** `orchestrator/` (a separate FastAPI service — multi-agent code review pipeline: triggered reviewer agents run in parallel, a "CTO" model consolidates findings into a prioritized backlog) had real, working endpoints (`POST /reviews`, `GET /reviews/{id}`, `GET /reviews/{id}/backlog`, `WS /reviews/{id}/stream`) but zero frontend — usable only via curl. Not previously tracked in any planning document; the orchestrator service itself doesn't appear in this backlog's Master Inventory at all (only the unrelated internal `backend/core/orchestrator.py` build-pipeline module does).
+- **Category:** Frontend / Product
+- **Severity:** MEDIUM
+- **Priority:** P2
+- **Affected Files:** New: `frontend/src/pages/reviews/ReviewsListPage.tsx`, `ReviewDetailPage.tsx`, `frontend/src/lib/orchestratorApi.ts`, `reviewWsContract.ts`, `frontend/src/hooks/useReviewSocket.ts`, `frontend/src/store/reviewStore.ts`, `frontend/src/components/ReviewAgentPipeline.tsx`. Backend: `orchestrator/main.py` (added CORS — was completely unreachable from a browser), `orchestrator/api.py`/`store.py` (added the missing `GET /reviews` list endpoint), `orchestrator/models.py`/`service.py` (added `candidate_files` persistence, needed for the UI to show it on already-completed runs).
+- **Root Cause:** Feature built backend-first; frontend work was never scheduled.
+- **Fix Applied:** New `/reviews` (list + "new review" form) and `/reviews/:runId` (live WebSocket-driven pipeline view + sortable backlog) pages, reachable from the sidebar. Reuses the existing build-tracking UI conventions (`ProjectHistory.tsx`/`AgentPipeline.tsx`/`useBuildSocket.ts` patterns) rather than inventing new ones.
+- **Acceptance Criteria:**
+  - [x] Can start a review run from the UI and see it in a list
+  - [x] Live pipeline view updates in real time via WebSocket as agents run
+  - [x] Backlog displays and is sortable by severity/impact
+  - [x] Verified end-to-end: created a real run, watched it complete live, confirmed REST-hydration path also works for already-completed runs on page reload
+- **Estimated Hours:** 10 (actual)
+- **Dependencies:** None
+- **Owner:** Frontend Lead
+- **Risk:** Low
+- **Verification Steps:** `curl -X POST orchestrator:8100/reviews` → run completes → visit `/reviews` in browser → see it listed → click in → see agent pipeline and backlog. Verified 2026-07-03.
+
+---
+
 ## Epic: AI Pipeline (7 issues)
 
 ### AI-001: No LLM Cost Tracking / Budget Controls
@@ -818,6 +1036,7 @@
 - **Owner:** Staff Engineer / Security Lead
 - **Risk:** High (AI security)
 - **Verification Steps:** Send prompt injection attempt → detected and blocked → user alerted
+- **⚠️ Update 2026-07-03:** `P0_ACTION_ITEMS.md` marked this "done" based on a basic keyword blocklist (`_detect_prompt_injection` in `agents/base.py`) existing in the code — none of this item's originally-scoped acceptance criteria above were ever implemented (no secondary-LLM-call detection, no output validation, no logging/alerting, no dedicated rate limiting). Spot-verified by actually attempting bypasses rather than reading the pattern list: found the blocklist that *does* exist had two concrete, exploitable gaps. Both fixed same day — see **AI-008**. The bigger, originally-scoped items above remain genuinely open; a keyword blocklist alone was never going to satisfy them, and this update doesn't change that.
 
 ---
 
@@ -940,6 +1159,24 @@
 
 ---
 
+### AI-008: Prompt Injection Blocklist Had Two Concrete, Demonstrated Bypasses — RESOLVED 2026-07-03
+- **ID:** AI-008
+- **Title:** Trivial reformatting and conversation-history placement both defeated `_detect_prompt_injection`
+- **Category:** Security / AI Pipeline
+- **Severity:** HIGH
+- **Priority:** P0
+- **Discovered while:** Spot-verifying AI-002's "prompt injection detection" claim by actually attempting bypasses against the real function, not just reading the pattern list.
+- **Bug 1 — whitespace/formatting bypass:** `_detect_prompt_injection` did `pattern in prompt.lower()`, an exact substring match against 16 fixed English phrases. Trivial reformatting defeated it completely: `"ignore  previous instructions"` (double space), `"ignore\nprevious\ninstructions"` (newlines), and `"ignore-previous-instructions"` (hyphens) were all **not detected**, while the exact canonical phrasing was. Verified directly by calling the function with each variant.
+- **Bug 2 — conversation-history bypass (the more serious one):** Both call sites in `agents/base.py` (`_call_llm` and `stream`) grabbed only `last_user_msg` and checked that one message. But `conversation_history` — every earlier turn of an iterative build, which the product explicitly supports and which is fully user-controlled — is concatenated into the same message list sent to the LLM (confirmed via `agents/architect.py`'s `blueprint()`: `messages.extend(conversation_history)` then appends the current turn last). An injection planted in turn 1, followed by an innocuous final turn ("ok build me a todo app"), reached the LLM with **zero detection**, since only the last message was ever inspected.
+- **Fix:** (1) `_detect_prompt_injection` now collapses runs of whitespace/hyphens/underscores to a single space before matching, closing the formatting bypass. (2) Added `_any_message_has_prompt_injection()`, which checks every user-authored message in the list, and both call sites now use it instead of checking only the last message. Also added a few of the most obvious missed phrasings surfaced during testing (`"forget everything"`, `"your new role"`, `"roleplay as"`) to the pattern list.
+- **Explicitly not claimed:** This is still a plain keyword blocklist, not the "secondary LLM call" / output-validation / logging-and-alerting approach AI-002's original acceptance criteria called for (still open — see AI-002). Pattern-based detection is inherently incomplete against arbitrary paraphrasing; this fix closes the two concrete, demonstrated gaps found today, not the general problem.
+- **Verification:** Re-ran all 11 originally-bypassing test strings plus the conversation-history scenario after the fix — all correctly detected. Added 9 regression tests in `backend/tests/test_prompt_injection_detection.py`.
+- **Files Modified:** `backend/agents/base.py`, `backend/tests/test_prompt_injection_detection.py` (new)
+- **Owner:** Security Lead
+- **Estimated Hours:** 0 (found and fixed same day)
+
+---
+
 ## Epic: Infrastructure (8 issues)
 
 ### INF-001: No Kubernetes / Production Deployment Manifests
@@ -974,6 +1211,7 @@
 - **ID:** INF-002
 - **Title:** Set up monitoring, metrics, and alerting
 - **Description:** No Prometheus metrics, no Grafana dashboards, no alerting rules, no uptime monitoring. No visibility into production issues; unable to detect outages.
+- **Re-verified 2026-07-03 (still open, worse than it looks):** `k8s/monitoring.yaml` exists and looks complete — a `ServiceMonitor` scraping `path: /metrics` and a `PrometheusRule` with alerts like `rate(http_requests_total{status=~"5.."}[5m]) > 0.05`. But `backend` has zero Prometheus instrumentation anywhere (`grep -rn "/metrics\|prometheus_client\|Instrumentator"` returns nothing; `prometheus_client` isn't even in `requirements.txt`). This is the same "looks wired, is 100% non-functional end-to-end" shape as BE-015/WS-003 found earlier this session: the ServiceMonitor would scrape a 404, `http_requests_total` never exists, and every alert in the PrometheusRule can never fire — not "no monitoring," but monitoring infrastructure that silently provides zero actual coverage while looking configured. Not fixed this session (80h, out of scope for this pass) — flagging so the next person doesn't mistake the k8s manifest's existence for working monitoring.
 - **Category:** Observability / DevOps
 - **Severity:** CRITICAL
 - **Priority:** P0
@@ -1250,10 +1488,11 @@
 
 ## Epic: DevOps & CI/CD (5 issues)
 
-### DEVOPS-001: CI Pipeline Has `continue-on-error: true` for Frontend Build
+### DEVOPS-001: CI Pipeline Has `continue-on-error: true` for Frontend Build — STALE, SUPERSEDED (see DEVOPS-006)
 - **ID:** DEVOPS-001
 - **Title:** Fix CI pipeline to fail on frontend build errors
-- **Description:** Frontend build step has `continue-on-error: true`. Broken frontend can be merged to main.
+- **Re-verified 2026-07-03:** `.github/workflows/ci.yml` has no `continue-on-error` anywhere and now has a dedicated `quality-gate` job that explicitly blocks merge if backend, frontend, or prod-artifacts fail. This specific complaint no longer applies — the pipeline was rebuilt into something much stricter at some point after this item was written. See DEVOPS-006 for what re-auditing the *current* pipeline actually found.
+- **Description (original):** Frontend build step has `continue-on-error: true`. Broken frontend can be merged to main.
 - **Category:** CI/CD / Quality
 - **Severity:** MEDIUM
 - **Priority:** P1
@@ -1371,6 +1610,38 @@
 - **Owner:** DevOps Lead
 - **Risk:** Low
 - **Verification Steps:** `docker-compose up` → all services running → hot-reload works
+
+---
+
+### DEVOPS-006: CI Pipeline Existed and Was Comprehensive, But Was Fully Red on `main` — Three Stacked Failures Never Individually Diagnosed — RESOLVED 2026-07-03
+- **ID:** DEVOPS-006
+- **Title:** Fix the real, currently-failing CI pipeline (contradicts this doc's own INF-004/MASTER_EXECUTION_PLAN's claim that CI/CD is "Missing")
+- **Description:** Both this backlog (implicitly, via DEVOPS-001 describing a pipeline with `continue-on-error`) and `MASTER_EXECUTION_PLAN.md` (explicitly: "CI/CD pipeline | ❌ Missing | Not implemented") understated reality in the *opposite* direction from most other findings this session: `.github/workflows/ci.yml` is a real, substantial pipeline (ruff, bandit, pip-audit, pytest, tsc+vite build, npm audit, docker builds for both images, plus a `quality-gate` job that blocks merge on any failure) — not missing at all. But `gh run list` showed the last 3 pushes to `main` all failed CI, and because each `run: ` step uses `bash -e` (stops at the first failing line), later steps never got a chance to run — meaning the true number of independent failures was invisible from the CI UI alone. Re-running each check locally surfaced **four** stacked failures, only the first of which was visible in the GitHub Actions log:
+  1. **Backend `ruff` lint: 35 F401/F841 errors** (unused imports/vars) accumulated from recent commits — this was the one visible failure blocking the job.
+  2. **Backend `bandit`, hidden behind #1: 1 medium finding** (B104, hardcoded `0.0.0.0` bind) in `backend/api/deployments.py:495` — a false positive (it's the `HOST` env var for a *deployed user container*, not this server; 127.0.0.1 there would be unreachable through Docker's own port mapping), but bandit doesn't know that without a `# nosec` justification, so it would have failed the job as its own, second, independent blocker.
+  3. **Frontend `npm audit --audit-level=high`: 1 moderate (esbuild) + 1 high (vite) advisory**, both in `vite`'s dev-server-only code paths (CORS/path-traversal issues that only matter for `vite dev`/`vite serve`, never the built artifact) with no non-major-version fix available in the vite 5.x line the project is pinned to.
+  4. **Frontend `npm run build`, hidden behind #3: would have failed too** — the `prebuild` npm script runs `backend/scripts/export_ws_events.py` (regenerates `wsEvents.ts` from `WSEventType`, the frontend/backend WebSocket event contract), which imports `backend/core/models.py` and therefore needs `pydantic` importable. The frontend CI job only ever set up Node, never Python — so this would 100% reproducibly fail in CI even after fixing #3, and the "CI runs the full npm build to catch contract drift" assumption documented in `frontend/Dockerfile`'s own comment was false the entire time this job existed in its current form.
+- **Category:** CI/CD / DevOps
+- **Severity:** HIGH
+- **Priority:** P0
+- **Affected Files:** `.github/workflows/ci.yml`, `backend/api/analytics.py`, `backend/api/admin.py`, `backend/api/deployments.py`
+- **Root Cause:** Each of the 4 issues was introduced independently over time; `bash -e`'s stop-on-first-failure semantics meant nobody could see past the first one to notice the rest
+- **Fix Applied:**
+  - Removed the 35 unused imports/vars (`ruff check --fix` for imports; manual removal for the two genuinely-dead local variables in `analytics.py`)
+  - Added `# nosec B104` with a one-line justification on the deployments.py line
+  - Scoped `npm audit` to `--omit=dev` (vite/esbuild are devDependencies; matches this same CI file's own established precedent of documenting and skipping advisories that need a major-version bump and their own regression pass, rather than rushing an untested vite 6/7/8 bump through this gate)
+  - Added a `Set up Python` + `pip install pydantic==2.7.1` step to the frontend job before `npm ci`
+- **Acceptance Criteria:**
+  - [x] `ruff check . --select F,E9 --exclude venv` passes
+  - [x] `bandit -r . -x ./venv,./tests -ll` passes
+  - [x] `npm audit --omit=dev --audit-level=high` passes (0 vulnerabilities)
+  - [x] `npm run build` succeeds locally with pydantic available, and regenerates `wsEvents.ts` byte-identical to the committed version (confirmed via `git diff` — no contract drift)
+  - [x] Full backend test suite passes (88/88)
+- **Estimated Hours:** N/A (diagnosis + fix, not originally sized)
+- **Dependencies:** None
+- **Owner:** DevOps Lead
+- **Risk:** Low
+- **Verification:** All four checks re-run locally and confirmed passing; not yet confirmed green in an actual GitHub Actions run (would need a push to verify end-to-end, since this environment can't trigger a real Actions run).
 
 ---
 
@@ -1715,9 +1986,9 @@
 
 | Epic | Issues | P0 | P1 | P2 | Total Hours |
 |------|--------|----|----|----|-------------|
-| Security (SEC) | 13 | 9 | 3 | 1 | 264 |
-| Backend (BE) | 12 | 1 | 6 | 5 | 276 |
-| Frontend (FE) | 7 | 0 | 2 | 5 | 344 |
+| Security (SEC) | 16 | 12 | 3 | 1 | 271.5 |
+| Backend (BE) | 14 | 1 | 7 | 6 | 278 |
+| Frontend (FE) | 9 | 0 | 3 | 6 | 366 |
 | AI Pipeline (AI) | 7 | 3 | 3 | 1 | 248 |
 | Infrastructure (INF) | 8 | 4 | 1 | 3 | 364 |
 | Database (DB) | 4 | 2 | 2 | 0 | 204 |
@@ -1725,14 +1996,17 @@
 | Testing (TEST) | 2 | 1 | 1 | 0 | 280 |
 | Observability (OBS) | 4 | 0 | 1 | 3 | 120 |
 | Business (BUS) | 7 | 3 | 0 | 4 | 344 |
-| **Total** | **59** | **24** | **21** | **14** | **1,848** |
+| **Total** | **66** | **27** | **23** | **16** | **1,880.5** |
+
+*Updated 2026-07-03: +10 items total across five passes — first pass added SEC-014 (bcrypt outage), SEC-015 (credential leak, resolved), BE-013 (marketplace crash, resolved), BE-014 (preferences storage, resolved), FE-008 (Billing/Marketplace/Settings wiring, resolved), FE-009 (Review Board UI, resolved). SEC-001's root cause was corrected (frontend never sent the CSRF header, not a backend validation gap) and marked resolved. **SEC-014 was then fixed the same day** (pinned `bcrypt==4.0.1` in `backend/requirements.txt`, verified with a real register+login round-trip) — which immediately uncovered SEC-016 (an `_id`/ObjectId serialization crash that had been unreachable until SEC-014 stopped blocking registration earlier in the request). SEC-016 is also resolved. A third pass spot-verified previously-"done" claims (SEC-002/003/005 confirmed genuinely clean; BE-001/DB-001 were re-checked by actually creating builds against the running app) and found **BE-015**: the Celery build pipeline looked correctly wired but was 100% non-functional end-to-end due to three independent bugs (task bound to Celery's unconfigured default app instead of the real one, a worker-startup crash from a bad `autodiscover_tasks` package path, and an event-loop-closure bug limiting a worker to exactly one successful task ever). All three fixed and verified same day with a real Celery worker processing two sequential builds. A fourth pass, prompted directly by the BE-015 pattern, spot-checked WS-001's "Redis pub/sub" claim and found **WS-003**: the pub/sub channel had no subscriber at all, so every build-progress event was silently dropped for every client on every build (not a multi-instance edge case — verified broken on this single-instance dev setup too, with zero frontend polling fallback to mask it). Fixed with a proper subscriber bridge and verified live with a real Celery worker delivering 14/14 events to a connected client. A fifth pass spot-checked PROD-006's credit-race claim: the reservation half was genuinely race-free (verified with 8 real concurrent requests — exactly 1 succeeded), but found **PROD-008**: Celery's `autoretry_for` re-runs the refund-on-failure logic on every retry attempt, not once per build, so a build that fails and retries got refunded multiple times — a real, exploitable free-credits path, verified live (balance ended *above* its starting value) and fixed. A sixth pass spot-checked AI-002's "prompt injection detection" claim by actually attempting bypasses and found **AI-008**: the keyword blocklist had two concrete, demonstrated gaps — trivial reformatting (extra spaces/newlines/hyphens) defeated the exact-substring match, and only the *last* message in a conversation was ever checked, so an injection planted in an earlier turn of an iterative build went completely undetected. Both fixed and verified with the same 11+ bypass strings that previously succeeded. **All 11 new items are now resolved — this backlog currently has zero newly-discovered open P0s from the 2026-07-03 session**, though the pre-existing P0/P1/P2 items below (encryption key, etc.) are unchanged.*
 
 ## Release Blockers (Must complete before ANY production traffic)
 
 The following issues are absolute release blockers. If any of these are unresolved, the system cannot safely serve production traffic:
 
-1. **SEC-001** - CSRF bypass
-2. **SEC-002** - Encryption key compromise
+1. **SEC-014** - Password hashing completely broken (registration/login total outage) — **NEW 2026-07-03, the most severe unresolved item in this list**
+2. ~~**SEC-001** - CSRF bypass~~ — **RESOLVED 2026-07-03** (frontend now attaches the CSRF token; backend validation was already correct)
+3. **SEC-002** - Encryption key compromise
 3. **SEC-003** - WS auth hijacking
 4. **SEC-004** - Rate limiting bypass
 5. **SEC-005** - Token blacklist vulnerability
@@ -1740,7 +2014,7 @@ The following issues are absolute release blockers. If any of these are unresolv
 7. **SEC-009** - NoSQL injection
 8. **SEC-010** - Missing sanitize_string
 9. **SEC-011** - Auth endpoint rate limiting
-10. **BE-001** - BackgroundTasks build loss
+10. ~~**BE-001** - BackgroundTasks build loss~~ — **RESOLVED 2026-07-03** (three separate bugs that made the Celery pipeline 100% non-functional were found and fixed same day — see BE-015; only the dead-letter-queue acceptance criterion remains open)
 11. **DB-001** - Single point of failure (MongoDB)
 12. **DB-004** - GDPR non-compliance
 13. **INF-001** - No K8s deployment

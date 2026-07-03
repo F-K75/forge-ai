@@ -10,10 +10,11 @@ celery_app = Celery(
 )
 
 celery_app.conf.task_routes = {
-    "backend.tasks.deployment": {"queue": "deployment"},
-    "backend.tasks.build": {"queue": "build"},
+    "backend.tasks.build_tasks.run_build": {"queue": "build"},
+    "backend.tasks.build_tasks.update_build_status": {"queue": "build"},
 }
 
 celery_app.conf.task_serializer = "json"
 celery_app.conf.result_serializer = "json"
-celery_app.autodiscover_tasks(["backend"])
+
+import tasks.build_tasks  # noqa: E402,F401 - registers tasks on this app instance

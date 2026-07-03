@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from datetime import datetime, date
+from datetime import datetime
 
-from core.models import User, Build, BuildStatus, PlanTier, FeatureFlag, AuditLog, SecurityEvent
+from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog
 from core.database import get_db, get_redis
 from core.config import get_settings
 from core.security import sanitize_string

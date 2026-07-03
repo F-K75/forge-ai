@@ -1,5 +1,3 @@
-import pytest
-from fastapi.testclient import TestClient
 
 
 # Minimal smoke tests for P0 fixes.

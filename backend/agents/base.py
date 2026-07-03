@@ -1,4 +1,5 @@
 from typing import AsyncGenerator, Optional
+import re
 import anthropic
 from core.config import get_settings
 from core.models import AgentType, WSEvent, WSEventType
@@ -48,13 +49,18 @@ _llm_circuit_breaker = CircuitBreaker()
 PROMPT_INJECTION_PATTERNS = [
     "ignore previous instructions",
     "ignore all previous",
+    "forget everything",
+    "forget the above",
     "disregard",
     "override",
     "new instructions",
+    "your new role",
     "you are now",
     "from now on",
     "pretend you are",
     "act as if",
+    "roleplay as",
+    "role play as",
     "system prompt",
     "reveal your",
     "show your",
@@ -66,8 +72,24 @@ PROMPT_INJECTION_PATTERNS = [
 
 
 def _detect_prompt_injection(prompt: str) -> bool:
-    lower = prompt.lower()
-    return any(pattern in lower for pattern in PROMPT_INJECTION_PATTERNS)
+    # Collapse runs of whitespace/hyphens/underscores to a single space so
+    # trivial reformatting ("ignore  previous instructions", "ignore-previous-
+    # instructions", "ignore\nprevious\ninstructions") can't slip past an
+    # exact-substring match on the canonical phrase.
+    normalized = re.sub(r"[\s_-]+", " ", prompt.lower())
+    return any(pattern in normalized for pattern in PROMPT_INJECTION_PATTERNS)
+
+
+def _any_message_has_prompt_injection(messages: list) -> bool:
+    # Check every user turn, not just the latest one — conversation_history
+    # (earlier turns of an iterative build) is fully user-controlled and
+    # reaches the LLM the same as the current message, so an injection
+    # planted in an earlier turn is just as live as one in the last message.
+    return any(
+        _detect_prompt_injection(m.get("content", ""))
+        for m in messages
+        if m.get("role") == "user" and isinstance(m.get("content"), str)
+    )
 
 
 class BaseAgent:
@@ -108,9 +130,10 @@ class BaseAgent:
         if extra_system:
             system += f"\n\n{extra_system}"
 
-        # Prompt injection detection on the last user message
-        last_user_msg = next((m for m in reversed(sanitized_messages) if m.get("role") == "user"), None)
-        if last_user_msg and _detect_prompt_injection(last_user_msg.get("content", "")):
+        # Prompt injection detection across every user turn (see
+        # _any_message_has_prompt_injection — checking only the last message
+        # missed anything planted earlier in conversation_history).
+        if _any_message_has_prompt_injection(sanitized_messages):
             raise ValueError("Potential prompt injection detected in user input")
 
         full_response = ""
@@ -178,8 +201,7 @@ class BaseAgent:
         if extra_system:
             system += f"\n\n{extra_system}"
 
-        last_user_msg = next((m for m in reversed(sanitized_messages) if m.get("role") == "user"), None)
-        if last_user_msg and _detect_prompt_injection(last_user_msg.get("content", "")):
+        if _any_message_has_prompt_injection(sanitized_messages):
             raise ValueError("Potential prompt injection detected in user input")
 
         full_response = ""

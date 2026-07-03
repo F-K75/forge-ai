@@ -1,15 +1,37 @@
 """Celery tasks for build processing with persistence and retry logic."""
 
+import asyncio
 from typing import Optional
-from celery import current_app
+from celery.exceptions import SoftTimeLimitExceeded
+from celery_app import celery_app as current_app
+from core.config import get_settings
 from core.models import Build, BuildStatus, WSEvent, WSEventType, BuildFile
 from core.orchestrator import Orchestrator
 from core.database import get_db
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager
 
+settings = get_settings()
 orchestrator = Orchestrator()
 sandbox = SandboxRunner()
+
+_worker_loop: Optional[asyncio.AbstractEventLoop] = None
+
+
+def _run_async(coro):
+    """Run a coroutine on a single event loop kept alive for this worker
+    process's lifetime.
+
+    The Mongo client in core.database is a process-global singleton, so
+    asyncio.run() (which closes its loop when done) would leave that client
+    bound to a dead loop after the first task — every task after the first
+    would fail with "Event loop is closed". Reusing one loop per process
+    keeps the client's loop binding valid across tasks.
+    """
+    global _worker_loop
+    if _worker_loop is None or _worker_loop.is_closed():
+        _worker_loop = asyncio.new_event_loop()
+    return _worker_loop.run_until_complete(coro)
 
 
 class BuildTask(current_app.Task):
@@ -22,8 +44,21 @@ class BuildTask(current_app.Task):
     acks_late = True  # Only acknowledge after task completes
 
 
-@current_app.task(bind=True, base=BuildTask, name="backend.tasks.build_tasks.run_build")
+@current_app.task(
+    bind=True,
+    base=BuildTask,
+    name="backend.tasks.build_tasks.run_build",
+    # `settings.build_timeout` used to be dead config — nothing enforced it, so a
+    # hung pipeline (agent retry storm, a stuck network call outside the LLM
+    # client's own per-call timeout, a debug-loop bug bypassing MAX_DEBUG_ITERATIONS)
+    # would occupy a worker slot forever with the user's credits reserved and never
+    # refunded. soft_time_limit raises SoftTimeLimitExceeded inside the task so it can
+    # clean up (see except clause below); time_limit is the hard SIGKILL backstop.
+    soft_time_limit=settings.build_timeout,
+    time_limit=settings.build_timeout + 30,
+)
 def run_build(
+    self,
     build_id: str,
     project_id: str,
     user_id: str,
@@ -40,7 +75,6 @@ def run_build(
 
     Usage: run_build.delay(build_id, project_id, user_id, reserved_credits)
     """
-    import asyncio
 
     async def _run():
         db = await get_db()
@@ -111,9 +145,15 @@ def run_build(
 
             return {"status": "success", "build_id": build_id, "credits_used": used}
 
-        except Exception as e:
-            # On failure: refund only the unused portion of the reservation —
-            # agents that already ran before the failure already spent their share.
+        except SoftTimeLimitExceeded:
+            # Build ran past settings.build_timeout. SoftTimeLimitExceeded is a
+            # BaseException (not Exception), so autoretry_for=(Exception,) never
+            # applies here — deliberately: a hung pipeline would just hang again,
+            # so retrying would only burn another full timeout window for nothing.
+            # Fail permanently on the first and only attempt, same as the final
+            # retry path below: refund the unused portion of the reservation and
+            # mark the build failed so it can't stay stuck RUNNING/DEBUGGING with
+            # credits reserved forever.
             used = int(build.credits_used or 0)
             refund = max(0, reserved_credits - used)
             if refund and user:
@@ -124,18 +164,45 @@ def run_build(
 
             await db.builds.update_one(
                 {"id": build_id},
-                {"$set": {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}}
+                {"$set": {"status": BuildStatus.FAILED.value, "error": "Build exceeded maximum allowed time", "credits_used": used}}
             )
             raise
-    
-    return asyncio.run(_run())
+
+        except Exception as e:
+            # autoretry_for=(Exception,) means Celery re-invokes this entire
+            # function on every retry, so this block runs once per attempt —
+            # not once per build. Only refund and mark the build permanently
+            # FAILED on the last attempt Celery will ever make; otherwise a
+            # single failing build gets refunded (and its status flipped to
+            # "failed") on every retry, well beyond its original reservation.
+            max_retries = self.retry_kwargs.get("max_retries", 0)
+            is_final_attempt = self.request.retries >= max_retries
+
+            if is_final_attempt:
+                # On final failure: refund only the unused portion of the
+                # reservation — agents that already ran before the failure
+                # already spent their share.
+                used = int(build.credits_used or 0)
+                refund = max(0, reserved_credits - used)
+                if refund and user:
+                    await db.users.update_one(
+                        {"id": user_id},
+                        {"$inc": {"credits": refund}}
+                    )
+
+                await db.builds.update_one(
+                    {"id": build_id},
+                    {"$set": {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}}
+                )
+            raise
+
+    return _run_async(_run())
 
 
 @current_app.task(name="backend.tasks.build_tasks.update_build_status")
 def update_build_status(build_id: str, status: str, error: Optional[str] = None) -> dict:
     """Update build status in database."""
-    import asyncio
-    
+
     async def _update():
         db = await get_db()
         update_doc = {"status": status}
@@ -143,5 +210,5 @@ def update_build_status(build_id: str, status: str, error: Optional[str] = None)
             update_doc["error"] = error
         await db.builds.update_one({"id": build_id}, {"$set": update_doc})
         return {"status": "updated"}
-    
-    return asyncio.run(_update())
+
+    return _run_async(_update())

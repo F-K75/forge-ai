@@ -12,8 +12,11 @@ Forge AI is an AI-powered full-stack application builder with a multi-agent arch
 
 - **P0 Blocker:** Hardcoded placeholder secrets in Kubernetes manifests
 - **P0 Blocker:** Missing critical security implementation (LLM usage tracking not persisted)
+- ~~**P0 Blocker:** Password hashing is completely broken~~ — **found and resolved 2026-07-03** (§3.11); no longer a blocker
 - **P1 Blocker:** No actual test execution in CI pipeline (linting disabled)
 - **P1 Blocker:** Incomplete frontend WebSocket authentication implementation mismatch
+
+Since this audit, four additional issues were found; all four are now resolved (§3.11-3.14): the password-hashing outage above (which also uncovered and required fixing a second bug — an `_id`/ObjectId serialization crash on registration), a password-hash/token leak in auth responses, a marketplace-creation crash, and a frontend gap that made CSRF protection block every real mutation. The Billing/Marketplace/Settings/Onboarding frontend pages, previously mock-only, are now wired to real backend APIs, and the `orchestrator/` review-board service — previously backend-only with no UI — now has one. **As of 2026-07-03, none of this session's findings remain open** — the two still-listed P0 blockers above (K8s secrets, LLM usage tracking) predate this session and are unrelated to it.
 
 The platform is **NOT READY FOR RELEASE** in its current state.
 
@@ -27,9 +30,9 @@ The platform is **NOT READY FOR RELEASE** in its current state.
 | Security | 65/100 | Strong controls exist but secrets management is unsafe |
 | DevOps | 55/100 | Good K8s setup but placeholder secrets are a critical flaw |
 | AI Platform | 75/100 | Well-designed with circuit breakers and retry logic |
-| Product | 60/100 | Features exist but incomplete user flows |
+| Product | 60/100 | Features exist but incomplete user flows. **Update 2026-07-03:** Billing/Marketplace/Settings/Onboarding pages, previously mock-only, are now wired to real backend APIs; the orchestrator review-board service gained a UI (previously backend-only) |
 | Testing | 45/100 | Tests exist but CI doesn't run them; no integration tests |
-| Business | 70/100 | Billing flow implemented but requires Stripe setup |
+| Business | 70/100 | Billing flow is now genuinely wired end-to-end (checkout/plans/usage/downgrade), but still requires real Stripe secrets to actually process payments — the placeholder-secrets issue in §3.1 blocks it either way |
 
 ---
 
@@ -198,13 +201,47 @@ While `sanitize_prompt` removes control characters, it does not prevent LLM prom
 
 ---
 
+### Findings added 2026-07-03 (post-audit)
+
+#### 3.11 Password Hashing Was Completely Broken — Registration/Login Total Outage (RESOLVED)
+**Severity:** P0 — was RELEASE BLOCKING, now fixed (§4's "Broken Auth" rating below is corrected accordingly)  
+**Location:** `backend/requirements.txt` (`passlib[bcrypt]==1.7.4`)
+
+Every `hash_password()`/`verify_password()` call — i.e. every registration and every login — crashed with `ValueError: password cannot be longer than 72 bytes` raised from passlib's own internal `detect_wrap_bug` self-test. Root cause: `bcrypt>=4.1` removed the `_bcrypt.__about__` module passlib 1.7.4 reads for version detection, and the resulting `AttributeError` is what actually surfaces as the misleading "72 bytes" error.
+
+**Fix Applied:** Pinned `bcrypt==4.0.1` (last version with `__about__` intact) directly below the `passlib[bcrypt]` line in `requirements.txt`. Confirmed in isolation that `bcrypt==5.0.0` reproduces the crash and `4.0.1` doesn't, before changing the pin.
+
+**Fixing this uncovered a second, previously-unreachable bug:** Motor's `insert_one()` mutates its input dict in place, adding a `bson.ObjectId` `_id`; `register`'s response handler reused that dict, and the ObjectId crashed FastAPI's JSON serializer. Fixed by adding `_id` to the `_public_user_dict()` strip list (see §3.12 below).
+
+**Status:** Resolved 2026-07-03 — verified via a real `curl` registration + immediate login (fresh account, 200/200, no leaked fields) and the full backend test suite (66/66 passing).
+
+#### 3.12 Auth Endpoints Leaked Password Hash + Raw GitHub Token (Resolved)
+**Severity:** P0 — was RELEASE BLOCKING, now fixed  
+**Location:** `backend/api/auth.py` — `get_me`, `login`, `register`, `refresh`
+
+`GET /auth/me` returned the decrypted GitHub personal-access-token in its JSON body on every call (fired on nearly every page load via route guards). `login`/`register`/`refresh` returned the raw MongoDB user document as `TokenResponse.user`, including the bcrypt `hashed_password` field. Fixed via a `_public_user_dict()` helper stripping `hashed_password`/`github_token`/verification-token fields from every response, replacing the token with a `github_connected: bool`. **Status: Resolved 2026-07-03.**
+
+#### 3.13 Marketplace Item Creation Crashed on Every Call (Resolved)
+**Severity:** P1 — was LAUNCH BLOCKING for the marketplace feature, now fixed  
+**Location:** `backend/api/marketplace.py` — `create_item`
+
+`POST /marketplace/` always raised `ResponseValidationError` (`created_at` datetime vs. the response model's `str` field) — the item inserted successfully into MongoDB before the crash, meaning every "create" attempt looked like a failure to the caller while silently succeeding server-side. Fixed by dumping in JSON mode (`item.model_dump(mode="json")`) for both the insert and the response. **Status: Resolved 2026-07-03.**
+
+#### 3.14 CSRF Protection Middleware Existed but Frontend Never Used It (Resolved)
+**Severity:** was effectively P0 (total mutation-request outage, not just a security gap) — now fixed  
+**Location:** `frontend/src/lib/api.ts`
+
+Contrary to this report's own §4 OWASP table (which didn't flag this) and the separate `AUDIT_REPORT.md`'s "CSRF Protection Missing" finding (also outdated — the backend middleware was added since that audit): the backend's `csrf_protection_middleware` was correctly mounted and enforcing `X-CSRF-Token` on all mutating requests. But the frontend never fetched or attached that header anywhere, so **every** POST/PUT/DELETE from a real browser session — creating a project, starting a build, billing checkout, everything — was silently rejected with 403. Fixed with an axios interceptor that fetches/caches the token and attaches it automatically. **Status: Resolved 2026-07-03.**
+
+---
+
 ## 4. Security Assessment (OWASP Top 10)
 
 | OWASP Category | Status | Evidence |
 |----------------|--------|----------|
 | Injection | ✅ | `sanitize_string()` escapes regex, parameterized queries |
-| Broken Auth | ✅ | JWT with JTI, bcrypt passwords, token blacklist |
-| Sensitive Data Exposure | ⚠️ | Field encryption exists but secrets are hardcoded |
+| Broken Auth | ✅ | JWT with JTI and token blacklist are sound; password hashing was broken (§3.11 — total registration/login outage) but is now fixed and verified 2026-07-03 |
+| Sensitive Data Exposure | ⚠️ | Field encryption exists but secrets are still hardcoded (§3.1); auth responses no longer leak password hashes/raw tokens as of 2026-07-03 (§3.12) |
 | XML External Entities | NOT VERIFIED | No XML parsing found |
 | Broken Access Control | ✅ | User isolation checks in builds.py |
 | Security Misconfiguration | ❌ | Placeholder secrets in k8s manifests |
@@ -263,12 +300,16 @@ The platform demonstrates solid architectural patterns but critical security and
 |----------|--------|-------|-----|
 | P0 | Replace placeholder secrets with Vault/K8s secrets | DevOps | 2 days |
 | P0 | Implement LLM usage persistence | Backend | 1 day |
+| ~~P0~~ | ~~Fix bcrypt/passlib version incompatibility — registration/login totally broken~~ — Resolved 2026-07-03 (§3.11) | — | Done |
 | P1 | Fix frontend WebSocket auth to match backend | Frontend | 1 day |
 | P1 | Enable failing CI on test errors | DevOps | 1 day |
 | P2 | Add /tmp volume mount for sandbox writes | DevOps | Hours |
 | P2 | Add Redis deployment manifest | DevOps | 1 day |
 | P3 | Fix build deduplication timestamp comparison | Backend | Hours |
 | P3 | Add prompt injection detection | Security | 1-2 days |
+| ~~P0~~ | ~~Auth responses leak password hash + GitHub token~~ — Resolved 2026-07-03 (§3.12) | — | Done |
+| ~~P1~~ | ~~Marketplace item creation crashes~~ — Resolved 2026-07-03 (§3.13) | — | Done |
+| ~~P0~~ | ~~CSRF: frontend never attaches token~~ — Resolved 2026-07-03 (§3.14) | — | Done |
 
 ---
 

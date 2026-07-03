@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime
 
 from core.models import User

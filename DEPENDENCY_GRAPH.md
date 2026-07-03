@@ -23,8 +23,9 @@ These tasks have NO dependencies and MUST be completed before anything else can 
 
 | ID | Title | Hours | Priority |
 |----|-------|-------|----------|
+| SEC-014 | ~~Fix bcrypt/passlib incompatibility 🚫⚠~~ **RESOLVED 2026-07-03** (pinned `bcrypt==4.0.1`; also fixed SEC-016, an ObjectId serialization bug it uncovered) | 4 (est.) / ~1.5 (actual) | P0 |
 | SEC-010 | Implement sanitize_string 🚫 | 2 | P0 |
-| SEC-001 | CSRF token validation 🚫 | 16 | P0 |
+| SEC-001 | ~~CSRF token validation~~ 🚫 **RESOLVED 2026-07-03** (was mis-scoped — see ENGINEERING_BACKLOG.md) | 16 | P0 |
 | SEC-002 | Separate encryption key 🚫 | 16 | P0 |
 | SEC-003 | WebSocket authentication 🚫 | 24 | P0 |
 | SEC-004 | Fail-closed rate limiting 🚫 | 8 | P0 |
@@ -474,3 +475,8 @@ All complete → LAUNCH-007 (Production deployment)
 ### 6. Frontend work is mostly independent
 - FE-001 through FE-007 have minimal dependencies
 - **Mitigation:** Frontend engineer can work in parallel streams throughout
+
+### 7. *(Added 2026-07-03)* SEC-014 was resolved same day it was found
+- Was the single highest-priority item in this graph — unlike every other Layer 0 item, it blocked the entire product (no registration, no login) rather than one feature or one attack surface. Fixed by pinning `bcrypt==4.0.1`, verified with a real register+login round-trip.
+- Fixing it uncovered SEC-016 (an `_id`/ObjectId serialization crash on registration, unreachable until SEC-014 stopped blocking the hashing step) — also fixed the same session.
+- FE-008 (Billing/Marketplace/Settings wiring) and FE-009 (Review Board UI) are both done and had no blocking dependencies on anything in this graph — they depended only on SEC-015 (also done) for the GitHub-connect piece

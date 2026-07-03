@@ -51,9 +51,10 @@ The plan prioritizes security vulnerabilities (P0), infrastructure for productio
 
 | # | Risk | Impact | Likelihood | Mitigation |
 |---|------|--------|------------|------------|
+| R0 | ~~*(New 2026-07-03)* Total registration/login outage — bcrypt/passlib version incompatibility~~ **RESOLVED same day** — pinned `bcrypt==4.0.1`, verified with a real register+login round-trip; also fixed a second bug it uncovered (`_id`/ObjectId serialization crash on registration) | No user can create an account or sign in | Was Certain, now Resolved | Done |
 | R1 | Data loss from single MongoDB instance | Complete data loss | High | Replica set + backups (Sprint 1) |
-| R2 | Security breach via CSRF/encryption flaws | User data compromise | High | P0 security fixes (Sprint 1) |
-| R3 | Build loss from BackgroundTasks | User dissatisfaction | High | Celery migration (Sprint 1) |
+| R2 | ~~Security breach via CSRF/encryption flaws~~ *(CSRF component resolved 2026-07-03 — frontend now attaches the token; encryption-key component still open)* | User data compromise | High → Medium (partial mitigation) | P0 security fixes (Sprint 1) |
+| R3 | ~~Build loss from BackgroundTasks~~ *(the Celery migration existed in code but was completely non-functional — every build 500'd — until three wiring bugs were found and fixed 2026-07-03; see `ENGINEERING_BACKLOG.md` BE-015)* | User dissatisfaction | High → Resolved | Done |
 | R4 | Uncontrolled AI costs | Budget overrun | High | Cost tracking + rate limits (Sprint 3) |
 | R5 | No production infrastructure | Cannot deploy | Certain | K8s manifests (Sprint 1-2) |
 | R6 | Legal liability (no ToS/Privacy) | Lawsuits | High | Legal review (Sprint 1) |
@@ -66,7 +67,7 @@ The plan prioritizes security vulnerabilities (P0), infrastructure for productio
 
 | Milestone | Target Date | Deliverables |
 |-----------|-------------|--------------|
-| M1: Security Hardening | Sprint 1 (Week 1-2) | All P0 security fixes, CSRF, encryption, rate limiting |
+| M1: Security Hardening | Sprint 1 (Week 1-2) | All P0 security fixes, ~~CSRF~~ (done 2026-07-03), encryption, rate limiting, ~~bcrypt/passlib fix~~ (R0, done 2026-07-03) |
 | M2: Infrastructure Foundation | Sprint 1-2 (Week 1-4) | K8s manifests, MongoDB replica set, secrets management |
 | M3: Build Pipeline Reliability | Sprint 2 (Week 3-4) | Celery integration, graceful shutdown, health checks |
 | M4: Observability Stack | Sprint 2 (Week 3-4) | Structured logging, metrics, monitoring, alerting |

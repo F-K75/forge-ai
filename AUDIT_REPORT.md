@@ -702,7 +702,7 @@ All events are sent as uncompressed JSON strings. For large payloads (build file
 ## 11. SECURITY SCORE — 1.5/10
 
 ### Strengths
-- bcrypt password hashing
+- ~~bcrypt password hashing~~ **CORRECTED 2026-07-03:** this is false. `backend/requirements.txt`'s `passlib[bcrypt]==1.7.4` is incompatible with the installed `bcrypt` version — every hash/verify call crashes on passlib's own internal self-test (`ValueError: password cannot be longer than 72 bytes`) before touching a real password. Registration and login are both **completely broken** in this environment. See the new P0 finding below.
 - JWT with configurable algorithm
 - HTTP-only cookies for tokens
 - Stripe webhook signature verification
@@ -748,6 +748,35 @@ All POST/PUT/DELETE endpoints accept requests from any origin (CORS at line 35 i
 1. Add `Cookie` + `X-CSRF-Token` header validation  
 2. Or set `SameSite: strict` on all cookies (currently `lax`)  
 3. Or implement CSRF token endpoint  
+
+**UPDATE 2026-07-03:** `csrf_protection_middleware` was added to `backend/main.py` and correctly rejects mutating requests without a valid `X-CSRF-Token` (verified: `GET /auth/csrf-token` issues a token, `PUT /auth/me` 403s without it, 200s with it). However, `frontend/src/lib/api.ts` never fetched or attached that header anywhere — meaning every real user's mutating request (create project, create build, rollback, billing checkout, everything) was silently 403-ing. This is arguably worse than "missing protection": the app was both secure *and* completely non-functional. Fixed today with an axios request interceptor that fetches/caches the token and attaches it automatically; response interceptor clears the cache on 401/403 to force a refetch. See `ENGINEERING_BACKLOG.md` SEC-001 for the corrected root cause and resolution.
+
+#### [P0-CRITICAL, RESOLVED] Password Hashing Was Completely Broken (bcrypt/passlib Version Mismatch)
+**File:** `backend/requirements.txt` — `passlib[bcrypt]==1.7.4` + the (then-unpinned) `bcrypt` package.  
+**Found:** 2026-07-03, while testing unrelated frontend work. Any call to `hash_password()` or `verify_password()` (i.e. every registration and every login) crashed:
+```
+File ".../passlib/handlers/bcrypt.py", line 380, in detect_wrap_bug
+    if verify(secret, bug_hash):
+ValueError: password cannot be longer than 72 bytes, truncate manually if necessary
+```
+This is passlib's own internal compatibility self-test failing, not a real password being too long — it fired unconditionally on first use. **Registration and login were 100% broken** in this environment; no user could create an account or sign in with a password. Root cause pinned down precisely: `bcrypt>=4.1` removed the `_bcrypt.__about__` module passlib 1.7.4 reads for version detection; the resulting `AttributeError` is what actually triggers the misleading "72 bytes" error inside passlib's fallback self-test.  
+**Impact:** Total product outage for the core auth flow. Higher severity than most other findings in this report since it blocks the entire product, not one feature.  
+**Fix Applied:** Pinned `bcrypt==4.0.1` (the last version with `__about__` intact) directly below `passlib[bcrypt]==1.7.4` in `requirements.txt`, with a comment warning against bumping it without re-verifying against passlib. Confirmed `bcrypt==5.0.0` reproduces the crash and `bcrypt==4.0.1` doesn't, in isolation, before changing the pin.  
+**Fixing this uncovered a second bug**, previously unreachable because registration always crashed at this step before reaching it: Motor's `insert_one()` mutates its input dict in place, injecting a `bson.ObjectId` `_id` field; `register`'s response handler reused that same dict, and FastAPI's serializer crashed on the non-JSON-serializable ObjectId (`PydanticSerializationError`). Fixed by adding `_id` to `_public_user_dict`'s strip list (the same helper added earlier for the credential-leak fix above).  
+**Status:** Resolved 2026-07-03 — verified with a real `curl` registration + immediate login round-trip (fresh account, 200 responses, no leaked fields), and the full backend test suite (66/66 passing).
+
+#### [P0-CRITICAL] Auth Endpoints Leaked Password Hash + Raw GitHub Token in Every Response
+**File:** `backend/api/auth.py` — `get_me`, `login`, `register`, `refresh` (pre-fix).  
+**Found & fixed:** 2026-07-03. `GET /auth/me` decrypted and returned the user's raw GitHub personal-access-token in the JSON body on every call — including from the `ProtectedRoute`/`PublicRoute` guard checks that fire on nearly every page load. Separately, `POST /auth/login`, `POST /auth/register`, and `POST /auth/refresh` all returned the **raw, unfiltered MongoDB user document** as `TokenResponse.user`, which includes the bcrypt `hashed_password` field (plus the encrypted-but-present `github_token` ciphertext, and any verification-token fields present at the time).  
+**Impact:** Every authenticated client, and anyone able to observe the response (logging, browser extensions, proxies, a XSS payload), had access to the user's password hash and, via `/auth/me`, their live GitHub token in plaintext.  
+**Fix:** Added `_public_user_dict()` in `backend/api/auth.py` — strips `hashed_password`, `github_token`, `verification_token`, `verification_expires` from any user object before it leaves the server, replacing the raw token with a `github_connected: bool`. Applied to all four endpoints.  
+**Status:** Resolved.
+
+#### [P1-HIGH] Marketplace Item Creation Crashed on Every Call
+**File:** `backend/api/marketplace.py` — `create_item`.  
+**Found & fixed:** 2026-07-03. `POST /marketplace/` always raised `fastapi.exceptions.ResponseValidationError` (`created_at` — a Python `datetime` — didn't match the `MarketplaceItemResponse.created_at: str` field). The item was actually inserted into MongoDB before the crash, so failed creates silently left orphaned documents with `datetime`-typed `created_at` that would also break `GET /marketplace/`/`GET /marketplace/{id}` once encountered.  
+**Fix:** `create_item` now inserts and returns `item.model_dump(mode="json")` instead of the raw Pydantic model / python-mode dump, matching the pattern already used elsewhere in the codebase (e.g. `orchestrator/store.py`).  
+**Status:** Resolved.
 
 #### [P0-CRITICAL] Rate Limit IP Spoofing
 **File:** `backend/core/security.py:32-38`  

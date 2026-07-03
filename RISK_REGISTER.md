@@ -46,13 +46,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Description** | Multiple P0 security vulnerabilities (CSRF bypass, encryption key derived from JWT secret, rate limiting bypass, token blacklist using raw token). Any of these could lead to account takeover or data breach. |
+| **Description** | Multiple P0 security vulnerabilities (CSRF bypass, encryption key derived from JWT secret, rate limiting bypass, token blacklist using raw token). Any of these could lead to account takeover or data breach. **Update 2026-07-03:** the CSRF component is resolved — the backend's `validate_csrf_token()` was already correctly wired (this risk's original premise of a validation gap was inaccurate); the actual bug was the frontend never sending the header at all, which was as much an availability bug (100% of mutating requests silently 403ing for real users) as a security one. Fixed with a frontend interceptor. Encryption-key-derivation, rate-limiting-bypass, and raw-token-blacklist components of this risk are unchanged/still open. Two unrelated new findings surfaced during the same session and are also resolved: auth endpoints leaking password hashes + raw GitHub tokens in responses (see SEC-015), and a marketplace-creation crash (see BE-013). One new, more severe risk was found — see R-026 below — and has also since been resolved. |
 | **Likelihood** | 5 (Almost Certain - vulnerabilities are exploitable) |
 | **Impact** | 5 (Catastrophic - user data compromise, legal liability) |
-| **Risk Level** | **25 (Critical)** |
+| **Risk Level** | **25 (Critical) → 18 (High)** after the CSRF-frontend and credential-leak fixes; still Critical overall due to the unresolved encryption-key and rate-limiting components |
 | **Mitigation** | Fix all P0 security issues in Sprint 0. Implement automated security tests. Conduct third-party security audit in Sprint 5. |
 | **Owner** | Security Lead |
-| **Status** | 🔴 Active |
+| **Status** | 🟡 Partially Mitigated (was 🔴 Active) |
 | **Trigger** | Public deployment before fixes are applied |
 | **Contingency** | Incident response plan, force password reset for all users |
 | **Residual Risk** | Low after all P0 fixes and audit |
@@ -66,13 +66,13 @@
 | **Description** | Build processing uses FastAPI BackgroundTasks which are in-process and not persisted. Server restart/crash loses all in-flight builds. |
 | **Likelihood** | 4 (Likely - deployments require restarts) |
 | **Impact** | 4 (Critical - user dissatisfaction, lost work) |
-| **Risk Level** | **16 (Critical)** |
+| **Risk Level** | **16 (Critical)** → **Resolved 2026-07-03** |
 | **Mitigation** | Migrate to Celery with Redis broker in Sprint 0. Implement task persistence, retries, and dead-letter queues. |
 | **Owner** | Staff Engineer |
-| **Status** | 🔴 Active |
+| **Status** | ✅ Resolved 2026-07-03 (was 🔴 Active) |
 | **Trigger** | Server restart during build processing |
 | **Contingency** | Manual rebuild request to users |
-| **Residual Risk** | Low after Celery migration |
+| **Residual Risk** | Low — Celery migration existed in code but was verified 2026-07-03 to be completely non-functional (three independent wiring bugs meant every build 500'd, and no worker configuration could even start); all three found and fixed same day, verified with a real worker processing two sequential builds end-to-end. See `ENGINEERING_BACKLOG.md` BE-015. Dead-letter queue for exhausted retries still not implemented. |
 
 ---
 
@@ -185,13 +185,13 @@
 | **Description** | Users can inject malicious prompts to manipulate AI behavior, extract system prompts, or generate harmful code. |
 | **Likelihood** | 4 (Likely - common attack vector) |
 | **Impact** | 4 (Critical - AI misuse, reputational damage) |
-| **Risk Level** | **16 (Critical)** |
-| **Mitigation** | Implement prompt injection detection (AI-002) in Sprint 1. Add input/output guardrails. Rate limit LLM calls. |
+| **Risk Level** | **16 (Critical) → 10 (High), partially mitigated** |
+| **Mitigation** | Implement prompt injection detection (AI-002) in Sprint 1. Add input/output guardrails. Rate limit LLM calls. **Update 2026-07-03:** spot-verified the existing keyword-blocklist mitigation by actually attempting bypasses, not just reading the pattern list. Found and fixed two concrete gaps (AI-008): trivial whitespace/hyphen reformatting defeated the exact-substring match, and only the last message of a conversation was ever checked (an injection planted in an earlier turn of an iterative build went undetected). Both closed. **Still not done:** the fuller originally-scoped mitigation here — secondary-LLM-call detection, output validation, logging/alerting, rate limiting specifically tied to injection attempts — was never built; a keyword blocklist alone cannot fully close this risk against arbitrary paraphrasing. |
 | **Owner** | Staff Engineer / Security Lead |
-| **Status** | 🔴 Active |
+| **Status** | 🟡 Partially Mitigated (was 🔴 Active) |
 | **Trigger** | User sends prompt injection attempt |
 | **Contingency** | Block user, review all recent builds |
-| **Residual Risk** | Medium - detection may have false negatives |
+| **Residual Risk** | Medium-High — pattern-based detection is inherently incomplete against paraphrasing/novel phrasing not in the blocklist; the two demonstrated bypass classes are closed, but this is not equivalent to the originally-scoped defense-in-depth (secondary LLM check, output validation, logging/alerting) |
 
 ---
 
@@ -450,25 +450,78 @@
 
 ---
 
+### R-026: Total Registration/Login Outage from bcrypt/passlib Incompatibility — RESOLVED 2026-07-03
+
+| Field | Value |
+|-------|-------|
+| **Description** | `backend/requirements.txt`'s `passlib[bcrypt]==1.7.4` was incompatible with the resolved `bcrypt` package version (5.0.0) — every password hash/verify call crashed on passlib's own internal self-test before touching a real password. Root cause pinned precisely: `bcrypt>=4.1` removed the `_bcrypt.__about__` module passlib reads for version detection. **Fixed by pinning `bcrypt==4.0.1`** (confirmed via isolated test that 5.0.0 fails and 4.0.1 doesn't, before changing the pin). Fixing this uncovered a second, previously-unreachable bug — an `_id`/ObjectId serialization crash on registration (registration always died at the hashing step before, so this code path had never actually run) — also fixed the same session. See `ENGINEERING_BACKLOG.md` SEC-014/SEC-016. |
+| **Likelihood** | 5 (Almost Certain — this wasn't a potential exploit, it was already happening on every attempt) |
+| **Impact** | 5 (Catastrophic — total product outage for the core auth flow; nothing else in the product is reachable without it) |
+| **Risk Level** | **25 (Critical) → 0 (Resolved)** |
+| **Mitigation** | Pinned `bcrypt==4.0.1` in `requirements.txt`; verified with a real registration + login round-trip (not just successful `pip install`) plus the full backend test suite (66/66 passing). |
+| **Owner** | Backend Lead |
+| **Status** | ✅ Resolved — verified end-to-end 2026-07-03. |
+| **Trigger** | N/A — resolved |
+| **Contingency** | N/A — resolved |
+| **Residual Risk** | Low — the fix is a version pin with a comment explaining why it must not be casually bumped; a future dependency-update pass reintroducing `bcrypt>=4.1` without checking this comment is the main residual concern. |
+
+---
+
+### R-027: Live Build Progress Silently Never Delivered to Any Client — RESOLVED 2026-07-03
+
+| Field | Value |
+|-------|-------|
+| **Description** | `ConnectionManager.emit()`/`broadcast()` in `backend/services/ws_manager.py` published build-progress events to a Redis channel (`build:{build_id}`), but nothing anywhere in the codebase ever subscribed to it. Build processing (all of it, since the BE-015 Celery fix) runs in the Celery **worker** process, which never holds any real WebSocket connections — only the FastAPI web process does. Every event a worker emitted was published into the void and simultaneously fell through the "local delivery" fallback (always empty in the worker process), so it was **never delivered to any connected client, for any build, regardless of instance count** — not just a multi-instance edge case. The frontend (`useBuildSocket.ts`) has zero REST polling fallback, so this wasn't a degraded experience — the live build view showed nothing at all until the user manually refreshed. Verified live: connected a real WebSocket client to a real build, confirmed via server-side logging that the worker called `emit()` multiple times as the build progressed to a terminal state, and the client received **zero** of them. |
+| **Likelihood** | 5 (Certain — reproduced on every single build, not an edge case) |
+| **Impact** | 4 (Critical — the core "watch AI build your app live" UX is the product's headline feature; silently broken, not degraded) |
+| **Risk Level** | **20 (Critical) → 0 (Resolved)** |
+| **Mitigation** | Added a Redis pub/sub subscriber (`ConnectionManager.start_pubsub_listener()`) that runs as a background task for the lifetime of each FastAPI process (started/stopped via `main.py`'s lifespan), subscribing to `build:*` and forwarding matching messages to that process's local WebSocket connections. Published messages are tagged with a per-process instance id so a process never double-delivers its own already-locally-delivered events back to itself. |
+| **Owner** | Backend Lead |
+| **Status** | ✅ Resolved — verified end-to-end 2026-07-03 with a real Celery worker and a real connected WebSocket client (0 of several events delivered before the fix; all delivered after, across multiple runs). 3 regression tests added in `backend/tests/test_ws_pubsub_bridge.py` using an in-memory fake Redis so the bridge logic is covered in CI without a live Redis dependency. |
+| **Trigger** | N/A — resolved |
+| **Contingency** | N/A — resolved |
+| **Residual Risk** | Low. Same-process delivery still has a direct fallback (doesn't depend on the pub/sub round trip), so a brief Redis outage degrades to same-process-only delivery rather than losing everything. Cross-process delivery is still fully dependent on Redis, which is already a hard dependency for Celery and rate limiting elsewhere in this app. |
+
+---
+
+### R-028: Credit Refund Fired Once Per Retry, Not Once Per Build — RESOLVED 2026-07-03
+
+| Field | Value |
+|-------|-------|
+| **Description** | `backend/tasks/build_tasks.py`'s `run_build` task refunded unused reserved credits inside its `except Exception` handler on *every* Celery retry attempt, not once per build — because `BuildTask.autoretry_for=(Exception,)` re-invokes the entire task function body (including that except block) on each of its configured 3 retries. Verified live: a build reserved 17 credits, failed and retried 4 times (1 original + 3 retries) due to an invalid `ANTHROPIC_API_KEY` in this dev environment, and the user's final balance was **38 — higher than the starting 17** — instead of the mathematically correct 5. This is a real, repeatable free-credits exploit: any build that reliably raises a retryable exception (not necessarily malicious — a transient LLM rate limit or network blip would do it) earns the user free credits on every retry. Discovered while spot-verifying PROD-006's "credit race condition" claim — the *reservation* half of that claim (atomic `find_one_and_update` with a `$gte` guard) was independently verified to be genuinely race-free via 8 real concurrent build requests (exactly 1 succeeded, 7 correctly got 402, no double-spend); only the refund half had this separate bug. |
+| **Likelihood** | 4 (Likely — happens on any build that fails and retries, not a rare edge case; currently happening on every build in this dev environment due to an unrelated invalid API key) |
+| **Impact** | 4 (Critical — direct, repeatable revenue leakage; a user could deliberately trigger retryable failures to farm credits) |
+| **Risk Level** | **16 (Critical) → 0 (Resolved)** |
+| **Mitigation** | `run_build` is now `bind=True` and checks `self.request.retries` against the configured `max_retries` inside the except block — refund and finalize-as-`failed` now only happen on the last attempt Celery will make for a given task. Non-final attempts still raise (so Celery still retries, unchanged resilience behavior) without touching credits or the build's terminal status. |
+| **Owner** | Backend Lead |
+| **Status** | ✅ Resolved — verified end-to-end 2026-07-03: replayed the identical live scenario (17 credits, 4 attempts, same invalid API key) and the balance ended at exactly 5. 3 regression tests added in `backend/tests/test_credit_refund_retries.py` using Celery's `push_request()`/`pop_request()` test hooks to simulate specific retry counts without needing a real broker. |
+| **Trigger** | N/A — resolved |
+| **Contingency** | N/A — resolved |
+| **Residual Risk** | Low. The fix is scoped to `run_build`'s own retry accounting; if a future task is added with `autoretry_for` and its own refund-on-failure logic, the same class of bug could reappear unless reviewers specifically check for this pattern. |
+
+---
+
 ## Risk Summary
 
 | Risk Level | Count | Action Required |
 |------------|-------|-----------------|
-| Critical (15-25) | 9 | Immediate mitigation required |
-| High (10-14) | 5 | Active management required |
+| Critical (15-25) | 7 (was 9 — R-002 downgraded to 18/High; R-010 downgraded to 10/High 2026-07-03 after partial mitigation (AI-008); R-026, R-027, R-028 each added at Critical then resolved to 0 same day, net -2) | Immediate mitigation required |
+| High (10-14) | 7 (+2: R-002 and R-010 moved here from Critical) | Active management required |
 | Medium (5-9) | 8 | Monitor and plan mitigation |
 | Low (1-4) | 0 | Accept or monitor |
-| **Total** | **22** | |
+| **Total** | **25** (+3: R-026, R-027, R-028, all added *and resolved* 2026-07-03) | |
 
 ## Top 5 Critical Risks
 
+*Updated 2026-07-03: R-026 (bcrypt/passlib outage), R-027 (WebSocket build-progress events never delivered), and R-028 (credit refund duplicated per retry) were all added, then resolved same day — none appear below since none are active risks. R-002 dropped out of the top 5 after its CSRF component resolved.*
+
 | Rank | ID | Risk | Score | Mitigation Sprint |
 |------|----|------|-------|-------------------|
-| 1 | R-002 | Security breach via CSRF/encryption flaws | 25 | Sprint 0 |
-| 2 | R-005 | No production infrastructure | 25 | Sprint 0-1 |
-| 3 | R-001 | Data loss from single MongoDB | 20 | Sprint 1 |
-| 4 | R-004 | Uncontrolled AI costs | 20 | Sprint 2 |
-| 5 | R-007 | Regressions from untested code | 20 | Sprint 0-4 |
+| 1 | R-005 | No production infrastructure | 25 | Sprint 0-1 |
+| 2 | R-001 | Data loss from single MongoDB | 20 | Sprint 1 |
+| 3 | R-004 | Uncontrolled AI costs | 20 | Sprint 2 |
+| 4 | R-007 | Regressions from untested code | 20 | Sprint 0-4 |
+| — | R-002 | ~~Security breach via CSRF/encryption flaws~~ (CSRF component resolved 2026-07-03; encryption-key component still open) | 18 | Sprint 0 |
 
 ## Risk Burndown
 

@@ -1,7 +1,6 @@
 from cryptography.fernet import Fernet
 from core.config import get_settings
 import base64
-import hashlib
 import logging
 
 logger = logging.getLogger(__name__)

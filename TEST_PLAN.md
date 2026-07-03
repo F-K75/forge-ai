@@ -270,7 +270,9 @@
 
 | ID | Attack Vector | Test Description | Expected Result |
 |----|---------------|------------------|-----------------|
-| SEC-T-01 | CSRF bypass | POST without CSRF token | 403 Forbidden |
+| SEC-T-01 | CSRF bypass | POST without CSRF token | 403 Forbidden — **verified passing 2026-07-03** (also verified: valid token from `GET /auth/csrf-token` → 200; frontend now attaches it automatically on every mutating request, closing the actual gap — see ENGINEERING_BACKLOG.md SEC-001) |
+| SEC-T-13 *(new)* | Password hashing functional | Register, then log in with the same credentials | 200 with a token — **verified passing 2026-07-03** (was failing with `ValueError: password cannot be longer than 72 bytes` due to a bcrypt/passlib version incompatibility; fixed by pinning `bcrypt==4.0.1`, see SEC-014). This should be the first security test run, not the last — nothing else in this table is reachable without a working auth flow. Fixing this also surfaced and required fixing an ObjectId-serialization crash on registration (SEC-016). |
+| SEC-T-14 *(new)* | Credential exposure in responses | `GET /auth/me`, and login/register/refresh responses | No `hashed_password` or raw `github_token` field present — **verified passing 2026-07-03** (see SEC-015) |
 | SEC-T-02 | Rate limit bypass | Flood requests when Redis down | 429 Too Many Requests |
 | SEC-T-03 | JWT tampering | Modify JWT payload | 401 Unauthorized |
 | SEC-T-04 | Token blacklist | Use blacklisted token | 401 Unauthorized |

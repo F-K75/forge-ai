@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from enum import Enum
 
-from core.models import AnalyticsEvent, OnboardingProgress, User, Build, BuildStatus, PlanTier
+from core.models import AnalyticsEvent, User, BuildStatus, PlanTier
 from core.database import get_db
 from api.auth import get_current_user
 
@@ -405,11 +405,9 @@ async def get_ai_cost_data(
     ]
     
     total_tokens = 0
-    total_credits = 0
-    
+
     async for doc in db.builds.aggregate(total_tokens_pipeline):
         total_tokens = doc.get("total_tokens", 0)
-        total_credits = doc.get("total_credits", 0)
     
     tokens_per_usd = 1000
     total_cost_usd = round(total_tokens / tokens_per_usd, 4)
@@ -452,9 +450,7 @@ async def get_revenue(
     current_user: User = Depends(get_current_user)
 ):
     db = await get_db()
-    
-    start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     active_subs_pipeline = [
         {"$match": {"status": "active"}},
         {"$group": {"_id": None, "count": {"$sum": 1}}},

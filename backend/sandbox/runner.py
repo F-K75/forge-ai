@@ -1,8 +1,6 @@
 import asyncio
 import tempfile
 import os
-import json
-from pathlib import Path
 from core.config import get_settings
 
 settings = get_settings()

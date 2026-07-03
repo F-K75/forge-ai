@@ -387,5 +387,11 @@ async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int
             return False, 0
         return True, remaining
     except Exception:
-        # Fail open if Redis is down
-        return True, 0
+        # Redis unavailable — fall back to the same in-memory limiter
+        # rate_limit_middleware uses instead of failing open. Failing open
+        # let an attacker bypass the per-email forgot-password/registration
+        # limits entirely during any Redis blip (email enumeration,
+        # reset-token flooding, registration spam) with no real backstop —
+        # the per-IP /auth limiter (10 req/60s) is far looser than the
+        # 3-5/hour this protects, and trivially split across source IPs.
+        return await _check_in_memory_rate_limit(key, limit, window)

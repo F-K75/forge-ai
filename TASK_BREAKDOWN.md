@@ -7,15 +7,18 @@
 
 ## Epic: Security — Task Breakdown
 
-### SEC-001: CSRF Token Validation (16h)
+### SEC-001: CSRF Token Validation (16h estimated → ~1h actual) — RESOLVED 2026-07-03
 
-| # | Task | Est. Hours | Dependencies | AI-Ready |
-|---|------|------------|--------------|----------|
-| 1.1 | Add `validate_csrf_token()` call in CSRF middleware | 4 | None | Yes |
-| 1.2 | Implement session-scoped CSRF token generation | 4 | None | Yes |
-| 1.3 | Add CSRF token to login/register responses | 2 | 1.2 | Yes |
-| 1.4 | Add CSRF token validation to all POST/PUT/DELETE routes | 4 | 1.1 | Yes |
-| 1.5 | Write unit tests for CSRF middleware | 2 | 1.4 | Yes |
+**Correction:** Tasks 1.1, 1.2, and 1.4 below were already done — verified 2026-07-03 that `validate_csrf_token()` is called from the middleware, tokens are session-scoped via Redis + JWT `jti`, and all POST/PUT/DELETE routes are covered. The actual gap was task-external to this table: `frontend/src/lib/api.ts` never called `GET /auth/csrf-token` or attached the header at all. Fixed with an axios request/response interceptor pair (fetch-and-cache, clear-on-401/403). See `ENGINEERING_BACKLOG.md` SEC-001 for full detail.
+
+| # | Task | Est. Hours | Dependencies | AI-Ready | Status |
+|---|------|------------|--------------|----------|--------|
+| 1.1 | Add `validate_csrf_token()` call in CSRF middleware | 4 | None | Yes | ✅ Already done |
+| 1.2 | Implement session-scoped CSRF token generation | 4 | None | Yes | ✅ Already done |
+| 1.3 | Add CSRF token to login/register responses | 2 | 1.2 | Yes | N/A — login/register are CSRF-exempt by design (no session yet); not needed |
+| 1.4 | Add CSRF token validation to all POST/PUT/DELETE routes | 4 | 1.1 | Yes | ✅ Already done |
+| 1.5 | Write unit tests for CSRF middleware | 2 | 1.4 | Yes | Still open |
+| 1.6 | *(new)* Add frontend interceptor to fetch/attach `X-CSRF-Token` on all mutating requests | 1 | None | Yes | ✅ Done 2026-07-03 (`frontend/src/lib/api.ts`) |
 
 ### SEC-002: Separate Encryption Key (16h)
 
@@ -343,14 +346,16 @@
 | 4.7 | Fix remaining lint errors | 2 | 4.6 | Yes |
 | 4.8 | Verify zero compilation errors | 0.5 | 4.7 | Yes |
 
-### FE-005: Onboarding Flow (60h)
+### FE-005: Onboarding Flow (60h, 8h done 2026-07-03 → 52h remaining)
+
+**Update 2026-07-03:** Task 5.4 is partially done — the wizard's final step now hands the user's selected goal off as a real starter prompt to `/build/new` instead of a blank screen (not a canned "Hello World" project, but a real prompt-driven build start). Tasks 5.1-5.3, 5.5-5.9 remain untouched.
 
 | # | Task | Est. Hours | Dependencies | AI-Ready |
 |---|------|------------|--------------|----------|
 | 5.1 | Design onboarding flow (steps, copy, screens) | 8 | None | No (human) |
 | 5.2 | Create multi-step onboarding wizard component | 12 | 5.1 | Yes |
 | 5.3 | Implement step 1: welcome & product intro | 6 | 5.2 | Yes |
-| 5.4 | Implement step 2: sample project creation | 10 | 5.3 | Yes |
+| 5.4 | Implement step 2: sample project creation | 10 (2 remaining — goal→prompt handoff done 2026-07-03) | 5.3 | Yes |
 | 5.5 | Implement step 3: feature tour with tooltips | 8 | 5.4 | Yes |
 | 5.6 | Add progress indicator | 4 | 5.2 | Yes |
 | 5.7 | Add skip button and resume later | 4 | 5.6 | Yes |
@@ -883,3 +888,12 @@
 | **Total** | **405** | **2,532** | **380** | **25** |
 
 > **Note:** Human tasks primarily involve legal review, design decisions, documentation writing, and testing with screen readers / accessibility tools.
+
+> **Update 2026-07-03:** Six new/corrected items landed since this table was built — see `ENGINEERING_BACKLOG.md` for full detail (this table's task-level granularity wasn't re-derived for them to avoid inventing sub-task splits not grounded in actual implementation):
+> - **SEC-001** (CSRF) — resolved; root cause corrected (frontend never attached the token; backend was already correct)
+> - **SEC-014** (bcrypt/passlib total registration/login outage) — **new, still open, most severe unresolved item in the backlog**
+> - **SEC-015** (auth responses leaked password hash + GitHub token) — new, resolved
+> - **BE-013** (marketplace item creation crashed) — new, resolved
+> - **BE-014** (no preferences storage) — new, resolved
+> - **FE-008** (Billing/Marketplace/Settings pages were mock-only) — new, resolved
+> - **FE-009** (Review Board / orchestrator service had no UI) — new, resolved

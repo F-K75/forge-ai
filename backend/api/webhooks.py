@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime
 import secrets
 
-from core.models import User, ApiKey
+from core.models import User
 from core.database import get_db
 from api.auth import get_current_user
 

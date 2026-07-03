@@ -14,7 +14,7 @@ from git import Repo, Actor
 from core.models import Deployment, DeploymentStatus, WSEvent, WSEventType, User
 from core.database import get_db
 from core.config import get_settings
-from core.encryption import encrypt_field, decrypt_field
+from core.encryption import decrypt_field
 from services.ws_manager import manager
 from api.auth import get_current_user
 
@@ -492,7 +492,10 @@ async def _run_deployment_background(
                 )
                 env_vars = deployment.env_vars or {}
                 env_vars.setdefault("PORT", str(port))
-                env_vars.setdefault("HOST", "0.0.0.0")
+                # Binds inside the deployed container, not this host — Docker's port
+                # mapping (ports={"8000/tcp": port} below) is what actually exposes it,
+                # and 127.0.0.1 here would make the app unreachable through that mapping.
+                env_vars.setdefault("HOST", "0.0.0.0")  # nosec B104
 
                 client.containers.run(
                     image=image,
@@ -596,7 +599,6 @@ async def _github_push_background(
         temp_dir = tempfile.mkdtemp(prefix="forge-github-push-")
         try:
             # Use GIT_ASKPASS to pass token securely instead of embedding in URL
-            import subprocess
             askpass_script = os.path.join(temp_dir, ".git-askpass.sh")
             with open(askpass_script, "w") as f:
                 f.write("#!/bin/sh\necho \"$GITHUB_TOKEN\"\n")

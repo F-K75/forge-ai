@@ -14,8 +14,9 @@ The implementation is organized into 6 phases. Within each phase, tasks are orde
 These tasks take < 2 hours each and unblock other work:
 
 ```
+0.  ~~SEC-014 (NEW, added 2026-07-03): Fix bcrypt/passlib incompatibility — registration and login are completely broken (4h).~~ **RESOLVED same day** — pinned `bcrypt==4.0.1`, verified with a real register+login round-trip; also fixed SEC-016 (an ObjectId serialization bug it uncovered).
 1.  SEC-010: Implement sanitize_string() function (2h) → Unblocks SEC-009
-2.  SEC-001: Wire CSRF token validation (16h)
+2.  SEC-001: Wire CSRF token validation (16h estimated) — RESOLVED 2026-07-03, ~1h actual. Backend validation was already correct; the frontend never attached the token at all. See ENGINEERING_BACKLOG.md for corrected root cause.
 3.  SEC-002: Add FIELD_ENCRYPTION_KEY to config (16h)
 4.  SEC-003: Implement WS token-in-first-message auth (24h)
 5.  SEC-004: Make rate limiting fail-closed (8h)
@@ -141,8 +142,9 @@ These are the **absolute first tasks** - they have no dependencies and everythin
 
 | Order | Task | Hours | Why First |
 |-------|------|-------|-----------|
+| 0 | ~~**SEC-014**: Fix bcrypt/passlib incompatibility~~ **RESOLVED 2026-07-03** | 4 (est.) / ~1.5 (actual) | Was blocking 100% of registrations/logins; fixed and verified same day. |
 | 1 | **SEC-010**: Implement `sanitize_string()` | 2 | Unblocks SEC-009 (NoSQL injection fix). 2-hour task. |
-| 2 | **SEC-001**: CSRF token validation | 16 | P0 security vulnerability. No dependencies. |
+| 2 | ~~**SEC-001**: CSRF token validation~~ RESOLVED 2026-07-03 | 16 (est.) / ~1 (actual) | Was mis-scoped as a backend gap; actual fix was a frontend interceptor. |
 | 3 | **SEC-002**: Separate encryption key | 16 | P0 security vulnerability. No dependencies. |
 | 4 | **SEC-003**: WebSocket authentication | 24 | P0 security vulnerability. No dependencies. |
 | 5 | **SEC-004**: Fail-closed rate limiting | 8 | P0 security vulnerability. No dependencies. |

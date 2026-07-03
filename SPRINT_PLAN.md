@@ -26,7 +26,8 @@ Fix all P0 security vulnerabilities, establish production infrastructure foundat
 | ID | Title | Hours | Dependencies | Engineer |
 |----|-------|-------|--------------|----------|
 | SEC-010 | Implement missing `sanitize_string` function | 2 | None | A |
-| SEC-001 | CSRF token validation | 16 | None | A |
+| SEC-014 | ~~**NEW 2026-07-03:** Fix bcrypt/passlib incompatibility — registration/login total outage~~ **RESOLVED same day** (pinned `bcrypt==4.0.1`, verified with a real register+login round-trip; also fixed SEC-016, an ObjectId serialization bug it uncovered) | 4 (est.) / ~1.5 (actual) | None | A |
+| SEC-001 | ~~CSRF token validation~~ **RESOLVED 2026-07-03** — was mis-scoped; backend was already correct, frontend never sent the token. Actual fix took ~1h. | 16 | None | A |
 | SEC-002 | Separate encryption key from JWT secret | 16 | None | A |
 | SEC-003 | WebSocket authentication | 24 | None | A |
 | SEC-004 | Fail-closed rate limiting | 8 | None | A |
@@ -240,7 +241,7 @@ Complete GDPR compliance, data lifecycle management, frontend UX improvements, a
 | DB-004 | GDPR cascade deletion | 24 | BE-009 | C |
 | BE-010 | Session management | 40 | SEC-005 | C |
 | BE-004 | API versioning | 24 | None | C |
-| FE-005 | Onboarding flow | 60 | None | D |
+| FE-005 | Onboarding flow (8h of 60h done 2026-07-03 — goal→build-prompt handoff) | 52 | None | D |
 | FE-006 | Product analytics | 40 | None | D |
 | FE-007 | SEO meta tags | 16 | None | D |
 | TEST-001 | Finalize test coverage ≥80% | 40 | Sprint 2 | E |
@@ -424,3 +425,14 @@ Conduct third-party security audit, penetration testing, finalize all documentat
 | **Frontend** | Error boundary, TypeScript | Accessibility start | Accessibility, Responsive | Onboarding, Analytics, SEO | Landing page, API docs | Final UX |
 | **Testing** | Test infra | Test continue, Load tests | Finish tests | Security tests | Performance verification | Regression, Acceptance |
 | **Business** | - | - | Stripe, SLA, Support | - | Documentation | Launch coordination |
+
+---
+
+## Update 2026-07-03
+
+Seven items landed outside formal sprint execution (found/fixed while doing adjacent frontend work) — see `ENGINEERING_BACKLOG.md` for full detail. **All seven are now resolved as of 2026-07-03:**
+
+- **SEC-014** (bcrypt/passlib — registration/login completely broken): found and fixed same day (pinned `bcrypt==4.0.1`, verified with a real register+login round-trip).
+- **SEC-016** (ObjectId serialization crash on registration): found *while verifying the SEC-014 fix* — registration had never gotten far enough to hit this bug before. Also fixed and verified.
+- **SEC-001** (CSRF): resolved, ~1h actual vs. 16h estimated (root cause was mis-diagnosed — see backlog).
+- **SEC-015** (auth response credential leak), **BE-013** (marketplace crash), **BE-014** (preferences storage), **FE-008** (Billing/Marketplace/Settings wiring), **FE-009** (Review Board UI): all new, all resolved.

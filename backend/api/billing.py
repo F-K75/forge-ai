@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime
 import stripe
 
 from core.config import get_settings
-from core.models import User, PlanTier, Subscription, Invoice, CreditPurchase, SubscriptionStatus, OnboardingProgress, SecurityEvent
+from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus
 from core.database import get_db
 from api.auth import get_current_user
 

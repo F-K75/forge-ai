@@ -16,16 +16,16 @@ Release Readiness: [████░░░░░░░░░░░░░░░░
 |--------|---------|--------|--------|
 | Release Score | 18/100 | 85/100 | 🔴 |
 | Engineering Score | 25/100 | 85/100 | 🔴 |
-| Product Score | 30/100 | 75/100 | 🔴 |
-| Security Score | 20/100 | 85/100 | 🔴 |
+| Product Score | 32/100 *(+2, FE-008/FE-009 shipped 2026-07-03)* | 75/100 | 🔴 |
+| Security Score | 21/100 *(+1 — SEC-001, SEC-014, SEC-015, and SEC-016 all resolved 2026-07-03, no longer offset by an open gap)* | 85/100 | 🔴 |
 | AI Readiness Score | 25/100 | 85/100 | 🔴 |
 | DevOps Score | 15/100 | 85/100 | 🔴 |
 | UX Score | 35/100 | 75/100 | 🔴 |
 | Business Score | 20/100 | 75/100 | 🔴 |
 | Deployment Readiness | 10/100 | 85/100 | 🔴 |
 | Test Coverage | <5% | ≥80% | 🔴 |
-| P0 Issues Resolved | 0/24 | 24/24 | 🔴 |
-| P1 Issues Resolved | 0/21 | 21/21 | 🔴 |
+| P0 Issues Resolved | 4/27 *(was 0/24 — SEC-001, SEC-014, SEC-015, SEC-016 all resolved 2026-07-03; denominator +3 for the new SEC-014/015/016 items)* | 27/27 | 🔴 |
+| P1 Issues Resolved | 1/22 *(was 0/21 — BE-013 resolved 2026-07-03; denominator +1 for the new BE-013)* | 22/22 | 🔴 |
 
 ---
 
@@ -39,7 +39,10 @@ P1 Security Fixes:  [░░░░░░░░░░░░░░░░░░░�
 
 | Security Item | Status | Sprint | Owner |
 |---------------|--------|--------|-------|
-| CSRF token validation (SEC-001) | ❌ | Sprint 0 | Security Lead |
+| **Password hashing functional (SEC-014, new)** | ✅ (2026-07-03) | Sprint 0 (day 1) | Backend Lead |
+| **Registration response doesn't crash on ObjectId (SEC-016, new)** | ✅ (2026-07-03) | Sprint 0 | Backend Lead |
+| CSRF token validation (SEC-001) | ✅ (2026-07-03) | Sprint 0 | Security Lead |
+| Auth responses don't leak credentials (SEC-015, new) | ✅ (2026-07-03) | Sprint 0 | Security Lead |
 | Encryption key separation (SEC-002) | ❌ | Sprint 0 | Security Lead |
 | WebSocket authentication (SEC-003) | ❌ | Sprint 0 | Security Lead |
 | Rate limiting fail-closed (SEC-004) | ❌ | Sprint 0 | Security Lead |
@@ -52,7 +55,7 @@ P1 Security Fixes:  [░░░░░░░░░░░░░░░░░░░�
 | Email verification (SEC-008) | ❌ | Sprint 1 | Security Lead |
 | Webhook URL validation (SEC-012) | ❌ | Sprint 0 | Security Lead |
 | CORS configuration (SEC-013) | ❌ | Sprint 0 | Security Lead |
-| **P0 Security Complete** | **0/9 (0%)** | | |
+| **P0 Security Complete** | **4/12 (33%)** *(was 0/9; +4 resolved [SEC-001, SEC-014, SEC-015, SEC-016], +3 to denominator for new items)* | | |
 | **P1 Security Complete** | **0/3 (0%)** | | |
 
 ---
@@ -193,6 +196,7 @@ DR Plan:            [░░░░░░░░░░░░░░░░░░░�
 
 | # | Blocker | Affected Tasks | Impact | Resolution Sprint |
 |---|---------|----------------|--------|-------------------|
+| ~~0~~ | ~~**SEC-014: bcrypt/passlib incompatibility**~~ **RESOLVED 2026-07-03** | — | — | Done |
 | 1 | INF-001: No K8s manifests | 6+ tasks blocked | Cannot deploy | Sprint 0-1 |
 | 2 | SEC-010: Missing sanitize_string | SEC-009 blocked | NoSQL injection | Sprint 0 |
 | 3 | DB-001: No replica set | INF-005, BUS-007 blocked | No backups, race condition | Sprint 1 |
@@ -203,7 +207,7 @@ DR Plan:            [░░░░░░░░░░░░░░░░░░░�
 | 8 | INF-002: No monitoring | INF-005, INF-006, INF-008, BUS-003 blocked | Multiple downstream | Sprint 1 |
 | 9 | FE-004: TypeScript strict | DEVOPS-001 blocked | CI allows broken frontend | Sprint 0 |
 
-**Total Blockers: 9** | **Unblocked Tasks: 0**
+**Total Blockers: 9** *(SEC-014 was added and resolved same day 2026-07-03, back to the original count)* | **Unblocked Tasks: 0**
 
 ---
 

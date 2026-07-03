@@ -1,5 +1,6 @@
 import asyncio
 import json
+import uuid
 from fastapi import WebSocket, Query, HTTPException
 from starlette.websockets import WebSocketDisconnect
 from typing import Dict, List, Optional
@@ -17,6 +18,10 @@ class ConnectionManager:
     def __init__(self):
         self.active: Dict[str, List[WebSocket]] = {}
         self._redis = None
+        # Tags messages this process publishes so its own pub/sub listener
+        # can skip them — they're already delivered by _deliver_local below.
+        self._instance_id = str(uuid.uuid4())
+        self._pubsub_task: Optional[asyncio.Task] = None
 
     async def _get_redis(self):
         if self._redis is None:
@@ -37,18 +42,8 @@ class ConnectionManager:
             if not self.active[build_id]:
                 del self.active[build_id]
 
-    async def emit(self, event: WSEvent):
-        payload = event.model_dump_json()
-        if len(payload.encode("utf-8")) > MAX_WS_PAYLOAD_BYTES:
-            return
-
-        try:
-            redis = await self._get_redis()
-            await redis.publish(f"build:{event.build_id}", payload)
-        except Exception:
-            pass
-
-        connections = self.active.get(event.build_id, [])
+    async def _deliver_local(self, build_id: str, payload: str):
+        connections = self.active.get(build_id, [])
         dead = []
         for ws in connections:
             try:
@@ -56,25 +51,84 @@ class ConnectionManager:
             except Exception:
                 dead.append(ws)
         for ws in dead:
-            self.disconnect(ws, event.build_id)
+            self.disconnect(ws, build_id)
+
+    async def _publish(self, build_id: str, payload: str):
+        # Deliver directly to any connections this process holds first, so
+        # same-process delivery never depends on the pub/sub round trip (and
+        # still works if Redis is briefly unreachable).
+        await self._deliver_local(build_id, payload)
+
+        try:
+            redis = await self._get_redis()
+            envelope = json.dumps({"_origin": self._instance_id, "data": payload})
+            await redis.publish(f"build:{build_id}", envelope)
+        except Exception:
+            pass
+
+    async def emit(self, event: WSEvent):
+        payload = event.model_dump_json()
+        if len(payload.encode("utf-8")) > MAX_WS_PAYLOAD_BYTES:
+            return
+        await self._publish(event.build_id, payload)
 
     async def broadcast(self, build_id: str, data: dict):
         payload = json.dumps(data)
         if len(payload.encode("utf-8")) > MAX_WS_PAYLOAD_BYTES:
             return
+        await self._publish(build_id, payload)
 
+    async def start_pubsub_listener(self):
+        """Bridge Redis pub/sub to this process's local WebSocket connections.
+
+        emit()/broadcast() only deliver directly to connections held by the
+        *same* process that calls them. Build-progress events are emitted
+        from the Celery worker process, which never holds any real WebSocket
+        connections itself — only the FastAPI web process(es) do. Without
+        this listener, every event from a worker (or any other web instance)
+        was silently dropped for every connected client, regardless of
+        instance count. Messages tagged with this process's own instance id
+        are skipped since _publish already delivered them locally.
+        """
+        redis = await self._get_redis()
+        pubsub = redis.pubsub()
+        await pubsub.psubscribe("build:*")
         try:
-            redis = await self._get_redis()
-            await redis.publish(f"build:{build_id}", payload)
-        except Exception:
+            async for message in pubsub.listen():
+                if message.get("type") != "pmessage":
+                    continue
+                try:
+                    channel = message["channel"]
+                    if isinstance(channel, bytes):
+                        channel = channel.decode()
+                    build_id = channel.split(":", 1)[1]
+                    raw = message["data"]
+                    if isinstance(raw, bytes):
+                        raw = raw.decode()
+                    envelope = json.loads(raw)
+                except Exception:
+                    continue
+                if envelope.get("_origin") == self._instance_id:
+                    continue
+                await self._deliver_local(build_id, envelope.get("data", ""))
+        except asyncio.CancelledError:
             pass
+        finally:
+            await pubsub.punsubscribe("build:*")
+            await pubsub.aclose()
 
-        connections = self.active.get(build_id, [])
-        for ws in connections:
+    def start(self):
+        if self._pubsub_task is None or self._pubsub_task.done():
+            self._pubsub_task = asyncio.create_task(self.start_pubsub_listener())
+
+    async def stop(self):
+        if self._pubsub_task is not None:
+            self._pubsub_task.cancel()
             try:
-                await ws.send_text(payload)
-            except Exception:
+                await self._pubsub_task
+            except (asyncio.CancelledError, Exception):
                 pass
+            self._pubsub_task = None
 
 
 manager = ConnectionManager()

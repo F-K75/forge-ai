@@ -18,13 +18,16 @@ from api.deployments import router as deployments_router
 from core.database import close_connections
 from core.config import get_settings
 from core.security import rate_limit_middleware, request_size_limit_middleware, csrf_protection_middleware
+from services.ws_manager import manager as ws_manager
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    ws_manager.start()
     yield
+    await ws_manager.stop()
     await close_connections()
 
 
