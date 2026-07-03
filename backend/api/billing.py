@@ -41,17 +41,20 @@ stripe.api_key = settings.stripe_secret_key
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
+# Sourced from settings (STRIPE_PRICE_* env vars) rather than hardcoded, so
+# real Stripe price IDs can be set per-environment without a code change
+# (PROD-022) -- the settings defaults are still non-functional placeholders.
 PLAN_PRICES: Dict[PlanTier, str] = {
     PlanTier.FREE: "price_free",
-    PlanTier.STANDARD: "price_standard_monthly",
-    PlanTier.PRO: "price_pro_monthly",
-    PlanTier.ENTERPRISE: "price_enterprise_monthly",
+    PlanTier.STANDARD: settings.stripe_price_standard_monthly,
+    PlanTier.PRO: settings.stripe_price_pro_monthly,
+    PlanTier.ENTERPRISE: settings.stripe_price_enterprise_monthly,
 }
 
 ANNUAL_PLAN_PRICES: Dict[PlanTier, str] = {
-    PlanTier.STANDARD: "price_standard_annual",
-    PlanTier.PRO: "price_pro_annual",
-    PlanTier.ENTERPRISE: "price_enterprise_annual",
+    PlanTier.STANDARD: settings.stripe_price_standard_annual,
+    PlanTier.PRO: settings.stripe_price_pro_annual,
+    PlanTier.ENTERPRISE: settings.stripe_price_enterprise_annual,
     PlanTier.FREE: "price_free",
 }
 

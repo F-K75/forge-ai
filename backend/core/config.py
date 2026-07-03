@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_publishable_key: str = ""
+    # Real Stripe Price IDs (price_xxx from the Stripe dashboard) -- the
+    # "price_standard_monthly"-style defaults are placeholders and will fail
+    # against the real Stripe API; set these env vars before going live.
+    stripe_price_standard_monthly: str = "price_standard_monthly"
+    stripe_price_pro_monthly: str = "price_pro_monthly"
+    stripe_price_enterprise_monthly: str = "price_enterprise_monthly"
+    stripe_price_standard_annual: str = "price_standard_annual"
+    stripe_price_pro_annual: str = "price_pro_annual"
+    stripe_price_enterprise_annual: str = "price_enterprise_annual"
 
     # App
     app_url: str = "http://localhost:3000"

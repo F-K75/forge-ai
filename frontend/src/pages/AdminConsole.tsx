@@ -53,6 +53,21 @@ interface SystemHealth {
   uptime_seconds: number;
 }
 
+interface RevenueDay {
+  date: string;
+  revenue: number;
+  subscriptions: number;
+  credit_purchases: number;
+}
+
+interface AIUsageDay {
+  date: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cost_usd: number;
+}
+
 // Mirrors the status normalization already used in ProjectHistory.tsx, since
 // StatusPill's vocabulary (complete/running/debugging/failed) predates the
 // backend's BuildStatus enum (pending/running/success/failed/debugging).
@@ -91,6 +106,18 @@ export default function AdminConsole() {
     enabled: LIVE_MODE,
   });
 
+  const { data: revenueData } = useQuery<RevenueDay[]>({
+    queryKey: ["admin-revenue"],
+    queryFn: () => adminApi.revenue(30),
+    enabled: LIVE_MODE,
+  });
+
+  const { data: aiUsageData } = useQuery<AIUsageDay[]>({
+    queryKey: ["admin-ai-usage"],
+    queryFn: () => adminApi.aiUsage(30),
+    enabled: LIVE_MODE,
+  });
+
   const creditMutation = useMutation({
     mutationFn: (vars: { userId: string; amount: number }) =>
       adminApi.adjustCredits({ user_id: vars.userId, amount: vars.amount, reason: "admin_adjustment" }),
@@ -117,6 +144,10 @@ export default function AdminConsole() {
 
   const builds = buildsData?.builds ?? [];
   const users = usersData?.users ?? [];
+  const revenue = revenueData ?? [];
+  const aiUsage = aiUsageData ?? [];
+  const totalRevenue30d = revenue.reduce((sum, d) => sum + d.revenue, 0);
+  const totalAiCost30d = aiUsage.reduce((sum, d) => sum + d.cost_usd, 0);
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -194,6 +225,77 @@ export default function AdminConsole() {
                     <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
                       No builds yet
                     </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      {/* Revenue + AI usage (last 30 days) */}
+      <div className="flex flex-col lg:flex-row gap-5 mb-7">
+        <section aria-label="Revenue (last 30 days)" className="lg:w-1/2 bg-panel border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Revenue (30d)</h2>
+            <span className="text-sm font-mono text-ink">${totalRevenue30d.toLocaleString()}</span>
+          </div>
+          <div className="overflow-x-auto max-h-64 overflow-y-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-border-soft">
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide text-right">Revenue</th>
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide text-right">Subs</th>
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide text-right">Credit purchases</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revenue.map((d) => (
+                  <tr key={d.date} className="border-t border-border-soft">
+                    <td className="px-4 py-2.5 text-sm text-muted">{d.date}</td>
+                    <td className="px-4 py-2.5 text-sm text-ink text-right font-mono">${d.revenue.toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-sm text-muted text-right">{d.subscriptions}</td>
+                    <td className="px-4 py-2.5 text-sm text-muted text-right">{d.credit_purchases}</td>
+                  </tr>
+                ))}
+                {revenue.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">No revenue data yet</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section aria-label="AI usage (last 30 days)" className="lg:w-1/2 bg-panel border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="text-xs font-medium text-faint uppercase tracking-wide">AI usage (30d)</h2>
+            <span className="text-sm font-mono text-ink">${totalAiCost30d.toFixed(2)}</span>
+          </div>
+          <div className="overflow-x-auto max-h-64 overflow-y-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-border-soft">
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide">Model</th>
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide text-right">Tokens</th>
+                  <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide text-right">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aiUsage.map((d, i) => (
+                  <tr key={`${d.date}-${d.model}-${i}`} className="border-t border-border-soft">
+                    <td className="px-4 py-2.5 text-sm text-muted">{d.date}</td>
+                    <td className="px-4 py-2.5 text-sm text-ink">{d.model}</td>
+                    <td className="px-4 py-2.5 text-sm text-muted text-right font-mono">{(d.prompt_tokens + d.completion_tokens).toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-sm text-ink text-right font-mono">${d.cost_usd.toFixed(4)}</td>
+                  </tr>
+                ))}
+                {aiUsage.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">No AI usage data yet</td>
                   </tr>
                 )}
               </tbody>

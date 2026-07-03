@@ -17,6 +17,7 @@ interface RawPlan {
   tier: string;
   name: string;
   price_monthly: number;
+  price_annual: number;
   credits: number;
   features: string[];
 }
@@ -38,6 +39,7 @@ export default function BillingPage() {
   const [usage, setUsage] = useState<RawUsage | null>(null);
   const [subscription, setSubscription] = useState<RawSubscription | null | undefined>(undefined);
   const [pending, setPending] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
 
   useEffect(() => {
     if (!LIVE_MODE) return;
@@ -59,6 +61,7 @@ export default function BillingPage() {
           plan: tier,
           success_url: window.location.href,
           cancel_url: window.location.href,
+          interval: billingInterval,
         });
         window.location.href = res.url;
       }
@@ -180,13 +183,44 @@ export default function BillingPage() {
 
       {/* Plans */}
       <section aria-label="Plans">
-        <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">Plans</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Plans</h2>
+          {LIVE_MODE && (
+            <div role="radiogroup" aria-label="Billing interval" className="flex items-center gap-1 bg-panel-alt border border-border rounded-lg p-0.5 text-xs">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={billingInterval === "monthly"}
+                onClick={() => setBillingInterval("monthly")}
+                className={[
+                  "px-2.5 py-1 rounded-md transition-colors motion-reduce:transition-none",
+                  billingInterval === "monthly" ? "bg-accent text-white" : "text-muted hover:text-ink",
+                ].join(" ")}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={billingInterval === "annual"}
+                onClick={() => setBillingInterval("annual")}
+                className={[
+                  "px-2.5 py-1 rounded-md transition-colors motion-reduce:transition-none",
+                  billingInterval === "annual" ? "bg-accent text-white" : "text-muted hover:text-ink",
+                ].join(" ")}
+              >
+                Annual
+              </button>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {LIVE_MODE
             ? rawPlans?.map(plan => (
                 <RawPlanCard
                   key={plan.tier}
                   plan={plan}
+                  interval={billingInterval}
                   active={plan.tier === activeTier}
                   pending={pending === plan.tier}
                   onSelect={() => handleSelectPlan(plan.tier)}
@@ -201,15 +235,18 @@ export default function BillingPage() {
 
 function RawPlanCard({
   plan,
+  interval,
   active,
   pending,
   onSelect,
 }: {
   plan: RawPlan;
+  interval: "monthly" | "annual";
   active: boolean;
   pending: boolean;
   onSelect: () => void;
 }) {
+  const displayPrice = interval === "annual" ? Math.round(plan.price_annual / 12) : plan.price_monthly;
   return (
     <div
       className={[
@@ -221,9 +258,14 @@ function RawPlanCard({
         <div>
           <p className="text-xs text-faint">{plan.credits} credits</p>
           <p className="text-2xl font-bold text-ink mt-0.5">
-            ${plan.price_monthly}
+            ${displayPrice}
             <span className="text-sm font-normal text-muted">/mo</span>
           </p>
+          {interval === "annual" && plan.price_monthly > 0 && (
+            <p className="text-[11px] text-ok mt-0.5">
+              ${plan.price_annual}/yr — save ${plan.price_monthly * 12 - plan.price_annual}
+            </p>
+          )}
           <p className="text-sm font-semibold text-ink mt-0.5">{plan.name}</p>
         </div>
         {active && (

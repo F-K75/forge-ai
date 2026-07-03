@@ -119,7 +119,7 @@ export const buildsApi = {
 
 // Billing
 export const billingApi = {
-  checkout: (data: { plan: string; success_url: string; cancel_url: string }) =>
+  checkout: (data: { plan: string; success_url: string; cancel_url: string; interval?: "monthly" | "annual" }) =>
     api.post('/billing/checkout', data).then(r => r.data),
   subscription: () => api.get('/billing/subscription').then(r => r.data),
   invoices: () => api.get('/billing/invoices').then(r => r.data.invoices),
@@ -188,6 +188,8 @@ export const marketplaceApi = {
 // Admin
 export const adminApi = {
   overview: () => api.get('/admin/analytics/overview').then(r => r.data),
+  revenue: (days?: number) => api.get('/admin/analytics/revenue', { params: { days } }).then(r => r.data),
+  aiUsage: (days?: number) => api.get('/admin/analytics/ai-usage', { params: { days } }).then(r => r.data),
   systemHealth: () => api.get('/admin/system/health').then(r => r.data),
   listUsers: (search?: string) => api.get('/admin/users', { params: { search } }).then(r => r.data),
   listBuilds: () => api.get('/admin/builds', { params: { per_page: 20 } }).then(r => r.data),

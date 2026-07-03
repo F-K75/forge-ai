@@ -10,24 +10,42 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
   const status = useBuildStore((s) => s.status);
 
   const [draft, setDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages.length]);
 
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
   const nodes: PipelineNode[] = AGENTS.map((a) => ({
     id: a.id,
     state: agentStates[a.id] ?? "idle",
   }));
 
-  const busy = status === "running" || status === "debugging";
+  const busy = status === "running" || status === "debugging" || submitting;
 
-  const submit = () => {
+  const submit = async () => {
     const trimmed = draft.trim();
-    if (!trimmed || busy) return;
+    if (!trimmed || busy || isOffline) return;
     setDraft("");
-    onSubmit(trimmed);
+    setSubmitting(true);
+    try {
+      await onSubmit(trimmed);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -56,6 +74,12 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
         )}
       </div>
 
+      {isOffline && (
+        <div role="status" className="mx-3 mb-2 px-3 py-2 rounded-lg bg-warn/10 border border-warn/30 text-warn text-xs">
+          You're offline — reconnect to keep building.
+        </div>
+      )}
+
       <form
         className="p-3 border-t border-border-soft"
         onSubmit={(e) => {
@@ -74,14 +98,14 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
               }
             }}
             rows={3}
-            placeholder={busy ? "Build in progress…" : "Describe your app…"}
-            disabled={busy}
+            placeholder={isOffline ? "You're offline…" : busy ? "Build in progress…" : "Describe your app…"}
+            disabled={busy || isOffline}
             aria-label="Build prompt"
             className="w-full resize-none rounded-lg bg-panel-alt border border-border px-3 py-2 pr-9 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-accent disabled:opacity-50"
           />
           <button
             type="submit"
-            disabled={busy || !draft.trim()}
+            disabled={busy || isOffline || !draft.trim()}
             aria-label="Send prompt"
             className="absolute right-2 bottom-2.5 p-1.5 rounded-md bg-accent text-white disabled:opacity-30 hover:opacity-90 transition-opacity"
           >
