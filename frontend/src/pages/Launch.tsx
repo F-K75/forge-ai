@@ -12,7 +12,7 @@ export default function Launch() {
 
       <button
         type="button"
-        onClick={() => navigate("/home")}
+        onClick={() => navigate("/projects")}
         className="relative z-10 w-44 h-44 rounded-full bg-land-ink text-land-paper flex flex-col items-center justify-center gap-2 shadow-[0_0_80px_rgba(0,0,0,0.6)] hover:scale-105 transition-transform motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent focus-visible:ring-offset-4 focus-visible:ring-offset-land-paper"
       >
         <Plus size={28} strokeWidth={1.5} aria-hidden="true" />

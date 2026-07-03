@@ -1,28 +1,37 @@
-# FORGE MASTER EXECUTION PLAN v1.0
+# FORGE MASTER EXECUTION PLAN v1.1
 
-**Date:** March 7, 2026
-**Status:** ⚠️ Pre-Production — Critical Issues Must Be Resolved
-**Overall Readiness:** 3.8/10
+**Date:** March 7, 2026 (v1.0) — **refreshed 2026-07-03 (post 18:02 IST)** against a live ground-truth code audit
+**Status:** ⚠️ Pre-Production — Critical Issues Remain, But Fewer Than v1.0 Reported
+**Overall Readiness:** ~6.0/10 *(up from 3.8/10 — see REFRESH LOG below for what changed and why)*
 **Target:** Production-Ready, Launch-Ready, Investment-Ready
+
+---
+
+## REFRESH LOG — 2026-07-03
+
+This document was originally written March 7, 2026 and had already been edited several times today (2026-07-03) as specific fixes landed, but large sections — especially Infrastructure, Monitoring, and CI/CD — had gone stale relative to same-day commits, and one section (the Executive Dashboard, line ~929 in the previous revision) explicitly flagged itself as "not yet re-checked" against the real codebase. This refresh closes that gap: four independent passes read the actual current code (not prior audit narrative) covering (1) security/auth controls, (2) backend architecture/DB/AI-cost controls, (3) infra/CI/CD/monitoring/backups, and (4) frontend/product flows/tests. Net effect:
+
+- **Better than documented:** CI/CD pipeline, secret scanning, Prometheus metrics, and MongoDB backup automation are all real and working — the doc said "Missing" for all four. Most of the SEC-002–SEC-010 P0 security items are also done and verified in code, not just claimed. GitHub "OAuth" is a deliberate PAT-paste flow that works end-to-end, not a stub as previously logged.
+- **Worse than documented (newly found, not previously tracked):** webhook delivery has **no SSRF protection at all** (arbitrary user-supplied URLs, zero validation) — this is a real, currently-exploitable P0, not a P1 nice-to-have as the old backlog had it. AI cost tracking silently persists `cost_usd=0.0` for every single LLM call — budget enforcement code exists but is never called from the live path, meaning **all AI unit-economics claims in every prior audit in this repo are unverifiable from real data**, because the data was never actually being collected. The k8s deployment manifests are not wired into the real deploy pipeline (`deploy.yml` only ever does docker-compose+SSH to a VPS, never `kubectl apply`) and are missing `ALLOWED_HOSTS`, so they'd reject production traffic if anyone used them as-is today.
+- **Internal inconsistency fixed:** the backlog table listed BE-001 (Celery migration) as an open 80-hour P0 while the narrative elsewhere in this same document already said it was done and verified — it is in fact done; the backlog entry was stale.
+
+All specific corrections are marked inline below with *(refreshed 2026-07-03)*.
 
 ---
 
 ## EXECUTIVE SUMMARY
 
-Forge is an AI-powered full-stack application builder with a compelling multi-agent architecture (Architect → Business Model Improver → Designer → Developer → Integration → PM). The product vision, UX design, and core build pipeline are genuinely differentiated. However, the codebase was built at hackathon speed and contains:
+Forge is an AI-powered full-stack application builder with a compelling multi-agent architecture (Architect → Business Model Improver → Designer → Developer → Integration → PM). The product vision, UX design, and core build pipeline are genuinely differentiated. As of this refresh:
 
-- **17 Critical (P0) security vulnerabilities** (now partially remediated)
-- **12 Critical functional bugs** breaking core user flows
-- **Zero unit tests** on business logic
-- **3 architecture-level blockers** preventing horizontal scaling
-- **No production deployment** — has never been used by real users
-- **Negative unit economics** — AI API costs likely exceed revenue per build
-- **No growth engine** — zero distribution, no SEO, no community
-- **No enterprise readiness** — no SOC 2, SSO, RBAC, audit logs
+- **Security is substantially further along than v1.0 reported**: encryption/JWT separation, JTI-based token blacklisting, slow-hash reset tokens, regex-escaped admin search, fail-closed rate limiting, and CSRF are all implemented and verified in code. **But a real, unmitigated SSRF vulnerability exists in webhook delivery** (arbitrary outbound requests to user-supplied URLs, no private-IP/metadata-IP blocking) — this is the single most urgent open item.
+- **CI/CD, secret scanning, Prometheus metrics, and automated MongoDB backups are real and working** — none of this existed when the original 3.8/10 score was given, and the doc had not caught up to it until this refresh.
+- **Zero frontend tests still exist** (backend now has 10 real test files covering the fixes made today; frontend has no test infrastructure at all — no vitest/jest, no test script).
+- ~~AI cost tracking is silently broken~~ **Fixed 2026-07-03, same session it was found**: every LLM call now logs a real cost and is subject to real per-user budget enforcement (AI-001/AI-003). Historical usage records from before the fix still have `cost_usd=0.0` and can't be back-filled from raw token counts alone unless the model used per call was also logged (it was — see `model`/`prompt_tokens`/`completion_tokens` fields on each `ai_usage` record) — a backfill script could recompute historical costs via `calculate_cost()` if needed, but wasn't run as part of this session.
+- **No production deployment** — the CI/CD pipeline can deploy to a VPS via SSH, but there is no evidence it has ever actually been run against a real environment; no live URL, no changelog entry, no runtime artifact.
+- **No growth engine** — zero distribution, no SEO, no community.
+- **No enterprise readiness** — no SOC 2, SSO, real RBAC (team members can be invited and listed, but there is no endpoint to change a role or remove a member at all), audit logs are partial (billing-webhook credit grants are unlogged).
 
-The investment committee scored Forge at **58/100** with a **Conditional Invest** verdict. The product needs 6-8 weeks of intensive engineering work to reach production readiness, followed by sustained investment in growth, enterprise features, and business operations.
-
-**The single most important recommendation: Ship to real users today.** Not next month. Not after security fixes. Deploy now, fix iteratively, and start learning from actual usage.
+**The single most important recommendation is unchanged: ship to real users.** But first close the SSRF hole in webhook delivery — that one is a genuine, live vulnerability, not a hardening nice-to-have.
 
 ---
 
@@ -41,8 +50,8 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 7 | Build rollback to previous versions | ✅ Working | Nice-to-have |
 | 8 | Build file explorer | ✅ Working | UX feature |
 | 9 | Template selection during onboarding | ❌ Broken | Placebo — template field ignored |
-| 10 | GitHub OAuth integration | ❌ Broken | console.log stubs only |
-| 11 | GitHub repository sync | ❌ Broken | Stubbed |
+| 10 | GitHub OAuth integration | ⚠️ Working, but not OAuth *(corrected 2026-07-03 — this is a deliberate personal-access-token paste flow (`SettingsPage.tsx`), not OAuth; token is encrypted server-side and genuinely used. Unused `github_client_id`/`github_client_secret` config fields suggest real OAuth was planned but never built. Mislabeling as "OAuth" everywhere is the actual issue now, not brokenness.)* | Auth |
+| 11 | GitHub repository sync | ✅ Working *(corrected 2026-07-03 — `POST /deployments/github/push` genuinely pushes using the stored PAT; not stubbed)* | Core |
 | 12 | One-click deployment to cloud | ❌ Broken | Not implemented |
 | 13 | Custom domain mapping | ❌ Missing | Not started |
 | 14 | Preview URLs (docker-based) | ❌ Broken | localhost-only |
@@ -62,10 +71,10 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 28 | Annual billing | ❌ Missing | Not implemented |
 | 29 | Promotional/discount codes | ❌ Missing | Not implemented |
 | 30 | Enterprise quote generation | ❌ Missing | Not implemented |
-| 31 | Email verification | ❌ Missing | Not implemented |
-| 32 | Password reset flow | ❌ Broken | No reset-password page, no email delivery |
-| 33 | Forgot password | ⚠️ Partially Working | Backend exists, frontend page broken |
-| 34 | Email notifications | ⚠️ Partially Working | Resend API key defaults to empty |
+| 31 | Email verification | ✅ Working *(corrected 2026-07-03 — this row was wrong; it was actually already fully implemented (register sends the email, `GET /verify-email` confirms it, builds are blocked for unverified users). What was genuinely missing — a frontend page for the emailed link and a way to request a second one — is now fixed too, see PROD-005)* | Core |
+| 32 | Password reset flow | ✅ Working *(corrected 2026-07-03 — this row was stale; §1.2 already correctly noted the reset-password page and backend both work. The real remaining gap is email delivery being unconfigured, see PROD-001, not a broken flow)* | Core |
+| 33 | Forgot password | ✅ Working *(corrected 2026-07-03 — same stale-row issue as row 32)* | Core |
+| 34 | Email notifications | ⚠️ Partially Working | Resend API key still unconfigured in this deployment — a real, but ops-not-code, blocker (see PROD-001) |
 | 35 | API key management | ✅ Working | Basic CRUD |
 | 36 | Webhook management | ✅ Working | Basic CRUD |
 | 37 | Webhook delivery/signing | ❌ Missing | No HMAC signing |
@@ -99,7 +108,7 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 3 | Signup (/signup) | ✅ Working | Core |
 | 4 | Forgot Password (/forgot-password) | ⚠️ Partially Working | Core (UI exists, email delivery broken) |
 | 5 | Reset Password (/reset-password) | ✅ Working *(corrected 2026-07-03 — route exists and works; verified it correctly shows "Invalid link" without a valid token)* | Core |
-| 6 | Onboarding (/onboarding) | ⚠️ Partially Working *(upgraded 2026-07-03 from ❌ Broken — final step now hands a real starter prompt to the workspace instead of dropping the user on a blank screen; still no tooltips/progress-tracked completion, see FE-005)* | Core |
+| 6 | Onboarding (/onboarding) | ✅ Working *(upgraded again 2026-07-03, same session — the final step handed a real starter prompt to the workspace, but the workspace's handling of the resulting `/build/new` route had a serious bug: it tried to GET a project literally named "new", always 404'd, and silently fell back to a fake placeholder -- so the very first build every new user ran right after onboarding was silently guaranteed to fail. Fixed by creating a real project on arrival at `/build/new`, see PROD-002. Still no tooltips/progress-tracked completion, see FE-005.)* | Core |
 | 7 | Dashboard/Launch (/) | ✅ Working | Core |
 | 8 | Projects (/projects) | ✅ Working | Core |
 | 9 | Project History (/project/:id) | ✅ Working *("View diff" button upgraded 2026-07-03 from dead no-op to a real changed-files view — see FE-008)* | Core |
@@ -149,7 +158,7 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 31 | GET /billing/invoices | ⚠️ Partially Working | Model exists |
 | 32 | POST /billing/purchase-credits | ✅ Working | Billing |
 | 33 | GET /admin/users | ✅ Working | Admin |
-| 34 | GET /admin/users/export | ❌ Missing | Endpoint doesn't exist |
+| 34 | GET /admin/users/export | ✅ Working *(resolved 2026-07-03 — CSV export, registered ahead of `/users/{user_id}`, wired to a new "Export CSV" button in `AdminConsole.tsx`, see PROD-003)* | Admin |
 | 35 | POST /admin/users/{id}/ban | ✅ Working | Admin |
 | 36 | POST /admin/users/{id}/unban | ✅ Working | Admin |
 | 37 | POST /admin/users/{id}/add-credits | ✅ Working | Admin |
@@ -228,11 +237,11 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 8 | OpenAI API client (fallback) | ✅ Working | Fallback not yet wired |
 | 9 | Stripe webhook handler | ✅ Working | Signature verified |
 | 10 | Rate limiter (middleware) | ✅ Working | Redis-based, O(1) |
-| 11 | CSRF protection middleware | ⚠️ Partially Working | Functions exist, validation not fully wired |
+| 11 | CSRF protection middleware | ✅ Working *(corrected 2026-07-03 — fully wired both sides: `main.py` validates `X-CSRF-Token` against a Redis-stored value keyed by JWT `jti`, and `frontend/src/lib/api.ts` fetches it from `/auth/csrf-token` and attaches it to mutating requests)* | Security |
 | 12 | Request size limiter | ✅ Working | Security middleware |
 | 13 | Security headers middleware | ✅ Working | All headers set |
-| 14 | Health check endpoint | ✅ Working | With dependency checks |
-| 15 | Top-level error handler | ❌ Missing | Not implemented |
+| 14 | Health check endpoint | ✅ Working *(corrected 2026-07-03, twice — `GET /health` deliberately stays a cheap liveness check with no dependency pings (it's the k8s `livenessProbe` target; checking Mongo/Redis/Celery there would make k8s kill+restart the pod over an outage a restart can't fix). `GET /health/detailed` (the `readinessProbe` target) already pinged MongoDB and Redis, and now checks Celery worker liveness too, see BE-011)* | Operations |
+| 15 | Top-level error handler | ❌ Missing | Confirmed still absent 2026-07-03 — no `@app.exception_handler` registered in `main.py`; unhandled exceptions fall through to Starlette's default |
 
 ## 1.6 Background Workers & Cron Jobs
 
@@ -245,7 +254,7 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 5 | Dunning (past-due recovery) | ❌ Missing | Not implemented |
 | 6 | Analytics aggregation | ❌ Missing | Not implemented |
 | 7 | Retention pre-computation | ❌ Missing | Not implemented |
-| 8 | Database backup | ❌ Missing | Script exists (backup_mongodb.py) |
+| 8 | Database backup | ✅ Working *(corrected 2026-07-03 — `k8s/mongodb-backup-cronjob.yaml` is a real, deployable Kubernetes CronJob: daily `mongodump --gzip` schedule, optional S3 sync, 7-day local retention, correct secret/volume wiring. Added same day, after this doc's prior save, so earlier revisions missed it. The old standalone `backup_mongodb.py` script is unused/superseded, not referenced by the CronJob)* | Growth/Ops |
 | 9 | Marketplace moderation queue | ❌ Missing | Not implemented |
 | 10 | Token cleanup (expired tokens) | ❌ Missing | Not implemented |
 | 11 | Session cleanup | ❌ Missing | Not implemented |
@@ -292,13 +301,13 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 5 | Token refresh (auto-refresh) | ✅ Working | On 401, refresh handled |
 | 6 | Token blacklisting (logout) | ✅ Working | Uses JTI |
 | 7 | WebSocket token (short-lived) | ✅ Working | 5-min TTL, first-message auth |
-| 8 | CSRF token | ⚠️ Partially Working | Generation works, validation not fully wired |
+| 8 | CSRF token | ✅ Working *(corrected 2026-07-03 — generation and validation both confirmed wired, backend and frontend)* | Security |
 | 9 | Password change | ✅ Working | With audit logging |
-| 10 | Password reset | ⚠️ Partially Working | Backend works, no email delivery |
-| 11 | Email verification | ❌ Missing | Not implemented |
+| 10 | Password reset | ✅ Working *(corrected 2026-07-03 — code is complete end-to-end; the remaining gap is email delivery being unconfigured in this deployment, an ops task, see PROD-001)* | Core |
+| 11 | Email verification | ✅ Working *(corrected 2026-07-03 — was wrong; already fully implemented server-side. Missing piece — a frontend page for the emailed link, and a resend option — added this session, see PROD-005)* | Core |
 | 12 | MFA/2FA | ❌ Missing | Not implemented |
 | 13 | SSO/SAML | ❌ Missing | Not implemented |
-| 14 | GitHub OAuth | ❌ Broken | console.log stubs |
+| 14 | GitHub OAuth | ⚠️ Working, but not OAuth *(corrected 2026-07-03 — see §1.1 row 10; PAT-paste flow, functionally real)* | Auth |
 | 15 | API key authentication | ✅ Working | Bearer token |
 | 16 | Organization invitation flow | ✅ Working | Token-based |
 | 17 | Session management | ❌ Missing | Not implemented |
@@ -312,20 +321,20 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 3 | Backend Dockerfile | ✅ Working | No --reload, --workers 4 |
 | 4 | Frontend Dockerfile | ✅ Working | Multi-stage build |
 | 5 | .dockerignore | ✅ Working | Excludes secrets |
-| 6 | Kubernetes manifests | ✅ Working | All 7 manifests |
+| 6 | Kubernetes manifests | ⚠️ Partially Working *(corrected 2026-07-03 — all manifests are individually well-formed and internally consistent; the `ALLOWED_HOSTS`-missing and bare-`:latest`-no-registry issues (SEC-019) were found and fixed the same session — image references now point at `ghcr.io/GHCR_OWNER/...` matching what `deploy.yml` actually pushes, and `ALLOWED_HOSTS` is wired from a new ConfigMap key. What's still genuinely missing: the manifests are still not wired into the real deploy pipeline at all — `deploy.yml` only ever does docker-compose+SSH to a VPS, never `kubectl apply` — see INF-001)* | None |
 | 7 | Ingress configuration | ✅ Working | TLS configured |
 | 8 | Namespace isolation | ✅ Working | Prod, staging dev |
 | 9 | MongoDB statefulset | ✅ Working | With PVC |
 | 10 | Redis deployment | ✅ Working | With auth |
 | 11 | Celery worker deployment | ✅ Working | K8s manifest |
-| 12 | HPA (auto-scaling) | ⚠️ Partially Working | Configured in K8s |
-| 13 | Secrets management (K8s) | ✅ Working | K8s secrets |
+| 12 | HPA (auto-scaling) | ⚠️ Partially Working *(confirmed 2026-07-03 — backend HPA is solid; celery-worker HPA targets an external `celery_queue_depth` metric that has no metrics adapter wired, so it won't actually trigger)* | Configured in K8s |
+| 13 | Secrets management (K8s) | ⚠️ Partially Working *(corrected 2026-07-03 — `k8s/secrets.yaml` is a legitimate template with all keys cross-checked against consumers, but values are empty strings by design; comments point at Vault/AWS Secrets Manager/Sealed Secrets, none of which are actually integrated — this is intentional "inject externally" design, not a bug, but it means secrets management isn't actually solved yet)* | K8s secrets |
 | 14 | Health checks | ✅ Working | All services |
 | 15 | Resource limits | ✅ Working | CPU + memory limits |
 | 16 | Nginx configuration | ✅ Working | Production reverse proxy |
-| 17 | Monitoring (Prometheus/Grafana) | ✅ Working | K8s monitoring manifests |
-| 18 | CI/CD pipeline | ❌ Missing | Not implemented |
-| 19 | Backup scripts | ❌ Missing | Script exists, not automated |
+| 17 | Monitoring (Prometheus/Grafana) | ✅ Working *(corrected 2026-07-03 — this was actually already true and the doc undersold it: `backend/main.py` genuinely wires `prometheus_client`, exposes `GET /metrics`, and `k8s/monitoring.yaml` has a real `ServiceMonitor` + `PrometheusRule`. Gap: Grafana dashboard JSON queries custom metrics — `celery_active_tasks`, `celery_queue_depth`, `llm_tokens_total`, `llm_cost_usd_total`, `mongodb_connections_active` — that don't exist in code yet, only the two generic HTTP metrics are emitted, so several dashboard panels render empty)* | K8s monitoring manifests |
+| 18 | CI/CD pipeline | ✅ Working *(corrected 2026-07-03 — was stale; `.github/workflows/ci.yml` runs ruff, bandit, pip-audit, pytest+coverage, npm audit, tsc+vite build, and a blocking quality gate; `deploy.yml` builds+pushes real images to GHCR and deploys via SSH to a VPS with a health-check. Depends on `VPS_HOST`/`VPS_USER`/`VPS_SSH_KEY` secrets actually being set in GitHub — could not verify that from the repo)* | GitHub Actions |
+| 19 | Backup scripts | ✅ Working *(corrected 2026-07-03 — see §1.6 row 8; real k8s CronJob, not just a script)* | Automated |
 | 20 | Terraform/IaC | ❌ Missing | Not implemented |
 
 ## 1.11 Third-Party Services
@@ -336,12 +345,12 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 | 2 | OpenAI API (fallback) | ❌ Not wired | Configured but unused |
 | 3 | Stripe (payments) | ⚠️ Partially Working | Placeholder price IDs |
 | 4 | Resend (email) | ❌ Not configured | API key defaults to empty |
-| 5 | GitHub API (OAuth + repo) | ❌ Broken | Stubbed |
+| 5 | GitHub API (repo push via PAT) | ✅ Working *(corrected 2026-07-03 — not OAuth, but the PAT-based push flow is real and functional; see §1.1 rows 10-11)* | Deployment |
 | 6 | Docker Engine (sandbox) | ⚠️ Partially Working | Socket not mounted anymore |
-| 7 | Sentry (error tracking) | ❌ Missing | Not implemented |
+| 7 | Sentry (error tracking) | ⚠️ Partially Working *(corrected 2026-07-03, twice — backend genuinely calls `sentry_sdk.init()` in `main.py` when `SENTRY_DSN` is set. Frontend integration code added the same day (`@sentry/react`, `lib/sentry.ts`, wired into `ErrorBoundary.tsx`). Both sides gracefully no-op without a DSN, and no DSN is actually configured anywhere in this deployment — that's the one remaining gap, and it's an ops task (create a Sentry project), not more code, see INF-006)* | INF-006 |
 | 8 | PostHog/Mixpanel (analytics) | ❌ Missing | Not implemented |
-| 9 | Prometheus (metrics) | ❌ Missing | K8s manifest exists, not wired to app |
-| 10 | Grafana (dashboards) | ❌ Missing | K8s manifest exists |
+| 9 | Prometheus (metrics) | ✅ Working *(corrected 2026-07-03 — genuinely wired: `prometheus_client` instrumentation + middleware + `/metrics` endpoint all present in `backend/main.py`, not just a k8s manifest)* | Real app-level metrics |
+| 10 | Grafana (dashboards) | ⚠️ Partially Working *(corrected 2026-07-03 — manifest is real and deployable, but several panels query metrics that don't exist yet — see INF row 17 above)* | K8s manifest exists |
 
 ---
 
@@ -349,92 +358,100 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 
 ## P0 — Critical (Must Fix Before Production)
 
+*Refreshed 2026-07-03: 8 items below were already resolved and just needed the backlog table updated to match; 1 item (SEC-012) is elevated from P1 because it's a confirmed, live, unmitigated vulnerability; 1 item (BE-018) is newly discovered; several others are narrowed in scope because part of the work was already done.*
+
 | ID | Title | Category | Severity | Hours | Dependency |
 |----|-------|----------|----------|-------|------------|
 | SEC-014 | ~~Fix bcrypt/passlib incompatibility — registration/login totally broken~~ **RESOLVED 2026-07-03** (pinned `bcrypt==4.0.1`; also fixed SEC-016, an ObjectId-serialization bug it uncovered) | Security | CRITICAL | 4 (est.) / ~1.5 (actual, incl. SEC-016) | None |
 | SEC-001 | ~~Wire CSRF token validation into middleware~~ **RESOLVED 2026-07-03** — was mis-scoped; backend validation was already correct, the frontend never sent the token at all | Security | CRITICAL | 16 (est.) / ~1 (actual) | None |
-| SEC-002 | Separate encryption key from JWT secret | Security | CRITICAL | 16 | None |
+| SEC-002 | ~~Separate encryption key from JWT secret~~ **RESOLVED — verified 2026-07-03** (`core/encryption.py` derives from `field_encryption_key`, validated independently from `jwt_secret` in `core/config.py`; no shared derivation found) | Security | CRITICAL | 16 (est.) / 0 (already done) | None |
 | SEC-003 | WebSocket auth via short-lived tokens (DONE) | Security | CRITICAL | 0 | None |
-| SEC-004 | Fail-closed rate limiting when Redis is down | Security | HIGH | 8 | None |
-| SEC-005 | Use JTI for token blacklisting | Security | HIGH | 8 | None |
-| SEC-006 | Use slow hash for password reset tokens | Security | HIGH | 8 | None |
-| SEC-009 | Escape regex special characters in admin search | Security | HIGH | 8 | SEC-010 |
-| SEC-010 | Implement missing sanitize_string function | Security | HIGH | 2 | None |
-| SEC-011 | Add rate limiting to auth endpoints | Security | HIGH | 8 | None |
-| BE-001 | Migrate build processing from BackgroundTasks to Celery | Architecture | CRITICAL | 80 | None |
-| BE-005 | Implement graceful shutdown with connection draining | Reliability | MEDIUM | 16 | BE-001 |
-| BE-006 | Ensure build timeout properly cleans up resources | Reliability | MEDIUM | 16 | None |
-| BE-009 | Add audit logging to critical operations | Compliance | HIGH | 24 | None |
-| BE-011 | Implement dependency-aware health checks | Reliability | MEDIUM | 8 | None |
-| DB-001 | Separate build files from Build document (16MB limit) | Database | CRITICAL | 16 | None |
-| DB-002 | Add unique constraint enforcement on user email | Database | HIGH | 4 | None |
-| DB-003 | Fix invitation token double-storage bug | Database | HIGH | 4 | None |
-| AI-001 | Implement LLM token usage tracking and budget controls | AI/Cost | HIGH | 40 | None |
-| AI-002 | Implement prompt injection detection *(a basic keyword blocklist exists; had 2 concrete bypasses found & fixed 2026-07-03, see AI-008 below; the acceptance criteria further down in this doc — secondary-LLM-call detection, output validation, logging/alerting — remain genuinely unimplemented)* | AI/Security | HIGH | 60 | None |
+| SEC-004 | ~~Fail-closed rate limiting when Redis is down~~ **RESOLVED — verified 2026-07-03** (falls back to an in-memory limiter that still enforces the 429, not a bypass) | Security | HIGH | 8 (est.) / 0 | None |
+| SEC-005 | ~~Use JTI for token blacklisting~~ **RESOLVED — verified 2026-07-03** (blacklist and its unique DB index are keyed by JTI, not full token strings) | Security | HIGH | 8 (est.) / 0 | None |
+| SEC-006 | ~~Use slow hash for password reset tokens~~ **RESOLVED — verified 2026-07-03** (PBKDF2-HMAC-SHA256, 600k iterations; used for reset, verification, and invitation tokens) | Security | HIGH | 8 (est.) / 0 | None |
+| SEC-009 | ~~Escape regex special characters in admin search~~ **RESOLVED — verified 2026-07-03** (`sanitize_string` calls `re.escape` before the query is built) | Security | HIGH | 8 (est.) / 0 | SEC-010 |
+| SEC-010 | ~~Implement missing sanitize_string function~~ **RESOLVED — verified 2026-07-03**, with test coverage in `test_encryption.py` | Security | HIGH | 2 (est.) / 0 | None |
+| SEC-012 | ~~Validate webhook URLs against SSRF~~ **RESOLVED 2026-07-03** (same day it was elevated from P1) — added `validate_webhook_url()` in `core/security.py`: rejects non-http(s) schemes, requires HTTPS when `app_env=="production"`, resolves the hostname and blocks private/loopback/link-local (covers the `169.254.169.254` cloud metadata endpoint)/reserved/multicast/unspecified addresses. Wired into both `POST /webhooks` (creation-time rejection) and `deliver_webhook()` (delivery-time re-check, closing the DNS-rebinding gap where the address could change between registration and delivery; also disabled redirect-following so a 3xx response can't bypass the check). 13 unit tests added in `test_ssrf_protection.py`, all passing against the real function. | Security | CRITICAL | 8 (est.) / ~0.5 (actual) | None |
+| SEC-011 | ~~Add rate limiting to auth endpoints~~ **RESOLVED 2026-07-03** — added a `"login"` entry to `EMAIL_RATE_LIMITS` (10/hour, per email) and wired `check_email_rate_limit(req.email, "login", db)` into `api/auth.py`'s `login()`, the same pattern already used by register/forgot-password. Closes the gap where credential stuffing spread across source IPs against one account bypassed the generic per-IP limiter. 5 tests added/passing in `test_login_rate_limit.py`. | Security | HIGH | 4 (est.) / ~0.5 (actual) | None |
+| BE-001 | ~~Migrate build processing from BackgroundTasks to Celery~~ **RESOLVED** — this row was stale; verified 2026-07-03 there is no remaining BackgroundTasks path for builds. The actual bugs found in the Celery path are tracked (and already resolved) under BE-015 below. | Architecture | CRITICAL | 80 (est.) / 0 (see BE-015 for actual fix hours) | None |
+| BE-005 | ~~Implement graceful shutdown with connection draining~~ **RESOLVED 2026-07-03** — registered a `worker_shutting_down` Celery signal handler (`celery_app.py`) so a graceful shutdown is actually logged instead of a worker silently disappearing. Celery's own SIGTERM handling already does a warm shutdown (finish in-flight tasks, stop accepting new ones) with no extra code needed — the real gap was that k8s's `terminationGracePeriodSeconds` (default 30s) and Compose's `stop_grace_period` (default 10s) were both far shorter than a single build can take (`build_timeout=600s`), so a rolling update or scale-down would still SIGKILL a worker mid-build regardless. Both set to 630s now. 2 tests passing in `test_celery_graceful_shutdown.py`. | Reliability | MEDIUM | 16 (est.) / ~1 (actual) | None |
+| BE-006 | ~~Ensure build timeout properly cleans up resources~~ **RESOLVED — verified 2026-07-03** (`SoftTimeLimitExceeded` is caught, credits are refunded, build is marked FAILED; confirmed by `test_credit_refund_retries.py`. Note: the current architecture has no persistent sandbox containers, so that part of the original concern doesn't apply.) | Reliability | MEDIUM | 16 (est.) / 0 | None |
+| BE-009 | Add audit logging to critical operations — **narrowed further 2026-07-03**: password changes, admin user/credit actions, and (as of this session) role changes and member removal are all logged. The one remaining gap — Stripe billing-webhook handlers granting credits/changing plans with zero audit trail — is fully tracked as its own item, BE-017; no separate hours counted here to avoid double-counting. | Compliance | HIGH | 24 → **0 remaining** (see BE-017) | None |
+| BE-011 | ~~Implement dependency-aware health checks~~ **RESOLVED 2026-07-03** — added a `celery_app.control.inspect().ping()` check to `/health/detailed` (run off the event loop via `asyncio.to_thread` so an absent/slow worker can't stall the request). **Correction to this item's own framing**: plain `/health` was never actually a bug — it's the Kubernetes `livenessProbe` target and should stay a cheap, dependency-free "is the process responsive" check; making it ping Mongo/Redis/Celery would make k8s kill+restart the backend pod over an outage a restart can't fix, which is a regression, not a fix. `/health/detailed` (the `readinessProbe` target) is where dependency checks belong, and now Celery is covered alongside Mongo/Redis. 4 tests passing in `test_celery_health_check.py`. | Reliability | MEDIUM | 8 (est.) / ~0.5 (actual) | None |
+| DB-001 | ~~Separate build files from Build document (16MB limit)~~ **RESOLVED — verified 2026-07-03** (`build_files` collection, unique index on `(build_id, path)`, TTL) | Database | CRITICAL | 16 (est.) / 0 | None |
+| DB-002 | ~~Add unique constraint enforcement on user email~~ **RESOLVED — verified 2026-07-03** (real DB-level unique index, not app-level only) | Database | HIGH | 4 (est.) / 0 | None |
+| DB-003 | ~~Fix invitation token double-storage bug~~ **RESOLVED — verified 2026-07-03** (only `hashed_token` is persisted; no drift risk) | Database | HIGH | 4 (est.) / 0 | None |
+| AI-001 | ~~Implement LLM token usage tracking and budget controls~~ **RESOLVED 2026-07-03, same session it was re-scoped** — `agents/base.py`'s `stream()` (and its unused twin `_call_llm()`, the only two places any agent's LLM call goes through) now calls `check_budget(user_id, org_id=org_id)` before every call (fail-closed, raises `BudgetExceeded` which propagates through `core/orchestrator.py`'s existing generic exception handler into a normal `BUILD_FAILED` event — no new error handling needed) and computes real `cost_usd` via `calculate_cost()` using the actual token counts (previously hardcoded to `0.0`). 4 new tests in `test_ai_cost_tracking_wired.py`, all passing against the real code path with a mocked Anthropic client. | AI/Cost | CRITICAL | 24 (est.) / ~1 (actual) | None |
+| AI-002 | Implement prompt injection detection *(a basic keyword blocklist exists; had 2 concrete bypasses found & fixed 2026-07-03, see AI-008 below; secondary-LLM-call detection, output validation, and logging/alerting remain genuinely unimplemented — confirmed unchanged 2026-07-03)* | AI/Security | HIGH | 60 | None |
 | AI-008 | ~~Prompt injection blocklist had 2 concrete bypasses (whitespace reformatting; only checked the last conversation message)~~ **NEW, RESOLVED 2026-07-03** | AI/Security | HIGH | 1 (actual) | None |
-| AI-003 | Implement per-user LLM token budgets | AI/Cost | HIGH | 24 | AI-001 |
-| AI-005 | Implement content moderation for generated code | AI/Security | MEDIUM | 60 | None |
-| INF-002 | Set up monitoring, metrics, and alerting | DevOps | CRITICAL | 80 | None |
-| INF-003 | Implement secrets management (not just .env) | Security | HIGH | 40 | None |
-| INF-004 | Set up CI/CD pipeline (GitHub Actions) | DevOps | CRITICAL | 40 | None |
-| FE-003 | Add root-level error boundary | Frontend | MEDIUM | 8 | None |
-| FE-005 | Implement guided onboarding flow | Product | MEDIUM | 60 | None |
-| PROD-001 | Fix password reset full flow (frontend + email) | Product | CRITICAL | 8 | None |
-| PROD-002 | Fix template selection (backend + frontend) | Product | HIGH | 4 | None |
-| PROD-003 | Implement admin users export endpoint | Product | MEDIUM | 4 | None |
-| PROD-004 | Fix preview URLs (use real domain) | Product | HIGH | 8 | None |
-| PROD-005 | Add email verification flow | Product | HIGH | 24 | SEC-006 |
+| AI-003 | ~~Implement per-user LLM token budgets~~ **RESOLVED 2026-07-03** — same fix as AI-001: `check_budget()` was already per-user/per-org (plan-tiered daily limits via `get_user_budget()`), it just wasn't being called from anywhere real. Now it is. | AI/Cost | HIGH | 24 (est.) / 0 (fixed alongside AI-001) | ~~AI-001~~ |
+| AI-005 | Implement content moderation for generated code — confirmed still absent 2026-07-03 | AI/Security | MEDIUM | 60 | None |
+| INF-002 | Set up monitoring, metrics, and alerting — **massively re-scoped 2026-07-03, was already mostly done and the doc had it backwards**: `prometheus_client` is genuinely wired into `backend/main.py`, `GET /metrics` is live, and `k8s/monitoring.yaml` has a real `ServiceMonitor` + `PrometheusRule`. Remaining gaps: instrument `celery_active_tasks`, `celery_queue_depth`, `llm_tokens_total`, `llm_cost_usd_total`, `mongodb_connections_active` (metrics the Grafana dashboards already query but that don't exist in code), set `SENTRY_DSN` (integration code already exists, just unconfigured), and wire PagerDuty/OpsGenie + synthetic monitoring | DevOps | CRITICAL → MEDIUM | 80 → **24 remaining** | None |
+| INF-003 | Implement secrets management (not just .env) — **narrowed 2026-07-03**: `k8s/secrets.yaml` is a real, correctly cross-referenced Secret template deliberately designed for external injection (comments reference Vault/AWS Secrets Manager/Sealed Secrets), but no actual external secrets manager is integrated yet | Security | HIGH | 40 → **24 remaining** | None |
+| ~~INF-004~~ | ~~Set up CI/CD pipeline (GitHub Actions)~~ **RESOLVED — the doc was stale on this, verified 2026-07-03**: `ci.yml` runs lint (ruff), SAST (bandit), dependency audit (pip-audit, npm audit), tests with coverage, and a real build, gated by a blocking quality gate; `deploy.yml` builds+pushes images to GHCR and deploys via SSH to a VPS with a health-check. Unverified from the repo alone: whether `VPS_HOST`/`VPS_USER`/`VPS_SSH_KEY` GitHub secrets are actually set. | DevOps | CRITICAL | 40 (est.) / 0 | None |
+| ~~FE-003~~ | ~~Add root-level error boundary~~ **RESOLVED — verified 2026-07-03** (real class component, wraps every top-level route in `App.tsx`) | Frontend | MEDIUM | 8 (est.) / 0 | None |
+| FE-005 | Implement guided onboarding flow — **narrowed 2026-07-03**: the final-step handoff (real starter prompt → workspace → real build kickoff) genuinely works now; remaining gap is no tooltips/step-by-step guidance, no completion tracking | Product | MEDIUM | 60 → **16 remaining** | None |
+| PROD-001 | Fix password reset full flow (frontend + email) — **reclassified 2026-07-03, code-complete/ops-blocked, not a coding task**: verified the actual code in detail — the reset-password page, the backend token flow, AND the email-sending call are all already correct and complete; `forgot_password()` is gated cleanly on `settings.resend_api_key` (skips silently when unset, correctly avoiding user-enumeration; logs via `logging.exception` on real send failures). The only remaining blocker is that no real Resend API key is configured in this deployment — an operations/account-signup task, not something fixable with a code change. Not attempted; flagging precisely rather than fabricating a credential. | Product | CRITICAL | 4 → **0 engineering hours remaining** (blocked on ops: sign up for Resend and set `RESEND_API_KEY`) | None |
+| PROD-002 | Fix template selection (backend + frontend) — **RESOLVED 2026-07-03** — wired `template` from project → Celery task → `Orchestrator.run_build()` → `ArchitectAgent.blueprint()` as system-prompt context (kept out of the stored/displayed prompt so it doesn't show up as text the user never typed); `ProjectsPage.tsx`'s starter chips and `Onboarding.tsx`'s goal selection now both send it. **A second, more serious bug was found in the same code path and fixed alongside it**: `WorkspacePage.tsx`'s handling of `/build/new` (the route `Onboarding.tsx` navigates to after signup) tried to `GET` a project literally named `"new"`, which always 404s, and silently fell back to a fake placeholder — meaning **the very first build every new user ran right after onboarding was silently guaranteed to fail** with "Project not found." Fixed by creating a real project on arrival instead. 7 backend tests passing (`test_template_wiring.py`); frontend verified via `tsc --noEmit` and a successful production `vite build` (no test framework exists for the frontend — confirmed elsewhere in this audit). | Product | HIGH | 4 (est.) / ~2 (actual, larger than estimated once the onboarding bug surfaced) | None |
+| PROD-003 | Implement admin users export endpoint — **RESOLVED 2026-07-03** — added `GET /admin/users/export` (CSV, same filters as `list_users`, registered ahead of `/users/{user_id}` so `"export"` isn't swallowed as a path param), wired a new `adminApi.exportUsers()` and an "Export CSV" button into `AdminConsole.tsx`'s Users panel. 3 backend tests passing. | Product | MEDIUM | 4 (est.) / ~1 (actual) | None |
+| PROD-004 | ~~Fix preview URLs (use real domain)~~ **RESOLVED 2026-07-03** — added a `deployment_host` setting (`core/config.py`, defaults to `"localhost"` for local dev) and used it at both call sites in `deployments.py` instead of the hardcoded literal string. Wired to `${DOMAIN}` in `docker-compose.prod.yml` (the real deploy path). Note: this fixes the *host* in the URL; the underlying architecture (host-port-mapped Docker containers, one per deployment) is unchanged and still doesn't do dynamic subdomain routing — that would be new infrastructure, not a config fix, and is out of scope here. The separate in-editor live-preview sandbox (`PreviewPanel.tsx`'s "coming soon") is a different, still-unbuilt feature, not touched. | Product | HIGH | 8 (est.) / ~1 (actual) | None |
+| PROD-005 | ~~Add email verification flow~~ **CORRECTION 2026-07-03: this row's "confirmed still missing" claim from earlier in this same session was wrong — caught and fixed in the same pass.** Re-reading `api/auth.py` in full (rather than trusting the prior label) showed registration already generates a token, sends a verification email when `resend_api_key` is set, and `GET /verify-email` already existed and correctly verified it; `api/builds.py` already blocks unverified users from creating builds. **What was genuinely missing**: no frontend route/page to land on after clicking the emailed link (`/verify-email` didn't exist in `App.tsx`), and no way to request a second link if the first never arrived. Both fixed 2026-07-03: added `VerifyEmail.tsx` + route, and a new `POST /auth/resend-verification` endpoint (rate-limited 3/hour/email, same non-enumeration pattern as forgot-password). **Why this matters**: with `RESEND_API_KEY` unconfigured (the current state of this deployment, see PROD-001), combined with builds being blocked for unverified users, every single new user was completely unable to ever create a build — a live, product-breaking bug that had gone unflagged. 4 tests passing in `test_resend_verification.py`. | Product | HIGH | 24 (est.) / ~2 (actual — most of the "24h" scope already existed) | None |
 | PROD-006 | ~~Fix credit deduction race condition~~ **the reservation half was genuinely race-free (verified with 8 real concurrent requests); the refund half was not — see PROD-008** | Business | CRITICAL | 4 | None |
 | PROD-008 | ~~Refund fired once per Celery retry attempt instead of once per build~~ **NEW, RESOLVED 2026-07-03** (real exploitable free-credits path — verified live, balance ended above starting value before the fix) | Business | CRITICAL | 1 (actual) | None |
-| PROD-007 | Add trial enforcement | Business | HIGH | 4 | None |
+| PROD-007 | Add trial enforcement — **investigated 2026-07-03, reclassified as a product decision, not an engineering task**: the enforcement code already exists (`api/builds.py` blocks builds once `trial_ends_at` has passed, for FREE-plan users) and there's a `SubscriptionStatus.TRIALING` enum value and an unused `trial_eligible` Stripe metadata flag — but `trial_ends_at` is **never set anywhere in the codebase**, so this check is permanently dead: `current_user.trial_ends_at` is always `None`, so no one is ever actually blocked by it. Making this real requires an actual product decision this session has no basis to invent unilaterally — how long is a trial, does it apply to all free signups or only some, what happens after it ends (permanently blocked, downgraded, or is "free forever at 10 credits/month" — the plan `PLAN_DETAILS` already describes — the real intended model, making this dead code an intentional leftover rather than a bug)? Not implemented; flagging for a human product decision rather than fabricating a policy. | Business | HIGH | 4 → **0 engineering hours remaining** (blocked on a product decision — see note — not an engineering estimate) | None |
 | WS-001 | ~~Migrate WebSocket to Redis pub/sub~~ **the publish half was real, but nothing subscribed — see WS-003** | Architecture | CRITICAL | 16 | None |
-| WS-002 | Send file deltas instead of full file dict | Performance | HIGH | 8 | None |
+| WS-002 | ~~Send file deltas instead of full file dict~~ **RESOLVED 2026-07-03, and more serious than the title implied**: the backend was sending TWO different shapes for the same event (`{"delta": {...}}` and `{"files": {...}}`), and the frontend's `parseWSEvent` only ever accepted the latter — every delta-shaped `FILE_UPDATE` (every debug-loop patch, and the final consolidation event) was **silently dropped**, so files patched during the debug loop never reached the editor. Fixed by standardizing on the delta shape everywhere (`core/orchestrator.py`) and updating `wsContract.ts`/`buildStore.ts`/`mockEmitter.ts` to match. 3 backend tests passing (`test_file_update_delta_shape.py`, using stubbed agents to run the real orchestrator pipeline); frontend verified via `tsc --noEmit` and a production `vite build`. | Performance | HIGH | 8 (est.) / ~2 (actual) | None |
 | SEC-015 | ~~Auth endpoints leaked password hash + raw GitHub token~~ **NEW, RESOLVED 2026-07-03** | Security | CRITICAL | 3 (actual) | None |
 | BE-013 | ~~Marketplace item creation crashed on every call~~ **NEW, RESOLVED 2026-07-03** | Backend | HIGH | 1 (actual) | None |
 | BE-015 | ~~Celery build pipeline looked wired but 100% non-functional end-to-end~~ **NEW, RESOLVED 2026-07-03** (wrong app binding + broken worker autodiscover + event-loop closure after 1st task) | Architecture | CRITICAL | 2 (actual) | None |
 | WS-003 | ~~Live build-progress WebSocket events never delivered to any client~~ **NEW, RESOLVED 2026-07-03** (Redis pub/sub channel had no subscriber) | Architecture | CRITICAL | 1.5 (actual) | None |
+| BE-018 | ~~Add role-change and remove-member endpoints for organization RBAC~~ **RESOLVED 2026-07-03, same session it was found** — added `PUT /auth/organizations/{org_id}/members/{member_id}/role` and `DELETE /auth/organizations/{org_id}/members/{member_id}` to `api/auth.py`. Guards: only OWNER/ADMIN can change another member's role or remove them (members can also remove themselves — leave the org); the org owner's role can't be changed and the owner can't be removed (ownership transfer needs a separate, more careful flow, intentionally out of scope here); role can't be set to OWNER via this endpoint. Both actions write an `audit_logs` entry. 8 tests passing in `test_team_rbac_revocation.py`. | Security/Product | HIGH | 16 (est.) / ~1 (actual) | None |
 
-**Total P0 Hours: ~632** (unchanged from original — SEC-014 was resolved same-day it was found, at ~1.5h actual vs. its 4h estimate, so it doesn't add net-open hours; SEC-015/SEC-016/BE-013/SEC-001/BE-015/WS-003 are likewise already resolved)
+**Total P0 Hours (open/remaining): ~176** *(down from 632 across several rounds of fixes this session — reflects genuinely completed work (SEC-002/004/005/006/009/010/011/012, BE-001/005/006/009/011, DB-001/002/003, INF-004, FE-003, AI-001, AI-003, BE-018, PROD-002/003/004/005, WS-002 all resolved), plus PROD-001 and PROD-007 reclassified to 0 remaining engineering hours (both are blocked on a non-engineering decision — a real API key and a product policy choice, respectively — not on more code). PROD-005 in particular was previously mischaracterized as "still missing" earlier in this same session and corrected the same pass. Methodology: sum of "remaining engineering hours" above; resolved and reclassified rows contribute 0.)*
 
 ## P1 — High Priority (Sprint 2-3)
+
+*Refreshed 2026-07-03: SEC-012 moved to P0 (see above). Two duplicate IDs from the original doc are renumbered here (AI-008 and PROD-008 were each used for two different items — one collides with an already-resolved P0 item of the same ID).*
 
 | ID | Title | Category | Hours | Dependency |
 |----|-------|----------|-------|------------|
 | SEC-007 | Implement TOTP-based multi-factor authentication | Security | 80 | SEC-005 |
-| SEC-008 | Implement email verification flow | Security | 24 | SEC-006 |
-| SEC-012 | Validate webhook URLs against SSRF | Security | 8 | None |
-| BE-002 | Implement global exception handler | Backend | 16 | None |
+| ~~SEC-008~~ | ~~Implement email verification flow~~ **RESOLVED — same finding and fix as PROD-005** (duplicate tracking of the same item under two IDs; see PROD-005 in the P0 table for the full correction and fix) | Security | 24 (est.) / 0 (already existed / fixed alongside PROD-005) | None |
+| SEC-019 | ~~Add `ALLOWED_HOSTS` to `k8s/backend.yaml` and reconcile k8s image tags with the real GHCR-based deploy path~~ **RESOLVED 2026-07-03, same session it was found** — added an `allowed-hosts` key to both the prod and staging `forge-ai-config` ConfigMaps in `k8s/secrets.yaml` and wired it into `k8s/backend.yaml` as `ALLOWED_HOSTS`; retargeted the bare `forge-backend:latest`/`forge-frontend:latest` image references in `backend.yaml`, `frontend.yaml`, and `celery-worker.yaml` to `ghcr.io/GHCR_OWNER/...` (matching what `deploy.yml` actually pushes), with `GHCR_OWNER` left as an explicit placeholder to replace at deploy time, same convention as `.env.production.example`. Note: this makes the manifests internally correct: it does **not** by itself wire `kubectl apply` into `deploy.yml` — that's the separate, larger scope decision tracked under INF-001 (use k8s vs. keep docker-compose+VPS as the real deploy target). | Security/DevOps | 8 (est.) / ~0.5 (actual) | None |
+| BE-002 | ~~Implement global exception handler~~ **RESOLVED 2026-07-03, same session it was confirmed absent** — registered `@app.exception_handler(Exception)` in `main.py`. Logs via `logger.exception(...)` and reports to Sentry when `SENTRY_DSN` is set, returns a consistent `{"detail": "Internal server error"}` JSON body instead of Starlette's default plain-text 500, and doesn't leak tracebacks/exception details. Confirmed `HTTPException` routes are unaffected (FastAPI's more-specific built-in handler still takes precedence). 6 tests passing in `test_global_exception_handler.py`, run against the real app via `TestClient`. | Backend | 16 (est.) / ~1 (actual) | None |
 | BE-003 | Add pagination to all list endpoints | Backend | 24 | None |
 | BE-007 | Implement Redis caching for read-heavy endpoints | Performance | 40 | None |
-| BE-008 | Add request ID/correlation ID middleware | Observability | 8 | None |
+| ~~BE-008~~ | ~~Add request ID/correlation ID middleware~~ **RESOLVED 2026-07-03** — `request_id_middleware` (`core/security.py`) sets a contextvar per request (reusing an incoming `X-Request-ID` if present, for cross-service correlation), echoes it back as a response header, and `RequestIdLogFilter` injects it into every log line via the root logger's *handlers* (not the logger object itself, which would have missed every module's `logging.getLogger(__name__)` pattern). 5 tests passing. | Observability | 8 (est.) / ~1 (actual) | None |
 | BE-010 | Implement session tracking and management | Security | 40 | SEC-005 |
-| BE-012 | Sign outgoing webhook payloads with HMAC | Security | 16 | None |
+| ~~BE-012~~ | ~~Sign outgoing webhook payloads with HMAC~~ **RESOLVED — verified 2026-07-03** (`services/webhook.py` signs `timestamp.body` with HMAC-SHA256, sends `X-Forge-Signature`/`X-Forge-Timestamp`) | Security | 16 (est.) / 0 | None |
+| BE-017 | ~~Add audit logging to Stripe billing-webhook handlers~~ **RESOLVED 2026-07-03, same session it was found** — added an `audit_logs` entry (actor = `stripe_webhook`, a system identity, since there's no logged-in human to attribute these to) to all five webhook handlers in `api/billing.py`: `handle_checkout_completed`, `handle_subscription_updated`, `handle_subscription_deleted`, `handle_invoice_payment_succeeded`, and `handle_invoice_payment_failed` — broader than the 3 originally named, since the underlying gap (billing-driven account changes with no audit trail) applied equally to all five. 6 tests passing in `test_billing_webhook_audit_logging.py`. **Follow-up found and fixed later the same day (while building PROD-039)**: a *sixth*, separate Stripe webhook endpoint (`POST /billing/webhook/payment`, handling `payment_intent.succeeded` for credit purchases) had the identical gap and was missed in the original pass — also fixed. | Compliance | 8 (est.) / ~1 (actual) | None |
 | AI-004 | Implement LLM fallback chain (Anthropic→OpenAI) | AI/Reliability | 40 | None |
 | AI-006 | Implement graceful degradation for circuit breaker | AI/Reliability | 8 | None |
 | AI-007 | Add CSP headers to generated applications | AI/Security | 16 | None |
 | FE-001 | Implement WCAG 2.1 AA accessibility | Frontend | 120 | None |
-| INF-001 | Create Kubernetes deployment manifests | DevOps | 120 | None |
+| INF-001 | ~~Create Kubernetes deployment manifests~~ Wire existing k8s manifests into the real deploy pipeline (or formally deprecate the k8s track in favor of docker-compose+VPS) — **re-scoped 2026-07-03**: all manifests already exist and are individually well-formed; the actual gap is `deploy.yml` never runs `kubectl apply`, and image tags have diverged (`forge-backend:latest` vs. GHCR versioned tags) | DevOps | 120 → **24 remaining** | SEC-019 |
 | INF-005 | Set up structured logging (ELK/Loki) | Observability | 40 | None |
-| PROD-008 | Add credit usage alerts (email at thresholds) | Business | 8 | None |
+| ~~PROD-039~~ | ~~Add credit usage alerts (email at thresholds)~~ **RESOLVED 2026-07-03** *(renumbered earlier this session — was miscoded PROD-008)* — `services/credit_alerts.py`: fires at 20% and 0% of the plan's monthly credit allocation remaining (checked right after each build's credit reservation), deduplicated per-user via `credit_alerts_sent`, cleared wherever credits are granted (checkout completed, credit purchase, admin adjustment) so the user is warned again next time they run low. Found and fixed the same class of gap as BE-017 along the way: the `/billing/webhook/payment` handler (a third Stripe webhook endpoint, separate from the two already covered by BE-017) also granted credits with zero audit trail. 7 tests passing in `test_credit_alerts.py`. | Business | 8 (est.) / ~2 (actual) | None |
 | PROD-009 | Implement dunning workflow (3 emails) | Business | 16 | None |
 | PROD-010 | Add billing history UI | Product | 16 | None |
 | PROD-011 | Add marketplace moderation system | Product | 16 | None |
 | PROD-012 | Implement proper deployment (one-click to cloud) | Product | 40 | None |
 | PROD-013 | Add usage analytics dashboard (user-facing) | Product | 24 | None |
 | PROD-014 | Add build timeout to backend config (DONE) | Product | 0 | None |
-| PROD-015 | Fix Settings page null crash | UX | 4 | None |
-| PROD-016 | Fix demo mode silent fallback | UX | 4 | None |
+| ~~PROD-015~~ | ~~Fix Settings page null crash~~ **CONFIRMED RESOLVED 2026-07-03** — the conflicting status is resolved: read `SettingsPage.tsx` in full, confirmed every access to `user` uses safe optional chaining (`user?.preferences ?? {}`, `user?.github_connected`) with no unsafe direct property access anywhere in the file. §1.2's claim was correct; this row was just stale. | UX | 4 (est.) / 0 (already fixed, just needed confirming) | None |
+| ~~PROD-016~~ | ~~Fix demo mode silent fallback~~ **RESOLVED 2026-07-03** — found the concrete instances: `WorkspacePage.tsx` and `ProjectHistory.tsx` both silently rendered an "Unknown project" placeholder on a failed project fetch with zero indication anything had gone wrong. Both now show a toast on failure before falling back. | UX | 4 (est.) / ~0.5 (actual) | None |
 | PROD-017 | Add confirmation dialogs for destructive actions | UX | 8 | None |
-| AI-008 | Implement model routing (cheap/simple, expensive/complex) | AI/Cost | 24 | AI-001 |
-| INF-006 | Configure Sentry for error tracking | Monitoring | 8 | None |
-| INF-007 | Set up database backup automation | DevOps | 16 | None |
-| INF-008 | Add MongoDB connection pool tuning | Performance | 4 | None |
+| AI-015 | Implement model routing (cheap/simple, expensive/complex) *(renumbered 2026-07-03 — was miscoded AI-008, colliding with the resolved prompt-injection-bypass item of the same ID)* | AI/Cost | 24 | AI-001 |
+| INF-006 | ~~Configure Sentry for error tracking~~ **RESOLVED (code), 2026-07-03** — added `@sentry/react` to the frontend: `lib/sentry.ts` inits it (gated on `VITE_SENTRY_DSN`, no-ops when unset — same pattern as the backend), and `ErrorBoundary.tsx`'s `componentDidCatch` now reports caught errors to it too. Backend integration was already real. **Remaining, and this part is genuinely not an engineering task**: no real DSN is configured for either side in this deployment — same class of gap as PROD-001 (needs a real Sentry account/project, not code). | Monitoring | 8 → **0 engineering hours remaining** (blocked on ops: create a Sentry project and set `SENTRY_DSN`/`VITE_SENTRY_DSN`) | None |
+| ~~INF-007~~ | ~~Set up database backup automation~~ **RESOLVED — the doc was stale on this, verified 2026-07-03** (real k8s CronJob: daily, gzip, optional S3 sync, 7-day retention) | DevOps | 16 (est.) / 0 | None |
+| ~~INF-008~~ | ~~Add MongoDB connection pool tuning~~ **RESOLVED 2026-07-03** — Mongo's pool was already partially tuned (`maxPoolSize`/`minPoolSize` were set); added the two genuinely missing params, `maxIdleTimeMS` (recycle idle connections) and `waitQueueTimeoutMS` (fail fast instead of hanging forever when the pool is exhausted). Also found and fixed the same gap, worse, in the Redis client in the same file — it had *zero* pool bounds or timeouts at all; added `max_connections`, `socket_connect_timeout`, `socket_timeout`. | Performance | 4 (est.) / ~0.5 (actual) | None |
 | GRW-001 | Set up SEO (meta tags, sitemap, robots.txt) | Growth | 16 | None |
 | GRW-002 | Set up product analytics (PostHog/Mixpanel) | Growth | 40 | None |
 | GRW-003 | Build referral program UI | Growth | 16 | None |
 | GRW-004 | Create landing page optimization (social proof) | Growth | 8 | None |
+| ~~FE-017~~ | ~~Fix Launch screen primary CTA dead-ending logged-in users at the public marketing page~~ **RESOLVED 2026-07-03** — `Launch.tsx`'s CTA (a route already gated behind auth) now navigates to `/projects` instead of the public `/home` marketing page. | UX | 2 (est.) / ~0.1 (actual) | None |
 
-**Total P1 Hours: ~832**
+**Total P1 Hours (open/remaining): ~620** *(down from 832 across several rounds of fixes this session — BE-002/008, BE-012, BE-017, INF-006/007/008, SEC-019, SEC-008, PROD-015/016/039, FE-017 all resolved (SEC-008 turned out to be a duplicate of PROD-005; INF-006's remaining scope reclassified as ops-blocked, same as PROD-001), INF-001 narrowed from 120h to 24h now that manifests already exist; SEC-012's 8h moved out to P0 earlier, replaced net-neutral by SEC-019's 8h, which is itself now also resolved)*
 
 ## P2 — Medium Priority (Sprint 3-5)
 
@@ -523,7 +540,7 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 
 **Total P4 Hours: ~816**
 
-**GRAND TOTAL ESTIMATED HOURS: ~3,472**
+**GRAND TOTAL ESTIMATED HOURS: ~2,804** *(refreshed 2026-07-03; was ~3,472 — P0 dropped from 632 to 176 and P1 from 832 to 620, across multiple rounds of fixes this session (SEC-011/SEC-012/SEC-008/AI-001/AI-003/BE-018/BE-011/PROD-002/003/004/005/039/015/016/SEC-019/BE-002/005/008/017/FE-017/INF-008 resolved, PROD-001/INF-006 reclassified as blocked on non-engineering decisions like a real Resend/Sentry account, PROD-007 blocked on a product decision), reflecting real completed work net of newly-found gaps; P2/P3/P4 were not independently re-audited this pass and are carried forward unchanged)*
 
 ---
 
@@ -607,7 +624,7 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 - ✅ Preview URLs use real domain
 - ✅ Email verification flow
 - ✅ Credit deduction race condition fixed
-- ✅ Trial enforcement implemented
+- ✅ Trial enforcement implemented *(blocked on a product decision as of 2026-07-03, not just engineering time — see PROD-007; the enforcement code already exists but its trigger (`trial_ends_at`) is never set, and someone needs to decide trial length/scope/post-trial behavior before this can be scheduled for real)*
 
 ### Success Metrics
 - [ ] Build files stored in separate collection
@@ -865,40 +882,44 @@ The investment committee scored Forge at **58/100** with a **Conditional Invest*
 
 # SECTION 4: DEPENDENCY GRAPH
 
-## Critical Path
+*Refreshed 2026-07-03: most of the chains below root in items now confirmed resolved (SEC-005/006/009/010, BE-001, DB-001/002/003), which clears several previously-blocked downstream tasks to proceed immediately. Updated to reflect what's actually still blocking.*
+
+## Critical Path (remaining)
 
 ```
-SEC-010 (sanitize_string) → SEC-009 (regex escaping) → Admin search secure
-SEC-006 (slow hash) → SEC-008 (email verification) → User verification flow
-SEC-005 (JTI) → SEC-007 (MFA), BE-010 (session mgmt) → Enterprise auth
-BE-001 (Celery) → BE-005 (graceful shutdown) → Production reliability
-AI-001 (cost tracking) → AI-003 (budget controls), AI-008 (model routing) → Cost management
-None → BE-006 (build timeout), BE-011 (health checks), INF-004 (CI/CD) → Foundation (no blockers)
-None → DB-001 (files collection), DB-002 (unique email), DB-003 (invitation fix) → Database integrity
-None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
+SEC-012 (SSRF fix) — RESOLVED 2026-07-03, same session it was found → no longer blocking anything
+AI-001 (wire real cost tracking + budget enforcement) — RESOLVED 2026-07-03, same session it was found → AI-003 (budget controls) — RESOLVED alongside it → AI-015 (model routing) now unblocked with real cost data to route on
+SEC-005 (JTI) — RESOLVED → SEC-007 (MFA), BE-010 (session mgmt) now unblocked, can proceed
+SEC-006 (slow hash) — RESOLVED → SEC-008 (email verification) now unblocked, can proceed
+SEC-010/SEC-009 (sanitize_string / regex escaping) — BOTH RESOLVED → admin search is secure, no further action needed
+BE-001 (Celery) — RESOLVED → BE-005 (graceful shutdown) — ALSO RESOLVED 2026-07-03, same session
+DB-001/002/003 — ALL RESOLVED → database integrity chain is closed out
+SEC-019 (k8s ALLOWED_HOSTS + image-tag reconciliation) — RESOLVED 2026-07-03, same session it was found → INF-001 (wire k8s into real deploy pipeline, or formally deprecate the k8s track) is now unblocked to actually decide
 ```
 
 ## Parallel Work Streams
 
 | Stream | Tasks | Independent? | Dependencies |
 |--------|-------|-------------|--------------|
-| **Security** | SEC-001 through SEC-013 | Mostly independent | SEC-009 → SEC-010 |
-| **Database** | DB-001 through DB-003 | Independent | None |
-| **Backend** | BE-001 through BE-012 | BE-005 → BE-001 | See above |
-| **Frontend** | FE-001 through FE-011 | Independent | None |
-| **AI Pipeline** | AI-001 through AI-013 | AI-003 → AI-001 | See above |
-| **Infrastructure** | INF-001 through INF-015 | Independent | None |
-| **Product** | PROD-001 through PROD-038 | Mostly independent | None |
-| **Testing** | TEST-001 through TEST-007 | Independent | None |
-| **Growth** | GRW-001 through GRW-014 | Independent | None |
+| **Security** | SEC-007, SEC-008 | Independent — SEC-005/006/009/010/011/012/019 all resolved | None blocking |
+| **Database** | — | All resolved (DB-001/002/003) | None |
+| **Backend** | BE-003, BE-007 | Independent — BE-002/BE-005/BE-008/BE-009/BE-011/BE-017/BE-018 resolved | None |
+| **Frontend** | FE-001, FE-005 (narrowed) | Independent — FE-017 resolved | None |
+| **AI Pipeline** | AI-002, AI-005, AI-015 | Independent — AI-001/AI-003 resolved, no longer blocking | See above |
+| **Infrastructure** | INF-001 (re-scoped), INF-002 (narrowed), INF-003 (narrowed) | Independent — SEC-019/INF-006/INF-008 resolved, no longer a prerequisite | None |
+| **Product** | PROD-007 (reclassified — needs a decision, not code), PROD-009 through PROD-038 | Independent — PROD-001/002/003/004/005/015/016/039 resolved or reclassified this session | None |
+| **Testing** | TEST-001 through TEST-007 | Independent | None — still zero frontend tests, confirmed 2026-07-03 |
+| **Growth** | GRW-001 through GRW-004 | Independent — PROD-039 resolved | None |
 
-## Blocking Paths
+## Blocking Paths (remaining, real)
 
-- **Celery migration (BE-001)** blocks graceful shutdown (BE-005) and production scaling
-- **Cost tracking (AI-001)** blocks budget controls (AI-003) and model routing (AI-008)
-- **sanitize_string (SEC-010)** blocks admin search security (SEC-009)
-- **Slow hash (SEC-006)** blocks email verification (SEC-008)
-- **JTI in tokens (SEC-005)** blocks MFA (SEC-007) and session management (BE-010)
+- ~~Fake AI cost tracking (AI-001)~~ **RESOLVED 2026-07-03** — real cost is now computed and budgets are now enforced on every LLM call; AI-003 was fixed alongside it. Unit-economics re-analysis for Investment Readiness scoring can now proceed on real data (though that re-analysis itself hasn't been done yet).
+- ~~k8s ALLOWED_HOSTS gap (SEC-019)~~ **RESOLVED 2026-07-03** — no longer blocks trusting the k8s deployment track; INF-001 is now a pure "wire it up or deprecate it" decision, not blocked on a config bug
+- ~~No RBAC role-change/remove-member endpoint (BE-018)~~ **RESOLVED 2026-07-03** — access can now actually be revoked; "Enterprise Readiness" still needs SSO/audit-log-UI/SOC2 work, but the most basic gap (can't revoke a compromised member's access at all) is closed
+
+## Resolved (no longer blocking anything, confirmed 2026-07-03)
+
+SEC-002, SEC-004, SEC-005, SEC-006, SEC-009, SEC-010, BE-001, BE-006, DB-001, DB-002, DB-003, INF-004, FE-003, BE-012, INF-007
 
 ---
 
@@ -906,52 +927,54 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## Overall Status
 
+*Refreshed 2026-07-03 (post 18:02) via a 4-track ground-truth code audit (security/auth, backend architecture/DB/AI, infra/CI/monitoring, frontend/product). Where a dimension below wasn't part of that audit, its score is carried forward unchanged and marked as such — this refresh does not invent new precision it doesn't have.*
+
 | Metric | Current | Target | Status |
 |--------|---------|--------|--------|
-| **Overall Completion** | 30.8% *(was 29.8%; +1.0 net — FE-008/FE-009 shipped and SEC-001/SEC-014/SEC-015/SEC-016/BE-013 all resolved same-day)* | 100% | ⚠️ |
-| **Security Score** | 7.5/10 *(+0.5 — SEC-001, SEC-014, SEC-015, and SEC-016 all genuinely resolved 2026-07-03, no longer offset by an open gap)* | 9/10 | ✅ (improved from 1.5/10) |
-| **Product Score** | 3/10 | 7/10 | 🔴 |
-| **Backend Score** | 3/10 | 7/10 | 🔴 |
-| **Frontend Score** | 3.5/10 | 7/10 | 🔴 |
-| **AI Score** | 3/10 | 7/10 | 🔴 |
-| **Infrastructure Score** | 2.5/10 | 7/10 | 🔴 |
-| **Database Score** | 2.5/10 | 7/10 | 🔴 |
-| **API Score** | 3.5/10 | 7/10 | 🔴 |
-| **Growth Score** | 1.5/10 | 6/10 | 🔴 |
-| **Enterprise Readiness** | 1.5/10 | 5/10 | 🔴 |
-| **Investment Readiness** | 58/100 | 80/100 | ⚠️ |
-| **Launch Readiness** | 15% | 100% | 🔴 |
+| **Overall Completion** | ~38% *(evidence-based proxy: open P0+P1 backlog hours dropped from 1,464 to 1,054 this refresh, a real ~28% reduction in known remaining critical/high-priority work; treat as directional, not a formal metric)* | 100% | ⚠️ |
+| **Security Score** | 8/10 *(re-scored 2026-07-03: SEC-002/004/005/006/009/010 all confirmed genuinely resolved. The SSRF vulnerability found in webhook delivery [SEC-012] was fixed same-session — validation added at both creation and delivery time, with redirect-following disabled and 13 passing tests. No known open critical vuln remains.)* | 9/10 | ✅ (was 7.5/10, but on a stale basis) |
+| **Product Score** | 4.5/10 *(re-scored 2026-07-03: template selection, admin export, and the email-verification frontend loop were all fixed. More importantly, a previously-unflagged live bug was found and fixed — the onboarding→first-build handoff was silently guaranteed to fail for every new user due to a "/build/new" project-creation bug. Still open: real preview URLs, real Stripe price IDs, prompt injection detection depth, content moderation.)* | 7/10 | 🔴 (up from 3/10) |
+| **Backend Score** | 7.5/10 *(re-scored 2026-07-03, four times over the course of this session — Celery migration/build-file separation/unique-email-constraint/invitation-token-fix/build-timeout-cleanup confirmed done; then BE-002/BE-017/AI-001/BE-018 fixed; then BE-011 (Celery health check); then BE-005 (graceful shutdown) and BE-008 (request ID middleware). Remaining gaps: pagination (BE-003), Redis caching (BE-007).)* | 7/10 | ✅ (up from 3/10, above target) |
+| **Frontend Score** | 3.5/10 *(not independently re-scored this pass; carried forward — note zero test infrastructure confirmed unchanged)* | 7/10 | 🔴 |
+| **AI Score** | 4/10 *(re-checked 2026-07-03: prompt-injection detection is still a keyword blocklist and content moderation is still absent, unchanged. But the more serious finding — token-usage tracking persisting fake `cost_usd=0.0` and dead-code budget enforcement — was found and fixed the same session; the platform can now measure its own AI unit economics and actually enforce per-user budgets.)* | 7/10 | 🔴 (up from 3/10) |
+| **Infrastructure Score** | 6/10 *(re-scored 2026-07-03, was significantly underrated: CI/CD, secret scanning, Prometheus app-level metrics, and automated MongoDB backups are all real and working — none of this existed when 2.5/10 was assigned. Held back by: k8s manifests disconnected from the real deploy pipeline, no real external secrets manager, Grafana dashboards querying metrics that don't exist yet.)* | 7/10 | ⚠️ (up from 2.5/10) |
+| **Database Score** | 6/10 *(re-scored 2026-07-03: build-file/16MB separation, unique email index, and invitation-token fix all confirmed genuinely done)* | 7/10 | ⚠️ (up from 2.5/10) |
+| **API Score** | 3.5/10 *(not independently re-scored this pass; carried forward)* | 7/10 | 🔴 |
+| **Growth Score** | 1.5/10 *(not independently re-scored this pass; carried forward)* | 6/10 | 🔴 |
+| **Enterprise Readiness** | 2/10 *(up slightly — the finding this pass that RBAC had no way to change a team member's role or remove them at all (BE-018) was fixed the same session; still no SSO/SAML, no audit-log UI, no SOC 2 work, so this remains far from enterprise-ready)* | 5/10 | 🔴 |
+| **Investment Readiness** | 58/100 *(not independently re-scored this pass — a real re-score needs updated unit-economics data; AI-001's fix now means that data will actually accumulate going forward, but no re-analysis has been run yet since real cost tracking only went live this session)* | 80/100 | ⚠️ |
+| **Launch Readiness** | 15% *(not independently re-scored this pass; carried forward)* | 100% | 🔴 |
 
 ## Phase-Level Progress
 
 | Phase | % Complete | Hours Remaining | Status |
 |-------|-----------|-----------------|--------|
-| Phase 1: Security & Infrastructure | Unverified — flagging, not re-scoring *(the original 100% was already false before 2026-07-03 — of the ~30 items in this phase's P0 backlog above, SEC-001, SEC-014, SEC-002, SEC-003, SEC-005, and BE-001 (Celery, tracked under Architecture but part of this same due-diligence pass) have now been personally investigated and verified/fixed this session. SEC-002/003/005 were confirmed genuinely clean as claimed. BE-001 was NOT clean as claimed — it was 100% non-functional end-to-end; see BE-015 for the three bugs found and fixed. DB-001 (build-file/16MB separation) was also re-checked this session and confirmed genuinely accurate as claimed — no gap found. WS-001 (WebSocket Redis pub/sub, also tracked under Architecture) was checked next and was NOT clean either — same failure shape as BE-001: looked wired, was 100% non-functional (zero live build-progress events ever reached a connected client, verified live); see WS-003 for the fix. PROD-006 (credit race condition, tracked under Product) was checked next and was a mixed result: the reservation half was genuinely clean (8 real concurrent requests, exactly 1 succeeded, no double-spend), but the refund half was not — a failing/retried build got refunded once per Celery retry attempt instead of once per build, verified live with a balance ending *above* its starting value; see PROD-008 for the fix. AI-002 (prompt injection detection, tracked under AI Pipeline) was checked next by actually attempting bypasses rather than reading the pattern list: the keyword blocklist that exists had two concrete gaps (trivial whitespace/hyphen reformatting, and only the last conversation message ever being checked) — both fixed; see AI-008. The much larger originally-scoped AI-002 work (secondary-LLM-call detection, output validation, logging/alerting) remains genuinely unimplemented — fixing the blocklist's bypasses doesn't change that. The remaining ~20 items' actual status — INF-002 monitoring, INF-004 CI/CD, etc. — has still not been re-checked, so a single revised percentage here would still just be a fabricated number. Someone should audit the remaining P0 list above against the real codebase before this row is trusted again.)* | Unknown | 🔴 Needs re-audit (was falsely ✅ Complete) |
-| Phase 2: Architecture & Database | 20% | 180 | 🔴 In Progress |
-| Phase 3: Core Product | 10% | 240 | 🔴 Not Started |
-| Phase 4: Frontend & UX | 7% *(was 5% — FE-008/FE-009 shipped, FE-005 partially progressed)* | 194 | 🔴 In Progress |
+| Phase 1: Security & Infrastructure | **Re-audited 2026-07-03, resolving the "needs re-audit" flag from the prior revision.** Of the ~30 P0 items in this phase, 22 are now confirmed genuinely resolved (SEC-002/004/005/006/009/010/011/012, BE-001/005/006/009/011/018, DB-001/002/003, INF-004, FE-003, plus the already-known SEC-001/014/015/016/BE-013/015/WS-003) — including the newly-found live vulnerability (SEC-012, SSRF), the login rate-limit gap (SEC-011), the RBAC access-revocation gap (BE-018), the Celery health check gap (BE-011), and Celery worker graceful shutdown (BE-005), all fixed the same session they were discovered. Same session also closed SEC-019 (P1, k8s config) and, in Product, PROD-002/003/004/005/015/016/039. Only 5 remain open across the full P0 list (see P0 table). | ~48h *(INF-002 24 + INF-003 24 + FE-003/FE-005 portion already counted in Product below = infra/security subset)* | ✅ Substantially further along than believed, no known live critical gap open |
+| Phase 2: Architecture & Database | 65% *(re-scored 2026-07-03 — BE-001, DB-001/002/003 all confirmed done; AI-001/003 budget enforcement was dead code, found and fixed same session)* | ~60 | ⚠️ In Progress, better than reported |
+| Phase 3: Core Product | 10% *(not independently re-scored this pass; carried forward)* | 240 | 🔴 Not Started |
+| Phase 4: Frontend & UX | 7% *(not independently re-scored this pass beyond confirming FE-003 done and FE-005 narrowed; carried forward otherwise)* | ~178 | 🔴 In Progress |
 | Phase 5: Growth | 0% | 160 | ⬜ Not Started |
-| Phase 6: Enterprise | 0% | 200 | ⬜ Not Started |
+| Phase 6: Enterprise | 5% *(the RBAC role-change/remove-member gap found this pass (BE-018) was fixed the same session — invite/list now has its companion revoke half. Everything else in this phase — SSO/SAML, audit-log UI, SOC 2 — genuinely hasn't started.)* | 195 | 🔴 Barely started |
 
 ## Bug & Technical Debt Metrics
 
 | Metric | Count | Trend |
 |--------|-------|-------|
-| **Total Known Issues** | 127+ *(120+ +7 items added 2026-07-03 per ENGINEERING_BACKLOG.md: SEC-014/015/016, BE-013/014, FE-008/009 — all 7 now resolved)* | ⬆️ (identifying more) |
-| **P0 Issues** | 34 *(unchanged — all 2026-07-03 additions [SEC-014, SEC-015, SEC-016, BE-013] were resolved same-day, so none add to the open count)* | ⬇️ (was 17 security + 12 bugs) |
-| **P1 Issues** | 32 | ⬆️ (better visibility) |
-| **P2 Issues** | 28 | ⬆️ (better visibility) |
-| **P3 Issues** | 18 | ⬆️ (roadmap items) |
-| **P4 Issues** | 14 | → (future) |
-| **Critical Security Vulns** | 1 remaining *(down from 2 — CSRF and the newly-found bcrypt/passlib outage were both resolved 2026-07-03; only encryption-key separation [SEC-002] remains)* | ⬇️ ⚠️ (encryption key) |
-| **Technical Debt %** | 70% | ⬆️ (need to quantify) |
+| **Total Known Issues** | 131 *(127 + 4 net new this pass: SEC-019, BE-017, BE-018, FE-017 added; no items were removed from the list, only marked resolved in place)* | ⬆️ (identifying more, resolving more) |
+| **P0 Issues** | 5 open *(re-counted 2026-07-03, down from 34 across three rounds this session — 27 confirmed resolved [SEC-011/SEC-012/AI-001/AI-003/BE-018/BE-005/BE-011/PROD-002/003/004/005, WS-002], 2 reclassified as blocked on non-engineering decisions rather than open engineering work [PROD-001, PROD-007])* | ⬇️ (real reduction, not just re-labeling) |
+| **P1 Issues** | ~18 open *(down from 32 — BE-002/008, BE-012, BE-017, INF-006/007/008, SEC-019, SEC-008, PROD-015/016/039, FE-017 all resolved this round or earlier; SEC-008 turned out to be a duplicate of PROD-005; INF-006 reclassified as ops-blocked; 1 moved out to P0 then resolved there (SEC-012))* | ⬇️ |
+| **P2 Issues** | 28 *(not independently re-audited this pass)* | ⬆️ (better visibility) |
+| **P3 Issues** | 18 *(not independently re-audited this pass)* | ⬆️ (roadmap items) |
+| **P4 Issues** | 14 *(not independently re-audited this pass)* | → (future) |
+| **Critical Security Vulns** | **0 known open** *(SEC-012, the SSRF gap in webhook delivery found earlier this session, was fixed and tested the same day — see P0 table. No other confirmed-exploitable critical vuln is currently known; this is not a claim that none exist, only that none are currently known and open.)* | ✅ (down from 1 found-and-fixed this session) |
+| **Technical Debt %** | 70% *(not independently re-audited this pass)* | ⬆️ (need to quantify) |
 
 ## Revenue Readiness
 
 | Metric | Status | Target Date |
 |--------|--------|-------------|
 | **Stripe Integration** | ⚠️ Partial (placeholder prices) | Sprint 2 |
-| **Credit System** | ⚠️ Partial (race condition) | Sprint 2 |
+| **Credit System** | ✅ Working *(corrected 2026-07-03 — reservation and refund race conditions both confirmed resolved: PROD-006/PROD-008)* | Done |
 | **Usage Alerts** | ❌ Missing | Sprint 3 |
 | **Dunning** | ❌ Missing | Sprint 4 |
 | **Annual Billing** | ❌ Missing | Sprint 5 |
@@ -965,58 +988,60 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## SECURITY (62 items)
 
-- [ ] SEC-001-1: CSRF middleware validates X-CSRF-Token header on POST/PUT/DELETE/PATCH
-- [ ] SEC-001-2: CSRF token endpoint returns cryptographically secure token
-- [ ] SEC-001-3: CSRF token stored in Redis with 60-min TTL
-- [ ] SEC-001-4: CSRF token tied to session (not global)
-- [ ] SEC-001-5: CSRF validation fails closed (returns 403 on error)
-- [ ] SEC-002-1: FIELD_ENCRYPTION_KEY is separate from JWT_SECRET
-- [ ] SEC-002-2: FIELD_ENCRYPTION_KEY is 64 hex characters (32 bytes)
-- [ ] SEC-002-3: Encryption module does not derive key from JWT secret
-- [ ] SEC-002-4: Existing encrypted fields re-encrypted with new key
-- [ ] SEC-002-5: Key rotation documentation exists
+- [x] SEC-001-1: CSRF middleware validates X-CSRF-Token header on POST/PUT/DELETE/PATCH — verified 2026-07-03, both backend (`main.py`) and frontend (`lib/api.ts`)
+- [ ] SEC-001-2: CSRF token endpoint returns cryptographically secure token — not independently re-verified
+- [ ] SEC-001-3: CSRF token stored in Redis with 60-min TTL — Redis-backed confirmed 2026-07-03, exact TTL not independently re-verified
+- [ ] SEC-001-4: CSRF token tied to session (not global) — confirmed keyed by JWT `jti` 2026-07-03, not re-verified against "global" framing
+- [ ] SEC-001-5: CSRF validation fails closed (returns 403 on error) — not independently re-verified
+- [x] SEC-002-1: FIELD_ENCRYPTION_KEY is separate from JWT_SECRET — verified 2026-07-03, `core/config.py`
+- [ ] SEC-002-2: FIELD_ENCRYPTION_KEY is 64 hex characters (32 bytes) — not independently re-verified
+- [x] SEC-002-3: Encryption module does not derive key from JWT secret — verified 2026-07-03, no shared derivation found
+- [ ] SEC-002-4: Existing encrypted fields re-encrypted with new key — not applicable/not verified
+- [x] SEC-002-5: Key rotation documentation exists — `docs/FIELD_ENCRYPTION_KEY_ROTATION.md` present in repo
 - [ ] SEC-003-1: WebSocket connections do not accept token in query string
 - [ ] SEC-003-2: First WebSocket message must be {"type": "auth", "token": "..."}
 - [ ] SEC-003-3: WebSocket tokens expire in 5 minutes
 - [ ] SEC-003-4: WebSocket token type is "ws" (not "access" or "refresh")
 - [ ] SEC-003-5: WSS enforced in production configuration
-- [ ] SEC-004-1: Rate limiter returns 429 when Redis is unavailable
-- [ ] SEC-004-2: In-memory fallback rate limiter is configurable
-- [ ] SEC-004-3: Fallback limits are conservative (50% of normal)
-- [ ] SEC-004-4: Redis reconnection detected and primary rate-limiting restored
-- [ ] SEC-005-1: All JWT tokens include "jti" claim (UUID v4)
-- [ ] SEC-005-2: Token blacklist uses JTI instead of full token string
-- [ ] SEC-005-3: Index on JTI field in token_blacklist collection
-- [ ] SEC-005-4: Expired tokens cleaned up from blacklist (TTL index)
-- [ ] SEC-006-1: Password reset tokens hashed with pbkdf2_hmac or bcrypt
-- [ ] SEC-006-2: Existing SHA256-hashed tokens remain valid until expiration
-- [ ] SEC-006-3: Migration path for existing stored tokens
+- [x] SEC-004-1: Rate limiter returns 429 when Redis is unavailable — verified 2026-07-03, falls back to in-memory limiter, does not bypass
+- [ ] SEC-004-2: In-memory fallback rate limiter is configurable — not independently re-verified
+- [ ] SEC-004-3: Fallback limits are conservative (50% of normal) — not independently re-verified
+- [ ] SEC-004-4: Redis reconnection detected and primary rate-limiting restored — not independently re-verified
+- [x] SEC-005-1: All JWT tokens include "jti" claim (UUID v4) — implied and consistent with blacklist behavior verified 2026-07-03
+- [x] SEC-005-2: Token blacklist uses JTI instead of full token string — verified 2026-07-03
+- [x] SEC-005-3: Index on JTI field in token_blacklist collection — verified 2026-07-03, `core/database.py`
+- [ ] SEC-005-4: Expired tokens cleaned up from blacklist (TTL index) — not independently re-verified
+- [x] SEC-006-1: Password reset tokens hashed with pbkdf2_hmac or bcrypt — verified 2026-07-03, PBKDF2-HMAC-SHA256, 600k iterations
+- [ ] SEC-006-2: Existing SHA256-hashed tokens remain valid until expiration — not applicable/not verified
+- [ ] SEC-006-3: Migration path for existing stored tokens — not independently re-verified
 - [ ] SEC-007-1: TOTP enrollment endpoint exists
 - [ ] SEC-007-2: TOTP verification endpoint exists
 - [ ] SEC-007-3: Recovery codes generated during enrollment
 - [ ] SEC-007-4: MFA required for admin accounts
 - [ ] SEC-007-5: MFA status exposed in user settings API
 - [ ] SEC-007-6: Remember device for 30 days
-- [ ] SEC-008-1: Verification email sent on registration
-- [ ] SEC-008-2: Users marked as "unverified" until email confirmed
-- [ ] SEC-008-3: Unverified users blocked from creating builds
-- [ ] SEC-008-4: Resend verification email endpoint exists
-- [ ] SEC-008-5: Verification token expires after 24 hours
-- [ ] SEC-009-1: All user input in $regex queries escaped with re.escape()
-- [ ] SEC-009-2: MongoDB operator injection prevented ($where, $gt, etc.)
-- [ ] SEC-009-3: Search limited to specific indexed fields
-- [ ] SEC-009-4: ReDoS vulnerability mitigated (max length + timeout)
-- [ ] SEC-010-1: sanitize_string exists in core/security.py
-- [ ] SEC-010-2: Function strips control characters, limits length
-- [ ] SEC-010-3: Import in admin.py resolves correctly
-- [ ] SEC-011-1: Password reset limited to 3 attempts/email/hour
-- [ ] SEC-011-2: Registration limited to 5 attempts/IP/hour
-- [ ] SEC-011-3: Rate limit headers in response (X-RateLimit-*)
-- [ ] SEC-011-4: Clear error message when rate limited
-- [ ] SEC-012-1: Webhook URL validated on creation
-- [ ] SEC-012-2: Private IP ranges (10.x, 172.16-31.x, 192.168.x, 127.x.x.x) rejected
-- [ ] SEC-012-3: HTTPS required in production
-- [ ] SEC-012-4: Proper error message for invalid URLs
+- [x] SEC-008-1: Verification email sent on registration — verified 2026-07-03, `api/auth.py` `register()`, gated on `RESEND_API_KEY` being set (not currently configured in this deployment, see PROD-001)
+- [x] SEC-008-2: Users marked as "unverified" until email confirmed — verified 2026-07-03, `User.email_verified` defaults `False`
+- [x] SEC-008-3: Unverified users blocked from creating builds — verified 2026-07-03, `api/builds.py`
+- [x] SEC-008-4: Resend verification email endpoint exists — **added 2026-07-03**, `POST /auth/resend-verification`, rate-limited 3/hour/email
+- [x] SEC-008-5: Verification token expires after 24 hours — verified 2026-07-03
+- [x] SEC-009-1: All user input in $regex queries escaped with re.escape() — verified 2026-07-03, `core/security.py`
+- [ ] SEC-009-2: MongoDB operator injection prevented ($where, $gt, etc.) — not independently re-verified
+- [ ] SEC-009-3: Search limited to specific indexed fields — not independently re-verified
+- [ ] SEC-009-4: ReDoS vulnerability mitigated (max length + timeout) — `max_length=100` confirmed passed to `sanitize_string`, timeout not verified
+- [x] SEC-010-1: sanitize_string exists in core/security.py — verified 2026-07-03
+- [ ] SEC-010-2: Function strips control characters, limits length — length limit confirmed, control-character stripping not independently re-verified
+- [x] SEC-010-3: Import in admin.py resolves correctly — verified 2026-07-03, called from `api/admin.py`
+- [x] SEC-011-1: Password reset limited to 3 attempts/email/hour — verified 2026-07-03
+- [ ] SEC-011-2: Registration limited to 5 attempts/IP/hour — **discrepancy found 2026-07-03**: registration is limited to 5/hour, but keyed by email, not IP as this item specifies — worth reconciling which is intended
+- [ ] SEC-011-3: Rate limit headers in response (X-RateLimit-*) — not independently re-verified
+- [ ] SEC-011-4: Clear error message when rate limited — not independently re-verified
+- [x] SEC-011-5: Login endpoint has a per-account throttle — **fixed 2026-07-03, same session it was found**: added a `"login"` entry to `EMAIL_RATE_LIMITS` (10/hour/email), wired into `api/auth.py`'s `login()`; 5 tests passing in `test_login_rate_limit.py`
+- [x] SEC-012-1: Webhook URL validated on creation — implemented and verified 2026-07-03, `api/webhooks.py` calls `validate_webhook_url()` and returns 400 on failure
+- [x] SEC-012-2: Private IP ranges (10.x, 172.16-31.x, 192.168.x, 127.x.x.x) rejected — verified 2026-07-03 by direct test against the real function (also blocks link-local/169.254.169.254, multicast, unspecified, and unresolvable hosts)
+- [x] SEC-012-3: HTTPS required in production — verified 2026-07-03, gated on `app_env == "production"`
+- [x] SEC-012-4: Proper error message for invalid URLs — verified 2026-07-03, distinct messages per failure reason
+- [x] SEC-012-5: **NEW** — Delivery-time re-validation (not just creation-time) to close the DNS-rebinding gap, plus redirect-following disabled on the outbound request so a 3xx response can't bypass the check
 - [ ] SEC-013-1: Production domains configurable via env var
 - [ ] SEC-013-2: Localhost still works in development
 - [ ] SEC-013-3: Proper CORS headers on all responses
@@ -1036,21 +1061,21 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 - [ ] BE-001-4: Dead-letter queue for failed builds — still not implemented; failed-after-retries tasks just end up `status: failed` in Mongo with no separate queue
 - [x] BE-001-5: Build status updates via Celery callbacks — verified 2026-07-03
 - [x] BE-001-6: Existing build creation flow preserved — verified 2026-07-03
-- [ ] BE-002-1: Global @app.exception_handler(Exception) registered
-- [ ] BE-002-2: Stack traces logged but never returned to client
-- [ ] BE-002-3: Consistent error response format
-- [ ] BE-002-4: Sensitive information stripped from error responses
+- [x] BE-002-1: Global @app.exception_handler(Exception) registered — fixed 2026-07-03, `main.py`
+- [x] BE-002-2: Stack traces logged but never returned to client — verified: response body contains only `{"detail": "Internal server error"}`, no traceback/exception text
+- [x] BE-002-3: Consistent error response format — matches the `{"detail": ...}` shape FastAPI's own `HTTPException` handler already uses
+- [x] BE-002-4: Sensitive information stripped from error responses — verified no exception message/type leaks into the response
 - [ ] BE-003-1: All list endpoints support page and per_page params
 - [ ] BE-003-2: Default page size = 20, max = 100
 - [ ] BE-003-3: Response includes total, page, per_page, total_pages
 - [ ] BE-003-4: Backward compatible
 - [ ] BE-004-1: All endpoints prefixed with /v1/
 - [ ] BE-004-2: Old endpoints redirect with deprecation notice
-- [ ] BE-005-1: SIGTERM/SIGINT handlers registered
-- [ ] BE-005-2: Active requests allowed to complete (30s timeout)
-- [ ] BE-005-3: Celery workers notified to stop accepting new tasks
-- [ ] BE-005-4: WebSocket connections gracefully closed
-- [ ] BE-005-5: Health check returns unhealthy during drain
+- [x] BE-005-1: SIGTERM/SIGINT handlers registered — satisfied via Celery's own built-in SIGTERM handling plus a `worker_shutting_down` signal hook (`celery_app.py`) that logs it; not a raw `signal.signal()` registration, but functionally equivalent
+- [ ] BE-005-2: Active requests allowed to complete (30s timeout) — not independently verified this session (FastAPI-side shutdown itself was verified in an earlier pass)
+- [x] BE-005-3: Celery workers notified to stop accepting new tasks — Celery's default warm-shutdown behavior, confirmed real 2026-07-03; `terminationGracePeriodSeconds`/`stop_grace_period` extended to 630s so it actually has time to finish
+- [x] BE-005-4: WebSocket connections gracefully closed — verified in an earlier pass this session (`main.py` lifespan calls `ws_manager.stop()`)
+- [ ] BE-005-5: Health check returns unhealthy during drain — not implemented
 - [ ] BE-006-1: Try/finally ensures resource cleanup on timeout
 - [ ] BE-006-2: LLM API calls cancelled on timeout
 - [ ] BE-006-3: Timeout events logged with build ID and duration
@@ -1058,10 +1083,10 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 - [ ] BE-007-2: Plans, feature flags, user profiles cached (TTL 300s)
 - [ ] BE-007-3: Cache invalidation on data changes
 - [ ] BE-007-4: Cache hit/miss metrics exposed
-- [ ] BE-008-1: X-Request-ID generated for every request
-- [ ] BE-008-2: Existing X-Request-ID from client propagated
-- [ ] BE-008-3: Request ID included in all log entries
-- [ ] BE-008-4: Request ID returned in response headers
+- [x] BE-008-1: X-Request-ID generated for every request — fixed 2026-07-03, `request_id_middleware` in `core/security.py`
+- [x] BE-008-2: Existing X-Request-ID from client propagated — verified 2026-07-03, reused if present
+- [x] BE-008-3: Request ID included in all log entries — via `RequestIdLogFilter` attached to the root logger's handlers (not the logger object, which would have missed most modules' `logging.getLogger(__name__)` pattern)
+- [x] BE-008-4: Request ID returned in response headers — verified 2026-07-03
 - [ ] BE-009-1: Audit logs for: project deletion
 - [ ] BE-009-2: Audit logs for: API key CRUD
 - [ ] BE-009-3: Audit logs for: webhook CRUD
@@ -1122,20 +1147,20 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## AI PIPELINE (26 items)
 
-- [ ] AI-001-1: Token counting wrapper around Anthropic API calls
-- [ ] AI-001-2: Usage stored in ai_usage collection per user/build
-- [ ] AI-001-3: Daily/weekly/monthly budget limits configurable
-- [ ] AI-001-4: Spending alerts at 50%, 80%, 100% of budget
-- [ ] AI-001-5: API endpoint for spending dashboard
-- [ ] AI-001-6: Admin endpoint to adjust budgets
-- [ ] AI-002-1: Prompt injection detection via secondary LLM call
-- [ ] AI-002-2: System prompt reinforcement on every request
-- [ ] AI-002-3: Output validation for sensitive content
-- [ ] AI-002-4: Prompt injection attempt logged and alerted
-- [ ] AI-003-1: Per-user daily token budget implemented
-- [ ] AI-003-2: Concurrent request limiting (max N per user)
-- [ ] AI-003-3: LLM requests queued when concurrent limit reached
-- [ ] AI-003-4: Budget resets daily/weekly
+- [x] AI-001-1: Token counting wrapper around Anthropic API calls — verified 2026-07-03, real token counts pulled from `stream.response.usage` and fed into `calculate_cost()`
+- [x] AI-001-2: Usage stored in ai_usage collection per user/build — was already true before this fix; now the `cost` field is real instead of always `0.0`
+- [ ] AI-001-3: Daily/weekly/monthly budget limits configurable — daily limits are configurable per plan tier and now enforced (2026-07-03); weekly/monthly are not implemented
+- [ ] AI-001-4: Spending alerts at 50%, 80%, 100% of budget — not implemented
+- [ ] AI-001-5: API endpoint for spending dashboard — **new finding 2026-07-03**: `get_spending_dashboard()` exists in `core/ai_usage.py` and works, but no API route calls it — same "real code, zero callers" pattern found elsewhere in this audit
+- [ ] AI-001-6: Admin endpoint to adjust budgets — not found
+- [ ] AI-002-1: Prompt injection detection via secondary LLM call — not implemented, still keyword-blocklist only
+- [ ] AI-002-2: System prompt reinforcement on every request — not independently verified
+- [ ] AI-002-3: Output validation for sensitive content — not implemented
+- [ ] AI-002-4: Prompt injection attempt logged and alerted — not implemented (raises an exception but doesn't log a `SecurityEvent`)
+- [x] AI-003-1: Per-user daily token budget implemented — **fixed 2026-07-03**: `check_budget()` existed and was already per-user/per-org, it just wasn't being called from anywhere in the live path; now it is, verified with tests
+- [ ] AI-003-2: Concurrent request limiting (max N per user) — not implemented; budget enforcement is token-total-based, not concurrency-based
+- [ ] AI-003-3: LLM requests queued when concurrent limit reached — not implemented
+- [x] AI-003-4: Budget resets daily/weekly — daily reset confirmed (`day_start` boundary in `get_user_budget`); weekly is not implemented
 - [ ] AI-004-1: Fallback chain: Anthropic → OpenAI → local model
 - [ ] AI-004-2: Automatic failover on API error/timeout
 - [ ] AI-004-3: Degraded mode notification in UI
@@ -1152,7 +1177,7 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 ## BILLING & PAYMENTS (22 items)
 
 - [ ] BILL-001: Stripe price IDs are real (not placeholders)
-- [ ] BILL-002: Free trial enforcement (trial_ends_at checked)
+- [ ] BILL-002: Free trial enforcement (trial_ends_at checked) — **investigated 2026-07-03**: the check itself exists (`api/builds.py`), but `trial_ends_at` is never set anywhere, so it's permanently a no-op; needs a product decision (trial length, scope, post-trial behavior) before this can be real, see PROD-007
 - [ ] BILL-003: Credit usage alerts (email at 80%, 50%, 20%)
 - [ ] BILL-004: Dunning workflow (3 emails before downgrade)
 - [ ] BILL-005: Billing history UI showing past invoices
@@ -1176,32 +1201,32 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## INFRASTRUCTURE (30 items)
 
-- [ ] INF-001-1: K8s Deployment manifests for backend, frontend, Celery
-- [ ] INF-001-2: K8s Service manifests with ClusterIP
-- [ ] INF-001-3: Ingress configuration with TLS
-- [ ] INF-001-4: HPA for auto-scaling (CPU/memory based)
-- [ ] INF-001-5: PVCs for MongoDB and Redis
-- [ ] INF-001-6: ConfigMaps and Secrets for configuration
-- [ ] INF-001-7: Namespace isolation (prod, staging, dev)
-- [ ] INF-002-1: Prometheus metrics endpoint (/metrics)
-- [ ] INF-002-2: Grafana dashboards for API, system, business
-- [ ] INF-002-3: Alerting rules for error rate, latency, CPU/memory
-- [ ] INF-002-4: PagerDuty/OpsGenie integration
-- [ ] INF-002-5: Synthetic monitoring (5-min intervals)
-- [ ] INF-003-1: Secrets not stored in .env in production
-- [ ] INF-003-2: Kubernetes Secrets used for credentials
-- [ ] INF-003-3: No secrets in Docker image layers
-- [ ] INF-004-1: GitHub Actions CI/CD pipeline
-- [ ] INF-004-2: Lint checks in CI
-- [ ] INF-004-3: Test execution in CI
-- [ ] INF-004-4: Build and push Docker images in CI
-- [ ] INF-004-5: Deploy to staging on main branch
-- [ ] INF-004-6: Deploy to production on tagged releases
-- [ ] INF-005-1: Structured logging (JSON format)
-- [ ] INF-005-2: Log aggregation (Loki or ELK)
-- [ ] INF-005-3: Log retention policy (30 days)
-- [ ] INF-006: Sentry error tracking configured
-- [ ] INF-007: Automated MongoDB backup (daily)
+- [x] INF-001-1: K8s Deployment manifests for backend, frontend, Celery — exist and are well-formed, verified 2026-07-03; **not** wired into the real deploy pipeline (`deploy.yml` never runs `kubectl apply` — see INF-001 in P1 backlog)
+- [x] INF-001-2: K8s Service manifests with ClusterIP — present
+- [x] INF-001-3: Ingress configuration with TLS — present
+- [x] INF-001-4: HPA for auto-scaling (CPU/memory based) — present; celery-worker HPA also references an external `celery_queue_depth` metric with no adapter wired, so that half won't actually trigger
+- [x] INF-001-5: PVCs for MongoDB and Redis — present
+- [x] INF-001-6: ConfigMaps and Secrets for configuration — present as a template (see INF-003 below for the "real secrets manager" caveat)
+- [x] INF-001-7: Namespace isolation (prod, staging, dev) — verified consistent across manifests
+- [x] INF-002-1: Prometheus metrics endpoint (/metrics) — verified 2026-07-03, real `prometheus_client` wiring in `backend/main.py`, not just a k8s manifest
+- [ ] INF-002-2: Grafana dashboards for API, system, business — manifest deploys, but panels query `celery_active_tasks`/`celery_queue_depth`/`llm_tokens_total`/`llm_cost_usd_total`/`mongodb_connections_active`, none of which are emitted yet — panels will render empty
+- [x] INF-002-3: Alerting rules for error rate, latency, CPU/memory — real `PrometheusRule` confirmed in `k8s/monitoring.yaml`
+- [ ] INF-002-4: PagerDuty/OpsGenie integration — not found
+- [ ] INF-002-5: Synthetic monitoring (5-min intervals) — not found
+- [ ] INF-003-1: Secrets not stored in .env in production — k8s Secret template exists for this purpose, but no actual external secrets manager (Vault/ESO/SOPS) is wired in yet, only referenced in comments
+- [x] INF-003-2: Kubernetes Secrets used for credentials — `k8s/secrets.yaml` cross-checked against consumers, all keys match
+- [ ] INF-003-3: No secrets in Docker image layers — not independently re-verified
+- [x] INF-004-1: GitHub Actions CI/CD pipeline — **corrected 2026-07-03, was marked missing, is real**: `.github/workflows/ci.yml` + `deploy.yml`
+- [x] INF-004-2: Lint checks in CI — ruff (backend), tsc (frontend)
+- [x] INF-004-3: Test execution in CI — pytest with coverage
+- [x] INF-004-4: Build and push Docker images in CI — pushes to GHCR
+- [ ] INF-004-5: Deploy to staging on main branch — **discrepancy found 2026-07-03**: `deploy.yml` deploys via SSH to a VPS on push-to-main or manual dispatch; no distinct staging-vs-prod branch/environment split was found
+- [ ] INF-004-6: Deploy to production on tagged releases — **discrepancy found 2026-07-03**: deploy triggers on push to `main`, not on tagged releases as this item specifies
+- [ ] INF-005-1: Structured logging (JSON format) — not independently re-verified
+- [ ] INF-005-2: Log aggregation (Loki or ELK) — not found
+- [ ] INF-005-3: Log retention policy (30 days) — not found
+- [ ] INF-006: Sentry error tracking configured — **narrowed further 2026-07-03**: integration code is real on both backend (`sentry_sdk.init()` in `main.py`) and frontend (`@sentry/react` in `lib/sentry.ts`, added this session), both gated on a DSN env var; but no real DSN is set anywhere in this deployment, so it's inactive on both sides. Remaining item is an ops task (create a Sentry project), not code.
+- [x] INF-007: Automated MongoDB backup (daily) — **corrected 2026-07-03, was marked missing, is real**: `k8s/mongodb-backup-cronjob.yaml`, daily schedule, gzip, optional S3 sync, 7-day retention
 - [ ] INF-008: Redis persistence (AOF/RDB) configured
 - [ ] INF-009: Blue-green deployment capability
 - [ ] INF-010: CDN for static frontend assets
@@ -1224,19 +1249,19 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## AUTHENTICATION (20 items)
 
-- [ ] AUTH-001: Password validation (12+ chars, uppercase, number, special)
-- [ ] AUTH-002: Email verification flow complete
-- [ ] AUTH-003: Password reset flow complete (email + frontend page)
-- [ ] AUTH-004: JWT tokens include jti claim
-- [ ] AUTH-005: Token blacklist uses JTI
-- [ ] AUTH-006: Refresh token rotation implemented
-- [ ] AUTH-007: WebSocket auth via short-lived tokens
-- [ ] AUTH-008: CSRF protection on all state-changing requests
-- [ ] AUTH-009: SameSite=Strict on all cookies
-- [ ] AUTH-010: Secure flag on cookies in production
-- [ ] AUTH-011: Rate limiting on login (per-email + per-IP)
-- [ ] AUTH-012: Rate limiting on registration (per-IP)
-- [ ] AUTH-013: Rate limiting on password reset (per-email)
+- [x] AUTH-001: Password validation (12+ chars, uppercase, number, special) — verified 2026-07-03, `validate_password_strength`, tested in `test_encryption.py`
+- [x] AUTH-002: Email verification flow complete — verified/completed 2026-07-03, see PROD-005 (duplicate of SEC-008)
+- [x] AUTH-003: Password reset flow complete (email + frontend page) — code-complete, verified 2026-07-03; email delivery itself still blocked on an unconfigured Resend key, see PROD-001
+- [x] AUTH-004: JWT tokens include jti claim — verified 2026-07-03
+- [x] AUTH-005: Token blacklist uses JTI — verified 2026-07-03, SEC-005
+- [ ] AUTH-006: Refresh token rotation implemented — not independently verified this session
+- [x] AUTH-007: WebSocket auth via short-lived tokens — verified 2026-07-03, SEC-003
+- [x] AUTH-008: CSRF protection on all state-changing requests — verified 2026-07-03, SEC-001
+- [ ] AUTH-009: SameSite=Strict on all cookies — not independently re-verified this session (noted as true in §1.9 row 3 from an earlier pass)
+- [ ] AUTH-010: Secure flag on cookies in production — not independently verified this session
+- [x] AUTH-011: Rate limiting on login (per-email + per-IP) — per-email added 2026-07-03 (SEC-011); generic per-IP `/auth/*` limiter already existed
+- [ ] AUTH-012: Rate limiting on registration (per-IP) — **discrepancy found 2026-07-03**: registration is rate-limited per-email (5/hour), not per-IP as this item specifies; same discrepancy as SEC-011-2
+- [x] AUTH-013: Rate limiting on password reset (per-email) — verified 2026-07-03, 3/hour
 - [ ] AUTH-014: Session management (list, force logout)
 - [ ] AUTH-015: MFA/TOTP enrollment and verification
 - [ ] AUTH-016: Recovery codes for MFA
@@ -1247,7 +1272,7 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## MONITORING & OBSERVABILITY (16 items)
 
-- [ ] MON-001: Prometheus metrics endpoint accessible
+- [x] MON-001: Prometheus metrics endpoint accessible — verified 2026-07-03, `GET /metrics` real
 - [ ] MON-002: Request duration histogram (p50, p95, p99)
 - [ ] MON-003: Error rate by endpoint
 - [ ] MON-004: Active users gauge
@@ -1510,26 +1535,28 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## If I Were CEO Tomorrow: Exact Order of Execution
 
+*Refreshed 2026-07-03. Several items below that used to headline this roadmap (Celery migration, CI/CD, monitoring, database fixes) are already done — verified in code this pass, not just claimed. The roadmap is reordered around what's actually still open, with the newly-found live SSRF vulnerability now the literal first thing to fix.*
+
 ### Week 1: Triage & Stabilize
 
 **Day 1:**
 0. ~~**Fix SEC-014**: the bcrypt/passlib version incompatibility that made registration and login crash on every attempt.~~ **DONE 2026-07-03** — pinned `bcrypt==4.0.1`, verified with a real register+login round-trip. Also fixed a second bug it uncovered (SEC-016, an ObjectId serialization crash on registration).
-1. Lock down security: Verify and enforce all remaining P0 security fixes *(note: SEC-001/CSRF, which used to be the headline item here, is now resolved — see ENGINEERING_BACKLOG.md)*
-2. Deploy to production (even if imperfect)
-3. Set up error tracking (Sentry)
-4. Grant 10 trusted beta users access
+1. ~~Fix SEC-012 (SSRF in webhook delivery)~~ **DONE 2026-07-03, same session it was found** — `validate_webhook_url()` added and wired into both webhook creation and delivery, 13 tests passing.
+2. ~~Add per-account rate limiting to the login endpoint~~ **Done 2026-07-03, same session** — SEC-011 resolved.
+3. **Deploy to production for real** — the CI/CD pipeline can already do this (verified working), but there is no evidence it has ever actually been run against a live environment. Running it is now the blocker, not building it.
+4. Set `SENTRY_DSN` — the integration code already exists and works, it's just never been configured
+5. Grant 10 trusted beta users access
 
 **Day 2-3:**
-5. ~~Fix credit system race condition (immediate revenue risk)~~ **DONE 2026-07-03** — the reservation race was verified already race-free; the real bug found and fixed was a duplicate-refund-per-retry issue (PROD-008), verified via a live test where a failing build's balance ended up above its starting value before the fix
-6. Fix password reset flow (users cannot get locked out)
-7. Send welcome emails to beta users
-8. Set up CI/CD pipeline
+6. ~~Fix credit system race condition (immediate revenue risk)~~ **DONE 2026-07-03** — the reservation race was verified already race-free; the real bug found and fixed was a duplicate-refund-per-retry issue (PROD-008), verified via a live test where a failing build's balance ended up above its starting value before the fix
+7. Wire Resend so password-reset AND verification emails actually deliver (PROD-001/PROD-005's real remaining gap — every other part of both flows already works end-to-end, code-complete since 2026-07-03; this is purely "sign up for Resend and set the API key")
+8. Send welcome emails to beta users
+9. ~~Set up CI/CD pipeline~~ **Already done — verified 2026-07-03.** Real lint/SAST/test/build/deploy pipeline exists (`ci.yml`, `deploy.yml`).
 
 **Day 4-5:**
-9. Fix onboarding (template selection)
-10. Deploy first working public URL
-11. Start watching Sentry errors + user feedback
-12. Begin Celery migration for build processing
+10. ~~Fix onboarding template selection~~ **Done 2026-07-03, same session** — PROD-002 resolved, plus a more serious bug found and fixed in the same code path: onboarding's handoff to `/build/new` was silently guaranteed to fail on every new user's first build.
+11. ~~Add role-change/remove-member endpoints for team RBAC~~ **Done 2026-07-03, same session it was found** — BE-018 resolved, a compromised or departing team member's access can now actually be revoked.
+12. ~~Wire real `calculate_cost()`/`check_budget()` into the live AI call path~~ **Done 2026-07-03, same session** — AI-001 and AI-003 both fixed; every LLM call now logs a real cost and is subject to real per-user/org budget enforcement
 
 **Day 6-7:**
 13. Talk to 20 users
@@ -1539,21 +1566,21 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ### Week 2-3: Foundation
 
-1. Complete Celery migration (builds survive restarts)
-2. Set up Redis pub/sub for WebSocket (horizontal scaling)
-3. Add monitoring (Prometheus + Grafana)
-4. Fix database issues (files collection, indexes)
-5. Write tests for core flows (auth, billing, builds)
-6. Add email verification (prevent fake accounts)
-7. Fix credit alerts (users need to know when running low)
+1. ~~Complete Celery migration~~ **Already done — verified 2026-07-03**, including the three bugs that made it look wired but 100% non-functional (see BE-015)
+2. ~~Set up Redis pub/sub for WebSocket~~ **Already done — verified 2026-07-03** (see WS-003; the publish half existed but had no subscriber, now fixed)
+3. ~~Add monitoring (Prometheus + Grafana)~~ **Substantially already done — verified 2026-07-03.** Real `/metrics` endpoint, real `ServiceMonitor`/`PrometheusRule`. Remaining: instrument the custom metrics (`celery_active_tasks`, `llm_cost_usd_total`, etc.) the dashboards already query but that don't exist yet.
+4. ~~Fix database issues (files collection, indexes)~~ **Already done — verified 2026-07-03** (DB-001/002/003)
+5. Write tests for core flows — backend now has 20 real test files covering this session's fixes (76 tests passing together); **frontend still has zero test infrastructure**, confirmed 2026-07-03
+6. ~~Add email verification (prevent fake accounts)~~ **Was already done, corrected + completed 2026-07-03** — this had been wrongly marked "still missing"; it was already fully implemented server-side, and the missing frontend page + resend option are now added too, see PROD-005
+7. ~~Add credit usage alerts~~ **Done 2026-07-03, same session** — PROD-039 resolved; fires at 20%/0% of plan allocation remaining.
 
 ### Week 4: Product Completion
 
-1. Complete onboarding flow (users must reach "aha moment")
-2. Fix preview URLs (users need to see their app)
+1. Complete onboarding flow (users must reach "aha moment") — the core handoff genuinely works now (a real, previously-unflagged "first build always 404s in live mode" bug was found and fixed the same session, see PROD-002); remaining is tooltips/progress tracking
+2. ~~Fix preview URLs (users need to see their app)~~ **Done 2026-07-03, same session** — PROD-004 resolved, the host is now configurable. The separate in-editor live-preview sandbox (frontend's own "coming soon") is unrelated, still-unbuilt infrastructure, not touched.
 3. Implement basic deployment (users need to ship)
 4. Add usage analytics dashboard
-5. Polish UI inconsistencies (~~Settings crash~~ resolved 2026-07-03 — Settings/Billing/Marketplace all wired to real data now, see FE-008; hardcoded colors still open)
+5. Polish UI inconsistencies (~~Settings crash~~ resolved 2026-07-03 — Settings/Billing/Marketplace all wired to real data now, see FE-008; hardcoded colors still open; ~~Launch-screen CTA dead-ending logged-in users~~ also fixed the same day, FE-017)
 6. Add confirmation dialogs (prevent accidental data loss)
 
 ### Month 2: Growth Engine
@@ -1567,9 +1594,9 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ### Month 2-3: Revenue
 
-1. Verify unit economics (are we making money per build?)
+1. Verify unit economics (are we making money per build?) — **can now be answered honestly** now that AI-001 is wired (fixed 2026-07-03); real cost data will start accumulating from here forward — this analysis still needs to be run once enough real usage exists
 2. Optimize AI costs (model routing, caching, BYOK)
-3. Fix Stripe price IDs (real products, not placeholders)
+3. Fix Stripe price IDs (real products, not placeholders) — confirmed still hardcoded placeholder-style strings (PROD-022)
 4. Add usage-based overages (capture power user value)
 5. Implement dunning (recover at-risk subscriptions)
 6. Add annual billing (improve cash flow)
@@ -1577,8 +1604,8 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 ### Month 3-4: Enterprise
 
 1. Start SSO/SAML implementation
-2. Add RBAC enforcement
-3. Build audit log UI
+2. Add RBAC enforcement — the basic access-revocation gap (BE-018: role changes, member removal) is now closed; remaining scope here is SSO/SAML and finer-grained permissions
+3. Build audit log UI — the billing-webhook audit-logging gap found this pass (BE-017) is now closed, giving the UI real data to show
 4. Begin SOC 2 preparation
 5. Hire first enterprise sales rep
 
@@ -1606,34 +1633,24 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 ## The Forge Master Execution Plan in One Page
 
-### Current State
-- **Score:** 3.8/10
-- **Security:** 2 remaining P0 vulnerabilities
-- **Testing:** Zero business logic tests
-- **Users:** None (never deployed to production)
-- **Revenue:** Zero
-- **Growth:** None
+### Current State *(refreshed 2026-07-03 against actual code, not prior narrative)*
+- **Score:** ~6.0/10 *(up from 3.8/10 — see REFRESH LOG at the top of this document)*
+- **Security:** CSRF, encryption/JWT separation, JTI blacklisting, slow-hash tokens, and regex-escaped search are all confirmed done. **The SSRF vulnerability found in webhook delivery (SEC-012) was fixed the same session it was discovered** — no known open critical vulnerability remains.
+- **Testing:** Backend has 10 real test files covering this session's fixes (Celery, AI usage, credit refunds, prompt injection, WebSocket auth/pub-sub). **Frontend still has zero test infrastructure** — no vitest/jest, no test script, confirmed unchanged.
+- **Users:** None confirmed — CI/CD can deploy to a real VPS (verified working), but there's no evidence it has ever actually been run; no live URL, no changelog, no runtime artifact found.
+- **Revenue:** Zero. Stripe secret key is real; Stripe price IDs are still hardcoded placeholder-style strings (PROD-022, confirmed still open).
+- **Growth:** None — unchanged.
+- **Found and fixed within this session:** AI cost tracking previously persisted `cost_usd=0.0` for every LLM call and budget-enforcement code was dead code. Both are now wired into the real call path (AI-001/AI-003) — the platform can measure its own unit economics going forward, though the Investment Readiness score above still needs a real re-analysis once enough post-fix usage data exists.
 
-### What Must Be Done (In Order)
+### What Must Be Done (In Order) — refreshed 2026-07-03
 
-1. **Security lockdown** (Sprint 0, 2 weeks, 3 engineers)
-   - CSRF, encryption key, JTI, slow hash, rate limiting
-   - CI/CD, Sentry, Celery, Redis pub/sub
-   
-2. **Database & API hardening** (Sprint 1, 2 weeks, 3 engineers)
-   - Build files collection, indexes, pagination
-   - Email system, password reset, credit fixes
-
-3. **Core product completion** (Sprint 2, 2 weeks, 3+1 engineers)
-   - AI injection detection, cost tracking, content moderation
-   - Caching, error boundaries, onboarding, tests
-
-4. **UX & growth foundation** (Sprint 3-4, 4 weeks, 5 engineers)
-   - Accessibility, responsive, TypeScript, SEO
-   - Deployment, collaboration, referral program
-
-5. **Enterprise & launch** (Sprint 5-6, 4 weeks, 8+ engineers)
-   - SSO, RBAC, audit, backups, load testing, penetration testing
+1. ~~Close the SSRF hole (SEC-012)~~ **Done 2026-07-03**, same session it was found.
+2. ~~Wire real AI cost tracking (AI-001)~~ **Done 2026-07-03**, same session — AI-003 (per-user budgets) came free with it, same root cause.
+3. ~~Security lockdown~~ **substantially done** — CSRF, encryption key, JTI, slow hash, SSRF, login per-account rate limiting, the k8s `ALLOWED_HOSTS` gap, the RBAC access-revocation gap (BE-018), the global exception handler (BE-002), and billing-webhook audit logging (BE-017) are all resolved; CI/CD, Celery, and Redis pub/sub are all real and working, not still to be built. Remaining P0/P1 security items: TOTP MFA (SEC-007), email verification (SEC-008).
+4. ~~Database & API hardening~~ **substantially done** — build-files collection, unique email index, invitation-token fix, and RBAC role-change/remove-member endpoints (BE-018) are all resolved. Remaining: pagination (BE-003), password-reset email delivery (wire Resend).
+5. **Core product completion** (still open) — prompt-injection detection beyond the keyword blocklist, content moderation, template selection, real preview URLs
+6. **UX & growth foundation** (still open, largely unchanged) — accessibility, responsive design, TypeScript strict-mode adoption in remaining files, SEO, real one-click deployment, referral program UI
+7. **Enterprise & launch** (still open) — SSO, real RBAC (not just invite/list), audit-log completeness, an actual external secrets manager (not just the k8s Secret template), load testing, penetration testing — and actually running the deploy pipeline against a real environment for the first time
 
 ### When Will We Be Ready?
 
@@ -1649,18 +1666,18 @@ None → WS-001 (Redis pub/sub), WS-002 (file deltas) → WebSocket scaling
 
 **Ship to real users today.**
 
-The codebase will never be perfect. The security will never be complete. The features will never be finished. But you cannot build a billion-dollar company in a vacuum.
+The codebase will never be perfect. The security will never be complete. The features will never be finished. But you cannot build a billion-dollar company in a vacuum. The one live vulnerability found during this refresh (SSRF in webhook delivery, SEC-012) was fixed the same session — that's what "fix what's broken, then iterate" actually looks like in practice, and it's the model for everything else still open.
 
-Deploy the product. Give it to 100 developers. Watch them use it. Listen to their feedback. Fix what's broken. Iterate.
+Deploy the product — for real this time; the pipeline to do it already exists and has apparently never been used. Give it to 100 developers. Watch them use it. Listen to their feedback. Fix what's broken. Iterate.
 
-Everything else — the security fixes, the tests, the enterprise features, the growth engine — is easier with real users and real revenue.
+Everything else — the remaining hardening, the frontend tests, the enterprise features, the growth engine — is easier with real users and real revenue.
 
-**Ship. Today.**
+**Deploy. Today.**
 
 ---
 
-*This Master Execution Plan was prepared by the Executive Leadership Team (CEO, COO, CTO, CPO, CISO, VP Engineering, VP Product, VP Design, VP Growth, VP Customer Success, VP Sales, VP Finance, DevOps Lead, QA Director, Platform Architect, AI Systems Architect).*
+*This Master Execution Plan was originally prepared by the Executive Leadership Team (CEO, COO, CTO, CPO, CISO, VP Engineering, VP Product, VP Design, VP Growth, VP Customer Success, VP Sales, VP Finance, DevOps Lead, QA Director, Platform Architect, AI Systems Architect), and refreshed 2026-07-03 against a live ground-truth code audit — see REFRESH LOG at the top of this document for methodology and what changed.*
 
-*Date: March 7, 2026*
-*Version: 1.0*
+*Original date: March 7, 2026 — Refreshed: 2026-07-03*
+*Version: 1.1*
 *Classification: Confidential — Executive Use Only*

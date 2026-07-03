@@ -50,6 +50,10 @@ class FakeDB:
         self.builds = FakeCollection([build])
         self.users = FakeCollection([user])
         self.build_files = FakeCollection([])
+        # run_build() looks up the project's `template` field (PROD-002,
+        # 2026-07-03) to pass it through to the agent pipeline; no template
+        # selected in these tests, so an id-only doc is enough.
+        self.projects = FakeCollection([{"id": "p1"}])
 
 
 def _make_build_and_user():

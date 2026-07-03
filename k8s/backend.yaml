@@ -23,7 +23,11 @@ spec:
     spec:
       containers:
       - name: backend
-        image: forge-backend:latest
+        # Replace GHCR_OWNER with the real GitHub org/user (see
+        # .env.production.example and .github/workflows/deploy.yml, which
+        # already push here) and pin to a specific tag/SHA for real
+        # rollouts rather than floating `latest`.
+        image: ghcr.io/GHCR_OWNER/forge-backend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -89,6 +93,11 @@ spec:
             configMapKeyRef:
               name: forge-ai-config
               key: allowed-origins
+        - name: ALLOWED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: forge-ai-config
+              key: allowed-hosts
         - name: ADMIN_EMAILS
           valueFrom:
             configMapKeyRef:

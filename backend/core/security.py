@@ -1,17 +1,51 @@
 from fastapi import Request, HTTPException
 from typing import Optional
 from datetime import datetime, timedelta
+import asyncio
+import contextvars
 import ipaddress
+import logging
 import re
 import time
 import secrets
+import uuid
 import hashlib
+from urllib.parse import urlparse
 
 from core.database import get_db, get_redis
 from core.models import SecurityEvent
 from core.config import get_settings
 
 settings = get_settings()
+
+# Request/correlation ID (BE-008) -- previously there was no way to tie a
+# single request's log lines together, or match a client-reported error back
+# to the exact server-side request that caused it.
+request_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_id", default="-"
+)
+
+
+class RequestIdLogFilter(logging.Filter):
+    """Injects the current request's ID into every LogRecord so log lines
+    from the same request can be correlated, even across the different
+    modules/functions a single request passes through."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.request_id = request_id_var.get()
+        return True
+
+
+async def request_id_middleware(request: Request, call_next):
+    incoming = request.headers.get("X-Request-ID")
+    request_id = incoming if incoming else uuid.uuid4().hex
+    token = request_id_var.set(request_id)
+    try:
+        response = await call_next(request)
+    finally:
+        request_id_var.reset(token)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 DEFAULT_RATE_LIMITS = {
     "auth": {"limit": 10, "window": 60},
@@ -29,6 +63,14 @@ USER_RATE_LIMITS = {
 EMAIL_RATE_LIMITS = {
     "forgot_password": {"limit": 3, "window": 3600},    # 3/hour
     "register":        {"limit": 5, "window": 3600},    # 5/hour
+    "resend_verification": {"limit": 3, "window": 3600},  # 3/hour, same shape as forgot_password
+    "login":           {"limit": 10, "window": 3600},   # 10/hour -- blocks credential
+                                                         # stuffing against one account
+                                                         # regardless of source IP; the
+                                                         # existing /auth/* limiter is
+                                                         # per-IP only and trivially
+                                                         # bypassed by spreading attempts
+                                                         # across IPs (SEC-011)
 }
 
 # CSRF token storage (in production, use Redis)
@@ -364,6 +406,60 @@ async def check_anomalies(user_id: str, action: str, db) -> Optional[SecurityEve
         return event
 
     return None
+
+
+def _is_blocked_webhook_ip(ip_str: str) -> bool:
+    """True if the address is not a safe public-internet destination for a webhook."""
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return True
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local  # includes the 169.254.169.254 cloud metadata endpoint
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+async def validate_webhook_url(url: str) -> tuple[bool, str]:
+    """Validate a user-supplied webhook URL against SSRF.
+
+    Rejects non-http(s) schemes, requires HTTPS outside development, and
+    resolves the hostname so DNS names pointing at internal/private/reserved
+    addresses are blocked the same as literal IPs (also catches the cloud
+    metadata endpoint at 169.254.169.254, which is link-local).
+    """
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False, "Invalid webhook URL"
+
+    if parsed.scheme not in ("http", "https"):
+        return False, "Webhook URL must use http or https"
+
+    if parsed.scheme == "http" and settings.app_env == "production":
+        return False, "Webhook URL must use HTTPS in production"
+
+    hostname = parsed.hostname
+    if not hostname:
+        return False, "Webhook URL must include a hostname"
+
+    try:
+        addrinfo = await asyncio.get_event_loop().getaddrinfo(hostname, None)
+    except Exception:
+        return False, "Webhook URL hostname could not be resolved"
+
+    if not addrinfo:
+        return False, "Webhook URL hostname could not be resolved"
+
+    for family, _type, _proto, _canonname, sockaddr in addrinfo:
+        if _is_blocked_webhook_ip(sockaddr[0]):
+            return False, "Webhook URL resolves to a private, loopback, or reserved IP address"
+
+    return True, ""
 
 
 async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int]:

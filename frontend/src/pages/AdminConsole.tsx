@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
   Activity,
   Search,
@@ -9,6 +10,7 @@ import {
   Database,
   Server,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import { adminApi } from "../lib/api";
 import { LIVE_MODE } from "../lib/env";
@@ -93,6 +95,24 @@ export default function AdminConsole() {
       adminApi.adjustCredits({ user_id: vars.userId, amount: vars.amount, reason: "admin_adjustment" }),
     onSuccess: () => refetchUsers(),
   });
+
+  const [exporting, setExporting] = useState(false);
+  const handleExportUsers = async () => {
+    setExporting(true);
+    try {
+      const blob = await adminApi.exportUsers(search || undefined);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `forge-users-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to export users");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const builds = buildsData?.builds ?? [];
   const users = usersData?.users ?? [];
@@ -185,15 +205,25 @@ export default function AdminConsole() {
       <section aria-label="Users" className="bg-panel border border-border rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Users</h2>
-          <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" aria-hidden="true" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or email…"
-              className="bg-panel-alt border border-border rounded-lg pl-8 pr-4 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent w-64 transition motion-reduce:transition-none"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" aria-hidden="true" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or email…"
+                className="bg-panel-alt border border-border rounded-lg pl-8 pr-4 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent w-64 transition motion-reduce:transition-none"
+              />
+            </div>
+            <button
+              onClick={handleExportUsers}
+              disabled={exporting}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm text-ink hover:bg-panel-alt focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none disabled:opacity-50 shrink-0"
+            >
+              <Download size={13} aria-hidden="true" />
+              {exporting ? "Exporting…" : "Export CSV"}
+            </button>
           </div>
         </div>
         <div className="overflow-x-auto">

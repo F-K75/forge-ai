@@ -120,7 +120,12 @@ export default function ProjectHistory() {
     projectsApi
       .get(projectId)
       .then((p) => setLiveProjectName(p.name))
-      .catch(() => setLiveProjectName("Unknown project"));
+      .catch(() => {
+        // Previously silent (PROD-016) -- see the identical fix in
+        // WorkspacePage.tsx.
+        toast.error("Couldn't load this project");
+        setLiveProjectName("Unknown project");
+      });
     refreshBuilds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);

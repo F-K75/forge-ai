@@ -1,13 +1,17 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import csv
+import io
 
 from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog
 from core.database import get_db, get_redis
 from core.config import get_settings
 from core.security import sanitize_string
 from api.auth import get_current_user
+from services.credit_alerts import reset_credit_alerts
 
 settings = get_settings()
 
@@ -217,6 +221,72 @@ async def list_users(
         page=page,
         per_page=per_page,
         total_pages=(total + per_page - 1) // per_page
+    )
+
+
+@router.get("/users/export")
+async def export_users(
+    plan: Optional[PlanTier] = Query(None),
+    banned: Optional[bool] = Query(None),
+    search: Optional[str] = Query(None),
+    admin: User = Depends(admin_required),
+):
+    """CSV export of users, matching list_users' filters. Registered ahead of
+    /users/{user_id} so "export" isn't swallowed as a user_id path param.
+    Previously this endpoint didn't exist at all (PROD-003)."""
+    db = await get_db()
+
+    query: Dict[str, Any] = {}
+    if plan:
+        query["plan"] = plan
+    if banned is not None:
+        query["banned"] = banned
+    if search:
+        sanitized = sanitize_string(search, max_length=100)
+        query["$or"] = [
+            {"email": {"$regex": sanitized, "$options": "i"}},
+            {"name": {"$regex": sanitized, "$options": "i"}},
+        ]
+
+    # Capped so a huge user base can't turn this into an unbounded query;
+    # matches the export use case (spot review), not full data warehousing.
+    MAX_EXPORT_ROWS = 10_000
+    cursor = (
+        db.users.find(query, {"_id": 0, "hashed_password": 0})
+        .sort("created_at", -1)
+        .limit(MAX_EXPORT_ROWS)
+    )
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["id", "email", "name", "plan", "credits", "banned", "email_verified", "created_at"])
+    async for doc in cursor:
+        writer.writerow([
+            doc.get("id", ""),
+            doc.get("email", ""),
+            doc.get("name", ""),
+            doc.get("plan", ""),
+            doc.get("credits", ""),
+            doc.get("banned", False),
+            doc.get("email_verified", False),
+            doc.get("created_at", ""),
+        ])
+    buffer.seek(0)
+
+    audit_log = AuditLog(
+        actor_id=admin.id,
+        actor_email=admin.email,
+        action="export_users",
+        resource_type="user",
+        changes={"filters": {"plan": plan, "banned": banned, "search": bool(search)}},
+    )
+    await db.audit_logs.insert_one(audit_log.model_dump())
+
+    filename = f"forge-users-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.csv"
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -628,7 +698,10 @@ async def adjust_credits(
         changes={"old_credits": current_credits, "new_credits": new_credits, "adjustment": req.amount, "reason": req.reason},
     )
     await db.audit_logs.insert_one(audit_log.model_dump())
-    
+
+    if req.amount > 0:
+        await reset_credit_alerts(db, req.user_id)
+
     return {
         "user_id": req.user_id,
         "old_credits": current_credits,

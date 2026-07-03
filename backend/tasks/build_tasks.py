@@ -87,6 +87,11 @@ def run_build(
         build = Build(**build_doc)
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
 
+        project_doc = await db.projects.find_one(
+            {"id": project_id}, {"_id": 0, "template": 1}
+        )
+        template = project_doc.get("template") if project_doc else None
+
         async def emit(event: WSEvent) -> None:
             # Persist before broadcasting so a REST fallback triggered by a client
             # reacting to this event can never observe pre-update state.
@@ -110,6 +115,7 @@ def run_build(
                 sandbox_runner=sandbox,
                 conversation_history=conversation_history,
                 existing_files=existing_files,
+                template=template,
             )
             await db.builds.update_one({"id": build_id}, {"$set": build.model_dump()})
 

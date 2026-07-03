@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useBuildStore } from "../store/buildStore";
 import { useBuildSocket } from "../hooks/useBuildSocket";
 import { runMockBuild } from "../lib/mockEmitter";
@@ -25,20 +26,57 @@ export default function WorkspacePage() {
     LIVE_MODE ? null : PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0]
   );
 
+  // Guards against creating a duplicate project if this effect re-runs
+  // (e.g. React StrictMode's double-invoke in dev) while projectId is "new".
+  const creatingNewProject = useRef(false);
+
   useEffect(() => {
     if (!LIVE_MODE || !projectId) return;
     let cancelled = false;
+
+    if (projectId === "new") {
+      // Arriving here (from Onboarding, or a starter chip in demo mode)
+      // means no real project exists yet -- this used to fall through to
+      // a fake {id: "new", ...} placeholder, and the build-creation call
+      // right after it would 404 against a project that was never actually
+      // created. Create the real project first (PROD-002).
+      if (creatingNewProject.current) return;
+      creatingNewProject.current = true;
+
+      const incoming = location.state as { prompt?: string; template?: string } | null;
+      const description = incoming?.prompt?.trim() ?? "";
+      const name = description ? description.slice(0, 60) : "Untitled project";
+      projectsApi
+        .create({ name, description, template: incoming?.template })
+        .then((p) => {
+          if (!cancelled) setProject({ id: p.id, name: p.name });
+        })
+        .catch(() => {
+          if (!cancelled) toast.error("Failed to create project");
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     projectsApi
       .get(projectId)
       .then((p) => {
         if (!cancelled) setProject({ id: p.id, name: p.name });
       })
       .catch(() => {
-        if (!cancelled) setProject({ id: projectId, name: "Unknown project" });
+        // Previously silent (PROD-016) -- a failed fetch (network error,
+        // permissions, deleted project) rendered an "Unknown project"
+        // placeholder with no indication anything had gone wrong.
+        if (!cancelled) {
+          toast.error("Couldn't load this project");
+          setProject({ id: projectId, name: "Unknown project" });
+        }
       });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const [buildId, setBuildId] = useState<string | null>(null);

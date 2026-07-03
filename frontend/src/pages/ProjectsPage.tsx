@@ -45,18 +45,18 @@ export default function ProjectsPage() {
 
   const projects = LIVE_MODE ? liveProjects ?? [] : PROJECTS;
 
-  const handleBuild = async (initialPrompt?: string) => {
+  const handleBuild = async (initialPrompt?: string, template?: string) => {
     const trimmed = (initialPrompt ?? prompt).trim();
 
     if (!LIVE_MODE) {
-      navigate("/build/new", trimmed ? { state: { prompt: trimmed } } : undefined);
+      navigate("/build/new", trimmed ? { state: { prompt: trimmed, template } } : undefined);
       return;
     }
 
     setCreating(true);
     try {
       const name = trimmed ? trimmed.slice(0, 60) : "Untitled project";
-      const project = await projectsApi.create({ name, description: trimmed });
+      const project = await projectsApi.create({ name, description: trimmed, template });
       navigate(`/build/${project.id}`, trimmed ? { state: { prompt: trimmed } } : undefined);
     } catch {
       toast.error("Failed to create project");
@@ -119,7 +119,7 @@ export default function ProjectsPage() {
               <button
                 key={starter.label}
                 role="listitem"
-                onClick={() => handleBuild(starter.label)}
+                onClick={() => handleBuild(starter.label, starter.label)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border-soft hover:border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none"
                 style={{ color: starter.hue, background: `${starter.hue}14` }}
               >

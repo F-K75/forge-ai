@@ -356,7 +356,7 @@ async def get_deployment_url(
         port = 8000 + (
             int(hashlib.sha256(deployment_id.encode()).hexdigest(), 16) % 1000
         )
-        url = f"http://localhost:{port}"
+        url = f"http://{settings.deployment_host}:{port}"
 
     return DeploymentUrlResponse(url=url)
 
@@ -509,7 +509,7 @@ async def _run_deployment_background(
                 return port, "\n".join(build_logs)
 
             port, build_logs = await asyncio.to_thread(build_and_run)
-            container_url = f"http://localhost:{port}"
+            container_url = f"http://{settings.deployment_host}:{port}"
 
             await db.deployments.update_one(
                 {"id": deployment.id},

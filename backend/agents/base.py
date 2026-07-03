@@ -3,7 +3,7 @@ import re
 import anthropic
 from core.config import get_settings
 from core.models import AgentType, WSEvent, WSEventType
-from core.ai_usage import track_usage
+from core.ai_usage import track_usage, calculate_cost, check_budget
 from core.security import sanitize_prompt
 import asyncio
 import logging
@@ -116,6 +116,9 @@ class BaseAgent:
         if not _llm_circuit_breaker.can_call():
             raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
 
+        if user_id:
+            await check_budget(user_id, org_id=org_id)
+
         # Sanitize user messages
         sanitized_messages = []
         for msg in messages:
@@ -152,22 +155,28 @@ class BaseAgent:
             _llm_circuit_breaker.record_success()
 
             # Track token usage
+            cached_tokens = 0
             if hasattr(stream, "response") and hasattr(stream.response, "usage"):
                 usage = stream.response.usage
                 prompt_tokens = getattr(usage, "input_tokens", 0) or 0
                 completion_tokens = getattr(usage, "output_tokens", 0) or 0
+                cached_tokens = getattr(usage, "cache_read_input_tokens", 0) or 0
 
             if user_id and (prompt_tokens + completion_tokens > 0):
                 try:
+                    cost_usd = calculate_cost(
+                        self.model, prompt_tokens, completion_tokens, cached_tokens=cached_tokens
+                    )
                     await track_usage(
                         user_id=user_id,
                         build_id=build_id,
                         model=self.model,
                         prompt_tokens=prompt_tokens,
                         completion_tokens=completion_tokens,
-                        cost_usd=0.0,
+                        cost_usd=cost_usd,
                         org_id=org_id,
                         project_id=project_id,
+                        cached_tokens=cached_tokens,
                     )
                 except Exception:
                     logger.exception("Failed to track LLM usage")
@@ -187,6 +196,9 @@ class BaseAgent:
     ) -> AsyncGenerator[str, None]:
         if not _llm_circuit_breaker.can_call():
             raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
+
+        if user_id:
+            await check_budget(user_id, org_id=org_id)
 
         sanitized_messages = []
         for msg in messages:
@@ -220,22 +232,28 @@ class BaseAgent:
                     yield text
             _llm_circuit_breaker.record_success()
 
+            cached_tokens = 0
             if hasattr(stream, "response") and hasattr(stream.response, "usage"):
                 usage = stream.response.usage
                 prompt_tokens = getattr(usage, "input_tokens", 0) or 0
                 completion_tokens = getattr(usage, "output_tokens", 0) or 0
+                cached_tokens = getattr(usage, "cache_read_input_tokens", 0) or 0
 
             if user_id and (prompt_tokens + completion_tokens > 0):
                 try:
+                    cost_usd = calculate_cost(
+                        self.model, prompt_tokens, completion_tokens, cached_tokens=cached_tokens
+                    )
                     await track_usage(
                         user_id=user_id,
                         build_id=build_id,
                         model=self.model,
                         prompt_tokens=prompt_tokens,
                         completion_tokens=completion_tokens,
-                        cost_usd=0.0,
+                        cost_usd=cost_usd,
                         org_id=org_id,
                         project_id=project_id,
+                        cached_tokens=cached_tokens,
                     )
                 except Exception:
                     logger.exception("Failed to track LLM usage")

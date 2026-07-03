@@ -48,6 +48,8 @@ services:
       - APP_URL=https://${DOMAIN:?}
       - API_URL=https://${DOMAIN:?}/api
       - ALLOWED_ORIGINS=https://${DOMAIN:?}
+      # Host that deployed-app preview containers are reachable at (PROD-004)
+      - DEPLOYMENT_HOST=${DOMAIN:?}
       # localhost stays allowed for the container healthcheck
       - ALLOWED_HOSTS=${DOMAIN:?},localhost
       - TRUSTED_PROXIES=127.0.0.1,::1,172.28.0.0/16
@@ -75,6 +77,12 @@ services:
   worker:
     image: ghcr.io/${GHCR_OWNER:?}/forge-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    # Celery's SIGTERM handler already does a warm shutdown (finish in-flight
+    # tasks, stop accepting new ones), but Compose's default 10s grace period
+    # was far shorter than a single build can take (build_timeout is 600s),
+    # so `docker compose stop`/a deploy would still SIGKILL a worker
+    # mid-build regardless (BE-005).
+    stop_grace_period: 630s
     command: ["celery", "-A", "celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "celery,deployment,build"]
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?}

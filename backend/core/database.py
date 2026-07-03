@@ -23,6 +23,12 @@ async def get_db():
                     settings.mongodb_url,
                     maxPoolSize=50,
                     minPoolSize=10,
+                    # Previously unset (INF-008): a request that couldn't
+                    # get a pooled connection would wait indefinitely instead
+                    # of failing fast, and idle connections were never
+                    # recycled.
+                    maxIdleTimeMS=60_000,
+                    waitQueueTimeoutMS=10_000,
                     serverSelectionTimeoutMS=5000,
                     connectTimeoutMS=10000,
                 )
@@ -153,8 +159,15 @@ async def cache_set(key: str, value: str, ttl: int = 300) -> None:
 async def get_redis():
     global _redis_client
     if _redis_client is None:
+        # Same gap as Mongo's pool (INF-008): no connection cap and no
+        # timeouts meant a hung Redis connection could block a request
+        # forever, and the pool could grow unbounded under load.
         _redis_client = Redis.from_url(
-            settings.redis_url, decode_responses=True
+            settings.redis_url,
+            decode_responses=True,
+            max_connections=50,
+            socket_connect_timeout=5,
+            socket_timeout=5,
         )
     return _redis_client
 

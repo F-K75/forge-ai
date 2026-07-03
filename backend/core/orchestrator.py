@@ -1,5 +1,5 @@
 import json
-from typing import Callable
+from typing import Callable, Optional
 from datetime import datetime
 
 from agents.architect import ArchitectAgent
@@ -34,6 +34,7 @@ class Orchestrator:
         sandbox_runner=None,
         conversation_history: list = None,
         existing_files: dict = None,
+        template: Optional[str] = None,
     ) -> tuple[Build, dict]:
 
         """
@@ -66,6 +67,7 @@ class Orchestrator:
                 user_id=build.user_id,
                 build_id=build.id,
                 project_id=build.project_id,
+                template=template,
             )
             await self._complete_agent(build, AgentType.ARCHITECT, emit, output=json.dumps(blueprint))
 
@@ -143,17 +145,16 @@ class Orchestrator:
             ))
 
             new_files = files_result.get("files", {})
-            delta = {"changed": new_files, "deleted": []}
+            # Previously followed by a second FILE_UPDATE shaped {"files":
+            # files} -- the frontend's file_update handler only ever
+            # understood that shape, not this one, so this delta event was
+            # silently dropped by parseWSEvent's validation and the
+            # redundant full-dict event was doing all the real work (WS-002).
+            # Both sides now agree on the delta shape; see wsContract.ts.
             await emit(WSEvent(
                 type=WSEventType.FILE_UPDATE,
                 build_id=build.id,
-                data={"delta": delta}
-            ))
-
-            await emit(WSEvent(
-                type=WSEventType.FILE_UPDATE,
-                build_id=build.id,
-                data={"files": files}
+                data={"delta": {"changed": new_files, "deleted": []}}
             ))
 
 
@@ -262,6 +263,9 @@ class Orchestrator:
             build.status = BuildStatus.SUCCESS
             build.completed_at = datetime.utcnow()
 
+            # BUILD_COMPLETE already carries the full final `files` state
+            # below -- a trailing FILE_UPDATE re-sending everything as a
+            # "changed" delta was pure duplicate work.
             await emit(WSEvent(
                 type=WSEventType.BUILD_COMPLETE,
                 build_id=build.id,
@@ -271,12 +275,6 @@ class Orchestrator:
                     "credits_used": build.credits_used,
                     "business_model": build.business_model,
                 }
-            ))
-
-            await emit(WSEvent(
-                type=WSEventType.FILE_UPDATE,
-                build_id=build.id,
-                data={"delta": {"changed": files, "deleted": []}}
             ))
 
 

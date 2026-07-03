@@ -1,4 +1,5 @@
 import React, { Component, type ReactNode } from 'react'
+import * as Sentry from '@sentry/react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 interface Props {
@@ -23,6 +24,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo)
+    // No-ops safely if Sentry.init() was never called (VITE_SENTRY_DSN
+    // unset) -- see lib/sentry.ts (INF-006).
+    Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } })
   }
 
   handleRetry = () => {

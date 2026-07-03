@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     # App
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
+    # Public host/IP that deployed-app preview containers are reachable at.
+    # Containers are host-network-port-mapped (see api/deployments.py), so
+    # this only needs to be a real value in production -- "localhost" is
+    # correct when the browser and backend are on the same machine (PROD-004).
+    deployment_host: str = "localhost"
     # Union with str lets pydantic-settings fall back to the raw env value when
     # it isn't JSON, so both JSON arrays and comma-separated strings work
     allowed_origins: list[str] | str = ["http://localhost:3000", "http://localhost:5173"]

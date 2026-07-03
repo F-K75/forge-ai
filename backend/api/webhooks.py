@@ -6,6 +6,7 @@ import secrets
 
 from core.models import User
 from core.database import get_db
+from core.security import validate_webhook_url
 from api.auth import get_current_user
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -36,8 +37,12 @@ async def create_webhook(
     req: WebhookCreateRequest,
     current_user: User = Depends(get_current_user)
 ):
+    valid, error = await validate_webhook_url(req.url)
+    if not valid:
+        raise HTTPException(status_code=400, detail=error)
+
     db = await get_db()
-    
+
     webhook = {
         "id": f"wh_{secrets.token_urlsafe(16)}",
         "user_id": current_user.id,

@@ -9,29 +9,39 @@ import httpx
 
 from core.config import get_settings
 from core.database import get_db, get_redis
+from core.security import validate_webhook_url
 
 settings = get_settings()
 
 
 async def deliver_webhook(url: str, payload: Dict[str, Any], secret: str) -> bool:
-    """Deliver a webhook to a URL with HMAC signature."""
+    """Deliver a webhook to a URL with HMAC signature.
+
+    Re-validates the URL against SSRF at delivery time (not just at creation
+    time) since DNS can change between when a webhook is registered and when
+    it's actually delivered.
+    """
+    valid, _error = await validate_webhook_url(url)
+    if not valid:
+        return False
+
     timestamp = str(int(datetime.utcnow().timestamp()))
     body = json.dumps(payload, separators=(",", ":"))
-    
+
     signature = hmac.new(
         secret.encode(),
         f"{timestamp}.{body}".encode(),
         hashlib.sha256
     ).hexdigest()
-    
+
     headers = {
         "Content-Type": "application/json",
         "X-Forge-Timestamp": timestamp,
         "X-Forge-Signature": f"v1={signature}",
     }
-    
+
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
             response = await client.post(url, data=body, headers=headers)
             return response.status_code in (200, 201, 204)
     except Exception:

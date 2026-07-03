@@ -209,10 +209,19 @@ export const useBuildStore = create<BuildState>((set, get) => ({
         }
 
         case 'file_update': {
-          const paths = Object.keys(data.files)
+          // Was `data.files` (WS-002) -- the backend only ever sent that
+          // shape once per build (right after the Developer agent); every
+          // debug-loop patch used data.delta instead, which this handler
+          // didn't understand, so parseWSEvent silently dropped those
+          // events and patched files never reached the editor.
+          const { changed, deleted } = data.delta
+          const changedPaths = Object.keys(changed)
+          const files = { ...state.files, ...changed }
+          for (const path of deleted) delete files[path]
+          const lastTouched = changedPaths[changedPaths.length - 1] ?? deleted[deleted.length - 1]
           return {
-            files: { ...state.files, ...data.files },
-            openFile: paths.length > 0 ? paths[paths.length - 1] : state.openFile,
+            files,
+            openFile: lastTouched ?? state.openFile,
             streamBuffer: '',
           }
         }

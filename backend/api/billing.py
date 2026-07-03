@@ -5,9 +5,35 @@ from datetime import datetime
 import stripe
 
 from core.config import get_settings
-from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus
+from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus, AuditLog
 from core.database import get_db
 from api.auth import get_current_user
+from services.credit_alerts import reset_credit_alerts
+
+# Actor identity for audit_logs entries written by Stripe webhook handlers --
+# these are system-triggered changes, not made by a logged-in human, so
+# there's no real user to attribute them to as the actor (see BE-017).
+_STRIPE_WEBHOOK_ACTOR_ID = "stripe_webhook"
+_STRIPE_WEBHOOK_ACTOR_EMAIL = "system+stripe-webhook@forge.internal"
+
+
+async def _log_billing_event(db: Any, action: str, user_id: Optional[str], changes: Dict[str, Any]) -> None:
+    """Audit-log a billing state change driven by a Stripe webhook.
+
+    Billing webhook handlers grant credits and change plans/subscription
+    status with real business consequences, but previously had zero audit
+    trail -- unlike admin-initiated credit/plan changes, which were already
+    logged (see api/admin.py). Fixed as BE-017.
+    """
+    audit_log = AuditLog(
+        actor_id=_STRIPE_WEBHOOK_ACTOR_ID,
+        actor_email=_STRIPE_WEBHOOK_ACTOR_EMAIL,
+        action=action,
+        resource_type="user",
+        resource_id=user_id,
+        changes=changes,
+    )
+    await db.audit_logs.insert_one(audit_log.model_dump())
 
 settings = get_settings()
 stripe.api_key = settings.stripe_secret_key
@@ -293,6 +319,11 @@ async def handle_checkout_completed(db: Any, session: Dict[str, Any]):
     plan_details = next((p for p in PLAN_DETAILS if p["tier"] == plan_tier), None)
     if plan_details:
         await db.users.update_one({"id": user_id}, {"$set": {"plan": plan_tier, "credits": plan_details["credits"]}})
+        await _log_billing_event(
+            db, "stripe_checkout_completed", user_id,
+            {"subscription_id": subscription_id, "plan": plan_tier, "credits_granted": plan_details["credits"]},
+        )
+        await reset_credit_alerts(db, user_id)
 
 
 async def handle_subscription_updated(db: Any, sub: Dict[str, Any]):
@@ -316,6 +347,10 @@ async def handle_subscription_updated(db: Any, sub: Dict[str, Any]):
         plan_details = next((p for p in PLAN_DETAILS if p["tier"] == plan_tier), None)
         if plan_details:
             await db.users.update_one({"id": sub_doc["user_id"]}, {"$set": {"plan": plan_tier}})
+        await _log_billing_event(
+            db, "stripe_subscription_updated", sub_doc["user_id"],
+            {"subscription_id": subscription_id, "plan": plan_tier, "status": sub["status"]},
+        )
 
 
 async def handle_subscription_deleted(db: Any, sub: Dict[str, Any]):
@@ -328,6 +363,10 @@ async def handle_subscription_deleted(db: Any, sub: Dict[str, Any]):
     sub_doc = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0, "user_id": 1})
     if sub_doc:
         await db.users.update_one({"id": sub_doc["user_id"]}, {"$set": {"plan": PlanTier.FREE}})
+        await _log_billing_event(
+            db, "stripe_subscription_deleted", sub_doc["user_id"],
+            {"subscription_id": subscription_id, "downgraded_to": PlanTier.FREE},
+        )
 
 
 async def handle_invoice_payment_succeeded(db: Any, invoice: Dict[str, Any]):
@@ -336,6 +375,11 @@ async def handle_invoice_payment_succeeded(db: Any, invoice: Dict[str, Any]):
         {"stripe_invoice_id": stripe_invoice_id},
         {"$set": {"status": "paid"}},
     )
+    invoice_doc = await db.invoices.find_one({"stripe_invoice_id": stripe_invoice_id}, {"_id": 0, "user_id": 1})
+    await _log_billing_event(
+        db, "stripe_invoice_payment_succeeded", invoice_doc["user_id"] if invoice_doc else None,
+        {"stripe_invoice_id": stripe_invoice_id},
+    )
 
 
 async def handle_invoice_payment_failed(db: Any, invoice: Dict[str, Any]):
@@ -343,6 +387,11 @@ async def handle_invoice_payment_failed(db: Any, invoice: Dict[str, Any]):
     await db.invoices.update_one(
         {"stripe_invoice_id": stripe_invoice_id},
         {"$set": {"status": "payment_failed"}},
+    )
+    invoice_doc = await db.invoices.find_one({"stripe_invoice_id": stripe_invoice_id}, {"_id": 0, "user_id": 1})
+    await _log_billing_event(
+        db, "stripe_invoice_payment_failed", invoice_doc["user_id"] if invoice_doc else None,
+        {"stripe_invoice_id": stripe_invoice_id},
     )
 
 
@@ -576,15 +625,22 @@ async def handle_payment_webhook(request: Request, stripe_signature: str = Heade
         if purchase:
             user_id = purchase.get("user_id")
             credits = purchase.get("credits", 0)
-            
+
             await db.credit_purchases.update_one(
                 {"stripe_payment_intent_id": intent["id"]},
                 {"$set": {"status": "completed"}}
             )
-            
+
             await db.users.update_one(
                 {"id": user_id},
                 {"$inc": {"credits": credits}}
             )
-    
+            # Same gap as the other billing webhook handlers (BE-017): this
+            # one grants credits too and had zero audit trail.
+            await _log_billing_event(
+                db, "stripe_credit_purchase_completed", user_id,
+                {"stripe_payment_intent_id": intent["id"], "credits_granted": credits},
+            )
+            await reset_credit_alerts(db, user_id)
+
     return {"status": "ok"}

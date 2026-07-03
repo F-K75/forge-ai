@@ -1,8 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import asyncio
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 from api.builds import router as builds_router
 from api.projects import router as projects_router
@@ -18,10 +23,31 @@ from api.gdpr import router as gdpr_router
 from api.deployments import router as deployments_router
 from core.database import close_connections
 from core.config import get_settings
-from core.security import rate_limit_middleware, request_size_limit_middleware, csrf_protection_middleware
+from core.security import (
+    rate_limit_middleware,
+    request_size_limit_middleware,
+    csrf_protection_middleware,
+    request_id_middleware,
+    RequestIdLogFilter,
+)
 from services.ws_manager import manager as ws_manager
 
 settings = get_settings()
+
+# Correlation ID (BE-008): every log line now carries the request that
+# produced it, via RequestIdLogFilter reading request_id_middleware's
+# contextvar. Falls back to "-" for log lines emitted outside a request
+# (startup, Celery tasks, etc.) rather than a KeyError from the missing field.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s",
+)
+# Attached to the handler, not the root logger itself -- a filter on the
+# logger object only fires for records logged directly through it, while
+# every module's `logging.getLogger(__name__)` pattern reaches the root
+# logger's *handlers* via propagation, bypassing the logger-level filter.
+for _handler in logging.getLogger().handlers:
+    _handler.addFilter(RequestIdLogFilter())
 
 # Prometheus metrics
 try:
@@ -74,6 +100,24 @@ if settings.sentry_dsn:
         traces_sample_rate=0.1,
     )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch anything that escapes a route handler (a real bug, not an
+    intentional HTTPException -- FastAPI's built-in handler for those takes
+    precedence via its more specific type match, so this only fires for the
+    unexpected) with a consistent JSON body instead of Starlette's default
+    plain-text 500, and make sure it's actually logged and reported
+    somewhere centralized rather than only ever reaching a server's stdout
+    (BE-002).
+    """
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    if settings.sentry_dsn:
+        import sentry_sdk
+        sentry_sdk.capture_exception(exc)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
 # Add trusted host middleware to prevent host header attacks
 app.add_middleware(
     TrustedHostMiddleware,
@@ -112,8 +156,13 @@ if PROMETHEUS_ENABLED:
             method=request.method,
             endpoint=request.url.path
         ).observe(duration)
-        
+
         return response
+
+# Registered last so it's the outermost layer -- the request ID needs to be
+# set before every other middleware and the route handler run, so all of
+# their log lines get tagged with it too (BE-008).
+app.middleware("http")(request_id_middleware)
 
 app.include_router(auth_router)
 app.include_router(builds_router)
@@ -136,10 +185,10 @@ async def health():
 
 @app.get("/health/detailed")
 async def health_detailed():
-    """Detailed health check including database and redis connectivity."""
+    """Detailed health check including database, redis, and Celery worker connectivity."""
     from core.database import get_db, get_redis
     health_status = {"status": "ok", "checks": {}}
-    
+
     try:
         db = await get_db()
         await db.command("ping")
@@ -147,7 +196,7 @@ async def health_detailed():
     except Exception as e:
         health_status["checks"]["database"] = f"error: {str(e)}"
         health_status["status"] = "degraded"
-    
+
     try:
         redis = await get_redis()
         await redis.ping()
@@ -155,7 +204,25 @@ async def health_detailed():
     except Exception as e:
         health_status["checks"]["redis"] = f"error: {str(e)}"
         health_status["status"] = "degraded"
-    
+
+    try:
+        from celery_app import celery_app
+        # control.inspect().ping() is a blocking network round-trip to any
+        # live workers -- run off the event loop so a slow/absent worker
+        # doesn't stall this request (BE-011: previously neither /health nor
+        # /health/detailed checked Celery at all).
+        pong = await asyncio.to_thread(
+            lambda: celery_app.control.inspect(timeout=1.0).ping()
+        )
+        if pong:
+            health_status["checks"]["celery"] = f"ok ({len(pong)} worker(s))"
+        else:
+            health_status["checks"]["celery"] = "error: no workers responded"
+            health_status["status"] = "degraded"
+    except Exception as e:
+        health_status["checks"]["celery"] = f"error: {str(e)}"
+        health_status["status"] = "degraded"
+
     return health_status
 
 

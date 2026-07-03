@@ -86,7 +86,7 @@ export const authApi = {
 export const projectsApi = {
   list: () => api.get('/projects/').then(r => r.data),
   get: (id: string) => api.get(`/projects/${id}`).then(r => r.data),
-  create: (data: { name: string; description?: string }) =>
+  create: (data: { name: string; description?: string; template?: string }) =>
     api.post('/projects/', data).then(r => r.data),
   update: (id: string, data: any) =>
     api.put(`/projects/${id}`, data).then(r => r.data),
@@ -180,4 +180,8 @@ export const adminApi = {
   listBuilds: () => api.get('/admin/builds', { params: { per_page: 20 } }).then(r => r.data),
   adjustCredits: (data: { user_id: string; amount: number; reason: string }) =>
     api.post('/admin/billing/adjust', data).then(r => r.data),
+  exportUsers: (search?: string) =>
+    api
+      .get('/admin/users/export', { params: { search }, responseType: 'blob' })
+      .then(r => r.data as Blob),
 }

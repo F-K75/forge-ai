@@ -24,6 +24,7 @@ from api.auth import get_current_user
 from core.config import get_settings
 from core.security import sanitize_prompt
 from core.permissions import has_build_access
+from services.credit_alerts import check_and_send_credit_alerts
 
 router = APIRouter(prefix="/builds", tags=["builds"])
 orchestrator = Orchestrator()
@@ -102,6 +103,10 @@ async def create_build(
     )
     if not reserved:
         raise HTTPException(status_code=402, detail="Insufficient credits")
+
+    await check_and_send_credit_alerts(
+        db, current_user.id, reserved.get("plan", "free"), reserved["credits"]
+    )
 
     # Build deduplication: prevent duplicate builds for the same project within 30 seconds
     thirty_seconds_ago = datetime.utcnow() - timedelta(seconds=30)

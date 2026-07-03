@@ -21,7 +21,10 @@ export type AgentStartEvent = WSEventBase<'agent_start', { agent: string }>
 export type AgentUpdateEvent = WSEventBase<'agent_update', { agent?: string; message: string }>
 export type AgentProgressEvent = WSEventBase<'agent_progress', { agent?: string; progress?: number; message?: string }>
 export type AgentCompleteEvent = WSEventBase<'agent_complete', { agent: string; files_changed?: string[] }>
-export type FileUpdateEvent = WSEventBase<'file_update', { files: Record<string, string> }>
+export type FileUpdateEvent = WSEventBase<
+  'file_update',
+  { delta: { changed: Record<string, string>; deleted: string[] }; debug_iteration?: number }
+>
 export type BuildCompleteEvent = WSEventBase<
   'build_complete',
   {
@@ -100,7 +103,11 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
       if (!isRecord(data) || !isString((data as any).agent)) return null
       return raw as AgentCompleteEvent
     case WS_EVENT_TYPES.file_update:
-      if (!isRecord(data) || !isRecord((data as any).files)) return null
+      // Previously required data.files, which the backend stopped sending
+      // in favor of data.delta -- that mismatch meant every delta-shaped
+      // file_update (every debug-loop patch) was silently dropped right
+      // here, and patched files never reached the editor (WS-002).
+      if (!isRecord(data) || !isRecord((data as any).delta) || !isRecord((data as any).delta.changed)) return null
       return raw as FileUpdateEvent
     case WS_EVENT_TYPES.build_complete:
       if (!isRecord(data)) return null

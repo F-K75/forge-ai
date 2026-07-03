@@ -64,6 +64,26 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr = Field(max_length=255)
 
 
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr = Field(max_length=255)
+
+
+def _send_verification_email(email: str, verification_token: str) -> None:
+    if not settings.resend_api_key:
+        return
+    try:
+        resend.api_key = settings.resend_api_key
+        verify_link = f"{settings.app_url}/verify-email?token={verification_token}"
+        resend.Emails.send({
+            "from": settings.from_email,
+            "to": email,
+            "subject": "Verify your Forge account",
+            "html": f"<p>Click <a href=\"{verify_link}\">here</a> to verify your email. This link expires in 24 hours.</p>",
+        })
+    except Exception:
+        logging.exception("Failed to send verification email")
+
+
 class ResetPasswordRequest(BaseModel):
     token: str = Field(max_length=255)
     new_password: str = Field(max_length=128)
@@ -241,18 +261,7 @@ async def register(req: RegisterRequest, response: Response):
         {"$set": {"verification_token": hashed_token, "verification_expires": expires}},
     )
 
-    if settings.resend_api_key:
-        try:
-            resend.api_key = settings.resend_api_key
-            verify_link = f"{settings.app_url}/verify-email?token={verification_token}"
-            resend.Emails.send({
-                "from": settings.from_email,
-                "to": req.email,
-                "subject": "Verify your Forge account",
-                "html": f"<p>Click <a href=\"{verify_link}\">here</a> to verify your email. This link expires in 24 hours.</p>",
-            })
-        except Exception:
-            logging.exception("Failed to send verification email")
+    _send_verification_email(req.email, verification_token)
 
     access_token = create_access_token({"sub": user.id, "email": user.email})
     refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
@@ -278,6 +287,14 @@ async def register(req: RegisterRequest, response: Response):
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, response: Response):
     db = await get_db()
+
+    allowed, remaining = await check_email_rate_limit(req.email, "login", db)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts for this account. Please try again later.",
+        )
+
     user_doc = await db.users.find_one({"email": req.email}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -578,6 +595,38 @@ async def verify_email(token: str):
     return {"ok": True}
 
 
+@router.post("/resend-verification")
+async def resend_verification(req: ResendVerificationRequest):
+    """Send a new verification email. Needed because the original one may
+    never have arrived (RESEND_API_KEY unconfigured, spam filter, expired
+    24h token) with no other way to get a fresh link -- builds are blocked
+    for unverified users with no recovery path otherwise (part of PROD-005).
+    """
+    db = await get_db()
+
+    allowed, remaining = await check_email_rate_limit(req.email, "resend_verification", db)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many verification requests. Please try again later.",
+        )
+
+    user_doc = await db.users.find_one({"email": req.email}, {"_id": 0})
+    if user_doc and not user_doc.get("email_verified"):
+        verification_token = uuid.uuid4().hex
+        hashed_token = _hash_token(verification_token)
+        expires = datetime.utcnow() + timedelta(hours=24)
+        await db.users.update_one(
+            {"email": req.email},
+            {"$set": {"verification_token": hashed_token, "verification_expires": expires}},
+        )
+        _send_verification_email(req.email, verification_token)
+
+    # Same response whether the account exists, is already verified, or
+    # doesn't exist at all -- avoids leaking which via response differences.
+    return {"ok": True}
+
+
 # --- Organization Endpoints ---
 
 
@@ -599,6 +648,10 @@ class OrganizationResponse(BaseModel):
 class InviteMemberRequest(BaseModel):
     email: EmailStr
     role: Role = Role.MEMBER
+
+
+class UpdateMemberRoleRequest(BaseModel):
+    role: Role
 
 
 @router.post("/organizations", response_model=OrganizationResponse)
@@ -802,3 +855,112 @@ async def list_members(org_id: str, user: User = Depends(get_current_user)):
         }
         for m in members
     ]
+
+
+@router.put("/organizations/{org_id}/members/{member_id}/role")
+async def update_member_role(
+    org_id: str,
+    member_id: str,
+    req: UpdateMemberRoleRequest,
+    user: User = Depends(get_current_user),
+):
+    """Change a team member's role. Previously there was no way to do this at
+    all -- only invite/list/accept existed -- so a member's permissions could
+    never be adjusted after the fact short of removing and re-inviting them
+    (BE-018)."""
+    db = await get_db()
+
+    membership = await db.team_members.find_one(
+        {"org_id": org_id, "user_id": user.id}, {"_id": 0}
+    )
+    if not membership or membership["role"] not in (Role.OWNER, Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    org = await db.organizations.find_one({"id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    target = await db.team_members.find_one(
+        {"id": member_id, "org_id": org_id}, {"_id": 0}
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if target["user_id"] == org["owner_id"]:
+        raise HTTPException(
+            status_code=400, detail="Cannot change the organization owner's role"
+        )
+    if req.role == Role.OWNER:
+        raise HTTPException(
+            status_code=400,
+            detail="Ownership transfer is not supported via this endpoint",
+        )
+
+    old_role = target["role"]
+    await db.team_members.update_one(
+        {"id": member_id}, {"$set": {"role": req.role}}
+    )
+
+    audit_log = AuditLog(
+        actor_id=user.id,
+        actor_email=user.email,
+        action="update_member_role",
+        resource_type="team_member",
+        resource_id=member_id,
+        changes={"org_id": org_id, "old_role": old_role, "new_role": req.role},
+    )
+    await db.audit_logs.insert_one(audit_log.model_dump())
+
+    return {"ok": True}
+
+
+@router.delete("/organizations/{org_id}/members/{member_id}")
+async def remove_member(
+    org_id: str, member_id: str, user: User = Depends(get_current_user)
+):
+    """Remove a team member from an organization, or leave it yourself.
+    Previously there was no way to revoke a member's access at all short of
+    deleting the whole organization -- a compromised or departing team
+    member's access could never be revoked via the API (BE-018)."""
+    db = await get_db()
+
+    requester_membership = await db.team_members.find_one(
+        {"org_id": org_id, "user_id": user.id}, {"_id": 0}
+    )
+    if not requester_membership:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    org = await db.organizations.find_one({"id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    target = await db.team_members.find_one(
+        {"id": member_id, "org_id": org_id}, {"_id": 0}
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    is_self_removal = target["user_id"] == user.id
+    is_admin_or_owner = requester_membership["role"] in (Role.OWNER, Role.ADMIN)
+    if not (is_self_removal or is_admin_or_owner):
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if target["user_id"] == org["owner_id"]:
+        raise HTTPException(
+            status_code=400,
+            detail="The organization owner cannot be removed; transfer ownership first",
+        )
+
+    await db.team_members.delete_one({"id": member_id})
+
+    audit_log = AuditLog(
+        actor_id=user.id,
+        actor_email=user.email,
+        action="leave_organization" if is_self_removal else "remove_member",
+        resource_type="team_member",
+        resource_id=member_id,
+        changes={"org_id": org_id, "removed_user_id": target["user_id"]},
+    )
+    await db.audit_logs.insert_one(audit_log.model_dump())
+
+    return {"ok": True}

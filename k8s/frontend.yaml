@@ -23,7 +23,9 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: forge-frontend:latest
+        # See k8s/backend.yaml's image comment -- same GHCR_OWNER placeholder
+        # and pinning guidance applies here.
+        image: ghcr.io/GHCR_OWNER/forge-frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3000

@@ -1,5 +1,6 @@
 from agents.base import BaseAgent
 from core.models import AgentType
+from typing import Optional
 import json
 
 
@@ -49,13 +50,26 @@ Rules:
 - Output ONLY the JSON. No prose, no markdown, no explanation.
 """
 
-    async def blueprint(self, prompt: str, conversation_history: list = None, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
+    async def blueprint(self, prompt: str, conversation_history: list = None, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None, template: Optional[str] = None) -> dict:
         messages = []
         if conversation_history:
             messages.extend(conversation_history)
         messages.append({"role": "user", "content": f"App idea: {prompt}"})
 
-        response = await self.run(messages, max_tokens=4096, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
+        # The project's chosen starter/template (e.g. "SaaS dashboard") was
+        # previously stored on the project but never actually influenced
+        # generation anywhere in the pipeline (PROD-002). Passed as system
+        # context rather than folded into the stored prompt so it doesn't
+        # show up as text the user never actually typed.
+        extra_system = (
+            f"The user picked the '{template}' starter template for this project. "
+            "Lean into the conventions and typical features of that kind of app "
+            "unless the app idea below says otherwise."
+            if template
+            else ""
+        )
+
+        response = await self.run(messages, extra_system=extra_system, max_tokens=4096, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
 
         clean = response.strip()
         if clean.startswith("```"):

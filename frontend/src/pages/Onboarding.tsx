@@ -46,7 +46,7 @@ export default function Onboarding() {
   const handlePrimary = () => {
     if (step === 3) {
       const prompt = goal ? GOAL_STARTER_PROMPTS[goal] : undefined;
-      navigate("/build/new", prompt ? { state: { prompt } } : undefined);
+      navigate("/build/new", prompt ? { state: { prompt, template: goal } } : undefined);
     } else {
       setStep((s) => Math.min(s + 1, 3));
     }

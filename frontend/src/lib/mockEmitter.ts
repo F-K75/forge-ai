@@ -113,11 +113,14 @@ function buildTimeline(buildId: string): ScheduledEvent[] {
     ...base,
     type: 'file_update',
     data: {
-      files: {
-        'src/App.tsx': APP_FILE,
-        'src/main.tsx': MAIN_FILE,
-        'src/styles.css': STYLES_FILE,
-        'src/components/Counter.tsx': COUNTER_FILE_V1,
+      delta: {
+        changed: {
+          'src/App.tsx': APP_FILE,
+          'src/main.tsx': MAIN_FILE,
+          'src/styles.css': STYLES_FILE,
+          'src/components/Counter.tsx': COUNTER_FILE_V1,
+        },
+        deleted: [],
       },
     },
   })
@@ -129,7 +132,7 @@ function buildTimeline(buildId: string): ScheduledEvent[] {
   at(150, {
     ...base,
     type: 'file_update',
-    data: { files: { 'src/components/Counter.tsx': COUNTER_FILE_V2 } },
+    data: { delta: { changed: { 'src/components/Counter.tsx': COUNTER_FILE_V2 }, deleted: [] } },
   })
   at(300, { ...base, type: 'agent_complete', data: { agent: 'developer', files_changed: ['src/components/Counter.tsx'] } })
 
@@ -137,7 +140,7 @@ function buildTimeline(buildId: string): ScheduledEvent[] {
   at(700, {
     ...base,
     type: 'file_update',
-    data: { files: { 'src/lib/api.ts': API_FILE } },
+    data: { delta: { changed: { 'src/lib/api.ts': API_FILE }, deleted: [] } },
   })
   at(200, { ...base, type: 'agent_complete', data: { agent: 'integration', files_changed: ['src/lib/api.ts'] } })
 
@@ -145,7 +148,7 @@ function buildTimeline(buildId: string): ScheduledEvent[] {
   at(600, {
     ...base,
     type: 'file_update',
-    data: { files: { 'README.md': README_FILE } },
+    data: { delta: { changed: { 'README.md': README_FILE }, deleted: [] } },
   })
   at(200, { ...base, type: 'agent_complete', data: { agent: 'pm', files_changed: ['README.md'] } })
 
