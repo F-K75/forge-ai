@@ -7,20 +7,12 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
 
 export function useBuildSocket(buildId: string | null) {
   const wsRef = useRef<WebSocket | null>(null)
-  const heartbeatRef = useRef<number | null>(null)
   const generationRef = useRef(0)
   const reconnectAttemptsRef = useRef(0)
   const reconnectTimeoutRef = useRef<number | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<'offline' | 'connecting' | 'online' | 'error'>('offline')
 
   const { handleEvent } = useBuildStore()
-
-  const clearHeartbeat = useCallback(() => {
-    if (heartbeatRef.current) {
-      clearInterval(heartbeatRef.current)
-      heartbeatRef.current = null
-    }
-  }, [])
 
   const clearReconnectTimeout = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -67,12 +59,10 @@ export function useBuildSocket(buildId: string | null) {
 
         wsRef.current = ws
 
-        clearHeartbeat()
-        heartbeatRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send('ping')
-          }
-        }, 30_000)
+        // The server sends a keep-alive {"type":"ping"} every 30s when idle
+        // (see backend/api/builds.py's websocket_endpoint) so proxies don't
+        // drop the socket -- no client-side ping needed; parseWSEvent
+        // returns null for it below and it's ignored.
 
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'auth', token: wsToken }))
@@ -104,7 +94,6 @@ export function useBuildSocket(buildId: string | null) {
         }
 
         ws.onclose = () => {
-          clearHeartbeat()
           wsRef.current = null
           
           if (generationRef.current !== gen) return
@@ -124,7 +113,7 @@ export function useBuildSocket(buildId: string | null) {
 
       connectOnce()
     },
-    [handleEvent, clearHeartbeat, clearReconnectTimeout]
+    [handleEvent, clearReconnectTimeout]
   )
 
   useEffect(() => {
@@ -132,11 +121,10 @@ export function useBuildSocket(buildId: string | null) {
     connect(buildId)
     return () => {
       generationRef.current += 1
-      clearHeartbeat()
       clearReconnectTimeout()
       wsRef.current?.close()
     }
-  }, [buildId, connect, clearHeartbeat, clearReconnectTimeout])
+  }, [buildId, connect, clearReconnectTimeout])
 
   return { ws: wsRef.current, connectionStatus }
 }

@@ -1,3 +1,6 @@
+import asyncio
+import json
+
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -263,7 +266,12 @@ async def websocket_endpoint(
 
     try:
         while True:
-            await websocket.receive_text()
+            try:
+                await asyncio.wait_for(websocket.receive_text(), timeout=30)
+            except asyncio.TimeoutError:
+                # Keep-alive ping so proxies don't drop the idle socket,
+                # matching the pattern already used by orchestrator/api.py.
+                await websocket.send_text(json.dumps({"type": "ping"}))
     except WebSocketDisconnect:
         manager.disconnect(websocket, build_id)
 

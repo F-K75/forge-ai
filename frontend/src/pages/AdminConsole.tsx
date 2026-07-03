@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { adminApi } from "../lib/api";
 import { LIVE_MODE } from "../lib/env";
+import { COLORS } from "../lib/theme";
 import { StatusPill } from "../components/StatusPill";
 
 interface AdminUser {
@@ -134,15 +135,15 @@ export default function AdminConsole() {
       {/* Stat cards */}
       <section aria-label="Platform statistics" className="mb-7">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total users" value={overview?.total_users ?? "—"} icon={Users} hue="#6366F1" />
-          <StatCard label="Total builds" value={overview?.total_builds ?? "—"} icon={Activity} hue="#22D3EE" />
+          <StatCard label="Total users" value={overview?.total_users ?? "—"} icon={Users} hue={COLORS.agentArchitect} />
+          <StatCard label="Total builds" value={overview?.total_builds ?? "—"} icon={Activity} hue={COLORS.agentDeveloper} />
           <StatCard
             label="Total revenue"
             value={overview ? `$${overview.total_revenue.toLocaleString()}` : "—"}
             icon={CreditCard}
-            hue="#34D399"
+            hue={COLORS.ok}
           />
-          <StatCard label="Active subscriptions" value={overview?.active_subscriptions ?? "—"} icon={Zap} hue="#F59E0B" />
+          <StatCard label="Active subscriptions" value={overview?.active_subscriptions ?? "—"} icon={Zap} hue={COLORS.warn} />
         </div>
       </section>
 

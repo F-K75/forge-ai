@@ -8,6 +8,7 @@ import { getIcon } from "../lib/iconMap";
 import { LIVE_MODE } from "../lib/env";
 import { projectsApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
+import { COLORS } from "../lib/theme";
 
 function toDisplayProject(raw: any): MockProject {
   return {
@@ -186,7 +187,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
                   key={agentId}
                   title={agent.label}
                   className="w-5 h-5 rounded-full border-2 border-panel flex items-center justify-center text-[7px] font-bold"
-                  style={{ background: agent.hue, color: "#0A0A0F" }}
+                  style={{ background: agent.hue, color: COLORS.base }}
                 >
                   {agent.label[0]}
                 </span>

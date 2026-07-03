@@ -404,14 +404,13 @@ async def handle_invoice_payment_failed(db: Any, invoice: Dict[str, Any]):
     )
 
 
+_PRICE_TO_PLAN: Dict[str, PlanTier] = {
+    pid: plan for plan, pid in {**PLAN_PRICES, **ANNUAL_PLAN_PRICES}.items()
+}
+
+
 def _map_price_to_plan(price_id: str) -> PlanTier:
-    for plan, pid in PLAN_PRICES.items():
-        if pid == price_id:
-            return plan
-    for plan, pid in ANNUAL_PLAN_PRICES.items():
-        if pid == price_id:
-            return plan
-    return PlanTier.FREE
+    return _PRICE_TO_PLAN.get(price_id, PlanTier.FREE)
 
 
 @router.get("/subscription", response_model=Optional[SubscriptionResponse])

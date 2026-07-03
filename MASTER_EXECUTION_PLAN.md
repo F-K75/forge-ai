@@ -463,14 +463,14 @@ Forge is an AI-powered full-stack application builder with a compelling multi-ag
 | FE-004 | Enable TypeScript strict mode | Code Quality | 40 |
 | FE-006 | Implement frontend product analytics tracking | Analytics | 40 |
 | FE-007 | Add SEO meta tags, Open Graph, structured data | SEO | 16 |
-| FE-008 | Replace hardcoded colors with CSS variables | UI | 4 |
-| FE-009 | Remove duplicate ActivityFeed component | Code Quality | 2 |
-| FE-010 | Fix WebSocket heartbeat (use native ping/pong) | Frontend | 4 |
-| FE-011 | Static import in ChatPanel (avoid dynamic) | Frontend | 2 |
+| FE-008 | ~~Replace hardcoded colors with CSS variables~~ **PARTIALLY RESOLVED 2026-07-04** — centralized the ~20 hex values that exactly duplicated existing `tailwind.config.ts` tokens into `frontend/src/lib/theme.ts` (`StatusPill`, `ReviewAgentPipeline`, `AdminConsole`, `ProjectsPage`, `MarketplacePage`). Found a bigger, separate problem while scoping this: `tailwind.config.ts`'s color tokens and `src/index.css`'s `:root` CSS custom properties are two divergent palettes with different values for the same names (e.g. `accent: #7C5CFF` vs `--accent: #8b5cf6`) — reconciling those is real design-system work, not a 4h cleanup, and risks visual regressions without a running browser to check. Left as a separate, larger follow-up. | UI | 4 (est.) / ~1 (actual, partial) |
+| FE-009 | ~~Remove duplicate ActivityFeed component~~ **STALE — closed 2026-07-04, no longer applicable.** No `ActivityFeed` component exists anywhere in the repo today (verified via full-repo grep) — either already resolved by an earlier refactor or never matched this description. | Code Quality | 2 |
+| FE-010 | ~~Fix WebSocket heartbeat (use native ping/pong)~~ **RESOLVED 2026-07-04** — `useBuildSocket.ts` sent a pointless client-side `ws.send('ping')` every 30s that `backend/api/builds.py`'s websocket handler silently discarded. Replaced with a server-initiated keep-alive `{"type":"ping"}` (matching the pattern already used by `orchestrator/api.py`'s review-run socket): the build websocket now uses `asyncio.wait_for(receive_text(), timeout=30)` and sends a ping frame on timeout; removed the now-dead client-side heartbeat interval and its refs. | Frontend | 4 (est.) / ~1 (actual) |
+| FE-011 | ~~Static import in ChatPanel (avoid dynamic)~~ **STALE — closed 2026-07-04, no longer applicable.** `ChatPanel` is already statically imported (`WorkspacePage.tsx:11`) — no dynamic `import()`/`React.lazy` found anywhere for it. | Frontend | 2 |
 | PROD-018 | Add offline/error state to build inputs | UX | 4 |
-| PROD-019 | Fix admin analytics param mismatch | Product | 4 |
+| PROD-019 | Fix admin analytics param mismatch — **RESCOPED 2026-07-04**: investigation found this isn't actually a param-name mismatch (e.g. `period` vs `days`). The real gap is that `frontend/src/lib/api.ts`'s `adminApi` never calls `/admin/analytics/revenue` or `/admin/analytics/ai-usage` at all — only `overview()` is wired up, and `AdminConsole.tsx` never renders revenue/AI-usage data. This is a missing-integration task (add the two API wrapper calls + render them), not a quick param rename — left open, not attempted in this pass. | Product | 4 |
 | PROD-020 | Add support ticket creation endpoint | Product | 8 |
-| PROD-021 | Fix _map_price_to_plan O(n) iteration | Performance | 2 |
+| PROD-021 | ~~Fix _map_price_to_plan O(n) iteration~~ **RESOLVED 2026-07-04** — `backend/api/billing.py`'s `_map_price_to_plan` looped over two dicts on every call (invoked on every billing webhook); replaced with a `_PRICE_TO_PLAN` reverse-lookup dict precomputed once at module load. | Performance | 2 (est.) / ~0.1 (actual) |
 | PROD-022 | Add real Stripe price IDs (not placeholders) | Business | 4 |
 | PROD-023 | Add annual billing option | Business | 16 |
 | PROD-024 | Add promotional/discount code system | Business | 16 |

@@ -6,6 +6,7 @@ import { TEMPLATES } from "../lib/mockData";
 import type { Template } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
 import { marketplaceApi } from "../lib/api";
+import { HUE_CYCLE } from "../lib/theme";
 
 type FilterTab = "all" | "official" | "community";
 
@@ -17,7 +18,7 @@ const TABS: { value: FilterTab; label: string }[] = [
 
 // The real marketplace model has no color field — pick a stable accent per
 // item from its id so cards stay visually distinct without a backend field.
-const HUES = ["#6366F1", "#A855F7", "#22D3EE", "#F59E0B", "#34D399", "#EC4899"];
+const HUES = HUE_CYCLE;
 function hueForId(id: string): string {
   let sum = 0;
   for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);

@@ -1,12 +1,14 @@
+import { COLORS } from "../lib/theme";
+
 type Status = "complete" | "debugging" | "failed" | "running" | "pending" | "consolidating";
 
 const MAP: Record<Status, { label: string; color: string }> = {
-  complete:      { label: "complete",      color: "#34D399" },
-  running:       { label: "running",       color: "#7C5CFF" },
-  debugging:     { label: "debugging",     color: "#F59E0B" },
-  failed:        { label: "failed",        color: "#EF4444" },
-  pending:       { label: "pending",       color: "#8B8B9E" },
-  consolidating: { label: "consolidating", color: "#7C5CFF" },
+  complete:      { label: "complete",      color: COLORS.ok },
+  running:       { label: "running",       color: COLORS.accent },
+  debugging:     { label: "debugging",     color: COLORS.warn },
+  failed:        { label: "failed",        color: COLORS.error },
+  pending:       { label: "pending",       color: COLORS.muted },
+  consolidating: { label: "consolidating", color: COLORS.accent },
 };
 
 export function StatusPill({ status }: { status: Status }) {

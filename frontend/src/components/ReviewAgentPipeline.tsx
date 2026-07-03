@@ -1,4 +1,5 @@
 import { Loader2, Check, X, Bot } from "lucide-react";
+import { COLORS } from "../lib/theme";
 
 // Visually consistent with components/AgentPipeline.tsx (same base/panel/ink tokens,
 // ping-halo/spinner for active, check for done) but NOT a reuse of it: review
@@ -18,8 +19,8 @@ export interface ReviewAgentPipelineProps {
   compact?: boolean;
 }
 
-const ACCENT = "#7C5CFF";
-const FAILED = "#EF4444";
+const ACCENT = COLORS.accent;
+const FAILED = COLORS.error;
 
 function humanize(id: string): string {
   return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
