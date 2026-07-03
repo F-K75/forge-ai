@@ -484,13 +484,15 @@ Forge is an AI-powered full-stack application builder with a compelling multi-ag
 | GRW-006 | Set up Discord/community platform | Growth | 8 |
 | GRW-007 | Build "Built with Forge" viral badge | Growth | 8 |
 | GRW-008 | Create Product Hunt launch plan | Growth | 16 |
-| TEST-001 | Write unit tests for auth endpoints | Testing | 16 |
+| TEST-001 | ~~Write unit tests for auth endpoints~~ **RESOLVED 2026-07-04** — no real endpoint-level auth tests existed (only rate-limit-specific coverage). Added `tests/test_auth_endpoints.py`: 10 tests exercising the real `register`/`login`/`refresh`/`logout` route handlers via `TestClient` against a `FakeDB` (weak password, duplicate email, wrong password, unknown email, MFA challenge path, refresh token rotation, logout blacklisting). **Caught a real, live regression while getting these to run** — see note below the table. | Testing | 16 (est.) / ~1.5 (actual) |
 | TEST-002 | Write integration tests for build pipeline | Testing | 24 |
 | TEST-003 | Write regression tests for credit deduction | Testing | 8 |
-| TEST-004 | Write WebSocket ownership tests | Testing | 8 |
-| TEST-005 | Add lint config (ESLint, Ruff, Prettier) | Code Quality | 8 |
-| TEST-006 | Add pre-commit hooks | DevOps | 4 |
-| TEST-007 | Remove fake text-parsing tests | Testing | 2 |
+| TEST-004 | ~~Write WebSocket ownership tests~~ **STALE — closed 2026-07-04, already covered.** `test_websocket_auth.py::test_ws_rejects_foreign_build` already tests exactly this. | Testing | 8 |
+| TEST-005 | ~~Add lint config (ESLint, Ruff, Prettier)~~ **RESOLVED 2026-07-04** — no committed ruff config existed (CI ran an inline `--select F,E9` with no repo config file) and there was zero ESLint/Prettier setup for the frontend at all. Added `backend/pyproject.toml` (ruff, matches CI's existing `F` ruleset so local runs match CI), `frontend/eslint.config.js` + `.prettierrc.json`, `npm run lint`/`format:check` scripts, and an `eslint` step in `ci.yml`. Codebase was already clean modulo 1 real error + 8 minor warnings, all fixed. Did *not* run `prettier --write` across the repo — two different pre-existing code styles (semi/double-quote vs. no-semi/single-quote from different generation sources) would make a blanket reformat a huge, low-value diff; Prettier is available as a manual tool, not CI-enforced. | Code Quality | 8 (est.) / ~1.5 (actual) |
+| TEST-006 | ~~Add pre-commit hooks~~ **RESOLVED 2026-07-04** — a secret-scanning pre-commit hook existed and worked, but only in `.git/hooks/pre-commit`, which git never tracks — every other clone of this repo had zero protection. Moved it to tracked `scripts/git-hooks/pre-commit`, added `scripts/install-git-hooks.sh` (points `core.hooksPath` at the tracked dir), and documented it in the README quick-start. | DevOps | 4 (est.) / ~0.5 (actual) |
+| TEST-007 | ~~Remove fake text-parsing tests~~ **STALE — closed 2026-07-04, no longer applicable.** No test matching this description found anywhere in the current suite (checked for `response.text` assertions — the one match, `test_global_exception_handler.py`, is a legitimate negative security assertion, not a fake test). | Testing | 2 |
+
+**Note on TEST-001**: writing these tests required a working Python 3.10+ environment to actually run — this machine's system Python (3.9) can't even import the codebase. Building a proper venv (`python3.11 -m venv`) and running the full suite for the first time this session immediately surfaced a real, already-pushed regression: the PROD-021 `_map_price_to_plan` "optimization" (commit `adf0bdee`) silently mapped every monthly-plan Stripe checkout to `PlanTier.FREE` instead of the plan actually purchased, because its reverse-lookup dict was built via `{**PLAN_PRICES, **ANNUAL_PLAN_PRICES}` — since both dicts key by the same `PlanTier` values, the annual prices silently overwrote the monthly ones before the reverse map was ever built. Fixed in commit `56b5bf8f`. All 167 backend tests pass as of this note.
 
 **Total P2 Hours: ~472**
 

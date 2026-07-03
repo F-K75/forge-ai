@@ -33,7 +33,7 @@ export function ClipboardCopyButton({ text, onSuccess, onError }: ClipboardCopyB
           toast.success('Copied to clipboard!')
           onSuccess?.()
           setTimeout(() => setCopied(false), 2000)
-        } catch (err) {
+        } catch {
           throw new Error('Copy failed')
         } finally {
           document.body.removeChild(textarea)

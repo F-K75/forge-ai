@@ -158,6 +158,7 @@ git clone <your-repo>
 cd forge-ai
 cp .env.example .env
 # Edit .env and add ANTHROPIC_API_KEY, JWT_SECRET, MONGO_PASSWORD, REDIS_PASSWORD
+./scripts/install-git-hooks.sh  # installs the pre-commit secret-scanning hook
 ```
 
 ### 3. Run with Docker

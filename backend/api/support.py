@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 
 from core.models import User, SupportTicket

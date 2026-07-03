@@ -52,7 +52,7 @@ const initialState = {
   error: null,
 }
 
-export const useReviewStore = create<ReviewState>((set, get) => ({
+export const useReviewStore = create<ReviewState>((set, _get) => ({
   ...initialState,
 
   hydrateFromRun: (run: any) => {

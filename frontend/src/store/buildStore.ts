@@ -97,7 +97,7 @@ const AGENT_LABELS: Record<string, string> = {
   debugger: 'Debugger',
 }
 
-export const useBuildStore = create<BuildState>((set, get) => ({
+export const useBuildStore = create<BuildState>((set, _get) => ({
   buildId: null,
   status: 'idle',
   prompt: '',

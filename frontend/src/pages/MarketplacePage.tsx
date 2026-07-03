@@ -60,7 +60,6 @@ export default function MarketplacePage() {
       .list({ search: search.trim() || undefined })
       .then((items: RawItem[]) => setLiveTemplates(items.map(toDisplayTemplate)))
       .catch(() => toast.error("Failed to load marketplace"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const source = LIVE_MODE ? liveTemplates ?? [] : TEMPLATES;

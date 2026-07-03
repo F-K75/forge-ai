@@ -18,8 +18,6 @@ test framework to exercise (confirmed zero test infra elsewhere in this
 audit) -- verified instead via `tsc --noEmit` and a production `vite build`.
 """
 
-from types import SimpleNamespace
-
 import pytest
 
 from core.orchestrator import Orchestrator

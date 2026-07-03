@@ -244,7 +244,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRevokeSession = async (id: string) => {

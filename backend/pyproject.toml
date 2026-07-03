@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 120
+exclude = ["venv", ".venv"]
+
+[tool.ruff.lint]
+# Matches what CI currently enforces (ci.yml runs `ruff check . --select F,E9`)
+# so `ruff check .` locally gives the same result as CI without extra flags.
+# E9 (syntax errors) isn't a selectable rule code in newer ruff releases --
+# it's covered unconditionally by E999, which ruff always reports regardless
+# of `select`.
+select = ["F"]

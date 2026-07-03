@@ -13,7 +13,6 @@ warned again next time they run low.
 """
 
 import logging
-from typing import Optional
 
 from core.config import get_settings
 

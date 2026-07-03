@@ -1,6 +1,4 @@
 import { useState, useCallback, useMemo } from 'react'
-import { CheckCircle2 } from 'lucide-react'
-import clsx from 'clsx'
 
 type FieldValues = Record<string, string>
 
