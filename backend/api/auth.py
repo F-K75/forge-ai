@@ -1,12 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request, Query
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, timedelta
 import uuid
 import hashlib
 import logging
 import math
+import secrets
 
+import pyotp
 import resend
 
 from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session
@@ -43,6 +45,34 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: dict
+
+
+class MfaRequiredResponse(BaseModel):
+    mfa_required: bool = True
+    mfa_token: str
+
+
+class MfaVerifySetupRequest(BaseModel):
+    code: str = Field(max_length=10)
+
+
+class MfaDisableRequest(BaseModel):
+    password: str = Field(max_length=128)
+
+
+class MfaVerifyRequest(BaseModel):
+    mfa_token: str
+    code: str = Field(max_length=10)
+
+
+class MfaSetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class MfaVerifySetupResponse(BaseModel):
+    ok: bool = True
+    backup_codes: List[str]
 
 
 class RefreshRequest(BaseModel):
@@ -120,6 +150,8 @@ def _public_user_dict(user_doc: dict) -> dict:
             "github_token",
             "verification_token",
             "verification_expires",
+            "totp_secret",
+            "mfa_backup_codes",
         }
     }
     public["github_connected"] = bool(user_doc.get("github_token"))
@@ -356,7 +388,7 @@ async def register(req: RegisterRequest, request: Request, response: Response):
     )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=Union[TokenResponse, MfaRequiredResponse])
 async def login(req: LoginRequest, request: Request, response: Response):
     db = await get_db()
 
@@ -380,6 +412,17 @@ async def login(req: LoginRequest, request: Request, response: Response):
     hashed = user_doc.get("hashed_password", "")
     if not verify_password(req.password, hashed):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if user_doc.get("mfa_enabled"):
+        # Do not issue real tokens or record a session yet -- the client
+        # must complete the TOTP/backup-code challenge at /auth/mfa/verify
+        # first (SEC-007).
+        mfa_token = create_access_token(
+            {"sub": user.id, "email": user.email},
+            expires_delta=timedelta(minutes=5),
+            token_type="mfa_pending",
+        )
+        return MfaRequiredResponse(mfa_token=mfa_token)
 
     access_token = create_access_token({"sub": user.id, "email": user.email})
     refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
@@ -480,6 +523,173 @@ async def logout(
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"ok": True}
+
+
+def _generate_backup_codes(count: int = 10) -> List[str]:
+    """Generate plaintext backup codes. Callers must hash these before
+    storage and only return the plaintext once, in the setup-verification
+    response."""
+    return [secrets.token_hex(4).upper() for _ in range(count)]
+
+
+@router.post("/mfa/setup", response_model=MfaSetupResponse)
+async def mfa_setup(user: User = Depends(get_current_user)):
+    """Begin MFA enrollment: generate a TOTP secret and store it encrypted
+    as *pending* -- mfa_enabled stays False until /mfa/verify-setup succeeds."""
+    db = await get_db()
+
+    secret = pyotp.random_base32()
+    await db.users.update_one(
+        {"id": user.id}, {"$set": {"totp_secret": encrypt_field(secret)}}
+    )
+
+    otpauth_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+        name=user.email, issuer_name="Forge"
+    )
+    return MfaSetupResponse(secret=secret, otpauth_uri=otpauth_uri)
+
+
+@router.post("/mfa/verify-setup", response_model=MfaVerifySetupResponse)
+async def mfa_verify_setup(
+    req: MfaVerifySetupRequest, user: User = Depends(get_current_user)
+):
+    """Confirm the user controls the authenticator app, then enable MFA and
+    issue one-time backup codes (shown once, hashed thereafter)."""
+    db = await get_db()
+
+    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+    encrypted_secret = user_doc.get("totp_secret") if user_doc else None
+    if not encrypted_secret:
+        raise HTTPException(status_code=400, detail="MFA setup not started")
+
+    secret = decrypt_field(encrypted_secret)
+    if not pyotp.TOTP(secret).verify(req.code, valid_window=1):
+        raise HTTPException(status_code=400, detail="Invalid code")
+
+    backup_codes = _generate_backup_codes()
+    hashed_codes = [hash_password(code) for code in backup_codes]
+
+    await db.users.update_one(
+        {"id": user.id},
+        {
+            "$set": {
+                "mfa_enabled": True,
+                "mfa_enrolled_at": datetime.utcnow(),
+                "mfa_backup_codes": hashed_codes,
+            }
+        },
+    )
+
+    return MfaVerifySetupResponse(backup_codes=backup_codes)
+
+
+@router.post("/mfa/disable")
+async def mfa_disable(req: MfaDisableRequest, user: User = Depends(get_current_user)):
+    db = await get_db()
+
+    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+    hashed = user_doc.get("hashed_password", "") if user_doc else ""
+    if not verify_password(req.password, hashed):
+        raise HTTPException(status_code=400, detail="Incorrect password")
+
+    await db.users.update_one(
+        {"id": user.id},
+        {
+            "$set": {
+                "mfa_enabled": False,
+                "totp_secret": None,
+                "mfa_backup_codes": [],
+                "mfa_enrolled_at": None,
+            }
+        },
+    )
+    return {"ok": True}
+
+
+@router.post("/mfa/verify", response_model=TokenResponse)
+async def mfa_verify(req: MfaVerifyRequest, request: Request, response: Response):
+    """Complete login after /auth/login returned mfa_required=True. Accepts
+    either a live TOTP code or a single-use backup code."""
+    payload = decode_token(req.mfa_token)
+    if not payload or payload.get("type") != "mfa_pending":
+        raise HTTPException(status_code=401, detail="Invalid or expired MFA token")
+
+    db = await get_db()
+
+    jti = payload.get("jti")
+    if jti:
+        blacklisted = await db.token_blacklist.find_one({"jti": jti})
+        if blacklisted:
+            raise HTTPException(status_code=401, detail="Invalid or expired MFA token")
+
+    user_id = payload.get("sub")
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    allowed, remaining = await check_email_rate_limit(user_doc["email"], "mfa_verify", db)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many MFA verification attempts. Please try again later.",
+        )
+
+    if not user_doc.get("mfa_enabled"):
+        raise HTTPException(status_code=400, detail="MFA is not enabled for this account")
+
+    verified = False
+
+    encrypted_secret = user_doc.get("totp_secret")
+    if encrypted_secret:
+        secret = decrypt_field(encrypted_secret)
+        if pyotp.TOTP(secret).verify(req.code, valid_window=1):
+            verified = True
+
+    if not verified:
+        # Fall back to single-use backup codes -- consume (remove) the
+        # matching hash immediately so it can never be reused.
+        backup_hashes = user_doc.get("mfa_backup_codes", [])
+        for backup_hash in backup_hashes:
+            if verify_password(req.code.strip().upper(), backup_hash):
+                verified = True
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$pull": {"mfa_backup_codes": backup_hash}},
+                )
+                break
+
+    if not verified:
+        raise HTTPException(status_code=401, detail="Invalid MFA code")
+
+    # Blacklist the mfa_pending token so it cannot be replayed.
+    await _blacklist_jti(db, jti)
+
+    user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+    if "github_token" in user_data and user_data["github_token"]:
+        user_data["github_token"] = decrypt_field(user_data["github_token"])
+    user = User(**user_data)
+
+    access_token = create_access_token({"sub": user.id, "email": user.email})
+    refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
+
+    response.set_cookie(
+        "access_token",
+        access_token,
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        **_get_cookie_kwargs(30 * 24 * 60 * 60),
+    )
+
+    await _record_session(db, user.id, access_token, refresh_token, request)
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=_public_user_dict(user_doc),
+    )
 
 
 class SessionResponse(BaseModel):

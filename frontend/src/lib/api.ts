@@ -85,6 +85,14 @@ export const authApi = {
     revoke: (id: string) => api.delete(`/auth/sessions/${id}`).then(r => r.data),
     revokeAll: () => api.delete('/auth/sessions').then(r => r.data),
   },
+  mfa: {
+    setup: () => api.post('/auth/mfa/setup').then(r => r.data) as Promise<{ secret: string; otpauth_uri: string }>,
+    verifySetup: (code: string) =>
+      api.post('/auth/mfa/verify-setup', { code }).then(r => r.data) as Promise<{ ok: boolean; backup_codes: string[] }>,
+    disable: (password: string) => api.post('/auth/mfa/disable', { password }).then(r => r.data),
+    verify: (mfa_token: string, code: string) =>
+      api.post('/auth/mfa/verify', { mfa_token, code }).then(r => r.data),
+  },
 }
 
 // Projects

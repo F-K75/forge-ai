@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api } from '../lib/api'
+import { api, authApi } from '../lib/api'
 import { LIVE_MODE } from '../lib/env'
 
 export interface User {
@@ -11,14 +11,24 @@ export interface User {
   credits: number
   created_at: string
   github_connected?: boolean
+  mfa_enabled?: boolean
   preferences?: Record<string, unknown>
+}
+
+// Returned by login() when the account has MFA enabled -- no session has
+// been established yet, so the caller must collect a TOTP/backup code and
+// call verifyMfa() to finish signing in.
+export interface MfaRequired {
+  mfaRequired: true
+  mfaToken: string
 }
 
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<MfaRequired | void>
+  verifyMfa: (mfaToken: string, code: string) => Promise<void>
   register: (email: string, name: string, password: string) => Promise<void>
   logout: () => Promise<void>
   fetchMe: () => Promise<void>
@@ -49,7 +59,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({ isLoading: true })
     const res = await api.post('/auth/login', { email, password })
+    if (res.data?.mfa_required) {
+      set({ isLoading: false })
+      return { mfaRequired: true, mfaToken: res.data.mfa_token }
+    }
     set({ user: res.data.user, isAuthenticated: true, isLoading: false })
+  },
+
+  verifyMfa: async (mfaToken: string, code: string) => {
+    set({ isLoading: true })
+    const data = await authApi.mfa.verify(mfaToken, code)
+    set({ user: data.user, isAuthenticated: true, isLoading: false })
   },
 
   register: async (email: string, name: string, password: string) => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Key, Github, Bell, Sliders, Monitor } from "lucide-react";
+import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, Copy } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { DEFAULT_SETTINGS } from "../lib/mockData";
 import { Row } from "../components/Row";
@@ -127,6 +128,79 @@ export default function SettingsPage() {
     } finally {
       setSavingGithub(false);
     }
+  };
+
+  // Two-factor authentication (MFA / TOTP, SEC-007)
+  const mfaEnabled = LIVE_MODE ? Boolean(user?.mfa_enabled) : false;
+  const [mfaStep, setMfaStep] = useState<"idle" | "qr" | "backup-codes">("idle");
+  const [mfaSecret, setMfaSecret] = useState("");
+  const [mfaOtpauthUri, setMfaOtpauthUri] = useState("");
+  const [mfaSetupCode, setMfaSetupCode] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [showDisablePrompt, setShowDisablePrompt] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+
+  const handleStartMfaSetup = async () => {
+    setMfaBusy(true);
+    try {
+      const { secret, otpauth_uri } = await authApi.mfa.setup();
+      setMfaSecret(secret);
+      setMfaOtpauthUri(otpauth_uri);
+      setMfaStep("qr");
+    } catch {
+      toast.error("Failed to start MFA setup");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleVerifyMfaSetup = async () => {
+    if (!mfaSetupCode.trim()) return;
+    setMfaBusy(true);
+    try {
+      const { backup_codes } = await authApi.mfa.verifySetup(mfaSetupCode.trim());
+      setBackupCodes(backup_codes);
+      setMfaStep("backup-codes");
+      setMfaSetupCode("");
+      await fetchMe();
+      toast.success("Two-factor authentication enabled");
+    } catch {
+      toast.error("Invalid code. Please try again.");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleDisableMfa = async () => {
+    if (!disablePassword.trim()) return;
+    setMfaBusy(true);
+    try {
+      await authApi.mfa.disable(disablePassword);
+      await fetchMe();
+      setShowDisablePrompt(false);
+      setDisablePassword("");
+      setMfaStep("idle");
+      toast.success("Two-factor authentication disabled");
+    } catch {
+      toast.error("Incorrect password");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleCopyBackupCodes = () => {
+    navigator.clipboard.writeText(backupCodes.join("\n")).then(
+      () => toast.success("Backup codes copied"),
+      () => toast.error("Failed to copy")
+    );
+  };
+
+  const handleDoneWithBackupCodes = () => {
+    setMfaStep("idle");
+    setBackupCodes([]);
+    setMfaSecret("");
+    setMfaOtpauthUri("");
   };
 
   // Active sessions / devices
@@ -350,6 +424,126 @@ export default function SettingsPage() {
             </Row>
           </div>
         </section>
+
+        {/* Two-factor authentication */}
+        {LIVE_MODE && (
+          <section aria-labelledby="section-security">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck size={13} className="text-muted" aria-hidden="true" />
+              <h2 id="section-security" className="text-sm font-semibold text-ink">Security</h2>
+            </div>
+            <div className="rounded-xl border border-border bg-panel">
+              <Row
+                label="Two-factor authentication"
+                description={
+                  mfaEnabled
+                    ? "Enabled -- an authenticator code is required at sign in"
+                    : "Require a code from an authenticator app when signing in"
+                }
+              >
+                {mfaEnabled ? (
+                  showDisablePrompt ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="password"
+                        value={disablePassword}
+                        onChange={e => setDisablePassword(e.target.value)}
+                        placeholder="Password"
+                        aria-label="Confirm password to disable 2FA"
+                        className="h-8 px-2.5 w-32 rounded-md bg-panel-alt border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      />
+                      <button
+                        onClick={handleDisableMfa}
+                        disabled={mfaBusy || !disablePassword.trim()}
+                        className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors disabled:opacity-50"
+                      >
+                        {mfaBusy ? "…" : "Confirm"}
+                      </button>
+                      <button
+                        onClick={() => { setShowDisablePrompt(false); setDisablePassword(""); }}
+                        className="text-xs text-muted hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <Toggle on={true} onChange={() => setShowDisablePrompt(true)} label="Two-factor authentication" />
+                  )
+                ) : mfaStep === "idle" ? (
+                  <Toggle on={false} onChange={handleStartMfaSetup} label="Two-factor authentication" disabled={mfaBusy} />
+                ) : (
+                  <span className="text-xs text-muted">In progress below</span>
+                )}
+              </Row>
+
+              {mfaStep === "qr" && (
+                <div className="px-4 py-4 border-t border-border space-y-4">
+                  <p className="text-xs text-muted">
+                    Scan this QR code with an authenticator app (e.g. Google Authenticator, 1Password), then enter the
+                    6-digit code it generates.
+                  </p>
+                  <div className="bg-white p-3 rounded-md inline-block">
+                    <QRCodeSVG value={mfaOtpauthUri} size={160} />
+                  </div>
+                  <p className="text-[11px] font-mono text-faint break-all">Secret: {mfaSecret}</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={mfaSetupCode}
+                      onChange={e => setMfaSetupCode(e.target.value)}
+                      placeholder="123456"
+                      aria-label="6-digit authentication code"
+                      className="h-8 px-2.5 w-28 rounded-md bg-panel-alt border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent tracking-widest"
+                    />
+                    <button
+                      onClick={handleVerifyMfaSetup}
+                      disabled={mfaBusy || !mfaSetupCode.trim()}
+                      className="text-xs text-accent hover:text-accent/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors disabled:opacity-50"
+                    >
+                      {mfaBusy ? "Verifying…" : "Verify & enable"}
+                    </button>
+                    <button
+                      onClick={() => { setMfaStep("idle"); setMfaSecret(""); setMfaOtpauthUri(""); }}
+                      className="text-xs text-muted hover:text-ink"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {mfaStep === "backup-codes" && (
+                <div className="px-4 py-4 border-t border-border space-y-3">
+                  <p className="text-xs text-ink font-medium">Save your backup codes</p>
+                  <p className="text-xs text-muted">
+                    Each code can be used once to sign in if you lose access to your authenticator app. They will not
+                    be shown again -- store them somewhere safe.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 font-mono text-xs bg-panel-alt border border-border rounded-md p-3">
+                    {backupCodes.map(code => (
+                      <span key={code}>{code}</span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleCopyBackupCodes}
+                      className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent/80"
+                    >
+                      <Copy size={12} aria-hidden="true" /> Copy codes
+                    </button>
+                    <button
+                      onClick={handleDoneWithBackupCodes}
+                      className="text-xs text-muted hover:text-ink"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Active sessions */}
         {LIVE_MODE && (

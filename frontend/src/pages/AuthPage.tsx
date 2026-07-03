@@ -22,6 +22,7 @@ type Errors = Partial<Record<"email" | "password" | "form", string>>;
 export default function AuthPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
+  const verifyMfa = useAuthStore((s) => s.verifyMfa);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +30,12 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Inline MFA challenge step -- shown in place of the password form once
+  // login() reports the account requires a TOTP/backup code.
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState<string | undefined>();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,10 +49,29 @@ export default function AuthPage() {
     setErrors({});
     setLoading(true);
     try {
-      await login(email, password);
+      const result = await login(email, password);
+      if (result && "mfaRequired" in result) {
+        setMfaToken(result.mfaToken);
+        return;
+      }
       navigate("/", { replace: true });
     } catch (err: any) {
       setErrors({ form: err?.response?.data?.detail || "Invalid email or password." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaToken) return;
+    setMfaError(undefined);
+    setLoading(true);
+    try {
+      await verifyMfa(mfaToken, mfaCode.trim());
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      setMfaError(err?.response?.data?.detail || "Invalid code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -114,6 +140,62 @@ export default function AuthPage() {
               <p className="text-sm text-land-muted mt-2">Enter your credentials to access your workspace.</p>
             </div>
 
+            {mfaToken ? (
+              <form onSubmit={handleMfaSubmit} noValidate className="space-y-5">
+                <p className="text-sm text-land-muted">
+                  Enter the 6-digit code from your authenticator app, or one of your backup codes.
+                </p>
+                {mfaError && (
+                  <div role="alert" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+                    <span>{mfaError}</span>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <label htmlFor="mfa-code" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
+                    Authentication code
+                  </label>
+                  <input
+                    id="mfa-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="123456"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    autoFocus
+                    className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition tracking-widest"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading || !mfaCode.trim()}
+                  className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Verifying…
+                    </>
+                  ) : (
+                    <>
+                      Verify <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMfaToken(null);
+                    setMfaCode("");
+                    setMfaError(undefined);
+                  }}
+                  className="w-full text-xs text-land-muted hover:text-land-ink transition"
+                >
+                  Back to sign in
+                </button>
+              </form>
+            ) : (
+              <>
             <div className="grid grid-cols-2 gap-3 mb-6">
               <button
                 type="button"
@@ -275,6 +357,8 @@ export default function AuthPage() {
               </a>
               .
             </p>
+              </>
+            )}
           </div>
         </section>
       </main>

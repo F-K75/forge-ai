@@ -71,6 +71,10 @@ EMAIL_RATE_LIMITS = {
                                                          # per-IP only and trivially
                                                          # bypassed by spreading attempts
                                                          # across IPs (SEC-011)
+    "mfa_verify":      {"limit": 10, "window": 3600},   # 10/hour -- brute-force
+                                                         # protection on the 6-digit
+                                                         # TOTP code / backup codes
+                                                         # (SEC-007)
 }
 
 # CSRF token storage (in production, use Redis)
@@ -253,6 +257,7 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 _CSRF_EXCLUDED_PATHS = [
     "/auth/login",
     "/auth/register",
+    "/auth/mfa/verify",  # completes login before a session/CSRF token exists
     "/auth/forgot-password",
     "/auth/reset-password",
     "/auth/csrf-token",  # Token generation endpoint
@@ -274,7 +279,10 @@ async def csrf_protection_middleware(request: Request, call_next):
     
     path = request.url.path
     for excluded in _CSRF_EXCLUDED_PATHS:
-        if path.startswith(excluded):
+        # Exact match, or prefix match followed by a path separator -- a bare
+        # startswith() would let "/auth/mfa/verify" also exempt the distinct,
+        # authenticated "/auth/mfa/verify-setup" endpoint from CSRF checks.
+        if path == excluded or path.startswith(excluded + "/"):
             return await call_next(request)
     
     # Extract session token from the access_token cookie
