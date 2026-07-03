@@ -309,6 +309,21 @@ class AuditLog(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+# --- Session ---
+
+
+class Session(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    jti: str
+    refresh_jti: Optional[str] = None
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_active_at: datetime = Field(default_factory=datetime.utcnow)
+    revoked_at: Optional[datetime] = None
+
+
 # --- Security ---
 
 

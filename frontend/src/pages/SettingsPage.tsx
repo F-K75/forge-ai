@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Key, Github, Bell, Sliders } from "lucide-react";
+import { Key, Github, Bell, Sliders, Monitor } from "lucide-react";
 import toast from "react-hot-toast";
 import { DEFAULT_SETTINGS } from "../lib/mockData";
 import { Row } from "../components/Row";
@@ -9,6 +9,55 @@ import { authApi } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
 
 type Settings = typeof DEFAULT_SETTINGS;
+
+type SessionInfo = {
+  id: string;
+  user_agent?: string | null;
+  ip_address?: string | null;
+  created_at: string;
+  last_active_at: string;
+  is_current: boolean;
+};
+
+// Very small heuristic to turn a raw User-Agent string into something
+// readable -- no full UA-parser library, just the common cases.
+function describeUserAgent(ua?: string | null): string {
+  if (!ua) return "Unknown device";
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /Chrome\//.test(ua)
+    ? "Chrome"
+    : /Firefox\//.test(ua)
+    ? "Firefox"
+    : /Safari\//.test(ua)
+    ? "Safari"
+    : "Browser";
+  const os = /Windows/.test(ua)
+    ? "Windows"
+    : /Mac OS X/.test(ua)
+    ? "macOS"
+    : /Android/.test(ua)
+    ? "Android"
+    : /iPhone|iPad/.test(ua)
+    ? "iOS"
+    : /Linux/.test(ua)
+    ? "Linux"
+    : "Unknown OS";
+  return `${browser} on ${os}`;
+}
+
+function formatLastActive(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "Active just now";
+  if (minutes < 60) return `Active ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Active ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `Active ${days}d ago`;
+}
 
 export default function SettingsPage() {
   const { user, fetchMe } = useAuthStore();
@@ -77,6 +126,56 @@ export default function SettingsPage() {
       toast.error("Failed to disconnect GitHub");
     } finally {
       setSavingGithub(false);
+    }
+  };
+
+  // Active sessions / devices
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+
+  const loadSessions = async () => {
+    if (!LIVE_MODE) return;
+    setSessionsLoading(true);
+    try {
+      const data = await authApi.sessions.list();
+      setSessions(data);
+    } catch {
+      toast.error("Failed to load sessions");
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleRevokeSession = async (id: string) => {
+    setRevokingId(id);
+    try {
+      await authApi.sessions.revoke(id);
+      setSessions(prev => prev.filter(s => s.id !== id));
+      toast.success("Session revoked");
+    } catch {
+      toast.error("Failed to revoke session");
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleRevokeAll = async () => {
+    setRevokingAll(true);
+    try {
+      await authApi.sessions.revokeAll();
+      setSessions(prev => prev.filter(s => s.is_current));
+      toast.success("Logged out of all other devices");
+    } catch {
+      toast.error("Failed to log out other devices");
+    } finally {
+      setRevokingAll(false);
     }
   };
 
@@ -251,6 +350,61 @@ export default function SettingsPage() {
             </Row>
           </div>
         </section>
+
+        {/* Active sessions */}
+        {LIVE_MODE && (
+          <section aria-labelledby="section-sessions">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Monitor size={13} className="text-muted" aria-hidden="true" />
+                <h2 id="section-sessions" className="text-sm font-semibold text-ink">Active sessions</h2>
+              </div>
+              {sessions.some(s => !s.is_current) && (
+                <button
+                  onClick={handleRevokeAll}
+                  disabled={revokingAll}
+                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                >
+                  {revokingAll ? "Logging out…" : "Log out of all other devices"}
+                </button>
+              )}
+            </div>
+            <div className="rounded-xl border border-border bg-panel">
+              {sessionsLoading ? (
+                <div className="px-4 py-3 text-xs text-muted">Loading…</div>
+              ) : sessions.length === 0 ? (
+                <div className="px-4 py-3 text-xs text-muted">No active sessions</div>
+              ) : (
+                sessions.map(session => (
+                  <Row
+                    key={session.id}
+                    label={
+                      <span className="flex items-center gap-2">
+                        {describeUserAgent(session.user_agent)}
+                        {session.is_current && (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-panel-alt text-faint border border-border">
+                            This device
+                          </span>
+                        )}
+                      </span>
+                    }
+                    description={`${session.ip_address ?? "Unknown IP"} · ${formatLastActive(session.last_active_at)}`}
+                  >
+                    {!session.is_current && (
+                      <button
+                        onClick={() => handleRevokeSession(session.id)}
+                        disabled={revokingId === session.id}
+                        className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                      >
+                        {revokingId === session.id ? "…" : "Revoke"}
+                      </button>
+                    )}
+                  </Row>
+                ))
+              )}
+            </div>
+          </section>
+        )}
 
       </div>
     </div>

@@ -1,5 +1,5 @@
 interface RowProps {
-  label: string;
+  label: React.ReactNode;
   description?: string;
   children: React.ReactNode;
 }

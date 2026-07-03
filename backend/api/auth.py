@@ -9,10 +9,10 @@ import math
 
 import resend
 
-from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog
+from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session
 from core.database import get_db
 from core.config import get_settings
-from core.security import validate_password_strength, check_email_rate_limit
+from core.security import validate_password_strength, check_email_rate_limit, get_client_ip
 from core.encryption import encrypt_field, decrypt_field
 from auth import (
     hash_password,
@@ -139,7 +139,71 @@ def _hash_token(token: str) -> str:
     ).hex()
 
 
+async def _record_session(
+    db,
+    user_id: str,
+    access_token: str,
+    refresh_token: str,
+    request: Optional[Request],
+    old_refresh_jti: Optional[str] = None,
+) -> None:
+    """Record (or update, on refresh) a session document tracking which
+    device/browser a pair of tokens belongs to. Best-effort: failures here
+    must never block login/register/refresh."""
+    try:
+        access_payload = decode_token(access_token) or {}
+        refresh_payload = decode_token(refresh_token) or {}
+        jti = access_payload.get("jti")
+        refresh_jti = refresh_payload.get("jti")
+        if not jti:
+            return
+
+        user_agent = request.headers.get("user-agent") if request else None
+        ip_address = await get_client_ip(request) if request else None
+        now = datetime.utcnow()
+
+        if old_refresh_jti:
+            result = await db.sessions.update_one(
+                {"user_id": user_id, "refresh_jti": old_refresh_jti, "revoked_at": None},
+                {
+                    "$set": {
+                        "jti": jti,
+                        "refresh_jti": refresh_jti,
+                        "last_active_at": now,
+                        "user_agent": user_agent,
+                        "ip_address": ip_address,
+                    }
+                },
+            )
+            if result.matched_count:
+                return
+
+        session = Session(
+            user_id=user_id,
+            jti=jti,
+            refresh_jti=refresh_jti,
+            user_agent=user_agent,
+            ip_address=ip_address,
+            created_at=now,
+            last_active_at=now,
+        )
+        await db.sessions.insert_one(session.model_dump())
+    except Exception:
+        logging.exception("Failed to record session")
+
+
+async def _blacklist_jti(db, jti: Optional[str]) -> None:
+    if not jti:
+        return
+    await db.token_blacklist.update_one(
+        {"jti": jti},
+        {"$set": {"jti": jti, "created_at": datetime.utcnow()}},
+        upsert=True,
+    )
+
+
 async def get_current_user(
+    request: Request,
     response: Response,
     access_token: Optional[str] = Cookie(None),
     refresh_token: Optional[str] = Cookie(None),
@@ -189,6 +253,10 @@ async def get_current_user(
             new_refresh,
             **_get_cookie_kwargs(30 * 24 * 60 * 60),
         )
+        old_refresh_jti = refresh_payload.get("jti")
+        await _record_session(db, user.id, new_access, new_refresh, request, old_refresh_jti)
+        new_access_payload = decode_token(new_access) or {}
+        request.state.jti = new_access_payload.get("jti")
         return user
 
     user_id = payload.get("sub")
@@ -204,17 +272,18 @@ async def get_current_user(
     user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
-    
+
     # Decrypt sensitive fields
     user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
     if "github_token" in user_data and user_data["github_token"]:
         user_data["github_token"] = decrypt_field(user_data["github_token"])
-    
+
+    request.state.jti = token_jti
     return User(**user_data)
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: RegisterRequest, response: Response):
+async def register(req: RegisterRequest, request: Request, response: Response):
     db = await get_db()
 
     valid, msg = validate_password_strength(req.password)
@@ -278,6 +347,8 @@ async def register(req: RegisterRequest, response: Response):
         **_get_cookie_kwargs(30 * 24 * 60 * 60),
     )
 
+    await _record_session(db, user.id, access_token, refresh_token, request)
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -286,7 +357,7 @@ async def register(req: RegisterRequest, response: Response):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, response: Response):
+async def login(req: LoginRequest, request: Request, response: Response):
     db = await get_db()
 
     allowed, remaining = await check_email_rate_limit(req.email, "login", db)
@@ -324,6 +395,8 @@ async def login(req: LoginRequest, response: Response):
         **_get_cookie_kwargs(30 * 24 * 60 * 60),
     )
 
+    await _record_session(db, user.id, access_token, refresh_token, request)
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -332,7 +405,7 @@ async def login(req: LoginRequest, response: Response):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(req: RefreshRequest, response: Response):
+async def refresh(req: RefreshRequest, request: Request, response: Response):
     payload = decode_token(req.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -363,6 +436,9 @@ async def refresh(req: RefreshRequest, response: Response):
         **_get_cookie_kwargs(30 * 24 * 60 * 60),
     )
 
+    old_refresh_jti = payload.get("jti")
+    await _record_session(db, user.id, access_token, new_refresh, request, old_refresh_jti)
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=new_refresh,
@@ -374,24 +450,114 @@ async def refresh(req: RefreshRequest, response: Response):
 async def logout(
     response: Response,
     access_token: Optional[str] = Cookie(None),
+    refresh_token: Optional[str] = Cookie(None),
     user: User = Depends(get_current_user),
 ):
     db = await get_db()
-    
+
     # Blacklist the access token by JTI for immediate revocation
+    jti = None
     if access_token:
         payload = decode_token(access_token)
         if payload and payload.get("jti"):
             jti = payload["jti"]
-            # Use upsert to avoid duplicate key errors
-            await db.token_blacklist.update_one(
-                {"jti": jti},
-                {"$set": {"jti": jti, "created_at": datetime.utcnow()}},
-                upsert=True,
-            )
-    
+            await _blacklist_jti(db, jti)
+
+    refresh_jti = None
+    if refresh_token:
+        refresh_payload = decode_token(refresh_token)
+        if refresh_payload and refresh_payload.get("jti"):
+            refresh_jti = refresh_payload["jti"]
+            await _blacklist_jti(db, refresh_jti)
+
+    # Mark the matching session as revoked so it drops off the sessions list.
+    if jti:
+        await db.sessions.update_one(
+            {"user_id": user.id, "jti": jti, "revoked_at": None},
+            {"$set": {"revoked_at": datetime.utcnow()}},
+        )
+
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
+    return {"ok": True}
+
+
+class SessionResponse(BaseModel):
+    id: str
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: datetime
+    last_active_at: datetime
+    is_current: bool
+
+
+@router.get("/sessions", response_model=List[SessionResponse])
+async def list_sessions(request: Request, user: User = Depends(get_current_user)):
+    """List this user's active (non-revoked) sessions/devices (BE-010)."""
+    db = await get_db()
+    current_jti = getattr(request.state, "jti", None)
+
+    docs = await db.sessions.find(
+        {"user_id": user.id, "revoked_at": None}, {"_id": 0}
+    ).sort("last_active_at", -1).to_list(None)
+
+    return [
+        SessionResponse(
+            id=doc["id"],
+            user_agent=doc.get("user_agent"),
+            ip_address=doc.get("ip_address"),
+            created_at=doc["created_at"],
+            last_active_at=doc["last_active_at"],
+            is_current=doc.get("jti") == current_jti,
+        )
+        for doc in docs
+    ]
+
+
+@router.delete("/sessions/{session_id}")
+async def revoke_session(
+    session_id: str, request: Request, user: User = Depends(get_current_user)
+):
+    """Revoke a single session (log out that device) and blacklist its
+    tokens so they can't be used again before they naturally expire."""
+    db = await get_db()
+
+    session_doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session_doc or session_doc.get("user_id") != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session_doc.get("revoked_at"):
+        return {"ok": True}
+
+    await db.sessions.update_one(
+        {"id": session_id}, {"$set": {"revoked_at": datetime.utcnow()}}
+    )
+    await _blacklist_jti(db, session_doc.get("jti"))
+    await _blacklist_jti(db, session_doc.get("refresh_jti"))
+
+    return {"ok": True}
+
+
+@router.delete("/sessions")
+async def revoke_all_sessions(request: Request, user: User = Depends(get_current_user)):
+    """Log out of all other devices, keeping the current session active."""
+    db = await get_db()
+    current_jti = getattr(request.state, "jti", None)
+
+    docs = await db.sessions.find(
+        {"user_id": user.id, "revoked_at": None}, {"_id": 0}
+    ).to_list(None)
+
+    now = datetime.utcnow()
+    for doc in docs:
+        if doc.get("jti") == current_jti:
+            continue
+        await db.sessions.update_one(
+            {"id": doc["id"]}, {"$set": {"revoked_at": now}}
+        )
+        await _blacklist_jti(db, doc.get("jti"))
+        await _blacklist_jti(db, doc.get("refresh_jti"))
+
     return {"ok": True}
 
 

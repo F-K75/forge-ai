@@ -80,6 +80,11 @@ export const authApi = {
     members: (id: string) => api.get(`/auth/organizations/${id}/members`).then(r => r.data.members),
     acceptInvite: (token: string) => api.post(`/auth/organizations/invitations/${token}/accept`).then(r => r.data),
   },
+  sessions: {
+    list: () => api.get('/auth/sessions').then(r => r.data),
+    revoke: (id: string) => api.delete(`/auth/sessions/${id}`).then(r => r.data),
+    revokeAll: () => api.delete('/auth/sessions').then(r => r.data),
+  },
 }
 
 // Projects
