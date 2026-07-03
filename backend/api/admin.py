@@ -10,6 +10,7 @@ from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog
 from core.database import get_db, get_redis
 from core.config import get_settings
 from core.security import sanitize_string
+from core.ai_usage import get_spending_dashboard
 from api.auth import get_current_user
 from services.credit_alerts import reset_credit_alerts
 
@@ -728,5 +729,14 @@ async def list_support_tickets(
     cursor = db.support_tickets.find(query, {"_id": 0}).sort("created_at", -1).limit(100)
     async for doc in cursor:
         tickets.append(SupportTicketResponse(**doc))
-    
+
     return tickets if tickets else []
+
+
+@router.get("/spending")
+async def get_spending(
+    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(admin_required),
+) -> List[Dict[str, Any]]:
+    return await get_spending_dashboard(days=days, limit=limit)

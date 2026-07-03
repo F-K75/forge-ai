@@ -127,6 +127,7 @@ async def track_usage(
     project_id: Optional[str] = None,
     cached_tokens: int = 0,
     provider: Optional[str] = None,
+    agent: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Persist a single LLM call's usage record. Called after every completed LLM call, win or lose."""
     db = await get_db()
@@ -136,6 +137,7 @@ async def track_usage(
         "org_id": org_id,
         "project_id": project_id,
         "build_id": build_id,
+        "agent": agent,
         "model": model,
         "provider": provider or get_model_provider(model),
         "prompt_tokens": prompt_tokens,

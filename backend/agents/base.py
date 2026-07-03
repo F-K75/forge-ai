@@ -177,6 +177,7 @@ class BaseAgent:
                         org_id=org_id,
                         project_id=project_id,
                         cached_tokens=cached_tokens,
+                        agent=self.__class__.__name__,
                     )
                 except Exception:
                     logger.exception("Failed to track LLM usage")
@@ -254,6 +255,7 @@ class BaseAgent:
                         org_id=org_id,
                         project_id=project_id,
                         cached_tokens=cached_tokens,
+                        agent=self.__class__.__name__,
                     )
                 except Exception:
                     logger.exception("Failed to track LLM usage")

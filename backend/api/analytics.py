@@ -396,45 +396,42 @@ async def get_ai_cost_data(
     current_user: User = Depends(get_current_user)
 ):
     db = await get_db()
-    
-    start_date = datetime.utcnow() - timedelta(days=days)
-    
-    total_tokens_pipeline = [
-        {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},
-        {"$group": {"_id": None, "total_tokens": {"$sum": "$context_tokens"}, "total_credits": {"$sum": "$credits_used"}}},
-    ]
-    
-    total_tokens = 0
 
-    async for doc in db.builds.aggregate(total_tokens_pipeline):
+    start_date = datetime.utcnow() - timedelta(days=days)
+
+    total_pipeline = [
+        {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},
+        {"$group": {"_id": None, "total_tokens": {"$sum": "$total_tokens"}, "total_cost_usd": {"$sum": "$cost"}}},
+    ]
+
+    total_tokens = 0
+    total_cost_usd = 0.0
+    async for doc in db.ai_usage.aggregate(total_pipeline):
         total_tokens = doc.get("total_tokens", 0)
-    
-    tokens_per_usd = 1000
-    total_cost_usd = round(total_tokens / tokens_per_usd, 4)
-    
+        total_cost_usd = round(doc.get("total_cost_usd", 0.0), 6)
+
     cost_by_agent_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},
-        {"$unwind": "$agents"},
-        {"$group": {"_id": "$agents.agent", "tokens": {"$sum": 1}}},
+        {"$group": {"_id": "$agent", "cost_usd": {"$sum": "$cost"}}},
     ]
-    
+
     cost_by_agent = {}
-    async for doc in db.builds.aggregate(cost_by_agent_pipeline):
-        agent = doc.get("_id", "unknown")
-        cost_by_agent[agent] = round(doc.get("tokens", 0) / tokens_per_usd, 4)
-    
-    similar_users_pipeline = [
+    async for doc in db.ai_usage.aggregate(cost_by_agent_pipeline):
+        agent = doc.get("_id") or "unknown"
+        cost_by_agent[agent] = round(doc.get("cost_usd", 0.0), 6)
+
+    cost_by_user_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
-        {"$group": {"_id": "$user_id", "tokens": {"$sum": "$context_tokens"}}},
-        {"$sort": {"tokens": -1}},
+        {"$group": {"_id": "$user_id", "cost_usd": {"$sum": "$cost"}}},
+        {"$sort": {"cost_usd": -1}},
         {"$limit": 10},
     ]
-    
+
     cost_by_user = {}
-    async for doc in db.builds.aggregate(similar_users_pipeline):
-        user_id = doc.get("_id", "unknown")
-        cost_by_user[user_id] = round(doc.get("tokens", 0) / tokens_per_usd, 4)
-    
+    async for doc in db.ai_usage.aggregate(cost_by_user_pipeline):
+        user_id = doc.get("_id") or "unknown"
+        cost_by_user[user_id] = round(doc.get("cost_usd", 0.0), 6)
+
     return AICostData(
         total_tokens=total_tokens,
         total_cost_usd=total_cost_usd,
