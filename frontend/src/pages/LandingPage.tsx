@@ -126,7 +126,7 @@ const PRICING_PLANS: PricingPlan[] = [
   {
     name: "Free",
     price: "$0",
-    credits: "50 credits",
+    credits: "10 credits",
     features: ["1 project", "Community templates", "Public builds"],
     cta: "Start free",
   },
@@ -140,7 +140,7 @@ const PRICING_PLANS: PricingPlan[] = [
   {
     name: "Pro",
     price: "$99",
-    credits: "500 credits / month",
+    credits: "750 credits / month",
     features: ["1M context window", "Bring your own key", "GitHub sync", "Marketplace publishing", "Usage overages available"],
     cta: "Start building",
     featured: true,
@@ -491,11 +491,9 @@ function Footer() {
         </div>
 
         <nav aria-label="Footer" className="flex items-center gap-6 text-sm text-land-muted">
-          <a href="#" className="hover:text-land-ink transition">Docs</a>
-          <a href="#" className="hover:text-land-ink transition">Privacy</a>
-          <a href="#" className="hover:text-land-ink transition inline-flex items-center gap-1.5">
-            <Github size={13} aria-hidden="true" /> GitHub
-          </a>
+          <span className="inline-flex items-center gap-1.5">
+            <Github size={13} aria-hidden="true" /> GitHub coming soon
+          </span>
         </nav>
 
         <p className="text-xs text-land-muted">© {new Date().getFullYear()} Forge</p>

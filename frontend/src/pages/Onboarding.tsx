@@ -158,9 +158,9 @@ function StepWelcome() {
       <div>
         <h1 className="text-xl font-bold text-ink mb-2">Welcome to Forge</h1>
         <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
-          Five specialized agents — architect, designer, developer, integrations,
-          and PM — collaborate to ship your app in under a minute. Setup takes two
-          minutes.
+          Six specialized agents — architect, business model, designer, developer,
+          integrations, and PM — collaborate to ship your app in under a minute.
+          Setup takes two minutes.
         </p>
       </div>
     </div>

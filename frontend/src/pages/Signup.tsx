@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Mail } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,7 +23,7 @@ function validatePassword(value: string): string | undefined {
   return undefined;
 }
 
-type Field = "name" | "email" | "password";
+type Field = "name" | "email" | "password" | "confirmPassword";
 type Errors = Partial<Record<Field | "form", string>>;
 
 export default function Signup() {
@@ -32,31 +32,44 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+
+  const validateConfirmPassword = (value: string, passwordValue: string): string | undefined => {
+    if (!value) return "Confirm your password";
+    if (value !== passwordValue) return "Passwords don't match";
+    return undefined;
+  };
 
   const validate = (field: Field, value: string) => {
-    const error = field === "name" ? validateName(value) : field === "email" ? validateEmail(value) : validatePassword(value);
+    const error =
+      field === "name" ? validateName(value) :
+      field === "email" ? validateEmail(value) :
+      field === "password" ? validatePassword(value) :
+      validateConfirmPassword(value, password);
     setErrors((e) => ({ ...e, [field]: error }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ name: true, email: true, password: true });
+    setTouched({ name: true, email: true, password: true, confirmPassword: true });
     const nameError = validateName(name);
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
-    if (nameError || emailError || passwordError) {
-      setErrors({ name: nameError, email: emailError, password: passwordError });
+    const confirmPasswordError = validateConfirmPassword(confirmPassword, password);
+    if (nameError || emailError || passwordError || confirmPasswordError) {
+      setErrors({ name: nameError, email: emailError, password: passwordError, confirmPassword: confirmPasswordError });
       return;
     }
     setErrors({});
     setLoading(true);
     try {
       await register(email, name, password);
-      navigate("/onboarding", { replace: true });
+      setSubmittedEmail(email);
     } catch (err: any) {
       setErrors({ form: err?.response?.data?.detail || "Registration failed. Please try again." });
     } finally {
@@ -65,6 +78,30 @@ export default function Signup() {
   };
 
   const passwordStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : /[A-Z]/.test(password) && /[0-9]/.test(password) ? 3 : 2;
+
+  if (submittedEmail) {
+    return (
+      <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
+        <div className="w-full max-w-sm text-center">
+          <div className="w-12 h-12 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
+            <Mail className="w-5 h-5 text-land-ink" aria-hidden="true" />
+          </div>
+          <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Check your email</h1>
+          <p className="text-sm text-land-muted leading-relaxed mb-8">
+            We sent a verification link to <span className="text-land-ink">{submittedEmail}</span>. Click it to
+            confirm your account — you can start setting up your workspace in the meantime.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/onboarding", { replace: true })}
+            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition inline-flex items-center justify-center gap-2 group"
+          >
+            Continue to onboarding <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-land-paper text-land-ink">
@@ -249,6 +286,36 @@ export default function Signup() {
                 )}
               </div>
 
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
+                  Confirm password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (touched.confirmPassword) validate("confirmPassword", e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouched((t) => ({ ...t, confirmPassword: true }));
+                    validate("confirmPassword", confirmPassword);
+                  }}
+                  aria-invalid={!!errors.confirmPassword}
+                  className={`w-full h-11 px-3 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
+                    errors.confirmPassword ? "border-land-destructive/60" : "border-land-border"
+                  }`}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-land-destructive flex items-center gap-1.5">
+                    <AlertCircle className="w-3 h-3" aria-hidden="true" /> {errors.confirmPassword}
+                  </p>
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -267,15 +334,7 @@ export default function Signup() {
             </form>
 
             <p className="mt-8 text-xs text-land-muted text-center leading-relaxed">
-              By creating an account you agree to Forge's{" "}
-              <a href="#" className="underline underline-offset-2 hover:text-land-ink">
-                Terms
-              </a>{" "}
-              and{" "}
-              <a href="#" className="underline underline-offset-2 hover:text-land-ink">
-                Privacy Policy
-              </a>
-              .
+              By creating an account you agree to Forge's Terms and Privacy Policy.
             </p>
           </div>
         </section>

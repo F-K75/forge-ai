@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, Github, Chrome, AlertCircle, Check } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -196,27 +196,6 @@ export default function AuthPage() {
               </form>
             ) : (
               <>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <button
-                type="button"
-                className="h-10 flex items-center justify-center gap-2 rounded-md border border-land-border bg-transparent text-sm text-land-ink hover:bg-land-muted-bg transition"
-              >
-                <Github className="w-4 h-4" aria-hidden="true" /> GitHub
-              </button>
-              <button
-                type="button"
-                className="h-10 flex items-center justify-center gap-2 rounded-md border border-land-border bg-transparent text-sm text-land-ink hover:bg-land-muted-bg transition"
-              >
-                <Chrome className="w-4 h-4" aria-hidden="true" /> Google
-              </button>
-            </div>
-
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-px flex-1 bg-land-border/70" />
-              <span className="text-xs uppercase tracking-[0.16em] text-land-muted">or</span>
-              <div className="h-px flex-1 bg-land-border/70" />
-            </div>
-
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {errors.form && (
                 <div role="alert" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
@@ -347,15 +326,7 @@ export default function AuthPage() {
             </form>
 
             <p className="mt-8 text-xs text-land-muted text-center leading-relaxed">
-              By continuing you agree to Forge's{" "}
-              <a href="#" className="underline underline-offset-2 hover:text-land-ink">
-                Terms
-              </a>{" "}
-              and{" "}
-              <a href="#" className="underline underline-offset-2 hover:text-land-ink">
-                Privacy Policy
-              </a>
-              .
+              By continuing you agree to Forge's Terms and Privacy Policy.
             </p>
               </>
             )}
