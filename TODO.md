@@ -1,48 +1,52 @@
-# Forge-AI Fix Progress
+# Forge Scalability & Architecture Due Diligence — TODO
 
-## Completed Fixes ✅
+## Step 0: Gather evidence for architecture
+- [x] Read high-level architecture docs (README, DEPLOYMENT, PLATFORM_ARCHITECTURE, PRODUCTION_AUDIT_REPORT)
+- [x] Read core infra manifests (docker-compose prod, k8s backend/frontend/ingress/redis/celery, mongodb)
+- [x] Read backend core entrypoints and major runtime components (main.py, ai_usage.py, ws_manager.py, celery_app.py)
+- [x] Read build pipeline and Celery tasks (api/builds.py, tasks/build_tasks.py)
+- [x] Read database connection/pooling + index provisioning (core/database.py)
+- [x] Read security/rate-limiting + CSRF implementation (core/security.py)
+- [x] Read config and data models for scaling-sensitive fields (core/config.py, core/models.py)
 
-### Infrastructure & DevOps
-- [x] **Add `.dockerignore`** — Prevents secrets (.env, .git) from being baked into Docker images
-- [x] **Fix Dockerfile** — Removed `--reload` (causes memory leaks), added `--workers 4`
-- [x] **Fix CORS** — `allowed_origins` as `list[str]`, restricted HTTP methods + headers
-- [x] **Docker Compose security** — MongoDB + Redis auth enabled, health checks on all services, required env vars validated
-- [x] **Update `.env.example`** — Added `MONGO_PASSWORD`, `REDIS_PASSWORD`, updated `JWT_SECRET` example
+## Step 1: Create comprehensive architecture diagram + service list
+- [x] Produce architecture diagram (ASCII) covering FE, API, WebSockets, Celery, Mongo, Redis, artifact storage (if any)
+- [x] Enumerate all services: orchestration/review board (if used in prod), sandbox, orchestration engine, integrations/tools
 
-### Security
-- [x] **Enforce JWT secret length** — Pydantic `field_validator` requiring min 32 chars
-- [x] **Cookie security** — All endpoints use `_get_cookie_kwargs` with `SameSite=strict`, `secure` in prod
-- [x] **Fix invitation token double-storage** — Plaintext `token` now removed from DB before insert
-- [x] **Fix GitHub token leakage** — Replaced `https://oauth2:token@` URL embedding with `GIT_ASKPASS` script
-- [x] **Add input length limits** — `CreateBuildRequest.prompt` capped at 50k chars (prevent OOM)
-- [x] **Add build timeout enforcement** — `asyncio.wait_for` wrapping `orchestrator.run_build()` (10 min default)
 
-### Database
-- [x] **Add 25+ missing indexes** — Projects, builds, team_members, analytics, deployments, audits, notifications, referrals, marketplace, feature_flags, onboarding_progress
-- [x] **TTL indexes** — analytics_events (90d), rate_limits (5min), audit_logs (1yr), security_events (90d)
-- [x] **Connection pool config** — `maxPoolSize=50`, `minPoolSize=10`, `serverSelectionTimeoutMS=5000`, `connectTimeoutMS=10000`
-- [x] **Singleton race condition** — Double-checked locking with `asyncio.Lock` on both MongoDB and Redis init
+## Step 2: Milestone scalability capacity review (100/1k/10k/100k/1M)
+- [ ] Determine what breaks first for each milestone (CPU, memory, LLM cost, DB, WS, queues)
+- [ ] Produce quantified assumptions for RPS / concurrent WS / build duration / token budgets
 
-### Frontend
-- [x] **Fix auth store race** — Removed redundant `fetchMe()` after `register` (API response already has user data)
-- [x] **Add Error Boundaries** — Created `ErrorBoundary` component, wrapped all routes in `App.tsx`
-- [x] **Fix admin auth bypass** — `AdminRoute` now checks `user.email` against `VITE_ADMIN_EMAILS` env var
+## Step 2 (service-by-service): completion tracking
+- [x] Finish Step 2 service-by-service audit (purpose/deps/criticality/scalability/failure impact)
 
-### Backend
-- [x] **Build deduplication guard** — Prevents duplicate builds for same project within 30s window
+## Step 3: Database audit
+- [x] Create Step 3 database audit report (evidence-based)
 
-### Performance
-- [x] **Rate limiting via Redis** — Replaced MongoDB-based rate limiting (2-5ms per request) with Redis `INCR` + `EXPIRE` (sub-millisecond). Added `X-RateLimit-Limit` and `X-RateLimit-Remaining` response headers. Removed `X-Forwarded-For` IP spoofing vector.
+## Step 3: Service-by-service audit
 
-### Security (continued)
-- [x] **WebSocket short-lived token** — Added `/auth/ws-token` endpoint (5 min expiry). Frontend now fetches ws-token via HTTP before opening WebSocket, instead of passing long-lived access_token in URL. Added `vite-env.d.ts` for type-safe env vars.
+- [x] Backend API service (statelessness, worker model, middleware cost, rate limiting)
+- [ ] Celery worker (queue depth, concurrency, build timeouts, cancellation)
+- [x] WebSocket manager (connection lifecycle, pub/sub fanout, max payload)
+- [ ] MongoDB (indexes, document sizes, TTL, aggregation patterns)
+- [ ] Redis (connection limits, pub/sub, fallback behaviors)
+- [ ] AI pipeline/orchestration (max parallelism, retries, token budgeting)
 
-### Backend (continued)
-- [x] **Add `template` field to projects** — `Project` model now has `template` (str) and `template_data` (dict) fields for onboarding templates
-- [x] **Fix credit refund race condition** — Credit refund now uses `find_one_and_update` with guard condition (`credits >= reserved_credits - used`) to prevent over-refunding in concurrent scenarios
+## Step 4: API Scalability audit
+- [x] Create Step 4 API scalability audit report (evidence-based)
 
-### DevOps (continued)
-- [x] **Add resource limits** — All services now have CPU/memory limits and reservations in docker-compose.yml (backend: 2CPU/2G, frontend: 1CPU/1G, mongo: 2CPU/2G, redis: 0.5CPU/512M)
+## Step 4: Observability, reliability, infra readiness
 
-### Security (final)
-- [x] **Password strength enforcement** — Added `validate_password_strength()` requiring 8+ chars, uppercase, lowercase, number, special char. Enforced in `/auth/register` endpoint.
+
+- [ ] Logging/metrics/tracing review (what exists; what’s missing for autoscaling)
+- [ ] Failure recovery & graceful shutdown (Mongo/Redis/Celery/WS)
+- [ ] Backup/DR gap checks
+
+## Step 5: Engineering blockers list and roadmap
+- [ ] Rank P0/P1/P2 blockers by impact/effort with exact file evidence
+- [ ] Roadmap from prototype→beta→launch→10k→100k→1M
+
+## Step 6: Final report
+- [ ] Produce final scorecard and verdict, evidence-backed and quant/assumption-based
+
