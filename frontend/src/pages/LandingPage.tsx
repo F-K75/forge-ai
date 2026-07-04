@@ -294,8 +294,9 @@ function Hero({ activeIndex }: { activeIndex: number }) {
               <span className="w-2.5 h-2.5 rounded-full bg-land-border" />
             </div>
             <span className="font-mono text-xs text-land-muted ml-2">forge · build session</span>
+            <span className="ml-auto text-[10px] uppercase tracking-wide text-land-muted/70">Simulated example</span>
           </div>
-          <div className="p-6 font-mono text-sm space-y-2 leading-relaxed" role="group" aria-label="Live build transcript">
+          <div className="p-6 font-mono text-sm space-y-2 leading-relaxed" role="group" aria-label="Simulated build transcript example">
             <div className="text-land-muted">
               $ forge build "Build a habit tracker with streaks and reminders."
             </div>

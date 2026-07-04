@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Hammer, Check, Github, Key } from "lucide-react";
+import { Hammer, Check, Github, Key, ArrowUpRight } from "lucide-react";
 import { getIcon } from "../lib/iconMap";
+import { useAuthStore } from "../store/authStore";
+import { LIVE_MODE } from "../lib/env";
+import { DEFAULT_SETTINGS } from "../lib/mockData";
 
 type Goal = string | null;
 
@@ -35,10 +38,11 @@ const GOAL_STARTER_PROMPTS: Record<string, string> = {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [step, setStep] = useState(0);
   const [goal, setGoal] = useState<Goal>(null);
-  const [githubDone, setGithubDone] = useState(false);
-  const [anthropicDone, setAnthropicDone] = useState(false);
+  const githubDone = LIVE_MODE ? Boolean(user?.github_connected) : DEFAULT_SETTINGS.github.connected;
+  const anthropicDone = LIVE_MODE ? Boolean(user?.byok_connected) : DEFAULT_SETTINGS.byok;
 
   const primaryLabel =
     step === 2 ? "Skip for now" : step === 3 ? "Open workspace" : "Continue";
@@ -113,8 +117,8 @@ export default function Onboarding() {
             <StepConnect
               githubDone={githubDone}
               anthropicDone={anthropicDone}
-              onGithub={() => setGithubDone(true)}
-              onAnthropic={() => setAnthropicDone(true)}
+              onGithub={() => window.open("/settings", "_blank", "noopener,noreferrer")}
+              onAnthropic={() => window.open("/settings", "_blank", "noopener,noreferrer")}
             />
           )}
           {step === 3 && <StepReady goal={goal} />}
@@ -238,7 +242,7 @@ function StepConnect({
     <div>
       <h2 className="text-lg font-bold text-ink mb-1">Connect your tools</h2>
       <p className="text-sm text-muted mb-5">
-        You can skip these and connect later in Settings.
+        These open Settings in a new tab — come back here when you're done, or skip for now.
       </p>
       <div className="flex flex-col gap-3">
         <ConnectRow
@@ -246,7 +250,7 @@ function StepConnect({
           label="GitHub"
           description="Push every build to a repo"
           done={githubDone}
-          actionLabel="Connect"
+          actionLabel="Connect in Settings"
           onAction={onGithub}
         />
         <ConnectRow
@@ -254,7 +258,7 @@ function StepConnect({
           label="Anthropic API key"
           description="Bring your own key on Pro — skip credit costs"
           done={anthropicDone}
-          actionLabel="Add key"
+          actionLabel="Add key in Settings"
           onAction={onAnthropic}
         />
       </div>
@@ -303,10 +307,13 @@ function ConnectRow({
         {done ? (
           <span className="flex items-center gap-1.5">
             <Check size={12} aria-hidden="true" />
-            Done
+            Connected
           </span>
         ) : (
-          actionLabel
+          <span className="flex items-center gap-1.5">
+            {actionLabel}
+            <ArrowUpRight size={12} aria-hidden="true" />
+          </span>
         )}
       </button>
     </div>

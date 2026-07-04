@@ -55,7 +55,13 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
         <AgentPipeline nodes={nodes} compact />
       </div>
 
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2">
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Build conversation"
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2"
+      >
         {messages.length === 0 && (
           <p className="text-xs text-faint">
             Describe what you want to build and the agents will take it from there.
