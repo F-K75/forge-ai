@@ -2,8 +2,9 @@ import { ArrowLeft, Hammer } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useBuildStore } from "../../store/buildStore";
 import { StatusPill } from "../StatusPill";
+import { DeployButton } from "./DeployButton";
 
-export function TopBar({ projectName }: { projectName: string }) {
+export function TopBar({ projectName, projectId }: { projectName: string; projectId: string }) {
   const status = useBuildStore((s) => s.status);
   const prompt = useBuildStore((s) => s.prompt);
 
@@ -31,6 +32,10 @@ export function TopBar({ projectName }: { projectName: string }) {
           {prompt}
         </p>
       )}
+
+      <div className="ml-auto shrink-0">
+        <DeployButton projectId={projectId} />
+      </div>
     </header>
   );
 }

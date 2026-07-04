@@ -147,7 +147,7 @@ export default function WorkspacePage() {
 
   return (
     <div className="h-screen flex flex-col bg-base">
-      <TopBar projectName={project.name} />
+      <TopBar projectName={project.name} projectId={project.id} />
       <div className="flex-1 min-h-0 flex">
         <ChatPanel onSubmit={handleSubmit} />
         <EditorPanel />

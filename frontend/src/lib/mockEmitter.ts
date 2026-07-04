@@ -186,3 +186,28 @@ export function runMockBuild(buildId: string, dispatch: (event: AnyWSEvent) => v
     timeoutIds.forEach(id => window.clearTimeout(id))
   }
 }
+
+/**
+ * Demo-mode stand-in for a real Docker deployment (backend/api/deployments.py) —
+ * drives the same pending -> building -> deploying -> live sequence through
+ * deploymentStore.handleEvent so the Deploy button behaves identically
+ * whether or not a backend is configured.
+ */
+export function runMockDeployment(
+  deploymentId: string,
+  dispatch: (type: string, data: { deployment_id: string; status?: string; url?: string; error?: string }) => void
+): () => void {
+  const steps: Array<{ delay: number; status: string; url?: string }> = [
+    { delay: 400, status: 'building' },
+    { delay: 1200, status: 'deploying' },
+    { delay: 1200, status: 'live', url: `https://${deploymentId}.preview.forge.dev` },
+  ]
+  let t = 0
+  const timeoutIds = steps.map(({ delay, status, url }) => {
+    t += delay
+    return window.setTimeout(() => dispatch('build_complete', { deployment_id: deploymentId, status, url }), t)
+  })
+  return () => {
+    timeoutIds.forEach(id => window.clearTimeout(id))
+  }
+}

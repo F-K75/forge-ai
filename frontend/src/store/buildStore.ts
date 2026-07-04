@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import type { AnyWSEvent } from '../lib/wsContract'
+import { isRecord } from '../lib/wsContract'
 import type { Agent } from '../lib/agents'
+import { useDeploymentStore } from './deploymentStore'
 
 // Legacy per-agent tracker — kept for backward-compat selectors.
 export type AgentRunStatus = 'idle' | 'running' | 'complete' | 'failed'
@@ -124,25 +126,28 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
   businessModel: null,
   error: null,
 
-  startBuild: (buildId, prompt) => set({
-    buildId,
-    prompt,
-    status: 'running',
-    activeAgent: null,
-    agentStates: initialAgentStates(),
-    files: {},
-    openFile: null,
-    streamBuffer: '',
-    tokenCount: 0,
-    creditsUsed: 0,
-    qaScore: null,
-    debug: null,
-    debugIterations: 0,
-    agents: initialAgents(),
-    validation: null,
-    businessModel: null,
-    error: null,
-  }),
+  startBuild: (buildId, prompt) => {
+    useDeploymentStore.getState().reset()
+    set({
+      buildId,
+      prompt,
+      status: 'running',
+      activeAgent: null,
+      agentStates: initialAgentStates(),
+      files: {},
+      openFile: null,
+      streamBuffer: '',
+      tokenCount: 0,
+      creditsUsed: 0,
+      qaScore: null,
+      debug: null,
+      debugIterations: 0,
+      agents: initialAgents(),
+      validation: null,
+      businessModel: null,
+      error: null,
+    })
+  },
 
   setBuildId: (buildId: string | null) => set({ buildId }),
 
@@ -152,6 +157,15 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
 
   handleEvent: (event: AnyWSEvent) => {
     const { type, data } = event
+
+    // Deployments are driven over the same build_id channel and reuse
+    // build_start/agent_progress/build_complete/build_failed event types
+    // (see backend/api/deployments.py) — a deployment_id in data means this
+    // event belongs to deploymentStore, not the code build's own state.
+    if (isRecord(data) && typeof (data as { deployment_id?: unknown }).deployment_id === 'string') {
+      useDeploymentStore.getState().handleEvent(type, data as { deployment_id: string; status?: string; url?: string; error?: string })
+      return
+    }
 
     set(state => {
       switch (type) {
@@ -286,24 +300,27 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
 
   setFiles: (files) => set({ files }),
 
-  reset: () => set({
-    buildId: null,
-    status: 'idle',
-    prompt: '',
-    activeAgent: null,
-    agentStates: initialAgentStates(),
-    messages: [],
-    files: {},
-    openFile: null,
-    streamBuffer: '',
-    tokenCount: 0,
-    creditsUsed: 0,
-    qaScore: null,
-    debug: null,
-    debugIterations: 0,
-    agents: initialAgents(),
-    validation: null,
-    businessModel: null,
-    error: null,
-  }),
+  reset: () => {
+    useDeploymentStore.getState().reset()
+    set({
+      buildId: null,
+      status: 'idle',
+      prompt: '',
+      activeAgent: null,
+      agentStates: initialAgentStates(),
+      messages: [],
+      files: {},
+      openFile: null,
+      streamBuffer: '',
+      tokenCount: 0,
+      creditsUsed: 0,
+      qaScore: null,
+      debug: null,
+      debugIterations: 0,
+      agents: initialAgents(),
+      validation: null,
+      businessModel: null,
+      error: null,
+    })
+  },
 }))
