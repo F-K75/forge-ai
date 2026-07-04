@@ -1,6 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { LayoutGrid, Store, CreditCard, Settings, ShieldCheck, Zap, type LucideIcon } from "lucide-react";
 import { CURRENT_USER } from "../lib/mockData";
+import { useAuthStore } from "../store/authStore";
+import { LIVE_MODE } from "../lib/env";
 
 interface NavItem {
   to: string;
@@ -17,9 +19,22 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/settings",    label: "Settings",    icon: Settings                },
 ];
 
-const creditPct = Math.round((CURRENT_USER.creditsUsed / CURRENT_USER.creditsTotal) * 100);
-
 export default function AppShell() {
+  // In live mode, real account data comes from useAuthStore -- CURRENT_USER
+  // is demo-mode-only mock data and was previously rendered unconditionally,
+  // risking mock identity/credits showing over a real signed-in user's data.
+  // user.credits is a single remaining balance (no server-side "total" is
+  // available client-side without an extra billing fetch), so live mode
+  // shows a plain remaining count instead of fabricating a used/total bar.
+  const { user } = useAuthStore();
+  const name = LIVE_MODE ? user?.name ?? "" : CURRENT_USER.name;
+  const email = LIVE_MODE ? user?.email ?? "" : CURRENT_USER.email;
+  const plan = LIVE_MODE ? user?.plan ?? "free" : CURRENT_USER.plan;
+  const creditsRemaining = LIVE_MODE ? user?.credits ?? 0 : null;
+  const creditPct = !LIVE_MODE
+    ? Math.round((CURRENT_USER.creditsUsed / CURRENT_USER.creditsTotal) * 100)
+    : 0;
+
   return (
     <div className="flex h-screen bg-base overflow-hidden">
       {/* Rail */}
@@ -71,26 +86,34 @@ export default function AppShell() {
           <div className="rounded-lg bg-panel-alt border border-border-soft px-3 py-2.5">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] font-semibold text-faint uppercase tracking-wide">
-                {CURRENT_USER.plan}
+                {plan}
               </span>
-              <span className="text-[10px] text-faint font-mono">
-                {CURRENT_USER.creditsUsed} / {CURRENT_USER.creditsTotal}
-              </span>
+              {!LIVE_MODE && (
+                <span className="text-[10px] text-faint font-mono">
+                  {CURRENT_USER.creditsUsed} / {CURRENT_USER.creditsTotal}
+                </span>
+              )}
             </div>
-            <div
-              className="h-1 rounded-full bg-border overflow-hidden"
-              role="progressbar"
-              aria-valuenow={CURRENT_USER.creditsUsed}
-              aria-valuemin={0}
-              aria-valuemax={CURRENT_USER.creditsTotal}
-              aria-label="Credits used"
-            >
-              <div
-                className="h-full rounded-full bg-accent transition-[width] motion-reduce:transition-none"
-                style={{ width: `${creditPct}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-faint mt-1">credits this month</p>
+            {LIVE_MODE ? (
+              <p className="text-[10px] text-faint font-mono">{creditsRemaining} credits remaining</p>
+            ) : (
+              <>
+                <div
+                  className="h-1 rounded-full bg-border overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={CURRENT_USER.creditsUsed}
+                  aria-valuemin={0}
+                  aria-valuemax={CURRENT_USER.creditsTotal}
+                  aria-label="Credits used"
+                >
+                  <div
+                    className="h-full rounded-full bg-accent transition-[width] motion-reduce:transition-none"
+                    style={{ width: `${creditPct}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-faint mt-1">credits this month</p>
+              </>
+            )}
           </div>
 
           {/* User chip */}
@@ -99,11 +122,11 @@ export default function AppShell() {
               className="w-7 h-7 rounded-full bg-gradient-to-br from-accent to-agent-designer flex items-center justify-center shrink-0 text-xs font-bold text-white select-none"
               aria-hidden="true"
             >
-              {CURRENT_USER.name[0]}
+              {name[0]}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-ink truncate">{CURRENT_USER.name}</p>
-              <p className="text-[10px] text-faint truncate">{CURRENT_USER.email}</p>
+              <p className="text-xs font-medium text-ink truncate">{name}</p>
+              <p className="text-[10px] text-faint truncate">{email}</p>
             </div>
           </div>
         </div>
@@ -112,9 +135,9 @@ export default function AppShell() {
         <div className="md:hidden flex justify-center pb-4">
           <div
             className="w-7 h-7 rounded-full bg-gradient-to-br from-accent to-agent-designer flex items-center justify-center text-xs font-bold text-white select-none"
-            aria-label={CURRENT_USER.name}
+            aria-label={name}
           >
-            {CURRENT_USER.name[0]}
+            {name[0]}
           </div>
         </div>
       </nav>

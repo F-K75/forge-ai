@@ -270,28 +270,24 @@ Average across all 17 scored screens: **7.29/10**.
 
 ### P1 — High-impact gaps, not blocking but genuinely broken in some paths
 
-**P1-3: MFA backup-code copy has no insecure-context fallback.**
-- Evidence: `SettingsPage.tsx`'s `handleCopyBackupCodes` calls `navigator.clipboard.writeText(...)` directly with no fallback; `components/ui/ClipboardCopyButton.tsx` already implements the exact fallback needed (`document.execCommand('copy')` via a hidden textarea when `window.isSecureContext` is false) but is unused.
-- Impact: on a non-HTTPS deployment, `navigator.clipboard` is `undefined` and the copy silently fails with a generic "Failed to copy" toast — for a one-time-only secret (backup codes), that's a real usability/security-adjacent failure.
-- Acceptance criteria: `SettingsPage.tsx` uses `ClipboardCopyButton`'s fallback logic (or the component itself) for backup-code copying.
-- Files: `frontend/src/pages/SettingsPage.tsx`, `frontend/src/components/ui/ClipboardCopyButton.tsx`.
+**P1-3: MFA backup-code copy has no insecure-context fallback. — FIXED**
+- Evidence: `SettingsPage.tsx`'s `handleCopyBackupCodes` called `navigator.clipboard.writeText(...)` directly with no fallback; `components/ui/ClipboardCopyButton.tsx` already implemented the exact fallback needed but was unused.
+- Fix applied: ported the fallback logic (hidden-textarea + `document.execCommand('copy')` when `window.isSecureContext` is false) directly into `handleCopyBackupCodes`, keeping the existing button's visual style rather than swapping in `ClipboardCopyButton`'s different markup. Verified the fallback branch executes without throwing.
+- Files: `frontend/src/pages/SettingsPage.tsx`.
 
-**P1-4: Reset-password and verify-email success states auto-redirect with no screen-reader announcement.**
-- Evidence: `ResetPassword.tsx` (line 50) and `VerifyEmail.tsx` (line 29) both `setTimeout(..., 2000)` to `/login` on success; the success message in both has no `aria-live`/`role="status"`.
-- Impact: a screen-reader user isn't told the action succeeded before being redirected away — the confirmation is silently skipped.
-- Acceptance criteria: success message container gets `role="status" aria-live="polite"`; consider extending the delay or adding a manual "Continue" action (matching the pattern `Signup.tsx`'s "check your email" screen already uses).
+**P1-4: Reset-password and verify-email success states auto-redirect with no screen-reader announcement. — FIXED**
+- Evidence: `ResetPassword.tsx` and `VerifyEmail.tsx` both `setTimeout(..., 2000)` to redirect on success; the success/resend-confirmation messages had no `aria-live`/`role="status"`.
+- Fix applied: added `role="status" aria-live="polite"` to `ResetPassword.tsx`'s success container, and to both `VerifyEmail.tsx`'s success container and its "resend sent" confirmation message.
 - Files: `frontend/src/pages/ResetPassword.tsx`, `frontend/src/pages/VerifyEmail.tsx`.
 
-**P1-5: Deploy status changes aren't announced to screen readers.**
-- Evidence: `DeployButton.tsx`'s `pending → building → deploying → live/failed` transitions render as visual-only state changes with no `aria-live` region.
-- Impact: a screen-reader user who triggers a deploy and navigates elsewhere gets no notification when it completes or fails.
-- Acceptance criteria: wrap the button's status label in a `role="status" aria-live="polite"` region (same pattern as the P1-4 fix and the already-fixed `ChatPanel.tsx` transcript).
+**P1-5: Deploy status changes aren't announced to screen readers. — FIXED**
+- Evidence: `DeployButton.tsx`'s `pending → building → deploying → live/failed` transitions rendered as visual-only state changes with no `aria-live` region.
+- Fix applied: added a visually-hidden (`sr-only`) `role="status" aria-live="polite"` span alongside all three of the button's render branches. Verified live via Playwright: the region announces "Queued…" mid-deploy and "Deployment live" on completion.
 - Files: `frontend/src/components/build/DeployButton.tsx`.
 
-**P1-6 (carried forward, unresolved): `AppShell.tsx` renders mock `CURRENT_USER` unconditionally.**
-- Evidence: not gated behind `LIVE_MODE`, per the original report's Step 5 finding — still true as of this revision.
-- Impact: risk of mock identity/credit data rendering over real user data if `LIVE_MODE` logic elsewhere in the app is ever inconsistent.
-- Acceptance criteria: gate `CURRENT_USER` usage behind `!LIVE_MODE`, sourcing real user data from `useAuthStore` in live mode (mirroring the pattern already used in `SettingsPage.tsx`/`Onboarding.tsx`).
+**P1-6: `AppShell.tsx` renders mock `CURRENT_USER` unconditionally. — FIXED**
+- Evidence: not gated behind `LIVE_MODE`, per the original report's Step 5 finding.
+- Fix applied: name/email/plan now come from `useAuthStore`'s real `user` in live mode. Credits render as a plain "N credits remaining" count in live mode rather than a used/total progress bar, since `user.credits` is only a remaining balance — no server-side "total allocation" is available client-side without an extra billing fetch, and fabricating one would trade one inaccuracy for another. Demo mode is unchanged (verified via screenshot — same used/total progress bar as before).
 - Files: `frontend/src/components/AppShell.tsx`.
 
 ### P2 — Medium — real but lower-impact
@@ -313,15 +309,15 @@ Average across all 17 scored screens: **7.29/10**.
 
 ## Step 14 — CEO summary and readiness score
 
-**Readiness score: 78/100** (revised up from 74 — both P0 items are now fixed and verified).
+**Readiness score: 83/100** (revised up from 74 — all P0 and P1 items are now fixed and verified).
 
-Basis: the average screen score (7.29/10) scales to ~73; the two P0 bugs were narrow (a specific screen-reader edge case and a specific password-length edge case) rather than broad functional breakage, and both are now resolved and verified end-to-end (see Step 13). The remaining gap to a higher score is the P1/P2 accessibility items and the unused shared-component consolidation, not correctness bugs.
+Basis: the average screen score (7.29/10) scales to ~73; the two P0 bugs and four P1 bugs were all narrow, well-scoped issues rather than broad functional breakage, and all six are now resolved and verified (five end-to-end live, one via direct logic exercise — see Step 13). The remaining gap to a higher score is the P2/P3 items (skip-links, remaining `aria-live` gaps on Onboarding/ProjectHistory, theme inconsistencies, unused shared-component consolidation), none of which are correctness bugs.
 
-**What's working well**: every screen has a real loading state, a real empty state, and real error handling — there is no page in this app that silently fails or shows a blank screen on error. Accessibility fundamentals (focus rings, `aria-label`s, semantic landmarks) are applied consistently across nearly every screen, which is above average for a codebase this size. The previously-documented trust gaps (dead links, fake OAuth, a stubbed BYOK feature, a permanently-placeholder live preview, a missing Deploy control) have all been fixed in code, not just noted, and both P0 bugs found in this pass (screen-reader-invisible password meter, signup/reset password-length mismatch) are fixed as of this revision.
+**What's working well**: every screen has a real loading state, a real empty state, and real error handling — there is no page in this app that silently fails or shows a blank screen on error. Accessibility fundamentals (focus rings, `aria-label`s, semantic landmarks) are applied consistently across nearly every screen, which is above average for a codebase this size. The previously-documented trust gaps (dead links, fake OAuth, a stubbed BYOK feature, a permanently-placeholder live preview, a missing Deploy control) have all been fixed in code, not just noted, and all six P0/P1 bugs found in this pass are fixed as of this revision: the screen-reader-invisible password meter, the signup/reset password-length mismatch, the MFA backup-code copy fallback, both auto-redirect announcement gaps, the deploy-status announcement gap, and `AppShell.tsx`'s unconditional mock user data.
 
-**What's not ready**: `AuthPage.tsx`, `Signup.tsx`, `ResetPassword.tsx`, and `VerifyEmail.tsx` each still hand-roll their own input/validation/password-strength logic instead of sharing it — that duplication is the root cause both P0 bugs came from, and without consolidating onto the already-built-but-unused shared components (`components/ui/form/*`, `EmptyState`, `ClipboardCopyButton`), the same class of drift can recur. The backend also enforces no server-side minimum password length at all (only a max), which is a real gap surfaced while fixing P0-2 but out of this frontend audit's scope. Several `aria-live` gaps remain on state transitions (deploy status, step wizards, diff reveal) that don't block usage but do leave screen-reader users uninformed at real moments of change.
+**What's not ready**: `AuthPage.tsx`, `Signup.tsx`, `ResetPassword.tsx`, and `VerifyEmail.tsx` each still hand-roll their own input/validation/password-strength logic instead of sharing it — that duplication is the root cause both P0 bugs came from, and without consolidating onto the already-built-but-unused shared components (`components/ui/form/*`, `EmptyState`, `ClipboardCopyButton`), the same class of drift can recur. The backend also enforces no server-side minimum password length at all (only a max), which is a real gap surfaced while fixing P0-2 but out of this frontend audit's scope. The P2 items (no skip-to-content link, remaining `aria-live` gaps on `Onboarding`/`ProjectHistory`, the Launch/NotFound theme inconsistency) are real but lower-impact, and reasonable to leave for a follow-up pass.
 
-**Recommended fix order**: P1-3 through P1-6 next (each is a single-file, well-scoped fix); the backend min-length gap noted in P0-2 alongside them; P2/P3 items are reasonable to batch into a follow-up pass rather than block on.
+**Recommended fix order**: all P0 and P1 items are now fixed. Remaining: the backend min-length gap noted in P0-2 (backend scope, not fixed in this pass); P2/P3 items are reasonable to batch into a follow-up pass rather than block on.
 
 ---
 
@@ -329,4 +325,4 @@ Basis: the average screen score (7.29/10) scales to ~73; the two P0 bugs were na
 
 - ~~Replace dead `href="#"` links~~ — **Fixed.**
 - ~~Add `aria-live` announcement for new chat/transcript items in `ChatPanel.tsx`~~ — **Fixed.**
-- Replace mock-data credits/user rendering in `AppShell.tsx` with real auth state in LIVE_MODE — **Still open**, carried forward as P1-6 above.
+- ~~Replace mock-data credits/user rendering in `AppShell.tsx` with real auth state in LIVE_MODE~~ — **Fixed** (P1-6).

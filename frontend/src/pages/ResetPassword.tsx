@@ -77,7 +77,7 @@ export default function ResetPassword() {
   if (success) {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center">
+        <div className="w-full max-w-sm text-center" role="status" aria-live="polite">
           <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>

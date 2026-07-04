@@ -235,11 +235,35 @@ export default function SettingsPage() {
     }
   };
 
-  const handleCopyBackupCodes = () => {
-    navigator.clipboard.writeText(backupCodes.join("\n")).then(
-      () => toast.success("Backup codes copied"),
-      () => toast.error("Failed to copy")
-    );
+  const handleCopyBackupCodes = async () => {
+    const text = backupCodes.join("\n");
+    // navigator.clipboard is undefined outside a secure context (e.g. a
+    // plain-HTTP deployment) -- these codes are shown exactly once, so a
+    // silent failure here is worse than for a typical "copy" button.
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success("Backup codes copied");
+      } catch {
+        toast.error("Failed to copy");
+      }
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      toast.success("Backup codes copied");
+    } catch {
+      toast.error("Failed to copy");
+    } finally {
+      document.body.removeChild(textarea);
+    }
   };
 
   const handleDoneWithBackupCodes = () => {
