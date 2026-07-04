@@ -83,6 +83,7 @@ class UpdateProfileRequest(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
     avatar_url: Optional[str] = Field(None, max_length=500)
     github_token: Optional[str] = Field(None, max_length=200)
+    anthropic_api_key: Optional[str] = Field(None, max_length=200)
     preferences: Optional[dict] = None
 
 
@@ -148,6 +149,7 @@ def _public_user_dict(user_doc: dict) -> dict:
             "_id",
             "hashed_password",
             "github_token",
+            "anthropic_api_key",
             "verification_token",
             "verification_expires",
             "totp_secret",
@@ -155,6 +157,7 @@ def _public_user_dict(user_doc: dict) -> dict:
         }
     }
     public["github_connected"] = bool(user_doc.get("github_token"))
+    public["byok_connected"] = bool(user_doc.get("anthropic_api_key"))
     return public
 
 
@@ -832,6 +835,18 @@ async def update_profile(
     # connection and is stored as-is — nothing sensitive to encrypt).
     if update.get("github_token"):
         update["github_token"] = encrypt_field(update["github_token"])
+
+    # Bring-your-own-key is a Pro+ perk (see pricing table) -- gated here,
+    # not just hidden in the UI, so a Free-plan user can't skip credit costs
+    # by calling this endpoint directly. Clearing a key (empty string) is
+    # always allowed so a downgrade doesn't strand it un-removable.
+    if update.get("anthropic_api_key"):
+        if user.plan not in (PlanTier.PRO, PlanTier.ENTERPRISE):
+            raise HTTPException(
+                status_code=403,
+                detail="Bring your own key is available on the Pro plan and above.",
+            )
+        update["anthropic_api_key"] = encrypt_field(update["anthropic_api_key"])
 
     # Shallow-merge preferences so one toggle's update doesn't clobber others.
     preferences = update.pop("preferences", None)

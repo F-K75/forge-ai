@@ -2,7 +2,9 @@ from typing import AsyncGenerator, Optional
 import re
 import anthropic
 from core.config import get_settings
-from core.models import AgentType, WSEvent, WSEventType
+from core.models import AgentType, WSEvent, WSEventType, PlanTier
+from core.database import get_db
+from core.encryption import decrypt_field
 from core.ai_usage import track_usage, calculate_cost, check_budget
 from core.security import sanitize_prompt
 import asyncio
@@ -103,6 +105,38 @@ class BaseAgent:
         )
         self.model = settings.default_model
 
+    async def _resolve_client(
+        self, user_id: Optional[str]
+    ) -> tuple[anthropic.AsyncAnthropic, bool]:
+        """Returns (client, is_byok) for this call.
+
+        Agent instances (self) are module-level singletons shared across every
+        concurrent build for every user (see api/builds.py's `orchestrator =
+        Orchestrator()`) — this must never mutate `self.client`, or one user's
+        key could leak into another user's in-flight build. A fresh client is
+        built per call instead, falling back to the shared server client.
+        """
+        if not user_id:
+            return self.client, False
+        try:
+            db = await get_db()
+            user_doc = await db.users.find_one(
+                {"id": user_id}, {"_id": 0, "plan": 1, "anthropic_api_key": 1}
+            )
+        except Exception:
+            return self.client, False
+
+        encrypted_key = user_doc.get("anthropic_api_key") if user_doc else None
+        if not encrypted_key:
+            return self.client, False
+        if (user_doc or {}).get("plan") not in (PlanTier.PRO.value, PlanTier.ENTERPRISE.value):
+            return self.client, False
+
+        key = decrypt_field(encrypted_key)
+        if not key:
+            return self.client, False
+        return anthropic.AsyncAnthropic(api_key=key, timeout=settings.anthropic_timeout), True
+
     async def _call_llm(
         self,
         messages: list,
@@ -116,7 +150,8 @@ class BaseAgent:
         if not _llm_circuit_breaker.can_call():
             raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
 
-        if user_id:
+        client, is_byok = await self._resolve_client(user_id)
+        if user_id and not is_byok:
             await check_budget(user_id, org_id=org_id)
 
         # Sanitize user messages
@@ -144,7 +179,7 @@ class BaseAgent:
         completion_tokens = 0
 
         try:
-            async with self.client.messages.stream(
+            async with client.messages.stream(
                 model=self.model,
                 max_tokens=max_tokens,
                 system=system,
@@ -198,7 +233,8 @@ class BaseAgent:
         if not _llm_circuit_breaker.can_call():
             raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
 
-        if user_id:
+        client, is_byok = await self._resolve_client(user_id)
+        if user_id and not is_byok:
             await check_budget(user_id, org_id=org_id)
 
         sanitized_messages = []
@@ -222,7 +258,7 @@ class BaseAgent:
         completion_tokens = 0
 
         try:
-            async with self.client.messages.stream(
+            async with client.messages.stream(
                 model=self.model,
                 max_tokens=max_tokens,
                 system=system,

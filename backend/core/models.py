@@ -63,6 +63,11 @@ class User(BaseModel):
     name: str
     avatar_url: Optional[str] = None
     github_token: Optional[str] = None
+    # Bring-your-own-key (Pro+ only) -- Fernet-encrypted at rest, same pattern
+    # as github_token. When set, the user's own Anthropic key is used for
+    # their builds instead of Forge's shared key, and per-agent credit
+    # deduction is skipped (see core/orchestrator.py's byok_active check).
+    anthropic_api_key: Optional[str] = None
     preferences: dict = Field(default_factory=dict)
     plan: PlanTier = PlanTier.FREE
     credits: int = 50

@@ -11,6 +11,7 @@ export interface User {
   credits: number
   created_at: string
   github_connected?: boolean
+  byok_connected?: boolean
   mfa_enabled?: boolean
   preferences?: Record<string, unknown>
 }

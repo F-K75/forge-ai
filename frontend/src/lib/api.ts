@@ -68,7 +68,7 @@ export const authApi = {
     api.post('/auth/refresh', { refresh_token }).then(r => r.data),
   logout: () => api.post('/auth/logout').then(r => r.data),
   me: () => api.get('/auth/me').then(r => r.data),
-  updateProfile: (data: { name?: string; avatar_url?: string; github_token?: string; preferences?: Record<string, unknown> }) =>
+  updateProfile: (data: { name?: string; avatar_url?: string; github_token?: string; anthropic_api_key?: string; preferences?: Record<string, unknown> }) =>
     api.put('/auth/me', data).then(r => r.data),
   changePassword: (data: { current_password: string; new_password: string }) =>
     api.post('/auth/me/password', data).then(r => r.data),

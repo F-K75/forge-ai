@@ -74,6 +74,8 @@ export default function SettingsPage() {
   const autoDeploy = LIVE_MODE ? Boolean(preferences.autoDeploy ?? false) : settings.autoDeploy;
   const debugIterations = LIVE_MODE ? Number(preferences.debugIterations ?? 3) : settings.debugIterations;
   const githubConnected = LIVE_MODE ? Boolean(user?.github_connected) : settings.github.connected;
+  const byokConnected = LIVE_MODE ? Boolean(user?.byok_connected) : settings.byok;
+  const canUseByok = LIVE_MODE ? user?.plan === "pro" || user?.plan === "enterprise" : true;
 
   const savePreference = async (key: string, value: unknown) => {
     if (!LIVE_MODE) return;
@@ -127,6 +129,50 @@ export default function SettingsPage() {
       toast.error("Failed to disconnect GitHub");
     } finally {
       setSavingGithub(false);
+    }
+  };
+
+  // Bring-your-own-key (Pro+): paste an Anthropic key to use instead of
+  // Forge credits. Gated server-side too (PUT /auth/me) -- this UI hiding
+  // the input for non-Pro users is a courtesy, not the real enforcement.
+  const [byokKeyInput, setByokKeyInput] = useState("");
+  const [showByokInput, setShowByokInput] = useState(false);
+  const [savingByok, setSavingByok] = useState(false);
+
+  const handleConnectByok = async () => {
+    if (!byokKeyInput.trim()) return;
+    setSavingByok(true);
+    try {
+      if (LIVE_MODE) {
+        await authApi.updateProfile({ anthropic_api_key: byokKeyInput.trim() });
+        await fetchMe();
+      } else {
+        set("byok", true);
+      }
+      setByokKeyInput("");
+      setShowByokInput(false);
+      toast.success("Anthropic key connected");
+    } catch {
+      toast.error("Failed to connect key");
+    } finally {
+      setSavingByok(false);
+    }
+  };
+
+  const handleDisconnectByok = async () => {
+    setSavingByok(true);
+    try {
+      if (LIVE_MODE) {
+        await authApi.updateProfile({ anthropic_api_key: "" });
+        await fetchMe();
+      } else {
+        set("byok", false);
+      }
+      toast.success("Anthropic key disconnected");
+    } catch {
+      toast.error("Failed to disconnect key");
+    } finally {
+      setSavingByok(false);
     }
   };
 
@@ -287,14 +333,59 @@ export default function SettingsPage() {
           <div className="rounded-xl border border-border bg-panel">
             <Row
               label="Bring your own key"
-              description="Use your Anthropic API key instead of Forge credits"
+              description={
+                !canUseByok
+                  ? "Available on the Pro plan — skip credit costs on every build"
+                  : byokConnected
+                  ? !LIVE_MODE
+                    ? settings.maskedKey
+                    : "Connected — your builds use this key instead of credits"
+                  : showByokInput
+                  ? "Paste an Anthropic API key (sk-ant-…)"
+                  : "Use your Anthropic API key instead of Forge credits"
+              }
             >
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-panel-alt text-faint border border-border">
-                  Coming soon
-                </span>
-                <Toggle on={false} onChange={() => {}} label="Bring your own key" disabled />
-              </div>
+              {!canUseByok ? (
+                <a
+                  href="/billing"
+                  className="text-xs text-accent hover:text-accent/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none"
+                >
+                  Upgrade
+                </a>
+              ) : byokConnected ? (
+                <button
+                  onClick={handleDisconnectByok}
+                  disabled={savingByok}
+                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                >
+                  {savingByok ? "…" : "Disconnect"}
+                </button>
+              ) : showByokInput ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={byokKeyInput}
+                    onChange={e => setByokKeyInput(e.target.value)}
+                    placeholder="sk-ant-…"
+                    aria-label="Anthropic API key"
+                    className="h-8 px-2.5 w-40 rounded-md bg-panel-alt border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  />
+                  <button
+                    onClick={handleConnectByok}
+                    disabled={savingByok || !byokKeyInput.trim()}
+                    className="text-xs text-accent hover:text-accent/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                  >
+                    {savingByok ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowByokInput(true)}
+                  className="text-xs text-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none"
+                >
+                  Connect
+                </button>
+              )}
             </Row>
           </div>
         </section>

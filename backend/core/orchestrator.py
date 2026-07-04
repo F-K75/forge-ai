@@ -9,9 +9,10 @@ from agents.integration import IntegrationAgent
 from agents.pm import PMAgent
 from agents.business_model import BusinessModelAgent
 from core.models import (
-    Build, BuildStatus, AgentStep, AgentType, WSEvent, WSEventType
+    Build, BuildStatus, AgentStep, AgentType, WSEvent, WSEventType, PlanTier
 )
 from core.config import get_settings
+from core.database import get_db
 
 settings = get_settings()
 
@@ -50,6 +51,13 @@ class Orchestrator:
         files are returned alongside the build for the caller to persist.
         """
         files: dict = dict(existing_files) if existing_files else {}
+        # Computed once per build (never cached on self -- this Orchestrator
+        # instance is a shared singleton across every concurrent user's
+        # build, see api/builds.py) so BYOK users skip per-agent credit
+        # deduction below; the upfront credit reservation in api/builds.py
+        # is then refunded in full by the existing reserved-minus-used logic
+        # in tasks/build_tasks.py, with no changes needed there.
+        byok_active = await self._is_byok_active(build.user_id)
         try:
 
             # --- 0. BUILD START ---
@@ -60,7 +68,7 @@ class Orchestrator:
             ))
 
             # --- 1. ARCHITECT ---
-            await self._start_agent(build, AgentType.ARCHITECT, emit)
+            await self._start_agent(build, AgentType.ARCHITECT, emit, skip_credits=byok_active)
             blueprint = await self.architect.blueprint(
                 build.prompt,
                 conversation_history=conversation_history,
@@ -84,7 +92,7 @@ class Orchestrator:
             ))
 
             # --- 2. BUSINESS MODEL ---
-            await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit)
+            await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit, skip_credits=byok_active)
             business_model = await self.business_model.improve(build.prompt, blueprint=blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
             build.business_model = business_model
             await self._complete_agent(
@@ -98,7 +106,7 @@ class Orchestrator:
             ))
 
             # --- 3. DESIGNER ---
-            await self._start_agent(build, AgentType.DESIGNER, emit)
+            await self._start_agent(build, AgentType.DESIGNER, emit, skip_credits=byok_active)
             design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
             await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design))
 
@@ -109,7 +117,7 @@ class Orchestrator:
             ))
 
             # --- 4. DEVELOPER (with streaming) ---
-            await self._start_agent(build, AgentType.DEVELOPER, emit)
+            await self._start_agent(build, AgentType.DEVELOPER, emit, skip_credits=byok_active)
 
             await emit(WSEvent(
                 type=WSEventType.AGENT_PROGRESS,
@@ -168,7 +176,7 @@ class Orchestrator:
             # --- 5. INTEGRATION ---
             integrations = blueprint.get("integrations", [])
             if integrations:
-                await self._start_agent(build, AgentType.INTEGRATION, emit)
+                await self._start_agent(build, AgentType.INTEGRATION, emit, skip_credits=byok_active)
                 int_result = await self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
                 files.update(int_result.get("files", {}))
                 await self._complete_agent(
@@ -198,7 +206,7 @@ class Orchestrator:
             iteration = 0
             validation = {}
             while True:
-                await self._start_agent(build, AgentType.PM, emit)
+                await self._start_agent(build, AgentType.PM, emit, skip_credits=byok_active)
                 validation = await self.pm.validate(blueprint, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
                 await self._complete_agent(
                     build, AgentType.PM, emit,
@@ -241,7 +249,7 @@ class Orchestrator:
                     data={"iteration": iteration, "errors": errors}
                 ))
 
-                await self._start_agent(build, AgentType.DEBUGGER, emit)
+                await self._start_agent(build, AgentType.DEBUGGER, emit, skip_credits=byok_active)
                 patched = await self.developer.patch_files(
                     files, "\n".join(errors), blueprint,
                     user_id=build.user_id, build_id=build.id, project_id=build.project_id,
@@ -295,20 +303,38 @@ class Orchestrator:
 
         return build, files
 
-    async def _start_agent(self, build: Build, agent_type: AgentType, emit: Callable):
+    async def _is_byok_active(self, user_id: str) -> bool:
+        """Pro+ users with a stored Anthropic key skip credit costs (see the
+        pricing page's "Bring your own key" perk) -- agents/base.py's
+        _resolve_client does the equivalent check to pick which API key an
+        LLM call actually uses; this mirrors it for the credit ledger."""
+        try:
+            db = await get_db()
+            user_doc = await db.users.find_one(
+                {"id": user_id}, {"_id": 0, "plan": 1, "anthropic_api_key": 1}
+            )
+        except Exception:
+            return False
+        if not user_doc or not user_doc.get("anthropic_api_key"):
+            return False
+        return user_doc.get("plan") in (PlanTier.PRO.value, PlanTier.ENTERPRISE.value)
+
+    async def _start_agent(
+        self, build: Build, agent_type: AgentType, emit: Callable, skip_credits: bool = False
+    ):
         step = AgentStep(agent=agent_type, status=BuildStatus.RUNNING, started_at=datetime.utcnow())
         build.agents.append(step)
-        # Deduct credits
-        credit_map = {
-            AgentType.ARCHITECT: settings.credits_architect,
-            AgentType.DESIGNER: settings.credits_designer,
-            AgentType.DEVELOPER: settings.credits_developer,
-            AgentType.INTEGRATION: settings.credits_integration,
-            AgentType.PM: settings.credits_pm,
-            AgentType.BUSINESS_IMPROVER: settings.credits_business_model,
-            AgentType.DEBUGGER: settings.credits_debug,
-        }
-        build.credits_used += credit_map.get(agent_type, 1)
+        if not skip_credits:
+            credit_map = {
+                AgentType.ARCHITECT: settings.credits_architect,
+                AgentType.DESIGNER: settings.credits_designer,
+                AgentType.DEVELOPER: settings.credits_developer,
+                AgentType.INTEGRATION: settings.credits_integration,
+                AgentType.PM: settings.credits_pm,
+                AgentType.BUSINESS_IMPROVER: settings.credits_business_model,
+                AgentType.DEBUGGER: settings.credits_debug,
+            }
+            build.credits_used += credit_map.get(agent_type, 1)
 
         await emit(WSEvent(
             type=WSEventType.AGENT_START,
