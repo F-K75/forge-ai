@@ -81,6 +81,16 @@ except ImportError:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ws_manager.start()
+
+    # Fail fast if Mongo isn't reachable / isn't provisioned correctly.
+    try:
+        from core.database import get_db
+        db = await get_db()
+        await db.command("ping")
+    except Exception:
+        logger.exception("MongoDB startup health check failed")
+        raise
+
     yield
     await ws_manager.stop()
     await close_connections()
@@ -185,6 +195,18 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/health/mongo-ping")
+async def health_mongo_ping():
+    """MongoDB ping health check."""
+    from core.database import get_db
+    try:
+        db = await get_db()
+        await db.command("ping")
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "degraded", "error": str(e)}
+
+
 @app.get("/health/detailed")
 async def health_detailed():
     """Detailed health check including database, redis, and Celery worker connectivity."""
@@ -226,6 +248,69 @@ async def health_detailed():
         health_status["status"] = "degraded"
 
     return health_status
+
+
+@app.post("/health/mongo-crud-verify")
+async def mongo_crud_verify():
+    """Temporary endpoint to verify MongoDB read/write.
+
+    Inserts a test document into a dedicated collection, reads it back,
+    then deletes it.
+
+    Intended for short-lived debugging/verification.
+    """
+    from core.database import get_db
+    import uuid
+    import datetime
+
+    db = await get_db()
+
+    test_id = str(uuid.uuid4())
+    doc = {
+        "test_id": test_id,
+        "created_at": datetime.datetime.utcnow(),
+        "source": "mongo-crud-verify",
+    }
+
+    # Insert
+    insert_result = await db.mongo_health_test.insert_one(doc)
+
+    # Read back
+    fetched = await db.mongo_health_test.find_one({"_id": insert_result.inserted_id})
+
+    # Cleanup
+    await db.mongo_health_test.delete_one({"_id": insert_result.inserted_id})
+
+    if not fetched:
+        return {
+            "status": "degraded",
+            "inserted": True,
+            "read": False,
+        }
+
+    return {
+        "status": "ok",
+        "inserted": True,
+        "read": True,
+        "test_id": fetched.get("test_id"),
+        "id": str(fetched.get("_id")),
+    }
+
+
+@app.get("/health/mongo-collections")
+async def mongo_collections():
+    """List MongoDB collections in the configured database.
+
+    Intended for audit/debug.
+    """
+    from core.database import get_db
+
+    db = await get_db()
+    try:
+        names = await db.list_collection_names()
+        return {"status": "ok", "collections": names}
+    except Exception as e:
+        return {"status": "degraded", "error": str(e)}
 
 
 @app.get("/integrations/playbooks")

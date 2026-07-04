@@ -33,7 +33,11 @@ async def get_db():
                     serverSelectionTimeoutMS=5000,
                     connectTimeoutMS=10000,
                 )
-                await _ensure_indexes(_mongo_client.forge)
+                try:
+                    await _ensure_indexes(_mongo_client.forge)
+                except Exception:
+                    logger.exception("MongoDB index provisioning failed")
+                    raise
     return _mongo_client.forge
 
 
@@ -137,6 +141,7 @@ async def _ensure_indexes(db):
         await db.webhooks.create_index([("user_id", 1)])
     except Exception:
         logger.exception("Failed to ensure one or more MongoDB indexes")
+        raise
 
 
 async def cache_get(key: str, ttl: int = 300) -> Optional[str]:

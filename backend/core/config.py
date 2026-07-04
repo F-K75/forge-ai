@@ -8,10 +8,34 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     default_model: str = "claude-sonnet-4-6"
-    mongodb_url: str = "mongodb://localhost:27017/forge"
+    mongodb_url: str = ""
     redis_url: str = "redis://localhost:6379"
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
+
+    @field_validator("mongodb_url")
+    @classmethod
+    def check_mongodb_url(cls, v):
+        import os
+        if os.getenv("CI_TEST_MODE"):
+            # Allow tests/CI to use a fallback local DB only when explicitly in CI.
+            return v or "mongodb://localhost:27017/forge"
+
+        if not v:
+            raise ValueError("MONGODB_URL is required in non-test environments")
+
+        # Atlas/local safety guard: allow localhost only in development.
+        app_env = os.getenv("APP_ENV", "development")
+        if app_env != "development" and "localhost" in v:
+            raise ValueError(
+                "MONGODB_URL must not point to localhost outside development"
+            )
+
+        # Encourage Atlas usage (mongodb+srv) outside development.
+        if app_env != "development" and "mongodb+srv" not in v:
+            raise ValueError("MONGODB_URL should use mongodb+srv (Atlas) outside development")
+
+        return v
 
     @field_validator("jwt_secret")
     @classmethod
