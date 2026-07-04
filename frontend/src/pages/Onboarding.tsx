@@ -109,6 +109,10 @@ export default function Onboarding() {
           </ol>
         </nav>
 
+        <span role="status" aria-live="polite" className="sr-only">
+          Step {step + 1} of {STEP_LABELS.length}: {STEP_LABELS[step]}
+        </span>
+
         {/* Step card */}
         <div className="bg-panel rounded-2xl border border-border p-8">
           {step === 0 && <StepWelcome />}

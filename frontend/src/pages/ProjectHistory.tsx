@@ -305,6 +305,14 @@ export default function ProjectHistory() {
         {/* Diff panel */}
         {diff && (
           <div className="mb-7 bg-panel border border-border rounded-xl p-4" role="region" aria-label="Changed files">
+            {/* A short summary announcement, not the full file list -- making
+                the whole region aria-live would read every filename aloud
+                the instant a large diff loads. */}
+            <span role="status" aria-live="polite" className="sr-only">
+              {diff.added.length + diff.modified.length + diff.removed.length === 0
+                ? "No file changes vs. the previous build"
+                : `Diff loaded: ${diff.added.length + diff.modified.length + diff.removed.length} changed files`}
+            </span>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[10px] font-semibold text-faint uppercase tracking-wider">Changed files</h3>
               <button

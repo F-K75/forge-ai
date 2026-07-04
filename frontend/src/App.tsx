@@ -1,15 +1,14 @@
 import { useEffect, useState, Suspense, lazy } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { Mail } from 'lucide-react'
 import { useAuthStore } from './store/authStore'
-import { api } from './lib/api'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { LIVE_MODE } from './lib/env'
 
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const Signup = lazy(() => import('./pages/Signup'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
@@ -127,111 +126,6 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function ForgotPassword() {
-  const [email, setEmail] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const [touched, setTouched] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const validateEmail = (value: string) => {
-    if (!value) return 'Email is required'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Invalid email format'
-    return ''
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setTouched(true)
-    const err = validateEmail(email)
-    setEmailError(err)
-    if (err) return
-    setLoading(true)
-    try {
-      await api.post('/auth/forgot-password', { email })
-      setSubmitted(true)
-    } catch (_err: unknown) {
-      // still return success to prevent email enumeration
-      setSubmitted(true)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center">
-          <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
-            <Mail className="w-4 h-4 text-land-ink" aria-hidden="true" />
-          </div>
-          <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Check your email</h1>
-          <p className="text-sm text-land-muted mb-8">If an account with that email exists, we sent a reset link.</p>
-          <Link to="/login" className="text-sm text-land-ink underline underline-offset-4 hover:text-land-muted transition">
-            Back to sign in
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-10">
-          <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
-            <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
-          </div>
-          <h1 className="font-display text-3xl font-medium tracking-tight">Forgot your password?</h1>
-          <p className="text-sm text-land-muted mt-2">Enter your email to receive a reset link.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          {emailError && touched && (
-            <div role="alert" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
-              <span>{emailError}</span>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label htmlFor="reset-email" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
-              Email
-            </label>
-            <input
-              id="reset-email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => setTouched(true)}
-              required
-              autoComplete="email"
-              autoFocus
-              className={`w-full h-11 px-3 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
-                emailError && touched ? 'border-land-destructive/60' : 'border-land-border'
-              }`}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-          >
-            {loading ? 'Sending…' : 'Send reset link'}
-          </button>
-
-          <p className="text-center text-sm text-land-muted">
-            <Link to="/login" className="text-land-ink hover:underline underline-offset-4">
-              Back to sign in
-            </Link>
-          </p>
-        </form>
-      </div>
-    </div>
-  )
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -242,7 +136,7 @@ export default function App() {
 
           <Route path="/login" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><AuthPage /></Suspense></ErrorBoundary>} />
           <Route path="/signup" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Signup /></Suspense></PublicRoute></ErrorBoundary>} />
-          <Route path="/forgot-password" element={<ErrorBoundary><PublicRoute><ForgotPassword /></PublicRoute></ErrorBoundary>} />
+          <Route path="/forgot-password" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><ForgotPassword /></Suspense></PublicRoute></ErrorBoundary>} />
           <Route path="/reset-password" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><ResetPassword /></Suspense></PublicRoute></ErrorBoundary>} />
           <Route path="/verify-email" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><VerifyEmail /></Suspense></ErrorBoundary>} />
           <Route path="/onboarding" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ErrorBoundary>} />

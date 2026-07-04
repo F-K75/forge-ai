@@ -182,8 +182,14 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-land-paper text-land-ink antialiased font-sans">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-land-ink focus:text-land-paper focus:text-sm focus:font-medium"
+      >
+        Skip to content
+      </a>
       <Nav />
-      <main>
+      <main id="main-content">
         <Hero activeIndex={activeIndex} />
         <Agents />
         <WorkflowSection />
@@ -230,7 +236,7 @@ function Nav() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link to="/login" className="hidden sm:block text-sm text-land-muted hover:text-land-ink transition">
+            <Link to="/login" className="text-sm text-land-muted hover:text-land-ink transition">
               Sign in
             </Link>
             <Link
