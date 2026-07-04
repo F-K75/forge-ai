@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { Loader2, ArrowRight, AlertCircle, Check } from "lucide-react"
+import { validateNewPassword } from "../lib/passwordPolicy"
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
@@ -23,8 +24,9 @@ export default function ResetPassword() {
     e.preventDefault()
     setError("")
 
-    if (password.length < 12) {
-      setError("Password must be at least 12 characters")
+    const passwordError = validateNewPassword(password)
+    if (passwordError) {
+      setError(passwordError)
       return
     }
     if (password !== confirm) {
@@ -111,6 +113,9 @@ export default function ResetPassword() {
             <label htmlFor="password" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
               New password
             </label>
+            <p className="text-xs text-land-muted -mt-1">
+              12+ characters, with uppercase, lowercase, a number, and a symbol.
+            </p>
             <input
               id="password"
               type="password"
@@ -118,7 +123,7 @@ export default function ResetPassword() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={12}
-              placeholder="At least 12 characters"
+              placeholder="Create a new password"
               autoFocus
               className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition"
             />

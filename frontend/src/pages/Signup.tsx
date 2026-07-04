@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Mail } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
+import { validateNewPassword } from "../lib/passwordPolicy";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,11 +18,7 @@ function validateEmail(value: string): string | undefined {
   return undefined;
 }
 
-function validatePassword(value: string): string | undefined {
-  if (!value) return "Password is required";
-  if (value.length < 12) return "Must be at least 12 characters";
-  return undefined;
-}
+const validatePassword = validateNewPassword;
 
 type Field = "name" | "email" | "password" | "confirmPassword";
 type Errors = Partial<Record<Field | "form", string>>;
@@ -77,7 +74,8 @@ export default function Signup() {
     }
   };
 
-  const passwordStrength = password.length === 0 ? 0 : password.length < 12 ? 1 : /[A-Z]/.test(password) && /[0-9]/.test(password) ? 3 : 2;
+  const meetsFullPolicy = [/[A-Z]/, /[a-z]/, /[0-9]/, /[!@#$%^&*(),.?":{}|<>]/].every((re) => re.test(password));
+  const passwordStrength = password.length === 0 ? 0 : password.length < 12 ? 1 : meetsFullPolicy ? 3 : 2;
 
   if (submittedEmail) {
     return (
@@ -233,12 +231,15 @@ export default function Signup() {
                 <label htmlFor="password" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
                   Password
                 </label>
+                <p className="text-xs text-land-muted -mt-1">
+                  12+ characters, with uppercase, lowercase, a number, and a symbol.
+                </p>
                 <div className="relative">
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    placeholder="At least 12 characters"
+                    placeholder="Create a password"
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);

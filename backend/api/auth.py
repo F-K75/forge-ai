@@ -867,6 +867,10 @@ async def change_password(
     if not verify_password(req.current_password, hashed):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
 
+    valid, msg = validate_password_strength(req.new_password)
+    if not valid:
+        raise HTTPException(status_code=400, detail=msg)
+
     new_hashed = hash_password(req.new_password)
     await db.users.update_one(
         {"id": user.id}, {"$set": {"hashed_password": new_hashed}}
@@ -951,6 +955,11 @@ async def reset_password(req: ResetPasswordRequest):
             status_code=404,
             detail="Invalid or expired reset token",
         )
+
+    valid, msg = validate_password_strength(req.new_password)
+    if not valid:
+        raise HTTPException(status_code=400, detail=msg)
+
     new_hashed = hash_password(req.new_password)
     await db.users.update_one(
         {"password_reset_token": hashed},
