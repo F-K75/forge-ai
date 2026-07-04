@@ -235,7 +235,11 @@ async def github_webhook(request: Request):
     if not branch or not branch.startswith("task/"):
         return {"ok": True, "ignored": True}
 
-    task_id = branch[len("task/"):].split("-")[0]
+    # Task ids are canonical 36-char UUID4 strings (8-4-4-4-12, itself full of
+    # hyphens) -- splitting the remainder on "-" to strip an optional
+    # "-slug" suffix would truncate the id after its first segment. The id
+    # is always exactly the first 36 characters after "task/".
+    task_id = branch[len("task/"):][:36]
     task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
     if not task:
         return {"ok": True, "ignored": True}
