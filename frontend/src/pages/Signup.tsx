@@ -91,10 +91,10 @@ export default function Signup() {
           </p>
           <button
             type="button"
-            onClick={() => navigate("/onboarding", { replace: true })}
+            onClick={() => navigate("/projects", { replace: true })}
             className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition inline-flex items-center justify-center gap-2 group"
           >
-            Continue to onboarding <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            Continue to your projects <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </button>
         </div>
       </div>

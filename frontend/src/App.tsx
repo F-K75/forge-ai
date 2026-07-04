@@ -97,7 +97,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (LIVE_MODE && isAuthenticated) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/projects" replace />
   }
 
   return <>{children}</>
@@ -120,7 +120,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const isAdmin = adminEmails.includes(user?.email || '')
   
   if (!isAdmin) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/projects" replace />
   }
 
   return <>{children}</>
@@ -141,8 +141,8 @@ export default function App() {
           <Route path="/verify-email" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><VerifyEmail /></Suspense></ErrorBoundary>} />
           <Route path="/onboarding" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ErrorBoundary>} />
 
-          {/* Launch — full-screen, no sidebar shell, still behind the auth gate */}
-          <Route path="/" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><Launch /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          {/* Launch — public entry splash; already-authenticated visitors are bounced straight to /projects by PublicRoute */}
+          <Route path="/" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Launch /></Suspense></PublicRoute></ErrorBoundary>} />
 
           {/* App shell — rail + routed pages */}
           <Route

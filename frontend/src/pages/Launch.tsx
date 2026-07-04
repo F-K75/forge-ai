@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 
-// Minimal home screen: a revolving globe behind a single centered CTA.
-// Pure CSS/SVG — no 3D library — kept lightweight and dependency-free.
+// Public entry splash: a revolving globe behind a single centered CTA that
+// leads into the marketing Home page. Pure CSS/SVG — no 3D library — kept
+// lightweight and dependency-free.
 export default function Launch() {
   const navigate = useNavigate();
 
@@ -12,11 +13,11 @@ export default function Launch() {
 
       <button
         type="button"
-        onClick={() => navigate("/projects")}
+        onClick={() => navigate("/home")}
         className="relative z-10 w-44 h-44 rounded-full bg-accent text-white flex flex-col items-center justify-center gap-2 shadow-[0_0_80px_rgba(0,0,0,0.6)] hover:scale-105 transition-transform motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-base"
       >
         <Plus size={28} strokeWidth={1.5} aria-hidden="true" />
-        <span className="font-display text-sm font-medium tracking-tight">Build with Forge</span>
+        <span className="font-display text-sm font-medium tracking-tight">Enter Forge</span>
       </button>
     </div>
   );

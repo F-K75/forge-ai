@@ -57,7 +57,7 @@ export default function AuthPage() {
         setMfaToken(result.mfaToken);
         return;
       }
-      navigate("/", { replace: true });
+      navigate("/projects", { replace: true });
     } catch (err: any) {
       setErrors({ form: err?.response?.data?.detail || "Invalid email or password." });
     } finally {
@@ -72,7 +72,7 @@ export default function AuthPage() {
     setLoading(true);
     try {
       await verifyMfa(mfaToken, mfaCode.trim());
-      navigate("/", { replace: true });
+      navigate("/projects", { replace: true });
     } catch (err: any) {
       setMfaError(err?.response?.data?.detail || "Invalid code. Please try again.");
     } finally {
