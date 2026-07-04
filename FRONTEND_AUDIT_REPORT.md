@@ -113,11 +113,12 @@ Evidence: `ReviewDetailPage.tsx`
 - Loading: `Loader2` + "Signing in…"/"Verifying…" states.
 - Error handling: form-level errors in `role="alert"`; MFA errors likewise; fields use `aria-describedby`.
 - Good focus management: MFA code input auto-focuses when the challenge step appears.
-- **Bug found**: the password-strength meter's `aria-describedby="password-strength"` (line 263) points at a div that itself has `aria-hidden="true"` (line 282) — screen readers get no accessible description at all (not degraded, literally nothing resolves). See backlog P0-1.
+- ~~**Bug found**: the password-strength meter's `aria-describedby` pointed at a div with `aria-hidden="true"` — screen readers got no accessible description at all.~~ **Fixed** (P0-1): the `aria-describedby` link was removed, matching `Signup.tsx`'s already-correct decorative-only pattern.
 
 ### Signup.tsx — 8/10
 - Confirm-password field with matching validation; "Check your email" success screen with an explicit "Continue to onboarding" CTA rather than an auto-redirect (better pattern than Reset/Verify below).
-- Its password-strength meter also carries `aria-hidden="true"` (line 270), but — verified directly, and unlike `AuthPage.tsx` — the password input here has no `aria-describedby` pointing at it at all, so this one is correctly just decorative. Not a bug.
+- Its password-strength meter also carries `aria-hidden="true"`, but — verified directly, and unlike `AuthPage.tsx` — the password input here has no `aria-describedby` pointing at it at all, so this one was always correctly decorative-only.
+- ~~Required only 8 characters while `ResetPassword.tsx` required 12~~ **Fixed** (P0-2): now requires 12, matching `ResetPassword.tsx`.
 - Duplicates ~150 lines of hand-rolled input/validation/password-toggle markup functionally identical to `AuthPage.tsx`'s, none built on the unused `components/ui/form/*` primitives — see backlog P3-11.
 
 ### ForgotPassword (inline, `App.tsx`) — 8/10
@@ -126,7 +127,7 @@ Evidence: `ReviewDetailPage.tsx`
 
 ### ResetPassword.tsx — 6/10
 - Distinguishes "no/invalid token" state from in-form validation errors; "Updating…" loading label.
-- **Bug found**: requires a 12-character minimum password (`minLength={12}`), while `AuthPage.tsx`/`Signup.tsx` both only require 8 — a user who signs up with an 8–11 character password cannot reset to a password of that same length. See backlog P0-2.
+- Requires a 12-character minimum password (`minLength={12}`) — this was already correct; `Signup.tsx` was the one that disagreed and has since been raised to match (P0-2, fixed). `AuthPage.tsx`'s login form was deliberately left at "non-empty only," not raised, since it validates an existing password rather than choosing a new one.
 - Auto-navigates to `/login` via `setTimeout(...,2000)` on success with no `aria-live`/`role="status"` on the confirmation message — see backlog P1-4.
 
 ### VerifyEmail.tsx — 6/10
@@ -256,17 +257,16 @@ Average across all 17 scored screens: **7.29/10**.
 
 ### P0 — Real bugs, fix before wider release
 
-**P0-1: Password-strength indicator is invisible to screen readers by construction (AuthPage.tsx only).**
-- Evidence: `AuthPage.tsx` — input has `aria-describedby="password-strength"` (line 263); the referenced element has `aria-hidden="true"` (line 282), so the reference resolves to nothing. (`Signup.tsx` has a visually identical meter with `aria-hidden="true"` at line 270, but its input has no `aria-describedby` pointing at it — verified directly — so it's correctly decorative-only there, not a bug.)
-- Impact: a screen-reader user on the login page gets zero accessible description of password strength — not degraded, literally absent, because the reference target is hidden from the accessibility tree.
-- Acceptance criteria: either remove the `aria-describedby` link (if the meter is meant to be decorative-only, matching `Signup.tsx`'s already-correct pattern) or remove `aria-hidden` from the target and give it real text content (e.g. "Weak"/"Good"/"Strong") so the reference resolves to something meaningful.
+**P0-1: Password-strength indicator is invisible to screen readers by construction (AuthPage.tsx only). — FIXED**
+- Evidence: `AuthPage.tsx` — input had `aria-describedby="password-strength"` pointing at an element with `aria-hidden="true"`, so the reference resolved to nothing.
+- Fix applied: removed the `aria-describedby` link entirely (and the now-orphaned `id`), matching `Signup.tsx`'s already-correct decorative-only pattern, rather than inventing new visible strength text. Verified via Playwright that `#password`'s `aria-describedby` is now `null` in the no-error state.
 - Files: `frontend/src/pages/AuthPage.tsx`.
 
-**P0-2: Password minimum-length policy disagrees with itself across signup and reset.**
-- Evidence: `AuthPage.tsx`'s `validatePassword` and `Signup.tsx`'s `validatePassword` both require `value.length >= 8`. `ResetPassword.tsx` enforces `minLength={12}` on its inputs.
-- Impact: a user who signs up with an 8–11 character password cannot reset their password to anything of that same length — a real, reproducible dead end that reads as a bug, not a security choice, since the two flows were clearly never reconciled.
-- Acceptance criteria: pick one minimum (12 is the safer choice) and apply it consistently across signup, login-adjacent validation, and reset; add a shared `validatePassword` (ideally via the already-built-but-unused `components/ui/form/useFormValidation.ts`) instead of three independent copies.
-- Files: `frontend/src/pages/AuthPage.tsx`, `frontend/src/pages/Signup.tsx`, `frontend/src/pages/ResetPassword.tsx`.
+**P0-2: Password minimum-length policy disagrees with itself across signup and reset. — FIXED**
+- Evidence: `AuthPage.tsx`'s `validatePassword` and `Signup.tsx`'s `validatePassword` both required `value.length >= 8`; `ResetPassword.tsx` enforced `minLength={12}`. A user who signed up with an 8–11 character password couldn't reset to a password of that same length.
+- Fix applied: raised `Signup.tsx`'s minimum to 12 (matching `ResetPassword.tsx`) rather than weakening the reset requirement. **`AuthPage.tsx`'s login-form `validatePassword` was deliberately left at "non-empty" only, not raised to 12** — login validates an *existing* password against the server, not a new one; enforcing a length minimum there would have locked out any real account whose already-set password is shorter than 12 characters, since the backend enforces no minimum length at all server-side (`RegisterRequest`/`ResetPasswordRequest` only set `max_length=128`, confirmed in `backend/api/auth.py`). Verified via Playwright: an 8-character password still logs in successfully but is rejected on signup with "Must be at least 12 characters," and a 12-character password passes.
+- **New finding surfaced by this fix, not yet addressed**: the backend has no server-side password minimum length at all — only a max length. Client-side validation is trivially bypassable (direct API call). Worth a follow-up backend fix (`RegisterRequest`/`ResetPasswordRequest`/`ChangePasswordRequest` should enforce `min_length=12` to match the frontend), tracked here rather than fixed in this pass since it's backend scope beyond this frontend audit.
+- Files: `frontend/src/pages/Signup.tsx` (fixed), `frontend/src/pages/AuthPage.tsx` (deliberately unchanged — see above), `frontend/src/pages/ResetPassword.tsx` (already correct, unchanged).
 
 ### P1 — High-impact gaps, not blocking but genuinely broken in some paths
 
@@ -313,15 +313,15 @@ Average across all 17 scored screens: **7.29/10**.
 
 ## Step 14 — CEO summary and readiness score
 
-**Readiness score: 74/100.**
+**Readiness score: 78/100** (revised up from 74 — both P0 items are now fixed and verified).
 
-Basis: the average screen score (7.29/10) scales to ~73; adjusted to 74 to reflect that the two P0 issues are narrow (a specific screen-reader edge case and a specific password-length edge case) rather than broad functional breakage, while still being real, reproducible bugs rather than polish.
+Basis: the average screen score (7.29/10) scales to ~73; the two P0 bugs were narrow (a specific screen-reader edge case and a specific password-length edge case) rather than broad functional breakage, and both are now resolved and verified end-to-end (see Step 13). The remaining gap to a higher score is the P1/P2 accessibility items and the unused shared-component consolidation, not correctness bugs.
 
-**What's working well**: every screen has a real loading state, a real empty state, and real error handling — there is no page in this app that silently fails or shows a blank screen on error. Accessibility fundamentals (focus rings, `aria-label`s, semantic landmarks) are applied consistently across nearly every screen, which is above average for a codebase this size. The previously-documented trust gaps (dead links, fake OAuth, a stubbed BYOK feature, a permanently-placeholder live preview, a missing Deploy control) have all been fixed in code, not just noted.
+**What's working well**: every screen has a real loading state, a real empty state, and real error handling — there is no page in this app that silently fails or shows a blank screen on error. Accessibility fundamentals (focus rings, `aria-label`s, semantic landmarks) are applied consistently across nearly every screen, which is above average for a codebase this size. The previously-documented trust gaps (dead links, fake OAuth, a stubbed BYOK feature, a permanently-placeholder live preview, a missing Deploy control) have all been fixed in code, not just noted, and both P0 bugs found in this pass (screen-reader-invisible password meter, signup/reset password-length mismatch) are fixed as of this revision.
 
-**What's not ready**: two real bugs (P0-1, P0-2) stem from the same root cause — `AuthPage.tsx`, `Signup.tsx`, `ResetPassword.tsx`, and `VerifyEmail.tsx` each hand-roll their own input/validation/password-strength logic instead of sharing it, so the four copies have quietly drifted out of sync with each other. Four already-built, better-implemented shared components (`components/ui/form/*`, `EmptyState`, `ClipboardCopyButton`) sit unused while their hand-rolled equivalents ship the actual bugs. Several `aria-live` gaps remain on state transitions (deploy status, step wizards, diff reveal) that don't block usage but do leave screen-reader users uninformed at real moments of change.
+**What's not ready**: `AuthPage.tsx`, `Signup.tsx`, `ResetPassword.tsx`, and `VerifyEmail.tsx` each still hand-roll their own input/validation/password-strength logic instead of sharing it — that duplication is the root cause both P0 bugs came from, and without consolidating onto the already-built-but-unused shared components (`components/ui/form/*`, `EmptyState`, `ClipboardCopyButton`), the same class of drift can recur. The backend also enforces no server-side minimum password length at all (only a max), which is a real gap surfaced while fixing P0-2 but out of this frontend audit's scope. Several `aria-live` gaps remain on state transitions (deploy status, step wizards, diff reveal) that don't block usage but do leave screen-reader users uninformed at real moments of change.
 
-**Recommended fix order**: P0-1 and P0-2 first (both are small, isolated changes with clear acceptance criteria above); P1-3 through P1-6 next (each is a single-file, well-scoped fix); P2/P3 items are reasonable to batch into a follow-up pass rather than block on.
+**Recommended fix order**: P1-3 through P1-6 next (each is a single-file, well-scoped fix); the backend min-length gap noted in P0-2 alongside them; P2/P3 items are reasonable to batch into a follow-up pass rather than block on.
 
 ---
 

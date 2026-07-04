@@ -12,8 +12,11 @@ function validateEmail(value: string): string | undefined {
 }
 
 function validatePassword(value: string): string | undefined {
+  // Login checks an existing password against the server, not a new one --
+  // it must never enforce a minimum length here, or raising that minimum
+  // (see Signup.tsx/ResetPassword.tsx) would lock out any real account
+  // whose already-set password is shorter than the current requirement.
   if (!value) return "Password is required";
-  if (value.length < 8) return "Must be at least 8 characters";
   return undefined;
 }
 
@@ -260,7 +263,7 @@ export default function AuthPage() {
                       setErrors((er) => ({ ...er, password: validatePassword(password) }));
                     }}
                     aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : "password-strength"}
+                    aria-describedby={errors.password ? "password-error" : undefined}
                     className={`w-full h-11 pl-3 pr-10 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
                       errors.password ? "border-land-destructive/60" : "border-land-border"
                     }`}
@@ -279,7 +282,7 @@ export default function AuthPage() {
                     <AlertCircle className="w-3 h-3" aria-hidden="true" /> {errors.password}
                   </p>
                 ) : (
-                  <div id="password-strength" className="flex gap-1 pt-1" aria-hidden="true">
+                  <div className="flex gap-1 pt-1" aria-hidden="true">
                     {[0, 1, 2].map((i) => (
                       <div
                         key={i}

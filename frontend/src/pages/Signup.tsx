@@ -19,7 +19,7 @@ function validateEmail(value: string): string | undefined {
 
 function validatePassword(value: string): string | undefined {
   if (!value) return "Password is required";
-  if (value.length < 8) return "Must be at least 8 characters";
+  if (value.length < 12) return "Must be at least 12 characters";
   return undefined;
 }
 
@@ -77,7 +77,7 @@ export default function Signup() {
     }
   };
 
-  const passwordStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : /[A-Z]/.test(password) && /[0-9]/.test(password) ? 3 : 2;
+  const passwordStrength = password.length === 0 ? 0 : password.length < 12 ? 1 : /[A-Z]/.test(password) && /[0-9]/.test(password) ? 3 : 2;
 
   if (submittedEmail) {
     return (
@@ -238,7 +238,7 @@ export default function Signup() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    placeholder="At least 8 characters"
+                    placeholder="At least 12 characters"
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
