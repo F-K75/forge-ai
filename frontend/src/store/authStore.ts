@@ -12,6 +12,9 @@ export interface User {
   created_at: string
   github_connected?: boolean
   byok_connected?: boolean
+  llm_provider?: 'anthropic' | 'openai_compatible'
+  llm_base_url?: string
+  llm_model?: string
   mfa_enabled?: boolean
   preferences?: Record<string, unknown>
 }

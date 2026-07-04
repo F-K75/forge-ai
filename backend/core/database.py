@@ -139,6 +139,27 @@ async def _ensure_indexes(db):
 
         # Webhooks index
         await db.webhooks.create_index([("user_id", 1)])
+
+        # --- Agile PM layer ---
+        await db.initiatives.create_index([("user_id", 1), ("updated_at", -1)])
+        await db.initiatives.create_index([("id", 1)])
+        await db.prds.create_index([("initiative_id", 1)], unique=True)
+        await db.epics.create_index([("initiative_id", 1), ("order", 1)])
+        await db.stories.create_index([("epic_id", 1), ("order", 1)])
+        await db.stories.create_index([("initiative_id", 1)])
+        await db.tasks.create_index([("initiative_id", 1), ("status", 1), ("kanban_order", 1)])
+        await db.tasks.create_index([("story_id", 1)])
+        await db.tasks.create_index([("sprint_id", 1)])
+        await db.sprints.create_index([("initiative_id", 1), ("sprint_number", 1)])
+        await db.standups.create_index([("sprint_id", 1), ("date", -1)])
+        await db.sprint_reviews.create_index([("sprint_id", 1), ("created_at", -1)])
+        await db.sprint_retros.create_index([("sprint_id", 1), ("created_at", -1)])
+        await db.risk_reports.create_index([("initiative_id", 1), ("created_at", -1)])
+        await db.tech_debt_summaries.create_index([("initiative_id", 1), ("created_at", -1)])
+        await db.agent_executions.create_index([("initiative_id", 1), ("created_at", -1)])
+        await db.agent_executions.create_index([("task_id", 1)])
+        await db.releases.create_index([("initiative_id", 1), ("created_at", -1)])
+        await db.decision_log.create_index([("initiative_id", 1), ("created_at", -1)])
     except Exception:
         logger.exception("Failed to ensure one or more MongoDB indexes")
         raise

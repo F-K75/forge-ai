@@ -80,7 +80,7 @@ export function PreviewPanel() {
   }, [files, entryPath, htmlEntry, reactEntry, reloadKey]);
 
   return (
-    <aside className="w-72 shrink-0 hidden lg:flex flex-col bg-panel" aria-label="Preview">
+    <aside className="w-72 shrink-0 hidden lg:flex flex-col bg-base border-l border-border" aria-label="Preview">
       <div className="px-4 py-3 border-b border-border-soft flex items-center justify-between">
         <h2 className="text-xs font-medium uppercase tracking-wider text-faint">Preview</h2>
         {status === "complete" && previewDoc && (
@@ -113,13 +113,13 @@ export function PreviewPanel() {
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
           {status === "running" || status === "debugging" ? (
             <>
-              <Loader2 size={20} className="text-accent animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              <Loader2 size={20} className="text-ink animate-spin motion-reduce:animate-none" aria-hidden="true" />
               <p className="text-xs text-muted">Agents are building your app…</p>
             </>
           ) : status === "complete" ? (
             <>
-              <div className="w-10 h-10 rounded-lg bg-accent-soft flex items-center justify-center">
-                <ShieldCheck size={18} className="text-accent" aria-hidden="true" />
+              <div className="w-10 h-10 border border-border flex items-center justify-center">
+                <ShieldCheck size={18} className="text-ink" aria-hidden="true" />
               </div>
               {typeof qaScore === "number" && (
                 <p className="text-sm text-ink font-medium">QA score {qaScore}/100</p>

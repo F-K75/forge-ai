@@ -16,12 +16,16 @@ celery_app = Celery(
 celery_app.conf.task_routes = {
     "backend.tasks.build_tasks.run_build": {"queue": "build"},
     "backend.tasks.build_tasks.update_build_status": {"queue": "build"},
+    "backend.tasks.pm_tasks.generate_initiative_plan": {"queue": "build"},
+    "backend.tasks.pm_tasks.execute_task": {"queue": "build"},
+    "backend.tasks.pm_tasks.run_decision_engine": {"queue": "build"},
 }
 
 celery_app.conf.task_serializer = "json"
 celery_app.conf.result_serializer = "json"
 
 import tasks.build_tasks  # noqa: E402,F401 - registers tasks on this app instance
+import tasks.pm_tasks  # noqa: E402,F401 - registers tasks on this app instance
 
 
 @worker_shutting_down.connect

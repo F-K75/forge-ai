@@ -132,26 +132,40 @@ export default function SettingsPage() {
     }
   };
 
-  // Bring-your-own-key (Pro+): paste an Anthropic key to use instead of
-  // Forge credits. Gated server-side too (PUT /auth/me) -- this UI hiding
-  // the input for non-Pro users is a courtesy, not the real enforcement.
+  // Bring-your-own-key (Pro+): paste a key to use instead of Forge credits --
+  // either a real Anthropic key, or any OpenAI-compatible endpoint (Groq,
+  // OpenRouter, local Ollama, etc.), which needs a base URL + model too.
+  // Gated server-side too (PUT /auth/me) -- this UI hiding the input for
+  // non-Pro users is a courtesy, not the real enforcement.
+  const [byokProvider, setByokProvider] = useState<"anthropic" | "openai_compatible">("anthropic");
   const [byokKeyInput, setByokKeyInput] = useState("");
+  const [byokBaseUrlInput, setByokBaseUrlInput] = useState("");
+  const [byokModelInput, setByokModelInput] = useState("");
   const [showByokInput, setShowByokInput] = useState(false);
   const [savingByok, setSavingByok] = useState(false);
 
   const handleConnectByok = async () => {
     if (!byokKeyInput.trim()) return;
+    if (byokProvider === "openai_compatible" && (!byokBaseUrlInput.trim() || !byokModelInput.trim())) return;
     setSavingByok(true);
     try {
       if (LIVE_MODE) {
-        await authApi.updateProfile({ anthropic_api_key: byokKeyInput.trim() });
+        await authApi.updateProfile({
+          llm_provider: byokProvider,
+          llm_api_key: byokKeyInput.trim(),
+          ...(byokProvider === "openai_compatible"
+            ? { llm_base_url: byokBaseUrlInput.trim(), llm_model: byokModelInput.trim() }
+            : {}),
+        });
         await fetchMe();
       } else {
         set("byok", true);
       }
       setByokKeyInput("");
+      setByokBaseUrlInput("");
+      setByokModelInput("");
       setShowByokInput(false);
-      toast.success("Anthropic key connected");
+      toast.success("Key connected");
     } catch {
       toast.error("Failed to connect key");
     } finally {
@@ -163,12 +177,12 @@ export default function SettingsPage() {
     setSavingByok(true);
     try {
       if (LIVE_MODE) {
-        await authApi.updateProfile({ anthropic_api_key: "" });
+        await authApi.updateProfile({ llm_api_key: "" });
         await fetchMe();
       } else {
         set("byok", false);
       }
-      toast.success("Anthropic key disconnected");
+      toast.success("Key disconnected");
     } catch {
       toast.error("Failed to disconnect key");
     } finally {
@@ -343,18 +357,22 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8">
-      <h1 className="text-xl font-semibold text-ink mb-8">Settings</h1>
+    <div className="px-6 md:px-10 py-10 md:py-14">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
+        <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+        Account
+      </div>
+      <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink mb-12">Settings</h1>
 
-      <div className="max-w-2xl space-y-10">
+      <div className="max-w-2xl space-y-12">
 
         {/* API key */}
         <section aria-labelledby="section-api-key">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <Key size={13} className="text-muted" aria-hidden="true" />
-            <h2 id="section-api-key" className="text-sm font-semibold text-ink">API key</h2>
+            <h2 id="section-api-key" className="text-sm font-medium text-ink">API key</h2>
           </div>
-          <div className="rounded-xl border border-border bg-panel">
+          <div className="border border-border rounded-lg">
             <Row
               label="Bring your own key"
               description={
@@ -363,16 +381,18 @@ export default function SettingsPage() {
                   : byokConnected
                   ? !LIVE_MODE
                     ? settings.maskedKey
+                    : user?.llm_provider === "openai_compatible"
+                    ? `Connected — using ${user.llm_model} instead of credits`
                     : "Connected — your builds use this key instead of credits"
                   : showByokInput
-                  ? "Paste an Anthropic API key (sk-ant-…)"
-                  : "Use your Anthropic API key instead of Forge credits"
+                  ? "Choose a provider and paste your API key below"
+                  : "Use your own Anthropic key, or any OpenAI-compatible provider (Groq, OpenRouter, etc.), instead of Forge credits"
               }
             >
               {!canUseByok ? (
                 <a
                   href="/billing"
-                  className="text-xs text-accent hover:text-accent/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none"
+                  className="text-xs text-ink hover:opacity-70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-opacity motion-reduce:transition-none"
                 >
                   Upgrade
                 </a>
@@ -380,47 +400,100 @@ export default function SettingsPage() {
                 <button
                   onClick={handleDisconnectByok}
                   disabled={savingByok}
-                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
                 >
                   {savingByok ? "…" : "Disconnect"}
                 </button>
               ) : showByokInput ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    value={byokKeyInput}
-                    onChange={e => setByokKeyInput(e.target.value)}
-                    placeholder="sk-ant-…"
-                    aria-label="Anthropic API key"
-                    className="h-8 px-2.5 w-40 rounded-md bg-panel-alt border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                  />
-                  <button
-                    onClick={handleConnectByok}
-                    disabled={savingByok || !byokKeyInput.trim()}
-                    className="text-xs text-accent hover:text-accent/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
-                  >
-                    {savingByok ? "Saving…" : "Save"}
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowByokInput(false)}
+                  className="text-xs text-muted hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none"
+                >
+                  Cancel
+                </button>
               ) : (
                 <button
                   onClick={() => setShowByokInput(true)}
-                  className="text-xs text-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none"
+                  className="text-xs text-muted hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none"
                 >
                   Connect
                 </button>
               )}
             </Row>
+
+            {canUseByok && !byokConnected && showByokInput && (
+              <div className="px-4 py-4 border-t border-border-soft space-y-3">
+                <div className="flex gap-2" role="radiogroup" aria-label="Provider">
+                  {(["anthropic", "openai_compatible"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      role="radio"
+                      aria-checked={byokProvider === p}
+                      onClick={() => setByokProvider(p)}
+                      className={[
+                        "h-8 px-3 rounded-md text-xs font-medium border transition-colors motion-reduce:transition-none",
+                        byokProvider === p ? "border-ink text-ink" : "border-border text-muted hover:text-ink",
+                      ].join(" ")}
+                    >
+                      {p === "anthropic" ? "Anthropic" : "OpenAI-compatible"}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="password"
+                  value={byokKeyInput}
+                  onChange={e => setByokKeyInput(e.target.value)}
+                  placeholder={byokProvider === "anthropic" ? "sk-ant-…" : "API key"}
+                  aria-label="API key"
+                  className="w-full h-9 px-2.5 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+                />
+
+                {byokProvider === "openai_compatible" && (
+                  <>
+                    <input
+                      type="text"
+                      value={byokBaseUrlInput}
+                      onChange={e => setByokBaseUrlInput(e.target.value)}
+                      placeholder="Base URL — e.g. https://api.groq.com/openai/v1"
+                      aria-label="Base URL"
+                      className="w-full h-9 px-2.5 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+                    />
+                    <input
+                      type="text"
+                      value={byokModelInput}
+                      onChange={e => setByokModelInput(e.target.value)}
+                      placeholder="Model — e.g. llama-3.3-70b-versatile"
+                      aria-label="Model"
+                      className="w-full h-9 px-2.5 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+                    />
+                  </>
+                )}
+
+                <button
+                  onClick={handleConnectByok}
+                  disabled={
+                    savingByok ||
+                    !byokKeyInput.trim() ||
+                    (byokProvider === "openai_compatible" && (!byokBaseUrlInput.trim() || !byokModelInput.trim()))
+                  }
+                  className="h-8 px-3 rounded-md bg-ink text-base text-xs font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+                >
+                  {savingByok ? "Saving…" : "Save"}
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
         {/* Connections */}
         <section aria-labelledby="section-connections">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <Github size={13} className="text-muted" aria-hidden="true" />
-            <h2 id="section-connections" className="text-sm font-semibold text-ink">Connections</h2>
+            <h2 id="section-connections" className="text-sm font-medium text-ink">Connections</h2>
           </div>
-          <div className="rounded-xl border border-border bg-panel">
+          <div className="border border-border rounded-lg">
             <Row
               label="GitHub"
               description={
@@ -436,14 +509,14 @@ export default function SettingsPage() {
               }
             >
               {!LIVE_MODE ? (
-                <span className={`text-xs font-medium ${githubConnected ? "text-ok" : "text-muted"}`}>
+                <span className={`text-xs font-medium ${githubConnected ? "text-ink" : "text-muted"}`}>
                   {githubConnected ? "Connected" : "Connect"}
                 </span>
               ) : githubConnected ? (
                 <button
                   onClick={handleDisconnectGithub}
                   disabled={savingGithub}
-                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
                 >
                   {savingGithub ? "…" : "Disconnect"}
                 </button>
@@ -455,12 +528,12 @@ export default function SettingsPage() {
                     onChange={e => setGithubTokenInput(e.target.value)}
                     placeholder="ghp_…"
                     aria-label="GitHub personal access token"
-                    className="h-8 px-2.5 w-40 rounded-md bg-panel-alt border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    className="h-8 px-2.5 w-40 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
                   />
                   <button
                     onClick={handleConnectGithub}
                     disabled={savingGithub || !githubTokenInput.trim()}
-                    className="text-xs text-accent hover:text-accent/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                    className="text-xs text-ink hover:opacity-70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-opacity motion-reduce:transition-none disabled:opacity-50"
                   >
                     {savingGithub ? "Saving…" : "Save"}
                   </button>
@@ -468,7 +541,7 @@ export default function SettingsPage() {
               ) : (
                 <button
                   onClick={() => setShowGithubInput(true)}
-                  className="text-xs text-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none"
+                  className="text-xs text-muted hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none"
                 >
                   Connect
                 </button>
@@ -479,11 +552,11 @@ export default function SettingsPage() {
 
         {/* Notifications */}
         <section aria-labelledby="section-notifications">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <Bell size={13} className="text-muted" aria-hidden="true" />
-            <h2 id="section-notifications" className="text-sm font-semibold text-ink">Notifications</h2>
+            <h2 id="section-notifications" className="text-sm font-medium text-ink">Notifications</h2>
           </div>
-          <div className="rounded-xl border border-border bg-panel">
+          <div className="border border-border rounded-lg">
             <Row
               label="Build complete"
               description="Send an email when a build finishes"
@@ -502,11 +575,11 @@ export default function SettingsPage() {
 
         {/* Defaults */}
         <section aria-labelledby="section-defaults">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <Sliders size={13} className="text-muted" aria-hidden="true" />
-            <h2 id="section-defaults" className="text-sm font-semibold text-ink">Defaults</h2>
+            <h2 id="section-defaults" className="text-sm font-medium text-ink">Defaults</h2>
           </div>
-          <div className="rounded-xl border border-border bg-panel">
+          <div className="border border-border rounded-lg">
             <Row
               label="Auto-deploy"
               description="Push to a live container when QA score passes 85"
@@ -532,7 +605,7 @@ export default function SettingsPage() {
                     else set("debugIterations", next);
                   }}
                   aria-label="Decrease debug iterations"
-                  className="w-7 h-7 rounded-md bg-panel-alt border border-border text-ink text-sm flex items-center justify-center hover:border-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none"
+                  className="w-7 h-7 rounded-md bg-transparent border border-border text-ink text-sm flex items-center justify-center hover:border-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
                 >
                   −
                 </button>
@@ -550,7 +623,7 @@ export default function SettingsPage() {
                     else set("debugIterations", next);
                   }}
                   aria-label="Increase debug iterations"
-                  className="w-7 h-7 rounded-md bg-panel-alt border border-border text-ink text-sm flex items-center justify-center hover:border-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none"
+                  className="w-7 h-7 rounded-md bg-transparent border border-border text-ink text-sm flex items-center justify-center hover:border-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
                 >
                   +
                 </button>
@@ -562,11 +635,11 @@ export default function SettingsPage() {
         {/* Two-factor authentication */}
         {LIVE_MODE && (
           <section aria-labelledby="section-security">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <ShieldCheck size={13} className="text-muted" aria-hidden="true" />
-              <h2 id="section-security" className="text-sm font-semibold text-ink">Security</h2>
+              <h2 id="section-security" className="text-sm font-medium text-ink">Security</h2>
             </div>
-            <div className="rounded-xl border border-border bg-panel">
+            <div className="border border-border rounded-lg">
               <Row
                 label="Two-factor authentication"
                 description={
@@ -584,12 +657,12 @@ export default function SettingsPage() {
                         onChange={e => setDisablePassword(e.target.value)}
                         placeholder="Password"
                         aria-label="Confirm password to disable 2FA"
-                        className="h-8 px-2.5 w-32 rounded-md bg-panel-alt border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        className="h-8 px-2.5 w-32 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
                       />
                       <button
                         onClick={handleDisableMfa}
                         disabled={mfaBusy || !disablePassword.trim()}
-                        className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors disabled:opacity-50"
+                        className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors disabled:opacity-50"
                       >
                         {mfaBusy ? "…" : "Confirm"}
                       </button>
@@ -612,7 +685,7 @@ export default function SettingsPage() {
 
               {mfaStep === "qr" && (
                 <div className="px-4 py-4 border-t border-border space-y-4">
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-muted leading-relaxed">
                     Scan this QR code with an authenticator app (e.g. Google Authenticator, 1Password), then enter the
                     6-digit code it generates.
                   </p>
@@ -628,12 +701,12 @@ export default function SettingsPage() {
                       onChange={e => setMfaSetupCode(e.target.value)}
                       placeholder="123456"
                       aria-label="6-digit authentication code"
-                      className="h-8 px-2.5 w-28 rounded-md bg-panel-alt border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent tracking-widest"
+                      className="h-8 px-2.5 w-28 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition tracking-widest"
                     />
                     <button
                       onClick={handleVerifyMfaSetup}
                       disabled={mfaBusy || !mfaSetupCode.trim()}
-                      className="text-xs text-accent hover:text-accent/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors disabled:opacity-50"
+                      className="text-xs text-ink hover:opacity-70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-opacity disabled:opacity-50"
                     >
                       {mfaBusy ? "Verifying…" : "Verify & enable"}
                     </button>
@@ -650,11 +723,11 @@ export default function SettingsPage() {
               {mfaStep === "backup-codes" && (
                 <div className="px-4 py-4 border-t border-border space-y-3">
                   <p className="text-xs text-ink font-medium">Save your backup codes</p>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-muted leading-relaxed">
                     Each code can be used once to sign in if you lose access to your authenticator app. They will not
                     be shown again -- store them somewhere safe.
                   </p>
-                  <div className="grid grid-cols-2 gap-2 font-mono text-xs bg-panel-alt border border-border rounded-md p-3">
+                  <div className="grid grid-cols-2 gap-2 font-mono text-xs border border-border rounded-md p-3">
                     {backupCodes.map(code => (
                       <span key={code}>{code}</span>
                     ))}
@@ -662,7 +735,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleCopyBackupCodes}
-                      className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent/80"
+                      className="inline-flex items-center gap-1 text-xs text-ink hover:opacity-70 transition-opacity"
                     >
                       <Copy size={12} aria-hidden="true" /> Copy codes
                     </button>
@@ -682,22 +755,22 @@ export default function SettingsPage() {
         {/* Active sessions */}
         {LIVE_MODE && (
           <section aria-labelledby="section-sessions">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Monitor size={13} className="text-muted" aria-hidden="true" />
-                <h2 id="section-sessions" className="text-sm font-semibold text-ink">Active sessions</h2>
+                <h2 id="section-sessions" className="text-sm font-medium text-ink">Active sessions</h2>
               </div>
               {sessions.some(s => !s.is_current) && (
                 <button
                   onClick={handleRevokeAll}
                   disabled={revokingAll}
-                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                  className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
                 >
                   {revokingAll ? "Logging out…" : "Log out of all other devices"}
                 </button>
               )}
             </div>
-            <div className="rounded-xl border border-border bg-panel">
+            <div className="border border-border rounded-lg">
               {sessionsLoading ? (
                 <div className="px-4 py-3 text-xs text-muted">Loading…</div>
               ) : sessions.length === 0 ? (
@@ -710,7 +783,7 @@ export default function SettingsPage() {
                       <span className="flex items-center gap-2">
                         {describeUserAgent(session.user_agent)}
                         {session.is_current && (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-panel-alt text-faint border border-border">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full text-faint border border-border">
                             This device
                           </span>
                         )}
@@ -722,7 +795,7 @@ export default function SettingsPage() {
                       <button
                         onClick={() => handleRevokeSession(session.id)}
                         disabled={revokingId === session.id}
-                        className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
+                        className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
                       >
                         {revokingId === session.id ? "…" : "Revoke"}
                       </button>
@@ -736,13 +809,13 @@ export default function SettingsPage() {
 
         {/* Support */}
         <section aria-labelledby="section-support">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <LifeBuoy size={13} className="text-muted" aria-hidden="true" />
-            <h2 id="section-support" className="text-sm font-semibold text-ink">Support</h2>
+            <h2 id="section-support" className="text-sm font-medium text-ink">Support</h2>
           </div>
-          <div className="rounded-xl border border-border bg-panel p-4 space-y-3">
+          <div className="border border-border rounded-lg p-5 space-y-4">
             <div>
-              <label htmlFor="support-subject" className="block text-xs text-muted mb-1">Subject</label>
+              <label htmlFor="support-subject" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Subject</label>
               <input
                 id="support-subject"
                 type="text"
@@ -750,11 +823,11 @@ export default function SettingsPage() {
                 onChange={(e) => setSupportSubject(e.target.value)}
                 placeholder="Briefly describe the issue"
                 maxLength={200}
-                className="w-full bg-panel-alt border border-border rounded-lg px-3 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="w-full h-10 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
               />
             </div>
             <div>
-              <label htmlFor="support-description" className="block text-xs text-muted mb-1">Description</label>
+              <label htmlFor="support-description" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Description</label>
               <textarea
                 id="support-description"
                 value={supportDescription}
@@ -762,13 +835,13 @@ export default function SettingsPage() {
                 placeholder="What happened, and what were you expecting?"
                 rows={4}
                 maxLength={5000}
-                className="w-full resize-none bg-panel-alt border border-border rounded-lg px-3 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="w-full resize-none bg-transparent border border-border rounded-md px-3 py-2.5 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
               />
             </div>
             <button
               onClick={handleSubmitSupportTicket}
               disabled={supportSubmitting || !supportSubject.trim() || !supportDescription.trim()}
-              className="text-xs px-3 py-2 bg-accent hover:opacity-90 text-white rounded-lg transition-opacity motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              className="h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
             >
               {supportSubmitting ? "Submitting…" : "Submit ticket"}
             </button>

@@ -76,13 +76,19 @@ class DeveloperAgent(BaseAgent):
             }
         ]
 
+        # 8000, not Claude's comfortable 16000: several free-tier BYOK
+        # providers (e.g. Groq's higher-TPM models) hard-cap max_tokens at
+        # 8192 regardless of remaining rate-limit budget, and larger app
+        # generations that need more than this will come back truncated
+        # (breaking JSON parsing) rather than erroring cleanly -- a real
+        # trade-off accepted for BYOK testing on free tiers.
         if stream_callback:
             full = ""
-            async for chunk in self.stream(messages, max_tokens=16000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id):
+            async for chunk in self.stream(messages, max_tokens=8000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id):
                 full += chunk
                 await stream_callback(chunk)
         else:
-            full = await self.run(messages, max_tokens=16000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
+            full = await self.run(messages, max_tokens=8000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
 
         clean = full.strip()
         # Strip markdown fences if present
@@ -93,7 +99,10 @@ class DeveloperAgent(BaseAgent):
             if clean.endswith("```"):
                 clean = clean[:-3].strip()
 
-        return json.loads(clean)
+        # strict=False: some models (esp. non-Claude ones via BYOK) emit
+        # literal control characters (raw newlines) inside JSON strings
+        # instead of the \n escape the system prompt asks for.
+        return json.loads(clean, strict=False)
 
     async def patch_files(
         self,
@@ -120,4 +129,5 @@ class DeveloperAgent(BaseAgent):
         ]
         full = await self.run(messages, max_tokens=8192, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
         clean = full.strip().strip("```json").strip("```").strip()
-        return json.loads(clean)
+        # strict=False: see generate_files above.
+        return json.loads(clean, strict=False)

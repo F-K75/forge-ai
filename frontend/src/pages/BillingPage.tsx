@@ -76,11 +76,15 @@ export default function BillingPage() {
   const maxRuns = usage ? Math.max(1, ...Object.values(usage.agents_runs)) : 1;
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-10">
+    <div className="px-6 md:px-10 py-10 md:py-14 max-w-4xl mx-auto">
       {/* Header */}
-      <header>
-        <h1 className="text-xl font-semibold text-ink">Billing</h1>
-        <p className="text-sm text-muted mt-0.5">
+      <header className="mb-12">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
+          <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+          Billing
+        </div>
+        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Billing</h1>
+        <p className="text-sm text-muted mt-2">
           {LIVE_MODE
             ? subscription?.current_period_end
               ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()} · ${activeTier} plan`
@@ -90,27 +94,27 @@ export default function BillingPage() {
       </header>
 
       {/* Usage stats */}
-      <section aria-label="Usage this month">
-        <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
+      <section aria-label="Usage this month" className="mb-12 pb-12 border-b border-border">
+        <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-4">
           Usage this month
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border">
           {LIVE_MODE ? (
             usage ? (
               <>
-                <div className="bg-panel border border-border rounded-xl p-4">
+                <div className="bg-base p-4">
                   <p className="text-xs text-faint mb-1">Credits used</p>
-                  <p className="text-2xl font-semibold text-accent">
+                  <p className="text-2xl font-medium text-ink">
                     {usage.credits_used} / {usage.credits_used + usage.credits_remaining}
                   </p>
                 </div>
-                <div className="bg-panel border border-border rounded-xl p-4">
+                <div className="bg-base p-4">
                   <p className="text-xs text-faint mb-1">Credits remaining</p>
-                  <p className="text-2xl font-semibold text-ok">{usage.credits_remaining}</p>
+                  <p className="text-2xl font-medium text-ink">{usage.credits_remaining}</p>
                 </div>
-                <div className="bg-panel border border-border rounded-xl p-4">
+                <div className="bg-base p-4">
                   <p className="text-xs text-faint mb-1">Builds this month</p>
-                  <p className="text-2xl font-semibold text-agent-developer">{usage.builds_count}</p>
+                  <p className="text-2xl font-medium text-ink">{usage.builds_count}</p>
                 </div>
               </>
             ) : (
@@ -118,9 +122,9 @@ export default function BillingPage() {
             )
           ) : (
             USAGE_STATS.map(stat => (
-              <div key={stat.label} className="bg-panel border border-border rounded-xl p-4">
+              <div key={stat.label} className="bg-base p-4">
                 <p className="text-xs text-faint mb-1">{stat.label}</p>
-                <p className={`text-2xl font-semibold ${TONE_CLASS[stat.tone]}`}>{stat.value}</p>
+                <p className={`text-2xl font-medium ${TONE_CLASS[stat.tone]}`}>{stat.value}</p>
                 <p className="text-xs text-faint mt-1">{stat.sub}</p>
               </div>
             ))
@@ -129,11 +133,11 @@ export default function BillingPage() {
       </section>
 
       {/* Credits/Builds by agent */}
-      <section aria-label={LIVE_MODE ? "Builds by agent" : "Credits by agent"}>
-        <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
+      <section aria-label={LIVE_MODE ? "Builds by agent" : "Credits by agent"} className="mb-12 pb-12 border-b border-border">
+        <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-4">
           {LIVE_MODE ? "Builds by agent" : "Credits by agent"}
         </h2>
-        <div className="bg-panel border border-border rounded-xl p-4 space-y-3">
+        <div className="space-y-3">
           {LIVE_MODE
             ? usage &&
               Object.entries(usage.agents_runs).map(([agentId, runs]) => {
@@ -144,14 +148,14 @@ export default function BillingPage() {
                   <div key={agentId} className="flex items-center gap-3">
                     <span className="text-xs text-muted w-24 shrink-0">{agent.label}</span>
                     <div
-                      className="flex-1 h-1.5 bg-panel-alt rounded-full overflow-hidden"
+                      className="flex-1 h-px bg-border overflow-hidden"
                       role="progressbar"
                       aria-valuenow={runs}
                       aria-valuemin={0}
                       aria-valuemax={maxRuns}
                       aria-label={`${agent.label}: ${runs} builds`}
                     >
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: agent.hue }} />
+                      <div className="h-full bg-ink" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="font-mono text-xs text-faint w-8 text-right">{runs}</span>
                   </div>
@@ -165,14 +169,14 @@ export default function BillingPage() {
                   <div key={agentId} className="flex items-center gap-3">
                     <span className="text-xs text-muted w-24 shrink-0">{agent.label}</span>
                     <div
-                      className="flex-1 h-1.5 bg-panel-alt rounded-full overflow-hidden"
+                      className="flex-1 h-px bg-border overflow-hidden"
                       role="progressbar"
                       aria-valuenow={credits}
                       aria-valuemin={0}
                       aria-valuemax={maxSpend}
                       aria-label={`${agent.label}: ${credits} credits`}
                     >
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: agent.hue }} />
+                      <div className="h-full bg-ink" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="font-mono text-xs text-faint w-8 text-right">{credits}</span>
                   </div>
@@ -183,18 +187,18 @@ export default function BillingPage() {
 
       {/* Plans */}
       <section aria-label="Plans">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Plans</h2>
           {LIVE_MODE && (
-            <div role="radiogroup" aria-label="Billing interval" className="flex items-center gap-1 bg-panel-alt border border-border rounded-lg p-0.5 text-xs">
+            <div role="radiogroup" aria-label="Billing interval" className="flex items-center gap-4 text-xs">
               <button
                 type="button"
                 role="radio"
                 aria-checked={billingInterval === "monthly"}
                 onClick={() => setBillingInterval("monthly")}
                 className={[
-                  "px-2.5 py-1 rounded-md transition-colors motion-reduce:transition-none",
-                  billingInterval === "monthly" ? "bg-accent text-white" : "text-muted hover:text-ink",
+                  "pb-1 border-b transition-colors motion-reduce:transition-none",
+                  billingInterval === "monthly" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
                 ].join(" ")}
               >
                 Monthly
@@ -205,8 +209,8 @@ export default function BillingPage() {
                 aria-checked={billingInterval === "annual"}
                 onClick={() => setBillingInterval("annual")}
                 className={[
-                  "px-2.5 py-1 rounded-md transition-colors motion-reduce:transition-none",
-                  billingInterval === "annual" ? "bg-accent text-white" : "text-muted hover:text-ink",
+                  "pb-1 border-b transition-colors motion-reduce:transition-none",
+                  billingInterval === "annual" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
                 ].join(" ")}
               >
                 Annual
@@ -214,7 +218,7 @@ export default function BillingPage() {
             </div>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border">
           {LIVE_MODE
             ? rawPlans?.map(plan => (
                 <RawPlanCard
@@ -248,28 +252,24 @@ function RawPlanCard({
 }) {
   const displayPrice = interval === "annual" ? Math.round(plan.price_annual / 12) : plan.price_monthly;
   return (
-    <div
-      className={[
-        "rounded-xl border p-5 flex flex-col gap-4",
-        active ? "border-accent bg-gradient-to-b from-accent-soft to-panel" : "border-border bg-panel",
-      ].join(" ")}
-    >
+    <div className="relative bg-base p-6 flex flex-col gap-4">
+      {active && <div className="absolute top-0 left-0 right-0 h-px bg-ink" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs text-faint">{plan.credits} credits</p>
-          <p className="text-2xl font-bold text-ink mt-0.5">
+          <p className="font-display text-3xl font-medium tracking-tight text-ink mt-1">
             ${displayPrice}
             <span className="text-sm font-normal text-muted">/mo</span>
           </p>
           {interval === "annual" && plan.price_monthly > 0 && (
-            <p className="text-[11px] text-ok mt-0.5">
+            <p className="text-[11px] text-muted mt-0.5">
               ${plan.price_annual}/yr — save ${plan.price_monthly * 12 - plan.price_annual}
             </p>
           )}
-          <p className="text-sm font-semibold text-ink mt-0.5">{plan.name}</p>
+          <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
         </div>
         {active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent/20 text-accent shrink-0">
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
             Active
           </span>
         )}
@@ -278,7 +278,7 @@ function RawPlanCard({
       <ul className="space-y-2 flex-1" aria-label={`${plan.name} plan features`}>
         {plan.features.map(f => (
           <li key={f} className="flex items-center gap-2 text-xs text-muted">
-            <Check size={11} className="text-ok shrink-0" aria-hidden="true" />
+            <Check size={11} className="text-faint shrink-0" aria-hidden="true" />
             {f}
           </li>
         ))}
@@ -288,10 +288,10 @@ function RawPlanCard({
         disabled={active || pending}
         onClick={onSelect}
         className={[
-          "w-full py-2 rounded-lg text-sm font-medium",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          "w-full h-10 rounded-md text-sm font-medium border",
+          "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
           "transition-colors motion-reduce:transition-none disabled:opacity-60",
-          active ? "bg-accent/10 text-accent cursor-default" : "bg-panel-alt border border-border text-ink hover:border-accent/50",
+          active ? "border-border text-muted cursor-default" : "border-ink text-ink hover:bg-ink hover:text-base",
         ].join(" ")}
         aria-disabled={active || pending}
       >
@@ -303,25 +303,19 @@ function RawPlanCard({
 
 function PlanCard({ plan }: { plan: Plan }) {
   return (
-    <div
-      className={[
-        "rounded-xl border p-5 flex flex-col gap-4",
-        plan.active
-          ? "border-accent bg-gradient-to-b from-accent-soft to-panel"
-          : "border-border bg-panel",
-      ].join(" ")}
-    >
+    <div className="relative bg-base p-6 flex flex-col gap-4">
+      {plan.active && <div className="absolute top-0 left-0 right-0 h-px bg-ink" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs text-faint">{plan.credits}</p>
-          <p className="text-2xl font-bold text-ink mt-0.5">
+          <p className="font-display text-3xl font-medium tracking-tight text-ink mt-1">
             {plan.price}
             <span className="text-sm font-normal text-muted">/mo</span>
           </p>
-          <p className="text-sm font-semibold text-ink mt-0.5">{plan.name}</p>
+          <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
         </div>
         {plan.active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent/20 text-accent shrink-0">
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
             Active
           </span>
         )}
@@ -330,7 +324,7 @@ function PlanCard({ plan }: { plan: Plan }) {
       <ul className="space-y-2 flex-1" aria-label={`${plan.name} plan features`}>
         {plan.features.map(f => (
           <li key={f} className="flex items-center gap-2 text-xs text-muted">
-            <Check size={11} className="text-ok shrink-0" aria-hidden="true" />
+            <Check size={11} className="text-faint shrink-0" aria-hidden="true" />
             {f}
           </li>
         ))}
@@ -340,12 +334,12 @@ function PlanCard({ plan }: { plan: Plan }) {
         disabled={plan.active}
         onClick={() => {/* subscription action — no-op until backend (demo mode) */}}
         className={[
-          "w-full py-2 rounded-lg text-sm font-medium",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          "w-full h-10 rounded-md text-sm font-medium border",
+          "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
           "transition-colors motion-reduce:transition-none",
           plan.active
-            ? "bg-accent/10 text-accent cursor-default"
-            : "bg-panel-alt border border-border text-ink hover:border-accent/50",
+            ? "border-border text-muted cursor-default"
+            : "border-ink text-ink hover:bg-ink hover:text-base",
         ].join(" ")}
         aria-disabled={plan.active}
       >

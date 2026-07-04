@@ -49,7 +49,7 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
   };
 
   return (
-    <aside className="w-80 shrink-0 flex flex-col bg-panel border-r border-border">
+    <aside className="w-80 shrink-0 flex flex-col bg-base border-r border-border">
       <div className="px-4 py-3 border-b border-border-soft">
         <h2 className="text-xs font-medium uppercase tracking-wider text-faint mb-3">Pipeline</h2>
         <AgentPipeline nodes={nodes} compact />
@@ -69,7 +69,7 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
         )}
         {messages.map((msg, i) =>
           msg.from === "user" ? (
-            <div key={i} className="ml-6 px-3 py-2 rounded-lg bg-accent-soft text-sm text-ink">
+            <div key={i} className="ml-6 px-3 py-2 rounded-lg border border-border text-sm text-ink">
               {msg.text}
             </div>
           ) : (
@@ -107,13 +107,13 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
             placeholder={isOffline ? "You're offline…" : busy ? "Build in progress…" : "Describe your app…"}
             disabled={busy || isOffline}
             aria-label="Build prompt"
-            className="w-full resize-none rounded-lg bg-panel-alt border border-border px-3 py-2 pr-9 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-accent disabled:opacity-50"
+            className="w-full resize-none rounded-lg bg-transparent border border-border px-3 py-2 pr-9 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={busy || isOffline || !draft.trim()}
             aria-label="Send prompt"
-            className="absolute right-2 bottom-2.5 p-1.5 rounded-md bg-accent text-white disabled:opacity-30 hover:opacity-90 transition-opacity"
+            className="absolute right-2 bottom-2.5 p-1.5 rounded-md bg-ink text-base disabled:opacity-30 hover:bg-ink/90 transition-colors"
           >
             <CornerDownLeft size={13} aria-hidden="true" />
           </button>

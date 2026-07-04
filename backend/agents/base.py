@@ -1,6 +1,7 @@
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, NamedTuple, Optional
 import re
 import anthropic
+import openai
 from core.config import get_settings
 from core.models import AgentType, WSEvent, WSEventType, PlanTier
 from core.database import get_db
@@ -94,6 +95,17 @@ def _any_message_has_prompt_injection(messages: list) -> bool:
     )
 
 
+class ResolvedLLM(NamedTuple):
+    """What a call should actually hit: Forge's own Anthropic key, a user's
+    BYOK Anthropic key, or a user's BYOK key for any OpenAI-compatible
+    endpoint (Groq, OpenRouter, local Ollama, etc.). `client` is either an
+    anthropic.AsyncAnthropic or an openai.AsyncOpenAI depending on `provider`.
+    """
+    provider: str  # "anthropic" | "openai_compatible"
+    client: object
+    model: str
+
+
 class BaseAgent:
     agent_type: AgentType
     system_prompt: str
@@ -107,8 +119,8 @@ class BaseAgent:
 
     async def _resolve_client(
         self, user_id: Optional[str]
-    ) -> tuple[anthropic.AsyncAnthropic, bool]:
-        """Returns (client, is_byok) for this call.
+    ) -> tuple[ResolvedLLM, bool]:
+        """Returns (resolved, is_byok) for this call.
 
         Agent instances (self) are module-level singletons shared across every
         concurrent build for every user (see api/builds.py's `orchestrator =
@@ -116,26 +128,39 @@ class BaseAgent:
         key could leak into another user's in-flight build. A fresh client is
         built per call instead, falling back to the shared server client.
         """
+        default = ResolvedLLM(provider="anthropic", client=self.client, model=self.model)
         if not user_id:
-            return self.client, False
+            return default, False
         try:
             db = await get_db()
             user_doc = await db.users.find_one(
-                {"id": user_id}, {"_id": 0, "plan": 1, "anthropic_api_key": 1}
+                {"id": user_id},
+                {"_id": 0, "plan": 1, "llm_api_key": 1, "llm_provider": 1, "llm_base_url": 1, "llm_model": 1},
             )
         except Exception:
-            return self.client, False
+            return default, False
 
-        encrypted_key = user_doc.get("anthropic_api_key") if user_doc else None
+        encrypted_key = user_doc.get("llm_api_key") if user_doc else None
         if not encrypted_key:
-            return self.client, False
+            return default, False
         if (user_doc or {}).get("plan") not in (PlanTier.PRO.value, PlanTier.ENTERPRISE.value):
-            return self.client, False
+            return default, False
 
         key = decrypt_field(encrypted_key)
         if not key:
-            return self.client, False
-        return anthropic.AsyncAnthropic(api_key=key, timeout=settings.anthropic_timeout), True
+            return default, False
+
+        provider = user_doc.get("llm_provider") or "anthropic"
+        if provider == "openai_compatible":
+            base_url = user_doc.get("llm_base_url")
+            model = user_doc.get("llm_model")
+            if not base_url or not model:
+                return default, False
+            client = openai.AsyncOpenAI(api_key=key, base_url=base_url, timeout=settings.anthropic_timeout)
+            return ResolvedLLM(provider="openai_compatible", client=client, model=model), True
+
+        client = anthropic.AsyncAnthropic(api_key=key, timeout=settings.anthropic_timeout)
+        return ResolvedLLM(provider="anthropic", client=client, model=self.model), True
 
     async def _call_llm(
         self,
@@ -229,11 +254,12 @@ class BaseAgent:
         build_id: Optional[str] = None,
         project_id: Optional[str] = None,
         org_id: Optional[str] = None,
+        usage_out: Optional[dict] = None,
     ) -> AsyncGenerator[str, None]:
         if not _llm_circuit_breaker.can_call():
             raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
 
-        client, is_byok = await self._resolve_client(user_id)
+        resolved, is_byok = await self._resolve_client(user_id)
         if user_id and not is_byok:
             await check_budget(user_id, org_id=org_id)
 
@@ -256,35 +282,63 @@ class BaseAgent:
         full_response = ""
         prompt_tokens = 0
         completion_tokens = 0
+        cached_tokens = 0
 
         try:
-            async with client.messages.stream(
-                model=self.model,
-                max_tokens=max_tokens,
-                system=system,
-                messages=sanitized_messages,
-            ) as stream:
-                async for text in stream.text_stream:
-                    full_response += text
-                    yield text
+            if resolved.provider == "anthropic":
+                async with resolved.client.messages.stream(
+                    model=resolved.model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=sanitized_messages,
+                ) as stream:
+                    async for text in stream.text_stream:
+                        full_response += text
+                        yield text
+
+                if hasattr(stream, "response") and hasattr(stream.response, "usage"):
+                    usage = stream.response.usage
+                    prompt_tokens = getattr(usage, "input_tokens", 0) or 0
+                    completion_tokens = getattr(usage, "output_tokens", 0) or 0
+                    cached_tokens = getattr(usage, "cache_read_input_tokens", 0) or 0
+            else:
+                # openai_compatible BYOK (Groq, OpenRouter, local Ollama, etc.)
+                # -- these providers' usage-on-stream support is inconsistent,
+                # so token/cost tracking is best-effort: prompt/completion
+                # tokens simply stay 0 (and tracking is skipped below) if a
+                # given provider doesn't report it.
+                oa_stream = await resolved.client.chat.completions.create(
+                    model=resolved.model,
+                    max_tokens=max_tokens,
+                    messages=[{"role": "system", "content": system}, *sanitized_messages],
+                    stream=True,
+                )
+                async for chunk in oa_stream:
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta.content
+                    if delta:
+                        full_response += delta
+                        yield delta
+
             _llm_circuit_breaker.record_success()
 
-            cached_tokens = 0
-            if hasattr(stream, "response") and hasattr(stream.response, "usage"):
-                usage = stream.response.usage
-                prompt_tokens = getattr(usage, "input_tokens", 0) or 0
-                completion_tokens = getattr(usage, "output_tokens", 0) or 0
-                cached_tokens = getattr(usage, "cache_read_input_tokens", 0) or 0
+            # Computed whenever there's any usage to report, not just when
+            # user_id is set -- usage_out callers (e.g. per-task cost/token
+            # tracking, see agents/task_executor.py) want the number even if
+            # they track it somewhere other than the shared ai_usage ledger.
+            cost_usd = 0.0
+            if prompt_tokens + completion_tokens > 0:
+                cost_usd = calculate_cost(
+                    resolved.model, prompt_tokens, completion_tokens, cached_tokens=cached_tokens
+                )
 
             if user_id and (prompt_tokens + completion_tokens > 0):
                 try:
-                    cost_usd = calculate_cost(
-                        self.model, prompt_tokens, completion_tokens, cached_tokens=cached_tokens
-                    )
                     await track_usage(
                         user_id=user_id,
                         build_id=build_id,
-                        model=self.model,
+                        model=resolved.model,
                         prompt_tokens=prompt_tokens,
                         completion_tokens=completion_tokens,
                         cost_usd=cost_usd,
@@ -295,6 +349,14 @@ class BaseAgent:
                     )
                 except Exception:
                     logger.exception("Failed to track LLM usage")
+
+            if usage_out is not None:
+                usage_out["model"] = resolved.model
+                usage_out["prompt_tokens"] = prompt_tokens
+                usage_out["completion_tokens"] = completion_tokens
+                usage_out["cached_tokens"] = cached_tokens
+                usage_out["total_tokens"] = prompt_tokens + completion_tokens
+                usage_out["cost_usd"] = cost_usd
 
         except Exception:
             _llm_circuit_breaker.record_failure()
@@ -309,9 +371,12 @@ class BaseAgent:
         build_id: Optional[str] = None,
         project_id: Optional[str] = None,
         org_id: Optional[str] = None,
+        usage_out: Optional[dict] = None,
     ) -> str:
         chunks = []
-        async for chunk in self.stream(messages, extra_system, max_tokens, user_id, build_id, project_id, org_id):
+        async for chunk in self.stream(
+            messages, extra_system, max_tokens, user_id, build_id, project_id, org_id, usage_out=usage_out
+        ):
             chunks.append(chunk)
         return "".join(chunks)
 

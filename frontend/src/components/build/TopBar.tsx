@@ -9,17 +9,17 @@ export function TopBar({ projectName, projectId }: { projectName: string; projec
   const prompt = useBuildStore((s) => s.prompt);
 
   return (
-    <header className="h-12 shrink-0 flex items-center gap-3 px-3 bg-panel border-b border-border">
+    <header className="h-12 shrink-0 flex items-center gap-3 px-3 bg-base border-b border-border">
       <Link
         to="/projects"
         aria-label="Back to projects"
-        className="p-1.5 rounded-md text-muted hover:text-ink hover:bg-panel-alt transition-colors"
+        className="p-1.5 rounded-md text-muted hover:text-ink transition-colors"
       >
         <ArrowLeft size={16} aria-hidden="true" />
       </Link>
 
-      <div className="w-6 h-6 rounded-md bg-accent-soft flex items-center justify-center shrink-0">
-        <Hammer size={13} className="text-accent" aria-hidden="true" />
+      <div className="w-6 h-6 border border-ink flex items-center justify-center shrink-0">
+        <Hammer size={12} className="text-ink" aria-hidden="true" />
       </div>
 
       <div className="min-w-0 flex items-center gap-2.5">

@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { adminApi } from "../lib/api";
 import { LIVE_MODE } from "../lib/env";
-import { COLORS } from "../lib/theme";
 import { StatusPill } from "../components/StatusPill";
 
 interface AdminUser {
@@ -150,37 +149,40 @@ export default function AdminConsole() {
   const totalAiCost30d = aiUsage.reduce((sum, d) => sum + d.cost_usd, 0);
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="px-6 md:px-10 py-10 md:py-14 max-w-7xl mx-auto">
       {/* Header */}
-      <header className="flex items-center gap-2.5 mb-7">
-        <Activity size={18} className="text-accent" aria-hidden="true" />
-        <h1 className="text-xl font-semibold text-ink">Admin console</h1>
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
+        <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+        Admin
+      </div>
+      <header className="flex items-center gap-3 mb-10">
+        <Activity size={20} className="text-ink" aria-hidden="true" />
+        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Admin console</h1>
       </header>
 
       {!LIVE_MODE && (
-        <div className="mb-7 bg-warn/10 border border-warn/30 text-warn px-4 py-3 rounded-xl text-sm">
+        <div className="mb-9 bg-warn/10 border border-warn/30 text-warn px-4 py-3 rounded-lg text-sm">
           Demo mode — connect a live backend to see real platform data.
         </div>
       )}
 
       {/* Stat cards */}
-      <section aria-label="Platform statistics" className="mb-7">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total users" value={overview?.total_users ?? "—"} icon={Users} hue={COLORS.agentArchitect} />
-          <StatCard label="Total builds" value={overview?.total_builds ?? "—"} icon={Activity} hue={COLORS.agentDeveloper} />
+      <section aria-label="Platform statistics" className="mb-9">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+          <StatCard label="Total users" value={overview?.total_users ?? "—"} icon={Users} />
+          <StatCard label="Total builds" value={overview?.total_builds ?? "—"} icon={Activity} />
           <StatCard
             label="Total revenue"
             value={overview ? `$${overview.total_revenue.toLocaleString()}` : "—"}
             icon={CreditCard}
-            hue={COLORS.ok}
           />
-          <StatCard label="Active subscriptions" value={overview?.active_subscriptions ?? "—"} icon={Zap} hue={COLORS.warn} />
+          <StatCard label="Active subscriptions" value={overview?.active_subscriptions ?? "—"} icon={Zap} />
         </div>
       </section>
 
       {/* Two-column: system health + builds */}
-      <div className="flex flex-col lg:flex-row gap-5 mb-7">
-        <section aria-label="System health" className="lg:w-1/3 bg-panel border border-border rounded-xl p-4">
+      <div className="flex flex-col lg:flex-row gap-5 mb-9">
+        <section aria-label="System health" className="lg:w-1/3 border border-border rounded-lg p-4">
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">System health</h2>
           <div className="divide-y divide-border-soft">
             <ServiceRow icon={Server} label="API" status={health?.status} />
@@ -189,7 +191,7 @@ export default function AdminConsole() {
           </div>
         </section>
 
-        <section aria-label="Recent builds" className="flex-1 bg-panel border border-border rounded-xl overflow-hidden">
+        <section aria-label="Recent builds" className="flex-1 border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
             <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Recent builds</h2>
           </div>
@@ -234,8 +236,8 @@ export default function AdminConsole() {
       </div>
 
       {/* Revenue + AI usage (last 30 days) */}
-      <div className="flex flex-col lg:flex-row gap-5 mb-7">
-        <section aria-label="Revenue (last 30 days)" className="lg:w-1/2 bg-panel border border-border rounded-xl overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-5 mb-9">
+        <section aria-label="Revenue (last 30 days)" className="lg:w-1/2 border border-border rounded-lg overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Revenue (30d)</h2>
             <span className="text-sm font-mono text-ink">${totalRevenue30d.toLocaleString()}</span>
@@ -269,7 +271,7 @@ export default function AdminConsole() {
           </div>
         </section>
 
-        <section aria-label="AI usage (last 30 days)" className="lg:w-1/2 bg-panel border border-border rounded-xl overflow-hidden">
+        <section aria-label="AI usage (last 30 days)" className="lg:w-1/2 border border-border rounded-lg overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="text-xs font-medium text-faint uppercase tracking-wide">AI usage (30d)</h2>
             <span className="text-sm font-mono text-ink">${totalAiCost30d.toFixed(2)}</span>
@@ -305,7 +307,7 @@ export default function AdminConsole() {
       </div>
 
       {/* Users */}
-      <section aria-label="Users" className="bg-panel border border-border rounded-xl overflow-hidden">
+      <section aria-label="Users" className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Users</h2>
           <div className="flex items-center gap-2">
@@ -316,13 +318,13 @@ export default function AdminConsole() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name or email…"
-                className="bg-panel-alt border border-border rounded-lg pl-8 pr-4 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent w-64 transition motion-reduce:transition-none"
+                className="bg-transparent border border-border rounded-md h-9 pl-8 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 w-64 transition"
               />
             </div>
             <button
               onClick={handleExportUsers}
               disabled={exporting}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm text-ink hover:bg-panel-alt focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none disabled:opacity-50 shrink-0"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-md border border-border text-sm text-ink hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none disabled:opacity-50 shrink-0"
             >
               <Download size={13} aria-hidden="true" />
               {exporting ? "Exporting…" : "Export CSV"}
@@ -355,7 +357,7 @@ export default function AdminConsole() {
                     <button
                       onClick={() => creditMutation.mutate({ userId: u.id, amount: 100 })}
                       disabled={creditMutation.isPending}
-                      className="text-xs px-3 py-1 bg-accent hover:opacity-90 text-white rounded transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                      className="text-xs px-3 py-1 rounded-md bg-ink hover:bg-ink/90 text-base transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
                     >
                       +100 credits
                     </button>
@@ -381,22 +383,17 @@ function StatCard({
   label,
   value,
   icon: Icon,
-  hue,
 }: {
   label: string;
   value: string | number;
   icon: typeof Users;
-  hue: string;
 }) {
   return (
-    <div className="bg-panel border border-border rounded-xl p-4">
-      <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
-        style={{ backgroundColor: `${hue}1F`, border: `1px solid ${hue}40` }}
-      >
-        <Icon size={16} style={{ color: hue }} aria-hidden="true" />
+    <div className="bg-base p-4">
+      <div className="w-9 h-9 border border-border flex items-center justify-center mb-3">
+        <Icon size={16} className="text-ink" aria-hidden="true" />
       </div>
-      <p className="font-mono text-[1.4rem] font-bold text-ink leading-none mb-1">{value}</p>
+      <p className="font-mono text-[1.4rem] font-medium text-ink leading-none mb-1">{value}</p>
       <p className="text-xs text-faint">{label}</p>
     </div>
   );

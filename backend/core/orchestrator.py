@@ -304,18 +304,18 @@ class Orchestrator:
         return build, files
 
     async def _is_byok_active(self, user_id: str) -> bool:
-        """Pro+ users with a stored Anthropic key skip credit costs (see the
+        """Pro+ users with a stored BYOK key skip credit costs (see the
         pricing page's "Bring your own key" perk) -- agents/base.py's
         _resolve_client does the equivalent check to pick which API key an
         LLM call actually uses; this mirrors it for the credit ledger."""
         try:
             db = await get_db()
             user_doc = await db.users.find_one(
-                {"id": user_id}, {"_id": 0, "plan": 1, "anthropic_api_key": 1}
+                {"id": user_id}, {"_id": 0, "plan": 1, "llm_api_key": 1}
             )
         except Exception:
             return False
-        if not user_doc or not user_doc.get("anthropic_api_key"):
+        if not user_doc or not user_doc.get("llm_api_key"):
             return False
         return user_doc.get("plan") in (PlanTier.PRO.value, PlanTier.ENTERPRISE.value)
 

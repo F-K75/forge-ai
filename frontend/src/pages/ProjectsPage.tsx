@@ -8,7 +8,6 @@ import { getIcon } from "../lib/iconMap";
 import { LIVE_MODE } from "../lib/env";
 import { projectsApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
-import { COLORS } from "../lib/theme";
 
 function toDisplayProject(raw: any): MockProject {
   return {
@@ -67,45 +66,46 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
+    <div className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto">
       {/* Header */}
-      <header className="flex items-start justify-between mb-8">
+      <header className="flex items-start justify-between gap-6 mb-14">
         <div>
-          <h1 className="text-xl font-semibold text-ink">Projects</h1>
-          <p className="text-sm text-muted mt-0.5">{projects.length} apps built this month</p>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
+            <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+            Workspace
+          </div>
+          <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Projects</h1>
+          <p className="text-sm text-muted mt-2">{projects.length} apps built this month</p>
         </div>
         <button
           onClick={() => handleBuild("")}
           disabled={creating}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base transition-colors motion-reduce:transition-none shrink-0 disabled:opacity-50"
+          className="flex items-center gap-2 h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none shrink-0 disabled:opacity-50"
         >
           <Plus size={14} aria-hidden="true" />
           New project
         </button>
       </header>
 
-      {/* Prompt hero */}
-      <section
-        aria-label="Build a new app"
-        className="mb-8 rounded-xl bg-gradient-to-br from-accent/[0.08] to-panel-alt border border-border p-5 md:p-6"
-      >
-        <h2 className="text-base font-semibold text-ink mb-0.5">What do you want to build?</h2>
-        <p className="text-sm text-muted mb-4">Describe your app and Forge builds it end-to-end.</p>
+      {/* Prompt */}
+      <section aria-label="Build a new app" className="mb-16 pb-16 border-b border-border">
+        <h2 className="font-display text-xl font-medium text-ink mb-1.5">What do you want to build?</h2>
+        <p className="text-sm text-muted mb-6">Describe your app and Forge builds it end-to-end.</p>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-5">
           <input
             type="text"
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleBuild()}
             placeholder="A SaaS app that tracks habits with streaks…"
-            className="flex-1 bg-base border border-border rounded-lg px-4 py-2.5 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent min-w-0"
+            className="flex-1 h-11 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition min-w-0"
             aria-label="Describe your app"
           />
           <button
             onClick={() => handleBuild()}
             disabled={creating}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none shrink-0 disabled:opacity-50"
+            className="flex items-center gap-2 h-11 px-5 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none shrink-0 disabled:opacity-50"
           >
             <Send size={13} aria-hidden="true" />
             {creating ? "Creating…" : "Build"}
@@ -121,8 +121,7 @@ export default function ProjectsPage() {
                 key={starter.label}
                 role="listitem"
                 onClick={() => handleBuild(starter.label, starter.label)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border-soft hover:border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none"
-                style={{ color: starter.hue, background: `${starter.hue}14` }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border-soft text-muted hover:text-ink hover:border-border focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
               >
                 <Icon size={11} aria-hidden="true" />
                 {starter.label}
@@ -134,8 +133,11 @@ export default function ProjectsPage() {
 
       {/* Recent projects */}
       <section aria-label="Recent projects">
-        <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">Recent</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-6">
+          <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+          Recent
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border">
           {projects.map(project => (
             <ProjectCard
               key={project.id}
@@ -153,17 +155,17 @@ type Project = MockProject;
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
   return (
-    <article>
+    <article className="bg-base">
       <button
         onClick={onClick}
-        className="w-full text-left p-4 rounded-xl bg-panel border border-border hover:border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none"
+        className="w-full h-full text-left p-6 hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
       >
         {/* Name row */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <span
               className={`w-1.5 h-1.5 rounded-full shrink-0 mt-0.5 ${
-                project.live ? "bg-ok" : "bg-faint"
+                project.live ? "bg-accent" : "bg-faint"
               }`}
               aria-label={project.live ? "Live" : "Idle"}
             />
@@ -173,7 +175,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
         </div>
 
         {/* Description */}
-        <p className="text-xs text-muted mb-3 line-clamp-2">{project.description}</p>
+        <p className="text-xs text-muted mb-5 leading-relaxed line-clamp-2">{project.description}</p>
 
         {/* Footer */}
         <div className="flex items-center justify-between">
@@ -186,8 +188,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
                 <span
                   key={agentId}
                   title={agent.label}
-                  className="w-5 h-5 rounded-full border-2 border-panel flex items-center justify-center text-[7px] font-bold"
-                  style={{ background: agent.hue, color: COLORS.base }}
+                  className="w-5 h-5 rounded-full border-2 border-base bg-border flex items-center justify-center text-[7px] font-bold text-ink"
                 >
                   {agent.label[0]}
                 </span>

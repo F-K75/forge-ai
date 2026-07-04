@@ -53,10 +53,10 @@ export function EditorPanel() {
                 <button
                   onClick={() => setOpenFile(path)}
                   className={[
-                    "w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs font-mono truncate transition-colors",
+                    "w-full flex items-center gap-2 pl-3 pr-3 py-1.5 border-l-2 text-left text-xs font-mono truncate transition-colors",
                     path === openFile
-                      ? "bg-accent-soft text-ink"
-                      : "text-muted hover:text-ink hover:bg-panel-alt",
+                      ? "border-ink text-ink"
+                      : "border-transparent text-muted hover:text-ink",
                   ].join(" ")}
                   title={path}
                 >

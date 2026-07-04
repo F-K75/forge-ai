@@ -20,7 +20,7 @@ export function StatusBar({ connectionStatus }: { connectionStatus: ConnectionSt
   const conn = CONNECTION[connectionStatus];
 
   return (
-    <footer className="h-7 shrink-0 flex items-center gap-4 px-3 bg-panel border-t border-border text-[11px] text-muted">
+    <footer className="h-7 shrink-0 flex items-center gap-4 px-3 bg-base border-t border-border text-[11px] text-muted">
       <span className="flex items-center gap-1.5">
         <span className={`w-1.5 h-1.5 rounded-full ${conn.dot}`} aria-hidden="true" />
         {LIVE_MODE ? conn.label : "demo mode"}

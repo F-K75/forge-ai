@@ -89,10 +89,16 @@ export default function MarketplacePage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
+    <div className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-xl font-semibold text-ink">Marketplace</h1>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
+        <div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
+            <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+            Marketplace
+          </div>
+          <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Templates</h1>
+        </div>
         <div className="relative">
           <Search
             size={13}
@@ -105,7 +111,7 @@ export default function MarketplacePage() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Search templates…"
             aria-label="Search templates"
-            className="bg-panel border border-border rounded-lg pl-8 pr-4 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent w-full sm:w-60"
+            className="bg-transparent border border-border rounded-md h-10 pl-8 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition w-full sm:w-60"
           />
         </div>
       </header>
@@ -115,7 +121,7 @@ export default function MarketplacePage() {
         <div
           role="tablist"
           aria-label="Filter templates"
-          className="flex gap-1 mb-6 bg-panel-alt rounded-lg p-1 w-fit"
+          className="flex gap-6 mb-10 border-b border-border"
         >
           {TABS.map(tab => (
             <button
@@ -124,11 +130,11 @@ export default function MarketplacePage() {
               aria-selected={filter === tab.value}
               onClick={() => setFilter(tab.value)}
               className={[
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors motion-reduce:transition-none",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                "pb-3 -mb-px text-sm font-medium border-b transition-colors motion-reduce:transition-none",
+                "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
                 filter === tab.value
-                  ? "bg-panel text-ink shadow-sm"
-                  : "text-muted hover:text-ink",
+                  ? "border-ink text-ink"
+                  : "border-transparent text-muted hover:text-ink",
               ].join(" ")}
             >
               {tab.label}
@@ -141,7 +147,7 @@ export default function MarketplacePage() {
       {LIVE_MODE && liveTemplates === null ? (
         <p className="text-center text-muted text-sm py-20">Loading templates…</p>
       ) : visible.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="list">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border" role="list">
           {visible.map(template => (
             <TemplateCard key={template.id} template={template} onInstall={() => handleInstall(template)} />
           ))}
@@ -157,27 +163,23 @@ export default function MarketplacePage() {
 
 function TemplateCard({ template, onInstall }: { template: Template; onInstall: () => void }) {
   return (
-    <article
-      role="listitem"
-      className="flex flex-col gap-3 p-4 rounded-xl bg-panel border border-border"
-    >
+    <article role="listitem" className="flex flex-col gap-4 p-6 bg-base">
       {/* Header */}
       <div className="flex items-start gap-3">
         <div
-          className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center text-base font-bold select-none"
-          style={{ background: `${template.hue}22`, color: template.hue }}
+          className="w-9 h-9 border border-border shrink-0 flex items-center justify-center text-sm font-medium text-ink select-none"
           aria-hidden="true"
         >
           {template.name[0]}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-ink truncate">{template.name}</h2>
+            <h2 className="font-display text-sm font-medium text-ink truncate">{template.name}</h2>
             <span className="text-[10px] text-faint shrink-0">
               {template.source === "official" ? "Official" : `by ${template.author}`}
             </span>
           </div>
-          <p className="text-xs text-muted mt-1 line-clamp-2">{template.description}</p>
+          <p className="text-xs text-muted mt-1 leading-relaxed line-clamp-2">{template.description}</p>
         </div>
       </div>
 
@@ -186,7 +188,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
         {template.tags.map(tag => (
           <span
             key={tag}
-            className="text-[10px] px-2 py-0.5 rounded-full bg-panel-alt text-faint border border-border-soft"
+            className="text-[10px] px-2 py-0.5 rounded-full text-faint border border-border-soft"
           >
             {tag}
           </span>
@@ -201,7 +203,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
         </div>
         <button
           onClick={onInstall}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt border border-border text-xs text-ink font-medium hover:bg-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors motion-reduce:transition-none"
+          className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink font-medium hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
           aria-label={`Install ${template.name} — ${template.installs} installs`}
         >
           <Download size={11} aria-hidden="true" />

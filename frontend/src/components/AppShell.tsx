@@ -1,8 +1,9 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutGrid, Store, CreditCard, Settings, ShieldCheck, Zap, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Store, CreditCard, Settings, ShieldCheck, Rocket, Zap, type LucideIcon } from "lucide-react";
 import { CURRENT_USER } from "../lib/mockData";
 import { useAuthStore } from "../store/authStore";
 import { LIVE_MODE } from "../lib/env";
+import { NotificationsBell } from "./NotificationsBell";
 
 interface NavItem {
   to: string;
@@ -13,6 +14,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/projects",    label: "Projects",    icon: LayoutGrid, end: true  },
+  { to: "/initiatives", label: "Initiatives", icon: Rocket                  },
   { to: "/marketplace", label: "Marketplace", icon: Store                   },
   { to: "/reviews",     label: "Reviews",     icon: ShieldCheck             },
   { to: "/billing",     label: "Billing",     icon: CreditCard              },
@@ -40,18 +42,23 @@ export default function AppShell() {
       {/* Rail */}
       <nav
         aria-label="Main navigation"
-        className="w-14 md:w-56 shrink-0 flex flex-col bg-panel border-r border-border overflow-y-auto"
+        className="w-14 md:w-56 shrink-0 flex flex-col border-r border-border overflow-y-auto"
       >
         {/* Logo */}
-        <div className="flex items-center justify-center md:justify-start gap-2.5 px-3 py-5">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center shrink-0">
-            <Zap size={14} className="text-white" aria-hidden="true" />
+        <div className="flex items-center justify-center md:justify-between gap-2.5 px-4 md:px-5 py-5 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 border border-ink flex items-center justify-center shrink-0">
+              <Zap size={12} className="text-ink" aria-hidden="true" />
+            </div>
+            <span className="hidden md:block font-display font-medium tracking-tight text-ink">Forge</span>
           </div>
-          <span className="hidden md:block text-sm font-bold text-ink tracking-tight">Forge</span>
+          <div className="hidden md:block">
+            <NotificationsBell />
+          </div>
         </div>
 
         {/* Nav items */}
-        <div className="flex-1 px-1 md:px-2 pb-4 space-y-0.5">
+        <div className="flex-1 px-1 md:px-3 py-4 space-y-0.5">
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -61,18 +68,18 @@ export default function AppShell() {
               className={({ isActive }) =>
                 [
                   "flex items-center justify-center md:justify-start gap-3",
-                  "p-2 md:px-3 md:py-2 rounded-lg text-sm w-full",
+                  "p-2 md:pl-3 md:pr-3 md:py-2 text-sm w-full border-l md:border-l-2",
                   "transition-colors motion-reduce:transition-none",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
                   isActive
-                    ? "bg-accent-soft text-accent"
-                    : "text-muted hover:text-ink hover:bg-panel-alt",
+                    ? "border-ink text-ink"
+                    : "border-transparent text-muted hover:text-ink",
                 ].join(" ")
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={15} className={isActive ? "text-accent" : ""} aria-hidden="true" />
+                  <Icon size={15} className={isActive ? "text-ink" : ""} aria-hidden="true" />
                   <span className="hidden md:block">{label}</span>
                 </>
               )}
@@ -81,11 +88,11 @@ export default function AppShell() {
         </div>
 
         {/* Bottom — credits card + user chip */}
-        <div className="hidden md:flex flex-col gap-2 px-2 pb-4">
+        <div className="hidden md:flex flex-col gap-4 px-4 py-5 border-t border-border">
           {/* Credits */}
-          <div className="rounded-lg bg-panel-alt border border-border-soft px-3 py-2.5">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-faint uppercase tracking-wide">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-[0.14em] text-muted">
                 {plan}
               </span>
               {!LIVE_MODE && (
@@ -99,7 +106,7 @@ export default function AppShell() {
             ) : (
               <>
                 <div
-                  className="h-1 rounded-full bg-border overflow-hidden"
+                  className="h-px bg-border overflow-hidden"
                   role="progressbar"
                   aria-valuenow={CURRENT_USER.creditsUsed}
                   aria-valuemin={0}
@@ -107,19 +114,19 @@ export default function AppShell() {
                   aria-label="Credits used"
                 >
                   <div
-                    className="h-full rounded-full bg-accent transition-[width] motion-reduce:transition-none"
+                    className="h-full bg-ink transition-[width] motion-reduce:transition-none"
                     style={{ width: `${creditPct}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-faint mt-1">credits this month</p>
+                <p className="text-[10px] text-faint mt-1.5">credits this month</p>
               </>
             )}
           </div>
 
           {/* User chip */}
-          <div className="flex items-center gap-2.5 px-1 py-1">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-7 h-7 rounded-full bg-gradient-to-br from-accent to-agent-designer flex items-center justify-center shrink-0 text-xs font-bold text-white select-none"
+              className="w-7 h-7 rounded-full border border-border flex items-center justify-center shrink-0 text-xs font-medium text-ink select-none"
               aria-hidden="true"
             >
               {name[0]}
@@ -132,9 +139,9 @@ export default function AppShell() {
         </div>
 
         {/* Mobile — avatar only */}
-        <div className="md:hidden flex justify-center pb-4">
+        <div className="md:hidden flex justify-center py-4 border-t border-border">
           <div
-            className="w-7 h-7 rounded-full bg-gradient-to-br from-accent to-agent-designer flex items-center justify-center text-xs font-bold text-white select-none"
+            className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-xs font-medium text-ink select-none"
             aria-label={name}
           >
             {name[0]}

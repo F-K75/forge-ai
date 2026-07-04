@@ -125,17 +125,21 @@ export default function WorkspacePage() {
 
   // A prompt typed on the Projects page (hero input or a starter chip)
   // arrives via router state — kick the build off immediately instead of
-  // making the presenter retype it here.
+  // making the presenter retype it here. In live mode, `project` loads
+  // asynchronously (see the fetch effect above) and is still null on the
+  // first render, so this must wait for it -- firing unconditionally on
+  // mount raced handleSubmit's `if (!project) return` and silently dropped
+  // the auto-submit before the project ever loaded (PROD-041).
   const autoSubmitted = useRef(false);
   useEffect(() => {
+    if (autoSubmitted.current || (LIVE_MODE && !project)) return;
     const incomingPrompt = (location.state as { prompt?: string } | null)?.prompt;
-    if (incomingPrompt && !autoSubmitted.current) {
+    if (incomingPrompt) {
       autoSubmitted.current = true;
       handleSubmit(incomingPrompt);
     }
-    // Only ever fires once per workspace mount, off the prompt handed in at nav time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [project]);
 
   if (!project) {
     return (

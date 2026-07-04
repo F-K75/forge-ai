@@ -157,6 +157,51 @@ def test_refund_across_all_attempts_of_a_retried_build_totals_once(monkeypatch):
     assert len(fake_db.users.inc_calls) == 1
 
 
+def test_retry_after_progress_fails_immediately_instead_of_rerunning_pipeline(monkeypatch):
+    """Regression test: run_build reruns the entire pipeline from scratch on
+    every retry (it isn't resumable), so a whole-task retry after any agent
+    has already succeeded would silently discard and redo that real,
+    already-paid-for LLM work rather than recovering anything. Once
+    build.agents contains a success, a transient failure should fail this
+    attempt for good — even on a non-final attempt (retries=0, well under
+    max_retries=3) — rather than retrying.
+    """
+    build, user = _make_build_and_user()
+    build["agents"] = [
+        {
+            "agent": "architect",
+            "status": "success",
+            "started_at": datetime.datetime.utcnow(),
+            "completed_at": datetime.datetime.utcnow(),
+            "output": "{}",
+            "files_changed": [],
+            "error": None,
+        }
+    ]
+    fake_db = FakeDB(build, user)
+
+    async def fake_get_db():
+        return fake_db
+
+    async def failing_run_build(*args, **kwargs):
+        raise RuntimeError("simulated transient failure after architect succeeded")
+
+    monkeypatch.setattr(build_tasks_module, "get_db", fake_get_db)
+    monkeypatch.setattr(build_tasks_module.orchestrator, "run_build", failing_run_build)
+
+    build_tasks_module.run_build.push_request(retries=0)
+    try:
+        with pytest.raises(RuntimeError):
+            build_tasks_module.run_build.run("build-1", "p1", "u1", 100)
+    finally:
+        build_tasks_module.run_build.pop_request()
+
+    assert len(fake_db.users.inc_calls) == 1
+    assert fake_db.users.inc_calls[0] == ("u1", {"credits": 100})
+    assert len(fake_db.builds.set_calls) == 1
+    assert fake_db.builds.set_calls[0][1]["status"] == "failed"
+
+
 def test_soft_time_limit_refunds_and_fails_build_without_retry(monkeypatch):
     """Regression test for BE-006: settings.build_timeout used to be dead
     config — nothing enforced it, so a hung build never got refunded or

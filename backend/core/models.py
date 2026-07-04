@@ -63,11 +63,19 @@ class User(BaseModel):
     name: str
     avatar_url: Optional[str] = None
     github_token: Optional[str] = None
-    # Bring-your-own-key (Pro+ only) -- Fernet-encrypted at rest, same pattern
-    # as github_token. When set, the user's own Anthropic key is used for
-    # their builds instead of Forge's shared key, and per-agent credit
-    # deduction is skipped (see core/orchestrator.py's byok_active check).
-    anthropic_api_key: Optional[str] = None
+    # Bring-your-own-key (Pro+ only) -- llm_api_key is Fernet-encrypted at
+    # rest, same pattern as github_token. When set, the user's own key is
+    # used for their builds instead of Forge's shared key, and per-agent
+    # credit deduction is skipped (see core/orchestrator.py's byok_active
+    # check). llm_provider selects which SDK agents/base.py uses to call it:
+    # "anthropic" (default, same shape as Forge's own key) or
+    # "openai_compatible" (any provider exposing an OpenAI-style chat
+    # completions endpoint -- Groq, OpenRouter, local Ollama, etc.), which
+    # requires llm_base_url and llm_model to also be set.
+    llm_provider: str = "anthropic"
+    llm_api_key: Optional[str] = None
+    llm_base_url: Optional[str] = None
+    llm_model: Optional[str] = None
     preferences: dict = Field(default_factory=dict)
     plan: PlanTier = PlanTier.FREE
     credits: int = 50

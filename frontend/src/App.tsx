@@ -25,6 +25,16 @@ const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
 // Step 3: in-shell surfaces
 const AdminConsole    = lazy(() => import('./pages/AdminConsole'))
 const ProjectHistory  = lazy(() => import('./pages/ProjectHistory'))
+// AI-native Agile PM layer (Initiatives): vision/PRD -> epics/stories/tasks -> sprints -> board -> releases
+const InitiativesListPage = lazy(() => import('./pages/pm/InitiativesListPage'))
+const InitiativeLayout    = lazy(() => import('./pages/pm/InitiativeLayout'))
+const OverviewTab         = lazy(() => import('./pages/pm/OverviewTab'))
+const KanbanTab           = lazy(() => import('./pages/pm/KanbanTab'))
+const SprintsTab          = lazy(() => import('./pages/pm/SprintsTab'))
+const RoadmapTab          = lazy(() => import('./pages/pm/RoadmapTab'))
+const GraphTab            = lazy(() => import('./pages/pm/GraphTab'))
+const ReleasesTab         = lazy(() => import('./pages/pm/ReleasesTab'))
+const ActivityTab         = lazy(() => import('./pages/pm/ActivityTab'))
 // Review board — orchestrator UI (separate backend service, see lib/orchestratorApi.ts)
 const ReviewsListPage  = lazy(() => import('./pages/reviews/ReviewsListPage'))
 const ReviewDetailPage = lazy(() => import('./pages/reviews/ReviewDetailPage'))
@@ -165,6 +175,16 @@ export default function App() {
             <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />
             <Route path="/reviews" element={<Suspense fallback={<RouteSkeleton />}><ReviewsListPage /></Suspense>} />
             <Route path="/reviews/:runId" element={<Suspense fallback={<RouteSkeleton />}><ReviewDetailPage /></Suspense>} />
+            <Route path="/initiatives" element={<Suspense fallback={<RouteSkeleton />}><InitiativesListPage /></Suspense>} />
+            <Route path="/initiatives/:initiativeId" element={<Suspense fallback={<RouteSkeleton />}><InitiativeLayout /></Suspense>}>
+              <Route index element={<OverviewTab />} />
+              <Route path="board" element={<KanbanTab />} />
+              <Route path="sprints" element={<SprintsTab />} />
+              <Route path="roadmap" element={<RoadmapTab />} />
+              <Route path="graph" element={<GraphTab />} />
+              <Route path="releases" element={<ReleasesTab />} />
+              <Route path="activity" element={<ActivityTab />} />
+            </Route>
           </Route>
 
           {/* Workspace — full-screen, no shell (step 4 fills this) */}

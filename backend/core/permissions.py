@@ -1,6 +1,19 @@
 """Shared ownership/membership checks for resources shared within an org."""
 
 
+async def has_initiative_access(db, user_id: str, initiative: dict) -> bool:
+    """Same shape as has_build_access, for Agile PM initiatives."""
+    if not initiative:
+        return False
+    if initiative.get("user_id") == user_id:
+        return True
+    org_id = initiative.get("org_id")
+    if not org_id:
+        return False
+    membership = await db.team_members.find_one({"org_id": org_id, "user_id": user_id}, {"_id": 0})
+    return membership is not None
+
+
 async def has_build_access(db, user_id: str, build: dict) -> bool:
     """Return True if user_id owns the build or shares an org with its project."""
     if not build:

@@ -85,16 +85,16 @@ export default function ReviewDetailPage() {
   }));
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
-      <Link to="/reviews" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition mb-5">
+    <div className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto">
+      <Link to="/reviews" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition mb-8">
         <ArrowLeft size={12} aria-hidden="true" />
         Back to reviews
       </Link>
 
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="flex items-start justify-between gap-4 mb-10">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-base font-semibold text-ink font-mono">{runId}</h1>
+          <div className="flex items-center gap-3 mb-1.5">
+            <h1 className="text-xl font-medium tracking-tight text-ink font-mono">{runId}</h1>
             <StatusPill status={status} />
           </div>
           <p className="text-xs text-muted">mode: {mode ?? "—"}</p>
@@ -102,7 +102,7 @@ export default function ReviewDetailPage() {
       </div>
 
       {/* Summary chips */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border mb-10">
         <SummaryChip label="Candidate files" value={String(candidateFiles)} icon={<Files size={11} className="text-faint" aria-hidden="true" />} />
         <SummaryChip label="Agents triggered" value={String(triggeredAgents.length)} icon={<BotIcon size={11} className="text-faint" aria-hidden="true" />} />
         <SummaryChip
@@ -121,8 +121,11 @@ export default function ReviewDetailPage() {
       </div>
 
       {/* Pipeline */}
-      <section aria-label="Review agent pipeline" className="mb-8">
-        <h2 className="text-[10px] font-semibold text-faint uppercase tracking-wider mb-4">Pipeline run</h2>
+      <section aria-label="Review agent pipeline" className="mb-12 pb-12 border-b border-border">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-5">
+          <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+          Pipeline run
+        </div>
         {nodes.length === 0 ? (
           <p className="text-sm text-faint">Waiting for the run to start…</p>
         ) : (
@@ -135,17 +138,20 @@ export default function ReviewDetailPage() {
       {/* Backlog */}
       {status === "complete" && (
         <section aria-label="Backlog">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[10px] font-semibold text-faint uppercase tracking-wider">Backlog</h2>
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted">
+              <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
+              Backlog
+            </div>
+            <div className="flex gap-1">
               {(["severity", "impact"] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setSortBy(s)}
                   className={[
-                    "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition motion-reduce:transition-none",
-                    sortBy === s ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
+                    "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition-colors motion-reduce:transition-none",
+                    sortBy === s ? "text-ink" : "text-faint hover:text-ink",
                   ].join(" ")}
                 >
                   by {s}
@@ -159,10 +165,10 @@ export default function ReviewDetailPage() {
           ) : backlog.length === 0 ? (
             <p className="text-sm text-faint">No issues found.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="border-t border-border">
               {backlog.map((item) => (
-                <li key={item.id} className="bg-panel border border-border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-1.5">
+                <li key={item.id} className="border-b border-border p-5">
+                  <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[10px] font-semibold uppercase tracking-wide ${SEVERITY_COLOR[item.severity]}`}>
                       {item.severity}
                     </span>
@@ -170,7 +176,7 @@ export default function ReviewDetailPage() {
                     <span className="text-[10px] text-faint">impact {item.impact}/10</span>
                   </div>
                   <p className="text-sm font-medium text-ink mb-1">{item.title}</p>
-                  {item.description && <p className="text-xs text-muted mb-1.5">{item.description}</p>}
+                  {item.description && <p className="text-xs text-muted mb-1.5 leading-relaxed">{item.description}</p>}
                   {item.fix && <p className="text-xs text-muted italic">Fix: {item.fix}</p>}
                   {item.files.length > 0 && (
                     <p className="text-[10px] font-mono text-faint mt-1.5 truncate">{item.files.join(", ")}</p>

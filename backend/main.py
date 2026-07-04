@@ -22,6 +22,13 @@ from api.webhooks import router as webhooks_router
 from api.gdpr import router as gdpr_router
 from api.deployments import router as deployments_router
 from api.support import router as support_router
+from api.initiatives import router as initiatives_router
+from api.epics import router as epics_router
+from api.stories import router as stories_router
+from api.tasks import router as pm_tasks_router
+from api.sprints import router as sprints_router
+from api.releases import router as releases_router
+from api.agent_executions import router as agent_executions_router
 from core.database import close_connections
 from core.config import get_settings
 from core.security import (
@@ -32,6 +39,7 @@ from core.security import (
     RequestIdLogFilter,
 )
 from services.ws_manager import manager as ws_manager
+from services.pm_ws_manager import pm_manager
 
 settings = get_settings()
 
@@ -81,6 +89,7 @@ except ImportError:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ws_manager.start()
+    pm_manager.start()
 
     # Fail fast if Mongo isn't reachable / isn't provisioned correctly.
     try:
@@ -93,6 +102,7 @@ async def lifespan(app: FastAPI):
 
     yield
     await ws_manager.stop()
+    await pm_manager.stop()
     await close_connections()
 
 
@@ -188,6 +198,13 @@ app.include_router(webhooks_router)
 app.include_router(gdpr_router)
 app.include_router(deployments_router)
 app.include_router(support_router)
+app.include_router(initiatives_router)
+app.include_router(epics_router)
+app.include_router(stories_router)
+app.include_router(pm_tasks_router)
+app.include_router(sprints_router)
+app.include_router(releases_router)
+app.include_router(agent_executions_router)
 
 
 @app.get("/health")

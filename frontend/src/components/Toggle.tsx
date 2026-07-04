@@ -17,16 +17,16 @@ export function Toggle({ on, onChange, label, disabled = false }: ToggleProps) {
       className={[
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5",
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel",
+        "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base",
         "transition-colors motion-reduce:transition-none",
-        on ? "bg-accent" : "bg-border",
+        on ? "bg-ink" : "bg-border",
       ].join(" ")}
     >
       <span
         className={[
-          "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm",
+          "pointer-events-none block h-4 w-4 rounded-full shadow-sm",
           "transform transition-transform motion-reduce:transition-none",
-          on ? "translate-x-4" : "translate-x-0",
+          on ? "translate-x-4 bg-base" : "translate-x-0 bg-ink",
         ].join(" ")}
       />
     </button>

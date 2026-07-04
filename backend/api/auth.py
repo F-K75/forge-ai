@@ -83,7 +83,10 @@ class UpdateProfileRequest(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
     avatar_url: Optional[str] = Field(None, max_length=500)
     github_token: Optional[str] = Field(None, max_length=200)
-    anthropic_api_key: Optional[str] = Field(None, max_length=200)
+    llm_provider: Optional[str] = Field(None, max_length=32)
+    llm_api_key: Optional[str] = Field(None, max_length=200)
+    llm_base_url: Optional[str] = Field(None, max_length=300)
+    llm_model: Optional[str] = Field(None, max_length=100)
     preferences: Optional[dict] = None
 
 
@@ -149,7 +152,7 @@ def _public_user_dict(user_doc: dict) -> dict:
             "_id",
             "hashed_password",
             "github_token",
-            "anthropic_api_key",
+            "llm_api_key",
             "verification_token",
             "verification_expires",
             "totp_secret",
@@ -157,7 +160,7 @@ def _public_user_dict(user_doc: dict) -> dict:
         }
     }
     public["github_connected"] = bool(user_doc.get("github_token"))
-    public["byok_connected"] = bool(user_doc.get("anthropic_api_key"))
+    public["byok_connected"] = bool(user_doc.get("llm_api_key"))
     return public
 
 
@@ -840,13 +843,21 @@ async def update_profile(
     # not just hidden in the UI, so a Free-plan user can't skip credit costs
     # by calling this endpoint directly. Clearing a key (empty string) is
     # always allowed so a downgrade doesn't strand it un-removable.
-    if update.get("anthropic_api_key"):
+    if update.get("llm_api_key"):
         if user.plan not in (PlanTier.PRO, PlanTier.ENTERPRISE):
             raise HTTPException(
                 status_code=403,
                 detail="Bring your own key is available on the Pro plan and above.",
             )
-        update["anthropic_api_key"] = encrypt_field(update["anthropic_api_key"])
+        provider = update.get("llm_provider") or "anthropic"
+        if provider not in ("anthropic", "openai_compatible"):
+            raise HTTPException(status_code=400, detail="Unsupported llm_provider")
+        if provider == "openai_compatible" and not update.get("llm_base_url"):
+            raise HTTPException(
+                status_code=400,
+                detail="llm_base_url is required for an openai_compatible provider",
+            )
+        update["llm_api_key"] = encrypt_field(update["llm_api_key"])
 
     # Shallow-merge preferences so one toggle's update doesn't clobber others.
     preferences = update.pop("preferences", None)

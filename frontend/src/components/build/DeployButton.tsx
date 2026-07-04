@@ -100,7 +100,7 @@ export function DeployButton({ projectId }: { projectId: string }) {
         type="button"
         onClick={handleDeploy}
         disabled={busy}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-accent text-white hover:bg-accent/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-ink text-base hover:bg-ink/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
       >
         {busy ? (
           <>

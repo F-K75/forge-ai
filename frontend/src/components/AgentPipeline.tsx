@@ -64,20 +64,13 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
                   style={{ width: tileSz, height: tileSz }}
                 >
                   <span
-                    className="absolute inset-0 rounded-lg animate-ping motion-reduce:hidden"
-                    style={{ backgroundColor: `${agent.hue}4D` }}
+                    className="absolute inset-0 rounded-lg bg-ink/30 animate-ping motion-reduce:hidden"
                     aria-hidden="true"
                   />
-                  <div
-                    className="relative w-full h-full rounded-lg flex items-center justify-center"
-                    style={{
-                      backgroundColor: agent.hue,
-                      boxShadow: `0 0 14px ${agent.hue}55`,
-                    }}
-                  >
+                  <div className="relative w-full h-full rounded-lg bg-ink flex items-center justify-center">
                     <Loader2
                       size={iconSz}
-                      className="animate-spin motion-reduce:animate-none text-white"
+                      className="animate-spin motion-reduce:animate-none text-base"
                       aria-hidden="true"
                     />
                   </div>
@@ -87,28 +80,15 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
                   className={[
                     "rounded-lg border flex items-center justify-center shrink-0",
                     node.state === "idle"
-                      ? "bg-panel-alt border-border"
+                      ? "border-border"
                       : node.state === "debugging"
                       ? "bg-warn/[0.08] border-warn/25"
-                      : "",
+                      : "border-ink/40",
                   ].join(" ")}
-                  style={{
-                    width: tileSz,
-                    height: tileSz,
-                    ...(node.state === "done"
-                      ? {
-                          backgroundColor: `${agent.hue}1F`,
-                          borderColor: `${agent.hue}44`,
-                        }
-                      : {}),
-                  }}
+                  style={{ width: tileSz, height: tileSz }}
                 >
                   {node.state === "done" ? (
-                    <Check
-                      size={iconSz}
-                      style={{ color: agent.hue }}
-                      aria-hidden="true"
-                    />
+                    <Check size={iconSz} className="text-ink" aria-hidden="true" />
                   ) : (
                     <Icon
                       size={iconSz}
@@ -125,14 +105,9 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
               {!isLast && (
                 <div
                   className={`flex-1 w-0.5 ${
-                    node.state !== "done" ? "bg-border" : ""
+                    node.state === "done" ? "bg-ink/40" : "bg-border"
                   }`}
-                  style={{
-                    minHeight: connectorMinH,
-                    ...(node.state === "done"
-                      ? { backgroundColor: `${agent.hue}80` }
-                      : {}),
-                  }}
+                  style={{ minHeight: connectorMinH }}
                   aria-hidden="true"
                 />
               )}

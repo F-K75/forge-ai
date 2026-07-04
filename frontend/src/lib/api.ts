@@ -68,8 +68,16 @@ export const authApi = {
     api.post('/auth/refresh', { refresh_token }).then(r => r.data),
   logout: () => api.post('/auth/logout').then(r => r.data),
   me: () => api.get('/auth/me').then(r => r.data),
-  updateProfile: (data: { name?: string; avatar_url?: string; github_token?: string; anthropic_api_key?: string; preferences?: Record<string, unknown> }) =>
-    api.put('/auth/me', data).then(r => r.data),
+  updateProfile: (data: {
+    name?: string
+    avatar_url?: string
+    github_token?: string
+    llm_provider?: 'anthropic' | 'openai_compatible'
+    llm_api_key?: string
+    llm_base_url?: string
+    llm_model?: string
+    preferences?: Record<string, unknown>
+  }) => api.put('/auth/me', data).then(r => r.data),
   changePassword: (data: { current_password: string; new_password: string }) =>
     api.post('/auth/me/password', data).then(r => r.data),
   organizations: {
@@ -171,6 +179,14 @@ export const webhooksApi = {
   list: () => api.get('/webhooks/').then(r => r.data.webhooks),
   create: (data: { url: string; events?: string[] }) => api.post('/webhooks/', data).then(r => r.data),
   delete: (id: string) => api.delete(`/webhooks/${id}`).then(r => r.data),
+}
+
+// Notifications (Module 15 of the Agile PM layer reuses this existing collection)
+export const notificationsApi = {
+  list: (page?: number) => api.get('/growth/notifications', { params: { page } }).then(r => r.data.notifications) as Promise<
+    { id: string; title: string; message: string; type: string; created_at: string; read_at?: string | null }[]
+  >,
+  markRead: (id: string) => api.post(`/growth/notifications/${id}/read`).then(r => r.data),
 }
 
 // Support

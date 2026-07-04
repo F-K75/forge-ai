@@ -202,14 +202,14 @@ export default function ProjectHistory() {
       {/* Left: build timeline */}
       <aside
         aria-label="Build history"
-        className="w-80 shrink-0 border-r border-border overflow-y-auto flex flex-col bg-panel"
+        className="w-80 shrink-0 border-r border-border overflow-y-auto flex flex-col bg-base"
       >
         {/* Project header */}
         <div className="px-5 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2 mb-0.5">
             <span
               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                projectLive ? "bg-ok" : "bg-faint"
+                projectLive ? "bg-accent" : "bg-faint"
               }`}
               aria-label={projectLive ? "Live" : "Idle"}
             />
@@ -233,11 +233,11 @@ export default function ProjectHistory() {
                 onClick={() => setSelectedId(build.id)}
                 aria-current={isSelected ? "true" : undefined}
                 className={[
-                  "w-full text-left px-3 py-3 rounded-lg mb-0.5 transition motion-reduce:transition-none",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                  "w-full text-left px-3 py-3 border-l-2 mb-0.5 transition-colors motion-reduce:transition-none",
+                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
                   isSelected
-                    ? "bg-accent/[0.08] border border-accent/20"
-                    : "border border-transparent hover:bg-panel-alt",
+                    ? "border-ink bg-panel-alt"
+                    : "border-transparent hover:bg-panel-alt",
                 ].join(" ")}
               >
                 <p className="text-sm font-medium text-ink truncate mb-1.5">
@@ -249,7 +249,7 @@ export default function ProjectHistory() {
                     {build.time}
                   </span>
                   {build.qaScore !== null && (
-                    <span className="font-mono text-[10px] text-ok">
+                    <span className="font-mono text-[10px] text-muted">
                       QA {build.qaScore}
                     </span>
                   )}
@@ -267,11 +267,11 @@ export default function ProjectHistory() {
       </aside>
 
       {/* Right: build detail */}
-      <main className="flex-1 overflow-y-auto p-6 bg-base">
+      <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-base">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="flex items-start justify-between gap-4 mb-8">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-base font-semibold text-ink">
+            <h2 className="font-display text-xl font-medium tracking-tight text-ink">
               {selected.label}
             </h2>
             <StatusPill status={selected.status} />
@@ -282,7 +282,7 @@ export default function ProjectHistory() {
                 type="button"
                 onClick={handleRollback}
                 disabled={rollingBack}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel border border-border text-xs text-ink hover:bg-panel-alt transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
               >
                 <RefreshCw size={12} aria-hidden="true" />
                 {rollingBack ? "Rolling back…" : "Roll back to this version"}
@@ -293,7 +293,7 @@ export default function ProjectHistory() {
                 type="button"
                 onClick={handleViewDiff}
                 disabled={diffLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel border border-border text-xs text-ink hover:bg-panel-alt transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
               >
                 <GitBranch size={12} aria-hidden="true" />
                 {diffLoading ? "Loading…" : "View diff"}
@@ -304,7 +304,7 @@ export default function ProjectHistory() {
 
         {/* Diff panel */}
         {diff && (
-          <div className="mb-7 bg-panel border border-border rounded-xl p-4" role="region" aria-label="Changed files">
+          <div className="mb-9 border border-border rounded-lg p-5" role="region" aria-label="Changed files">
             {/* A short summary announcement, not the full file list -- making
                 the whole region aria-live would read every filename aloud
                 the instant a large diff loads. */}
@@ -313,12 +313,12 @@ export default function ProjectHistory() {
                 ? "No file changes vs. the previous build"
                 : `Diff loaded: ${diff.added.length + diff.modified.length + diff.removed.length} changed files`}
             </span>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[10px] font-semibold text-faint uppercase tracking-wider">Changed files</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs uppercase tracking-[0.14em] text-muted">Changed files</h3>
               <button
                 type="button"
                 onClick={() => setDiff(null)}
-                className="text-xs text-muted hover:text-ink transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
+                className="text-xs text-muted hover:text-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded"
               >
                 Close
               </button>
@@ -342,7 +342,7 @@ export default function ProjectHistory() {
         )}
 
         {/* Summary chips */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border mb-9">
           <SummaryChip label="QA score" value={selected.qaScore !== null ? String(selected.qaScore) : "—"} />
           <SummaryChip label="Files changed" value={String(selected.filesChanged)} />
           <SummaryChip
@@ -359,9 +359,10 @@ export default function ProjectHistory() {
 
         {/* Pipeline run */}
         <section aria-label="Agent pipeline run">
-          <h3 className="text-[10px] font-semibold text-faint uppercase tracking-wider mb-4">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-5">
+            <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
             Pipeline run
-          </h3>
+          </div>
           <div className="max-w-xs">
             <AgentPipeline nodes={nodes} />
           </div>

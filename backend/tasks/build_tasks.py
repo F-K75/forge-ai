@@ -35,12 +35,17 @@ def _run_async(coro):
 
 
 class BuildTask(current_app.Task):
-    """Base task class with error handling and retry configuration."""
-    
-    autoretry_for = (Exception,)
+    """Base task class with error handling and retry configuration.
+
+    No autoretry_for: run_build isn't resumable (every invocation restarts
+    the whole pipeline from the Architect, see core/orchestrator.py), so
+    blindly retrying on any exception would silently discard and re-run
+    agents that already succeeded, rather than recovering anything. Instead
+    run_build's except block retries manually via self.retry(), and only
+    when zero agents have completed yet -- see the made_progress check.
+    """
+
     retry_kwargs = {"max_retries": 3, "countdown": 60}
-    retry_backoff = True
-    retry_jitter = True
     acks_late = True  # Only acknowledge after task completes
 
 
@@ -175,31 +180,39 @@ def run_build(
             raise
 
         except Exception as e:
-            # autoretry_for=(Exception,) means Celery re-invokes this entire
-            # function on every retry, so this block runs once per attempt —
-            # not once per build. Only refund and mark the build permanently
-            # FAILED on the last attempt Celery will ever make; otherwise a
-            # single failing build gets refunded (and its status flipped to
-            # "failed") on every retry, well beyond its original reservation.
+            # This function re-runs the entire pipeline from scratch on
+            # every retry (it isn't resumable), so a whole-task retry is
+            # only useful before any agent has actually completed -- once
+            # one has, retrying would silently discard and redo (and
+            # re-call the LLM for) real completed work instead of
+            # recovering anything. In that case, fail this attempt for
+            # good instead of retrying.
             max_retries = self.retry_kwargs.get("max_retries", 0)
             is_final_attempt = self.request.retries >= max_retries
+            made_progress = any(a.status == BuildStatus.SUCCESS for a in build.agents)
 
-            if is_final_attempt:
-                # On final failure: refund only the unused portion of the
-                # reservation — agents that already ran before the failure
-                # already spent their share.
-                used = int(build.credits_used or 0)
-                refund = max(0, reserved_credits - used)
-                if refund and user:
-                    await db.users.update_one(
-                        {"id": user_id},
-                        {"$inc": {"credits": refund}}
-                    )
-
-                await db.builds.update_one(
-                    {"id": build_id},
-                    {"$set": {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}}
+            if not made_progress and not is_final_attempt:
+                raise self.retry(
+                    exc=e,
+                    countdown=self.retry_kwargs.get("countdown", 60),
+                    max_retries=max_retries,
                 )
+
+            # Terminal failure: refund only the unused portion of the
+            # reservation — agents that already ran before the failure
+            # already spent their share.
+            used = int(build.credits_used or 0)
+            refund = max(0, reserved_credits - used)
+            if refund and user:
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$inc": {"credits": refund}}
+                )
+
+            await db.builds.update_one(
+                {"id": build_id},
+                {"$set": {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}}
+            )
             raise
 
     return _run_async(_run())

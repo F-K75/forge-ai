@@ -53,4 +53,7 @@ Rules:
 
         full = await self.run(messages, max_tokens=2000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
         clean = full.strip().strip("```json").strip("```").strip()
-        return json.loads(clean)
+        # strict=False: some models (esp. non-Claude ones via BYOK) emit
+        # literal control characters (raw newlines) inside JSON strings
+        # instead of the \n escape the system prompt asks for.
+        return json.loads(clean, strict=False)

@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 10080  # 7 days
     github_client_id: str = ""
     github_client_secret: str = ""
+    github_webhook_secret: str = ""
     sandbox_host: str = "localhost"
     sandbox_timeout: int = 120
     credits_architect: int = 3
