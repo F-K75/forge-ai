@@ -101,6 +101,18 @@ async def lifespan(app: FastAPI):
         logger.exception("MongoDB startup health check failed")
         raise
 
+    # Best-effort pre-warm of the DB-backed per-agent LLM overrides so the
+    # first request after a deploy doesn't run with a cold (empty) cache.
+    # Unlike the Mongo ping above, this must never block startup -- if it
+    # fails (e.g. Mongo flaky right at boot), LLMRouter.generate() simply
+    # falls back to YAML/env config until a later refresh (reload endpoint,
+    # or another set_agent_override call) succeeds.
+    try:
+        from core.llm.router import get_llm_router
+        await get_llm_router().config_loader.refresh_db_overrides()
+    except Exception:
+        logger.warning("LLM agent override pre-warm failed; continuing with YAML/env config", exc_info=True)
+
     yield
     await ws_manager.stop()
     await pm_manager.stop()

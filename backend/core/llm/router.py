@@ -12,9 +12,6 @@ from core.security import sanitize_prompt
 from core.llm.config import LLMConfigLoader
 from core.llm.provider import BaseProviderAdapter, CompletionResponse, ProviderError
 from core.llm.registry import ProviderRegistry
-from core.models import PlanTier
-from core.encryption import decrypt_field
-from core.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +53,8 @@ class LLMRouter:
     def register_provider(self, provider: BaseProviderAdapter, *, name: Optional[str] = None, priority: int = 0, models: Optional[List[str]] = None) -> None:
         self.registry.register_provider(provider, name=name, priority=priority, models=models)
 
-    def set_agent_override(self, agent_name: str, override: Dict[str, Any]) -> Dict[str, Any]:
-        return self.config_loader.set_agent_override(agent_name, override)
+    async def set_agent_override(self, agent_name: str, override: Dict[str, Any], updated_by: Optional[str] = None) -> Dict[str, Any]:
+        return await self.config_loader.set_agent_override(agent_name, override, updated_by=updated_by)
 
     async def health_check_all(self) -> List[Dict[str, Any]]:
         results = []
@@ -86,10 +83,53 @@ class LLMRouter:
         extra_system: str = "",
         usage_out: Optional[Dict[str, Any]] = None,
         provider_names: Optional[Sequence[str]] = None,
+        byok: Optional[Dict[str, Any]] = None,
     ) -> CompletionResponse:
         if not messages:
             raise ValueError("messages cannot be empty")
-        config = self.config_loader.load(agent_name=agent_name)
+
+        sanitized_messages = self._sanitize_messages(messages)
+        if self._contains_prompt_injection(sanitized_messages):
+            raise ValueError("Potential prompt injection detected in user input")
+
+        if user_id:
+            # Bounds call FREQUENCY, distinct from the daily token BUDGET
+            # checked below (for non-BYOK calls only). Applied uniformly to
+            # both BYOK and non-BYOK calls -- a runaway retry loop is worth
+            # bounding either way, even though BYOK calls don't cost Forge
+            # money, they still consume this process's resources and can
+            # exhaust Forge's shared provider rate limits.
+            from core.security import check_llm_rate_limit
+
+            allowed, _ = await check_llm_rate_limit(user_id)
+            if not allowed:
+                raise ProviderError(f"LLM request rate limit exceeded for user {user_id}")
+
+        if byok:
+            # A user's own provider key (Pro+ "bring your own key"): call it
+            # directly with no fallback chain and no shared response cache --
+            # this must never fall through to Forge's own paid providers (that
+            # would silently bill Forge for a call the user believes is free
+            # on their own key), and the cache key doesn't segment by
+            # identity so mixing BYOK responses into it could leak one user's
+            # output to another. Usage is still tracked (informational cost)
+            # but the daily budget check is skipped since it isn't Forge's
+            # spend.
+            return await self._generate_byok(
+                byok=byok,
+                agent_name=agent_name,
+                sanitized_messages=sanitized_messages,
+                model=model,
+                max_tokens=max_tokens,
+                user_id=user_id,
+                build_id=build_id,
+                project_id=project_id,
+                org_id=org_id,
+                extra_system=extra_system,
+                usage_out=usage_out,
+            )
+
+        config = await self.config_loader.load(agent_name=agent_name)
         providers_to_try = self._select_providers(config, provider_names)
         # `model=None` means "no explicit caller override" -- fall back to
         # the agent-specific config override, then the provider's default.
@@ -106,10 +146,6 @@ class LLMRouter:
         # provider in the fallback chain.
         model_fallbacks = config.get("model_fallbacks") or []
         model_chain = [model, *[m for m in model_fallbacks if m != model]]
-
-        sanitized_messages = self._sanitize_messages(messages)
-        if self._contains_prompt_injection(sanitized_messages):
-            raise ValueError("Potential prompt injection detected in user input")
 
         if user_id:
             await check_budget(user_id, org_id=org_id)
@@ -181,6 +217,80 @@ class LLMRouter:
             raise ProviderError(str(last_error)) from last_error
         raise ProviderError("No providers available")
 
+    async def _generate_byok(
+        self,
+        *,
+        byok: Dict[str, Any],
+        agent_name: str,
+        sanitized_messages: List[Dict[str, Any]],
+        model: Optional[str],
+        max_tokens: int,
+        user_id: Optional[str],
+        build_id: Optional[str],
+        project_id: Optional[str],
+        org_id: Optional[str],
+        extra_system: str,
+        usage_out: Optional[Dict[str, Any]],
+    ) -> CompletionResponse:
+        provider, provider_name, resolved_model = self._build_byok_provider(byok, model)
+        try:
+            response = await provider.chat_completion(
+                model=resolved_model,
+                messages=self._with_system_prompt(sanitized_messages, extra_system),
+                max_tokens=max_tokens,
+                user_id=user_id,
+                build_id=build_id,
+                project_id=project_id,
+                org_id=org_id,
+            )
+        except Exception as exc:
+            raise ProviderError(str(exc)) from exc
+
+        response.model = resolved_model or response.model
+        response.provider = provider_name
+        self._normalize_usage(response)
+        await self._record_usage(
+            response=response,
+            user_id=user_id,
+            build_id=build_id,
+            project_id=project_id,
+            org_id=org_id,
+            agent_name=agent_name,
+        )
+        if usage_out is not None:
+            usage_out.update({
+                "model": response.model,
+                "provider": response.provider,
+                "prompt_tokens": response.usage.get("prompt_tokens", 0),
+                "completion_tokens": response.usage.get("completion_tokens", 0),
+                "total_tokens": response.usage.get("total_tokens", 0),
+                "cost_usd": response.usage.get("cost_usd", 0.0),
+            })
+        return response
+
+    def _build_byok_provider(self, byok: Dict[str, Any], model: Optional[str]) -> tuple[BaseProviderAdapter, str, str]:
+        from core.config import get_settings
+        from providers.anthropic import AnthropicAdapter
+        from providers.openai import OpenAIAdapter
+
+        settings = get_settings()
+        provider_kind = byok.get("provider") or "anthropic"
+        api_key = byok.get("api_key")
+        if not api_key:
+            raise ProviderError("BYOK key missing")
+
+        if provider_kind == "openai_compatible":
+            base_url = byok.get("base_url")
+            byok_model = model or byok.get("model")
+            if not base_url or not byok_model:
+                raise ProviderError("BYOK openai_compatible provider requires base_url and model")
+            adapter = OpenAIAdapter(api_key=api_key, base_url=base_url, timeout=settings.anthropic_timeout)
+            return adapter, "byok:openai_compatible", byok_model
+
+        adapter = AnthropicAdapter(api_key=api_key, timeout=settings.anthropic_timeout)
+        byok_model = model or byok.get("model") or adapter.default_model
+        return adapter, "byok:anthropic", byok_model
+
     async def stream(
         self,
         *,
@@ -195,6 +305,7 @@ class LLMRouter:
         extra_system: str = "",
         usage_out: Optional[Dict[str, Any]] = None,
         provider_names: Optional[Sequence[str]] = None,
+        byok: Optional[Dict[str, Any]] = None,
     ):
         response = await self.generate(
             agent_name=agent_name,
@@ -208,6 +319,7 @@ class LLMRouter:
             extra_system=extra_system,
             usage_out=usage_out,
             provider_names=provider_names,
+            byok=byok,
         )
         for token in response.text:
             yield token

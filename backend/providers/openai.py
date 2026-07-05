@@ -18,7 +18,7 @@ class OpenAIAdapter(BaseProviderAdapter):
         if not self.api_key:
             return CompletionResponse(text="", provider=self.name, model=model, usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
 
-        client = openai.AsyncOpenAI(api_key=self.api_key, timeout=self.timeout)
+        client = openai.AsyncOpenAI(api_key=self.api_key, base_url=self.base_url or None, timeout=self.timeout)
         response = await client.chat.completions.create(model=model, messages=messages, max_tokens=kwargs.get("max_tokens", 8192))
         text = response.choices[0].message.content or ""
         usage = getattr(response, "usage", None)
@@ -47,7 +47,7 @@ class OpenAIAdapter(BaseProviderAdapter):
                 yield item
             return
 
-        client = openai.AsyncOpenAI(api_key=self.api_key, timeout=self.timeout)
+        client = openai.AsyncOpenAI(api_key=self.api_key, base_url=self.base_url or None, timeout=self.timeout)
         stream = await client.chat.completions.create(model=model, messages=messages, max_tokens=kwargs.get("max_tokens", 8192), stream=True)
         async for chunk in stream:
             delta = chunk.choices[0].delta.content if chunk.choices else None

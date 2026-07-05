@@ -59,6 +59,19 @@ USER_RATE_LIMITS = {
     "api": 1000,   # max API calls per hour
 }
 
+# Per-user LLM request-rate limits (distinct from the daily token BUDGET in
+# core/ai_usage.py -- this bounds call FREQUENCY, not spend). Every agent LLM
+# call in the app funnels through LLMRouter.generate(), for both Forge-paid
+# and BYOK providers, so a buggy retry loop or malicious script hammering
+# that method could exhaust Forge's shared provider rate limits (degrading
+# every other user's builds) while staying comfortably under the daily token
+# budget. 60/minute is generous relative to a normal multi-agent build
+# (a handful of LLM calls per pipeline stage) while still capping a runaway
+# loop.
+LLM_RATE_LIMITS = {
+    "generate": {"limit": 60, "window": 60},
+}
+
 # Per-email auth rate limits (for unauthenticated endpoints)
 EMAIL_RATE_LIMITS = {
     "forgot_password": {"limit": 3, "window": 3600},    # 3/hour
@@ -499,4 +512,31 @@ async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int
         # reset-token flooding, registration spam) with no real backstop —
         # the per-IP /auth limiter (10 req/60s) is far looser than the
         # 3-5/hour this protects, and trivially split across source IPs.
+        return await _check_in_memory_rate_limit(key, limit, window)
+
+
+async def check_llm_rate_limit(user_id: str) -> tuple[bool, int]:
+    """Check per-user request-rate limit for LLMRouter.generate().
+
+    This bounds call FREQUENCY (not spend -- see the daily token BUDGET in
+    core/ai_usage.py). Structurally identical to check_email_rate_limit:
+    Redis INCR+EXPIRE keyed per-identity, with the same in-memory fallback
+    on Redis failure so a Redis blip can't let a runaway loop bypass this
+    entirely. user_id isn't PII the way an email is, so it's used directly
+    in the key with no hashing. Returns (is_allowed, remaining)."""
+    config = LLM_RATE_LIMITS["generate"]
+    key = f"rl:llm:{user_id}"
+    limit = config["limit"]
+    window = config["window"]
+
+    try:
+        redis = await get_redis()
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, window)
+        remaining = max(0, limit - current)
+        if current > limit:
+            return False, 0
+        return True, remaining
+    except Exception:
         return await _check_in_memory_rate_limit(key, limit, window)

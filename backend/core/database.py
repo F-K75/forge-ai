@@ -127,6 +127,9 @@ async def _ensure_indexes(db):
         # Feature flags index
         await db.feature_flags.create_index("key", unique=True)
 
+        # LLM per-agent model/provider override index
+        await db.llm_agent_overrides.create_index("agent", unique=True)
+
         # API keys index
         await db.api_keys.create_index([("user_id", 1)])
         await db.api_keys.create_index([("key_hash", 1)], unique=True)

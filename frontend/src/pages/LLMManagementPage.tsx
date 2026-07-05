@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { llmApi } from '../lib/api'
 
 interface ProviderStatus {
   name: string
@@ -35,11 +36,7 @@ export default function LLMManagementPage() {
 
   const load = () => {
     setLoading(true)
-    Promise.all([
-      fetch('/api/llm/health').then((res) => res.json()),
-      fetch('/api/llm/models').then((res) => res.json()),
-      fetch('/api/llm/usage').then((res) => res.json()),
-    ])
+    Promise.all([llmApi.health(), llmApi.models(), llmApi.usage()])
       .then(([health, modelsPayload, usagePayload]) => {
         setProviders(health.providers || [])
         setModels(modelsPayload.models || [])
@@ -54,28 +51,23 @@ export default function LLMManagementPage() {
 
   const saveOverride = async () => {
     setSaveStatus('Saving…')
-    const res = await fetch(`/api/llm/agent/${agentName}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider: overrideProvider || undefined, model: overrideModel || undefined }),
-    })
-    setSaveStatus(res.ok ? 'Saved — applies immediately, no restart needed' : 'Failed to save')
+    try {
+      await llmApi.setAgentOverride(agentName, { provider: overrideProvider || undefined, model: overrideModel || undefined })
+      setSaveStatus('Saved — applies immediately, no restart needed')
+    } catch {
+      setSaveStatus('Failed to save')
+    }
   }
 
   const testConnection = async (providerName: string) => {
     setTestStatus(`Testing ${providerName}…`)
     try {
-      const res = await fetch('/api/llm/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent: 'developer',
-          messages: [{ role: 'user', content: 'ping' }],
-          provider_names: [providerName],
-        }),
+      const data = await llmApi.test({
+        agent: 'developer',
+        messages: [{ role: 'user', content: 'ping' }],
+        provider_names: [providerName],
       })
-      const data = await res.json()
-      setTestStatus(res.ok ? `${providerName}: ${data.text?.slice(0, 60) || 'ok'}` : `${providerName}: failed`)
+      setTestStatus(`${providerName}: ${data.text?.slice(0, 60) || 'ok'}`)
     } catch {
       setTestStatus(`${providerName}: request failed`)
     }

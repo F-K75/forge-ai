@@ -1,8 +1,17 @@
 from fastapi.testclient import TestClient
 
 from main import app
+from api.admin import admin_required
 from core.llm.router import get_llm_router
 from core.llm.provider import BaseProviderAdapter, CompletionResponse
+from core.models import User
+
+
+def _override_admin():
+    return User(id="admin-1", email="admin@forge.ai", name="Admin")
+
+
+app.dependency_overrides[admin_required] = _override_admin
 
 
 class FakeProvider(BaseProviderAdapter):
@@ -43,3 +52,22 @@ def test_llm_test_endpoint_uses_router_and_provider_override():
     )
     assert response.status_code == 200
     assert response.json()["text"] == "hello"
+
+
+def test_llm_endpoints_reject_unauthenticated_requests():
+    """Regression test: /api/llm/* previously had no auth dependency at all,
+    so anyone on the internet could trigger real (Forge-billed) provider
+    calls via POST /api/llm/test and rewrite every agent's model assignment
+    platform-wide via PUT /api/llm/agent/{agent}, with no login required."""
+    del app.dependency_overrides[admin_required]
+    try:
+        client = TestClient(app)
+        assert client.get("/api/llm/providers").status_code == 401
+        assert client.get("/api/llm/models").status_code == 401
+        assert client.get("/api/llm/usage").status_code == 401
+        assert client.get("/api/llm/health").status_code == 401
+        assert client.post("/api/llm/test", json={"messages": [{"role": "user", "content": "hi"}]}).status_code == 401
+        assert client.put("/api/llm/agent/developer", json={"model": "evil-model"}).status_code == 401
+        assert client.post("/api/llm/reload").status_code == 401
+    finally:
+        app.dependency_overrides[admin_required] = _override_admin

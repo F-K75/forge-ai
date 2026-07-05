@@ -22,6 +22,23 @@ from core.ai_usage import BudgetExceeded
 from core.llm.provider import BaseProviderAdapter, CompletionResponse
 from core.llm.router import LLMRouter
 
+import core.security as security_module
+
+
+@pytest.fixture(autouse=True)
+def _reset_llm_rate_limit_state():
+    # These tests drive the real LLMRouter.generate() with user_id="user-1"
+    # in rapid succession. Redis isn't reachable in this sandbox, so the
+    # per-user LLM rate limiter (core.security.LLM_RATE_LIMITS) falls back
+    # to the module-level, process-wide _in_memory_rate_limits dict --
+    # without clearing it, repeated "user-1" calls here would share state
+    # with other test modules that also use "user-1" (e.g.
+    # test_llm_byok.py), risking spurious rate-limit failures unrelated to
+    # what either test is actually checking.
+    security_module._in_memory_rate_limits.clear()
+    yield
+    security_module._in_memory_rate_limits.clear()
+
 
 class _FakeProvider(BaseProviderAdapter):
     name = "fake"

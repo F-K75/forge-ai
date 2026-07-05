@@ -1,14 +1,56 @@
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 import asyncio
 import logging
 
 from core.config import get_settings
-from core.models import AgentType, WSEvent, WSEventType
+from core.models import AgentType, PlanTier, WSEvent, WSEventType
 from core.ai_usage import check_budget
+from core.database import get_db
+from core.encryption import decrypt_field
 from core.llm.router import get_llm_router
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+
+async def _resolve_byok(user_id: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Pro+ users can store their own provider key (Settings -> BYOK) to run
+    builds on their own account instead of Forge's; core/orchestrator.py
+    skips per-agent credit deduction for these builds, so the LLM call here
+    must actually use the user's key -- otherwise Forge eats the API cost
+    while charging the user nothing. Returns None for everyone else, which
+    is the overwhelmingly common case, so this stays a cheap single lookup.
+    """
+    if not user_id:
+        return None
+    try:
+        db = await get_db()
+        user_doc = await db.users.find_one(
+            {"id": user_id},
+            {"_id": 0, "plan": 1, "llm_api_key": 1, "llm_provider": 1, "llm_base_url": 1, "llm_model": 1},
+        )
+    except Exception:
+        return None
+
+    encrypted_key = (user_doc or {}).get("llm_api_key")
+    if not encrypted_key:
+        return None
+    if (user_doc or {}).get("plan") not in (PlanTier.PRO.value, PlanTier.ENTERPRISE.value):
+        return None
+
+    key = decrypt_field(encrypted_key)
+    if not key:
+        return None
+
+    provider = user_doc.get("llm_provider") or "anthropic"
+    if provider == "openai_compatible":
+        base_url = user_doc.get("llm_base_url")
+        model = user_doc.get("llm_model")
+        if not base_url or not model:
+            return None
+        return {"provider": "openai_compatible", "api_key": key, "base_url": base_url, "model": model}
+
+    return {"provider": "anthropic", "api_key": key}
 
 
 class CircuitBreaker:
@@ -66,7 +108,8 @@ class BaseAgent:
         if not _llm_circuit_breaker.can_call():
             raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
 
-        if user_id:
+        byok = await _resolve_byok(user_id)
+        if user_id and not byok:
             await check_budget(user_id, org_id=org_id)
 
         try:
@@ -84,6 +127,7 @@ class BaseAgent:
                 project_id=project_id,
                 org_id=org_id,
                 extra_system=self.system_prompt + (f"\n\n{extra_system}" if extra_system else ""),
+                byok=byok,
             )
             _llm_circuit_breaker.record_success()
             return response.text
@@ -105,7 +149,8 @@ class BaseAgent:
         if not _llm_circuit_breaker.can_call():
             raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
 
-        if user_id:
+        byok = await _resolve_byok(user_id)
+        if user_id and not byok:
             await check_budget(user_id, org_id=org_id)
 
         try:
@@ -124,6 +169,7 @@ class BaseAgent:
                 org_id=org_id,
                 extra_system=self.system_prompt + (f"\n\n{extra_system}" if extra_system else ""),
                 usage_out=usage_out,
+                byok=byok,
             )
             _llm_circuit_breaker.record_success()
             for token in response.text:

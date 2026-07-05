@@ -208,6 +208,19 @@ export const marketplaceApi = {
     api.post('/marketplace/', data).then(r => r.data),
 }
 
+// LLM routing (admin-only — see backend/api/llm.py's admin_required gate)
+export const llmApi = {
+  providers: () => api.get('/api/llm/providers').then(r => r.data),
+  models: () => api.get('/api/llm/models').then(r => r.data),
+  usage: (days?: number, limit?: number) => api.get('/api/llm/usage', { params: { days, limit } }).then(r => r.data),
+  health: () => api.get('/api/llm/health').then(r => r.data),
+  test: (data: { agent?: string; messages: { role: string; content: string }[]; provider_names?: string[]; model?: string }) =>
+    api.post('/api/llm/test', data).then(r => r.data),
+  setAgentOverride: (agent: string, data: { provider?: string; model?: string }) =>
+    api.put(`/api/llm/agent/${agent}`, data).then(r => r.data),
+  reload: () => api.post('/api/llm/reload').then(r => r.data),
+}
+
 // Admin
 export const adminApi = {
   overview: () => api.get('/admin/analytics/overview').then(r => r.data),
