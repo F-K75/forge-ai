@@ -22,6 +22,7 @@ const MarketplacePage = lazy(() => import('./pages/MarketplacePage'))
 const BillingPage     = lazy(() => import('./pages/BillingPage'))
 const SettingsPage    = lazy(() => import('./pages/SettingsPage'))
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
+const LLMManagementPage = lazy(() => import('./pages/LLMManagementPage'))
 // Step 3: in-shell surfaces
 const AdminConsole    = lazy(() => import('./pages/AdminConsole'))
 const ProjectHistory  = lazy(() => import('./pages/ProjectHistory'))
@@ -170,6 +171,7 @@ export default function App() {
             <Route path="/marketplace" element={<Suspense fallback={<RouteSkeleton />}><MarketplacePage /></Suspense>} />
             <Route path="/billing" element={<Suspense fallback={<RouteSkeleton />}><BillingPage /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={<RouteSkeleton />}><SettingsPage /></Suspense>} />
+            <Route path="/llm-management" element={<Suspense fallback={<RouteSkeleton />}><LLMManagementPage /></Suspense>} />
             {/* Step 3: in-shell surfaces */}
             <Route path="/admin-console" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense></AdminRoute>} />
             <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />

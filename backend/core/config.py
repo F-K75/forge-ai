@@ -7,6 +7,12 @@ import base64
 class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    openrouter_api_key: str = ""
+    gemini_api_key: str = ""
+    groq_api_key: str = ""
+    together_api_key: str = ""
+    mistral_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434"
     default_model: str = "claude-sonnet-4-6"
     mongodb_url: str = ""
     redis_url: str = "redis://localhost:6379"
@@ -41,20 +47,26 @@ class Settings(BaseSettings):
     @classmethod
     def check_jwt_secret(cls, v):
         import os
-        
-        # Allow dummy values for CI/testing if explicitly flagged
-        if os.getenv("CI_TEST_MODE"):
+
+        # Unit tests expect strict validation when TESTING is not set.
+        # In CI we still need the app to import; only allow a dummy
+        # jwt_secret when TESTING is explicitly enabled.
+        if os.getenv("CI_TEST_MODE") and os.getenv("TESTING"):
             if not v:
                 return "test-secret-key-for-ci-purposes-only-32chars"
-            return v
-        
-        # Block known dev fallback patterns even in testing
+
+        # Production/dev validation
+        if not v:
+            raise ValueError("jwt_secret is required and must not be empty")
+
         blocked_patterns = [
+
             "dev-fallback",
             "do-not-use",
             "placeholder",
             "your_",
         ]
+
         if v and any(pattern in v for pattern in blocked_patterns):
             raise ValueError(
                 "jwt_secret must not contain placeholder or fallback values"
@@ -104,7 +116,11 @@ class Settings(BaseSettings):
     deployment_host: str = "localhost"
     # Union with str lets pydantic-settings fall back to the raw env value when
     # it isn't JSON, so both JSON arrays and comma-separated strings work
-    allowed_origins: list[str] | str = ["http://localhost:3000", "http://localhost:5173"]
+    # NOTE: Keep type syntax compatible with older Python versions in CI.
+    # (Python 3.9 doesn't support `list[str] | str` reliably.)
+    allowed_origins: "list[str]" = ["http://localhost:3000", "http://localhost:5173"]
+    
+
     allowed_hosts: str = "localhost,127.0.0.1,testserver"
 
     @field_validator("allowed_origins", mode="before")
@@ -146,11 +162,12 @@ class Settings(BaseSettings):
         """Require an independent, correctly sized field-encryption key."""
         import os
         
-        # Allow dummy values for CI/testing if explicitly flagged
         if os.getenv("CI_TEST_MODE"):
+            # Allow dummy values for CI/testing.
             if not value:
                 return "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
             return value
+
         
         if not value:
             raise ValueError("FIELD_ENCRYPTION_KEY is required")

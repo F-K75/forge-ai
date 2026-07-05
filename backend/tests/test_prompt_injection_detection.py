@@ -24,7 +24,7 @@ paraphrasing. They only lock in the two concrete, demonstrated bypasses
 above so they can't silently regress.
 """
 
-from agents.base import _detect_prompt_injection, _any_message_has_prompt_injection
+from core.llm.router import _detect_prompt_injection, _any_message_has_prompt_injection
 
 
 def test_baseline_exact_phrase_is_detected():

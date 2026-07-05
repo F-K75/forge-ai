@@ -20,7 +20,9 @@ from api.auth import get_current_user
 
 router = APIRouter(prefix="/deployments", tags=["deployments"])
 settings = get_settings()
-_docker_client: docker.DockerClient | None = None
+# Keep union syntax compatible with older Python versions in CI.
+_docker_client = None  # type: docker.DockerClient | None
+
 
 
 def get_docker_client() -> docker.DockerClient:

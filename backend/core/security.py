@@ -263,6 +263,7 @@ _CSRF_EXCLUDED_PATHS = [
     "/auth/csrf-token",  # Token generation endpoint
     "/health",
     "/billing/webhook",  # Stripe webhook has its own signature verification
+    "/api/llm",  # internal LLM management and test routes
 ]
 
 

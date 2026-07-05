@@ -29,6 +29,7 @@ from api.tasks import router as pm_tasks_router
 from api.sprints import router as sprints_router
 from api.releases import router as releases_router
 from api.agent_executions import router as agent_executions_router
+from api.llm import router as llm_router
 from core.database import close_connections
 from core.config import get_settings
 from core.security import (
@@ -205,6 +206,7 @@ app.include_router(pm_tasks_router)
 app.include_router(sprints_router)
 app.include_router(releases_router)
 app.include_router(agent_executions_router)
+app.include_router(llm_router)
 
 
 @app.get("/health")

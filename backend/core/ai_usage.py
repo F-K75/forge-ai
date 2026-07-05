@@ -6,11 +6,19 @@ from datetime import datetime, timedelta
 
 from core.database import get_db
 
-# cost per 1K tokens, in USD
+# cost per 1K tokens, in USD.
+# NOTE: OpenRouter-namespaced model IDs (e.g. "anthropic/claude-opus-4.8")
+# are priced here at the same rate as their underlying Anthropic model,
+# using standard Anthropic list-pricing tiers as the basis. OpenRouter may
+# add its own margin on top -- verify against https://openrouter.ai/models
+# before relying on this for real billing/invoicing.
 MODEL_COSTS = {
     "claude-sonnet-4-6": {"input": 0.003, "output": 0.015, "provider": "anthropic"},
     "claude-opus-3": {"input": 0.015, "output": 0.075, "provider": "anthropic"},
     "gpt-4-turbo": {"input": 0.01, "output": 0.03, "provider": "openai"},
+    "anthropic/claude-opus-4.8": {"input": 0.015, "output": 0.075, "provider": "openrouter"},
+    "anthropic/claude-sonnet-5": {"input": 0.003, "output": 0.015, "provider": "openrouter"},
+    "anthropic/claude-haiku-4.5": {"input": 0.0008, "output": 0.004, "provider": "openrouter"},
 }
 DEFAULT_MODEL = "claude-sonnet-4-6"
 

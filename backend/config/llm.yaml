@@ -1,0 +1,100 @@
+default_provider: openrouter
+fallback_chain:
+  - openrouter
+retry:
+  max_attempts: 2
+  backoff_seconds: 0.25
+cache_ttl_seconds: 300
+agent_overrides:
+  # Highest-reasoning (most expensive) tier: reserved only for the two
+  # agents whose output correctness has the largest blast radius --
+  # a wrong system design or wrong code both cascade into every
+  # downstream agent and the actual generated app. If opus is
+  # rate-limited/unavailable, fall back to sonnet then haiku rather than
+  # failing the whole request.
+  architectagent:
+    provider: openrouter
+    model: anthropic/claude-opus-4.8
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
+      - anthropic/claude-haiku-4.5
+  developeragent:
+    provider: openrouter
+    model: anthropic/claude-opus-4.8
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
+      - anthropic/claude-haiku-4.5
+
+  # Mid tier: agents that need solid reasoning (decisions, execution,
+  # cross-service integration, requirements writing) but whose mistakes
+  # are cheaper to catch/retry than architecture or code. Falls back to
+  # haiku if sonnet is unavailable.
+  decisionengineagent:
+    provider: openrouter
+    model: anthropic/claude-sonnet-5
+    model_fallbacks:
+      - anthropic/claude-haiku-4.5
+  taskexecutoragent:
+    provider: openrouter
+    model: anthropic/claude-sonnet-5
+    model_fallbacks:
+      - anthropic/claude-haiku-4.5
+  businessanalystagent:
+    provider: openrouter
+    model: anthropic/claude-sonnet-5
+    model_fallbacks:
+      - anthropic/claude-haiku-4.5
+  designeragent:
+    provider: openrouter
+    model: anthropic/claude-sonnet-5
+    model_fallbacks:
+      - anthropic/claude-haiku-4.5
+  pmagent:
+    provider: openrouter
+    model: anthropic/claude-sonnet-5
+    model_fallbacks:
+      - anthropic/claude-haiku-4.5
+  integrationagent:
+    provider: openrouter
+    model: anthropic/claude-sonnet-5
+    model_fallbacks:
+      - anthropic/claude-haiku-4.5
+  prdwriteragent:
+    provider: openrouter
+    model: anthropic/claude-sonnet-5
+    model_fallbacks:
+      - anthropic/claude-haiku-4.5
+
+  # Fast/cheap tier: high-volume, mostly templated/structured-output
+  # generation where haiku-level reasoning is sufficient. Falls back up
+  # to sonnet only because there's no cheaper tier below haiku.
+  businessmodelagent:
+    provider: openrouter
+    model: anthropic/claude-haiku-4.5
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
+  epicgeneratoragent:
+    provider: openrouter
+    model: anthropic/claude-haiku-4.5
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
+  scrummasteragent:
+    provider: openrouter
+    model: anthropic/claude-haiku-4.5
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
+  sprintplanneragent:
+    provider: openrouter
+    model: anthropic/claude-haiku-4.5
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
+  taskgeneratoragent:
+    provider: openrouter
+    model: anthropic/claude-haiku-4.5
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
+  storygeneratoragent:
+    provider: openrouter
+    model: anthropic/claude-haiku-4.5
+    model_fallbacks:
+      - anthropic/claude-sonnet-5
