@@ -59,17 +59,26 @@ USER_RATE_LIMITS = {
     "api": 1000,   # max API calls per hour
 }
 
-# Per-user LLM request-rate limits (distinct from the daily token BUDGET in
-# core/ai_usage.py -- this bounds call FREQUENCY, not spend). Every agent LLM
+# Per-identity LLM request-rate limits (distinct from the daily token BUDGET
+# in core/ai_usage.py -- this bounds call FREQUENCY, not spend). Every agent LLM
 # call in the app funnels through LLMRouter.generate(), for both Forge-paid
-# and BYOK providers, so a buggy retry loop or malicious script hammering
-# that method could exhaust Forge's shared provider rate limits (degrading
-# every other user's builds) while staying comfortably under the daily token
-# budget. 60/minute is generous relative to a normal multi-agent build
-# (a handful of LLM calls per pipeline stage) while still capping a runaway
-# loop.
-LLM_RATE_LIMITS = {
-    "generate": {"limit": 60, "window": 60},
+# and BYOK providers, so a buggy retry loop or malicious script hammering that
+# method could exhaust Forge's shared provider rate limits (degrading every
+# other user's builds) while staying comfortably under the daily token budget.
+#
+# Multi-dimensional: user / project / org. A request is rejected if ANY
+# dimension is over its limit, so a single runaway build loop (project) can't
+# starve the user's other projects, and an org can't crowd out others at the
+# org level. All keys are Redis-backed (survive process restarts in steady
+# state) with an in-memory fail-closed fallback, consistent with the rest of
+# the app's rate limiters.
+LLM_RATE_LIMIT_DIMENSIONS = {
+    # Generous for a normal multi-agent build (a handful of calls per stage).
+    "user": {"limit": 60, "window": 60},
+    # Bounds one build's agent loop; trips only on a pathological runaway.
+    "project": {"limit": 30, "window": 60},
+    # Org-wide backstop against one org dominating shared provider capacity.
+    "org": {"limit": 300, "window": 60},
 }
 
 # Per-email auth rate limits (for unauthenticated endpoints)
@@ -276,7 +285,12 @@ _CSRF_EXCLUDED_PATHS = [
     "/auth/csrf-token",  # Token generation endpoint
     "/health",
     "/billing/webhook",  # Stripe webhook has its own signature verification
-    "/api/llm",  # internal LLM management and test routes
+    "/billing/webhook/payment",  # Stripe payment webhook — signature-verified, no session cookie
+    # NOTE: /api/llm is intentionally NOT excluded. Its mutating admin routes
+    # (PUT /api/llm/agent/{agent}, POST /api/llm/reload, POST /api/llm/test)
+    # are admin_required and the frontend already sends X-CSRF-Token on them;
+    # excluding them would let a logged-in admin be CSRF'd into billed test
+    # calls or platform-wide model-assignment changes.
 ]
 
 
@@ -484,6 +498,45 @@ async def validate_webhook_url(url: str) -> tuple[bool, str]:
     return True, ""
 
 
+async def validate_byok_base_url(url: str) -> tuple[bool, str]:
+    """Validate a user-supplied BYOK ``openai_compatible`` base URL against SSRF.
+
+    This is the endpoint an LLM HTTP client will actually connect to, so a
+    malicious or careless user could point it at internal services or the cloud
+    metadata endpoint (169.254.169.254) to exfiltrate credentials / pivot
+    internally. Unlike ``validate_webhook_url`` this always requires HTTPS
+    (a BYOK base URL is an API endpoint, never a plain-http dev callback) and
+    resolves the hostname so DNS names pointing at private/reserved addresses
+    are blocked exactly like literal IPs.
+
+    Returns (is_valid, error_message)."""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False, "Invalid base URL"
+
+    if parsed.scheme != "https":
+        return False, "BYOK base URL must use https"
+
+    hostname = parsed.hostname
+    if not hostname:
+        return False, "BYOK base URL must include a hostname"
+
+    try:
+        addrinfo = await asyncio.get_event_loop().getaddrinfo(hostname, None)
+    except Exception:
+        return False, "BYOK base URL hostname could not be resolved"
+
+    if not addrinfo:
+        return False, "BYOK base URL hostname could not be resolved"
+
+    for _family, _type, _proto, _canonname, sockaddr in addrinfo:
+        if _is_blocked_webhook_ip(sockaddr[0]):
+            return False, "BYOK base URL resolves to a private, loopback, or reserved IP address"
+
+    return True, ""
+
+
 async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int]:
     """Check per-email rate limit for unauthenticated auth endpoints.
     Returns (is_allowed, remaining)."""
@@ -515,28 +568,48 @@ async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int
         return await _check_in_memory_rate_limit(key, limit, window)
 
 
-async def check_llm_rate_limit(user_id: str) -> tuple[bool, int]:
-    """Check per-user request-rate limit for LLMRouter.generate().
+async def check_llm_rate_limit(
+    user_id: str, *, project_id: Optional[str] = None, org_id: Optional[str] = None
+) -> tuple[bool, int]:
+    """Multi-dimensional request-rate limit for LLMRouter.generate().
 
-    This bounds call FREQUENCY (not spend -- see the daily token BUDGET in
-    core/ai_usage.py). Structurally identical to check_email_rate_limit:
-    Redis INCR+EXPIRE keyed per-identity, with the same in-memory fallback
-    on Redis failure so a Redis blip can't let a runaway loop bypass this
-    entirely. user_id isn't PII the way an email is, so it's used directly
-    in the key with no hashing. Returns (is_allowed, remaining)."""
-    config = LLM_RATE_LIMITS["generate"]
-    key = f"rl:llm:{user_id}"
-    limit = config["limit"]
-    window = config["window"]
+    Bounds call FREQUENCY (not spend -- see the daily token BUDGET in
+    core/ai_usage.py). Enforces three independent dimensions -- user, project,
+    and org -- and rejects the request if ANY dimension is over its limit, so a
+    single runaway build loop (project) can't starve the user's other projects
+    and an org can't crowd out others at the org level.
 
-    try:
-        redis = await get_redis()
-        current = await redis.incr(key)
-        if current == 1:
-            await redis.expire(key, window)
-        remaining = max(0, limit - current)
-        if current > limit:
-            return False, 0
-        return True, remaining
-    except Exception:
-        return await _check_in_memory_rate_limit(key, limit, window)
+    Each dimension is a Redis INCR+EXPIRE key (survives process restarts in
+    steady state), with the same in-memory fail-closed fallback used by
+    check_email_rate_limit on Redis failure. Returns (is_allowed, remaining),
+    where remaining is the tightest remaining budget across all dimensions."""
+    dimensions = [("user", user_id)]
+    if project_id:
+        dimensions.append(("project", project_id))
+    if org_id:
+        dimensions.append(("org", org_id))
+
+    allowed = True
+    tightest_remaining = None
+    for dimension, identity in dimensions:
+        cfg = LLM_RATE_LIMIT_DIMENSIONS[dimension]
+        key = f"rl:llm:{dimension}:{identity}"
+        limit = cfg["limit"]
+        window = cfg["window"]
+        try:
+            redis = await get_redis()
+            current = await redis.incr(key)
+            if current == 1:
+                await redis.expire(key, window)
+            remaining = max(0, limit - current)
+            if current > limit:
+                allowed = False
+            tightest_remaining = remaining if tightest_remaining is None else min(tightest_remaining, remaining)
+        except Exception:
+            # Redis unavailable -- fail closed within this process via the
+            # in-memory limiter, consistent with check_email_rate_limit.
+            rem = await _check_in_memory_rate_limit(key, limit, window)
+            allowed = allowed and rem[0]
+            tightest_remaining = rem[1] if tightest_remaining is None else min(tightest_remaining, rem[1])
+
+    return allowed, (tightest_remaining or 0)

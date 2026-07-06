@@ -1,15 +1,16 @@
-"""Tests for the per-user LLM request-rate limiter.
+"""Tests for the multi-dimensional LLM request-rate limiter.
 
-Today only a daily token BUDGET exists (core/ai_usage.check_budget) --
-nothing bounds request RATE, so a buggy retry loop or malicious script could
-hammer LLMRouter.generate() dozens of times per second per user, exhausting
-Forge's shared provider rate limits (degrading every other user's builds)
-even while staying under the daily token budget.
+Today only a daily token BUDGET exists (core/ai_usage.check_budget) -- nothing
+bounds request RATE, so a buggy retry loop or malicious script could hammer
+LLMRouter.generate() dozens of times per second, exhausting Forge's shared
+provider rate limits (degrading every other user's builds) even while staying
+under the daily token budget.
 
-Fixed by adding a "generate" entry to LLM_RATE_LIMITS (60/minute/user) and
-calling check_llm_rate_limit from LLMRouter.generate() the same way
-check_email_rate_limit is called from api/auth.py, using the exact same
-Redis INCR+EXPIRE-with-in-memory-fallback pattern.
+check_llm_rate_limit enforces three dimensions -- user, project, org -- each a
+Redis INCR+EXPIRE key with an in-memory fail-closed fallback, the same pattern
+as check_email_rate_limit. A request is rejected if ANY dimension is over its
+limit, so a single runaway build loop (project) can't starve the user's other
+projects and an org can't crowd out others.
 """
 
 import os
@@ -80,6 +81,10 @@ def _make_router_with_fake_provider() -> LLMRouter:
     return router
 
 
+def _user_limit():
+    return security_module.LLM_RATE_LIMIT_DIMENSIONS["user"]["limit"]
+
+
 # --- (a) Redis-backed path: allows exactly limit calls, then rejects -------
 
 
@@ -90,7 +95,7 @@ def test_check_llm_rate_limit_allows_exactly_limit_then_rejects(monkeypatch):
         return fake_redis
 
     monkeypatch.setattr(security_module, "get_redis", _get_fake_redis)
-    limit = security_module.LLM_RATE_LIMITS["generate"]["limit"]
+    limit = _user_limit()
 
     async def _drive():
         results = []
@@ -110,7 +115,7 @@ def test_check_llm_rate_limit_scopes_by_user_not_globally(monkeypatch):
         return fake_redis
 
     monkeypatch.setattr(security_module, "get_redis", _get_fake_redis)
-    limit = security_module.LLM_RATE_LIMITS["generate"]["limit"]
+    limit = _user_limit()
 
     async def _drive():
         for _ in range(limit):
@@ -121,12 +126,89 @@ def test_check_llm_rate_limit_scopes_by_user_not_globally(monkeypatch):
     assert allowed is True
 
 
+# --- (a2) Per-project + per-org dimensions are enforced independently -------
+
+
+def test_project_dimension_rejects_when_project_over_limit(monkeypatch):
+    fake_redis = _FakeWorkingRedis()
+
+    async def _get_fake_redis():
+        return fake_redis
+
+    monkeypatch.setattr(security_module, "get_redis", _get_fake_redis)
+    project_limit = security_module.LLM_RATE_LIMIT_DIMENSIONS["project"]["limit"]
+
+    async def _drive():
+        results = []
+        for _ in range(project_limit + 1):
+            results.append(
+                await security_module.check_llm_rate_limit(
+                    "user-x", project_id="proj-runaway"
+                )
+            )
+        return results
+
+    results = asyncio.new_event_loop().run_until_complete(_drive())
+    allowed = [ok for ok, _ in results]
+    # User is under their limit, but the runaway PROJECT trips first.
+    assert allowed == [True] * project_limit + [False]
+
+
+def test_org_dimension_rejects_when_org_over_limit(monkeypatch):
+    fake_redis = _FakeWorkingRedis()
+
+    async def _get_fake_redis():
+        return fake_redis
+
+    monkeypatch.setattr(security_module, "get_redis", _get_fake_redis)
+    # Make org the binding dimension (otherwise user/project bind first).
+    monkeypatch.setitem(
+        security_module.LLM_RATE_LIMIT_DIMENSIONS, "user", {"limit": 1000, "window": 60}
+    )
+    monkeypatch.setitem(
+        security_module.LLM_RATE_LIMIT_DIMENSIONS, "project", {"limit": 1000, "window": 60}
+    )
+    org_limit = security_module.LLM_RATE_LIMIT_DIMENSIONS["org"]["limit"]
+
+    async def _drive():
+        results = []
+        for _ in range(org_limit + 1):
+            results.append(
+                await security_module.check_llm_rate_limit(
+                    "user-y", project_id="proj-y", org_id="org-big"
+                )
+            )
+        return results
+
+    results = asyncio.new_event_loop().run_until_complete(_drive())
+    allowed = [ok for ok, _ in results]
+    assert allowed == [True] * org_limit + [False]
+
+
+def test_distinct_projects_do_not_share_project_quota(monkeypatch):
+    fake_redis = _FakeWorkingRedis()
+
+    async def _get_fake_redis():
+        return fake_redis
+
+    monkeypatch.setattr(security_module, "get_redis", _get_fake_redis)
+    project_limit = security_module.LLM_RATE_LIMIT_DIMENSIONS["project"]["limit"]
+
+    async def _drive():
+        for _ in range(project_limit):
+            await security_module.check_llm_rate_limit("user-z", project_id="proj-1")
+        return await security_module.check_llm_rate_limit("user-z", project_id="proj-2")
+
+    allowed, _ = asyncio.new_event_loop().run_until_complete(_drive())
+    assert allowed is True
+
+
 # --- (b) In-memory fallback when Redis raises ------------------------------
 
 
 def test_check_llm_rate_limit_falls_back_to_in_memory_when_redis_fails(monkeypatch):
     monkeypatch.setattr(security_module, "get_redis", _broken_redis)
-    limit = security_module.LLM_RATE_LIMITS["generate"]["limit"]
+    limit = _user_limit()
 
     async def _drive():
         results = []
@@ -144,7 +226,7 @@ def test_check_llm_rate_limit_falls_back_to_in_memory_when_redis_fails(monkeypat
 
 @pytest.mark.asyncio
 async def test_generate_raises_when_rate_limit_exceeded(monkeypatch):
-    async def _fake_check_llm_rate_limit(user_id):
+    async def _fake_check_llm_rate_limit(user_id, *, project_id=None, org_id=None):
         return False, 0
 
     monkeypatch.setattr(
@@ -158,6 +240,8 @@ async def test_generate_raises_when_rate_limit_exceeded(monkeypatch):
             agent_name="developer",
             messages=[{"role": "user", "content": "hi"}],
             user_id="user-rate-limited",
+            project_id="proj-1",
+            org_id="org-1",
         )
 
 

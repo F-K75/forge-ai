@@ -137,7 +137,7 @@ class LLMRouter:
             # exhaust Forge's shared provider rate limits.
             from core.security import check_llm_rate_limit
 
-            allowed, _ = await check_llm_rate_limit(user_id)
+            allowed, _ = await check_llm_rate_limit(user_id, project_id=project_id, org_id=org_id)
             if not allowed:
                 raise ProviderError(f"LLM request rate limit exceeded for user {user_id}")
 

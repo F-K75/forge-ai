@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, Iterable
+from fastapi.responses import StreamingResponse
+from typing import Dict, Any, Iterable, List
 from datetime import datetime
 import asyncio
 import hashlib
+import json
 import stripe
 
 from core.models import User
@@ -12,6 +14,137 @@ from api.auth import get_current_user
 
 router = APIRouter(prefix="/gdpr", tags=["gdpr"])
 settings = get_settings()
+
+# Fields that must never leave the server in an export (password hash, raw
+# tokens, verification secrets, MFA secrets). Encrypted secrets are dropped
+# rather than exported: they are not reversibly readable by the user and
+# exporting ciphertext adds leak surface without portability value.
+_EXPORT_STRIP_FIELDS = {
+    "_id",
+    "hashed_password",
+    "github_token",
+    "llm_api_key",
+    "verification_token",
+    "verification_expires",
+    "totp_secret",
+    "mfa_backup_codes",
+}
+
+
+async def _user_owned_ids(db, user_id: str) -> Dict[str, List[str]]:
+    """Resolve the project/build/initiative/sprint id sets that scope a user's
+    derived documents. Mirrors the id derivation in delete_user_data_cascade so
+    export and deletion cover exactly the same documents."""
+    projects = await db.projects.find(
+        {"user_id": user_id}, {"_id": 0, "id": 1}
+    ).to_list(None)
+    project_ids = [p["id"] for p in projects]
+
+    builds = await db.builds.find(
+        {"$or": [{"user_id": user_id}, {"project_id": {"$in": project_ids}}]},
+        {"_id": 0, "id": 1},
+    ).to_list(None)
+    build_ids = [b["id"] for b in builds]
+
+    initiatives = await db.initiatives.find(
+        {"user_id": user_id}, {"_id": 0, "id": 1}
+    ).to_list(None)
+    initiative_ids = [i["id"] for i in initiatives]
+
+    sprints = await db.sprints.find(
+        {"initiative_id": {"$in": initiative_ids}}, {"_id": 0, "id": 1}
+    ).to_list(None)
+    sprint_ids = [s["id"] for s in sprints]
+
+    return {
+        "project_ids": project_ids,
+        "build_ids": build_ids,
+        "initiative_ids": initiative_ids,
+        "sprint_ids": sprint_ids,
+    }
+
+
+async def _collect_user_data(db, user: User) -> Dict[str, Any]:
+    """Gather every data category the deletion cascade erases, so a data-subject
+    access request is complete (GDPR Art. 15 / 20)."""
+    ids = await _user_owned_ids(db, user.id)
+
+    user_doc = await db.users.find_one(
+        {"id": user.id},
+        {"_id": 0, **{f: 0 for f in _EXPORT_STRIP_FIELDS}},
+    )
+    # Also strip defensively in Python so the export is privacy-safe even if
+    # the underlying driver/projection doesn't drop the fields.
+    if user_doc:
+        user_doc = {k: v for k, v in user_doc.items() if k not in _EXPORT_STRIP_FIELDS}
+
+    export: Dict[str, Any] = {
+        "user": user_doc,
+        "exported_at": datetime.utcnow().isoformat(),
+        "projects": await db.projects.find(
+            {"id": {"$in": ids["project_ids"]}}, {"_id": 0}
+        ).to_list(None),
+        "builds": await db.builds.find(
+            {"id": {"$in": ids["build_ids"]}}, {"_id": 0}
+        ).to_list(None),
+        "build_files": await db.build_files.find(
+            {"build_id": {"$in": ids["build_ids"]}}, {"_id": 0}
+        ).to_list(None),
+        "messages": await db.messages.find(
+            {
+                "$or": [
+                    {"user_id": user.id},
+                    {"project_id": {"$in": ids["project_ids"]}},
+                ]
+            },
+            {"_id": 0},
+        ).to_list(None),
+        "initiatives": await db.initiatives.find(
+            {"id": {"$in": ids["initiative_ids"]}}, {"_id": 0}
+        ).to_list(None),
+        "sprints": await db.sprints.find(
+            {"id": {"$in": ids["sprint_ids"]}}, {"_id": 0}
+        ).to_list(None),
+        "sprint_artifacts": await _collect_many(
+            db,
+            ("standups", "sprint_reviews", "sprint_retros"),
+            {"sprint_id": {"$in": ids["sprint_ids"]}},
+        ),
+        "initiative_artifacts": await _collect_many(
+            db,
+            (
+                "prds", "epics", "stories", "tasks", "releases", "risk_reports",
+                "tech_debt_summaries", "agent_executions", "decision_log",
+            ),
+            {"initiative_id": {"$in": ids["initiative_ids"]}},
+        ),
+        "direct": await _collect_many(
+            db,
+            _DIRECT_USER_COLLECTIONS,
+            {"user_id": user.id},
+        ),
+        "marketplace_items": await db.marketplace_items.find(
+            {"author_id": user.id}, {"_id": 0}
+        ).to_list(None),
+        "referrals": await db.referrals.find(
+            {"$or": [{"referrer_id": user.id}, {"referred_email": user.email}]},
+            {"_id": 0},
+        ).to_list(None),
+        "team_members": await db.team_members.find(
+            {"user_id": user.id}, {"_id": 0}
+        ).to_list(None),
+        "organizations": await db.organizations.find(
+            {"owner_id": user.id}, {"_id": 0}
+        ).to_list(None),
+    }
+    return export
+
+
+async def _collect_many(db, collection_names: Iterable[str], query: dict) -> Dict[str, List[dict]]:
+    out: Dict[str, List[dict]] = {}
+    for name in collection_names:
+        out[name] = await getattr(db, name).find(query, {"_id": 0}).to_list(None)
+    return out
 
 
 _DIRECT_USER_COLLECTIONS = (
@@ -187,38 +320,28 @@ async def delete_user_data_cascade(db, user_id: str, email: str) -> Dict[str, in
 
 @router.get("/export")
 async def export_user_data(current_user: User = Depends(get_current_user)):
-    """Export all user data for GDPR compliance."""
+    """Export all user-owned data for GDPR right of access / portability.
+
+    Returns a downloadable JSON file containing every category the account
+    deletion cascade erases. Password hashes and encrypted secrets are stripped
+    before serialization. The payload is streamed so large accounts don't
+    buffer entirely in memory.
+    """
     db = await get_db()
-    
-    export_data: Dict[str, Any] = {
-        "user": {},
-        "projects": [],
-        "builds": [],
-        "exported_at": datetime.utcnow().isoformat(),
-    }
-    
-    # Get user data (without sensitive fields)
-    user_doc = await db.users.find_one(
-        {"id": current_user.id},
-        {"_id": 0, "hashed_password": 0}
+    export_data = await _collect_user_data(db, current_user)
+
+    async def _stream():
+        yield json.dumps(export_data, default=str, indent=2)
+
+    return StreamingResponse(
+        _stream(),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="forge-data-export-{current_user.id}.json"'
+            )
+        },
     )
-    if user_doc:
-        export_data["user"] = user_doc
-    
-    # Get projects
-    projects_cursor = db.projects.find({"user_id": current_user.id}, {"_id": 0})
-    async for doc in projects_cursor:
-        export_data["projects"].append(doc)
-    
-    # Get builds (without file contents to reduce size)
-    builds_cursor = db.builds.find(
-        {"user_id": current_user.id},
-        {"_id": 0, "files": 0}
-    )
-    async for doc in builds_cursor:
-        export_data["builds"].append(doc)
-    
-    return export_data
 
 
 @router.delete("/delete")

@@ -40,7 +40,7 @@
 ### Step 5 — Config + reload
 - [x] Implement `backend/core/llm/config.py` (YAML + env var overrides).
 - [x] Implement in-memory per-agent overrides (`LLMConfigLoader.set_agent_override`) + `/api/llm/reload` to reload YAML/env without restart.
-- [ ] DB-backed overrides — **blocked**: no `llm_config` collection/model exists yet. Runtime overrides via `PUT /api/llm/agent/{agent}` are in-memory only and reset on process restart. Documented here rather than adding a new DB schema without product sign-off on persistence semantics (per-process vs. shared).
+- [x] DB-backed overrides — **DONE**: `set_agent_override` upserts into the `llm_agent_overrides` collection; `refresh_db_overrides()` reads them into the in-memory cache; `main.py` lifespan pre-warms via `refresh_db_overrides()` at startup so overrides survive a deploy/restart (no longer in-memory-only). `POST /api/llm/reload` re-reads them for other replicas. Cross-replica propagation is eventually consistent (same tradeoff as the feature-flags cache), not instant. Covered by `tests/test_llm_config_db_overrides.py` including `test_override_survives_process_restart`.
 
 ### Step 6 — DB wiring (incremental)
 - [x] Keep existing `ai_usage` ledger for v1 — `/api/llm/usage` now reads real aggregated spend from it instead of returning `[]`.

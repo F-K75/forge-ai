@@ -29,7 +29,7 @@ import core.security as security_module
 def _reset_llm_rate_limit_state():
     # These tests drive the real LLMRouter.generate() with user_id="user-1"
     # in rapid succession. Redis isn't reachable in this sandbox, so the
-    # per-user LLM rate limiter (core.security.LLM_RATE_LIMITS) falls back
+    # per-user LLM rate limiter (core.security.LLM_RATE_LIMIT_DIMENSIONS) falls back
     # to the module-level, process-wide _in_memory_rate_limits dict --
     # without clearing it, repeated "user-1" calls here would share state
     # with other test modules that also use "user-1" (e.g.

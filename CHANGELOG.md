@@ -1,5 +1,324 @@
 # Changelog
 
+## 2026-07-06 — LLM-013: Shared Multi-Dimensional LLM Rate Limiting (Session 9)
+
+### Features Added
+
+**Multi-dimensional, shared LLM request-rate limiting.** The previous limiter
+keyed only by `user_id`, so a single runaway build loop could consume a user's
+entire per-minute allotment and starve that user's other projects (and, in an
+org, crowd out siblings). `check_llm_rate_limit` now enforces three independent
+Redis-backed dimensions and rejects a request if **any** is over its limit:
+
+- `user`:    `rl:llm:user:{user_id}`      — 60 / 60s
+- `project`: `rl:llm:project:{project_id}` — 30 / 60s (bounds one build loop)
+- `org`:     `rl:llm:org:{org_id}`         — 300 / 60s (org-wide backstop)
+
+`LLMRouter.generate()` now passes `project_id` and `org_id` (already in scope)
+so all three dimensions are enforced. The limiter remains Redis-backed
+(survives process restarts in steady state) with the same in-memory
+fail-closed fallback as `check_email_rate_limit` — consistent with the rest of
+the app's rate limiting, addressing the last open TODO Step 9 item.
+
+### Bugs Fixed
+
+- Closed the abuse vector where one project's agent retry loop could dominate
+  Forge's shared provider capacity to the detriment of other projects/users.
+- Fixed a latent `TypeError` in the in-memory fallback branch (was comparing a
+  tuple to an int) — now correctly unpacks `(allowed, remaining)`.
+
+### Files Changed
+
+- `backend/core/security.py` — replaced `LLM_RATE_LIMITS["generate"]` with
+  `LLM_RATE_LIMIT_DIMENSIONS` (user/project/org); rewrote `check_llm_rate_limit`
+  to evaluate all applicable dimensions.
+- `backend/core/llm/router.py` — pass `project_id`/`org_id` into
+  `check_llm_rate_limit`.
+- `backend/tests/test_llm_rate_limit.py` — rewritten + extended (9 tests):
+  per-user allowance, user scoping, **project** dimension binding, **org**
+  dimension binding (isolated), distinct-project quota isolation, in-memory
+  fallback, `generate()` raises on limit, and no-limit-without-user.
+- `backend/tests/test_llm_byok.py`, `backend/tests/test_ai_cost_tracking_wired.py`
+  — updated stale `LLM_RATE_LIMITS` references to `LLM_RATE_LIMIT_DIMENSIONS`.
+
+### Testing Coverage
+
+- Full backend suite: **261 passed** (was 258; +3 new multi-dimensional tests).
+
+### Risks
+
+- A legitimate heavy build could trip the per-project (30/60s) ceiling. 30
+  calls/min/project is generous for a multi-agent pipeline (a handful per
+  stage) and only throttles pathological runaways; limits are tunable in
+  `LLM_RATE_LIMIT_DIMENSIONS`.
+- In-memory fallback resets on process restart during a Redis outage (accepted
+  degradation, consistent with the rest of the app's limiters).
+
+### Breaking Changes
+
+- `check_llm_rate_limit(user_id)` signature gained optional `project_id` and
+  `org_id` keyword arguments (backward compatible for callers passing only
+  `user_id`).
+
+### Migration Notes
+
+- No migration required. Redis key namespace changed from `rl:llm:{user_id}`
+  to dimensioned `rl:llm:{dimension}:{identity}`; old keys are simply unused
+  and expire via their TTL.
+
+---
+
+## 2026-07-06 — LLM-012: DB-Backed Agent Override Persistence Verified (Session 8)
+
+### Features Added
+
+**Closed the stale "DB-backed LLM config overrides" gap.** On inspection, the
+feature was already implemented end-to-end but the TODO.md item still marked
+it `blocked: in-memory only, reset on restart`. This milestone verifies and
+locks the guarantee rather than re-implementing existing code:
+
+- `LLMConfigLoader.set_agent_override()` upserts into the `llm_agent_overrides`
+  MongoDB collection (in `core/llm/config.py`), with a `unique` index on
+  `agent` created at startup in `core/database._ensure_indexes`.
+- `LLMConfigLoader.refresh_db_overrides()` reads the collection into the
+  in-memory cache; `main.py` lifespan pre-warms it at startup, so overrides
+  survive a deploy/restart instead of being lost.
+- `PUT /api/llm/agent/{agent}` (admin) → `router.set_agent_override` → persists
+  to Mongo and reflects immediately in-process; `POST /api/llm/reload` re-reads
+  for other replicas (eventually consistent, same tradeoff as feature-flags).
+
+### Bugs Fixed
+
+- Added `tests/test_llm_config_db_overrides.py::test_override_survives_process_restart`
+  which proves a fresh loader instance (simulating a restart) pre-warmed from
+  the DB sees an override written by a previous process — the exact scenario
+  the TODO claimed was broken. No code change was required because the
+  persistence path already existed and was correct.
+
+### Files Changed
+
+- `backend/tests/test_llm_config_db_overrides.py` — added
+  `test_override_survives_process_restart` (6 tests total in file, all pass).
+- `TODO.md` — flipped the Step 5 DB-backed-overrides item from `[ ] blocked`
+  to `[x] DONE` with a description of the implemented persistence + index +
+  startup pre-warm, and noted the cross-replica eventual-consistency tradeoff.
+- No backend source changes required (feature already present and indexed).
+
+### Testing Coverage
+
+- `tests/test_llm_config_db_overrides.py` (6 tests): DB read reflects in load,
+  set persists + visible same-process, in-memory fallback on DB failure,
+  fails-open on refresh failure, DB wins over YAML, and **survives restart**.
+- Full LLM suite (`test_llm_config_db_overrides`, `test_llm_api`,
+  `test_llm_router`, `test_llm_byok`): 23 passed.
+
+### Risks
+
+- Cross-replica override propagation is eventually consistent (reload/restart
+  required on other replicas), not instant. Acceptable and documented; true
+  instant propagation would need pub/sub (Redis keyspace notifications / change
+  stream) and is out of scope.
+
+### Breaking Changes
+
+- None.
+
+### Migration Notes
+
+- No migration required. The `llm_agent_overrides` collection and its unique
+  `agent` index are created automatically at startup via `_ensure_indexes`.
+
+---
+
+## 2026-07-06 — SEC: CSRF Exclusion Audit & Fix (Session 7)
+
+### Bugs Fixed
+
+**CSRF coverage audit of every state-changing route found two defects:**
+
+1. **Over-exclusion (vulnerability).** `_CSRF_EXCLUDED_PATHS` contained the bare
+   prefix `/api/llm`, so the admin mutation endpoints `PUT /api/llm/agent/{agent}`,
+   `POST /api/llm/reload`, and `POST /api/llm/test` skipped CSRF entirely.
+   These are `admin_required` and the frontend already sends `X-CSRF-Token` on
+   them, so the exclusion defeated the CSRF protection that was re-enabled in a
+   prior session. A logged-in admin visiting a malicious page could be CSRF'd
+   into triggering billed provider calls (`POST /api/llm/test`) or changing
+   platform-wide model assignments (`PUT /api/llm/agent/{agent}`) via their
+   session cookie. Removed `/api/llm` from the exclusion list.
+
+2. **Under-exclusion (broken webhook).** `POST /billing/webhook/payment` is a
+   Stripe webhook authenticated only by the `Stripe-Signature` header (no
+   session cookie), but it was not in the exempt list alongside its sibling
+   `/billing/webhook`. The CSRF middleware therefore required a session cookie
+   + `X-CSRF-Token` on it, which Stripe never sends, so legitimate payment
+   webhooks were rejected with 403 and credit purchases never completed. Added
+   `/billing/webhook/payment` to the exempt list.
+
+### Files Changed
+
+- `backend/core/security.py` — removed `/api/llm` from `_CSRF_EXCLUDED_PATHS`;
+  added `/billing/webhook/payment` (with explanatory comments).
+- `backend/tests/test_csrf_coverage.py` — new suite (6 tests): safe methods skip
+  CSRF; `/auth/login` and `/billing/webhook/payment` remain exempt; `/api/llm/*`
+  mutations now require a CSRF token; arbitrary mutating route requires token;
+  exclusion-list invariants asserted.
+- `backend/tests/test_llm_api.py` — updated to reflect that `/api/llm` mutations
+  are now CSRF-protected (mint a real session cookie + CSRF header for the
+  happy path; unauth mutating calls are rejected pre-auth).
+
+### Testing Coverage
+
+- `tests/test_csrf_coverage.py` (6 new tests) + updated `tests/test_llm_api.py`.
+- Full backend suite: **257 passed**.
+
+### Risks
+
+- Any non-browser client calling `/api/llm/*` mutations without a CSRF token
+  will now 403. All in-repo clients (frontend `llmApi`) already send it; this
+  is the correct security posture.
+
+### Breaking Changes
+
+- `PUT /api/llm/agent/{agent}`, `POST /api/llm/reload`, `POST /api/llm/test`
+  now require `X-CSRF-Token` (already sent by the admin UI).
+- `POST /billing/webhook/payment` no longer requires CSRF (was incorrectly
+  gating legitimate Stripe calls).
+
+### Migration Notes
+
+- No migration required. External scripted callers of the admin LLM endpoints
+  must include the CSRF token (fetch `GET /auth/csrf-token` first).
+
+---
+
+## 2026-07-06 — GDPR-012: Complete & Tested Data Export Endpoint (Session 6)
+
+### Features Added
+
+**Complete GDPR data export (`GET /gdpr/export`):**
+- Rewrote `export_user_data` to gather **every** user-owned data category the
+  account-deletion cascade erases, so a data-subject access / portability
+  request is no longer silently incomplete (previously only `user`, `projects`,
+  and `builds` were returned).
+- Added `_collect_user_data(db, user)` which mirrors `_user_owned_ids` used by
+  the deletion cascade, covering: projects, builds, build_files, messages,
+  initiatives, sprints, sprint artifacts (standups/reviews/retros), initiative
+  artifacts (prds/epics/stories/tasks/releases/risk_reports/tech_debt_summaries/
+  agent_executions/decision_log), all direct-user collections (api_keys,
+  ai_usage, subscriptions, invoices, credit_purchases, security_events,
+  notifications, onboarding_progress, support_tickets, deployments, webhooks,
+  analytics_events), marketplace_items, referrals, team_members, organizations.
+- Privacy-safe: password hash and encrypted secrets (`github_token`,
+  `llm_api_key`, `totp_secret`, `verification_token`, `mfa_backup_codes`) are
+  stripped both via projection and defensively in Python before serialization.
+- Returns a **streamed** `application/json` `StreamingResponse` with a
+  `Content-Disposition: attachment` header (downloadable file), so large
+  accounts don't buffer entirely in memory.
+
+### Bugs Fixed
+
+- Closed a GDPR compliance gap: the export endpoint omitted most of a user's
+  stored data (GDPR Art. 15 / 20 right of access & portability).
+- No automated test covered the export endpoint; regressions (e.g. omitting a
+  newly added collection) would have gone undetected.
+
+### Files Changed
+
+- `backend/api/gdpr.py` — added `_user_owned_ids`, `_collect_user_data`,
+  `_collect_many`; rewrote `export_user_data` to stream a complete export.
+- `backend/tests/test_gdpr_export.py` — new suite (2 tests): completeness across
+  all categories + secret stripping, and isolation from other users' data.
+- Removed stale `IMPLEMENTATION_PLAN.md` SSRF draft content (superseded by the
+  prior session's plan) and replaced with this milestone's plan.
+
+### Testing Coverage
+
+- `tests/test_gdpr_export.py`: `test_export_includes_all_owned_categories_and_strips_secrets`
+  and `test_export_omits_other_users_data`. Existing
+  `tests/test_gdpr_cascade.py` (deletion) and auth/P0 suites all pass.
+
+### Risks
+
+- Larger payload for heavy users — mitigated by streaming. Encrypted secrets are
+  intentionally excluded (not reversibly readable by the user; exporting
+  ciphertext adds leak surface without portability value).
+
+### Breaking Changes
+
+- None for valid inputs. Response shape changed from a flat
+  `{user, projects, builds}` object to a comprehensive nested JSON document;
+  any client parsing the old shape must adapt. The endpoint was previously
+  incomplete, so this is a correctness fix, not a behavioral regression.
+
+### Migration Notes
+
+- No migration required. Frontend may now link to `GET /gdpr/export` to let
+  users download their data.
+
+---
+
+## 2026-07-06 — SEC: BYOK `base_url` SSRF Protection (Session 5)
+
+### Features Added
+
+**Server-Side Request Forgery (SSRF) guard for Bring-Your-Own-Key endpoints:**
+- Added `validate_byok_base_url(url)` in `backend/core/security.py` — reuses the
+  existing private-IP classifier + DNS resolution from `validate_webhook_url`,
+  but always requires HTTPS (a BYOK base URL is an API endpoint). It blocks
+  loopback, private (10/172.16/192.168), link-local incl. the cloud metadata
+  endpoint `169.254.169.254`, unspecified (`0.0.0.0`), reserved, and multicast
+  addresses, plus unresolvable hostnames.
+- Enforced at **write time** in `PUT /auth/me` (`backend/api/auth.py`): a
+  `openai_compatible` provider with an unsafe `llm_base_url` is rejected with
+  `400 Invalid llm_base_url: <reason>`.
+- Enforced at **read time** in `_resolve_byok` (`backend/agents/base.py`): if a
+  stored URL fails validation the BYOK config is dropped (falls back to
+  Forge-paid providers) and a warning is logged, so compromised/stale stored
+  state can never drive an outbound request to an internal address.
+
+### Bugs Fixed
+
+- Closed an SSRF gap where a Pro+ user could direct Forge's server-side LLM
+  client at internal services or the cloud metadata service via a malicious
+  `llm_base_url` (OWASP A10). The platform already had `validate_webhook_url`
+  for webhooks but never applied equivalent validation to the BYOK base URL.
+
+### Files Changed
+
+- `backend/core/security.py` — added `validate_byok_base_url`
+- `backend/api/auth.py` — validate `llm_base_url` in `PUT /auth/me` (import + guard)
+- `backend/agents/base.py` — validate `llm_base_url` in `_resolve_byok`
+- `backend/tests/test_byok_ssrf.py` — new suite (11 tests)
+- Removed a redundant, weaker, non-DNS-resolving `backend/core/security/ssrf_prevention.py`
+  prototype that was begun earlier and superseded by this proper fix.
+
+### Testing Coverage
+
+- `backend/tests/test_byok_ssrf.py`: valid https (monkeypatched DNS), rejects
+  http scheme, missing hostname, loopback / private / metadata / unspecified /
+  multicast IPs, unresolvable host. `test_ssrf_protection.py` (webhook) and the
+  auth/byok/llm suites (`test_auth_endpoints.py`, `test_llm_byok.py`,
+  `test_llm_api.py`, `test_p0_fixes.py`) all pass.
+
+### Risks
+
+- Legitimate corporate OpenAI-compatible gateways on private-range addresses are
+  now rejected by design (BYOK endpoints must be publicly routable HTTPS). This
+  is intended behavior, not a regression.
+
+### Breaking Changes
+
+- None for valid inputs. `PUT /auth/me` now returns `400` for an unsafe
+  `llm_base_url` where it previously accepted it.
+
+### Migration Notes
+
+- No migration required. Existing users with a stored private-range `llm_base_url`
+  will silently fall back to Forge-paid providers until they update the value;
+  they should be notified to set a publicly routable HTTPS endpoint.
+
+---
+
 ## 2026-07-06 — BUS-002: Stripe Price ID Production Validation (Session 4)
 
 ### Features Added

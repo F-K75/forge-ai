@@ -1,0 +1,73 @@
+"""Tests for CSRF exclusion coverage (SEC: CSRF audit).
+
+Drives csrf_protection_middleware directly with a fake Request to assert which
+state-changing paths are exempt vs. required, catching over-exclusion
+(admin /api/llm mutations) and under-exclusion (Stripe payment webhook).
+"""
+import pytest
+
+from core.security import csrf_protection_middleware, _CSRF_EXCLUDED_PATHS
+
+
+class FakeRequest:
+    def __init__(self, method, path, *, cookie=None, header=None):
+        self.method = method
+        self.url = type("U", (), {"path": path})()
+        self.cookies = cookie or {}
+        self.headers = header or {}
+
+
+class FakeResponse:
+    def __init__(self):
+        self.headers = {}
+
+
+async def _call_next(_request):
+    return FakeResponse()
+
+
+@pytest.mark.asyncio
+async def test_safe_methods_skip_csrf():
+    req = FakeRequest("GET", "/api/llm/agent/x")
+    resp = await csrf_protection_middleware(req, _call_next)
+    assert isinstance(resp, FakeResponse)  # reached call_next, no 403
+
+
+@pytest.mark.asyncio
+async def test_login_remains_excluded():
+    req = FakeRequest("POST", "/auth/login")
+    resp = await csrf_protection_middleware(req, _call_next)
+    assert isinstance(resp, FakeResponse)
+
+
+@pytest.mark.asyncio
+async def test_stripe_payment_webhook_is_excluded():
+    # Signature-authenticated server-to-server call with no session cookie.
+    req = FakeRequest("POST", "/billing/webhook/payment")
+    resp = await csrf_protection_middleware(req, _call_next)
+    assert isinstance(resp, FakeResponse)
+
+
+@pytest.mark.asyncio
+async def test_api_llm_mutations_are_not_excluded_and_require_token():
+    # These admin routes were previously wrongly exempted; a cross-site
+    # browser request (no X-CSRF-Token, but with the session cookie) must be
+    # rejected, not passed through.
+    for path in ("/api/llm/agent/pro", "/api/llm/reload", "/api/llm/test"):
+        req = FakeRequest("POST", path, cookie={"access_token": "tok"})
+        with pytest.raises(Exception):  # HTTPException 403 from middleware
+            await csrf_protection_middleware(req, _call_next)
+
+
+@pytest.mark.asyncio
+async def test_arbitrary_mutating_route_requires_token():
+    req = FakeRequest("PUT", "/auth/me", cookie={"access_token": "tok"})
+    with pytest.raises(Exception):
+        await csrf_protection_middleware(req, _call_next)
+
+
+@pytest.mark.asyncio
+async def test_excluded_list_no_longer_contains_api_llm():
+    assert "/api/llm" not in _CSRF_EXCLUDED_PATHS
+    assert "/billing/webhook/payment" in _CSRF_EXCLUDED_PATHS
+    assert "/billing/webhook" in _CSRF_EXCLUDED_PATHS

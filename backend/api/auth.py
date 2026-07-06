@@ -14,7 +14,7 @@ import resend
 from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session
 from core.database import get_db
 from core.config import get_settings
-from core.security import validate_password_strength, check_email_rate_limit, get_client_ip
+from core.security import validate_password_strength, check_email_rate_limit, get_client_ip, validate_byok_base_url
 from core.encryption import encrypt_field, decrypt_field
 from auth import (
     hash_password,
@@ -857,6 +857,13 @@ async def update_profile(
                 status_code=400,
                 detail="llm_base_url is required for an openai_compatible provider",
             )
+        if provider == "openai_compatible":
+            valid, error = await validate_byok_base_url(update["llm_base_url"])
+            if not valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid llm_base_url: {error}",
+                )
         update["llm_api_key"] = encrypt_field(update["llm_api_key"])
 
     # Shallow-merge preferences so one toggle's update doesn't clobber others.

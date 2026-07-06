@@ -48,6 +48,17 @@ async def _resolve_byok(user_id: Optional[str]) -> Optional[Dict[str, Any]]:
         model = user_doc.get("llm_model")
         if not base_url or not model:
             return None
+        # SSRF guard: a user-controlled base URL is the endpoint our HTTP
+        # client connects to, so it must not resolve to an internal/private
+        # address or the cloud metadata service. Validated again at write
+        # time in PUT /auth/me, but this is the live request path so we
+        # must not trust stored state blindly.
+        from core.security import validate_byok_base_url
+
+        valid, error = await validate_byok_base_url(base_url)
+        if not valid:
+            logger.warning("Rejecting BYOK base_url for user %s: %s", user_id, error)
+            return None
         return {"provider": "openai_compatible", "api_key": key, "base_url": base_url, "model": model}
 
     return {"provider": "anthropic", "api_key": key}

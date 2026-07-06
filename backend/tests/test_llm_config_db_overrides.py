@@ -156,3 +156,31 @@ agent_overrides:
     config = await loader.load(agent_name="developer")
     assert config["provider"] == "openai"
     assert config["model"] == "gpt-4.1"
+
+
+@pytest.mark.asyncio
+async def test_override_survives_process_restart(monkeypatch):
+    """Regression for the historical gap where PUT /api/llm/agent/{agent}
+    overrides were in-memory only and lost on restart. Here a "process A"
+    writes an override, the DB is shared, and a brand-new "process B" loader
+    (fresh, empty in-memory cache) pre-warms from the DB and must see it --
+    proving the override persists across a restart, not just in-process."""
+    db = _FakeDB([])
+    _patch_db(monkeypatch, db)
+
+    # Process A: writes the override.
+    loader_a = LLMConfigLoader()
+    await loader_a.set_agent_override(
+        "developer", {"provider": "groq", "model": "llama-3.1-8b"}, updated_by="admin-1"
+    )
+
+    # Process B: brand-new loader instance, empty cache (simulates restart).
+    loader_b = LLMConfigLoader()
+    assert loader_b._db_overrides == {}
+
+    # Startup pre-warm (mirrors main.py lifespan calling refresh_db_overrides).
+    await loader_b.refresh_db_overrides()
+
+    config = await loader_b.load(agent_name="developer")
+    assert config["provider"] == "groq"
+    assert config["model"] == "llama-3.1-8b"
