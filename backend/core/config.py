@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 import base64
+import re
 
 
 class Settings(BaseSettings):
@@ -36,10 +37,6 @@ class Settings(BaseSettings):
             raise ValueError(
                 "MONGODB_URL must not point to localhost outside development"
             )
-
-        # Encourage Atlas usage (mongodb+srv) outside development.
-        if app_env != "development" and "mongodb+srv" not in v:
-            raise ValueError("MONGODB_URL should use mongodb+srv (Atlas) outside development")
 
         return v
 
@@ -155,6 +152,36 @@ class Settings(BaseSettings):
     # Observability
     sentry_dsn: str = ""
     app_env: str = "development"
+
+    @model_validator(mode="after")
+    def validate_production_billing(self):
+        """Fail at process startup instead of failing during customer checkout."""
+        if self.app_env != "production":
+            return self
+
+        credential_prefixes = {
+            "STRIPE_SECRET_KEY": (self.stripe_secret_key, "sk_live_"),
+            "STRIPE_PUBLISHABLE_KEY": (self.stripe_publishable_key, "pk_live_"),
+            "STRIPE_WEBHOOK_SECRET": (self.stripe_webhook_secret, "whsec_"),
+        }
+        for name, (value, prefix) in credential_prefixes.items():
+            if not value or not value.startswith(prefix) or len(value) <= len(prefix) + 6:
+                raise ValueError(f"{name} must contain a production Stripe value")
+
+        prices = {
+            "STRIPE_PRICE_STANDARD_MONTHLY": self.stripe_price_standard_monthly,
+            "STRIPE_PRICE_PRO_MONTHLY": self.stripe_price_pro_monthly,
+            "STRIPE_PRICE_ENTERPRISE_MONTHLY": self.stripe_price_enterprise_monthly,
+            "STRIPE_PRICE_STANDARD_ANNUAL": self.stripe_price_standard_annual,
+            "STRIPE_PRICE_PRO_ANNUAL": self.stripe_price_pro_annual,
+            "STRIPE_PRICE_ENTERPRISE_ANNUAL": self.stripe_price_enterprise_annual,
+        }
+        for name, value in prices.items():
+            if not re.fullmatch(r"price_[A-Za-z0-9]+", value):
+                raise ValueError(f"{name} must contain a real Stripe Price ID")
+        if len(set(prices.values())) != len(prices):
+            raise ValueError("Production Stripe Price IDs must be unique")
+        return self
 
     @field_validator("field_encryption_key")
     @classmethod

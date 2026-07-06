@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Sequence
 
-from core.ai_usage import calculate_cost, check_budget, track_usage
+from core.ai_usage import calculate_cost, check_budget, estimate_tokens, track_usage
 from core.database import cache_get_json, cache_set_json
 from core.security import sanitize_prompt
 from core.llm.config import LLMConfigLoader
@@ -42,6 +42,16 @@ def _any_message_has_prompt_injection(messages: List[Dict[str, Any]]) -> bool:
     )
 
 
+# Per-user concurrent request semaphores (plan-based limits)
+_concurrent_requests: Dict[str, asyncio.Semaphore] = {}
+_CONCURRENT_LIMITS = {"free": 2, "standard": 5, "pro": 10, "enterprise": 25}
+_CONCURRENT_TIMEOUT = 30  # seconds
+
+
+def _get_concurrent_limit(plan: str) -> int:
+    return _CONCURRENT_LIMITS.get(plan, _CONCURRENT_LIMITS["free"])
+
+
 class LLMRouter:
     """Routes requests across providers with simple fallback and usage tracking."""
 
@@ -49,6 +59,32 @@ class LLMRouter:
         self.registry = registry or ProviderRegistry()
         self.config_loader = config_loader or LLMConfigLoader()
         self._register_default_providers()
+        self._concurrent_requests: Dict[str, asyncio.Semaphore] = {}
+        self._concurrent_lock = asyncio.Lock()
+
+    async def _acquire_concurrent_slot(self, user_id: str, plan: str) -> None:
+        """Acquire a per-user semaphore slot before making an LLM call.
+        Raises ProviderError if the slot cannot be acquired within the timeout."""
+        async with self._concurrent_lock:
+            if user_id not in self._concurrent_requests:
+                limit = _get_concurrent_limit(plan)
+                self._concurrent_requests[user_id] = asyncio.Semaphore(limit)
+
+        sem = self._concurrent_requests[user_id]
+        try:
+            await asyncio.wait_for(sem.acquire(), timeout=_CONCURRENT_TIMEOUT)
+        except asyncio.TimeoutError:
+            raise ProviderError(
+                f"Too many concurrent LLM requests. "
+                f"Your plan allows {_get_concurrent_limit(plan)} concurrent calls. "
+                f"Please wait for existing requests to complete."
+            )
+
+    def _release_concurrent_slot(self, user_id: str) -> None:
+        """Release a per-user semaphore slot after an LLM call completes."""
+        sem = self._concurrent_requests.get(user_id)
+        if sem:
+            sem.release()
 
     def register_provider(self, provider: BaseProviderAdapter, *, name: Optional[str] = None, priority: int = 0, models: Optional[List[str]] = None) -> None:
         self.registry.register_provider(provider, name=name, priority=priority, models=models)
@@ -148,7 +184,29 @@ class LLMRouter:
         model_chain = [model, *[m for m in model_fallbacks if m != model]]
 
         if user_id:
-            await check_budget(user_id, org_id=org_id)
+            # Estimate tokens from the concatenated messages so check_budget
+            # can make a realistic pre-authorization decision instead of
+            # passing estimated_tokens=0 (which would only block users
+            # already over the limit, not those about to exceed it).
+            all_text = "\n".join(
+                str(m.get("content", ""))
+                for m in sanitized_messages
+                if isinstance(m.get("content"), str)
+            ) + extra_system
+            estimated = estimate_tokens(all_text) + max_tokens  # include estimated output
+            await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+
+        # Resolve the user's plan for concurrent request limiting
+        plan = "free"
+        if user_id:
+            try:
+                from core.database import get_db
+                db = await get_db()
+                user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "plan": 1})
+                if user_doc and user_doc.get("plan"):
+                    plan = user_doc["plan"]
+            except Exception:
+                pass
 
         cache_key = self._cache_key(agent_name, sanitized_messages, model, extra_system, max_tokens)
         cached = await cache_get_json(cache_key) if cache_key else None
@@ -166,6 +224,16 @@ class LLMRouter:
                 continue
             for candidate_model in model_chain:
                 for attempt in range(1, max_attempts + 1):
+                    # Acquire a concurrent slot before making the API call
+                    acquired_slot = False
+                    if user_id:
+                        try:
+                            await self._acquire_concurrent_slot(user_id, plan)
+                            acquired_slot = True
+                        except ProviderError:
+                            raise
+                        except Exception:
+                            pass
                     try:
                         response = await provider.chat_completion(
                             model=candidate_model,
@@ -176,6 +244,9 @@ class LLMRouter:
                             project_id=project_id,
                             org_id=org_id,
                         )
+                        if acquired_slot:
+                            self._release_concurrent_slot(user_id)
+                            acquired_slot = False
                         if not response.text and provider_name not in {"fake", "primary", "secondary"}:
                             raise ProviderError(f"provider {provider_name} returned empty response")
                         response.model = candidate_model or response.model
@@ -202,6 +273,9 @@ class LLMRouter:
                             })
                         return response
                     except Exception as exc:  # pragma: no cover - exercised via fallback path
+                        if acquired_slot:
+                            self._release_concurrent_slot(user_id)
+                            acquired_slot = False
                         last_error = exc
                         logger.warning(
                             "Provider %s model %s attempt %s/%s failed: %s",

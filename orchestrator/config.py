@@ -2,7 +2,10 @@
 
 All secrets (API keys, DB URLs) come from env vars — never hard-coded.
 """
+from __future__ import annotations
+
 from functools import lru_cache
+from typing import List, Union
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
@@ -21,7 +24,7 @@ class Settings(BaseSettings):
     # --- CORS ---
     # Union with str lets pydantic-settings fall back to the raw env value when
     # it isn't JSON, so both JSON arrays and comma-separated strings work.
-    allowed_origins: list[str] | str = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins: Union[List[str], str] = ["http://localhost:3000", "http://localhost:5173"]
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

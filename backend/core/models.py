@@ -87,6 +87,10 @@ class User(BaseModel):
     # Dedup state for low-credit alert emails (PROD-039); cleared whenever
     # credits are granted/increased so the user is warned again next time.
     credit_alerts_sent: List[str] = Field(default_factory=list)
+    # Dedup state for daily token budget alert emails (AI-001); cleared
+    # daily at midnight UTC when the budget resets.
+    # Values: "daily_50", "daily_80", "daily_100"
+    token_budget_alerts_sent: List[str] = Field(default_factory=list)
     # TOTP-based multi-factor auth (SEC-007). totp_secret is Fernet-encrypted
     # at rest, same pattern as github_token. mfa_backup_codes holds bcrypt
     # hashes only -- plaintext codes are shown once at enrollment and never

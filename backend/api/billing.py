@@ -72,8 +72,8 @@ PLAN_DETAILS = [
     {
         "tier": PlanTier.STANDARD,
         "name": "Standard",
-        "price_id": "price_standard_monthly",
-        "price_annual_id": "price_standard_annual",
+        "price_id": settings.stripe_price_standard_monthly,
+        "price_annual_id": settings.stripe_price_standard_annual,
         "price_monthly": 29,
         "price_annual": 290,
         "credits": 100,
@@ -83,8 +83,8 @@ PLAN_DETAILS = [
     {
         "tier": PlanTier.PRO,
         "name": "Pro",
-        "price_id": "price_pro_monthly",
-        "price_annual_id": "price_pro_annual",
+        "price_id": settings.stripe_price_pro_monthly,
+        "price_annual_id": settings.stripe_price_pro_annual,
         "price_monthly": 99,
         "price_annual": 990,
         "credits": 500,
@@ -94,8 +94,8 @@ PLAN_DETAILS = [
     {
         "tier": PlanTier.ENTERPRISE,
         "name": "Enterprise",
-        "price_id": "price_enterprise_monthly",
-        "price_annual_id": "price_enterprise_annual",
+        "price_id": settings.stripe_price_enterprise_monthly,
+        "price_annual_id": settings.stripe_price_enterprise_annual,
         "price_monthly": 999,
         "price_annual": 9990,
         "credits": 5000,

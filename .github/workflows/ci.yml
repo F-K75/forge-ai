@@ -89,6 +89,38 @@ jobs:
           cd backend
           python -c "import main" || (echo "::error::main.py failed to import cleanly" && exit 1)
 
+      - name: Production configuration smoke test
+        run: |
+          cd backend
+          # Validate that the production environment contract can be initialized.
+          # This ensures FIELD_ENCRYPTION_KEY, APP_ENV, Stripe config, and MongoDB
+          # validation work correctly before deployment.
+          python -c "
+          import os
+          os.environ['APP_ENV'] = 'production'
+          os.environ['FIELD_ENCRYPTION_KEY'] = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          os.environ['MONGODB_URL'] = 'mongodb://forge:testpass@mongo:27017/forge?authSource=admin'
+          os.environ['JWT_SECRET'] = 'a' * 32
+          os.environ['REDIS_URL'] = 'redis://:testpass@redis:6379'
+          os.environ['STRIPE_SECRET_KEY'] = 'sk_live_test123456789'
+          os.environ['STRIPE_PUBLISHABLE_KEY'] = 'pk_live_test123456789'
+          os.environ['STRIPE_WEBHOOK_SECRET'] = 'whsec_test123456789'
+          os.environ['STRIPE_PRICE_STANDARD_MONTHLY'] = 'price_1A2b3C4d5E6f7G'
+          os.environ['STRIPE_PRICE_PRO_MONTHLY'] = 'price_2X3y4Z5a6B7c8D'
+          os.environ['STRIPE_PRICE_ENTERPRISE_MONTHLY'] = 'price_3M4n5O6p7Q8r9S'
+          os.environ['STRIPE_PRICE_STANDARD_ANNUAL'] = 'price_4T5u6V7w8X9y0Z'
+          os.environ['STRIPE_PRICE_PRO_ANNUAL'] = 'price_5A6b7C8d9E0f1G2'
+          os.environ['STRIPE_PRICE_ENTERPRISE_ANNUAL'] = 'price_6H7i8J9k0L1m2N3'
+          from core.config import get_settings
+          s = get_settings()
+          assert s.app_env == 'production', 'APP_ENV must be production'
+          assert s.field_encryption_key, 'FIELD_ENCRYPTION_KEY must be set'
+          assert 'mongo' in s.mongodb_url, 'MongoDB URL must point to mongo service'
+          assert 'localhost' not in s.mongodb_url, 'MongoDB must not point to localhost in production'
+          assert s.stripe_secret_key.startswith('sk_live_'), 'Stripe key must be live'
+          print('✓ Production configuration contract validated successfully')
+          "
+
       - name: Run backend tests
         run: |
           cd backend
@@ -172,6 +204,16 @@ jobs:
       GHCR_OWNER: ci
       ANTHROPIC_API_KEY: ci-dummy
       JWT_SECRET: ci-dummy-jwt-secret-0123456789abcdef
+      FIELD_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      STRIPE_SECRET_KEY: sk_live_ci_dummy_value
+      STRIPE_WEBHOOK_SECRET: whsec_ci_dummy_value
+      STRIPE_PUBLISHABLE_KEY: pk_live_ci_dummy_value
+      STRIPE_PRICE_STANDARD_MONTHLY: price_1CIStandardMonthly
+      STRIPE_PRICE_PRO_MONTHLY: price_1CIProMonthly
+      STRIPE_PRICE_ENTERPRISE_MONTHLY: price_1CIEnterpriseMonthly
+      STRIPE_PRICE_STANDARD_ANNUAL: price_1CIStandardAnnual
+      STRIPE_PRICE_PRO_ANNUAL: price_1CIProAnnual
+      STRIPE_PRICE_ENTERPRISE_ANNUAL: price_1CIEnterpriseAnnual
       MONGO_PASSWORD: ci-dummy
       REDIS_PASSWORD: ci-dummy
       ADMIN_EMAILS: ci@ci.invalid
@@ -183,7 +225,26 @@ jobs:
         run: docker compose -f docker-compose.prod.yml config -q
 
       - name: Build backend production image
-        run: docker build backend/
+        run: docker build -t forge-backend-ci backend/
+
+      - name: Smoke-test backend production configuration
+        run: |
+          docker run --rm \
+            -e APP_ENV=production \
+            -e MONGODB_URL=mongodb://forge:ci-dummy@mongo:27017/forge?authSource=admin \
+            -e REDIS_URL=redis://:ci-dummy@redis:6379 \
+            -e JWT_SECRET=ci-dummy-jwt-secret-0123456789abcdef \
+            -e FIELD_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
+            -e STRIPE_SECRET_KEY=sk_live_ci_dummy_value \
+            -e STRIPE_WEBHOOK_SECRET=whsec_ci_dummy_value \
+            -e STRIPE_PUBLISHABLE_KEY=pk_live_ci_dummy_value \
+            -e STRIPE_PRICE_STANDARD_MONTHLY=price_1CIStandardMonthly \
+            -e STRIPE_PRICE_PRO_MONTHLY=price_1CIProMonthly \
+            -e STRIPE_PRICE_ENTERPRISE_MONTHLY=price_1CIEnterpriseMonthly \
+            -e STRIPE_PRICE_STANDARD_ANNUAL=price_1CIStandardAnnual \
+            -e STRIPE_PRICE_PRO_ANNUAL=price_1CIProAnnual \
+            -e STRIPE_PRICE_ENTERPRISE_ANNUAL=price_1CIEnterpriseAnnual \
+            forge-backend-ci python -c "import main; import celery_app"
 
       - name: Build frontend production image
         run: |

@@ -76,7 +76,6 @@ export function PreviewPanel() {
     }
     return () => { cancelled = true; };
     // reloadKey forces a fresh recompile/remount when the user clicks reload
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files, entryPath, htmlEntry, reactEntry, reloadKey]);
 
   return (

@@ -206,9 +206,12 @@ uvicorn main:app --reload --port 8100
 | `MONGODB_URL` | Mongo connection string |
 | `REDIS_URL` | Redis connection string |
 | `JWT_SECRET` | Auth signing secret |
+| `FIELD_ENCRYPTION_KEY` | Independent 32-byte key for encrypted tokens; back up and rotate per `docs/FIELD_ENCRYPTION_KEY_ROTATION.md` |
+| `APP_ENV` | Runtime environment (`development` or `production`) |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Billing webhooks |
-| `STRIPE_PUBLISHABLE_KEY` | Frontend billing |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Required live billing credentials in production |
+| `STRIPE_PUBLISHABLE_KEY` | Required live publishable key in production |
+| `STRIPE_PRICE_*` | Six unique monthly/annual Stripe Price IDs required in production |
 | `RESEND_API_KEY` | Transactional email |
 | `APP_URL` / `API_URL` | Public endpoints |
 | `ADMIN_EMAILS` | Admin allowlist |

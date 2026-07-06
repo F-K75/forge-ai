@@ -7,11 +7,29 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-# Use dedicated FIELD_ENCRYPTION_KEY (64 hex chars = 32 bytes) instead of
-# deriving from JWT_SECRET. This ensures that a JWT secret leak does not
-# compromise encrypted fields (github_tokens, etc.).
-_key_bytes = bytes.fromhex(settings.field_encryption_key)
-_key = base64.urlsafe_b64encode(_key_bytes)
+
+def normalize_fernet_key(value: str) -> bytes:
+    """Return a Fernet-compatible key from either supported setting format."""
+    try:
+        raw_key = bytes.fromhex(value)
+    except ValueError:
+        raw_key = b""
+
+    if len(raw_key) == 32:
+        return base64.urlsafe_b64encode(raw_key)
+
+    try:
+        decoded = base64.urlsafe_b64decode(value.encode())
+    except (ValueError, TypeError) as exc:
+        raise ValueError("Invalid FIELD_ENCRYPTION_KEY") from exc
+    if len(decoded) != 32:
+        raise ValueError("FIELD_ENCRYPTION_KEY must decode to 32 bytes")
+    return value.encode()
+
+
+# Use a dedicated key instead of deriving one from JWT_SECRET. Both formats
+# accepted by Settings are normalized here to Fernet's URL-safe base64 form.
+_key = normalize_fernet_key(settings.field_encryption_key)
 cipher = Fernet(_key)
 logger.info("Encryption initialized with dedicated FIELD_ENCRYPTION_KEY")
 

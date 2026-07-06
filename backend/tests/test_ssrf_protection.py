@@ -2,6 +2,7 @@
 Test suite for SSRF protection on user-supplied webhook URLs (SEC-012).
 """
 import pytest
+import asyncio
 
 from core.security import validate_webhook_url
 
@@ -9,7 +10,12 @@ from core.security import validate_webhook_url
 class TestWebhookSSRFValidation:
     """Test validate_webhook_url blocks private/internal targets."""
 
-    async def test_valid_https_url_accepted(self):
+    async def test_valid_https_url_accepted(self, monkeypatch):
+        async def resolve_public_host(*_args, **_kwargs):
+            return [(2, 1, 6, "", ("93.184.216.34", 0))]
+
+        # A unit test must not depend on the runner's external DNS access.
+        monkeypatch.setattr(asyncio.get_event_loop(), "getaddrinfo", resolve_public_host)
         valid, error = await validate_webhook_url("https://example.com/hook")
         assert valid is True
         assert error == ""

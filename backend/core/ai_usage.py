@@ -1,10 +1,14 @@
 """LLM cost tracking and budget management for AI pipeline."""
 
 import uuid
+import logging
+import re
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
 
 from core.database import get_db
+
+logger = logging.getLogger(__name__)
 
 # cost per 1K tokens, in USD.
 # NOTE: OpenRouter-namespaced model IDs (e.g. "anthropic/claude-opus-4.8")
@@ -32,6 +36,9 @@ DEFAULT_DAILY_TOKEN_BUDGETS = {
     "enterprise": 2_000_000,
 }
 
+# Token budget alert thresholds (percentage of daily limit)
+BUDGET_ALERT_THRESHOLDS = [50, 80, 100]
+
 
 class BudgetExceeded(Exception):
     def __init__(self, message: str, used: int, limit: int):
@@ -39,6 +46,37 @@ class BudgetExceeded(Exception):
         self.used = used
         self.limit = limit
         super().__init__(message)
+
+
+def estimate_tokens(text: str) -> int:
+    """Estimate the number of tokens in a text string using a character-count
+    heuristic. ~4 characters per token for English text, ~1.5 characters per
+    token for code-heavy content. Rounds up to be conservative (over-estimation
+    is safer than under-estimation for budget enforcement).
+
+    This is a pre-call estimate only; exact token counts from the provider
+    response override it after the call completes.
+    """
+    if not text:
+        return 0
+
+    # Count code-like characters (non-alphanumeric symbols common in code)
+    code_chars = len(re.findall(r'[{}[\]();:.,<>=+\-*/&|!~^%#@`\'\"\\]', text))
+    total_chars = len(text)
+
+    # Heuristic: code chars are denser (~1.5 chars/token), text is ~4 chars/token
+    # Weighted average: assume code_chars proportion of the text is code
+    if total_chars == 0:
+        return 0
+
+    code_ratio = min(code_chars / total_chars, 1.0)
+    text_ratio = 1.0 - code_ratio
+
+    # Conservative estimates (round up)
+    code_tokens = int((total_chars * code_ratio) / 1.5) + 1
+    text_tokens = int((total_chars * text_ratio) / 4.0) + 1
+
+    return code_tokens + text_tokens
 
 
 def get_model_provider(model: str) -> str:
@@ -114,14 +152,100 @@ async def get_user_budget(user_id: str, org_id: Optional[str] = None) -> Dict[st
 
 
 async def check_budget(user_id: str, estimated_tokens: int = 0, org_id: Optional[str] = None) -> None:
-    """Raise BudgetExceeded if the next call would push usage past the daily limit. Fail-closed."""
+    """Raise BudgetExceeded if the next call would push usage past the daily limit. Fail-closed.
+
+    `estimated_tokens` should be a realistic pre-call estimate of how many
+    tokens the upcoming LLM call will consume. When called with 0 (the default),
+    this only blocks users who are *already* over their limit -- callers should
+    always pass a positive estimate for effective enforcement.
+    """
     budget = await get_user_budget(user_id, org_id=org_id)
     if budget["used"] + estimated_tokens > budget["limit"]:
         raise BudgetExceeded(
-            f"Daily token budget exceeded ({budget['used']}/{budget['limit']} tokens used)",
+            f"Daily token budget exceeded ({budget['used'] + estimated_tokens}/{budget['limit']} tokens would be used)",
             used=budget["used"],
             limit=budget["limit"],
         )
+
+
+async def check_and_send_token_budget_alerts(
+    db,
+    user_id: str,
+    user_email: str,
+    user_name: str,
+    used: int,
+    limit: int,
+) -> None:
+    """Check if any budget alert thresholds have been crossed and send email
+    notifications. Best-effort: failures here must never block the build pipeline.
+
+    Thresholds: 50%, 80%, 100% of daily token budget.
+    Each threshold fires at most once per user (tracked via
+    `token_budget_alerts_sent` on the User document).
+    """
+    if limit <= 0:
+        return
+
+    usage_pct = int((used / limit) * 100)
+    thresholds_to_fire = [t for t in BUDGET_ALERT_THRESHOLDS if usage_pct >= t]
+
+    if not thresholds_to_fire:
+        return
+
+    # Fetch the user doc to see which alerts have already been sent
+    user_doc = await db.users.find_one(
+        {"id": user_id},
+        {"_id": 0, "token_budget_alerts_sent": 1},
+    )
+    already_sent: List[str] = (user_doc or {}).get("token_budget_alerts_sent") or []
+
+    new_alerts = []
+    for threshold in thresholds_to_fire:
+        key = f"daily_{threshold}"
+        if key not in already_sent:
+            new_alerts.append(key)
+
+    if not new_alerts:
+        return
+
+    # Send email alerts for new thresholds
+    from core.config import get_settings
+    settings = get_settings()
+
+    if settings.resend_api_key:
+        try:
+            import resend
+            resend.api_key = settings.resend_api_key
+
+            for key in new_alerts:
+                threshold_pct = int(key.split("_")[1])
+                subject = f"Forge: You've used {threshold_pct}% of your daily AI token budget"
+                body = (
+                    f"Hi {user_name},\n\n"
+                    f"You've used {usage_pct}% of your daily AI token budget "
+                    f"({used:,} / {limit:,} tokens).\n\n"
+                    f"Your builds will be paused once you reach 100%.\n"
+                    f"Your budget resets daily at midnight UTC.\n\n"
+                    f"— Forge AI"
+                )
+                resend.Emails.send({
+                    "from": settings.from_email,
+                    "to": user_email,
+                    "subject": subject,
+                    "text": body,
+                })
+        except Exception:
+            logger.exception("Failed to send token budget alert email for user %s", user_id)
+
+    # Mark all new thresholds as sent (even if email failed -- avoid re-sending
+    # on every subsequent LLM call, which would spam the error log).
+    try:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$addToSet": {"token_budget_alerts_sent": {"$each": new_alerts}}},
+        )
+    except Exception:
+        logger.exception("Failed to update token_budget_alerts_sent for user %s", user_id)
 
 
 async def track_usage(
@@ -137,7 +261,11 @@ async def track_usage(
     provider: Optional[str] = None,
     agent: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Persist a single LLM call's usage record. Called after every completed LLM call, win or lose."""
+    """Persist a single LLM call's usage record. Called after every completed LLM call, win or lose.
+
+    After persisting, fires budget alert checks so users are notified when
+    they cross 50%/80%/100% of their daily token budget.
+    """
     db = await get_db()
     record = {
         "id": str(uuid.uuid4()),
@@ -156,6 +284,26 @@ async def track_usage(
         "created_at": datetime.utcnow(),
     }
     await db.ai_usage.insert_one(record)
+
+    # Fire budget alert check after persisting usage
+    try:
+        user_doc = await db.users.find_one(
+            {"id": user_id},
+            {"_id": 0, "email": 1, "name": 1},
+        )
+        if user_doc:
+            budget = await get_user_budget(user_id, org_id=org_id)
+            await check_and_send_token_budget_alerts(
+                db,
+                user_id=user_id,
+                user_email=user_doc.get("email", ""),
+                user_name=user_doc.get("name", ""),
+                used=budget["used"],
+                limit=budget["limit"],
+            )
+    except Exception:
+        logger.exception("Failed to check token budget alerts for user %s", user_id)
+
     budget = await get_user_budget(user_id, org_id=org_id)
     record["budget_remaining"] = budget["remaining"]
     return record

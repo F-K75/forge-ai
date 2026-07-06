@@ -4,6 +4,8 @@ new_password at all (no length or complexity check), unlike register,
 which already calls validate_password_strength. Exercises the real
 route handlers via TestClient against a FakeDB, not just a code pattern.
 """
+# Ruff treats pytest's imported-fixture injection as ordinary shadowing.
+# ruff: noqa: F811
 
 import os
 
@@ -16,7 +18,7 @@ from datetime import datetime, timedelta
 from api.auth import _hash_token, hash_password
 from auth import verify_password
 
-from tests.test_auth_endpoints import app_client, STRONG_PASSWORD  # noqa: F401 (fixture + shared constant)
+from tests.test_auth_endpoints import app_client, STRONG_PASSWORD  # noqa: F401
 
 
 def test_reset_password_rejects_weak_password(app_client):

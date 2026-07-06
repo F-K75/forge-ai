@@ -1,8 +1,11 @@
 """
 Test suite for encryption/decryption flows
 """
+import base64
+
 import pytest
-from core.encryption import encrypt_field, decrypt_field, mask_token
+from cryptography.fernet import Fernet
+from core.encryption import encrypt_field, decrypt_field, mask_token, normalize_fernet_key
 from core.security import sanitize_string, validate_password_strength, generate_csrf_token, sanitize_prompt
 
 
@@ -53,6 +56,14 @@ class TestEncryption:
         # Should return as-is if decryption fails
         result = decrypt_field(invalid_token)
         assert result == invalid_token
+
+    def test_normalize_hex_key(self):
+        raw = bytes(range(32))
+        assert normalize_fernet_key(raw.hex()) == base64.urlsafe_b64encode(raw)
+
+    def test_normalize_fernet_key(self):
+        key = Fernet.generate_key()
+        assert normalize_fernet_key(key.decode()) == key
 
 
 class TestTokenMasking:

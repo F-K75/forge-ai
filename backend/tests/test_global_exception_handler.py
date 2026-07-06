@@ -59,6 +59,18 @@ def test_health_endpoint_still_works():
     assert response.json() == {"status": "ok"}
 
 
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("post", "/health/mongo-crud-verify"),
+        ("get", "/health/mongo-collections"),
+    ],
+)
+def test_temporary_database_diagnostics_are_not_public(method, path):
+    response = getattr(client, method)(path)
+    assert response.status_code == 404
+
+
 @pytest.mark.asyncio
 async def test_handler_logs_the_exception(monkeypatch):
     logged = {}

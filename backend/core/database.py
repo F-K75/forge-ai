@@ -143,6 +143,13 @@ async def _ensure_indexes(db):
         # Webhooks index
         await db.webhooks.create_index([("user_id", 1)])
 
+        # AI usage indexes (AI-001)
+        await db.ai_usage.create_index([("user_id", 1), ("created_at", -1)])
+        await db.ai_usage.create_index([("org_id", 1), ("created_at", -1)])
+        await db.ai_usage.create_index(
+            "created_at", expireAfterSeconds=7776000  # TTL: 90 days
+        )
+
         # --- Agile PM layer ---
         await db.initiatives.create_index([("user_id", 1), ("updated_at", -1)])
         await db.initiatives.create_index([("id", 1)])

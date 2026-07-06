@@ -34,6 +34,16 @@ async def admin_required(user: User = Depends(get_current_user)) -> User:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
         )
+    
+    # SEC-007: Enforce MFA for admin accounts
+    db = await get_db()
+    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+    if user_doc and not user_doc.get("mfa_enabled"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin accounts require MFA. Please enable MFA in Settings."
+        )
+    
     return user
 
 
