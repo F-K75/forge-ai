@@ -39,6 +39,7 @@ from core.security import (
     request_id_middleware,
     RequestIdLogFilter,
 )
+from core.shutdown import get_health_status, init_shutdown_manager, DrainMiddleware, get_shutdown_manager
 from services.ws_manager import manager as ws_manager
 from services.pm_ws_manager import pm_manager
 
@@ -89,6 +90,10 @@ except ImportError:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize shutdown manager and register signal handlers
+    shutdown_manager = init_shutdown_manager()
+    shutdown_manager.register_signal_handlers()
+
     ws_manager.start()
     pm_manager.start()
 
@@ -126,6 +131,11 @@ async def lifespan(app: FastAPI):
         logger.warning("Database migrations did not run; continuing", exc_info=True)
 
     yield
+
+    # Graceful shutdown: wait for in-flight requests to complete (BE-005)
+    logger.info("Shutdown initiated; waiting for in-flight requests to drain...")
+    await get_shutdown_manager().wait_for_drain()
+
     await ws_manager.stop()
     await pm_manager.stop()
     await close_connections()
@@ -183,6 +193,10 @@ app.middleware("http")(request_size_limit_middleware)
 app.middleware("http")(csrf_protection_middleware)
 app.middleware("http")(rate_limit_middleware)
 
+# Drain middleware must be after rate limiting so it can see the
+# connection state but before request-ID middleware wraps the call.
+app.add_middleware(DrainMiddleware)
+
 # Prometheus metrics middleware
 if PROMETHEUS_ENABLED:
     @app.middleware("http")
@@ -235,7 +249,13 @@ app.include_router(llm_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    try:
+        status = get_health_status(get_shutdown_manager())
+    except RuntimeError:
+        status = {"status": "ok"}
+    if status.get("status") == "draining":
+        return JSONResponse(status_code=503, content=status)
+    return status
 
 
 @app.get("/health/mongo-ping")

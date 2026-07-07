@@ -5,6 +5,9 @@ metadata:
   namespace: monitoring
   labels:
     grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana-dashboards
+    app.kubernetes.io/part-of: forge-ai
+    app.kubernetes.io/managed-by: kustomize
 data:
   forge-ai-overview.json: |
     {

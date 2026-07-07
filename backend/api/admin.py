@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, status
+from fastapi import APIRouter, HTTPException, Depends, Query, status, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -23,28 +23,30 @@ settings = get_settings()
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-def is_admin(user: User) -> bool:
-    admin_emails = settings.admin_emails.split(",") if settings.admin_emails else []
-    return user.email in [email.strip() for email in admin_emails]
-
-
 async def admin_required(user: User = Depends(get_current_user)) -> User:
-    if not is_admin(user):
+    db = await get_db()
+    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    is_admin_flag = user_doc.get("is_admin", False)
+    if not is_admin_flag:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
         )
-    
+
     # SEC-007: Enforce MFA for admin accounts
-    db = await get_db()
-    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
-    if user_doc and not user_doc.get("mfa_enabled"):
+    if not user_doc.get("mfa_enabled"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin accounts require MFA. Please enable MFA in Settings."
         )
-    
-    return user
+
+    # Re-build the User model with the fresh is_admin flag from the DB so
+    # downstream code can inspect user.is_admin without extra DB queries.
+    user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+    return User(**user_data)
 
 
 class UserResponse(BaseModel):
@@ -134,6 +136,10 @@ class CreditAdjustRequest(BaseModel):
     user_id: str
     amount: int
     reason: str = ""
+
+
+class AdminToggleRequest(BaseModel):
+    is_admin: bool
 
 
 class SupportTicketResponse(BaseModel):
@@ -798,3 +804,45 @@ async def get_spending(
     admin: User = Depends(admin_required),
 ) -> List[Dict[str, Any]]:
     return await get_spending_dashboard(days=days, limit=limit)
+
+
+@router.put("/users/{user_id}/admin", status_code=status.HTTP_200_OK)
+async def toggle_user_admin(
+    user_id: str,
+    req: AdminToggleRequest,
+    request: Request,
+    admin: User = Depends(admin_required),
+) -> Dict[str, Any]:
+    # Prevent an admin from revoking their own admin status (lockout safety).
+    if user_id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot change your own admin status. Ask another admin.",
+        )
+
+    db = await get_db()
+    target = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    current_flag = target.get("is_admin", False)
+    if current_flag == req.is_admin:
+        return {"user_id": user_id, "is_admin": current_flag, "unchanged": True}
+
+    await db.users.update_one({"id": user_id}, {"$set": {"is_admin": req.is_admin}})
+
+    client_ip = request.client.host if request and request.client else None
+    user_agent = request.headers.get("user-agent") if request and request.headers else None
+    audit_log = AuditLog(
+        actor_id=admin.id,
+        actor_email=admin.email,
+        action=f"{'grant' if req.is_admin else 'revoke'}_admin",
+        resource_type="user",
+        resource_id=user_id,
+        changes={"is_admin": {"old": current_flag, "new": req.is_admin}},
+        ip_address=client_ip,
+        user_agent=user_agent,
+    )
+    await db.audit_logs.insert_one(audit_log.model_dump())
+
+    return {"user_id": user_id, "is_admin": req.is_admin, "unchanged": False}

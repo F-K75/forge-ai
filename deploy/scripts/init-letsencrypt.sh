@@ -11,7 +11,7 @@
 #                  no domain or public IP required)
 #
 # Reads DOMAIN and LETSENCRYPT_EMAIL from ./.env or the environment.
-set -eu
+set -euo pipefail
 
 STAGING_FLAG=""
 SELF_SIGNED=0

@@ -111,6 +111,11 @@ class User(BaseModel):
     trial_ends_at: Optional[datetime] = None
     downgraded_to: Optional[PlanTier] = None
     email_verified: bool = False
+    # Admin role — persisted in the DB (AUTH-001). ``is_admin`` replaces the
+    # previous email-string-match in ``api/admin.py`` and is the single source
+    # of truth for admin authorization. Defaults to False; set exclusively via
+    # the PUT /admin/users/{user_id}/admin endpoint or startup migration v3.
+    is_admin: bool = False
     # Dedup state for low-credit alert emails (PROD-039); cleared whenever
     # credits are granted/increased so the user is warned again next time.
     credit_alerts_sent: List[str] = Field(default_factory=list)

@@ -1,7 +1,7 @@
 {
   "log_version": "1.0.0",
   "created_at": "2026-06-30T04:03:36+05:30",
-  "updated_at": "2026-06-29T23:58:07.279198+00:00",
+  "updated_at": "2026-07-07T20:11:02.864552+00:00",
   "entries": [
     {
       "timestamp": "2026-06-30T03:00:00+05:30",
@@ -464,6 +464,150 @@
     },
     {
       "timestamp": "2026-06-29T23:58:07.278973+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_completed",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Recovery completed: 1 tasks recovered, 0 failed"
+    },
+    {
+      "timestamp": "2026-07-07T20:01:43.026421+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_started",
+      "status": "IN_PROGRESS",
+      "duration_seconds": 0,
+      "detail": "Starting recovery process"
+    },
+    {
+      "timestamp": "2026-07-07T20:01:43.030072+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "checkpoint_candidate_invalid",
+      "status": "ERROR",
+      "duration_seconds": 0,
+      "detail": "Invalid checkpoint candidate skipped: \"missing fields: ['checkpoint_id']\""
+    },
+    {
+      "timestamp": "2026-07-07T20:01:43.034462+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "event_bus_restored",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Event bus state restored from checkpoint ckpt-valid"
+    },
+    {
+      "timestamp": "2026-07-07T20:01:43.036443+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_completed",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Recovery completed: 1 tasks recovered, 0 failed"
+    },
+    {
+      "timestamp": "2026-07-07T20:06:25.055785+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_started",
+      "status": "IN_PROGRESS",
+      "duration_seconds": 0,
+      "detail": "Starting recovery process"
+    },
+    {
+      "timestamp": "2026-07-07T20:06:25.070682+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "checkpoint_candidate_invalid",
+      "status": "ERROR",
+      "duration_seconds": 0,
+      "detail": "Invalid checkpoint candidate skipped: \"missing fields: ['checkpoint_id']\""
+    },
+    {
+      "timestamp": "2026-07-07T20:06:25.074816+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "event_bus_restored",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Event bus state restored from checkpoint ckpt-valid"
+    },
+    {
+      "timestamp": "2026-07-07T20:06:25.076524+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_completed",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Recovery completed: 1 tasks recovered, 0 failed"
+    },
+    {
+      "timestamp": "2026-07-07T20:08:47.664336+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_started",
+      "status": "IN_PROGRESS",
+      "duration_seconds": 0,
+      "detail": "Starting recovery process"
+    },
+    {
+      "timestamp": "2026-07-07T20:08:47.667563+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "checkpoint_candidate_invalid",
+      "status": "ERROR",
+      "duration_seconds": 0,
+      "detail": "Invalid checkpoint candidate skipped: \"missing fields: ['checkpoint_id']\""
+    },
+    {
+      "timestamp": "2026-07-07T20:08:47.670438+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "event_bus_restored",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Event bus state restored from checkpoint ckpt-valid"
+    },
+    {
+      "timestamp": "2026-07-07T20:08:47.672196+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_completed",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Recovery completed: 1 tasks recovered, 0 failed"
+    },
+    {
+      "timestamp": "2026-07-07T20:11:02.856830+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "recovery_started",
+      "status": "IN_PROGRESS",
+      "duration_seconds": 0,
+      "detail": "Starting recovery process"
+    },
+    {
+      "timestamp": "2026-07-07T20:11:02.859806+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "checkpoint_candidate_invalid",
+      "status": "ERROR",
+      "duration_seconds": 0,
+      "detail": "Invalid checkpoint candidate skipped: \"missing fields: ['checkpoint_id']\""
+    },
+    {
+      "timestamp": "2026-07-07T20:11:02.862920+00:00",
+      "agent": "recovery_manager",
+      "task": "workflow",
+      "action": "event_bus_restored",
+      "status": "DONE",
+      "duration_seconds": 0,
+      "detail": "Event bus state restored from checkpoint ckpt-valid"
+    },
+    {
+      "timestamp": "2026-07-07T20:11:02.864288+00:00",
       "agent": "recovery_manager",
       "task": "workflow",
       "action": "recovery_completed",

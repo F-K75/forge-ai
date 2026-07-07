@@ -276,7 +276,6 @@ async def get_current_user(
         user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
         if "github_token" in user_data and user_data["github_token"]:
             user_data["github_token"] = decrypt_field(user_data["github_token"])
-        
         user = User(**user_data)
         new_access = create_access_token({"sub": user.id, "email": user.email})
         new_refresh = create_refresh_token({"sub": user.id, "email": user.email})

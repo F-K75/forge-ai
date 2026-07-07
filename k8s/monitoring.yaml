@@ -67,7 +67,7 @@ spec:
         description: "95th percentile latency above 2 seconds"
     # Database down alert
     - alert: DatabaseDown
-      expr: up{job="forge-ai-mongodb"} == 0
+      expr: up{namespace="forge-ai-prod",job="mongodb"} == 0
       for: 1m
       labels:
         severity: critical
@@ -76,7 +76,7 @@ spec:
         description: "MongoDB replica set is unreachable"
     # Redis down alert
     - alert: RedisDown
-      expr: up{job="forge-ai-redis"} == 0
+      expr: up{namespace="forge-ai-prod",job="redis"} == 0
       for: 1m
       labels:
         severity: critical

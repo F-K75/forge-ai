@@ -29,11 +29,9 @@ import tasks.pm_tasks  # noqa: E402,F401 - registers tasks on this app instance
 
 
 @worker_shutting_down.connect
-def _log_graceful_shutdown(sig, how, exitcode, **kwargs):
-    """Celery's SIGTERM handler already does a warm shutdown (stop taking
-    new tasks, finish in-flight ones) with no extra code required -- this
-    just makes that actually visible in logs instead of a worker silently
-    disappearing, and gives an explicit place to hang future cleanup
-    (BE-005; the k8s/Compose terminationGracePeriodSeconds/stop_grace_period
-    changes are what actually give this enough time to matter)."""
+def _graceful_shutdown(sig, how, exitcode, **kwargs):
     logger.info("Celery worker shutting down gracefully: how=%s exitcode=%s", how, exitcode)
+    try:
+        celery_app.control.cancel_consumer(queue="build", reply=True)
+    except Exception:
+        logger.debug("cancel_consumer failed", exc_info=True)

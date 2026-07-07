@@ -1,54 +1,88 @@
-# BE-003: Pagination for List Endpoints
-
-## Status: COMPLETE (2026-07-07)
+# Fix: Missing celery-worker Healthcheck in docker-compose.yml (DEV-004, P0)
 
 ## Problem
-Multiple list endpoints either returned all results without pagination (the
-`.to_list(None)` unbounded-read risk called out in the BE-003 audit) or
-hand-rolled their own `count_documents` / `skip` / `limit` math — with two
-inconsistent `total_pages` formulas that both returned **`0` for an empty
-result set**. An empty `total_pages` breaks client pagination controls and
-misrepresents "no data" as an invalid page count. The logic was duplicated
-across ~15 endpoints, so any fix had to be re-applied everywhere.
+
+The `celery-worker` service in `docker-compose.yml` (development Compose file)
+has **no `healthcheck` block**, while every other service (`backend`, `frontend`,
+`mongo`, `redis`) defines one. This is the single production-readiness gap for
+DevOps / deployment infrastructure.
+
+Consequences:
+- `depends_on` for mongo/redis uses `condition: service_healthy`, so the
+  celery-worker will start as soon as the Docker engine creates the container
+  — it does **not** wait for Mongo or Redis to be ready.
+- A celery-worker that starts before its broker (Redis) is accepting connections
+  will crash-loop with `ConnectionError` until Redis becomes healthy, generating
+  noise in logs and potentially masking real issues.
+- Operators running `docker compose ps` cannot see whether the worker is actually
+  processing tasks or stuck in a reconnect loop.
+- The prod Compose file (`docker-compose.prod.yml`) already has a working
+  healthcheck on the `worker` service; only the dev file is incomplete.
+
+## Root Cause
+
+`docker-compose.yml` lines 40–66 define `celery-worker` with `depends_on` but no
+`healthcheck`. This was an oversight during initial Compose scaffolding — the
+backend and frontend services got healthchecks, the infrastructure services
+(mongo, redis) got them, but the worker was missed.
 
 ## Solution
-Centralized all list-endpoint pagination behind the shared
-`paginated_query` helper in `core/database.py` (already present) plus a new
-reusable `PaginationParams` FastAPI dependency in `core/models.py`.
 
-`paginated_query` is the single source of truth for the envelope and the
-clamping rules:
-- `page` clamped to `>= 1`
-- `per_page` clamped to `[1, max_page_size]` (default 100)
-- `total_pages` is **always `>= 1`** (never `0`)
-- an out-of-range `page` is clamped to the last page (no empty 404-style page)
+Add a `healthcheck` block to `celery-worker` in `docker-compose.yml` that:
 
-## Files Changed
-- `backend/core/models.py` — new `PaginationParams` dependency (`page` /
-  `per_page`, clamped, max 100).
-- `backend/api/projects.py` — `list_projects` + `get_project_builds` route
-  through `paginated_query`.
-- `backend/api/admin.py` — `list_users`, `list_builds`, `list_security_events`,
-  `list_audit_logs` route through `paginated_query` (typed mapping preserved).
-- `backend/api/webhooks.py` — `list_webhooks` routes through `paginated_query`.
-- `backend/api/api_keys.py` — `list_api_keys` routes through `paginated_query`.
-- `backend/api/auth.py` — `list_members` and `list_organizations` route through
-  `paginated_query` (also removes the unbounded empty-`total_pages` early return
-  in `list_organizations`).
-- `backend/tests/test_pagination.py` — new suite (8 tests): helper edge cases
-  (clamp, empty → total_pages=1, out-of-range clamp) + endpoint integration
-  tests for projects / admin users / webhooks.
+1. Uses `celery -A celery_app inspect ping` to verify the worker is alive and
+   connected to the broker.
+2. Uses `CMD-SHELL` form so `$$HOSTNAME` is correctly expanded by the shell
+   (same pattern already used in `docker-compose.prod.yml` worker service).
+3. Sets `interval: 60s`, `timeout: 15s`, `retries: 3`, `start_period: 30s` —
+   matching the prod worker's values exactly for consistency.
+
+No other changes are needed: the existing `depends_on` already uses
+`condition: service_healthy`, so adding the healthcheck immediately makes that
+gate functional.
+
+## Architecture Changes
+
+None — this is an infrastructure-only fix.
+
+## Database Changes
+
+None.
+
+## API Changes
+
+None.
+
+## UI Changes
+
+None.
 
 ## Testing Strategy
-- Helper: default + max page-size clamp, page clamp, empty set → `total_pages=1`,
-  out-of-range page clamp, projection applied.
-- Endpoints: real `TestClient` against a fake Mongo; assert envelope
-  (`items`, `total`, `page`, `per_page`, `total_pages`), that out-of-range pages
-  clamp, and that sensitive fields (`hashed_password`, webhook `secret`) are
-  excluded by the projection.
-- Backward compatible: `page`/`per_page` default to 1 / 20; response shape
-  unchanged (the `Paginated*` response models already existed).
 
-## Validation
-- `ruff check --select F,E9` — clean on all changed files.
-- Full backend suite — **357 passed** (was 349; +8 new).
+- Static: `docker compose config` validates YAML syntax and interpolation.
+- Functional: `docker compose up --build` — `docker compose ps` shows
+  `(healthy)` for all five services after start_period elapses.
+- Resilience: `docker compose stop mongo` confirms celery-worker transitions
+  to `unhealthy` rather than staying `healthy` while disconnected.
+- No code-level unit tests are needed; the healthcheck command is a deployment
+  manifest concern, not application logic.
+
+## Risks
+
+- **Very low**: The healthcheck command (`celery inspect ping`) is the same
+  command already used in production (`docker-compose.prod.yml` worker service,
+  line 133). It is a no-op for a worker that is not yet connected — it returns
+  a non-zero exit code, which is the correct signal for "not healthy yet".
+- **Very low**: `start_period: 30s` matches the prod value; the worker image
+  already takes ~10–15s to initialize (import + broker connect), so 30s is
+  sufficient and consistent.
+- **Very low**: `$$HOSTNAME` in `CMD-SHELL` is expanded by `/bin/sh -c` inside
+  the container to the container's actual hostname, which is the worker name
+  that Celery uses for its `@hostname` routing. This is the same pattern used
+  in the prod worker.
+
+## Rollback Plan
+
+Revert the single `healthcheck:` block added to `celery-worker` in
+`docker-compose.yml`. The service returns to its prior behaviour (no health
+signal, but still functional).

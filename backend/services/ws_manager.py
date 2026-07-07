@@ -121,7 +121,17 @@ class ConnectionManager:
         if self._pubsub_task is None or self._pubsub_task.done():
             self._pubsub_task = asyncio.create_task(self.start_pubsub_listener())
 
+    async def close_all_connections(self, reason: str = "Server shutting down") -> None:
+        for build_id in list(self.active.keys()):
+            for ws in list(self.active.get(build_id, [])):
+                try:
+                    await ws.close(code=1011, reason=reason)
+                except Exception:
+                    pass
+        self.active.clear()
+
     async def stop(self):
+        await self.close_all_connections()
         if self._pubsub_task is not None:
             self._pubsub_task.cancel()
             try:

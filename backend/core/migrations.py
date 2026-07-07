@@ -22,8 +22,10 @@ import logging
 from datetime import datetime
 
 from core.models import PlanTier
+from core.config import get_settings
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 # (version, name, description, coroutine(db) -> None)
 _MIGRATIONS: List[Tuple[int, str, str, Callable[[object], Awaitable[None]]]] = []
@@ -113,3 +115,26 @@ async def _migration_backfill_user_banned(db) -> None:
         {"banned": {"$exists": False}},
         {"$set": {"banned": False}},
     )
+
+
+@migration(3, "backfill_is_admin", "Persist admin flag from ADMIN_EMAILS env var (AUTH-001).")
+async def _migration_backfill_is_admin(db) -> None:
+    # AUTH-001: admin authorization used to be an in-memory email-string-match
+    # against the ADMIN_EMAILS env var. This migration backfills the persisted
+    # ``is_admin`` DB field for any currently-admin user so the new role-based
+    # check behaves identically after deploy. Idempotent: re-running is a no-op
+    # for users already flagged.
+    admin_emails_raw = settings.admin_emails or ""
+    admin_emails = [e.strip() for e in admin_emails_raw.split(",") if e.strip()]
+    if not admin_emails:
+        return
+
+    result = await db.users.update_many(
+        {"email": {"$in": admin_emails}},
+        {"$set": {"is_admin": True}},
+    )
+    if result.matched_count:
+        logger.info(
+            "Migration v3 (backfill_is_admin) set is_admin=True for %d user(s)",
+            result.matched_count,
+        )
