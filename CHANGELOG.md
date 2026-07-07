@@ -1,5 +1,129 @@
 # Changelog
 
+## 2026-07-07 — List Endpoint Pagination (BE-003, P1)
+
+### Features Added
+
+**Centralized pagination behind a single shared helper.** Every list endpoint
+now routes through `core/database.paginated_query` plus a new reusable
+`PaginationParams` FastAPI dependency (`core/models.py`), replacing ~15 copies
+of hand-rolled `count_documents` / `skip` / `limit` math. Pagination is now
+consistent, clamped, and correct across the board.
+
+- `PaginationParams` — `page` / `per_page` query params, clamped to
+  `page >= 1` and `per_page in [1, 100]` (the BE-003 spec).
+- `paginated_query` returns the standard envelope
+  (`items`, `total`, `page`, `per_page`, `total_pages`); `total_pages` is
+  **always `>= 1`** and an out-of-range `page` is clamped to the last page.
+- Wired into the audit's named unbounded/risky list endpoints:
+  `GET /projects/`, `GET /projects/{id}/builds`, `GET /admin/users`,
+  `GET /admin/builds`, `GET /admin/fraud/events`, `GET /admin/audit-logs`,
+  `GET /webhooks/`, `GET /api-keys/`, `GET /auth/organizations/{id}/members`,
+  and `GET /auth/organizations`.
+
+### Bugs Fixed
+
+- **BE-003 — inconsistent / broken `total_pages`**: the previous per-endpoint
+  math used two different formulas (`math.ceil(total / per_page) if total else 0`
+  and `(total + per_page - 1) // per_page`), both of which yielded
+  `total_pages == 0` for an empty result set — breaking client paginators and
+  misrepresenting "no data" as an invalid page count. Now always `>= 1`.
+- **BE-003 — unbounded reads**: several list endpoints built the page off a
+  full collection fetch or were vulnerable to the same unbounded pattern; the
+  shared helper enforces `limit`/`skip` on every call.
+- Removed dead `import math` left behind in `admin.py` / `auth.py` / `webhooks.py`
+  / `api_keys.py` / `projects.py` after the refactor (and dropped now-unused
+  `Query` imports).
+
+### Files Changed
+
+- `backend/core/models.py` — new `PaginationParams` dependency.
+- `backend/api/projects.py` — `list_projects`, `get_project_builds`.
+- `backend/api/admin.py` — `list_users`, `list_builds`, `list_security_events`,
+  `list_audit_logs`.
+- `backend/api/webhooks.py` — `list_webhooks`.
+- `backend/api/api_keys.py` — `list_api_keys`.
+- `backend/api/auth.py` — `list_members`, `list_organizations`.
+- `backend/tests/test_pagination.py` — new suite (8 tests).
+
+### Testing Coverage
+
+- Helper edge cases: default/max page-size clamp, `page >= 1` clamp, empty set
+  → `total_pages == 1`, out-of-range page clamped to last page, projection
+  applied.
+- Endpoint integration (real `TestClient` + fake Mongo): projects, admin users,
+  webhooks — verify envelope fields, out-of-range clamping, and that sensitive
+  fields (`hashed_password`, webhook `secret`) are excluded via projection.
+- Full backend suite: **357 passed** (was 349; +8 new). `ruff --select F,E9`
+  clean on all changed files.
+
+### Risks
+
+- `GET /auth/organizations` previously returned `total_pages: 0` (and an empty
+  list) when the user belonged to no orgs; it now returns `total_pages: 1` with
+  an empty list — consistent with every other endpoint. Clients that special-
+  cased `total_pages == 0` should treat `total == 0` as "no data" instead.
+- The `PaginationParams` standard max is 100; admin list endpoints previously
+  capped `per_page` at 50 and now allow up to 100 (aligns with the BE-003 spec).
+
+### Breaking Changes
+
+- None for valid inputs; response envelope shape unchanged (the `Paginated*`
+  response models already existed). The only behavioral change is `total_pages`
+  is now `>= 1` instead of `0` for empty results.
+
+### Migration Notes
+
+- No migration. Clients should read `total` to detect "no results" rather than
+  relying on `total_pages == 0`.
+
+---
+
+## 2026-07-07 — Build Idempotency Keys (BUS-007, P0)
+
+### Features Added
+
+- **Idempotency key support for `POST /builds/`** — clients can now pass an
+  optional `idempotency_key` (max 64 chars) to prevent duplicate builds from
+  network retries. If a build with the same key already exists for the user,
+  the existing build is returned (idempotent response with `idempotent: true`).
+- Unique partial index on `[("user_id", 1), ("idempotency_key", 1)]` so the
+  insert itself is atomic at the DB level — null keys (builds without an
+  idempotency key) don't collide.
+- `Build` model gains optional `idempotency_key` field.
+
+### Bugs Fixed
+
+- **P0 — Credit race condition (BUS-007):** Concurrent `POST /builds/` requests
+  could race past the 30-second dedup window and create duplicate build
+  documents with multiple Celery tasks processing the same project. While the
+  credit reservation was already atomic (verified in PROD-008), duplicate builds
+  wasted worker capacity and could overwrite each other's output files. The
+  idempotency key provides a deterministic, client-driven dedup mechanism that
+  works even under concurrent requests.
+
+### Files Changed
+
+- `backend/core/models.py` — `Build.idempotency_key: Optional[str]`
+- `backend/api/builds.py` — `CreateBuildRequest.idempotency_key` field;
+  idempotency check before credit reservation; key passed to `Build` constructor
+- `backend/core/database.py` — unique partial index on
+  `[("user_id", 1), ("idempotency_key", 1)]`
+
+---
+
+## 2026-07-07 — Test Suite Was 100% Broken (P0 Critical — TEST-001)
+
+### Bugs Fixed
+
+- **Entire backend test suite (349 tests) failed to collect** — every test file that imported `core.database` (directly or transitively) crashed at collection time with `pydantic_core.ValidationError` because `Settings()` validates `MONGODB_URL` and `JWT_SECRET` at module-import time and rejects empty values. There was no `conftest.py` to set the required environment variables before test collection. This meant `pytest`, `pytest --cov`, and CI all produced zero useful results — 20 collection errors, 0 tests run.
+
+### Files Changed
+
+- `backend/tests/conftest.py` — new file. Sets `CI_TEST_MODE`, `TESTING`, `APP_ENV`, `MONGODB_URL`, `JWT_SECRET`, and `FIELD_ENCRYPTION_KEY` before any test module imports, matching the guards in `core/config.py`. All 349 tests now collect and pass (349/349, 0 failures, 71s).
+
+---
+
 ## 2026-07-07 — CSP Headers for Generated Applications (AI-007, P1)
 
 ### Features Added

@@ -6,8 +6,8 @@ from datetime import datetime
 import csv
 import io
 
-from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog
-from core.database import get_db, get_redis, cache_get_json, cache_set_json
+from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams
+from core.database import get_db, get_redis, cache_get_json, cache_set_json, paginated_query
 
 ADMIN_ANALYTICS_CACHE_TTL = 120
 FEATURE_FLAGS_CACHE_KEY = "cache:admin:feature_flags:list"
@@ -199,11 +199,10 @@ class AnalyticsOverview(BaseModel):
 
 @router.get("/users", response_model=PaginatedUsers)
 async def list_users(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=50),
     plan: Optional[PlanTier] = Query(None),
     banned: Optional[bool] = Query(None),
     search: Optional[str] = Query(None),
+    params: PaginationParams = Depends(),
     admin: User = Depends(admin_required)
 ):
     db = await get_db()
@@ -221,21 +220,22 @@ async def list_users(
             {"name": {"$regex": sanitized, "$options": "i"}},
         ]
     
-    skip = (page - 1) * per_page
-    
-    total = await db.users.count_documents(query)
-    
-    cursor = db.users.find(query, {"_id": 0, "hashed_password": 0}).skip(skip).limit(per_page).sort("created_at", -1)
-    users = []
-    async for doc in cursor:
-        users.append(UserResponse(**doc))
+    result = await paginated_query(
+        db.users,
+        query,
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+        projection={"_id": 0, "hashed_password": 0},
+    )
+    users = [UserResponse(**doc) for doc in result.items]
     
     return PaginatedUsers(
         users=users,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=(total + per_page - 1) // per_page
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 
@@ -355,12 +355,11 @@ async def update_user(
 
 @router.get("/builds", response_model=PaginatedBuilds)
 async def list_builds(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=50),
     status: Optional[BuildStatus] = Query(None),
     user_id: Optional[str] = Query(None),
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
+    params: PaginationParams = Depends(),
     admin: User = Depends(admin_required)
 ):
     db = await get_db()
@@ -377,21 +376,22 @@ async def list_builds(
         query.setdefault("created_at", {})
         query["created_at"]["$lte"] = date_to
     
-    skip = (page - 1) * per_page
-    
-    total = await db.builds.count_documents(query)
-    
-    cursor = db.builds.find(query, {"_id": 0}).skip(skip).limit(per_page).sort("created_at", -1)
-    builds = []
-    async for doc in cursor:
-        builds.append(BuildResponse(**doc))
+    result = await paginated_query(
+        db.builds,
+        query,
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+        projection={"_id": 0},
+    )
+    builds = [BuildResponse(**doc) for doc in result.items]
     
     return PaginatedBuilds(
         builds=builds,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=(total + per_page - 1) // per_page
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages
     )
 
 
@@ -562,10 +562,9 @@ async def get_ai_usage_metrics(
 
 @router.get("/fraud/events", response_model=PaginatedSecurityEvents)
 async def list_security_events(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
     severity: Optional[str] = Query(None),
     event_type: Optional[str] = Query(None),
+    params: PaginationParams = Depends(),
     admin: User = Depends(admin_required)
 ):
     db = await get_db()
@@ -576,21 +575,22 @@ async def list_security_events(
     if event_type:
         query["event_type"] = event_type
     
-    skip = (page - 1) * per_page
-    
-    total = await db.security_events.count_documents(query)
-    
-    cursor = db.security_events.find(query, {"_id": 0}).skip(skip).limit(per_page).sort("created_at", -1)
-    events = []
-    async for doc in cursor:
-        events.append(SecurityEventResponse(**doc))
+    result = await paginated_query(
+        db.security_events,
+        query,
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+        projection={"_id": 0},
+    )
+    events = [SecurityEventResponse(**doc) for doc in result.items]
     
     return PaginatedSecurityEvents(
         events=events,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=(total + per_page - 1) // per_page
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages
     )
 
 
@@ -660,13 +660,12 @@ async def list_feature_flags(admin: User = Depends(admin_required)):
 
 @router.get("/audit-logs", response_model=PaginatedAuditLogs)
 async def list_audit_logs(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
     actor_id: Optional[str] = Query(None),
     action: Optional[str] = Query(None),
     resource_type: Optional[str] = Query(None),
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
+    params: PaginationParams = Depends(),
     admin: User = Depends(admin_required)
 ):
     db = await get_db()
@@ -685,21 +684,22 @@ async def list_audit_logs(
         query.setdefault("created_at", {})
         query["created_at"]["$lte"] = date_to
     
-    skip = (page - 1) * per_page
-    
-    total = await db.audit_logs.count_documents(query)
-    
-    cursor = db.audit_logs.find(query, {"_id": 0}).skip(skip).limit(per_page).sort("created_at", -1)
-    logs = []
-    async for doc in cursor:
-        logs.append(AuditLogResponse(**doc))
+    result = await paginated_query(
+        db.audit_logs,
+        query,
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+        projection={"_id": 0},
+    )
+    logs = [AuditLogResponse(**doc) for doc in result.items]
     
     return PaginatedAuditLogs(
         logs=logs,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=(total + per_page - 1) // per_page
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages
     )
 
 

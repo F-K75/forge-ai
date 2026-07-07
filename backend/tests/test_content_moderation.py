@@ -6,12 +6,10 @@ the non-blocking warnings (supply-chain / dynamic-execution risks), while
 proving benign apps and obvious placeholders are not flagged.
 """
 
-import pytest
 
 from sandbox.moderation import (
     scan_code,
     ModerationReport,
-    SEVERITY_BLOCK,
     SEVERITY_WARN,
     _is_placeholder,
 )

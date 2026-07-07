@@ -4,6 +4,33 @@ from datetime import datetime, timedelta
 from enum import Enum
 import uuid
 
+from fastapi import Query
+
+
+class PaginationParams:
+    """Reusable pagination dependency (BE-003).
+
+    Injects consistent, clamped ``page`` / ``per_page`` query params and pairs
+    naturally with :func:`core.database.paginated_query`, which performs the
+    actual skip/limit math and returns the standard envelope.
+
+    Usage::
+
+        params: PaginationParams = Depends()
+        result = await paginated_query(coll, query, page=params.page,
+                                        per_page=params.per_page)
+    """
+
+    def __init__(
+        self,
+        page: int = Query(1, ge=1, description="1-indexed page number"),
+        per_page: int = Query(
+            20, ge=1, le=100, description="Items per page (clamped to 100)"
+        ),
+    ):
+        self.page = page
+        self.per_page = per_page
+
 
 class AgentType(str, Enum):
     ARCHITECT = "architect"
@@ -180,6 +207,7 @@ class Build(BaseModel):
     project_id: str
     user_id: str
     prompt: str
+    idempotency_key: Optional[str] = None
     status: BuildStatus = BuildStatus.PENDING
     agents: List[AgentStep] = []
     credits_used: int = 0

@@ -1,18 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request, Query
+from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Union
 from datetime import datetime, timedelta
 import uuid
 import hashlib
 import logging
-import math
 import secrets
 
 import pyotp
 import resend
 
-from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session
-from core.database import get_db
+from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session, PaginationParams
+from core.database import get_db, paginated_query
 from core.cache import cached_read, invalidate_cache, user_profile_cache_key, USER_PROFILE_CACHE_TTL
 from core.config import get_settings
 from core.security import validate_password_strength, check_email_rate_limit, get_client_ip, validate_byok_base_url
@@ -1152,8 +1151,7 @@ async def create_organization(
 @router.get("/organizations", response_model=PaginatedOrganizations)
 async def list_organizations(
     user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
 
@@ -1161,39 +1159,37 @@ async def list_organizations(
         None
     )
     org_ids = [m["org_id"] for m in memberships]
+    # An empty ``$in`` would match nothing; paginated_query reports
+    # ``total == 0`` and ``total_pages == 1`` consistently.
+    org_query = {"id": {"$in": org_ids}} if org_ids else {"id": {"$in": []}}
 
-    if not org_ids:
-        return PaginatedOrganizations(
-            organizations=[], total=0, page=page, per_page=per_page, total_pages=0
+    result = await paginated_query(
+        db.organizations,
+        org_query,
+        page=params.page,
+        per_page=params.per_page,
+    )
+    membership_by_org = {m["org_id"]: m for m in memberships}
+
+    orgs = [
+        OrganizationResponse(
+            id=org["id"],
+            name=org["name"],
+            slug=org["slug"],
+            plan=org.get("plan", "free"),
+            seats=org.get("seats", 1),
+            role=membership_by_org.get(org["id"], {}).get("role", "member"),
+            created_at=org.get("created_at"),
         )
-
-    org_query = {"id": {"$in": org_ids}}
-    total = await db.organizations.count_documents(org_query)
-    orgs = await db.organizations.find(org_query, {"_id": 0}).skip(
-        (page - 1) * per_page
-    ).limit(per_page).to_list(per_page)
-
-    result = []
-    for org in orgs:
-        membership = next((m for m in memberships if m["org_id"] == org["id"]), None)
-        result.append(
-            OrganizationResponse(
-                id=org["id"],
-                name=org["name"],
-                slug=org["slug"],
-                plan=org.get("plan", "free"),
-                seats=org.get("seats", 1),
-                role=membership.get("role", "member") if membership else "member",
-                created_at=org.get("created_at"),
-            )
-        )
+        for org in result.items
+    ]
 
     return PaginatedOrganizations(
-        organizations=result,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        organizations=orgs,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 
@@ -1304,8 +1300,7 @@ async def accept_invitation(token: str, user: User = Depends(get_current_user)):
 async def list_members(
     org_id: str,
     user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
 
@@ -1315,11 +1310,13 @@ async def list_members(
     if not membership:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    member_query = {"org_id": org_id}
-    total = await db.team_members.count_documents(member_query)
-    members = await db.team_members.find(member_query, {"_id": 0}).skip(
-        (page - 1) * per_page
-    ).limit(per_page).to_list(per_page)
+    result = await paginated_query(
+        db.team_members,
+        {"org_id": org_id},
+        page=params.page,
+        per_page=params.per_page,
+    )
+    members = result.items
     user_ids = [m["user_id"] for m in members]
 
     users = await db.users.find(
@@ -1327,7 +1324,7 @@ async def list_members(
     ).to_list(None)
     user_map = {u["id"]: u for u in users}
 
-    result = [
+    items = [
         {
             "id": m["id"],
             "email": user_map.get(m["user_id"], {}).get("email"),
@@ -1339,11 +1336,11 @@ async def list_members(
     ]
 
     return PaginatedOrganizationMembers(
-        members=result,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        members=items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 

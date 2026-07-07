@@ -1,5 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
+from pydantic import BaseModel
 from core.config import get_settings, RETENTION_TTL_SECONDS
 from typing import Optional, Union
 import asyncio
@@ -80,6 +81,14 @@ async def _ensure_indexes(db):
         await db.builds.create_index([("project_id", 1), ("user_id", 1), ("created_at", -1)])
         await db.builds.create_index([("id", 1)])
         await db.builds.create_index([("user_id", 1), ("created_at", -1)])
+        # Idempotency key index (BUS-007): unique per user so a retry with the
+        # same key never creates a duplicate build. Partial index so null keys
+        # (builds created without an idempotency_key) don't collide.
+        await db.builds.create_index(
+            [("user_id", 1), ("idempotency_key", 1)],
+            unique=True,
+            partialFilterExpression={"idempotency_key": {"$exists": True}},
+        )
 
         # Build files indexes
         await db.build_files.create_index([("build_id", 1), ("path", 1)], unique=True)
@@ -195,6 +204,79 @@ async def _ensure_indexes(db):
     except Exception:
         logger.exception("Failed to ensure one or more MongoDB indexes")
         raise
+
+
+class PaginatedResult(BaseModel):
+    """Standard paginated response envelope for list endpoints (BE-003).
+
+    Every list endpoint returns ``items`` (the page's documents), ``total``
+    (matching documents across all pages), ``page`` (1-indexed), ``per_page``
+    (clamped to max 100), and ``total_pages`` so clients can build navigation
+    without guessing.
+    """
+    items: list
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+async def paginated_query(
+    collection,
+    query: dict,
+    page: int = 1,
+    per_page: int = 20,
+    sort: Optional[list] = None,
+    projection: Optional[dict] = None,
+    max_page_size: int = 100,
+) -> PaginatedResult:
+    """Execute a paginated MongoDB find with consistent envelope.
+
+    Parameters
+    ----------
+    collection : MotorCollection
+        The AsyncIOMotorCollection to query (e.g. ``db.projects``).
+    query : dict
+        MongoDB filter dict.
+    page : int
+        1-indexed page number (clamped to >= 1).
+    per_page : int
+        Items per page (clamped to 1..max_page_size).
+    sort : list, optional
+        Sort spec, e.g. ``[("created_at", -1)]``.
+    projection : dict, optional
+        Field projection, e.g. ``{"_id": 0}``.
+    max_page_size : int
+        Upper bound for ``per_page``.
+
+    Returns
+    -------
+    PaginatedResult
+        Standard envelope with items, total, page, per_page, total_pages.
+    """
+    page = max(page, 1)
+    per_page = max(1, min(per_page, max_page_size))
+
+    total = await collection.count_documents(query)
+    total_pages = max(1, (total + per_page - 1) // per_page) if total > 0 else 1
+    # If client asks for a page beyond what exists, return the last page
+    # rather than an empty response that looks like "no data".
+    if page > total_pages:
+        page = total_pages
+
+    cursor = collection.find(query, projection or {"_id": 0})
+    if sort:
+        cursor = cursor.sort(sort)
+    cursor = cursor.skip((page - 1) * per_page).limit(per_page)
+    items = await cursor.to_list(length=per_page)
+
+    return PaginatedResult(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+    )
 
 
 async def cache_get(key: str, ttl: int = 300) -> Optional[str]:

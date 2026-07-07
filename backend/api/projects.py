@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-import math
-from core.models import Project, User
-from core.database import get_db
+from core.models import Project, User, PaginationParams
+from core.database import get_db, paginated_query
 from core.audit import record_audit_log
 from datetime import datetime
 from api.auth import get_current_user
@@ -56,21 +55,22 @@ async def create_project(req: CreateProjectRequest, current_user: User = Depends
 @router.get("/", response_model=PaginatedProjects)
 async def list_projects(
     current_user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    query = {"user_id": current_user.id}
-    total = await db.projects.count_documents(query)
-    projects = await db.projects.find(
-        query, {"_id": 0}
-    ).sort("updated_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    result = await paginated_query(
+        db.projects,
+        {"user_id": current_user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("updated_at", -1)],
+    )
     return PaginatedProjects(
-        projects=projects,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        projects=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 
@@ -87,25 +87,27 @@ async def get_project(project_id: str, current_user: User = Depends(get_current_
 async def get_project_builds(
     project_id: str,
     current_user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
     project = await db.projects.find_one({"id": project_id, "user_id": current_user.id}, {"_id": 0})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    query = {"project_id": project_id, "user_id": current_user.id}
-    total = await db.builds.count_documents(query)
-    builds = await db.builds.find(
-        query, {"_id": 0, "files": 0}
-    ).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    result = await paginated_query(
+        db.builds,
+        {"project_id": project_id, "user_id": current_user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+        projection={"_id": 0, "files": 0},
+    )
     return PaginatedProjectBuilds(
-        builds=builds,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        builds=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 

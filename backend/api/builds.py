@@ -9,6 +9,7 @@ from fastapi import (
     Depends,
 )
 from pydantic import BaseModel, Field
+from typing import Optional
 from datetime import datetime, timedelta
 
 from core.models import (
@@ -50,6 +51,7 @@ CREDIT_COSTS = {
 class CreateBuildRequest(BaseModel):
     project_id: str
     prompt: str = Field(..., max_length=50000)
+    idempotency_key: Optional[str] = Field(None, max_length=64)
 
 
 @router.post("/")
@@ -90,6 +92,24 @@ async def create_build(
             status_code=403,
             detail="Please verify your email before building. Check your inbox for the verification link.",
         )
+
+    # Idempotency key: if provided, return the existing build if one already
+    # exists with the same key for this user. This prevents duplicate builds
+    # from network retries (BUS-007).
+    if req.idempotency_key:
+        existing = await db.builds.find_one(
+            {
+                "user_id": current_user.id,
+                "idempotency_key": req.idempotency_key,
+            },
+            {"_id": 0},
+        )
+        if existing:
+            return {
+                "build_id": existing["id"],
+                "status": existing.get("status", BuildStatus.PENDING),
+                "idempotent": True,
+            }
 
     # Credit reservation (atomic) to prevent concurrent deduction race.
     estimated_credits = sum(CREDIT_COSTS.values()) * (
@@ -132,6 +152,7 @@ async def create_build(
         project_id=req.project_id,
         user_id=current_user.id,
         prompt=sanitize_prompt(req.prompt),
+        idempotency_key=req.idempotency_key,
         status=BuildStatus.PENDING,
     )
 

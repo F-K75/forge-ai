@@ -5,13 +5,11 @@ points and (for the supported, simple shape) FastAPI backends -- idempotently
 and without weakening an existing policy or breaking unsupported code.
 """
 
-import pytest
 
 from sandbox.csp import (
     apply_csp,
     inject_html_csp,
     inject_fastapi_csp,
-    DEFAULT_CSP,
     _META_CSP_RE,
 )
 
