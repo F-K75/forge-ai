@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 import asyncio
+import logging
 import os
 import tempfile
 import shutil
@@ -15,11 +16,13 @@ from core.models import Deployment, DeploymentStatus, WSEvent, WSEventType, User
 from core.database import get_db
 from core.config import get_settings
 from core.encryption import decrypt_field
+from core.security import safe_join_path
 from services.ws_manager import manager
 from api.auth import get_current_user
 
 router = APIRouter(prefix="/deployments", tags=["deployments"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
 # Keep union syntax compatible with older Python versions in CI.
 _docker_client = None  # type: docker.DockerClient | None
 
@@ -442,7 +445,13 @@ async def _run_deployment_background(
         temp_dir = tempfile.mkdtemp(prefix=f"forge-deploy-{deployment.id}-")
         try:
             for path, content in files.items():
-                file_path = os.path.join(temp_dir, path)
+                # Build-file paths are attacker/AI-influenced: reject traversal
+                # and absolute paths so a malicious "file" can't escape the
+                # sandbox dir (P0-HIGH-005 path traversal / arbitrary file write).
+                file_path = safe_join_path(temp_dir, path)
+                if file_path is None:
+                    logger.warning("Skipping unsafe deployment file path: %r", path)
+                    continue
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
@@ -619,7 +628,12 @@ async def _github_push_background(
 
             files = build.get("files", {})
             for path, content in files.items():
-                file_path = os.path.join(temp_dir, path)
+                # Same traversal guard as the docker deploy path: a malicious
+                # file path must not escape the cloned repo dir.
+                file_path = safe_join_path(temp_dir, path)
+                if file_path is None:
+                    logger.warning("Skipping unsafe github-push file path: %r", path)
+                    continue
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)

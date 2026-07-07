@@ -10,6 +10,7 @@ import time
 import secrets
 import uuid
 import hashlib
+import os
 from urllib.parse import urlparse
 
 from core.database import get_db, get_redis
@@ -192,8 +193,27 @@ async def rate_limit_middleware(request: Request, call_next):
     if path == "/health" or client_ip in settings.trusted_proxies.split(","):
         return await call_next(request)
     
+    # Key authenticated requests by the account, not just the source IP, so a
+    # logged-in user cannot bypass limits by rotating client IPs (INF-007).
+    # Unauthenticated requests fall back to the IP. Decoding the access-token
+    # cookie is cheap (no DB) and the cookie is optional, so a missing/invalid
+    # token simply stays IP-keyed. The lazy import avoids a circular import with
+    # the auth module at import time.
+    identity = client_ip
+    access_token = request.cookies.get("access_token")
+    if access_token:
+        try:
+            from auth import decode_token
+
+            payload = decode_token(access_token)
+            uid = (payload or {}).get("sub")
+            if uid:
+                identity = f"user:{uid}"
+        except Exception:
+            pass
+
     zone, config = _get_limit_config(path)
-    key = f"rl:{zone}:{client_ip}"
+    key = f"rl:{zone}:{identity}"
     limit = config["limit"]
     window = config["window"]
     
@@ -223,7 +243,12 @@ async def rate_limit_middleware(request: Request, call_next):
                             event_type="rate_limit",
                             severity="medium",
                             ip_address=client_ip,
-                            metadata={"path": path, "key": key, "count": current},
+                            metadata={
+                            "path": path,
+                            "key": key,
+                            "count": current,
+                            "identity": identity,
+                        },
                         ).model_dump()
                     )
                 except Exception:
@@ -535,6 +560,41 @@ async def validate_byok_base_url(url: str) -> tuple[bool, str]:
             return False, "BYOK base URL resolves to a private, loopback, or reserved IP address"
 
     return True, ""
+
+
+def is_safe_relpath(path: str) -> bool:
+    """Return True only if ``path`` is a POSIX/Windows relative path that stays
+    inside its intended parent directory.
+
+    AI-generated build-file paths (and any other untrusted path keys) are joined
+    onto a temp directory before being written to disk. Without this check a
+    path like ``../../etc/cron.d/evil`` or an absolute ``/etc/passwd`` would
+    escape the sandbox directory and let a malicious build overwrite arbitrary
+    host files (path traversal / arbitrary file write — P0-HIGH-005)."""
+    if not path:
+        return False
+    if os.path.isabs(path):
+        return False
+    # Normalize and reject any component that escapes the directory tree.
+    norm = os.path.normpath(path)
+    if norm == os.path.curdir or norm.startswith(os.path.pardir + os.path.sep) or norm == os.path.pardir:
+        return False
+    return True
+
+
+def safe_join_path(base_dir: str, path: str) -> Optional[str]:
+    """Safely join ``path`` onto ``base_dir``, never escaping ``base_dir``.
+
+    Returns the absolute joined path when ``path`` is a safe relative path,
+    otherwise ``None`` so callers can reject the offending entry. Callers MUST
+    use the returned path (not a fresh ``os.path.join``) for the actual write."""
+    if not is_safe_relpath(path):
+        return None
+    joined = os.path.abspath(os.path.join(base_dir, path))
+    base_abs = os.path.abspath(base_dir)
+    if joined != base_abs and not joined.startswith(base_abs + os.path.sep):
+        return None
+    return joined
 
 
 async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int]:

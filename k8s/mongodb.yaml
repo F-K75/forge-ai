@@ -85,6 +85,20 @@ spec:
         requests:
           storage: 10Gi
 ---
+# PodDisruptionBudget: keep at least 2 of 3 replicas up during voluntary
+# disruptions (node drains, cluster upgrades) so the replica set retains a
+# primary and quorum is never lost.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mongodb
+  namespace: forge-ai-prod
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: mongodb
+---
 # Headless service for MongoDB replica set
 apiVersion: v1
 kind: Service
@@ -133,7 +147,16 @@ spec:
         - bash
         - -c
         - |
+          set -e
           sleep 10
+          # Idempotent: only initiate if the replica set is not already
+          # configured. Re-running this Job (redeploy, crash-loop) must not fail
+          # with "already initiated".
+          STATUS=$(mongosh --quiet mongodb://mongodb:27017/admin --eval 'rs.status().ok' 2>/dev/null || echo "0")
+          if [ "$STATUS" = "1" ]; then
+            echo "Replica set rs0 already initiated; skipping."
+            exit 0
+          fi
           mongosh mongodb://mongodb:27017/admin --eval '
             rs.initiate({
               _id: "rs0",
@@ -144,6 +167,9 @@ spec:
               ]
             });
           '
+          echo "Replica set rs0 initiated."
       restartPolicy: Never
   backoffLimit: 5
   parallelism: 1
+  # Auto-clean the completed init Job so it does not linger / re-trigger.
+  ttlSecondsAfterFinished: 300

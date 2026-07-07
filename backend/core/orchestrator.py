@@ -13,6 +13,8 @@ from core.models import (
 )
 from core.config import get_settings
 from core.database import get_db
+from sandbox.moderation import scan_code
+from sandbox.csp import apply_csp
 
 settings = get_settings()
 
@@ -192,11 +194,26 @@ class Orchestrator:
                 ))
 
 
+            # --- CONTENT SECURITY POLICY (generated apps) ---
+            # Inject a secure default CSP into the generated app itself (HTML
+            # meta + FastAPI middleware) so the protection travels with the code
+            # when it is deployed/previewed standalone -- not just behind the
+            # Forge platform's own headers.
+            csp_report = apply_csp(files)
+
             # --- 6. SANDBOX (best-effort static check, folded into the first PM pass) ---
             sandbox_errors = []
             if sandbox_runner:
                 raw = await sandbox_runner.run(files)
                 sandbox_errors = [line for line in raw.split("\n") if line.strip()] if raw else []
+
+            # Content moderation: block leaked secrets / destructive commands by
+            # folding them into sandbox_errors (the PM debug loop remediates
+            # them), and re-scan the final files after the loop to attach a
+            # non-blocking report to the build output.
+            _moderation = await scan_code(files)
+            if _moderation and _moderation.blocking_lines():
+                sandbox_errors.extend(_moderation.blocking_lines())
 
             # --- 7. PM VALIDATION + DEBUG LOOP ---
             # PM is the authority on whether the build needs another pass. If it
@@ -270,6 +287,13 @@ class Orchestrator:
             # --- 8. DONE ---
             build.status = BuildStatus.SUCCESS
             build.completed_at = datetime.utcnow()
+
+            # Attach the final (post-debug-loop) moderation + CSP reports so
+            # users see any non-blocking warnings even when blocking issues were
+            # remediated.
+            final_moderation = await scan_code(files)
+            validation["moderation"] = final_moderation.to_dict() if final_moderation else None
+            validation["csp"] = csp_report.to_dict()
 
             # BUILD_COMPLETE already carries the full final `files` state
             # below -- a trailing FILE_UPDATE re-sending everything as a

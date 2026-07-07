@@ -29,16 +29,16 @@
 
 | Field | Value |
 |-------|-------|
-| **Description** | Single MongoDB instance in production. If the instance fails, all data is lost. No replication, no failover. |
-| **Likelihood** | 4 (Likely - hardware failures are inevitable) |
-| **Impact** | 5 (Catastrophic - complete data loss) |
-| **Risk Level** | **20 (Critical)** |
-| **Mitigation** | Deploy MongoDB replica set (3 nodes) in Sprint 1. Implement automated daily backups with point-in-time recovery. Test restore procedure monthly. |
+| **Description** | Was a single MongoDB instance with no replication/failover. **RESOLVED:** `k8s/mongodb.yaml` deploys a 3-node `rs0` StatefulSet (replica set) with a keyfile-authenticated init Job and a `PodDisruptionBudget` (minAvailable: 2). `k8s/mongodb-backup-cronjob.yaml` runs daily `mongodump` to a PVC and (optionally) S3. **Gap closed this session:** the app/backup connection-string contract did not require `replicaSet=rs0`, so a bare URL would silently disable driver failover; `core/config.py` now enforces it in production. A restore Job (`k8s/mongodb-restore-job.yaml`) now exists so DR is testable. |
+| **Likelihood** | 2 (Unlikely - replication + daily backups in place) |
+| **Impact** | 5 (Catastrophic - complete data loss, if both AZ and backup fail) |
+| **Risk Level** | **20 (Critical) → 8 (Medium, mitigated)** |
+| **Mitigation** | 3-node replica set (done), daily backups to PVC/S3 (done), restore Job + documented DR drill (done this session). Monthly restore drill still recommended as an operational habit. |
 | **Owner** | DevOps Lead |
-| **Status** | 🔴 Active |
-| **Trigger** | MongoDB instance failure |
-| **Contingency** | Restore from latest backup (RPO: 24h, RTO: 4h) |
-| **Residual Risk** | Medium - backup may be up to 24h stale |
+| **Status** | 🟢 Closed (mitigated) |
+| **Trigger** | Simultaneous loss of quorum + all backups (residual) |
+| **Contingency** | Restore from latest backup via `k8s/mongodb-restore-job.yaml` (RPO: 24h, RTO: ~1h) |
+| **Residual Risk** | Low - backups may be up to 24h stale; no TLS on mongo traffic yet (audit P1-MED-001, out of scope this session) |
 
 ---
 
@@ -437,16 +437,16 @@
 
 | Field | Value |
 |-------|-------|
-| **Description** | No DR plan tested. Backup restore may fail when needed. |
+| **Description** | Was: no tested DR plan; restore could fail when needed. **RESOLVED this session:** `k8s/mongodb-restore-job.yaml` provides a parameterized `mongorestore --drop --gzip` Job against the same `mongodb-url` secret, with documented S3-pull + runbook steps, so a restore is executable and testable rather than ad-hoc. |
 | **Likelihood** | 2 (Unlikely - but catastrophic if it happens) |
 | **Impact** | 5 (Catastrophic - extended outage, data loss) |
-| **Risk Level** | **10 (High)** |
-| **Mitigation** | Implement backup strategy (INF-005) in Sprint 1. Test restore monthly. Conduct DR drill in Sprint 5. |
+| **Risk Level** | **10 (High) → 5 (Medium, mitigated)** |
+| **Mitigation** | Daily `mongodump` (done), restore Job + runbook (done this session). Monthly restore drill recommended as an operational habit. |
 | **Owner** | DevOps Lead |
-| **Status** | 🟡 Mitigated |
+| **Status** | 🟢 Closed (mitigated) |
 | **Trigger** | Major infrastructure failure |
-| **Contingency** | Manual recovery from backups |
-| **Residual Risk** | Medium - depends on backup integrity |
+| **Contingency** | Run `k8s/mongodb-restore-job.yaml` with the target backup timestamp |
+| **Residual Risk** | Low - restore still unverified against a live cluster in this environment; should be drilled in staging |
 
 ---
 

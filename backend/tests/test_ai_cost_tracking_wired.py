@@ -165,7 +165,7 @@ class TestBudgetAlerts:
         # Should have marked "daily_50" as sent
         db.users.update_one.assert_called_once()
         call = db.users.update_one.call_args
-        args, kwargs = call[0], call[1]
+        args = call[0]
         # First positional arg is the filter
         assert args[0] == {"id": "user_1"}
         # Second positional arg is the update document

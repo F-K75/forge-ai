@@ -1,5 +1,793 @@
 # Changelog
 
+## 2026-07-07 — CSP Headers for Generated Applications (AI-007, P1)
+
+### Features Added
+
+- New deterministic injector `backend/sandbox/csp.py` (`apply_csp`,
+  `inject_html_csp`, `inject_fastapi_csp`, `CspReport`) that adds a secure
+  default CSP to generated apps at build time so the protection travels with
+  the code when deployed/previewed standalone.
+- HTML entry points get a CSP `<meta>` in `<head>`.
+- Simple module-level FastAPI apps (`app = FastAPI(...)`) get a CSP
+  response-header middleware appended.
+- `DEFAULT_CSP`: `default-src 'self'; script-src 'self'; style-src 'self'
+  'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self';
+  object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action
+  'self'`.
+
+### Bugs Fixed
+
+- Generated applications had no Content-Security-Policy of their own (only the
+  Forge platform's responses did), leaving XSS in generated frontend code
+  uncontained.
+
+### Files Changed
+
+- `backend/sandbox/csp.py` — new injector.
+- `backend/core/orchestrator.py` — `apply_csp(files)` after integration;
+  `validation["csp"]` attached on `BUILD_COMPLETE`.
+- `backend/tests/test_csp_injection.py` — 13 new tests.
+
+### Testing Coverage
+
+- 13 new backend tests (HTML inject/idempotent/non-override; FastAPI
+  supported/skip/duplicate-import; `apply_csp` dict behavior). Full backend
+  suite **349 passed**; ruff clean.
+
+### Risks
+
+- `script-src 'self'` may block inline scripts in some generated apps at
+  preview (CSP working as intended). Backend CSP only for the simple
+  module-level FastAPI shape; other layouts skipped (not broken).
+
+### Breaking Changes
+
+- None (report rides the existing `validation` dict).
+
+### Migration Notes
+
+- None.
+
+## 2026-07-07 — Content Moderation for Generated Code (AI-005, P0/P1)
+
+### Features Added
+
+- New deterministic scanner `backend/sandbox/moderation.py` (`scan_code`,
+  `ModerationReport`, `Finding`) that checks every generated file for leaked
+  secrets and unsafe operations before deploy.
+- Blocking detections (folded into the build's sandbox errors so the PM debug
+  loop remediates them): AWS Access Key ID / secret, PEM private keys, Stripe
+  live/restricted keys, Google API keys, Slack tokens, GitHub PATs; and
+  destructive ops — `rm -rf /` (or `/*`, `~`), `shutil.rmtree("/")`,
+  `os.remove("/")`, bash fork bomb, `dd of=/dev/(sd|hd|nvme|vda)`,
+  `os.system("shutdown"|"halt"|"reboot"|"poweroff")`.
+- Warning detections (non-blocking, surfaced in the build report):
+  piped-to-shell downloads (`curl … | sh`), `eval(`/`exec(`, and high-entropy
+  assignments to secret-named variables (placeholder-filtered).
+- Integrated into `core/orchestrator.run_build`: blocking findings enter
+  `sandbox_errors` (debug loop remediates); the final report is attached to
+  `validation["moderation"]` (emitted/persisted on `BUILD_COMPLETE`).
+
+### Bugs Fixed
+
+- Generated apps could previously deploy with hardcoded cloud credentials or
+  destructive commands and no static safeguard beyond syntax checks.
+
+### Files Changed
+
+- `backend/sandbox/moderation.py` — new scanner.
+- `backend/core/orchestrator.py` — import `scan_code`; fold blocking lines into
+  `sandbox_errors`; attach final report to `validation["moderation"]`.
+- `backend/tests/test_content_moderation.py` — 23 new tests.
+
+### Testing Coverage
+
+- 23 new backend tests (all secret/destructive rules, both warning categories,
+  placeholder/false-positive discipline, report helpers). Full backend suite
+  **336 passed**; ruff clean.
+
+### Risks
+
+- Pattern-based detection is incomplete against obfuscation (backstop, not a
+  complete guarantee). Warning rules may appear in legitimate code but are
+  non-blocking. Per-file scan capped at 200 KB.
+
+### Breaking Changes
+
+- None (report rides the existing `validation` dict).
+
+### Migration Notes
+
+- None.
+
+## 2026-07-07 — Harden Prompt-Injection Detection (AI-002, P0)
+
+### Features Added
+
+- Rewrote `core/llm/router._detect_prompt_injection` into a deterministic,
+  obfuscation-resistant blocklist. A new `_strip_obfuscation` helper NFKC-
+  normalizes the input, strips invisible/format characters, maps common
+  Unicode homoglyphs to ASCII, and lower-cases before producing a `spaced` and
+  a `despaced` form. Each injection phrase is matched against both forms
+  (the de-spaced form catches word/letter spacing like `i g n o r e`).
+- Added `_INVISIBLE_RE` (zero-width spaces, soft hyphen, BOM, etc.),
+  `_HOMOGLYPH_MAP` (Cyrillic/Greek look-alikes), and a de-spaced phrase set.
+- Expanded the phrase list from 5 to 14 high-precision phrases (added
+  `disregard`/`forget previous instructions`, `ignore the above/previous
+  prompt`, `reveal/print/show your instructions`, etc.).
+
+### Bugs Fixed
+
+- Zero-width-character bypass (`ignore\u200b previous instructions`) — now detected.
+- Unicode homoglyph bypass (`іgnore prevіous іnstructіons`) — now detected.
+- Full-width Unicode bypass (`ＩＧＮＯＲＥ ＰＲＥＶＩＯＵＳ …`) — now detected.
+- Word/letter-spacing bypass (`i g n o r e previous instructions`) — now detected.
+- Missing phrase variants (`disregard`/`forget`/`reveal your instructions`) — now detected.
+
+### Files Changed
+
+- `backend/core/llm/router.py` — `_INJECTION_PHRASES`, `_INJECTION_PHRASES_DESPACED`,
+  `_INVISIBLE_RE`, `_HOMOGLYPH_MAP`, `_strip_obfuscation`, `_detect_prompt_injection`.
+- `backend/tests/test_prompt_injection_detection.py` — 9 new regression tests.
+
+### Testing Coverage
+
+- 9 new backend tests (zero-width, soft hyphen, homoglyph, full-width, word
+  splitting, expanded phrases, two benign-prompts-must-pass guards). Total in
+  file: 17 passed. Full backend suite **305 passed**; ruff clean.
+
+### Risks
+
+- Pattern-based detection remains incomplete against free paraphrasing; it is a
+  deterministic backstop, not a complete defense. Homoglyph map kept small to
+  avoid false positives.
+
+### Breaking Changes
+
+- None.
+
+### Migration Notes
+
+- None.
+
+## 2026-07-07 — Data Retention Policy (DB-003, P0)
+
+### Features Added
+
+- Centralized the data-retention policy into a single config-driven source of
+  truth: `RETENTION_TTL_SECONDS` in `core/config.py`, applied at startup by the
+  new `apply_retention_ttl_indexes()` helper in `core/database.py` as
+  `created_at` TTL indexes. Previously the TTLs were scattered as inline
+  `expireAfterSeconds` calls (and `sessions` / `notifications` had none).
+- Ephemeral / high-volume collections now auto-expire via MongoDB native TTL
+  (atomic, no app downtime): `build_files` (90d), `analytics_events` (90d),
+  `audit_logs` (1y), `security_events` (90d), `token_blacklist` (24h),
+  `ai_usage` (90d), **`sessions` (30d — matches refresh-token lifetime)**, and
+  **`notifications` (90d)**. Core business records (users, projects, builds,
+  subscriptions, deployments, support_tickets, marketplace_items) are retained
+  indefinitely by design. `rate_limits` keeps its existing `reset_at` 5-min TTL.
+
+### Bugs Fixed
+
+- None (additive; refactor of existing inline TTLs into the centralized policy).
+
+### Files Changed
+
+- `backend/core/config.py` — `RETENTION_TTL_SECONDS` policy dict.
+- `backend/core/database.py` — `apply_retention_ttl_indexes()`; `_ensure_indexes`
+  invokes it; removed the 6 duplicated inline `created_at` TTL index calls.
+- `backend/tests/test_retention_policy.py` — 5 new tests.
+
+### Testing Coverage
+
+- 5 new backend tests (policy contents, per-collection TTL index creation,
+  missing-collection skip, create-failure non-raise). Full backend suite
+  **305 passed**.
+
+### Risks
+
+- Automated **archival to cold storage (S3 Glacier)** is deferred — it requires
+  bucket/export infrastructure that isn't wired. TTL deletion is the enforcement
+  mechanism for now, which satisfies the purge/retention requirement; archival
+  is a future enhancement.
+
+### Breaking Changes
+
+- None (index shapes unchanged for the 6 previously-TTL'd collections; two new
+  TTL indexes added for `sessions`/`notifications`).
+
+## 2026-07-07 — Redis Caching for Read-Heavy Endpoints (BE-007, P0)
+
+### Features Added
+
+- Added a reusable cache-aside helper (`backend/core/cache.py`) so read-heavy
+  endpoints get consistent TTLs, fail-open behaviour, and a single invalidation
+  entry point without re-implementing boilerplate (`cached_read` +
+  `invalidate_cache`).
+- Cached `GET /billing/plans` (1h TTL) — the plan table is config-driven and
+  effectively static per deploy, so every pricing-page load no longer rebuilds
+  it.
+- Cached `GET /auth/me` (60s TTL) and invalidate the entry on `PUT /auth/me`
+  and password change, so profile reads are shielded but writes reflect
+  immediately.
+- Feature flags were already cached with write-invalidation in `admin.py`;
+  this unifies the pattern and closes the plans/user-profile gap.
+
+### Bugs Fixed
+
+- None (additive caching + helper module).
+
+### Files Changed
+
+- `backend/core/cache.py` — new cache-aside helper + TTL constants.
+- `backend/api/billing.py` — `list_plans` now serves through `cached_read`.
+- `backend/api/auth.py` — `get_me` cached; `update_profile` + `change_password`
+  invalidate the profile cache.
+- `backend/tests/test_cache_helper.py`, `backend/tests/test_cache_plans.py` —
+  9 new tests (cache-aside miss/hit, fail-open, invalidation, plans cycle).
+
+### Testing Coverage
+
+- 9 new backend tests; full backend suite **300 passed** (was 291).
+- `ruff` clean on changed files.
+
+### Risks
+
+- Profile cache window is 60s; a write outside `update_profile`/`change_password`
+  (e.g. admin credit grant) could show a stale profile for up to 60s. Acceptable
+  for this endpoint; the invalidation points cover the common user-driven
+  mutations.
+- Cache hit/miss metrics not yet exported (deferred — scrape source already
+  exists via Prometheus HTTP metrics + `/health/pools`).
+
+### Breaking Changes
+
+- None (response shapes unchanged; caching is transparent).
+
+## 2026-07-07 — Frontend Test Infrastructure (TEST-001, P1 → Production Gate)
+
+### Features Added
+
+- Established the first automated frontend test suite and made it a **blocking
+  CI gate**. The frontend had zero `*.test.*` files and CI ran no frontend tests
+  (the single reddest launch-readiness item: "Frontend Tests: 0 files").
+- Fixed the Vitest setup so the suite actually executes: `src/test/setup.ts`
+  now imports `@testing-library/jest-dom/vitest` instead of the bare
+  `@testing-library/jest-dom`, which called `expect.extend()` before Vitest's
+  `expect` existed and crashed all 4 test files with
+  `ReferenceError: expect is not defined`.
+- Wired `npm test` (vitest run) into `.github/workflows/ci.yml` as a mandatory
+  step in the `frontend` job, between lint and the tsc/vite build, so client
+  regressions fail the pipeline instead of shipping silently.
+- Added coverage for the highest-risk client logic:
+  - **`api` client**: instance config (baseURL, `withCredentials`, JSON
+    content-type), CSRF `X-CSRF-Token` attach on mutating requests, CSRF
+    exemption for login/register/forgot/reset/billing-webhook, no CSRF on GET,
+    and error propagation.
+  - **`buildStore`**: full build state machine — `startBuild`, `agent_start`/
+    `agent_complete`, `stream_token` accumulation, `file_update` merge/delete,
+    `build_complete` (QA score / credits / files), `build_failed`, `debug_start`
+    (debugging state + iteration), and `reset`.
+  - **`authStore`**: demo-mode `login`/`register`/`logout` session lifecycle.
+  - **`SummaryChip`** component render.
+
+### Bugs Fixed
+
+- **P1 — broken test harness**: `expect is not defined` on every test file due
+  to the wrong jest-dom import path. Resolved by using the Vitest-specific
+  entry so matchers bind to Vitest's `expect`.
+
+### Files Changed
+
+- `frontend/src/test/setup.ts` — corrected jest-dom import for Vitest.
+- `frontend/src/lib/api.test.ts` — added CSRF + error-propagation cases.
+- `frontend/src/store/buildStore.test.ts` — added state-machine cases.
+- `frontend/src/store/authStore.test.ts` — added register case.
+- `.github/workflows/ci.yml` — added `npm test` gate to the `frontend` job.
+
+### Testing Coverage
+
+- **20 frontend tests passing** across 4 files (`vitest run`, jsdom).
+- `npm run lint` clean; `npm run build` (tsc + vite) green — test files
+  type-check under the strict tsconfig.
+
+### Risks
+
+- Test suite is green in jsdom but does not yet cover routing/components that
+  need a full browser or the live backend; that follows as component/E2E tests
+  (FE-006 analytics, remaining critical-route component tests).
+
+### Breaking Changes
+
+- None (test infrastructure + CI config only).
+
+## 2026-07-07 — Fix Secret Scanning Pipeline (P0)
+
+### Features Added
+
+- Restored real secret-scanning enforcement. The `secret-scanning.yml` job now
+  passes on every run and actually detects credential URLs.
+- Added `mongodb://` / `redis://` credential-URL detection to the grep fallback
+  in both `secret-scanning.yml` and `scripts/git-hooks/pre-commit` (git-secrets'
+  `-w` scan could never match URL patterns).
+
+### Bugs Fixed
+
+- **P0 — secret-scan job red on every run**: committed dummy/test values
+  (`sk_live_test123456789`, `sk_live_1234567890abcdef`, `secret=secret` in
+  `auth.py`, the pre-commit hook's own regex literals) failed the `git secrets
+  --scan` step. Expanded `.gitallowed` with narrow, anchored exemptions.
+- **P0 — credential URLs silently missed**: git-secrets scans with `grep -w`, so
+  `mongodb://user:pass@host` / `redis://:pass@host` never matched (verified with
+  a real `mongodb://admin:s3cr3tP@ssw0rd@host` URL). The grep fallback now covers
+  them with portable POSIX patterns.
+- **Pre-commit hook dead fallback**: its `SECRET_PATTERNS` had inline `# comments`
+  that broke the combined `grep -E` regex; cleaned and extended with URL patterns.
+- Made git-secrets install robust on `ubuntu-latest` (install `make` before the
+  clone+`make install` fallback, since `git-secrets` is not in apt).
+
+### Files Changed
+
+- `.gitallowed` — expanded false-positive exemptions.
+- `.github/workflows/secret-scanning.yml` — robust install; rewritten grep
+  fallback with URL patterns + file/line allowlists.
+- `scripts/git-hooks/pre-commit` — cleaned `SECRET_PATTERNS` (no inline comments),
+  added URL patterns + `ALLOW_LINE`.
+
+### Testing Coverage
+
+- `git secrets --scan` (whole repo) → exit 0 (was 1).
+- Negative test: real `sk_live_<random>` still flagged (no over-exemption).
+- Grep-fallback simulation: real mongo/redis URLs flagged; dummy keys and
+  `.env.example` (`CHANGE_ME`) correctly exempted.
+- `bash -n` on the hook and YAML validation on the workflow both pass.
+
+### Risks
+
+- credential-URL detection covers changed files only (git-secrets' `-w`
+  limitation); a pre-existing committed credential URL would need a one-time
+  history cleanup (out of scope).
+
+### Breaking Changes
+
+- None (CI/hook config only).
+
+## 2026-07-07 — Frontend CI Pipeline Verified Green
+
+### Features Added
+
+- Verified the frontend CI job end-to-end by reproducing its exact commands
+  (`npm ci`, `eslint .`, `npm audit --omit=dev --audit-level=high`,
+  `tsc && vite build` with the `export_ws_events.py` prebuild). All pass.
+
+### Bugs Fixed
+
+- None — the frontend pipeline was already green (no source/config change
+  required).
+
+### Files Changed
+
+- None (verification milestone only).
+
+### Testing Coverage
+
+- Frontend CI command chain reproduced locally: `npm ci` (lockfile in sync),
+  `npm run lint` (clean), `npm audit --omit=dev` (0 vulnerabilities),
+  `npm run build` (tsc + vite build succeeded; prebuild generator ran clean).
+
+### Risks / Gaps Logged
+
+- **No frontend test automation**: no vitest/jest, zero `*.test.*` files, and CI
+  runs no frontend tests. P1 testing gap — **RESOLVED 2026-07-07** (see
+  "Frontend Test Infrastructure" entry above): 20 vitest tests now run as a
+  blocking CI gate.
+- **`secret-scanning.yml` likely broken** (installs `git-secrets` via brew/apt
+  on ubuntu) — P0 security-pipeline gap; separate workflow, out of scope here.
+- Dev-only npm advisories (vite/esbuild) remain; excluded by CI's
+  `--omit=dev` scope; need a dedicated vite bump regression pass.
+
+### Breaking Changes
+
+- None.
+
+## 2026-07-07 — Restore Green CI Quality Gate (P0)
+
+### Features Added
+
+- Repaired the broken CI `quality-gate` so the backend test suite actually runs
+  and the production-config contract is enforced end-to-end.
+- Fixed the CI lint gate (`ruff --select F,E9`) which was red on committed code.
+
+### Bugs Fixed
+
+- **Backend tests never ran in CI** (P0): the `Run backend tests` step omitted
+  `CI_TEST_MODE`/`TESTING`, so `Settings()` validation aborted collection for
+  every test. Added `CI_TEST_MODE: "true"` + `TESTING: "true"` to the step.
+- **Production config smoke test failed** (P0): `APP_ENV=production` was set
+  with a MongoDB URL missing `replicaSet=rs0`, violating the app's own strict
+  validator. Added `replicaSet=rs0` to the URL.
+- **prod-artifacts image import failed** (P0): same missing `replicaSet=rs0`
+  URL. Fixed.
+- **Migration script correctness bug**: `scripts/migrate_field_encryption_key.py`
+  used a duplicated `"$ne"` key (`{"$ne": None, "$ne": ""}`), where the second
+  silently overwrote the first, dropping the null-check. Replaced with
+  `{"$nin": [None, ""]}`.
+- Removed unused imports and an unused unpacked variable flagged by ruff.
+
+### Files Changed
+
+- `.github/workflows/ci.yml` — test step env + `replicaSet=rs0` in two URLs.
+- `backend/scripts/migrate_field_encryption_key.py` — dead imports removed;
+  `$nin` query fix.
+- `backend/tests/test_ai_cost_tracking_wired.py` — dropped unused `kwargs`.
+
+### Testing Coverage
+
+- Backend suite: **291 passed** under the corrected CI command.
+- `ruff check . --select F,E9` — all checks passed.
+- Production-config and prod-image import reproduced locally and verified.
+
+### Risks
+
+- `CI_TEST_MODE=true` in the test step relaxes config validation; scoped to that
+  step only. `conftest.py` left untouched so strict-validation tests still hold.
+
+### Breaking Changes
+
+- None (CI configuration + one-off script only).
+
+## 2026-07-07 — Backlog Verification & Hygiene Pass (tracker reconciled)
+
+### Features Added
+
+**Reconciled the stale backlog/audit tracker against the current codebase.**
+The security P0/P1 audit appendix and `ENGINEERING_BACKLOG.md` listed many open
+items that are in fact already resolved in code; the docs had not been updated
+as the app was hardened. This pass re-verified the open items against the source
+and marked the confirmed-resolved ones, each with a code reference
+(file:line) so the claim is auditable.
+
+- All 9 open **SEC-xxx** security items marked RESOLVED in
+  `ENGINEERING_BACKLOG.md`: SEC-003 (WebSocket short-lived token auth),
+  SEC-005 (JTI blacklist), SEC-006 (pbkdf2 reset tokens), SEC-008 (email
+  verification), SEC-009 (sanitized + fixed-structure admin search), SEC-010
+  (`sanitize_string` defined), SEC-011 (per-email auth rate limits), SEC-012
+  (webhook URL SSRF guard + Stripe signature verification), SEC-013
+  (config-driven CORS allowlist).
+- Confirmed resolved earlier this engagement / in the working tree: P0-HIGH-004
+  (container-kill ownership), P0-HIGH-005 (path traversal), P0-HIGH-009 (XFF
+  trusted-proxy), P0-HIGH-010 (CSRF wired), INF-007 (per-user rate limiting),
+  DB-002 (migration runner), plus BE-002/003/005/008/010/011/012 and INF-005
+  (MongoDB backup/restore manifests).
+
+### Files Changed
+
+- `ENGINEERING_BACKLOG.md` — 9 SEC-xxx sections updated to RESOLVED with code
+  references.
+
+### Testing Coverage
+
+- No code change. Backend suite remains **288 passed** (verified green;
+  untouched this pass).
+
+### Risks
+
+- Items not individually re-verified this pass (BE-001, BE-004, BE-007,
+  FE-001..007, AI-002..007, INF-008, DB-003, DEVOPS-002..006) are left
+  OPEN by default and should be verified before being closed. TEST-001 is now
+  RESOLVED (frontend test suite + CI gate added 2026-07-07). This pass does
+  not over-claim.
+
+### Breaking Changes
+
+- None (documentation only).
+
+### Migration Notes
+
+- None.
+
+---
+
+## 2026-07-07 — DB-002: Versioned Database Migration Runner
+
+### Features Added
+
+**Closed DB-002 — Forge had no versioned, tracked database migration
+mechanism.** Schema/index changes were implicit via
+`core.database._ensure_indexes` at startup, with no record of what had been
+applied and no orderly way to run versioned data backfills. Added a lightweight,
+idempotent migration runner (`backend/core/migrations.py`) purpose-built for
+MongoDB (Alembic is SQL-oriented and a poor fit here):
+
+- `@migration(version, name, description)` registers a coroutine.
+- `run_migrations(db)` runs only not-yet-applied migrations in ascending version
+  order; each is recorded in the `__forge_migrations` collection (version, name,
+  status, finished_at) for auditability.
+- Execution is best-effort and non-fatal: a failing migration is logged and
+  recorded as `failed` and skipped, so it never blocks app startup. `run_migrations`
+  itself never raises (fully guarded, safe even against a degenerate DB).
+- Wired into `main.py`'s `lifespan` so migrations run automatically on every
+  deploy/restart.
+- Ships two safe, idempotent data-backfill migrations: default `plan="free"` and
+  `banned=false` where those fields are missing, preventing entitlement/flags
+  gaps for users created before those fields existed.
+
+### Files Changed
+
+- `backend/core/migrations.py` — new runner + two backfill migrations.
+- `backend/main.py` — `lifespan` calls `run_migrations(db)` (best-effort).
+- `backend/tests/test_migrations.py` — new suite (4 tests).
+
+### Testing Coverage
+
+- `tests/test_migrations.py` (4 tests): migrations apply exactly once and are
+  skipped on re-run (idempotent); missing `plan`/`banned` are backfilled while
+  existing values are untouched; a failing migration is recorded `failed` and the
+  runner continues; `run_migrations` never raises even against a broken DB.
+- Full backend suite: **288 passed** (was 284; +4 new), no regressions.
+
+### Risks
+
+- Migrations are forward-only (no automatic rollback); a "rollback" is a
+  compensating migration. The recorded `failed` status plus idempotent re-run
+  covers the common recovery path. `core.database._ensure_indexes` is retained
+  for index provisioning; the runner is the forward path for new changes.
+
+### Breaking Changes
+
+- None. The runner is additive; existing index provisioning is unchanged.
+
+### Migration Notes
+
+- No migration needed to adopt this: the `__forge_migrations` collection is
+  created on first run. New schema/data changes should be added as new
+  `@migration` entries rather than ad-hoc startup code.
+
+---
+
+## 2026-07-07 — INF-007: Per-User Rate Limiting (closed IP-rotation bypass)
+
+### Features Added
+
+**Closed INF-007 — authenticated requests are now rate-limited per account, not
+just per source IP.** `rate_limit_middleware` previously keyed every limit by
+`rl:{zone}:{client_ip}`, so a logged-in user could evade the limit by rotating
+client IPs and exhaust shared resources (builds, API calls) per-account without
+tripping it. The middleware now decodes the `access_token` cookie's `sub` claim
+and keys authenticated requests as `rl:{zone}:user:{sub}`; unauthenticated
+requests stay IP-keyed. The decode is lazy (no DB) and any missing/invalid token
+falls back to IP-keying, so the behavior is safe-by-default. The change applies
+to both the Redis-backed path and the in-memory fail-closed fallback, and the
+existing `X-RateLimit-Limit` / `X-RateLimit-Remaining` headers and 429 body are
+unchanged.
+
+- `backend/core/security.py` `rate_limit_middleware` — compute `identity`
+  (`user:{sub}` when a valid access token is present, else `client_ip`) and key
+  the limit on it; the rate-limit `security_event` metadata now records
+  `identity`.
+- `backend/tests/test_per_user_rate_limit.py` — new suite (3 tests).
+
+### Testing Coverage
+
+- `tests/test_per_user_rate_limit.py` (3 tests): the same account from two
+  different IPs shares one counter and hits 429 together (proving the limit is
+  per-account, not per-IP); distinct accounts have independent counters;
+  unauthenticated requests remain IP-keyed; a present-but-invalid token falls
+  back to IP-keying without crashing.
+- Full backend suite: **284 passed** (was 281; +3 new), no regressions.
+
+### Risks
+
+- Plan-tier differentiated limits and per-user concurrent-request limits
+  (sub-criteria in the backlog entry) are **not** part of this fix; the
+  per-account keying closes the actual security gap (IP-rotation bypass). Plan
+  differentiation is a separate, larger change requiring per-plan limit lookup
+  on each request.
+
+### Breaking Changes
+
+- None. Key format only changes for authenticated requests; anonymous traffic
+  is unaffected.
+
+### Migration Notes
+
+- No migration. The limiter keys are runtime Redis/in-memory state.
+
+---
+
+## 2026-07-07 — BE-009: Audit Logging on Critical Operations
+
+### Features Added
+
+**Closed BE-009 — attributable, append-only audit trail for user-facing
+critical operations.** Admin actions (user update, credit adjust, user export)
+were already audited, but project deletion, API key create/delete, webhook
+create/delete, and account deletion wrote nothing. Added a shared, DRY helper
+and wired it into all of them; the helper also captures the client IP and
+user-agent (the prior admin writes omitted these — audit appendix P2-LOW-002),
+so every entry is fully attributable for forensics and compliance.
+
+- `backend/core/audit.py` — new `record_audit_log(db, request, actor, action,
+  resource_type, resource_id, changes)` building an `AuditLog` from request
+  context (`actor` id/email, client IP via `get_client_ip`, `user-agent`).
+- `backend/api/projects.py` `delete_project` → `delete_project`.
+- `backend/api/api_keys.py` `create_api_key` → `create_api_key` and
+  `delete_api_key` → `delete_api_key` (raw key never logged, only metadata).
+- `backend/api/webhooks.py` `create_webhook` → `create_webhook` and
+  `delete_webhook` → `delete_webhook`.
+- `backend/api/gdpr.py` `delete_user_data` → `delete_account` (cascade counts
+  recorded in `changes`).
+- Retention/retrieval already existed: `audit_logs` indexes (actor+created_at,
+  1-year TTL) in `core/database._ensure_indexes` and the admin
+  `GET /admin/audit-logs` viewer.
+
+### Bugs Fixed
+
+- `api/api_keys.create_api_key` omitted `expires_at` from the stored doc when
+  `expires_in_days` was `None`, so the `ApiKeyResponse` contract failed and the
+  endpoint 500'd whenever a key was created without an expiry. Added a `None`
+  default.
+
+### Files Changed
+
+- `backend/core/audit.py` — new shared helper.
+- `backend/api/projects.py`, `backend/api/api_keys.py`,
+  `backend/api/webhooks.py`, `backend/api/gdpr.py` — wired audit calls.
+- `backend/tests/test_audit_logging.py` — new suite (5 tests).
+- `ENGINEERING_BACKLOG.md` — BE-009 marked resolved.
+
+### Testing Coverage
+
+- `tests/test_audit_logging.py` (5 tests): helper captures actor/IP/UA and
+  tolerates a missing request; each critical op (project delete, API key
+  create+delete, webhook create+delete) writes exactly one `AuditLog` with the
+  expected `action`/`resource_id`/`changes`.
+- Full backend suite: **281 passed** (was 276; +5 new), no regressions.
+
+### Risks
+
+- Audit writes are best-effort inserts; a failure surfaces as a 500 on the
+  mutating request (trivial insert). Retention bounded by the existing 1-year
+  TTL.
+
+### Breaking Changes
+
+- None. Audit entries are additive; no API/schema change.
+
+### Migration Notes
+
+- No migration. `audit_logs` indexes are already provisioned at startup.
+
+---
+
+## 2026-07-07 — INF: MongoDB HA Connection Contract + Restore/DR (R-001 / R-025)
+
+### Features Added
+
+**Closed the real gap behind the (stale) R-001 / R-025 risks.** On inspection
+the 3-node MongoDB replica set and daily backup CronJob already exist in
+`k8s/`, but the application/backup **connection-string contract did not require
+`replicaSet=rs0`**. A production `MONGODB_URL` without `replicaSet` makes the
+Motor driver treat the seed as a standalone and silently lose failover — the
+HA deployment defeated by a missing query parameter.
+
+- `backend/core/config.py` `check_mongodb_url` now **requires `replicaSet=`**
+  (expecting `rs0`) in non-development `APP_ENV`, failing fast at startup with
+  a clear message. Development remains standalone-friendly.
+- `k8s/mongodb.yaml`: replica-init Job is now **idempotent** (checks
+  `rs.status().ok`, initiates only if unconfigured) and auto-cleans via
+  `ttlSecondsAfterFinished`. Added a `PodDisruptionBudget` (minAvailable: 2) so
+  node drains/upgrades never drop quorum.
+- `k8s/mongodb-restore-job.yaml` (new): parameterized `mongorestore --drop
+  --gzip` Job reusing the `mongodb-url` secret, with S3-pull support and an
+  embedded runbook, so DR is finally **testable** (closes R-025).
+- `k8s/mongodb-backup-cronjob.yaml`: added `ttlSecondsAfterFinished` for pod
+  cleanup.
+
+### Files Changed
+
+- `backend/core/config.py` — `replicaSet=` requirement in `check_mongodb_url`.
+- `backend/tests/test_config_validation.py` — 3 new/updated URL tests.
+- `k8s/mongodb.yaml` — idempotent init Job, PDB, TTL.
+- `k8s/mongodb-restore-job.yaml` — new restore Job.
+- `k8s/mongodb-backup-cronjob.yaml` — backup pod TTL.
+- `RISK_REGISTER.md` — R-001 and R-025 marked mitigated/closed.
+
+### Testing Coverage
+
+- `tests/test_config_validation.py` (10 tests): production requires
+  `replicaSet=rs0`; production accepts a correct rs0 URL; dev stays standalone;
+  localhost rejected (updated to carry `replicaSet`); existing Stripe/encryption
+  gates unchanged.
+- Full backend suite: **276 passed** (was 273; +3 new), no regressions.
+- k8s manifests validated for YAML parseability (multi-doc).
+
+### Risks
+
+- Operators must add `?replicaSet=rs0` to `MONGODB_URL` and the backup
+  `mongodb-url` secret; the validation now fails fast if forgotten.
+- MongoDB wire **TLS** (audit P1-MED-001) remains out of scope this session.
+- A live-cluster restore drill was not executed here (no cluster); a staging DR
+  drill is recommended as an operational habit.
+
+### Breaking Changes
+
+- Production `MONGODB_URL` must now include `replicaSet=rs0`. Plain standalone
+  URLs are rejected at startup in production (correct, since the deployed
+  cluster is `rs0`).
+
+### Migration Notes
+
+- No data migration. Update the `MONGODB_URL` / `mongodb-url` secret to append
+  `?replicaSet=rs0` before the next prod deploy; the new validation enforces it.
+
+---
+
+## 2026-07-07 — SEC: Deployment/Sandbox File Path Traversal Fix (P0-HIGH-005)
+
+### Bugs Fixed
+
+**Closed a file-path-traversal / arbitrary-file-write vulnerability in the
+build deployment and sandbox-validation file-materialization paths.** Build
+"files" are keyed by a path taken from untrusted LLM/agent output. The
+deployment and sandbox code wrote each file with a bare
+`os.path.join(temp_dir, path)`, so a malicious path such as
+`../../etc/cron.d/evil`, `../.ssh/authorized_keys`, or an absolute
+`/etc/passwd` escaped the temp directory and let the worker process overwrite
+arbitrary host files with attacker-controlled content. This was a documented
+deployment-blocking P0-HIGH item (original security-audit appendix
+P0-HIGH-005).
+
+- Added `is_safe_relpath(path)` and `safe_join_path(base_dir, path)` to
+  `backend/core/security.py`. `safe_join_path` rejects empty, absolute, and
+  `..`-escaping paths, then re-resolves with `os.path.abspath` and verifies the
+  final path is `base_dir` or strictly beneath it, returning `None` on any
+  violation.
+- `backend/api/deployments.py` (`_run_deployment_background` docker build and
+  `_github_push_background`) and `backend/sandbox/runner.py`
+  (`SandboxRunner.run`) now go through `safe_join_path` and **skip** any unsafe
+  entry (with a warning log) instead of writing outside the sandbox.
+
+### Files Changed
+
+- `backend/core/security.py` — added `is_safe_relpath`, `safe_join_path`.
+- `backend/api/deployments.py` — both file-write loops use `safe_join_path`;
+  added `logging` import.
+- `backend/sandbox/runner.py` — `run()` write loop uses `safe_join_path`.
+- `backend/tests/test_path_traversal_deploy.py` — new suite (12 tests).
+
+### Testing Coverage
+
+- `tests/test_path_traversal_deploy.py` (12 tests): relpath acceptance,
+  rejection of `..` / absolute / empty / `.`; `safe_join_path` containment for
+  normpath tricks; end-to-end materialization skips a `../../outside.txt` entry
+  and leaves the sibling host file unwritten, while a safe `src/app.py` is
+  written inside the sandbox.
+- Full backend suite: **273 passed** (was 261; +12 new traversal tests), no
+  regressions.
+
+### Risks
+
+- A path that normalizes back inside the base (e.g. `a/../b` → `b`) is accepted
+  — correct, since it cannot escape. The hard guarantee is the `abspath`
+  containment check, not the textual `..` scan.
+- Only the deployment target (Linux/Docker/k8s) is in scope; on Linux a
+  Windows-style path is an ordinary contained filename.
+
+### Breaking Changes
+
+- None for valid inputs. A build containing a path that escapes the sandbox
+  directory will now have that file skipped (previously it would have been
+  written to wherever the path resolved — a security hole).
+
+### Migration Notes
+
+- No migration required. The change is additive (`safe_join_path` returns
+  `str | None`).
+
+---
+
 ## 2026-07-06 — LLM-013: Shared Multi-Dimensional LLM Rate Limiting (Session 9)
 
 ### Features Added

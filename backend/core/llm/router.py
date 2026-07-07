@@ -4,6 +4,8 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
+import unicodedata
 from typing import Any, Dict, List, Optional, Sequence
 
 from core.ai_usage import calculate_cost, check_budget, estimate_tokens, track_usage
@@ -15,23 +17,82 @@ from core.llm.registry import ProviderRegistry
 
 logger = logging.getLogger(__name__)
 
+# High-precision phrases that indicate an attempt to override the system
+# prompt. Kept deliberately narrow to avoid flagging legitimate build
+# requests; pattern-based detection is a deterministic backstop, not a
+# substitute for model-side safeguards.
 _INJECTION_PHRASES = (
     "ignore previous instructions",
     "ignore all previous instructions",
+    "ignore the above instructions",
+    "ignore the previous instructions",
+    "ignore the above prompt",
     "disregard previous instructions",
+    "disregard all previous instructions",
+    "forget previous instructions",
+    "forget all previous instructions",
     "you are now",
     "reveal your system prompt",
+    "reveal your instructions",
+    "reveal the system prompt",
+    "print your system prompt",
+    "show your system prompt",
 )
+
+# De-spaced variants used to catch word-splitting obfuscation
+# ("i g n o r e previous instructions").
+_INJECTION_PHRASES_DESPACED = tuple(p.replace(" ", "") for p in _INJECTION_PHRASES)
+
+# Invisible / format characters attackers splice between letters to defeat
+# naive substring matching (e.g. "ignore\u200bprevious").
+_INVISIBLE_RE = re.compile(
+    "[\u00ad\u200b\u200c\u200d\u2060-\u2064\ufeff\ufff9-\ufffb]",
+    re.UNICODE,
+)
+
+# Common look-alike Unicode characters mapped to ASCII so homoglyph attacks
+# (Cyrillic / Greek letters standing in for Latin) are caught.
+_HOMOGLYPH_MAP = {
+    "а": "a", "в": "b", "с": "c", "ԁ": "d", "е": "e", "і": "i", "ј": "j",
+    "к": "k", "ѕ": "s", "о": "o", "р": "p", "у": "y", "һ": "h", "п": "n",
+    "г": "r", "χ": "x", "ν": "v", "ρ": "p", "τ": "t", "υ": "y", "ο": "o",
+    "α": "a", "σ": "s", "ε": "e", "ι": "i", "ԉ": "l", "ԍ": "g", "ԟ": "k",
+    "ԗ": "m", "ԑ": "v",
+}
+
+
+def _strip_obfuscation(text: str) -> tuple[str, str]:
+    """Return two normalized forms of `text`:
+    - `spaced`: runs of whitespace/hyphens/underscores collapsed to one space,
+    - `despaced`: all whitespace/hyphens/underscores removed.
+
+    Invisible characters and Unicode homoglyphs are removed/mapped first so
+    the detector resists the most common obfuscation bypasses (zero-width
+    characters, full-width forms, and letter/word spacing).
+    """
+    normalized = unicodedata.normalize("NFKC", text)
+    normalized = _INVISIBLE_RE.sub("", normalized)
+    normalized = "".join(_HOMOGLYPH_MAP.get(ch, ch) for ch in normalized)
+    normalized = normalized.lower()
+    spaced = re.sub(r"[\s\-_]+", " ", normalized).strip()
+    despaced = re.sub(r"[\s\-_]+", "", normalized)
+    return spaced, despaced
 
 
 def _detect_prompt_injection(text: str) -> bool:
-    """Normalize whitespace/hyphens/underscores before matching so trivial
-    reformatting (double spaces, newlines, hyphenation) can't bypass the
-    blocklist."""
-    import re
+    """Detect known prompt-injection phrases even when obfuscated with
+    invisible characters, Unicode homoglyphs, or letter/word spacing.
 
-    normalized = re.sub(r"[\s\-_]+", " ", text.lower()).strip()
-    return any(phrase in normalized for phrase in _INJECTION_PHRASES)
+    Detection is deterministic (no LLM call) so it adds no latency or cost to
+    the build pipeline; it is a backstop, not a complete defense.
+    """
+    if not text:
+        return False
+    spaced, despaced = _strip_obfuscation(text)
+    for phrase, phrase_despaced in zip(_INJECTION_PHRASES, _INJECTION_PHRASES_DESPACED):
+        if phrase in spaced or phrase_despaced in despaced:
+            return True
+    return False
 
 
 def _any_message_has_prompt_injection(messages: List[Dict[str, Any]]) -> bool:

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import math
 from core.models import Project, User
 from core.database import get_db
+from core.audit import record_audit_log
 from datetime import datetime
 from api.auth import get_current_user
 
@@ -122,7 +123,7 @@ async def update_project(project_id: str, req: UpdateProjectRequest, current_use
 
 
 @router.delete("/{project_id}")
-async def delete_project(project_id: str, current_user: User = Depends(get_current_user)):
+async def delete_project(project_id: str, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
     project = await db.projects.find_one({"id": project_id, "user_id": current_user.id}, {"_id": 0})
     if not project:
@@ -130,4 +131,8 @@ async def delete_project(project_id: str, current_user: User = Depends(get_curre
     
     await db.projects.delete_one({"id": project_id, "user_id": current_user.id})
     await db.builds.delete_many({"project_id": project_id, "user_id": current_user.id})
+    await record_audit_log(
+        db, request, current_user, "delete_project", "project",
+        resource_id=project_id, changes={"name": project.get("name")},
+    )
     return {"ok": True}

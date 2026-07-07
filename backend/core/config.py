@@ -1,3 +1,5 @@
+from typing import Dict
+
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from pydantic import field_validator, model_validator
@@ -36,6 +38,19 @@ class Settings(BaseSettings):
         if app_env != "development" and "localhost" in v:
             raise ValueError(
                 "MONGODB_URL must not point to localhost outside development"
+            )
+
+        # The production MongoDB is deployed as a 3-node replica set (rs0) in
+        # k8s/mongodb.yaml. A connection string that omits `replicaSet=rs0`
+        # makes the driver treat the seed as a standalone: it never discovers
+        # the topology and cannot fail over to a new primary, silently
+        # defeating the HA deployment. Require the replicaSet parameter in
+        # production/non-dev environments so the app and backup tooling get a
+        # correct failover-aware connection.
+        if app_env != "development" and "replicaSet=" not in v:
+            raise ValueError(
+                "MONGODB_URL must include replicaSet=rs0 for the production "
+                "replica set (k8s/mongodb.yaml deploys rs0)"
             )
 
         return v
@@ -222,3 +237,23 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+# Data retention policy (DB-003). Maps collection name -> TTL in seconds,
+# applied as MongoDB TTL indexes on `created_at` in core.database._ensure_indexes
+# (via apply_retention_ttl_indexes). Only ephemeral / high-volume collections are
+# auto-expired; core business records (users, projects, builds, subscriptions,
+# deployments, support_tickets, marketplace_items, etc.) are retained
+# indefinitely. `rate_limits` is intentionally excluded here because its TTL is
+# keyed on `reset_at` (see _ensure_indexes). Adjusting a value changes retention
+# for newly-expiring documents on the next app start.
+RETENTION_TTL_SECONDS: Dict[str, int] = {
+    "build_files": 90 * 24 * 3600,       # 90 days
+    "analytics_events": 90 * 24 * 3600,  # 90 days
+    "audit_logs": 365 * 24 * 3600,       # 1 year (compliance record)
+    "security_events": 90 * 24 * 3600,   # 90 days
+    "token_blacklist": 24 * 3600,        # 24 hours (JWT revocation)
+    "ai_usage": 90 * 24 * 3600,          # 90 days (cost tracking)
+    "sessions": 30 * 24 * 3600,          # 30 days (matches refresh-token lifetime)
+    "notifications": 90 * 24 * 3600,     # 90 days
+}

@@ -1,0 +1,90 @@
+# MongoDB point-in-time-ready restore Job for disaster recovery.
+#
+# Backups are produced by k8s/mongodb-backup-cronjob.yaml (mongodump --gzip to a
+# local PVC and/or S3). This Job restores a backup into the running rs0 cluster.
+#
+# USAGE
+#   1. Pick a backup timestamp, e.g. 20260707_020000
+#      (from the backup PVC, or s3://<bucket>/mongodb-backups/<timestamp>/).
+#   2. For S3-backed restores, set S3_BUCKET + AWS_* secrets and uncomment the
+#      sync step, OR pre-stage the dump under /backup/<timestamp>.
+#   3. kubectl -n forge-ai-prod apply -f k8s/mongodb-restore-job.yaml
+#   4. kubectl -n forge-ai-prod logs job/mongodb-restore -f
+#   5. After verification, delete the Job: kubectl -n forge-ai-prod delete job mongodb-restore
+#
+# WARNING: this DROPS the target database first. Only run against the intended
+# cluster and confirm the timestamp. For a true DR drill, restore into a
+# separate namespace/cluster, not production.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-restore
+  namespace: forge-ai-prod
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: mongodb-restore
+        image: mongo:7.0.5
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          TIMESTAMP="${RESTORE_TIMESTAMP:?RESTORE_TIMESTAMP (e.g. 20260707_020000) is required}"
+          BACKUP_DIR="/backup/${TIMESTAMP}"
+
+          # Optional: pull from S3 if configured and not already staged locally.
+          if [ ! -d "${BACKUP_DIR}" ] && [ -n "${AWS_ACCESS_KEY_ID}" ] && [ -n "${AWS_SECRET_ACCESS_KEY}" ] && [ -n "${S3_BUCKET}" ]; then
+            echo "Pulling backup ${TIMESTAMP} from s3://${S3_BUCKET}/mongodb-backups/${TIMESTAMP}/"
+            aws s3 sync "s3://${S3_BUCKET}/mongodb-backups/${TIMESTAMP}/" "${BACKUP_DIR}/"
+          fi
+
+          if [ ! -d "${BACKUP_DIR}" ]; then
+            echo "ERROR: backup directory ${BACKUP_DIR} not found locally or in S3."
+            exit 1
+          fi
+
+          echo "Restoring from ${BACKUP_DIR} into ${MONGODB_URL}"
+          mongorestore \
+            --uri="${MONGODB_URL}" \
+            --drop \
+            --gzip \
+            "${BACKUP_DIR}"
+          echo "Restore completed for ${TIMESTAMP}."
+        env:
+        - name: RESTORE_TIMESTAMP
+          value: "REPLACE_WITH_BACKUP_TIMESTAMP"
+        - name: MONGODB_URL
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: mongodb-url
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: aws-access-key-id
+              optional: true
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: aws-secret-access-key
+              optional: true
+        - name: S3_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: s3-bucket
+              optional: true
+        volumeMounts:
+        - name: backup-storage
+          mountPath: /backup
+      volumes:
+      - name: backup-storage
+        persistentVolumeClaim:
+          claimName: mongodb-backup-pvc
+      restartPolicy: Never

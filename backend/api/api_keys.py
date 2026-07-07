@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta
@@ -8,6 +8,7 @@ import math
 
 from core.models import User
 from core.database import get_db
+from core.audit import record_audit_log
 from api.auth import get_current_user
 
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
@@ -50,6 +51,7 @@ def _generate_key() -> str:
 @router.post("/", response_model=ApiKeyResponse)
 async def create_api_key(
     req: ApiKeyCreateRequest,
+    request: Request,
     current_user: User = Depends(get_current_user)
 ):
     db = await get_db()
@@ -66,6 +68,7 @@ async def create_api_key(
         "scopes": req.scopes,
         "created_at": datetime.utcnow(),
         "last_used_at": None,
+        "expires_at": None,
     }
     
     if req.expires_in_days:
@@ -73,6 +76,11 @@ async def create_api_key(
     
     await db.api_keys.insert_one(key_doc)
     
+    await record_audit_log(
+        db, request, current_user, "create_api_key", "api_key",
+        resource_id=key_doc["id"],
+        changes={"name": req.name, "scopes": req.scopes, "expires_at": key_doc.get("expires_at")},
+    )
     return ApiKeyResponse(**key_doc)
 
 
@@ -99,11 +107,15 @@ async def list_api_keys(
 
 
 @router.delete("/{key_id}")
-async def delete_api_key(key_id: str, current_user: User = Depends(get_current_user)):
+async def delete_api_key(key_id: str, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
     result = await db.api_keys.delete_one({"id": key_id, "user_id": current_user.id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="API key not found")
+    await record_audit_log(
+        db, request, current_user, "delete_api_key", "api_key",
+        resource_id=key_id,
+    )
     return {"ok": True}
 
 

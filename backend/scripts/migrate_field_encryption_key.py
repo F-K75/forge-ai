@@ -17,11 +17,9 @@ import argparse
 import asyncio
 import logging
 import sys
-from typing import Optional
 
 from core.database import get_db, close_connections
-from core.encryption import encrypt_field, decrypt_field, normalize_fernet_key
-from core.config import get_settings
+from core.encryption import encrypt_field, normalize_fernet_key
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +55,7 @@ async def _migrate_user_field(
     migrated = 0
     
     cursor = db.users.find(
-        {field: {"$exists": True, "$ne": None, "$ne": ""}},
+        {field: {"$exists": True, "$nin": [None, ""]}},
         {"_id": 0, "id": 1, field: 1},
     )
     async for doc in cursor:

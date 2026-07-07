@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Iterable, List
 from datetime import datetime
@@ -10,6 +10,7 @@ import stripe
 from core.models import User
 from core.database import get_db
 from core.config import get_settings
+from core.audit import record_audit_log
 from api.auth import get_current_user
 
 router = APIRouter(prefix="/gdpr", tags=["gdpr"])
@@ -347,6 +348,7 @@ async def export_user_data(current_user: User = Depends(get_current_user)):
 @router.delete("/delete")
 async def delete_user_data(
     confirm: bool,
+    request: Request,
     current_user: User = Depends(get_current_user)
 ):
     """Delete all user data for GDPR compliance."""
@@ -356,7 +358,11 @@ async def delete_user_data(
             detail="Must set confirm=true to delete account"
         )
     
-    counts = await delete_user_data_cascade(
-        await get_db(), current_user.id, current_user.email
+    db = await get_db()
+    counts = await delete_user_data_cascade(db, current_user.id, current_user.email)
+    await record_audit_log(
+        db, request, current_user, "delete_account", "user",
+        resource_id=current_user.id,
+        changes={"deleted": counts},
     )
     return {"ok": True, "message": "Account deleted", "deleted": counts}

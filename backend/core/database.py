@@ -1,6 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
-from core.config import get_settings
+from core.config import get_settings, RETENTION_TTL_SECONDS
 from typing import Optional, Union
 import asyncio
 import json
@@ -24,10 +24,10 @@ async def get_db():
                     settings.mongodb_url,
                     maxPoolSize=50,
                     minPoolSize=10,
-                    # Previously unset (INF-008): a request that couldn't
-                    # get a pooled connection would wait indefinitely instead
-                    # of failing fast, and idle connections were never
-                    # recycled.
+                    # INF-008: bounded pool + fast-fail. A request that cannot get
+                    # a pooled connection fails fast via waitQueueTimeoutMS rather
+                    # than blocking indefinitely, and idle connections are
+                    # recycled by maxIdleTimeMS.
                     maxIdleTimeMS=60_000,
                     waitQueueTimeoutMS=10_000,
                     serverSelectionTimeoutMS=5000,
@@ -41,8 +41,30 @@ async def get_db():
     return _mongo_client.forge
 
 
+async def apply_retention_ttl_indexes(db) -> None:
+    """Apply the centralized data-retention policy (DB-003) as MongoDB TTL
+    indexes on ``created_at`` for every collection listed in
+    ``RETENTION_TTL_SECONDS``. Idempotent: re-running is a no-op for indexes
+    that already exist. Failures are logged, not raised, so a single bad
+    collection never blocks index provisioning for the rest.
+    """
+    for collection, ttl in RETENTION_TTL_SECONDS.items():
+        coll = getattr(db, collection, None)
+        if coll is None:
+            continue
+        try:
+            await coll.create_index("created_at", expireAfterSeconds=ttl, name=f"retention_ttl_{collection}")
+        except Exception:  # pragma: no cover - defensive
+            logger.warning("Failed to create retention TTL index on %s", collection)
+
+
 async def _ensure_indexes(db):
     try:
+        # Centralized data-retention TTL indexes (DB-003) — applied from the
+        # single RETENTION_TTL_SECONDS policy so retention is configured in one
+        # place rather than scattered across per-collection index calls.
+        await apply_retention_ttl_indexes(db)
+
         # User indexes
         await db.users.create_index("email", unique=True)
         await db.users.create_index([("id", 1)])
@@ -62,7 +84,7 @@ async def _ensure_indexes(db):
         # Build files indexes
         await db.build_files.create_index([("build_id", 1), ("path", 1)], unique=True)
         await db.build_files.create_index([("build_id", 1)])
-        await db.build_files.create_index("created_at", expireAfterSeconds=7776000)  # TTL: 90 days
+        await db.build_files.create_index("created_at")  # TTL applied by apply_retention_ttl_indexes
 
         # Team member indexes
         await db.team_members.create_index([("org_id", 1), ("user_id", 1)], unique=True)
@@ -93,8 +115,8 @@ async def _ensure_indexes(db):
             [("user_id", 1), ("event_name", 1), ("created_at", -1)]
         )
         await db.analytics_events.create_index(
-            "created_at", expireAfterSeconds=7776000  # TTL: 90 days
-        )
+            "created_at"
+        )  # TTL applied by apply_retention_ttl_indexes
 
         # Rate limit indexes
         await db.rate_limits.create_index("key", unique=True)
@@ -107,7 +129,7 @@ async def _ensure_indexes(db):
 
         # Audit log indexes
         await db.audit_logs.create_index([("actor_id", 1), ("created_at", -1)])
-        await db.audit_logs.create_index("created_at", expireAfterSeconds=31536000)  # TTL: 1 year
+        await db.audit_logs.create_index("created_at")  # TTL (1y) applied by apply_retention_ttl_indexes
 
         # Notification indexes
         await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
@@ -115,8 +137,8 @@ async def _ensure_indexes(db):
         # Security events indexes
         await db.security_events.create_index([("severity", 1), ("created_at", -1)])
         await db.security_events.create_index(
-            "created_at", expireAfterSeconds=7776000  # TTL: 90 days
-        )
+            "created_at"
+        )  # TTL applied by apply_retention_ttl_indexes
 
         # Onboarding progress indexes
         await db.onboarding_progress.create_index([("user_id", 1)], unique=True)
@@ -137,8 +159,8 @@ async def _ensure_indexes(db):
         # Token blacklist index (JTI-based)
         await db.token_blacklist.create_index([("jti", 1)], unique=True)
         await db.token_blacklist.create_index(
-            "created_at", expireAfterSeconds=86400  # TTL: 24 hours
-        )
+            "created_at"
+        )  # TTL (24h) applied by apply_retention_ttl_indexes
 
         # Webhooks index
         await db.webhooks.create_index([("user_id", 1)])
@@ -147,8 +169,8 @@ async def _ensure_indexes(db):
         await db.ai_usage.create_index([("user_id", 1), ("created_at", -1)])
         await db.ai_usage.create_index([("org_id", 1), ("created_at", -1)])
         await db.ai_usage.create_index(
-            "created_at", expireAfterSeconds=7776000  # TTL: 90 days
-        )
+            "created_at"
+        )  # TTL (90d) applied by apply_retention_ttl_indexes
 
         # --- Agile PM layer ---
         await db.initiatives.create_index([("user_id", 1), ("updated_at", -1)])
@@ -217,9 +239,9 @@ async def cache_set_json(key: str, value: Union[dict, list], ttl: int = 300) -> 
 async def get_redis():
     global _redis_client
     if _redis_client is None:
-        # Same gap as Mongo's pool (INF-008): no connection cap and no
-        # timeouts meant a hung Redis connection could block a request
-        # forever, and the pool could grow unbounded under load.
+        # INF-008: bounded pool + timeouts. max_connections caps the pool so it
+        # cannot grow unbounded, and socket timeouts ensure a hung Redis
+        # connection fails fast instead of blocking the request forever.
         _redis_client = Redis.from_url(
             settings.redis_url,
             decode_responses=True,

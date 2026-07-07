@@ -18,26 +18,37 @@ NC='\033[0m' # No Color
 echo "🔍 Running pre-commit secret scanning..."
 
 # --- Pattern definitions ---
-# These match common API key formats, credentials in URLs, etc.
+# These match common API key formats and credentials in URLs. Keep each entry a
+# single clean regex (no trailing comments): the patterns are joined with `|`
+# into one combined regex, so any trailing comment text would break matching.
+# Note: git-secrets scans with `grep -w`, so the mongodb:// / redis:// URL
+# patterns below are covered here (plain `grep -E`, no -w), not by git-secrets.
 SECRET_PATTERNS=(
-    'sk-[a-zA-Z0-9]{20,}'          # OpenAI / Anthropic keys
-    'sk_test_[a-zA-Z0-9]{10,}'     # Stripe test keys
-    'sk_live_[a-zA-Z0-9]{10,}'     # Stripe live keys
-    'whsec_[a-zA-Z0-9]{10,}'       # Stripe webhook secrets
-    're_[a-zA-Z0-9]{10,}'          # Resend API keys
-    'ghp_[a-zA-Z0-9]{30,}'         # GitHub personal tokens
-    'gho_[a-zA-Z0-9]{30,}'         # GitHub OAuth tokens
-    'ghu_[a-zA-Z0-9]{30,}'         # GitHub user tokens
-    'ghr_[a-zA-Z0-9]{30,}'         # GitHub refresh tokens
-    'github_pat_[a-zA-Z0-9]{30,}'  # GitHub fine-grained PATs
-    'mongodb://[^/]+:[^@]+@'       # MongoDB URLs with credentials
-    'redis://:[^@]+@'              # Redis URLs with passwords
+    'sk-[a-zA-Z0-9]{20,}'
+    'sk_test_[a-zA-Z0-9]{10,}'
+    'sk_live_[a-zA-Z0-9]{10,}'
+    'whsec_[a-zA-Z0-9]{10,}'
+    're_[a-zA-Z0-9]{10,}'
+    'ghp_[a-zA-Z0-9]{30,}'
+    'gho_[a-zA-Z0-9]{30,}'
+    'ghu_[a-zA-Z0-9]{30,}'
+    'ghr_[a-zA-Z0-9]{30,}'
+    'github_pat_[a-zA-Z0-9]{30,}'
+    'mongodb://[^/[:space:]]+:[^@[:space:]]+@'
+    'redis://:[^@[:space:]]+@'
+    '[Pp]assword[[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
+    '[Ss]ecret[[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
+    '[Aa][Pp][Ii]_[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
 )
 
 # Files that are allowed to contain patterns (e.g. .env.example). Also
 # excludes this hook's own tracked copy, whose SECRET_PATTERNS definitions
 # above are themselves regex literals that otherwise self-match.
 ALLOWLIST_REGEX='\.env\..*example$|\.gitignore$|\.github/workflows/|scripts/git-hooks/pre-commit$'
+
+# Known placeholder/dummy values that must not trip the grep scanner. Real
+# random credentials never contain these exact substrings.
+ALLOW_LINE='sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy'
 
 # --- Check for .env file in staged changes ---
 if git diff --cached --name-only | grep -q '^.env$'; then
@@ -91,7 +102,8 @@ for FILE in $STAGED_FILES; do
 
     # Drop comment-only/blank lines first so they can't match, then run
     # every pattern in a single pass with line numbers preserved via -n.
-    MATCHES=$(echo "$STAGED_CONTENT" | grep -nE "$COMBINED_PATTERN" | grep -vE ':[[:space:]]*#' || true)
+    # ALLOW_LINE drops known placeholder/dummy values so they aren't flagged.
+    MATCHES=$(echo "$STAGED_CONTENT" | grep -nE "$COMBINED_PATTERN" | grep -vE ':[[:space:]]*#' | grep -vE "$ALLOW_LINE" || true)
     if [ -n "$MATCHES" ]; then
         while IFS= read -r MATCH_LINE; do
             LINE_NUM="${MATCH_LINE%%:*}"

@@ -13,6 +13,7 @@ import resend
 
 from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session
 from core.database import get_db
+from core.cache import cached_read, invalidate_cache, user_profile_cache_key, USER_PROFILE_CACHE_TTL
 from core.config import get_settings
 from core.security import validate_password_strength, check_email_rate_limit, get_client_ip, validate_byok_base_url
 from core.encryption import encrypt_field, decrypt_field
@@ -821,8 +822,17 @@ async def create_ws_token(user: User = Depends(get_current_user)):
 @router.get("/me")
 async def get_me(user: User = Depends(get_current_user)):
     db = await get_db()
-    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
-    return _public_user_dict(user_doc) if user_doc is not None else None
+
+    async def _load_profile():
+        user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+        return _public_user_dict(user_doc) if user_doc is not None else None
+
+    # Short-TTL profile cache (BE-007): profiles mutate on credit/plan/preference
+    # changes, so we only shield repeated reads for a minute. Writes invalidate
+    # the key (see update_profile). Fail-open on cache errors.
+    return await cached_read(
+        user_profile_cache_key(user.id), USER_PROFILE_CACHE_TTL, _load_profile
+    )
 
 
 @router.put("/me")
@@ -872,6 +882,9 @@ async def update_profile(
         update.update({f"preferences.{k}": v for k, v in preferences.items()})
 
     await db.users.update_one({"id": user.id}, {"$set": update})
+    # Drop the cached profile so a subsequent GET /auth/me reflects the change
+    # immediately instead of serving a stale (up to 60s) cached copy (BE-007).
+    await invalidate_cache(user_profile_cache_key(user.id))
     return {"ok": True}
 
 
@@ -904,7 +917,10 @@ async def change_password(
         changes={"timestamp": datetime.utcnow().isoformat()},
     )
     await db.audit_logs.insert_one(audit_log.model_dump())
-    
+
+    # Invalidate the cached profile (BE-007) so GET /auth/me reflects the
+    # password change on the next read rather than a stale cached copy.
+    await invalidate_cache(user_profile_cache_key(user.id))
     return {"ok": True}
 
 

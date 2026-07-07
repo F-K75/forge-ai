@@ -1,10 +1,10 @@
 # git-secrets false-positive allowlist.
-# Each line is a regex matched against scan output; a match here exempts
-# that line from being flagged as a secret. Keep entries narrow.
+# Each line is a regex matched against the scanned line; a match here exempts
+# that line from being flagged as a secret. Keep entries narrow and anchored so
+# a real, random credential can never accidentally match one of them.
 
-# secret-scanning.yml's own git-secrets pattern definitions read back as
-# literal text and can satisfy the very patterns they define (e.g. the
-# redis pattern's "[^@]+@" matches itself).
+# secret-scanning.yml's own `git secrets --add '...'` pattern definitions read
+# back as literal text and can satisfy the very patterns they define.
 git secrets --add
 
 # Fixed placeholder GitHub token used in encryption/masking tests — always
@@ -13,3 +13,23 @@ ghp_1234567890abcdefghijklmnopqrstuvwxyz
 
 # api_key assigned from a local generator call, not a literal secret value.
 api_key = _generate_key
+
+# CI / test dummy secrets. Unquoted so they match both the quoted occurrences
+# in tests (stripe_secret_key="sk_live_1234567890abcdef") and the unquoted
+# occurrences inside the scanner config ALLOW_LINE definitions. A real random
+# key never contains these exact substrings.
+sk_live_test123456789
+whsec_test123456789
+sk_live_1234567890abcdef
+whsec_1234567890abcdef
+
+# backend/api/auth.py returns MfaSetupResponse(secret=secret, ...) — a variable
+# named `secret`, not a credential.
+secret=secret
+
+# Scanner config files (secret-scanning.yml, pre-commit hook) define regex
+# literals that self-match the URL patterns they define. The substrings
+# `redis://:[` / `mongodb://[` only appear in pattern definitions, never in a
+# real credential URL, so exempting them is safe.
+redis://:\[
+mongodb://\[

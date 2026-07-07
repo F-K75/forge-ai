@@ -8,6 +8,7 @@ import stripe
 from core.config import get_settings
 from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus, AuditLog
 from core.database import get_db
+from core.cache import cached_read, PLANS_CACHE_KEY, PLANS_CACHE_TTL
 from api.auth import get_current_user
 from services.credit_alerts import reset_credit_alerts
 
@@ -488,19 +489,25 @@ async def create_credit_purchase(req: CreditPurchaseRequest, user: User = Depend
 
 @router.get("/plans", response_model=List[PlanResponse])
 async def list_plans():
-    return [
-        PlanResponse(
-            tier=p["tier"],
-            name=p["name"],
-            price_id=p["price_id"],
-            price_monthly=p["price_monthly"],
-            price_annual=p.get("price_annual", p["price_monthly"] * 10),
-            credits=p["credits"],
-            features=p["features"],
-            max_projects=p.get("max_projects", 0),
-        )
-        for p in PLAN_DETAILS
-    ]
+    # Plan table is config-driven and effectively static per deploy, so cache
+    # it for an hour (BE-007) to spare every pricing page load a rebuild. The
+    # cache is fail-open: a Redis miss just rebuilds the list inline.
+    async def _build_plans():
+        return [
+            PlanResponse(
+                tier=p["tier"],
+                name=p["name"],
+                price_id=p["price_id"],
+                price_monthly=p["price_monthly"],
+                price_annual=p.get("price_annual", p["price_monthly"] * 10),
+                credits=p["credits"],
+                features=p["features"],
+                max_projects=p.get("max_projects", 0),
+            ).model_dump()
+            for p in PLAN_DETAILS
+        ]
+
+    return await cached_read(PLANS_CACHE_KEY, PLANS_CACHE_TTL, _build_plans)
 
 
 @router.post("/cancel")

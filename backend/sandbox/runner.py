@@ -2,6 +2,8 @@ import asyncio
 import tempfile
 import os
 from core.config import get_settings
+from core.security import safe_join_path
+
 
 settings = get_settings()
 
@@ -17,15 +19,20 @@ class SandboxRunner:
     """
 
     async def run(self, files: dict) -> str:  # NOTE: project uses a simple "clean vs errors" string
+        errors = []
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write all files
             for path, content in files.items():
-                full_path = os.path.join(tmpdir, path)
+                # Reject traversal/absolute paths so a malicious generated file
+                # name cannot escape the sandbox dir (P0-HIGH-005).
+                full_path = safe_join_path(tmpdir, path)
+                if full_path is None:
+                    errors.append(f"Refused unsafe file path: {path}")
+                    continue
                 os.makedirs(os.path.dirname(full_path), exist_ok=True)
                 with open(full_path, "w") as f:
                     f.write(content)
 
-            errors = []
 
             # Check Python syntax
             py_errors = await self._check_python(tmpdir, files)

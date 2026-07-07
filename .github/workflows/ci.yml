@@ -99,7 +99,7 @@ jobs:
           import os
           os.environ['APP_ENV'] = 'production'
           os.environ['FIELD_ENCRYPTION_KEY'] = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
-          os.environ['MONGODB_URL'] = 'mongodb://forge:testpass@mongo:27017/forge?authSource=admin'
+          os.environ['MONGODB_URL'] = 'mongodb://forge:testpass@mongo:27017/forge?replicaSet=rs0&authSource=admin'
           os.environ['JWT_SECRET'] = 'a' * 32
           os.environ['REDIS_URL'] = 'redis://:testpass@redis:6379'
           os.environ['STRIPE_SECRET_KEY'] = 'sk_live_test123456789'
@@ -122,6 +122,13 @@ jobs:
           "
 
       - name: Run backend tests
+        env:
+          # CI_TEST_MODE relaxes config validation so the suite can run with
+          # dummy secrets and a fallback MongoDB URL (no live services needed).
+          # Without it, Settings() validation aborts collection for every test
+          # and the quality gate silently never exercises the code.
+          CI_TEST_MODE: "true"
+          TESTING: "true"
         run: |
           cd backend
           python -m pytest tests/ -v --timeout=30 \
@@ -145,7 +152,7 @@ jobs:
           retention-days: 30
 
   frontend:
-    name: Frontend — type-check, build, audit
+    name: Frontend — test, type-check, build, audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -176,6 +183,12 @@ jobs:
 
       - name: Lint (eslint)
         run: cd frontend && npm run lint
+
+      - name: Unit tests (vitest)
+        # Blocks the pipeline: frontend had zero automated tests until this
+        # gate was added, so regressions in client logic (auth/CSRF, build
+        # store state machine, etc.) would ship silently.
+        run: cd frontend && npm test
 
       - name: Security scan — dependency vulnerabilities (npm audit)
         # Scoped to production deps: the only current advisories (vite/esbuild dev-server
@@ -231,7 +244,7 @@ jobs:
         run: |
           docker run --rm \
             -e APP_ENV=production \
-            -e MONGODB_URL=mongodb://forge:ci-dummy@mongo:27017/forge?authSource=admin \
+            -e MONGODB_URL=mongodb://forge:ci-dummy@mongo:27017/forge?replicaSet=rs0&authSource=admin \
             -e REDIS_URL=redis://:ci-dummy@redis:6379 \
             -e JWT_SECRET=ci-dummy-jwt-secret-0123456789abcdef \
             -e FIELD_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \

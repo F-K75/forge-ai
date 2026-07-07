@@ -113,6 +113,18 @@ async def lifespan(app: FastAPI):
     except Exception:
         logger.warning("LLM agent override pre-warm failed; continuing with YAML/env config", exc_info=True)
 
+    # Best-effort, non-fatal schema/data migrations (DB-002). Each migration is
+    # versioned and recorded in __forge_migrations; a failure is logged and
+    # skipped so it never blocks startup.
+    try:
+        from core.migrations import run_migrations
+
+        applied = await run_migrations(db)
+        if applied:
+            logger.info("Ran %d database migration(s)", len(applied))
+    except Exception:
+        logger.warning("Database migrations did not run; continuing", exc_info=True)
+
     yield
     await ws_manager.stop()
     await pm_manager.stop()
@@ -279,6 +291,56 @@ async def health_detailed():
         health_status["status"] = "degraded"
 
     return health_status
+
+
+@app.get("/health/pools")
+async def health_pools():
+    """Connection-pool monitoring (INF-008).
+
+    Connection caps are already configured (Mongo maxPoolSize/minPoolSize +
+    timeouts, Redis max_connections + socket timeouts in core/database.py), but
+    nothing surfaced live pool utilization. Operators need to see saturation
+    before it turns into waitQueue timeouts. Uses stable public APIs:
+    MongoDB ``serverStatus.connections`` and Redis ``INFO clients``.
+    """
+    from core.database import get_db, get_redis
+
+    result: dict = {"mongo": {}, "redis": {}}
+
+    try:
+        db = await get_db()
+        status = await db.command("serverStatus")
+        conn = status.get("connections", {})
+        max_pool = min_pool = None
+        try:
+            client = db.client
+            max_pool = client.options.max_pool_size
+            min_pool = client.options.min_pool_size
+        except Exception:
+            pass
+        result["mongo"] = {
+            "current": conn.get("current"),
+            "available": conn.get("available"),
+            "total_created": conn.get("totalCreated"),
+            "max_pool_size": max_pool,
+            "min_pool_size": min_pool,
+        }
+    except Exception as e:
+        result["mongo"] = {"error": str(e)}
+
+    try:
+        redis = await get_redis()
+        info = await redis.info("clients")
+        pool = redis.connection_pool
+        result["redis"] = {
+            "connected_clients": info.get("connected_clients"),
+            "blocked_clients": info.get("blocked_clients"),
+            "max_connections": getattr(pool, "max_connections", None),
+        }
+    except Exception as e:
+        result["redis"] = {"error": str(e)}
+
+    return result
 
 
 @app.get("/integrations/playbooks")

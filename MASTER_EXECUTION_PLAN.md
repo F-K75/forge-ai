@@ -26,7 +26,7 @@ Forge is an AI-powered full-stack app builder with a differentiated multi-agent 
 | WebSocket Streaming | In-memory only | In-memory only | ✅ Redis pub/sub |
 | Auth System | Basic JWT | Basic JWT | ✅ MFA, CSRF, encryption, sessions |
 | Backend Tests | 0 | 0 | 28 files |
-| Frontend Tests | 0 | 0 | 0 (still missing) |
+| Frontend Tests | 0 | 0 | 4 files / 20 tests (vitest + CI gate added 2026-07-07) |
 | Production Deployment | ❌ | ❌ | ❌ (still no live URL) |
 | Paying Customers | 0 | 0 | 0 |
 
@@ -348,12 +348,12 @@ This inventory merges and deduplicates findings from:
 | RESEND-001 | **Configure Resend API key for email** | Operations | CRITICAL | 2 | **OPEN** — Email delivery non-functional |
 | SENTRY-001 | **Configure Sentry DSN for error tracking** | Monitoring | CRITICAL | 1 | **OPEN** — Code wired, no DSN set |
 | AUTH-001 | **Implement SSO/SAML for enterprise** | Enterprise | HIGH | 80 | **OPEN** |
-| AI-002 | **Implement prompt injection detection** | AI/Security | HIGH | 60 | **OPEN** — Keyword blocklist only, no LLM-based detection |
-| AI-005 | **Implement content moderation for generated code** | AI/Security | MEDIUM | 60 | **OPEN** |
+| AI-002 | **Implement prompt injection detection** | AI/Security | HIGH | 60 | **PARTIAL** — Keyword blocklist hardened against obfuscation (zero-width/homoglyph/full-width/word-splitting) 2026-07-07; LLM-based secondary classifier still future work |
+| AI-005 | **Implement content moderation for generated code** | AI/Security | MEDIUM | 60 | **RESOLVED 2026-07-07** — deterministic secret/destructive scanner (`sandbox/moderation.py`); blocking findings folded into PM debug loop, warnings in build report |
 | BE-003 | **Add pagination to all list endpoints** | Backend | HIGH | 24 | **OPEN** |
-| BE-007 | **Implement Redis caching for read-heavy endpoints** | Performance | MEDIUM | 40 | **OPEN** |
+| BE-007 | **Implement Redis caching for read-heavy endpoints** | Performance | MEDIUM | 40 | **RESOLVED 2026-07-07** — reusable cache-aside helper (`core/cache.py`); plans + user profiles cached; feature flags already cached w/ invalidation |
 | DB-004 | **Complete GDPR cascade deletion** | Compliance | HIGH | 24 | **OPEN** |
-| DB-003 | **Implement data retention policy** | Compliance | MEDIUM | 40 | **OPEN** |
+| DB-003 | **Implement data retention policy** | Compliance | MEDIUM | 40 | **RESOLVED 2026-07-07** — centralized `RETENTION_TTL_SECONDS` policy + `apply_retention_ttl_indexes`; sessions/notifications now auto-expire |
 | INF-002 | **Complete monitoring alerting (PagerDuty integration)** | DevOps | MEDIUM | 24 | **OPEN** |
 | INF-003 | **Implement secrets management (Vault/AWS Secrets Manager)** | Security | HIGH | 24 | **OPEN** |
 | TEST-002 | **Implement load/performance/stress tests** | Testing | HIGH | 80 | **OPEN** |
@@ -371,7 +371,7 @@ This inventory merges and deduplicates findings from:
 | SEC-007 | MFA for admin accounts (enforce) | Security | 8 |
 | AI-004 | Implement LLM fallback chain (Anthropic→OpenAI) | AI/Reliability | 40 |
 | AI-006 | Graceful degradation for circuit breaker | AI/Reliability | 8 |
-| AI-007 | Add CSP headers to generated applications | AI/Security | 16 |
+| AI-007 | Add CSP headers to generated applications | AI/Security | 16 | **RESOLVED 2026-07-07** — `sandbox/csp.py` injects secure default CSP into generated HTML (meta) + FastAPI (middleware) at build time; idempotent, never weakens existing policy |
 | AI-015 | Implement model routing (cheap/simple, expensive/complex) | AI/Cost | 24 |
 | PROD-009 | Implement dunning workflow (3 emails) | Billing | 16 |
 | PROD-010 | Add billing history UI | Product | 16 |
@@ -740,7 +740,7 @@ SEC-AUDIT-001 (Pen test) ──→ SEC-AUDIT-002 (Remediation)
 | **P4 Issues** | 7 open | → |
 | **Critical Security Vulns** | 0 known open | ✅ |
 | **Backend Tests** | 28 files, 167 passing | ✅ |
-| **Frontend Tests** | 0 files | 🔴 |
+| **Frontend Tests** | 0 files | 🟢 (4 files / 20 tests; vitest + blocking CI gate, 2026-07-07) |
 | **Test Coverage (Backend)** | ~30% (estimated) | ⚠️ |
 
 ## Revenue Readiness
@@ -898,15 +898,15 @@ SEC-AUDIT-001 (Pen test) ──→ SEC-AUDIT-002 (Remediation)
 - [x] Stripe webhook audit logging (all 6 endpoints)
 - [x] Annual billing (backend + frontend toggle)
 - [ ] Pagination on all list endpoints (page, per_page, total, pages)
-- [ ] Redis caching for plans, feature flags, user profiles
+- [x] Redis caching for plans, feature flags, user profiles (2026-07-07) — `core/cache.py` cache-aside helper; plans (1h TTL) + user profiles (60s TTL, invalidated on update) cached; feature flags already cached
 - [ ] API versioning (/v1/ prefix)
 - [ ] GDPR cascade deletion (all collections)
 - [ ] Data retention policy (TTL indexes, archival)
 - [ ] LLM fallback chain (Anthropic → OpenAI)
 - [ ] Model routing by task complexity
 - [ ] Graceful circuit breaker degradation
-- [ ] CSP headers in generated apps
-- [ ] Content moderation for generated code
+- [x] CSP headers in generated apps (2026-07-07) — `sandbox/csp.py`
+- [x] Content moderation for generated code (2026-07-07)
 - [ ] SSO/SAML implementation
 - [ ] RBAC enforcement across all endpoints
 - [ ] Audit log viewing UI
@@ -980,8 +980,8 @@ SEC-AUDIT-001 (Pen test) ──→ SEC-AUDIT-002 (Remediation)
 - [ ] LLM-based prompt injection detection
 - [ ] LLM fallback chain (Anthropic → OpenAI)
 - [ ] Model routing (cheap/simple, expensive/complex)
-- [ ] Content moderation for generated code
-- [ ] CSP headers in generated applications
+- [x] Content moderation for generated code (2026-07-07)
+- [x] CSP headers in generated applications (2026-07-07)
 - [ ] Graceful circuit breaker degradation
 - [ ] Benchmark suite for agent quality
 - [ ] Long-term conversation memory
@@ -1072,7 +1072,7 @@ SEC-AUDIT-001 (Pen test) ──→ SEC-AUDIT-002 (Remediation)
 - [x] Config validation tests
 - [x] Encryption tests
 - [x] AI cost tracking tests
-- [ ] Frontend test infrastructure (vitest)
+- [x] Frontend test infrastructure (vitest) — 20 tests across 4 files, blocking CI gate (2026-07-07)
 - [ ] Frontend component tests (critical routes)
 - [ ] E2E tests (register → login → build → view result)
 - [ ] k6 load tests (auth, builds, projects CRUD)
