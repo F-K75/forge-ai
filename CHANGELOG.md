@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-08 — Remove orchestration runtime artifacts from git (P2)
+
+### Repository Hygiene
+
+**Removed 31 generated JSON files from `orchestration/` out of git tracking.** These files are produced at runtime by the meta-orchestration tooling (agent registry, execution logs, benchmark reports, task state). They bloat the repo, create merge noise, and can contain sensitive runtime state (e.g. `EXECUTION_LOG.json` has restricted permissions). They are now gitignored and remain on disk for local tooling.
+
+- `.gitignore`: added `orchestration/*.json`
+- Removed 31 tracked JSON files from the index with `git rm --cached`; local copies preserved for running tooling.
+
+### Files Changed
+
+- `.gitignore` — added `orchestration/*.json`
+- 31 deleted files under `orchestration/` (untracked but preserved locally)
+
+### Risks
+
+- **Very low**: no source code or configuration was removed; only generated runtime artifacts. Local tooling that reads these paths continues to work because the files remain on disk.
+
 ## 2026-07-08 — Fast-fail MongoDB index provisioning (INF-008, P1)
 
 ### Reliability Fixes
