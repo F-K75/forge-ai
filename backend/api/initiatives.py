@@ -1,15 +1,14 @@
 import asyncio
 import json
-import math
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from core.models import User
+from core.models import User, PaginationParams
+from core.database import get_db, paginated_query
 from core.pm_models import Initiative, InitiativeStatus
-from core.database import get_db
 from core.permissions import has_initiative_access
 from api.auth import get_current_user
 from tasks.pm_tasks import generate_initiative_plan
@@ -63,18 +62,22 @@ async def create_initiative(req: CreateInitiativeRequest, current_user: User = D
 @router.get("/", response_model=PaginatedInitiatives)
 async def list_initiatives(
     current_user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    query = {"user_id": current_user.id}
-    total = await db.initiatives.count_documents(query)
-    initiatives = await db.initiatives.find(query, {"_id": 0}).sort(
-        "updated_at", -1
-    ).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    result = await paginated_query(
+        db.initiatives,
+        {"user_id": current_user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("updated_at", -1)],
+    )
     return PaginatedInitiatives(
-        initiatives=initiatives, total=total, page=page, per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        initiatives=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 

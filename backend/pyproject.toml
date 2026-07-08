@@ -9,3 +9,28 @@ exclude = ["venv", ".venv"]
 # it's covered unconditionally by E999, which ruff always reports regardless
 # of `select`.
 select = ["F"]
+
+[tool.coverage.run]
+# Measure coverage for application source only (exclude tests, migrations, scripts).
+source = ["core", "api", "agents", "sandbox", "tasks", "services", "celery_app.py", "main.py", "auth.py"]
+
+# Paths to exclude from coverage measurement entirely.
+omit = [
+    "tests/*",
+    "core/migrations.py",
+    "scripts/*",
+    "**/__init__.py",
+]
+
+[tool.coverage.report]
+# Show lines with missing coverage in the terminal report.
+show_missing = true
+# Skip files with 100% coverage from the report (noise reduction).
+skip_covered = false
+# Fail if overall coverage drops below this threshold.
+# Baseline: 62% (measured 2026-07-08). Low-coverage areas:
+#   services/webhook.py (0%), tasks/pm_tasks.py (20%),
+#   services/pm_ws_manager.py (24%), services/pm_notifications.py (39%),
+#   services/ws_manager.py (66%), services/credit_alerts.py (68%).
+# Target: 75%+ after PM/notification/webhook test coverage is added.
+fail_under = 60

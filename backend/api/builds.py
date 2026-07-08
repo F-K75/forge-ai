@@ -138,7 +138,7 @@ async def create_build(
             "project_id": req.project_id,
             "user_id": current_user.id,
             "status": {"$in": ["pending", "building"]},
-            "created_at": {"$gte": thirty_seconds_ago.isoformat()},
+            "created_at": {"$gte": thirty_seconds_ago},
         },
         {"_id": 0},
     )

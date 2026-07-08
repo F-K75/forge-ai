@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import List
 from datetime import datetime
 
-from core.models import User, SupportTicket
-from core.database import get_db
+from core.models import User, SupportTicket, PaginationParams
+from core.database import get_db, paginated_query
 from core.security import sanitize_string
 from api.auth import get_current_user
 
@@ -56,26 +56,23 @@ async def create_support_ticket(
 @router.get("/tickets", response_model=PaginatedSupportTickets)
 async def list_my_support_tickets(
     current_user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    query = {"user_id": current_user.id}
-    total = await db.support_tickets.count_documents(query)
-    cursor = (
-        db.support_tickets.find(query, {"_id": 0})
-        .sort("created_at", -1)
-        .skip((page - 1) * per_page)
-        .limit(per_page)
+    result = await paginated_query(
+        db.support_tickets,
+        {"user_id": current_user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
     )
-    tickets = [SupportTicketResponse(**doc) async for doc in cursor]
-
+    tickets = [SupportTicketResponse(**doc) for doc in result.items]
     return PaginatedSupportTickets(
         tickets=tickets,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=(total + per_page - 1) // per_page,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 

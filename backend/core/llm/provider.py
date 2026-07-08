@@ -9,6 +9,19 @@ class ProviderError(RuntimeError):
     """Raised when a provider fails to satisfy a request."""
 
 
+class CircuitBreakerOpen(RuntimeError):
+    """Raised when the LLM circuit breaker is in the open state.
+
+    Carries ``retry_after`` (seconds until the breaker may half-open) so
+    callers can surface a ``Retry-After`` header or estimated wait time
+    to the user instead of a raw stack trace.
+    """
+
+    def __init__(self, message: str = "LLM service is temporarily unavailable", *, retry_after: int = 60):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
 @dataclass
 class CompletionResponse:
     text: str

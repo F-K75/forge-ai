@@ -105,18 +105,30 @@ class Settings(BaseSettings):
     credits_business_model: int = 2
 
     # Billing
+    billing_provider: str = "stripe"
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_publishable_key: str = ""
-    # Real Stripe Price IDs (price_xxx from the Stripe dashboard) -- the
-    # "price_standard_monthly"-style defaults are placeholders and will fail
-    # against the real Stripe API; set these env vars before going live.
     stripe_price_standard_monthly: str = "price_standard_monthly"
     stripe_price_pro_monthly: str = "price_pro_monthly"
     stripe_price_enterprise_monthly: str = "price_enterprise_monthly"
     stripe_price_standard_annual: str = "price_standard_annual"
     stripe_price_pro_annual: str = "price_pro_annual"
     stripe_price_enterprise_annual: str = "price_enterprise_annual"
+
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
+    razorpay_standard_monthly_plan_id: str = ""
+    razorpay_pro_monthly_plan_id: str = ""
+    razorpay_enterprise_monthly_plan_id: str = ""
+    razorpay_standard_annual_plan_id: str = ""
+    razorpay_pro_annual_plan_id: str = ""
+    razorpay_enterprise_annual_plan_id: str = ""
+    razorpay_credit_100_price_id: str = ""
+    razorpay_credit_500_price_id: str = ""
+    razorpay_credit_1000_price_id: str = ""
+    razorpay_credit_5000_price_id: str = ""
 
     # App
     app_url: str = "http://localhost:3000"
@@ -173,6 +185,14 @@ class Settings(BaseSettings):
         """Fail at process startup instead of failing during customer checkout."""
         if self.app_env != "production":
             return self
+
+        if self.billing_provider == "razorpay":
+            if not self.razorpay_key_id or not self.razorpay_key_secret:
+                raise ValueError("RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set in production")
+            return self
+
+        if self.billing_provider != "stripe":
+            raise ValueError("billing_provider must be either 'stripe' or 'razorpay'")
 
         credential_prefixes = {
             "STRIPE_SECRET_KEY": (self.stripe_secret_key, "sk_live_"),

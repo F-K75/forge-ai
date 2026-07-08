@@ -111,6 +111,13 @@ class FakeDB:
         self.users = FakeCollection()
         self.webhooks = FakeCollection()
         self.audit_logs = FakeCollection()
+        self.deployments = FakeCollection()
+        self.initiatives = FakeCollection()
+        self.marketplace_items = FakeCollection()
+        self.invoices = FakeCollection()
+        self.referrals = FakeCollection()
+        self.notifications = FakeCollection()
+        self.support_tickets = FakeCollection()
 
 
 # --------------------------------------------------------------------------- #
@@ -317,3 +324,115 @@ def test_webhooks_list_uses_pagination(monkeypatch):
     assert len(body["webhooks"]) == 10
     # `secret` projection is honoured by the shared helper.
     assert "secret" not in body["webhooks"][0]
+
+
+def test_deployments_list_uses_pagination_and_real_total(monkeypatch):
+    import api.deployments as deployments_module
+
+    db = FakeDB()
+    for i in range(25):
+        db.deployments.docs.append(
+            {
+                "id": f"dep{i}",
+                "user_id": "u1",
+                "project_id": f"p{i}",
+                "build_id": f"b{i}",
+                "status": "live",
+                "provider": "docker",
+                "url": f"https://app{i}.example.com",
+                "logs": "",
+                "env_vars": {},
+                "created_at": datetime(2024, 1, 1) + timedelta(seconds=i),
+                "updated_at": datetime(2024, 1, 1) + timedelta(seconds=i),
+            }
+        )
+
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client_for(monkeypatch, deployments_module, db, user=user)
+
+    r = client.get("/deployments/?page=2&per_page=10")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == 25
+    assert body["page"] == 2
+    assert body["per_page"] == 10
+    assert body["total_pages"] == 3
+    assert len(body["deployments"]) == 10
+    assert "env_vars" not in body["deployments"][0]
+
+    db.deployments.docs = []
+    r = client.get("/deployments/")
+    assert r.status_code == 200
+    assert r.json()["total_pages"] == 1
+
+
+def test_initiatives_list_total_pages_never_zero(monkeypatch):
+    import api.initiatives as initiatives_module
+
+    db = FakeDB()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client_for(monkeypatch, initiatives_module, db, user=user)
+
+    r = client.get("/initiatives/")
+    assert r.status_code == 200
+    assert r.json()["total_pages"] == 1
+
+
+def test_marketplace_list_total_pages_never_zero(monkeypatch):
+    import api.marketplace as marketplace_module
+
+    db = FakeDB()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client_for(monkeypatch, marketplace_module, db, user=user)
+
+    r = client.get("/marketplace/?page=1&per_page=20")
+    assert r.status_code == 200
+    assert r.json()["total_pages"] == 1
+
+
+def test_billing_invoices_list_total_pages_never_zero(monkeypatch):
+    import api.billing as billing_module
+
+    db = FakeDB()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client_for(monkeypatch, billing_module, db, user=user)
+
+    r = client.get("/billing/invoices?page=1&per_page=20")
+    assert r.status_code == 200
+    assert r.json()["total_pages"] == 1
+
+
+def test_growth_referrals_list_total_pages_never_zero(monkeypatch):
+    import api.growth as growth_module
+
+    db = FakeDB()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client_for(monkeypatch, growth_module, db, user=user)
+
+    r = client.get("/growth/referrals?page=1&per_page=20")
+    assert r.status_code == 200
+    assert r.json()["total_pages"] == 1
+
+
+def test_growth_notifications_list_total_pages_never_zero(monkeypatch):
+    import api.growth as growth_module
+
+    db = FakeDB()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client_for(monkeypatch, growth_module, db, user=user)
+
+    r = client.get("/growth/notifications?page=1&per_page=20")
+    assert r.status_code == 200
+    assert r.json()["total_pages"] == 1
+
+
+def test_support_tickets_list_total_pages_never_zero(monkeypatch):
+    import api.support as support_module
+
+    db = FakeDB()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client_for(monkeypatch, support_module, db, user=user)
+
+    r = client.get("/support/tickets?page=1&per_page=20")
+    assert r.status_code == 200
+    assert r.json()["total_pages"] == 1

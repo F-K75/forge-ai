@@ -243,3 +243,78 @@ def test_idempotency_key_is_scoped_per_user(monkeypatch):
     assert u2_builds[0]["idempotency_key"] == "shared-key"
     # The new build was actually enqueued.
     assert len(run_build.calls) == 1
+
+
+def test_recent_build_blocks_duplicate_within_30_seconds(monkeypatch):
+    """BE-013 residual: the dedup query must compare datetime to datetime, not
+    datetime to isoformat() string, so a recent pending/building build actually
+    blocks a duplicate request."""
+    import datetime
+
+    db = FakeDB()
+    db.projects.docs.append({"id": "proj1", "user_id": "u1", "tech_stack": {}})
+    db.users.docs.append({"id": "u1", "email_verified": True, "credits": 1000})
+    # An existing build created 10 seconds ago (within the 30s dedup window).
+    recent_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=10)
+    db.builds.docs.append(
+        {
+            "id": "b-recent",
+            "user_id": "u1",
+            "project_id": "proj1",
+            "idempotency_key": "key-recent",
+            "status": "building",
+            "created_at": recent_time,
+        }
+    )
+
+    run_build = FakeRunBuild()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client(monkeypatch, db, user, run_build)
+
+    # Use a DIFFERENT idempotency_key so the idempotency short-circuit does
+    # not fire before the dedup check.
+    r = client.post(
+        "/builds/",
+        json={"project_id": "proj1", "prompt": "build me an app", "idempotency_key": "key-new"},
+    )
+    assert r.status_code == 429
+    assert "already in progress" in r.json()["detail"]
+    # No second build was created.
+    assert len(db.builds.docs) == 1
+    assert run_build.calls == []
+
+
+def test_stale_build_does_not_block_new_build_after_30_seconds(monkeypatch):
+    """A build older than 30 seconds must not trigger the dedup 429."""
+    import datetime
+
+    db = FakeDB()
+    db.projects.docs.append({"id": "proj1", "user_id": "u1", "tech_stack": {}})
+    db.users.docs.append({"id": "u1", "email_verified": True, "credits": 1000})
+    # An existing build created 40 seconds ago (outside the 30s dedup window).
+    stale_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=40)
+    db.builds.docs.append(
+        {
+            "id": "b-stale",
+            "user_id": "u1",
+            "project_id": "proj1",
+            "idempotency_key": "key-stale",
+            "status": "building",
+            "created_at": stale_time,
+        }
+    )
+
+    run_build = FakeRunBuild()
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client(monkeypatch, db, user, run_build)
+
+    # Use a DIFFERENT idempotency_key so the idempotency short-circuit does
+    # not fire before the dedup check.
+    r = client.post(
+        "/builds/",
+        json={"project_id": "proj1", "prompt": "build me an app", "idempotency_key": "key-newer"},
+    )
+    assert r.status_code == 200
+    # A new build was created.
+    assert len(db.builds.docs) == 2
+    assert len(run_build.calls) == 1

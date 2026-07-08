@@ -6,7 +6,7 @@ from datetime import datetime
 import csv
 import io
 
-from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams
+from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams, BuildDeadLetter
 from core.database import get_db, get_redis, cache_get_json, cache_set_json, paginated_query
 
 ADMIN_ANALYTICS_CACHE_TTL = 120
@@ -15,8 +15,12 @@ FEATURE_FLAGS_CACHE_TTL = 300
 from core.config import get_settings
 from core.security import sanitize_string
 from core.ai_usage import get_spending_dashboard
+from core.audit import record_audit_log
 from api.auth import get_current_user
 from services.credit_alerts import reset_credit_alerts
+from api.builds import CREDIT_COSTS, _get_prior_build_context
+from core.orchestrator import MAX_DEBUG_ITERATIONS
+from tasks.build_tasks import run_build
 
 settings = get_settings()
 
@@ -401,6 +405,141 @@ async def list_builds(
     )
 
 
+# ---------------------------------------------------------------------------
+# Dead-letter queue models + routes (must be registered BEFORE /builds/{build_id}
+# so that /builds/dead-letter is matched before the parameterised path swallows
+# "dead-letter" as a build_id).
+# ---------------------------------------------------------------------------
+
+class DeadLetterBuildResponse(BaseModel):
+    id: str
+    build_id: str
+    user_id: str
+    project_id: str
+    prompt: str
+    error: str
+    failure_reason: str
+    retry_count: int
+    credits_used: int
+    created_at: datetime
+    dead_lettered_at: datetime
+
+
+class PaginatedDeadLetterBuilds(BaseModel):
+    builds: List[DeadLetterBuildResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+class RetryDeadLetterResponse(BaseModel):
+    ok: bool
+    build_id: str
+    message: str
+
+
+@router.get("/builds/dead-letter", response_model=PaginatedDeadLetterBuilds)
+async def list_dead_letter_builds(
+    user_id: Optional[str] = Query(None),
+    project_id: Optional[str] = Query(None),
+    params: PaginationParams = Depends(),
+    admin: User = Depends(admin_required),
+):
+    db = await get_db()
+    query: Dict[str, Any] = {}
+    if user_id:
+        query["user_id"] = user_id
+    if project_id:
+        query["project_id"] = project_id
+
+    result = await paginated_query(
+        db.build_dead_letters,
+        query,
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("dead_lettered_at", -1)],
+    )
+    return PaginatedDeadLetterBuilds(
+        builds=[DeadLetterBuildResponse(**doc) for doc in result.items],
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
+    )
+
+
+@router.post("/builds/dead-letter/{build_id}/retry", response_model=RetryDeadLetterResponse)
+async def retry_dead_letter_build(
+    build_id: str,
+    request: Request,
+    admin: User = Depends(admin_required),
+):
+    db = await get_db()
+
+    dead_letter = await db.build_dead_letters.find_one({"build_id": build_id})
+    if not dead_letter:
+        raise HTTPException(status_code=404, detail="Build not found in dead-letter queue")
+
+    build_doc = await db.builds.find_one({"id": build_id})
+    if not build_doc:
+        raise HTTPException(status_code=404, detail="Build not found")
+
+    project = await db.projects.find_one({"id": build_doc["project_id"]})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    estimated_credits = sum(CREDIT_COSTS.values()) * (len(project.get("tech_stack", {})) + 1)
+    max_credits = max(MAX_DEBUG_ITERATIONS * CREDIT_COSTS.get("debug", 2), estimated_credits)
+
+    reserved = await db.users.find_one_and_update(
+        {"id": build_doc["user_id"], "credits": {"$gte": max_credits}},
+        {"$inc": {"credits": -max_credits}},
+        return_document=True,
+    )
+    if not reserved:
+        raise HTTPException(status_code=402, detail="Insufficient credits to retry build")
+
+    await db.builds.update_one(
+        {"id": build_id},
+        {"$set": {
+            "status": BuildStatus.PENDING.value,
+            "agents": [],
+            "credits_used": 0,
+            "context_tokens": 0,
+            "debug_iterations": 0,
+            "error": None,
+            "completed_at": None,
+            "business_model": None,
+        }}
+    )
+
+    await db.build_dead_letters.delete_one({"build_id": build_id})
+
+    conversation_history, existing_files = await _get_prior_build_context(db, build_doc["project_id"])
+
+    run_build.delay(
+        build_id,
+        build_doc["project_id"],
+        build_doc["user_id"],
+        max_credits,
+        conversation_history,
+        existing_files,
+    )
+
+    client_ip = request.client.host if request and request.client else None
+    user_agent = request.headers.get("user-agent") if request and request.headers else None
+    await record_audit_log(
+        db, request, admin, "retry_dead_letter_build", "build",
+        resource_id=build_id,
+        changes={"retry_count": dead_letter.get("retry_count", 0) + 1, "max_credits": max_credits},
+    )
+
+    return RetryDeadLetterResponse(
+        ok=True,
+        build_id=build_id,
+        message="Build requeued successfully",
+    )
 @router.get("/builds/{build_id}", response_model=BuildResponse)
 async def get_build(build_id: str, admin: User = Depends(admin_required)):
     db = await get_db()
@@ -846,3 +985,4 @@ async def toggle_user_admin(
     await db.audit_logs.insert_one(audit_log.model_dump())
 
     return {"user_id": user_id, "is_admin": req.is_admin, "unchanged": False}
+

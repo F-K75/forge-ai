@@ -118,6 +118,7 @@ jobs:
           cd backend
           python -m pytest tests/ -v --timeout=30 \
             --cov=. --cov-report=xml --cov-report=term \
+            --cov-fail-under=60 \
             --junitxml=test-results.xml
 
       - name: Upload test results
@@ -331,11 +332,14 @@ jobs:
             exit 1
           fi
           echo "✓ Frontend dist contains index.html"
+
+      - name: Verify frontend build requires VITE_API_URL and VITE_WS_URL
         run: |
           if docker build frontend/ -q 2>/dev/null; then
             echo "ERROR: frontend build must fail when VITE_API_URL/VITE_WS_URL are missing"
             exit 1
           fi
+          echo "✓ Frontend build correctly requires VITE_API_URL and VITE_WS_URL"
 
   quality-gate:
     name: Quality Gate

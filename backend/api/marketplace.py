@@ -1,10 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-import math
 
 from core.models import MarketplaceItem, User
-from core.database import get_db, cache_get_json, cache_set_json
+from core.database import get_db, cache_get_json, cache_set_json, paginated_query
 from core.security import sanitize_string
 from api.auth import get_current_user
 
@@ -97,17 +96,23 @@ async def list_items(
             {"description": {"$regex": sanitized, "$options": "i"}},
         ]
 
-    total = await db.marketplace_items.count_documents(query)
-    items = await db.marketplace_items.find(query, {"_id": 0}).sort("downloads", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
-    result = PaginatedMarketplaceItems(
-        items=items,
-        total=total,
+    result = await paginated_query(
+        db.marketplace_items,
+        query,
         page=page,
         per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        sort=[("downloads", -1)],
+        projection={"_id": 0},
     )
-    await cache_set_json(cache_key, result.model_dump(), ttl=MARKETPLACE_LIST_CACHE_TTL)
-    return result
+    paginated = PaginatedMarketplaceItems(
+        items=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
+    )
+    await cache_set_json(cache_key, paginated.model_dump(), ttl=MARKETPLACE_LIST_CACHE_TTL)
+    return paginated
 
 
 @router.get("/{item_id}", response_model=MarketplaceItemResponse)

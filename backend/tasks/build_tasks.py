@@ -1,15 +1,22 @@
 """Celery tasks for build processing with persistence and retry logic."""
 
 import asyncio
+import logging
+import time
+import uuid
+from datetime import datetime
 from typing import Optional
 from celery.exceptions import SoftTimeLimitExceeded
 from celery_app import celery_app as current_app
 from core.config import get_settings
-from core.models import Build, BuildStatus, WSEvent, WSEventType, BuildFile
+from core.metrics import build_outcomes_total, build_duration_seconds, build_credits_used
+from core.models import Build, BuildStatus, BuildDeadLetter, WSEvent, WSEventType, BuildFile
 from core.orchestrator import Orchestrator
 from core.database import get_db
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 orchestrator = Orchestrator()
@@ -84,6 +91,8 @@ def run_build(
     async def _run():
         db = await get_db()
 
+        start_time = time.monotonic()
+
         # Fetch the build
         build_doc = await db.builds.find_one({"id": build_id}, {"_id": 0})
         if not build_doc:
@@ -98,8 +107,6 @@ def run_build(
         template = project_doc.get("template") if project_doc else None
 
         async def emit(event: WSEvent) -> None:
-            # Persist before broadcasting so a REST fallback triggered by a client
-            # reacting to this event can never observe pre-update state.
             await db.builds.update_one(
                 {"id": build_id},
                 {
@@ -113,6 +120,21 @@ def run_build(
             )
             await manager.emit(event)
 
+        async def _dead_letter(reason: str, error_msg: str, retry_count: int) -> None:
+            await db.build_dead_letters.insert_one(
+                BuildDeadLetter(
+                    build_id=build_id,
+                    user_id=user_id,
+                    project_id=project_id,
+                    prompt=build.prompt,
+                    error=error_msg,
+                    failure_reason=reason,
+                    retry_count=retry_count,
+                    credits_used=used,
+                    created_at=build.created_at,
+                ).model_dump()
+            )
+
         try:
             build, files = await orchestrator.run_build(
                 build,
@@ -124,7 +146,6 @@ def run_build(
             )
             await db.builds.update_one({"id": build_id}, {"$set": build.model_dump()})
 
-            # Files live in a separate collection to avoid the 16MB doc limit.
             if files:
                 await db.build_files.delete_many({"build_id": build_id})
                 await db.build_files.insert_many([
@@ -132,12 +153,9 @@ def run_build(
                     for path, content in files.items()
                 ])
 
-            # On success: refund whatever portion of the reservation wasn't
-            # actually consumed by agents that ran before completion.
             used = int(build.credits_used or 0)
             refund = max(0, reserved_credits - used)
             if refund and user:
-                # Atomic refund with guard: only refund if user still has deducted credits
                 await db.users.find_one_and_update(
                     {"id": user_id, "credits": {"$gte": reserved_credits - used}},
                     {"$inc": {"credits": refund}},
@@ -154,17 +172,17 @@ def run_build(
                 )
             )
 
+            build_duration_seconds.observe(time.monotonic() - start_time)
+            build_outcomes_total.labels(status="success").inc()
+            build_credits_used.observe(used)
             return {"status": "success", "build_id": build_id, "credits_used": used}
 
         except SoftTimeLimitExceeded:
-            # Build ran past settings.build_timeout. SoftTimeLimitExceeded is a
-            # BaseException (not Exception), so autoretry_for=(Exception,) never
-            # applies here — deliberately: a hung pipeline would just hang again,
-            # so retrying would only burn another full timeout window for nothing.
-            # Fail permanently on the first and only attempt, same as the final
-            # retry path below: refund the unused portion of the reservation and
-            # mark the build failed so it can't stay stuck RUNNING/DEBUGGING with
-            # credits reserved forever.
+            logger.exception(
+                "Build %s exceeded soft time limit of %ss",
+                build_id,
+                settings.build_timeout,
+            )
             used = int(build.credits_used or 0)
             refund = max(0, reserved_credits - used)
             if refund and user:
@@ -177,16 +195,13 @@ def run_build(
                 {"id": build_id},
                 {"$set": {"status": BuildStatus.FAILED.value, "error": "Build exceeded maximum allowed time", "credits_used": used}}
             )
+            build_duration_seconds.observe(time.monotonic() - start_time)
+            build_outcomes_total.labels(status="timeout").inc()
+            build_credits_used.observe(used)
+            await _dead_letter("timeout", "Build exceeded maximum allowed time", self.request.retries)
             raise
 
         except Exception as e:
-            # This function re-runs the entire pipeline from scratch on
-            # every retry (it isn't resumable), so a whole-task retry is
-            # only useful before any agent has actually completed -- once
-            # one has, retrying would silently discard and redo (and
-            # re-call the LLM for) real completed work instead of
-            # recovering anything. In that case, fail this attempt for
-            # good instead of retrying.
             max_retries = self.retry_kwargs.get("max_retries", 0)
             is_final_attempt = self.request.retries >= max_retries
             made_progress = any(a.status == BuildStatus.SUCCESS for a in build.agents)
@@ -198,9 +213,6 @@ def run_build(
                     max_retries=max_retries,
                 )
 
-            # Terminal failure: refund only the unused portion of the
-            # reservation — agents that already ran before the failure
-            # already spent their share.
             used = int(build.credits_used or 0)
             refund = max(0, reserved_credits - used)
             if refund and user:
@@ -213,6 +225,10 @@ def run_build(
                 {"id": build_id},
                 {"$set": {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}}
             )
+            build_duration_seconds.observe(time.monotonic() - start_time)
+            build_outcomes_total.labels(status="failed").inc()
+            build_credits_used.observe(used)
+            await _dead_letter("exception", str(e), self.request.retries)
             raise
 
     return _run_async(_run())

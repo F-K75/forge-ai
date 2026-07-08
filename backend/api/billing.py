@@ -1,16 +1,20 @@
-from fastapi import APIRouter, HTTPException, Depends, Request, Header, Query
-import math
+from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import stripe
 
 from core.config import get_settings
-from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus, AuditLog
-from core.database import get_db
+from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus, AuditLog, PaginationParams
+from core.database import get_db, paginated_query
 from core.cache import cached_read, PLANS_CACHE_KEY, PLANS_CACHE_TTL
 from api.auth import get_current_user
 from services.credit_alerts import reset_credit_alerts
+from api.razorpay import create_rzp_order, _require_razorpay, get_razorpay_client
+
+settings = get_settings()
+stripe.api_key = settings.stripe_secret_key
+BILLING_PROVIDER = settings.billing_provider or "stripe"
 
 # Actor identity for audit_logs entries written by Stripe webhook handlers --
 # these are system-triggered changes, not made by a logged-in human, so
@@ -206,7 +210,9 @@ async def create_checkout_session(req: CheckoutRequest, user: User = Depends(get
     if req.plan == PlanTier.FREE:
         raise HTTPException(status_code=400, detail="Cannot checkout for free plan")
 
-    # Validate Stripe is properly configured
+    if BILLING_PROVIDER == "razorpay":
+        return await _razorpay_checkout(req, user)
+
     if not settings.stripe_secret_key or settings.stripe_secret_key == "your_stripe_secret_key_here":
         raise HTTPException(status_code=503, detail="Billing not configured. Please contact support.")
     
@@ -247,6 +253,71 @@ async def create_checkout_session(req: CheckoutRequest, user: User = Depends(get
     )
 
     return {"url": checkout_session.url, "id": checkout_session.id}
+
+
+async def _razorpay_checkout(req: CheckoutRequest, user: User):
+    _require_razorpay()
+    db = await get_db()
+    plan_details = next((p for p in PLAN_DETAILS if p["tier"] == req.plan), None)
+    if not plan_details:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    interval = req.interval or "monthly"
+    plan_id = _razorpay_plan_id(plan_details["tier"], interval)
+    if not plan_id:
+        raise HTTPException(status_code=400, detail="Plan not configured for Razorpay")
+
+    sub = get_razorpay_client().subscription.create({
+        "plan_id": plan_id,
+        "customer_notify": 1,
+        "notes": {"user_id": user.id, "plan": req.plan},
+    })
+
+    subscription = Subscription(
+        user_id=user.id,
+        razorpay_subscription_id=sub["id"],
+        razorpay_plan_id=plan_id,
+        plan=plan_details["tier"],
+        status=SubscriptionStatus.PENDING,
+        provider="razorpay",
+    )
+    await db.subscriptions.replace_one({"razorpay_subscription_id": sub["id"]}, subscription.model_dump(), upsert=True)
+
+    authorization_url = sub.get("short_url") or sub.get("authorized_url") or ""
+    return {"url": authorization_url, "id": sub["id"], "provider": "razorpay"}
+
+
+def _razorpay_plan_id(tier: PlanTier, interval: str) -> Optional[str]:
+    mapping = {
+        (PlanTier.STANDARD, "monthly"): settings.razorpay_standard_monthly_plan_id,
+        (PlanTier.PRO, "monthly"): settings.razorpay_pro_monthly_plan_id,
+        (PlanTier.ENTERPRISE, "monthly"): settings.razorpay_enterprise_monthly_plan_id,
+        (PlanTier.STANDARD, "annual"): settings.razorpay_standard_annual_plan_id,
+        (PlanTier.PRO, "annual"): settings.razorpay_pro_annual_plan_id,
+        (PlanTier.ENTERPRISE, "annual"): settings.razorpay_enterprise_annual_plan_id,
+    }
+    return mapping.get((tier, interval))
+
+
+@router.get("/razorpay/plans", response_model=List[PlanResponse])
+async def list_razorpay_plans():
+    return await cached_read(PLANS_CACHE_KEY, PLANS_CACHE_TTL, _build_plans)
+
+
+async def _build_plans():
+    return [
+        PlanResponse(
+            tier=p["tier"],
+            name=p["name"],
+            price_id=p["price_id"],
+            price_monthly=p["price_monthly"],
+            price_annual=p.get("price_annual", p["price_monthly"] * 10),
+            credits=p["credits"],
+            features=p["features"],
+            max_projects=p.get("max_projects", 0),
+        ).model_dump()
+        for p in PLAN_DETAILS
+    ]
 
 
 @router.post("/portal", response_model=Dict[str, str])
@@ -331,7 +402,7 @@ async def handle_checkout_completed(db: Any, session: Dict[str, Any]):
 
     plan_details = next((p for p in PLAN_DETAILS if p["tier"] == plan_tier), None)
     if plan_details:
-        await db.users.update_one({"id": user_id}, {"$set": {"plan": plan_tier, "credits": plan_details["credits"]}})
+        await db.users.update_one({"id": user_id}, {"$set": {"plan": plan_tier}})
         await _log_billing_event(
             db, "stripe_checkout_completed", user_id,
             {"subscription_id": subscription_id, "plan": plan_tier, "credits_granted": plan_details["credits"]},
@@ -429,19 +500,22 @@ async def get_subscription(user: User = Depends(get_current_user)):
 @router.get("/invoices", response_model=PaginatedInvoices)
 async def list_invoices(
     user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    query = {"user_id": user.id}
-    total = await db.invoices.count_documents(query)
-    invoices = await db.invoices.find(query, {"_id": 0}).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    result = await paginated_query(
+        db.invoices,
+        {"user_id": user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+    )
     return PaginatedInvoices(
-        invoices=invoices,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        invoices=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 
@@ -452,6 +526,9 @@ async def create_credit_purchase(req: CreditPurchaseRequest, user: User = Depend
     package = next((p for p in CREDIT_PACKAGES if p["id"] == req.package_id), None)
     if not package:
         raise HTTPException(status_code=400, detail="Invalid credit package")
+
+    if BILLING_PROVIDER == "razorpay":
+        return await _razorpay_credit_purchase(req, package, user)
 
     customer_id = user.stripe_customer_id
     if not customer_id:
@@ -475,7 +552,9 @@ async def create_credit_purchase(req: CreditPurchaseRequest, user: User = Depend
         stripe_payment_intent_id=payment_intent.id,
         credits=package["credits"],
         amount=package["price_usd"] * 100,
+        currency="usd",
         status="pending",
+        provider="stripe",
     )
     await db.credit_purchases.insert_one(purchase.model_dump())
 
@@ -485,6 +564,24 @@ async def create_credit_purchase(req: CreditPurchaseRequest, user: User = Depend
         "amount": payment_intent.amount,
         "currency": payment_intent.currency,
     }
+
+
+async def _razorpay_credit_purchase(req: CreditPurchaseRequest, package: Dict[str, Any], user: User):
+    _require_razorpay()
+    db = await get_db()
+    order = await create_rzp_order({"amount": package["price_inr"] * 100, "currency": "INR", "receipt": f"credits_{user.id}_{req.package_id}", "notes": {"user_id": user.id, "credits": str(package["credits"]), "package_id": req.package_id}})
+
+    purchase = CreditPurchase(
+        user_id=user.id,
+        razorpay_order_id=order["order_id"],
+        credits=package["credits"],
+        amount=package["price_inr"] * 100,
+        currency="INR",
+        status="pending",
+        provider="razorpay",
+    )
+    await db.credit_purchases.insert_one(purchase.model_dump())
+    return {"order_id": order["order_id"], "amount": order["amount"], "currency": order["currency"], "key_id": settings.razorpay_key_id}
 
 
 @router.get("/plans", response_model=List[PlanResponse])
@@ -570,7 +667,7 @@ async def downgrade_plan(req: DowngradeRequest, user: User = Depends(get_current
 
     await db.users.update_one(
         {"id": user.id},
-        {"$set": {"downgraded_to": req.plan, "credits": plan_details["credits"]}}
+        {"$set": {"downgraded_to": req.plan}}
     )
 
     return {"ok": True, "message": f"Downgraded to {plan_details['name']} at period end"}
@@ -638,36 +735,49 @@ async def get_usage(user: User = Depends(get_current_user)):
 async def handle_payment_webhook(request: Request, stripe_signature: str = Header(...)):
     """Handle payment success/failure for credit purchases."""
     payload = await request.body()
-    
+
     try:
         event = stripe.Webhook.construct_event(payload, stripe_signature, settings.stripe_webhook_secret)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid webhook")
-    
+
     db = await get_db()
-    
-    if event["type"] == "payment_intent.succeeded":
-        intent = event["data"]["object"]
-        purchase = await db.credit_purchases.find_one({"stripe_payment_intent_id": intent["id"]}, {"_id": 0})
-        if purchase:
-            user_id = purchase.get("user_id")
-            credits = purchase.get("credits", 0)
-
-            await db.credit_purchases.update_one(
-                {"stripe_payment_intent_id": intent["id"]},
-                {"$set": {"status": "completed"}}
-            )
-
-            await db.users.update_one(
-                {"id": user_id},
-                {"$inc": {"credits": credits}}
-            )
-            # Same gap as the other billing webhook handlers (BE-017): this
-            # one grants credits too and had zero audit trail.
-            await _log_billing_event(
-                db, "stripe_credit_purchase_completed", user_id,
-                {"stripe_payment_intent_id": intent["id"], "credits_granted": credits},
-            )
-            await reset_credit_alerts(db, user_id)
-
+    await _handle_payment_event(db, event)
     return {"status": "ok"}
+
+
+async def _handle_payment_event(db: Any, event: Dict[str, Any]) -> None:
+    """Process a payment_intent event idempotently.
+
+    Stripe retries webhooks automatically, so the handler must be safe to
+    invoke multiple times for the same payment intent.
+    """
+    if event.get("type") != "payment_intent.succeeded":
+        return
+
+    intent = event["data"]["object"]
+    purchase = await db.credit_purchases.find_one(
+        {"stripe_payment_intent_id": intent["id"]}, {"_id": 0}
+    )
+    if not purchase or purchase.get("status") == "completed":
+        return
+
+    user_id = purchase.get("user_id")
+    credits = purchase.get("credits", 0)
+
+    result = await db.credit_purchases.update_one(
+        {"stripe_payment_intent_id": intent["id"], "status": {"$ne": "completed"}},
+        {"$set": {"status": "completed"}}
+    )
+    if result.modified_count == 0:
+        return
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$inc": {"credits": credits}}
+    )
+    await _log_billing_event(
+        db, "stripe_credit_purchase_completed", user_id,
+        {"stripe_payment_intent_id": intent["id"], "credits_granted": credits},
+    )
+    await reset_credit_alerts(db, user_id)

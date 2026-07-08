@@ -32,6 +32,7 @@ class FakeCollection:
         self.docs = {d["id"]: d for d in docs}
         self.inc_calls = []
         self.set_calls = []
+        self.inserted = []
 
     async def find_one(self, query, projection=None):
         doc = self.docs.get(query.get("id"))
@@ -44,6 +45,10 @@ class FakeCollection:
             self.set_calls.append((query.get("id"), update["$set"]))
         return None
 
+    async def insert_one(self, doc):
+        self.inserted.append(doc)
+        return None
+
 
 class FakeDB:
     def __init__(self, build, user):
@@ -54,6 +59,7 @@ class FakeDB:
         # 2026-07-03) to pass it through to the agent pipeline; no template
         # selected in these tests, so an id-only doc is enough.
         self.projects = FakeCollection([{"id": "p1"}])
+        self.build_dead_letters = FakeCollection([])
 
 
 def _make_build_and_user():
@@ -235,3 +241,37 @@ def test_soft_time_limit_refunds_and_fails_build_without_retry(monkeypatch):
     assert fake_db.users.inc_calls[0] == ("u1", {"credits": 100})
     assert len(fake_db.builds.set_calls) == 1
     assert fake_db.builds.set_calls[0][1]["status"] == "failed"
+
+
+def test_soft_time_limit_logs_build_id_and_duration(monkeypatch, caplog):
+    """BE-006 residual: timeout events must be logged with the build ID and
+    the configured timeout duration so operators can correlate timeouts with
+    specific builds in logs without cross-referencing the database.
+    """
+    import logging
+
+    build, user = _make_build_and_user()
+    fake_db = FakeDB(build, user)
+
+    async def fake_get_db():
+        return fake_db
+
+    async def timed_out_run_build(*args, **kwargs):
+        raise SoftTimeLimitExceeded()
+
+    monkeypatch.setattr(build_tasks_module, "get_db", fake_get_db)
+    monkeypatch.setattr(build_tasks_module.orchestrator, "run_build", timed_out_run_build)
+
+    build_tasks_module.run_build.push_request(retries=0)
+    try:
+        with caplog.at_level(logging.ERROR, logger="tasks.build_tasks"):
+            with pytest.raises(SoftTimeLimitExceeded):
+                build_tasks_module.run_build.run("build-1", "p1", "u1", 100)
+    finally:
+        build_tasks_module.run_build.pop_request()
+
+    messages = [r.getMessage() for r in caplog.records]
+    assert any("build-1" in m for m in messages), f"build_id missing from log: {messages}"
+    assert any(
+        str(build_tasks_module.settings.build_timeout) in m for m in messages
+    ), f"timeout duration missing from log: {messages}"

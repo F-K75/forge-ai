@@ -165,24 +165,33 @@ _in_memory_rate_limits: dict[str, list[float]] = {}
 _IN_MEMORY_MAX_KEYS = 10000  # Prevent unbounded memory growth
 
 
-async def _check_in_memory_rate_limit(key: str, limit: int, window: int) -> tuple[bool, int]:
+async def _check_in_memory_rate_limit(key: str, limit: int, window: int, *, fallback_limit: Optional[int] = None) -> tuple[bool, int]:
     """Check rate limit using in-memory store as fallback when Redis is down.
-    Returns (is_allowed, remaining)."""
+
+    When Redis is unavailable, the in-memory fallback is per-process — each
+    worker/replica maintains its own independent counter. To prevent the
+    effective limit from scaling with the replica count during an outage, the
+    *fallback_limit* (defaulting to ``limit`` for backward compatibility) is
+    applied per-process rather than the full Redis limit. Callers should pass
+    ``fallback_limit=max(1, limit // 2)`` so a two-replica deployment still
+    enforces roughly the same total ceiling as the Redis path.
+    """
+    effective_limit = fallback_limit if fallback_limit is not None else limit
     now = time.time()
     # Clean old entries periodically
     if len(_in_memory_rate_limits) > _IN_MEMORY_MAX_KEYS:
         _in_memory_rate_limits.clear()
-    
+
     timestamps = _in_memory_rate_limits.get(key, [])
     # Remove timestamps outside the window
     timestamps = [t for t in timestamps if now - t < window]
-    
-    if len(timestamps) >= limit:
+
+    if len(timestamps) >= effective_limit:
         return False, 0
-    
+
     timestamps.append(now)
     _in_memory_rate_limits[key] = timestamps
-    return True, limit - len(timestamps)
+    return True, effective_limit - len(timestamps)
 
 
 async def rate_limit_middleware(request: Request, call_next):
@@ -270,8 +279,14 @@ async def rate_limit_middleware(request: Request, call_next):
             # Redis error — fall through to in-memory fallback
             pass
     
-    # Redis unavailable or error — use in-memory fallback (fail-closed)
-    allowed, remaining = await _check_in_memory_rate_limit(key, limit, window)
+    # Redis unavailable or error — use in-memory fallback (fail-closed).
+    # The in-memory store is per-process, so the effective ceiling scales with
+    # the worker/replica count during an outage. Apply a conservative 50 %
+    # fallback limit to keep the total traffic roughly bounded (SEC-004).
+    fallback_limit = max(1, limit // 2)
+    allowed, remaining = await _check_in_memory_rate_limit(
+        key, limit, window, fallback_limit=fallback_limit
+    )
     if not allowed:
         raise HTTPException(
             status_code=429,
@@ -618,14 +633,13 @@ async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int
             return False, 0
         return True, remaining
     except Exception:
-        # Redis unavailable — fall back to the same in-memory limiter
-        # rate_limit_middleware uses instead of failing open. Failing open
-        # let an attacker bypass the per-email forgot-password/registration
-        # limits entirely during any Redis blip (email enumeration,
-        # reset-token flooding, registration spam) with no real backstop —
-        # the per-IP /auth limiter (10 req/60s) is far looser than the
-        # 3-5/hour this protects, and trivially split across source IPs.
-        return await _check_in_memory_rate_limit(key, limit, window)
+        # Redis unavailable — fall back to the in-memory limiter with a
+        # conservative 50 % limit so a multi-replica outage doesn't silently
+        # multiply the effective ceiling (SEC-004).
+        fallback_limit = max(1, limit // 2)
+        return await _check_in_memory_rate_limit(
+            key, limit, window, fallback_limit=fallback_limit
+        )
 
 
 async def check_llm_rate_limit(
@@ -667,8 +681,13 @@ async def check_llm_rate_limit(
             tightest_remaining = remaining if tightest_remaining is None else min(tightest_remaining, remaining)
         except Exception:
             # Redis unavailable -- fail closed within this process via the
-            # in-memory limiter, consistent with check_email_rate_limit.
-            rem = await _check_in_memory_rate_limit(key, limit, window)
+            # in-memory limiter with a conservative 50 % limit so a
+            # multi-replica outage doesn't silently multiply the effective
+            # ceiling (SEC-004).
+            fallback_limit = max(1, limit // 2)
+            rem = await _check_in_memory_rate_limit(
+                key, limit, window, fallback_limit=fallback_limit
+            )
             allowed = allowed and rem[0]
             tightest_remaining = rem[1] if tightest_remaining is None else min(tightest_remaining, rem[1])
 

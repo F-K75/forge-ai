@@ -94,6 +94,14 @@ class CircuitBreaker:
         if self.failure_count >= self.failure_threshold:
             self.state = "open"
 
+    def retry_after(self) -> int:
+        """Seconds until the circuit breaker may half-open."""
+        if self.state != "open" or self.last_failure_time is None:
+            return 0
+        elapsed = asyncio.get_event_loop().time() - self.last_failure_time
+        remaining = self.recovery_timeout - int(elapsed)
+        return max(0, remaining)
+
 
 _llm_circuit_breaker = CircuitBreaker()
 
@@ -117,7 +125,9 @@ class BaseAgent:
         org_id: Optional[str] = None,
     ) -> str:
         if not _llm_circuit_breaker.can_call():
-            raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
+            retry_after = _llm_circuit_breaker.retry_after()
+            from core.llm.provider import CircuitBreakerOpen
+            raise CircuitBreakerOpen(retry_after=retry_after)
 
         byok = await _resolve_byok(user_id)
         if user_id and not byok:
@@ -158,7 +168,9 @@ class BaseAgent:
         usage_out: Optional[dict] = None,
     ) -> AsyncGenerator[str, None]:
         if not _llm_circuit_breaker.can_call():
-            raise RuntimeError("LLM circuit breaker is open - service temporarily unavailable")
+            retry_after = _llm_circuit_breaker.retry_after()
+            from core.llm.provider import CircuitBreakerOpen
+            raise CircuitBreakerOpen(retry_after=retry_after)
 
         byok = await _resolve_byok(user_id)
         if user_id and not byok:
@@ -168,10 +180,6 @@ class BaseAgent:
             response = await self.router.generate(
                 agent_name=self.__class__.__name__.lower(),
                 messages=messages,
-                # Pass None (not self.model) so a per-agent config override
-                # in llm.yaml can take effect; self.model is only a
-                # last-resort default the router applies if no override and
-                # no provider default_model exists.
                 model=None,
                 max_tokens=max_tokens,
                 user_id=user_id,
@@ -179,8 +187,8 @@ class BaseAgent:
                 project_id=project_id,
                 org_id=org_id,
                 extra_system=self.system_prompt + (f"\n\n{extra_system}" if extra_system else ""),
-                usage_out=usage_out,
                 byok=byok,
+                usage_out=usage_out,
             )
             _llm_circuit_breaker.record_success()
             for token in response.text:

@@ -12,13 +12,20 @@ import hashlib
 import docker
 from git import Repo, Actor
 
-from core.models import Deployment, DeploymentStatus, WSEvent, WSEventType, User
-from core.database import get_db
+from api.auth import get_current_user
 from core.config import get_settings
+from core.database import get_db, paginated_query
 from core.encryption import decrypt_field
+from core.models import (
+    Deployment,
+    DeploymentStatus,
+    PaginationParams,
+    WSEvent,
+    WSEventType,
+    User,
+)
 from core.security import safe_join_path
 from services.ws_manager import manager
-from api.auth import get_current_user
 
 router = APIRouter(prefix="/deployments", tags=["deployments"])
 settings = get_settings()
@@ -88,6 +95,9 @@ class GitHubPushRequest(BaseModel):
 class DeploymentListResponse(BaseModel):
     deployments: List[Dict[str, Any]]
     total: int
+    page: int
+    per_page: int
+    total_pages: int
 
 
 class DeploymentDetailResponse(BaseModel):
@@ -164,18 +174,27 @@ async def create_deployment(
 async def list_deployments(
     project_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
     query: Dict[str, Any] = {"user_id": current_user.id}
     if project_id:
         query["project_id"] = project_id
 
-    deployments = (
-        await db.deployments.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
+    result = await paginated_query(
+        db.deployments,
+        query,
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+        projection={"_id": 0, "env_vars": 0},
     )
     return DeploymentListResponse(
-        deployments=deployments,
-        total=len(deployments),
+        deployments=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 

@@ -13,6 +13,7 @@ from api.builds import router as builds_router
 from api.projects import router as projects_router
 from api.auth import router as auth_router
 from api.billing import router as billing_router
+from api.razorpay import router as razorpay_router
 from api.admin import router as admin_router
 from api.analytics import router as analytics_router
 from api.marketplace import router as marketplace_router
@@ -30,6 +31,7 @@ from api.sprints import router as sprints_router
 from api.releases import router as releases_router
 from api.agent_executions import router as agent_executions_router
 from api.llm import router as llm_router
+from api.v1 import v1_router
 from core.database import close_connections
 from core.config import get_settings
 from core.security import (
@@ -62,27 +64,25 @@ for _handler in logging.getLogger().handlers:
 
 # Prometheus metrics
 try:
-    from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-    from prometheus_client import CollectorRegistry
-    
-    # Create a custom registry
-    registry = CollectorRegistry()
-    
-    # Define metrics
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from core.metrics import registry
+
+    from prometheus_client import Counter, Histogram
+
     http_requests_total = Counter(
         'http_requests_total',
         'Total HTTP requests',
         ['method', 'endpoint', 'status'],
         registry=registry
     )
-    
+
     http_request_duration_seconds = Histogram(
         'http_request_duration_seconds',
         'HTTP request latency',
         ['method', 'endpoint'],
         registry=registry
     )
-    
+
     PROMETHEUS_ENABLED = True
 except ImportError:
     PROMETHEUS_ENABLED = False
@@ -224,10 +224,37 @@ if PROMETHEUS_ENABLED:
 # their log lines get tagged with it too (BE-008).
 app.middleware("http")(request_id_middleware)
 
+# BE-004: legacy root-level API routes are still registered below, but this
+# middleware adds Deprecation + Link headers so clients can migrate to /v1/.
+@app.middleware("http")
+async def deprecation_middleware(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/v1/") or path in ("/health", "/health/detailed", "/health/mongo-ping", "/health/pools", "/metrics"):
+        return response
+    if path.startswith("/api/llm"):
+        return response
+    if path.startswith("/razorpay"):
+        return response
+    if path.startswith("/billing/webhook"):
+        return response
+    if path.startswith("/auth/csrf-token"):
+        return response
+    successor = f"/v1{path}"
+    response.headers["Deprecation"] = "true"
+    response.headers["Link"] = f'<{successor}>; rel="successor-version"'
+    return response
+
+# Canonical /v1/ routes (BE-004).
+app.include_router(v1_router)
+
+# Legacy root-level routes remain available during the deprecation window but
+# receive Deprecation and Link headers pointing at their /v1/ successors.
 app.include_router(auth_router)
 app.include_router(builds_router)
 app.include_router(projects_router)
 app.include_router(billing_router)
+app.include_router(razorpay_router)
 app.include_router(admin_router)
 app.include_router(analytics_router)
 app.include_router(marketplace_router)
@@ -270,11 +297,16 @@ async def health_mongo_ping():
         return {"status": "degraded", "error": str(e)}
 
 
-@app.get("/health/detailed")
-async def health_detailed():
-    """Detailed health check including database, redis, and Celery worker connectivity."""
+async def _run_health_detailed() -> dict:
+    """Core health-detailed logic. Always returns a dict so tests that call it
+    directly (bypassing FastAPI) can assert on the body without dealing with
+    response objects.
+
+    The route handler wraps this and returns 503 when the result is degraded.
+    """
     from core.database import get_db, get_redis
-    health_status = {"status": "ok", "checks": {}}
+
+    health_status: dict = {"status": "ok", "checks": {}}
 
     try:
         db = await get_db()
@@ -294,10 +326,6 @@ async def health_detailed():
 
     try:
         from celery_app import celery_app
-        # control.inspect().ping() is a blocking network round-trip to any
-        # live workers -- run off the event loop so a slow/absent worker
-        # doesn't stall this request (BE-011: previously neither /health nor
-        # /health/detailed checked Celery at all).
         pong = await asyncio.to_thread(
             lambda: celery_app.control.inspect(timeout=1.0).ping()
         )
@@ -311,6 +339,21 @@ async def health_detailed():
         health_status["status"] = "degraded"
 
     return health_status
+
+
+@app.get("/health/detailed")
+async def health_detailed():
+    """Detailed health check including database, redis, and Celery worker connectivity.
+
+    Returns 200 when all dependencies are healthy and 503 when any check fails,
+    so Kubernetes readinessProbes (which target this endpoint) correctly drain
+    pods whose dependencies are down instead of continuing to route traffic to
+    them.
+    """
+    result = await _run_health_detailed()
+    if result.get("status") == "degraded":
+        return JSONResponse(status_code=503, content=result)
+    return result
 
 
 @app.get("/health/pools")

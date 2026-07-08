@@ -218,7 +218,9 @@ def test_check_llm_rate_limit_falls_back_to_in_memory_when_redis_fails(monkeypat
 
     results = asyncio.new_event_loop().run_until_complete(_drive())
     allowed = [ok for ok, _ in results]
-    assert allowed == [True] * limit + [False]
+    # The conservative in-memory fallback enforces limit // 2 (e.g. 60 // 2 = 30).
+    fallback = limit // 2
+    assert allowed == [True] * fallback + [False] * (limit + 1 - fallback)
 
 
 # --- (c) LLMRouter.generate() raises when the per-user limit is exceeded --
@@ -259,3 +261,22 @@ async def test_generate_does_not_rate_limit_calls_without_user_id():
             user_id=None,
         )
         assert result.text == "ok"
+
+
+def test_check_llm_rate_limit_uses_conservative_half_limit_in_fallback(monkeypatch):
+    """SEC-004 residual: with Redis down, the in-memory fallback must enforce
+    half the normal limit so a multi-replica outage doesn't silently multiply
+    the effective ceiling."""
+    monkeypatch.setattr(security_module, "get_redis", _broken_redis)
+    limit = _user_limit()  # e.g. 60
+
+    async def _drive():
+        results = []
+        for _ in range(limit + 1):
+            results.append(await security_module.check_llm_rate_limit("user-rate-fallback"))
+        return results
+
+    results = asyncio.new_event_loop().run_until_complete(_drive())
+    allowed = [ok for ok, _ in results]
+    # Redis limit is 60, but in-memory fallback uses 60 // 2 = 30.
+    assert allowed == [True] * (limit // 2) + [False] * (limit - limit // 2 + 1)

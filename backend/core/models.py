@@ -231,6 +231,20 @@ class BuildFile(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class BuildDeadLetter(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    build_id: str
+    user_id: str
+    project_id: str
+    prompt: str
+    error: str
+    failure_reason: str
+    retry_count: int = 0
+    credits_used: int = 0
+    created_at: datetime
+    dead_lettered_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # --- Message ---
 
 
@@ -250,8 +264,11 @@ class Message(BaseModel):
 class Subscription(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    stripe_subscription_id: str
-    stripe_price_id: str
+    stripe_subscription_id: Optional[str] = None
+    stripe_price_id: Optional[str] = None
+    provider: str = "stripe"
+    razorpay_subscription_id: Optional[str] = None
+    razorpay_plan_id: Optional[str] = None
     status: SubscriptionStatus = SubscriptionStatus.ACTIVE
     plan: PlanTier = PlanTier.FREE
     current_period_start: Optional[datetime] = None
@@ -264,22 +281,27 @@ class Subscription(BaseModel):
 class Invoice(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    stripe_invoice_id: str
+    stripe_invoice_id: Optional[str] = None
+    razorpay_payment_id: Optional[str] = None
     amount: int
-    currency: str = "usd"
+    currency: str = "inr"
     status: str = "draft"
     hosted_invoice_url: Optional[str] = None
+    provider: str = "stripe"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class CreditPurchase(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    stripe_payment_intent_id: str
+    stripe_payment_intent_id: Optional[str] = None
+    razorpay_order_id: Optional[str] = None
+    razorpay_payment_id: Optional[str] = None
     credits: int
     amount: int
-    currency: str = "usd"
+    currency: str = "inr"
     status: str = "pending"
+    provider: str = "stripe"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

@@ -12,6 +12,7 @@ from core.database import get_db
 from core.config import get_settings
 from core.audit import record_audit_log
 from api.auth import get_current_user
+from api.growth import send_email
 
 router = APIRouter(prefix="/gdpr", tags=["gdpr"])
 settings = get_settings()
@@ -364,5 +365,12 @@ async def delete_user_data(
         db, request, current_user, "delete_account", "user",
         resource_id=current_user.id,
         changes={"deleted": counts},
+    )
+    await send_email(
+        current_user.email,
+        "Your Forge account has been deleted",
+        "<p>Your Forge account and all associated data have been scheduled for deletion. "
+        "This process completes within 30 days as required by GDPR. "
+        "If you have any questions, reply to this email.</p>",
     )
     return {"ok": True, "message": "Account deleted", "deleted": counts}

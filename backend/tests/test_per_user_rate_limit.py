@@ -57,11 +57,12 @@ def patched(monkeypatch):
         raise RuntimeError("no redis in test")
 
     monkeypatch.setattr(security_module, "get_redis", _boom)
-    # Small limit so the test is fast and deterministic.
+    # Use an even limit so the conservative 50 % fallback is predictable.
+    # Configured limit 4 → in-memory fallback limit 2.
     monkeypatch.setattr(
         security_module,
         "_get_limit_config",
-        lambda path: ("api", {"limit": 3, "window": 60}),
+        lambda path: ("api", {"limit": 4, "window": 60}),
     )
     security_module._in_memory_rate_limits.clear()
     yield
@@ -71,12 +72,16 @@ def patched(monkeypatch):
 @pytest.mark.asyncio
 async def test_authenticated_requests_keyed_per_user_not_per_ip(patched):
     """Two different IPs for the SAME user share one counter and hit the limit
-    together; a different user has an independent counter."""
+    together; a different user has an independent counter.
+
+    The patched fixture sets the Redis limit to 4, which makes the conservative
+    in-memory fallback limit 2 (4 // 2), so we assert against that ceiling.
+    """
     user_a = _token("user-a")
     user_b = _token("user-b")
 
-    # user-a from IP 1.2.3.4: 3 allowed, 4th blocked.
-    for _ in range(3):
+    # user-a from IP 1.2.3.4: 2 allowed (fallback 4//2=2), 3rd blocked.
+    for _ in range(2):
         await rate_limit_middleware(
             _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_a}),
             _call_next_factory(),
@@ -95,8 +100,14 @@ async def test_authenticated_requests_keyed_per_user_not_per_ip(patched):
             _call_next_factory(),
         )
 
-    # user-b (different account) still has a fresh counter and is allowed.
-    for _ in range(3):
+    # user-b (different account) still has a fresh counter and is allowed
+    # up to the same fallback limit of 2.
+    for _ in range(2):
+        await rate_limit_middleware(
+            _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_b}),
+            _call_next_factory(),
+        )
+    with pytest.raises(Exception):
         await rate_limit_middleware(
             _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_b}),
             _call_next_factory(),
@@ -105,9 +116,13 @@ async def test_authenticated_requests_keyed_per_user_not_per_ip(patched):
 
 @pytest.mark.asyncio
 async def test_unauthenticated_requests_still_keyed_by_ip(patched):
-    """Without a token, the limit is enforced per source IP."""
+    """Without a token, the limit is enforced per source IP.
+
+    The patched fixture uses Redis limit 4, making the conservative in-memory
+    fallback limit 2, so we assert against that ceiling.
+    """
     ip = "1.2.3.4"
-    for _ in range(3):
+    for _ in range(2):
         await rate_limit_middleware(
             _FakeRequest(client_host=ip), _call_next_factory()
         )
@@ -126,7 +141,7 @@ async def test_unauthenticated_requests_still_keyed_by_ip(patched):
 async def test_invalid_token_falls_back_to_ip_keying(patched):
     """A present-but-undecodable token must not crash and stays IP-keyed."""
     ip = "1.2.3.4"
-    for _ in range(3):
+    for _ in range(2):
         await rate_limit_middleware(
             _FakeRequest(client_host=ip, cookies={"access_token": "not-a-jwt"}),
             _call_next_factory(),
@@ -134,6 +149,32 @@ async def test_invalid_token_falls_back_to_ip_keying(patched):
     with pytest.raises(Exception):
         await rate_limit_middleware(
             _FakeRequest(client_host=ip, cookies={"access_token": "not-a-jwt"}),
+            _call_next_factory(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_in_memory_fallback_uses_conservative_half_limit(patched):
+    """SEC-004 residual: when Redis is down, the in-memory fallback must apply
+    a 50 % ceiling so the per-process limit doesn't silently multiply across
+    workers/replicas."""
+    user_a = _token("user-a")
+
+    # The patched fixture sets the Redis limit to 4, making the conservative
+    # in-memory fallback limit 2 (4 // 2). Allow exactly 2 requests, then
+    # block the 3rd.
+    await rate_limit_middleware(
+        _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_a}),
+        _call_next_factory(),
+    )
+    await rate_limit_middleware(
+        _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_a}),
+        _call_next_factory(),
+    )
+    # The 3rd request must be blocked because the fallback limit is 2.
+    with pytest.raises(Exception):
+        await rate_limit_middleware(
+            _FakeRequest(client_host="9.9.9.9", cookies={"access_token": user_a}),
             _call_next_factory(),
         )
 

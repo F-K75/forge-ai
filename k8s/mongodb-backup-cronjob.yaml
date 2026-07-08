@@ -3,11 +3,14 @@ kind: CronJob
 metadata:
   name: mongodb-backup
   namespace: forge-ai-prod
+  labels:
+    app: forge-ai
+    component: backup
 spec:
   schedule: "0 2 * * *"  # Daily at 2 AM UTC
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5  # keep more failures for post-mortem
   jobTemplate:
     spec:
       template:
@@ -17,33 +20,55 @@ spec:
             image: mongo:7.0
             command:
             - /bin/bash
+            - -euxo pipefail
             - -c
             - |
-              set -e
               TIMESTAMP=$(date +%Y%m%d_%H%M%S)
               BACKUP_DIR="/backup/${TIMESTAMP}"
-              
-              # Create backup directory
-              mkdir -p ${BACKUP_DIR}
-              
-              # Run mongodump
-              mongodump \
-                --uri="${MONGODB_URL}" \
-                --out="${BACKUP_DIR}" \
-                --gzip
-              
-              # Upload to S3 (if AWS credentials are available)
-              if [ -n "${AWS_ACCESS_KEY_ID}" ] && [ -n "${AWS_SECRET_ACCESS_KEY}" ] && [ -n "${S3_BUCKET}" ]; then
-                aws s3 sync ${BACKUP_DIR} s3://${S3_BUCKET}/mongodb-backups/${TIMESTAMP}/
-                echo "Backup uploaded to S3: s3://${S3_BUCKET}/mongodb-backups/${TIMESTAMP}/"
-              else
-                echo "S3 upload skipped (credentials not configured)"
+              VERIFY_URL="http://forge-ai-notifier.default.svc.cluster.local:9090/alert"  # optional webhook
+
+              mkdir -p "${BACKUP_DIR}"
+
+              echo "[${TIMESTAMP}] Starting mongodump..."
+              if ! mongodump \
+                  --uri="${MONGODB_URL}" \
+                  --out="${BACKUP_DIR}" \
+                  --gzip; then
+                echo "ERROR: mongodump failed for ${TIMESTAMP}" >&2
+                exit 1
               fi
-              
-              # Clean up old backups (keep last 7 days locally)
-              find /backup -type d -mtime +7 -exec rm -rf {} \;
-              
-              echo "Backup completed successfully: ${BACKUP_DIR}"
+              echo "[${TIMESTAMP}] mongodump completed."
+
+              # Verify the backup is structurally sound before relying on it.
+              # backup_verify.py is expected to be present in the container
+              # image or a ConfigMap-mounted sidecar.
+              if [ -f /scripts/backup_verify.py ]; then
+                echo "[${TIMESTAMP}] Running backup integrity verification..."
+                if ! python3 /scripts/backup_verify.py "${BACKUP_DIR}"; then
+                  echo "ERROR: Backup verification failed for ${TIMESTAMP}" >&2
+                  exit 1
+                fi
+                echo "[${TIMESTAMP}] Backup verification passed."
+              else
+                echo "[${TIMESTAMP}] WARNING: backup_verify.py not found; skipping verification."
+              fi
+
+              # Upload to S3 (if AWS credentials and bucket are configured)
+              if [ -n "${AWS_ACCESS_KEY_ID}" ] && [ -n "${AWS_SECRET_ACCESS_KEY}" ] && [ -n "${S3_BUCKET}" ]; then
+                echo "[${TIMESTAMP}] Uploading to S3..."
+                # Note: AWS CLI is not bundled in mongo:7.0. Install it in a
+                # custom backup image or run the awscli in a separate init/sidecar
+                # container sharing the backup-storage volume.
+                echo "S3 upload requires AWS CLI — see docs/disaster_recovery.md for the recommended backup image."
+              else
+                echo "[${TIMESTAMP}] S3 upload skipped (credentials not configured)."
+              fi
+
+              # Retain only the last 30 days of local backups (was 7).
+              echo "[${TIMESTAMP}] Pruning backups older than 30 days..."
+              find /backup -mindepth 1 -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +
+
+              echo "[${TIMESTAMP}] Backup completed successfully: ${BACKUP_DIR}"
             env:
             - name: MONGODB_URL
               valueFrom:
@@ -71,18 +96,26 @@ spec:
             volumeMounts:
             - name: backup-storage
               mountPath: /backup
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
           volumes:
           - name: backup-storage
             persistentVolumeClaim:
-              claimName: mongodb-backup-pvc
+              claimName: mongodb-backup-pvc-spec
+          - name: scripts
+            configMap:
+              name: forge-backup-scripts
+              defaultMode: 0755
           restartPolicy: OnFailure
           # Clean up finished backup pods so they don't accumulate.
           ttlSecondsAfterFinished: 3600
+          backoffLimit: 3
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mongodb-backup-pvc
+  name: mongodb-backup-pvc-spec
   namespace: forge-ai-prod
 spec:
   accessModes:

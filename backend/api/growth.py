@@ -1,15 +1,14 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import hashlib
-import math
 
 import resend
 
 from core.config import get_settings
-from core.models import User
-from core.database import get_db
+from core.models import User, PaginationParams
+from core.database import get_db, paginated_query
 from api.auth import get_current_user
 
 settings = get_settings()
@@ -105,19 +104,22 @@ async def create_referral(req: ReferralCreate, user: User = Depends(get_current_
 @router.get("/referrals", response_model=PaginatedReferrals)
 async def list_referrals(
     user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    query = {"referrer_id": user.id}
-    total = await db.referrals.count_documents(query)
-    referrals = await db.referrals.find(query, {"_id": 0}).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    result = await paginated_query(
+        db.referrals,
+        {"referrer_id": user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+    )
     return PaginatedReferrals(
-        referrals=referrals,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        referrals=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 
@@ -141,21 +143,22 @@ async def create_notification(req: NotificationCreate, user: User = Depends(get_
 @router.get("/notifications", response_model=PaginatedNotifications)
 async def list_notifications(
     user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    query = {"user_id": user.id}
-    total = await db.notifications.count_documents(query)
-    notifications = await db.notifications.find(
-        query, {"_id": 0}
-    ).sort("created_at", -1).skip((page - 1) * per_page).limit(per_page).to_list(per_page)
+    result = await paginated_query(
+        db.notifications,
+        {"user_id": user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("created_at", -1)],
+    )
     return PaginatedNotifications(
-        notifications=notifications,
-        total=total,
-        page=page,
-        per_page=per_page,
-        total_pages=math.ceil(total / per_page) if total else 0,
+        notifications=result.items,
+        total=result.total,
+        page=result.page,
+        per_page=result.per_page,
+        total_pages=result.total_pages,
     )
 
 

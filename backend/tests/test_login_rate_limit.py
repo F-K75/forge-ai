@@ -44,7 +44,12 @@ def test_login_has_a_per_email_rate_limit_entry():
 
 
 def test_login_blocks_after_limit_regardless_of_source_ip(monkeypatch):
-    """The whole point: a distributed-IP attacker still gets capped per account."""
+    """The whole point: a distributed-IP attacker still gets capped per account.
+
+    With Redis down, the in-memory fallback enforces the conservative half of
+    the configured limit (10/hour → 5/hour) so a multi-replica outage doesn't
+    silently multiply the effective ceiling.
+    """
     monkeypatch.setattr(security_module, "get_redis", _broken_redis)
 
     async def _drive():
@@ -59,7 +64,8 @@ def test_login_blocks_after_limit_regardless_of_source_ip(monkeypatch):
 
     results = asyncio.new_event_loop().run_until_complete(_drive())
     allowed = [ok for ok, _ in results]
-    assert allowed == [True] * 10 + [False]
+    # Redis limit is 10, but in-memory fallback uses 10 // 2 = 5.
+    assert allowed == [True] * 5 + [False] * 6
 
 
 def test_login_rate_limit_scopes_by_email_not_globally(monkeypatch):
