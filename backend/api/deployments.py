@@ -27,6 +27,27 @@ logger = logging.getLogger(__name__)
 _docker_client = None  # type: docker.DockerClient | None
 
 
+def _require_deployments_enabled():
+    """Guard the Docker-backed deployment feature.
+
+    The deployment stack requires access to the host Docker daemon socket,
+    which gives the backend container root-equivalent privileges on the host.
+    To prevent accidental privilege escalation, this feature is opt-in only:
+    set DEPLOYMENTS_ENABLED=true in the environment to activate it.
+
+    In production, the Docker socket is deliberately NOT mounted (see
+    DEPLOYMENT.md). Without the socket, docker.from_env() would fail anyway,
+    but this guard makes the failure explicit and prevents the code path from
+    being reached even if the socket is accidentally mounted.
+    """
+    if not os.environ.get("DEPLOYMENTS_ENABLED"):
+        raise HTTPException(
+            status_code=503,
+            detail="Deployments are not enabled on this instance. "
+                  "Contact the administrator or set DEPLOYMENTS_ENABLED=true.",
+        )
+
+
 
 def get_docker_client() -> docker.DockerClient:
     global _docker_client
@@ -92,6 +113,7 @@ async def create_deployment(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
+    _require_deployments_enabled()
     db = await get_db()
 
     build = await db.builds.find_one(
@@ -177,6 +199,7 @@ async def redeploy(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
+    _require_deployments_enabled()
     db = await get_db()
     deployment = await db.deployments.find_one(
         {"id": deployment_id, "user_id": current_user.id}, {"_id": 0}
@@ -274,6 +297,7 @@ async def cancel_deployment(
     )
 
     if status in (DeploymentStatus.BUILDING, DeploymentStatus.DEPLOYING):
+        _require_deployments_enabled()
         container_name = f"forge-deploy-{deployment_id}"
         try:
             client = get_docker_client()

@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-07-08 — Reduce Docker deployment privilege surface (P3)
+
+### Security
+
+**Removed unnecessary `docker.io` package from the backend image and added a runtime guard to the deployment API.** The backend Dockerfile installed `docker.io` (Docker daemon + CLI), and `backend/api/deployments.py` used the Python Docker SDK to build and run user-generated application containers. This created a significant privilege escalation surface: if the Docker socket were accidentally mounted or the container run privileged, the backend could control the host.
+
+The deployment feature is documented as intentionally dark in production (`DEPLOYMENT.md`: "The docker socket is deliberately not mounted in production; this feature stays dark until it gets proper subdomain routing"). This change makes that protection code-level rather than relying solely on ops discipline.
+
+- `backend/Dockerfile`: removed `docker.io` from the `apt-get install` line. The Python Docker SDK communicates directly with the daemon socket and does not need the CLI package.
+- `backend/api/deployments.py`: added `_require_deployments_enabled()` guard. All Docker-using endpoints (`POST /deployments/`, `POST /deployments/{id}/redeploy`, and container cancellation in `DELETE /deployments/{id}`) now return `503 Service Unavailable` unless the environment variable `DEPLOYMENTS_ENABLED=true` is set. Read-only endpoints (`GET /deployments/`, `GET /deployments/{id}`) remain available so users can inspect deployment history.
+- The guard also prevents accidental Docker operations even if the socket is mounted, making the failure explicit rather than silent.
+
+### Files Changed
+
+- `backend/Dockerfile` — removed `docker.io` package
+- `backend/api/deployments.py` — added `_require_deployments_enabled()` runtime guard
+
+### Risks
+
+- **Very low**: The deployment feature was already dark in production. This change only adds an explicit opt-in requirement and removes an unused package.
+
 ## 2026-07-08 — Wire Review Board (orchestrator/) into docker-compose, k8s, and CI (P2)
 
 ### Deployment / Infrastructure

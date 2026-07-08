@@ -1,44 +1,53 @@
-# Production Readiness Improvements — Session Summary
+# Fix: Reduce Docker-in-docker deployment privilege surface (P3)
 
-## Completed
+## Problem
 
-### 1. Fast-fail MongoDB index provisioning (INF-008, P1)
+The backend Dockerfile installs `docker.io` (Docker CLI + daemon), and `backend/api/deployments.py` uses the Python `docker` SDK to build and run user-generated application containers. This creates a significant privilege surface:
 
-**Problem**: `get_db()` called `_ensure_indexes()` which ran ~35 sequential `create_index` calls. Each call waited the full `serverSelectionTimeoutMS=5000` (5 seconds) when MongoDB was unreachable, producing a ~175-second slow-fail.
+1. **Unnecessary package**: `docker.io` is installed in the backend image but never used (the Python SDK communicates directly with the Docker daemon socket).
+2. **No runtime guard**: If the Docker socket is accidentally mounted or the container is run privileged, the deployment code will execute without any warning.
+3. **Documented but unprotected risk**: `DEPLOYMENT.md` notes the Docker socket is "deliberately not mounted in production" and the feature "stays dark," but there's no code-level enforcement.
 
-**Fix**: Refactored `_ensure_indexes()` in `backend/core/database.py` to collect all `create_index` coroutines into a list and run them concurrently via `asyncio.gather(..., return_exceptions=True)`. When MongoDB is down, all calls fail after the same ~5s window simultaneously.
+## Root Cause
 
-**Result**: Slow-fail time reduced from ~175s to ~5s. Backend tests: 395 passed.
+- `backend/Dockerfile` line 6: `apt-get install -y git curl docker.io` installs the Docker daemon/CLI unnecessarily.
+- `backend/api/deployments.py`: uses `docker.from_env()` without checking if Docker access is explicitly enabled.
+- No feature flag or environment variable gates the deployment functionality.
 
-**Files**: `backend/core/database.py`, `backend/tests/test_index_provisioning.py`
+## Solution
 
-### 2. Remove orchestration runtime artifacts from git (P2)
+1. **Remove `docker.io` from backend Dockerfile** — the Python SDK doesn't need the CLI package. This reduces the image size and attack surface.
+2. **Add a runtime guard in `deployments.py`** — require `DEPLOYMENTS_ENABLED=true` environment variable before any Docker operations are attempted. If not set, return a clear error message.
+3. **Document the security requirement** — add a prominent comment in the code explaining that the Docker socket must never be mounted in production without proper subdomain routing and isolation.
 
-**Problem**: 31 generated JSON files under `orchestration/` were tracked in git. They are produced at runtime by the meta-orchestration tooling and bloat the repo with merge noise and sensitive runtime state.
+## Architecture Changes
 
-**Fix**: Added `orchestration/*.json` to `.gitignore` and removed the files from git tracking with `git rm --cached`. Local copies are preserved for running tooling.
+- None. The deployment API endpoints remain, but they now require an explicit opt-in environment variable.
 
-**Files**: `.gitignore`, 31 deleted files under `orchestration/`
+## Database Changes
 
-### 3. Wire Review Board (orchestrator/) into docker-compose, k8s, and CI (P2)
+- None.
 
-**Problem**: The Review Board (`orchestrator/`) was a fully functional FastAPI service with its own tests, but had no Dockerfile, no docker-compose service, no k8s manifests, and no CI job. It could only be run manually.
+## API Changes
 
-**Fix**:
-- Created `orchestrator/Dockerfile` following the backend pattern
-- Added `orchestrator` service to `docker-compose.yml` with mongo+redis dependencies, healthcheck, and resource limits
-- Created `k8s/orchestrator.yaml` with Deployment (2 replicas), Service (port 8100), and HPA (2-10 replicas)
-- Added `orchestrator` CI job to `.github/workflows/ci.yml`
-- Updated `quality-gate` to include the new job
-- Fixed flaky `test_ensure_indexes_runs_concurrently` timing tolerance
+- `POST /deployments/` returns `503 Service Unavailable` with a clear message when `DEPLOYMENTS_ENABLED` is not set.
+- All other deployment endpoints behave the same.
 
-**Files**: `orchestrator/Dockerfile`, `docker-compose.yml`, `k8s/orchestrator.yaml`, `.github/workflows/ci.yml`, `backend/tests/test_index_provisioning.py`
+## UI Changes
 
-## Remaining Backlog
+- None. The frontend should handle 503 gracefully (it already handles error responses).
 
-| Priority | Item | Status |
-|----------|------|--------|
-| P1 | `get_db()` slow-fail on index provisioning | ✅ Completed |
-| P2 | `orchestration/` runtime JSON artifacts committed to git | ✅ Completed |
-| P2 | Review Board (`orchestrator/`) not wired into compose/k8s/CI | ✅ Completed |
-| P3 | Docker-in-docker deployment privilege surface review | Open |
+## Testing Strategy
+
+- Unit: verify deployment endpoints return 503 when `DEPLOYMENTS_ENABLED` is not set
+- Unit: verify deployment endpoints work when `DEPLOYMENTS_ENABLED=true` and Docker is mocked
+- Regression: run full backend test suite
+
+## Risks
+
+- **Very low**: Removing `docker.io` from the Dockerfile doesn't affect any existing functionality (the Python SDK doesn't need it). The runtime guard only affects the deployment feature which is already documented as "dark" in production.
+
+## Rollback Plan
+
+- Re-add `docker.io` to the Dockerfile
+- Remove the `DEPLOYMENTS_ENABLED` guard from `deployments.py`
