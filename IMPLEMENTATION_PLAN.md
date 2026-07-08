@@ -1,49 +1,43 @@
-# Fix: Missing celery-worker Healthcheck in docker-compose.yml (DEV-004, P0)
+# Fix: ReDoS / NoSQL Injection in Search Endpoints (P0)
 
 ## Problem
 
-The `celery-worker` service in `docker-compose.yml` (development Compose file)
-has **no `healthcheck` block**, while every other service (`backend`, `frontend`,
-`mongo`, `redis`) defines one. This is the single production-readiness gap for
-DevOps / deployment infrastructure.
+The `list_items` endpoint in `backend/api/marketplace.py` (lines 93-96) and the
+`list_tasks` endpoint in `backend/api/tasks.py` (lines 103-107) pass the raw
+`search` query parameter directly into a MongoDB `$regex` query **without**
+sanitizing it first.
 
-Consequences:
-- `depends_on` for mongo/redis uses `condition: service_healthy`, so the
-  celery-worker will start as soon as the Docker engine creates the container
-  — it does **not** wait for Mongo or Redis to be ready.
-- A celery-worker that starts before its broker (Redis) is accepting connections
-  will crash-loop with `ConnectionError` until Redis becomes healthy, generating
-  noise in logs and potentially masking real issues.
-- Operators running `docker compose ps` cannot see whether the worker is actually
-  processing tasks or stuck in a reconnect loop.
-- The prod Compose file (`docker-compose.prod.yml`) already has a working
-  healthcheck on the `worker` service; only the dev file is incomplete.
+An attacker can submit a crafted regex pattern that triggers catastrophic
+backtracking (ReDoS), causing the MongoDB server to spend unbounded CPU time
+evaluating the pattern. This is a denial-of-service vulnerability that can
+exhaust database connections and degrade or crash the service.
+
+The `admin.py` search endpoints already correctly apply `sanitize_string()`
+from `core/security.py`, but the marketplace and tasks endpoints were missed
+during that security hardening pass.
 
 ## Root Cause
 
-`docker-compose.yml` lines 40–66 define `celery-worker` with `depends_on` but no
-`healthcheck`. This was an oversight during initial Compose scaffolding — the
-backend and frontend services got healthchecks, the infrastructure services
-(mongo, redis) got them, but the worker was missed.
+- `marketplace.py:93-96`: `search` is interpolated directly into `$regex`
+- `tasks.py:103-107`: `search` is interpolated directly into `$regex`
+- Neither file imports or calls `sanitize_string()`, which strips control
+  characters, caps length, and escapes regex metacharacters via `re.escape()`
 
 ## Solution
 
-Add a `healthcheck` block to `celery-worker` in `docker-compose.yml` that:
+Apply the same `sanitize_string(search, max_length=100)` pattern already used
+in `admin.py` to both `marketplace.py` and `tasks.py`.
 
-1. Uses `celery -A celery_app inspect ping` to verify the worker is alive and
-   connected to the broker.
-2. Uses `CMD-SHELL` form so `$$HOSTNAME` is correctly expanded by the shell
-   (same pattern already used in `docker-compose.prod.yml` worker service).
-3. Sets `interval: 60s`, `timeout: 15s`, `retries: 3`, `start_period: 30s` —
-   matching the prod worker's values exactly for consistency.
+1. Import `sanitize_string` from `core.security` in both files.
+2. Before constructing the `$regex` query, sanitize the `search` value.
+3. Use the sanitized value in the `$or` clause.
 
-No other changes are needed: the existing `depends_on` already uses
-`condition: service_healthy`, so adding the healthcheck immediately makes that
-gate functional.
+No other changes are needed: the existing caching, pagination, and query
+structure remain intact.
 
 ## Architecture Changes
 
-None — this is an infrastructure-only fix.
+None — this is a security hardening change in existing API handlers.
 
 ## Database Changes
 
@@ -51,7 +45,8 @@ None.
 
 ## API Changes
 
-None.
+None — the endpoint signatures, request/response schemas, and behaviour are
+unchanged. Only the internal query construction is hardened.
 
 ## UI Changes
 
@@ -59,30 +54,23 @@ None.
 
 ## Testing Strategy
 
-- Static: `docker compose config` validates YAML syntax and interpolation.
-- Functional: `docker compose up --build` — `docker compose ps` shows
-  `(healthy)` for all five services after start_period elapses.
-- Resilience: `docker compose stop mongo` confirms celery-worker transitions
-  to `unhealthy` rather than staying `healthy` while disconnected.
-- No code-level unit tests are needed; the healthcheck command is a deployment
-  manifest concern, not application logic.
+- Unit: verify that malicious regex patterns are neutralized (special chars
+  escaped, length capped) before reaching MongoDB.
+- Integration: confirm that normal search queries still return expected results
+  after sanitization.
+- Regression: run the full backend test suite (`pytest`) to ensure no
+  collateral damage.
 
 ## Risks
 
-- **Very low**: The healthcheck command (`celery inspect ping`) is the same
-  command already used in production (`docker-compose.prod.yml` worker service,
-  line 133). It is a no-op for a worker that is not yet connected — it returns
-  a non-zero exit code, which is the correct signal for "not healthy yet".
-- **Very low**: `start_period: 30s` matches the prod value; the worker image
-  already takes ~10–15s to initialize (import + broker connect), so 30s is
-  sufficient and consistent.
-- **Very low**: `$$HOSTNAME` in `CMD-SHELL` is expanded by `/bin/sh -c` inside
-  the container to the container's actual hostname, which is the worker name
-  that Celery uses for its `@hostname` routing. This is the same pattern used
-  in the prod worker.
+- **Very low**: `sanitize_string()` is already used in production on the admin
+  search endpoints. The function escapes regex metacharacters and truncates to
+  a safe length, so normal user search queries are unaffected.
+- **Very low**: the `max_length=100` cap matches the admin endpoints and is
+  generous for a free-text search field.
 
 ## Rollback Plan
 
-Revert the single `healthcheck:` block added to `celery-worker` in
-`docker-compose.yml`. The service returns to its prior behaviour (no health
-signal, but still functional).
+Revert the two edits in `marketplace.py` and `tasks.py` to restore the raw
+`$regex` query. The endpoints will continue to function (just without the
+ReDoS protection).

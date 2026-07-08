@@ -1,5 +1,205 @@
 # Changelog
 
+## 2026-07-08 — Fix frontend build and backend test suite reliability (P1)
+
+### Build Fixes
+
+**Fixed frontend `tsc` build failure that blocked CI/CD.** `useBuildSocket.test.ts`
+declared a mock `WebSocket` as an anonymous class extending `EventTarget` with
+extra static/instance properties. TypeScript's strict class-body checking rejected
+the undeclared properties (`url`, `_readyState`) and the static members
+(`instances`, `handlers`) because the global `WebSocket` type doesn't define them.
+The class body was also unreachable by the trailing `as any` cast (TypeScript
+checks class bodies before applying outer expression casts).
+
+- `frontend/src/hooks/useBuildSocket.test.ts`: replaced the anonymous class with a
+  named `MockWebSocket` class that explicitly declares `url` and `_readyState`
+  properties, and references the class by name for static members. Removed the
+  ineffective trailing `as any` and replaced all `WebSocket.instances` references
+  in test assertions with `MockWebSocket.instances`.
+- `npm run build` (tsc + vite) now passes cleanly.
+
+### Test Reliability Fixes
+
+**Fixed two backend test timeouts that prevented the full suite from passing.**
+
+- `backend/tests/test_celery_health_check.py`: the `health_detailed()` endpoint
+  calls `get_db()` and `get_redis()` before checking Celery. When those external
+  services are unavailable, `get_db()` takes ~46 seconds (sequential index
+  creation timeouts) and caused the test to exceed the 30-second pytest timeout.
+  Added fake `get_db`/`get_redis` implementations that return immediately, and
+  extended the suite with two new tests (`test_health_detailed_reports_db_error`,
+  `test_health_detailed_reports_redis_error`) that verify degraded status when
+  individual dependencies fail.
+- `backend/tests/test_file_update_delta_shape.py`: `Orchestrator.run_build()` calls
+  `_is_byok_active()` which imports `get_db` inside the function body. Because the
+  test module imported `core.orchestrator` at the top level (before any fixture
+  could patch `core.database.get_db`), a real `AsyncIOMotorClient` was created
+  during import-time side effects and its background threads blocked the event
+  loop. Replaced the fixture-based monkeypatch with a direct `monkeypatch.setattr`
+  on `Orchestrator._is_byok_active` that short-circuits to `False`, and moved
+  `from core.orchestrator import Orchestrator` inside each test function.
+
+### Bugs Fixed
+
+- **P1 — frontend `tsc` build blocked by TypeScript errors in
+  `useBuildSocket.test.ts`**: 11 `TS2339`/`TS2551` errors from an anonymous mock
+  class with undeclared properties. Resolved by switching to a named class with
+  explicit property declarations.
+- **P1 — backend test suite blocked by `test_health_detailed_reports_ok_when_workers_respond`
+  timeout**: `get_db()` sequential index-provisioning took ~46 seconds against an
+  unreachable MongoDB. Fixed by mocking `get_db`/`get_redis` in the test.
+- **P1 — backend test suite blocked by `test_exactly_one_file_update_per_developer_pass_using_delta_shape`
+  timeout**: `_is_byok_active` imported `get_db` inside the function body; module-level
+  import order caused a real MongoClient to be created before monkeypatching.
+  Fixed by monkeypatching `_is_byok_active` directly.
+
+### Testing Coverage
+
+- Backend suite: **392 passed** (was 389; +3 new tests).
+- Frontend build: `tsc && vite build` passes cleanly.
+
+## 2026-07-08 — ReDoS / NoSQL injection fix in search endpoints (P0-SEC-001)
+
+### Security Fixes
+
+**Sanitized user-supplied `search` parameters in marketplace and tasks list
+endpoints before passing them to MongoDB `$regex` queries.** An attacker could
+submit crafted regex patterns to trigger catastrophic backtracking (ReDoS),
+causing unbounded CPU consumption on the database and a denial-of-service
+condition. The `admin.py` search endpoints already applied `sanitize_string()`
+from `core/security.py`, but `marketplace.py` and `tasks.py` were missed during
+that security hardening pass.
+
+- `backend/api/marketplace.py`: imported `sanitize_string` and applied it to
+  the `search` query param before constructing the `$regex` `$or` clause.
+- `backend/api/tasks.py`: same import and sanitization applied to the `search`
+  param in `list_tasks`.
+- `backend/tests/test_search_sanitization.py`: new test module (9 tests)
+  covering normal search, case-insensitive matching, special-character escaping,
+  length capping, and ReDoS pattern neutralization for both endpoints.
+
+### Bugs Fixed
+
+- **P0-SEC-001 — ReDoS via unescaped `$regex` on user input:** `marketplace.py`
+  and `tasks.py` interpolated the raw `search` query string directly into
+  `$regex` queries. A payload like `(a+)+b` against a long input would cause
+  MongoDB to spend unbounded time evaluating the pattern. Both endpoints now
+  call `sanitize_string(search, max_length=100)` which strips control
+  characters, caps length, and escapes all regex metacharacters via `re.escape()`.
+
+### Risks
+
+- **Very low:** `sanitize_string()` is already in production on the admin search
+  endpoints. It escapes regex metacharacters and truncates to 100 chars, so
+  normal user search queries are unaffected — they still match case-
+  insensitively on title and description.
+- **Very low:** the `max_length=100` cap matches the existing admin endpoints
+  and is generous for a free-text search field.
+
+### Breaking changes
+
+- None. Endpoint signatures, request/response schemas, and behaviour are
+  unchanged.
+
+### Migration notes
+
+- None. The fix is transparent to callers.
+
+## 2026-07-08 — Sandbox timeout enforcement tied to sandbox_timeout config (P3-DEV-001)
+
+### Reliability Fixes
+
+**`SandboxRunner.run()` now respects `settings.sandbox_timeout` as an upper
+bound for the entire validation run.** The setting (default 120s, overridable
+via env var) was defined in `backend/core/config.py` but never referenced inside
+the sandbox module — only a per-task `await asyncio.wait_for(..., timeout=10)`
+existed within `_check_python`. A pathological mix of files could accumulate
+unbounded runtime: e.g. 100 Python files × 10s subprocess timeout = 1000s,
+far exceeding the intended 120s budget.
+
+- `backend/sandbox/runner.py`: extracted the main body into `_run_impl()`
+  and wrapped the call in `asyncio.wait_for(..., timeout=settings.sandbox_timeout)`.
+  When the budget is exhausted, `asyncio.TimeoutError` is caught and returned
+  as a human-readable error string so callers (build pipeline) degrade cleanly
+  instead of raising an unhandled coroutine exception.
+- `backend/tests/test_sandbox_runner.py`: new test module covering clean files,
+  syntax errors, path traversal, timeout enforcement (hovered `_check_python`
+  monkeypatched to sleep >setup budget), and successful-runs-under-budget
+  (full 120s path).
+
+### Bugs Fixed
+
+- **P3-DEV-001 — `sandbox_timeout` dead config:** `backend/core/config.py`
+  declared `sandbox_timeout: int = 120` but `backend/sandbox/runner.py` never
+  read it; only per-subprocess 10s `py_compile` waits existed, so a build with
+  many files could hang indefinitely. The setting is now wired as the outer
+  coroutine timeout.
+
+### Risks
+
+- **Very low:** the default (120s) is identical to the previous behaviour for
+  normal builds — only pathological inputs, previously unbounded, are now
+  capped. No caller-visible change for in-budget runs.
+- **Very low:** timeout surface is a friendly error string rather than an
+  unhandled `asyncio.TimeoutError`, so downstream callers do not need new
+  exception handling.
+
+### Breaking changes
+
+- None. Previously-clean workloads see identical behaviour. Workloads that
+  previously exceeded 120s will now receive a clean timeout error instead of
+  hanging.
+
+### Migration notes
+
+- To tighten/loosen the ceiling, set `SANDBOX_TIMEOUT=<seconds>` in the
+  environment. Valid in Docker Compose via `.env` and in Kubernetes via an
+  env var block in `k8s/backend.yaml`.
+
+## 2026-07-08 — Writable /tmp for backend under readOnlyRootFilesystem (DEV-004, P1)
+
+### Infrastructure Fixes
+
+**Added an emptyDir volume mount at `/tmp` in `k8s/backend.yaml`.** The backend
+container runs with `readOnlyRootFilesystem: true` but the sandbox runner
+(`backend/sandbox/runner.py`) calls `tempfile.TemporaryDirectory()` which
+defaults to `/tmp`. Without a writable mount, every build's sandbox validation
+(compile checks, temp file writes) crashed in Kubernetes, breaking deployments.
+
+- `k8s/backend.yaml`: added `volumeMounts` entry (`name: tmp`, `mountPath:
+  /tmp`) to the backend container and an `emptyDir` volume (`name: tmp`) at the
+  pod spec level. No other manifests changed; `docker-compose.yml` and
+  `docker-compose.prod.yml` already mount `/tmp` implicitly (no read-only root
+  fs enforcement in Compose development).
+
+- `backend/sandbox/runner.py`: no change. `tempfile.TemporaryDirectory()` picks
+  up the mounted `/tmp` automatically ( honoured by Python's `tempfile` module
+  which respects the OS default temp directory, which Kubernetes mount resolves
+  correctly).
+
+### Bugs Fixed
+
+- **BE-005 (P1) — sandbox validation crashes on Kubernetes:** `tempfile.TemporaryDirectory()` raised `OSError` (read-only filesystem) because `k8s/backend.yaml` had `readOnlyRootFilesystem: true` without a writable `/tmp` mount. Every agent-generated build failed its validation step before reaching the user.
+
+### Risks
+
+- **Very low:** `emptyDir` volumes are ephemeral (lifecycle tied to the pod),
+  which is the correct behaviour for `/tmp` — stale files are reclaimed on
+  restart, and the sandbox never persists results across requests.
+- **Very low:** `runAsUser: 1000`, `runAsNonRoot: true`, and `allowPrivilegeEscalation: false` are unchanged; the mount is not set to `writable` (securityContext level), it operates at the path level only.
+
+### Breaking changes
+
+- None. This is an additive infrastructure change; existing running Pods must
+  be restarted (rolling update) to pick up the new volume mount.
+  `kubectl rollout restart deployment/backend -n forge-ai-prod`
+
+### Migration notes
+
+- No data migration required. `/tmp` is scratch space; all persistent state
+  lives in MongoDB and Redis.
+
 ## 2026-07-08 — Admin Privilege Escalation Fix (AUTH-001, P0-CRIT)
 
 ### Security Fixes

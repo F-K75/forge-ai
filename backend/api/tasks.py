@@ -12,6 +12,7 @@ from core.pm_models import Task, TaskStatus
 from core.database import get_db
 from core.permissions import has_initiative_access
 from core.config import get_settings
+from core.security import sanitize_string
 from api.auth import get_current_user
 from tasks.pm_tasks import execute_task
 from services.pm_notifications import notify_pr_approved, notify_pr_merged
@@ -101,9 +102,10 @@ async def list_tasks(
     if label:
         query["labels"] = label
     if search:
+        sanitized = sanitize_string(search, max_length=100)
         query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}},
+            {"title": {"$regex": sanitized, "$options": "i"}},
+            {"description": {"$regex": sanitized, "$options": "i"}},
         ]
 
     tasks = await db.tasks.find(query, {"_id": 0}).sort("kanban_order", 1).to_list(None)

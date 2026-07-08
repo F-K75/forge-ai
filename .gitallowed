@@ -33,3 +33,12 @@ secret=secret
 # real credential URL, so exempting them is safe.
 redis://:\[
 mongodb://\[
+
+# CHANGELOG.md documents the grep fallback URL patterns using example URLs.
+mongodb://user:pass@host
+redis://:pass@host
+mongodb://admin:s3cr3tP@ssw0rd@host
+
+# k8s/backend.yaml uses env-var-substituted URLs for StatefulSet/Secret refs.
+mongodb://forge:\$(MONGO_PASSWORD)@mongodb-client:27017/forge
+redis://:\$(REDIS_PASSWORD)@redis:6379

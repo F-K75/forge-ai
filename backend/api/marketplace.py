@@ -5,6 +5,7 @@ import math
 
 from core.models import MarketplaceItem, User
 from core.database import get_db, cache_get_json, cache_set_json
+from core.security import sanitize_string
 from api.auth import get_current_user
 
 MARKETPLACE_LIST_CACHE_TTL = 60
@@ -90,9 +91,10 @@ async def list_items(
     if type:
         query["type"] = type
     if search:
+        sanitized = sanitize_string(search, max_length=100)
         query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}},
+            {"title": {"$regex": sanitized, "$options": "i"}},
+            {"description": {"$regex": sanitized, "$options": "i"}},
         ]
 
     total = await db.marketplace_items.count_documents(query)

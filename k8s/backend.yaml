@@ -146,6 +146,12 @@ spec:
           runAsUser: 1000
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

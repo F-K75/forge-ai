@@ -20,11 +20,17 @@ audit) -- verified instead via `tsc --noEmit` and a production `vite build`.
 
 import pytest
 
-from core.orchestrator import Orchestrator
-from core.models import Build, BuildStatus, WSEventType
+
+class _FakeDB:
+    async def command(self, name):
+        return {"ok": 1}
+
+    async def find_one(self, query, projection=None):
+        return {"id": "u1", "plan": "free"}
 
 
 def _make_build():
+    from core.models import Build, BuildStatus
     return Build(
         id="build-1",
         project_id="p1",
@@ -61,7 +67,11 @@ class _StubAgent:
 
 
 @pytest.mark.asyncio
-async def test_exactly_one_file_update_per_developer_pass_using_delta_shape():
+async def test_exactly_one_file_update_per_developer_pass_using_delta_shape(monkeypatch):
+    from core.orchestrator import Orchestrator
+
+    monkeypatch.setattr(Orchestrator, "_is_byok_active", lambda self, user_id: asyncio_coroutine(False)())
+
     orchestrator = Orchestrator()
     for attr in ("architect", "business_model", "designer", "developer", "integration", "pm"):
         setattr(orchestrator, attr, _StubAgent())
@@ -74,11 +84,8 @@ async def test_exactly_one_file_update_per_developer_pass_using_delta_shape():
     build = _make_build()
     await orchestrator.run_build(build, emit=emit, sandbox_runner=None)
 
-    file_update_events = [e for e in emitted if e.type == WSEventType.FILE_UPDATE]
+    file_update_events = [e for e in emitted if e.type.value == "file_update"]
 
-    # Only the one emitted right after the Developer agent -- no debug
-    # iterations occurred (PM validation passed immediately), so no
-    # additional FILE_UPDATE and no trailing one after BUILD_COMPLETE.
     assert len(file_update_events) == 1
 
     data = file_update_events[0].data
@@ -88,14 +95,23 @@ async def test_exactly_one_file_update_per_developer_pass_using_delta_shape():
     assert data["delta"]["deleted"] == []
 
 
+def asyncio_coroutine(result):
+    """Helper to create a coroutine that returns result immediately."""
+    async def _coro():
+        return result
+    return _coro
+
+
 @pytest.mark.asyncio
-async def test_debug_loop_file_update_also_uses_delta_shape():
+async def test_debug_loop_file_update_also_uses_delta_shape(monkeypatch):
+    from core.orchestrator import Orchestrator
+
+    monkeypatch.setattr(Orchestrator, "_is_byok_active", lambda self, user_id: asyncio_coroutine(False)())
+
     orchestrator = Orchestrator()
     for attr in ("architect", "business_model", "designer", "developer", "integration"):
         setattr(orchestrator, attr, _StubAgent())
 
-    # PM fails validation once, then passes -- forces exactly one debug
-    # iteration, which is where the previously-broken delta-only event lived.
     validate_calls = {"n": 0}
 
     class _PMStub(_StubAgent):
@@ -115,9 +131,8 @@ async def test_debug_loop_file_update_also_uses_delta_shape():
     build = _make_build()
     await orchestrator.run_build(build, emit=emit, sandbox_runner=None)
 
-    file_update_events = [e for e in emitted if e.type == WSEventType.FILE_UPDATE]
+    file_update_events = [e for e in emitted if e.type.value == "file_update"]
 
-    # One after the Developer agent, one from the single debug iteration.
     assert len(file_update_events) == 2
     for event in file_update_events:
         assert "delta" in event.data
@@ -125,7 +140,11 @@ async def test_debug_loop_file_update_also_uses_delta_shape():
 
 
 @pytest.mark.asyncio
-async def test_build_complete_carries_full_files_with_no_trailing_file_update():
+async def test_build_complete_carries_full_files_with_no_trailing_file_update(monkeypatch):
+    from core.orchestrator import Orchestrator
+
+    monkeypatch.setattr(Orchestrator, "_is_byok_active", lambda self, user_id: asyncio_coroutine(False)())
+
     orchestrator = Orchestrator()
     for attr in ("architect", "business_model", "designer", "developer", "integration", "pm"):
         setattr(orchestrator, attr, _StubAgent())
@@ -139,11 +158,9 @@ async def test_build_complete_carries_full_files_with_no_trailing_file_update():
     await orchestrator.run_build(build, emit=emit, sandbox_runner=None)
 
     build_complete_index = next(
-        i for i, e in enumerate(emitted) if e.type == WSEventType.BUILD_COMPLETE
+        i for i, e in enumerate(emitted) if e.type.value == "build_complete"
     )
     assert emitted[build_complete_index].data["files"] == {"src/App.tsx": "// v1"}
-    # Nothing after BUILD_COMPLETE -- the old code emitted a redundant
-    # trailing FILE_UPDATE here that just re-sent everything as "changed".
     assert build_complete_index == len(emitted) - 1
 
 

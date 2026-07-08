@@ -10,32 +10,39 @@ vi.mock('../lib/api', () => ({
 
 const WS_URL = 'ws://localhost:8000'
 
+class MockWebSocket extends EventTarget {
+  static instances: any[] = []
+  static handlers: Map<any, Record<string, any>> = new Map()
+
+  url: string
+  _readyState: number = 0
+
+  constructor(url: string) {
+    super()
+    MockWebSocket.instances.push(this)
+    this.url = url
+    this.readyState = 0
+  }
+
+  get readyState() { return this._readyState }
+  set readyState(v: number) { this._readyState = v }
+
+  send(_data: any) {}
+  close() {
+    this._readyState = 3
+    setTimeout(() => {
+      const handler = MockWebSocket.handlers.get(this)
+      if (handler?.onclose) handler.onclose(new Event('close'))
+    }, 0)
+  }
+}
+
 describe('useBuildSocket', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubGlobal('WebSocket', class extends EventTarget {
-      static instances: any[] = []
-      static handlers: Map<any, Record<string, any>> = new Map()
-
-      constructor(url: string) {
-        super()
-        WebSocket.instances.push(this)
-        this.url = url
-        this.readyState = 0
-      }
-
-      get readyState() { return this._readyState }
-      set readyState(v: number) { this._readyState = v }
-
-      send(_data: any) {}
-      close() {
-        this._readyState = 3
-        setTimeout(() => {
-          const handler = WebSocket.handlers.get(this)
-          if (handler?.onclose) handler.onclose(new Event('close'))
-        }, 0)
-      }
-    } as any)
+    MockWebSocket.instances = []
+    MockWebSocket.handlers = new Map()
+    vi.stubGlobal('WebSocket', MockWebSocket as any)
   })
 
   afterEach(() => {
@@ -45,7 +52,7 @@ describe('useBuildSocket', () => {
   it('does not connect when buildId is null', () => {
     const { result } = renderHook(() => useBuildSocket(null))
     expect(result.current.connectionStatus).toBe('offline')
-    expect(WebSocket.instances).toHaveLength(0)
+    expect(MockWebSocket.instances).toHaveLength(0)
   })
 
   it('connects when buildId is provided', async () => {
@@ -54,8 +61,8 @@ describe('useBuildSocket', () => {
     const { result } = renderHook(() => useBuildSocket('build-1'))
     await act(async () => { await Promise.resolve() })
     expect(result.current.connectionStatus).toBe('connecting')
-    expect(WebSocket.instances).toHaveLength(1)
-    expect(WebSocket.instances[0].url).toBe(`${WS_URL}/builds/ws/build-1`)
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(MockWebSocket.instances[0].url).toBe(`${WS_URL}/builds/ws/build-1`)
   })
 
   it('sets online status on ws open', async () => {
@@ -63,7 +70,7 @@ describe('useBuildSocket', () => {
     vi.mocked(api.post).mockResolvedValueOnce({ data: { token: 'tok' } })
     const { result } = renderHook(() => useBuildSocket('build-1'))
     await act(async () => { await Promise.resolve() })
-    const ws = WebSocket.instances[0]
+    const ws = MockWebSocket.instances[0]
     act(() => {
       ws.readyState = 1
       ws.onopen?.(new Event('open'))
@@ -78,7 +85,7 @@ describe('useBuildSocket', () => {
       initialProps: { id: 'build-1' },
     })
     await act(async () => { await Promise.resolve() })
-    const firstWs = WebSocket.instances[0]
+    const firstWs = MockWebSocket.instances[0]
     const firstCloseSpy = vi.spyOn(firstWs, 'close')
     rerender({ id: 'build-2' })
     await act(async () => { await Promise.resolve() })

@@ -18,7 +18,19 @@ class SandboxRunner:
     Returns error string if issues found, None if clean.
     """
 
-    async def run(self, files: dict) -> str:  # NOTE: project uses a simple "clean vs errors" string
+    async def run(self, files: dict) -> str:
+        try:
+            return await asyncio.wait_for(
+                self._run_impl(files),
+                timeout=settings.sandbox_timeout,
+            )
+        except asyncio.TimeoutError:
+            return (
+                f"Sandbox validation timed out after {settings.sandbox_timeout}s. "
+                "Please simplify the generated code."
+            )
+
+    async def _run_impl(self, files: dict) -> str:
         errors = []
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write all files
@@ -32,7 +44,6 @@ class SandboxRunner:
                 os.makedirs(os.path.dirname(full_path), exist_ok=True)
                 with open(full_path, "w") as f:
                     f.write(content)
-
 
             # Check Python syntax
             py_errors = await self._check_python(tmpdir, files)
