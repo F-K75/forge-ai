@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-07-08 — Fast-fail MongoDB index provisioning (INF-008, P1)
+
+### Reliability Fixes
+
+**Reduced `get_db()` slow-fail time from ~175s to ~5s when MongoDB is unreachable.** `_ensure_indexes()` previously ran ~35 sequential `create_index` calls, each waiting the full `serverSelectionTimeoutMS=5000` before failing. Against an unreachable MongoDB this produced a ~175-second startup failure, causing Kubernetes pod restarts to exceed liveness/readiness probe timeouts and blocking test runs.
+
+- `backend/core/database.py`: refactored `_ensure_indexes()` to collect all `create_index` coroutines into a list and run them concurrently via `asyncio.gather(..., return_exceptions=True)`. When MongoDB is down, all calls fail after the same ~5s window simultaneously. Individual failures are still logged and the first exception is re-raised so `get_db()` behavior is preserved.
+- `backend/tests/test_index_provisioning.py`: new test module (3 tests) covering concurrent execution, fast-failure on connection errors, and successful index creation.
+
+### Bugs Fixed
+
+- **INF-008 — `get_db()` slow-fail on index provisioning**: sequential `create_index` calls against an unreachable MongoDB took ~175s. Now completes in ~5s when the server is unreachable, and faster when it is reachable (parallel index builds).
+
+### Files Changed
+
+- `backend/core/database.py` — `_ensure_indexes()` now uses `asyncio.gather` for concurrent index creation.
+- `backend/tests/test_index_provisioning.py` — new test module (3 tests).
+- `IMPLEMENTATION_PLAN.md` — updated plan.
+
+### Testing Coverage
+
+- 3 new backend tests (`test_ensure_indexes_runs_concurrently`, `test_ensure_indexes_raises_on_failure`, `test_ensure_indexes_succeeds_without_errors`).
+- Full backend suite: **395 passed** (was 392; +3 new), no regressions.
+
+### Risks
+
+- **Very low**: `asyncio.gather(..., return_exceptions=True)` preserves the existing behavior of logging individual failures and re-raising the first exception. MongoDB handles concurrent index builds safely (idempotent).
+
+### Breaking Changes
+
+- None. `get_db()` signature and behavior are unchanged.
+
 ## 2026-07-08 — Fix frontend build and backend test suite reliability (P1)
 
 ### Build Fixes

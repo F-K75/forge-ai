@@ -66,141 +66,107 @@ async def _ensure_indexes(db):
         # place rather than scattered across per-collection index calls.
         await apply_retention_ttl_indexes(db)
 
-        # User indexes
-        await db.users.create_index("email", unique=True)
-        await db.users.create_index([("id", 1)])
+        # Collect all index-creation coroutines so they run concurrently.
+        # When MongoDB is unreachable, each create_index call would otherwise
+        # wait serverSelectionTimeoutMS (5s) before failing; running them in
+        # parallel collapses the total slow-fail window from ~175s to ~5s.
+        index_coroutines = [
+            # User indexes
+            db.users.create_index("email", unique=True),
+            db.users.create_index([("id", 1)]),
+            # Organization indexes
+            db.organizations.create_index("slug", unique=True),
+            # Project indexes
+            db.projects.create_index([("user_id", 1), ("updated_at", -1)]),
+            db.projects.create_index([("id", 1)]),
+            # Build indexes
+            db.builds.create_index([("project_id", 1), ("user_id", 1), ("created_at", -1)]),
+            db.builds.create_index([("id", 1)]),
+            db.builds.create_index([("user_id", 1), ("created_at", -1)]),
+            # Idempotency key index (BUS-007): unique per user so a retry with the
+            # same key never creates a duplicate build. Partial index so null keys
+            # (builds created without an idempotency_key) don't collide.
+            db.builds.create_index(
+                [("user_id", 1), ("idempotency_key", 1)],
+                unique=True,
+                partialFilterExpression={"idempotency_key": {"$exists": True}},
+            ),
+            # Build files indexes
+            db.build_files.create_index([("build_id", 1), ("path", 1)], unique=True),
+            db.build_files.create_index([("build_id", 1)]),
+            # Team member indexes
+            db.team_members.create_index([("org_id", 1), ("user_id", 1)], unique=True),
+            # Subscription indexes
+            db.subscriptions.create_index("stripe_subscription_id", unique=True),
+            db.subscriptions.create_index([("user_id", 1)]),
+            # Invitation indexes
+            db.invitations.create_index("hashed_token", unique=True),
+            db.invitations.create_index([("org_id", 1)]),
+            # Credit purchase indexes
+            db.credit_purchases.create_index("stripe_payment_intent_id", unique=True),
+            # Marketplace indexes
+            db.marketplace_items.create_index([("type", 1), ("is_public", 1), ("downloads", -1)]),
+            db.marketplace_items.create_index([("title", "text"), ("description", "text")]),
+            # Analytics indexes
+            db.analytics_events.create_index([("user_id", 1), ("event_name", 1), ("created_at", -1)]),
+            # Rate limit indexes
+            db.rate_limits.create_index("key", unique=True),
+            db.rate_limits.create_index("reset_at", expireAfterSeconds=300),
+            # Deployment indexes
+            db.deployments.create_index([("user_id", 1), ("project_id", 1), ("created_at", -1)]),
+            # Audit log indexes
+            db.audit_logs.create_index([("actor_id", 1), ("created_at", -1)]),
+            # Notification indexes
+            db.notifications.create_index([("user_id", 1), ("created_at", -1)]),
+            # Security events indexes
+            db.security_events.create_index([("severity", 1), ("created_at", -1)]),
+            # Onboarding progress indexes
+            db.onboarding_progress.create_index([("user_id", 1)], unique=True),
+            # Referrals indexes
+            db.referrals.create_index([("referrer_id", 1), ("created_at", -1)]),
+            # Feature flags index
+            db.feature_flags.create_index("key", unique=True),
+            # LLM per-agent model/provider override index
+            db.llm_agent_overrides.create_index("agent", unique=True),
+            # API keys index
+            db.api_keys.create_index([("user_id", 1)]),
+            db.api_keys.create_index([("key_hash", 1)], unique=True),
+            # Token blacklist index (JTI-based)
+            db.token_blacklist.create_index([("jti", 1)], unique=True),
+            # Webhooks index
+            db.webhooks.create_index([("user_id", 1)]),
+            # AI usage indexes (AI-001)
+            db.ai_usage.create_index([("user_id", 1), ("created_at", -1)]),
+            db.ai_usage.create_index([("org_id", 1), ("created_at", -1)]),
+            # --- Agile PM layer ---
+            db.initiatives.create_index([("user_id", 1), ("updated_at", -1)]),
+            db.initiatives.create_index([("id", 1)]),
+            db.prds.create_index([("initiative_id", 1)], unique=True),
+            db.epics.create_index([("initiative_id", 1), ("order", 1)]),
+            db.stories.create_index([("epic_id", 1), ("order", 1)]),
+            db.stories.create_index([("initiative_id", 1)]),
+            db.tasks.create_index([("initiative_id", 1), ("status", 1), ("kanban_order", 1)]),
+            db.tasks.create_index([("story_id", 1)]),
+            db.tasks.create_index([("sprint_id", 1)]),
+            db.sprints.create_index([("initiative_id", 1), ("sprint_number", 1)]),
+            db.standups.create_index([("sprint_id", 1), ("date", -1)]),
+            db.sprint_reviews.create_index([("sprint_id", 1), ("created_at", -1)]),
+            db.sprint_retros.create_index([("sprint_id", 1), ("created_at", -1)]),
+            db.risk_reports.create_index([("initiative_id", 1), ("created_at", -1)]),
+            db.tech_debt_summaries.create_index([("initiative_id", 1), ("created_at", -1)]),
+            db.agent_executions.create_index([("initiative_id", 1), ("created_at", -1)]),
+            db.agent_executions.create_index([("task_id", 1)]),
+            db.releases.create_index([("initiative_id", 1), ("created_at", -1)]),
+            db.decision_log.create_index([("initiative_id", 1), ("created_at", -1)]),
+        ]
 
-        # Organization indexes
-        await db.organizations.create_index("slug", unique=True)
+        results = await asyncio.gather(*index_coroutines, return_exceptions=True)
 
-        # Project indexes
-        await db.projects.create_index([("user_id", 1), ("updated_at", -1)])
-        await db.projects.create_index([("id", 1)])
-
-        # Build indexes
-        await db.builds.create_index([("project_id", 1), ("user_id", 1), ("created_at", -1)])
-        await db.builds.create_index([("id", 1)])
-        await db.builds.create_index([("user_id", 1), ("created_at", -1)])
-        # Idempotency key index (BUS-007): unique per user so a retry with the
-        # same key never creates a duplicate build. Partial index so null keys
-        # (builds created without an idempotency_key) don't collide.
-        await db.builds.create_index(
-            [("user_id", 1), ("idempotency_key", 1)],
-            unique=True,
-            partialFilterExpression={"idempotency_key": {"$exists": True}},
-        )
-
-        # Build files indexes
-        await db.build_files.create_index([("build_id", 1), ("path", 1)], unique=True)
-        await db.build_files.create_index([("build_id", 1)])
-        await db.build_files.create_index("created_at")  # TTL applied by apply_retention_ttl_indexes
-
-        # Team member indexes
-        await db.team_members.create_index([("org_id", 1), ("user_id", 1)], unique=True)
-
-        # Subscription indexes
-        await db.subscriptions.create_index(
-            "stripe_subscription_id", unique=True
-        )
-        await db.subscriptions.create_index([("user_id", 1)])
-
-        # Invitation indexes
-        await db.invitations.create_index(
-            "hashed_token", unique=True
-        )
-        await db.invitations.create_index([("org_id", 1)])
-
-        # Credit purchase indexes
-        await db.credit_purchases.create_index(
-            "stripe_payment_intent_id", unique=True
-        )
-
-        # Marketplace indexes
-        await db.marketplace_items.create_index([("type", 1), ("is_public", 1), ("downloads", -1)])
-        await db.marketplace_items.create_index([("title", "text"), ("description", "text")])
-
-        # Analytics indexes
-        await db.analytics_events.create_index(
-            [("user_id", 1), ("event_name", 1), ("created_at", -1)]
-        )
-        await db.analytics_events.create_index(
-            "created_at"
-        )  # TTL applied by apply_retention_ttl_indexes
-
-        # Rate limit indexes
-        await db.rate_limits.create_index("key", unique=True)
-        await db.rate_limits.create_index(
-            "reset_at", expireAfterSeconds=300  # TTL: 5 min
-        )
-
-        # Deployment indexes
-        await db.deployments.create_index([("user_id", 1), ("project_id", 1), ("created_at", -1)])
-
-        # Audit log indexes
-        await db.audit_logs.create_index([("actor_id", 1), ("created_at", -1)])
-        await db.audit_logs.create_index("created_at")  # TTL (1y) applied by apply_retention_ttl_indexes
-
-        # Notification indexes
-        await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
-
-        # Security events indexes
-        await db.security_events.create_index([("severity", 1), ("created_at", -1)])
-        await db.security_events.create_index(
-            "created_at"
-        )  # TTL applied by apply_retention_ttl_indexes
-
-        # Onboarding progress indexes
-        await db.onboarding_progress.create_index([("user_id", 1)], unique=True)
-
-        # Referrals indexes
-        await db.referrals.create_index([("referrer_id", 1), ("created_at", -1)])
-
-        # Feature flags index
-        await db.feature_flags.create_index("key", unique=True)
-
-        # LLM per-agent model/provider override index
-        await db.llm_agent_overrides.create_index("agent", unique=True)
-
-        # API keys index
-        await db.api_keys.create_index([("user_id", 1)])
-        await db.api_keys.create_index([("key_hash", 1)], unique=True)
-
-        # Token blacklist index (JTI-based)
-        await db.token_blacklist.create_index([("jti", 1)], unique=True)
-        await db.token_blacklist.create_index(
-            "created_at"
-        )  # TTL (24h) applied by apply_retention_ttl_indexes
-
-        # Webhooks index
-        await db.webhooks.create_index([("user_id", 1)])
-
-        # AI usage indexes (AI-001)
-        await db.ai_usage.create_index([("user_id", 1), ("created_at", -1)])
-        await db.ai_usage.create_index([("org_id", 1), ("created_at", -1)])
-        await db.ai_usage.create_index(
-            "created_at"
-        )  # TTL (90d) applied by apply_retention_ttl_indexes
-
-        # --- Agile PM layer ---
-        await db.initiatives.create_index([("user_id", 1), ("updated_at", -1)])
-        await db.initiatives.create_index([("id", 1)])
-        await db.prds.create_index([("initiative_id", 1)], unique=True)
-        await db.epics.create_index([("initiative_id", 1), ("order", 1)])
-        await db.stories.create_index([("epic_id", 1), ("order", 1)])
-        await db.stories.create_index([("initiative_id", 1)])
-        await db.tasks.create_index([("initiative_id", 1), ("status", 1), ("kanban_order", 1)])
-        await db.tasks.create_index([("story_id", 1)])
-        await db.tasks.create_index([("sprint_id", 1)])
-        await db.sprints.create_index([("initiative_id", 1), ("sprint_number", 1)])
-        await db.standups.create_index([("sprint_id", 1), ("date", -1)])
-        await db.sprint_reviews.create_index([("sprint_id", 1), ("created_at", -1)])
-        await db.sprint_retros.create_index([("sprint_id", 1), ("created_at", -1)])
-        await db.risk_reports.create_index([("initiative_id", 1), ("created_at", -1)])
-        await db.tech_debt_summaries.create_index([("initiative_id", 1), ("created_at", -1)])
-        await db.agent_executions.create_index([("initiative_id", 1), ("created_at", -1)])
-        await db.agent_executions.create_index([("task_id", 1)])
-        await db.releases.create_index([("initiative_id", 1), ("created_at", -1)])
-        await db.decision_log.create_index([("initiative_id", 1), ("created_at", -1)])
+        failures = [r for r in results if isinstance(r, BaseException)]
+        if failures:
+            for failure in failures:
+                logger.error("Failed to create MongoDB index: %s", failure, exc_info=failure)
+            raise failures[0]
     except Exception:
         logger.exception("Failed to ensure one or more MongoDB indexes")
         raise

@@ -1,52 +1,39 @@
-# Fix: ReDoS / NoSQL Injection in Search Endpoints (P0)
+# Fix: Fast-fail index provisioning in get_db() (INF-008, P1)
 
 ## Problem
 
-The `list_items` endpoint in `backend/api/marketplace.py` (lines 93-96) and the
-`list_tasks` endpoint in `backend/api/tasks.py` (lines 103-107) pass the raw
-`search` query parameter directly into a MongoDB `$regex` query **without**
-sanitizing it first.
+`get_db()` calls `_ensure_indexes()` which runs ~35 sequential `create_index` operations. Each operation inherits the client's `serverSelectionTimeoutMS=5000` (5 seconds). When MongoDB is unreachable, every index call waits the full 5 seconds before failing, for a total startup failure time of ~175 seconds.
 
-An attacker can submit a crafted regex pattern that triggers catastrophic
-backtracking (ReDoS), causing the MongoDB server to spend unbounded CPU time
-evaluating the pattern. This is a denial-of-service vulnerability that can
-exhaust database connections and degrade or crash the service.
-
-The `admin.py` search endpoints already correctly apply `sanitize_string()`
-from `core/security.py`, but the marketplace and tasks endpoints were missed
-during that security hardening pass.
+This causes:
+- Slow Kubernetes pod startup failures (readiness probe timeout)
+- Slow test failures when MongoDB is down
+- Poor operational experience during MongoDB outages
 
 ## Root Cause
 
-- `marketplace.py:93-96`: `search` is interpolated directly into `$regex`
-- `tasks.py:103-107`: `search` is interpolated directly into `$regex`
-- Neither file imports or calls `sanitize_string()`, which strips control
-  characters, caps length, and escapes regex metacharacters via `re.escape()`
+`_ensure_indexes()` uses sequential `await db.collection.create_index(...)` calls. There is no parallelism and no early-exit when the first index fails. The caller (`get_db()`) only learns about the failure after all ~35 operations have individually timed out.
 
 ## Solution
 
-Apply the same `sanitize_string(search, max_length=100)` pattern already used
-in `admin.py` to both `marketplace.py` and `tasks.py`.
+Run all `create_index` calls concurrently via `asyncio.gather(..., return_exceptions=True)`. When MongoDB is unreachable, all calls fail after the same ~5 second window simultaneously, reducing the total slow-fail time from ~175s to ~5s.
 
-1. Import `sanitize_string` from `core.security` in both files.
-2. Before constructing the `$regex` query, sanitize the `search` value.
-3. Use the sanitized value in the `$or` clause.
-
-No other changes are needed: the existing caching, pagination, and query
-structure remain intact.
+The change:
+1. Collect all `create_index` coroutines into a list
+2. Run them concurrently with `asyncio.gather(return_exceptions=True)`
+3. Iterate results, log individual failures, and re-raise if any failed
+4. Preserve the existing `apply_retention_ttl_indexes` fail-soft behavior (it already handles per-collection failures gracefully)
 
 ## Architecture Changes
 
-None — this is a security hardening change in existing API handlers.
+None. This is an internal refactor of `_ensure_indexes()` in `core/database.py`.
 
 ## Database Changes
 
-None.
+None. Index definitions are unchanged.
 
 ## API Changes
 
-None — the endpoint signatures, request/response schemas, and behaviour are
-unchanged. Only the internal query construction is hardened.
+None. `get_db()` signature and behavior are unchanged.
 
 ## UI Changes
 
@@ -54,23 +41,15 @@ None.
 
 ## Testing Strategy
 
-- Unit: verify that malicious regex patterns are neutralized (special chars
-  escaped, length capped) before reaching MongoDB.
-- Integration: confirm that normal search queries still return expected results
-  after sanitization.
-- Regression: run the full backend test suite (`pytest`) to ensure no
-  collateral damage.
+- Unit: verify `_ensure_indexes` raises quickly when `create_index` calls fail
+- Integration: verify all indexes are created correctly when MongoDB is available
+- Regression: run full backend test suite
 
 ## Risks
 
-- **Very low**: `sanitize_string()` is already used in production on the admin
-  search endpoints. The function escapes regex metacharacters and truncates to
-  a safe length, so normal user search queries are unaffected.
-- **Very low**: the `max_length=100` cap matches the admin endpoints and is
-  generous for a free-text search field.
+- **Very low**: `asyncio.gather` with `return_exceptions=True` preserves the existing behavior of logging individual failures and re-raising. The only change is that failures happen concurrently instead of sequentially.
+- **Very low**: Motor's `create_index` is idempotent, so running them concurrently against a live MongoDB is safe (MongoDB handles concurrent index builds).
 
 ## Rollback Plan
 
-Revert the two edits in `marketplace.py` and `tasks.py` to restore the raw
-`$regex` query. The endpoints will continue to function (just without the
-ReDoS protection).
+Revert `_ensure_indexes()` to the sequential `await` pattern. The function will work correctly, just slower when MongoDB is unreachable.
