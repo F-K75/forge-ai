@@ -136,6 +136,50 @@ jobs:
           path: backend/coverage.xml
           retention-days: 30
 
+  orchestrator:
+    name: Review Board — lint, tests
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: orchestrator/requirements.txt
+
+      - name: Install orchestrator dependencies
+        run: |
+          cd orchestrator
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: |
+          cd orchestrator
+          ruff check . --select F,E9 --exclude venv
+
+      - name: Run orchestrator tests
+        run: |
+          cd orchestrator
+          pytest tests/ -q --timeout=30
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-test-results
+          path: orchestrator/test-results.xml
+          retention-days: 30
+
   frontend:
     name: Frontend — test, type-check, build, audit
     runs-on: ubuntu-latest
@@ -295,13 +339,13 @@ jobs:
 
   quality-gate:
     name: Quality Gate
-    needs: [backend, frontend, prod-artifacts]
+    needs: [backend, orchestrator, frontend, prod-artifacts]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Fail if any required job failed
         run: |
-          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ]; then
+          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.orchestrator.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ]; then
             echo "::error::One or more required CI jobs failed. Blocking merge."
             exit 1
           fi

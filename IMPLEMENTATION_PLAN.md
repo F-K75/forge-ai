@@ -1,30 +1,64 @@
-# Production Readiness Improvements — Session Summary
+# Wire Review Board (orchestrator/) into docker-compose, k8s, and CI
 
-## Completed
+## Problem
 
-### 1. Fast-fail MongoDB index provisioning (INF-008, P1)
+The Review Board (`orchestrator/`) is a fully functional FastAPI service with:
+- REST API + WebSocket on port 8100
+- Agent loader, context builder, parallel runner, consolidator
+- MongoDB persistence layer
+- Offline pytest suite (`orchestrator/tests/test_orchestrator.py`)
 
-**Problem**: `get_db()` called `_ensure_indexes()` which ran ~35 sequential `create_index` calls. Each call waited the full `serverSelectionTimeoutMS=5000` (5 seconds) when MongoDB was unreachable, producing a ~175-second slow-fail.
+But it is **not wired into any deployment or CI pipeline**:
+- `docker-compose.yml` has a comment: "run manually for now"
+- No k8s Deployment/Service/HPA
+- No CI job to build, test, or lint it
+- No Dockerfile
 
-**Fix**: Refactored `_ensure_indexes()` in `backend/core/database.py` to collect all `create_index` coroutines into a list and run them concurrently via `asyncio.gather(..., return_exceptions=True)`. When MongoDB is down, all calls fail after the same ~5s window simultaneously.
+This means the service cannot be deployed, monitored, or validated automatically.
 
-**Result**: Slow-fail time reduced from ~175s to ~5s. Backend tests: 395 passed.
+## Root Cause
 
-**Files**: `backend/core/database.py`, `backend/tests/test_index_provisioning.py`
+The orchestrator was built as a standalone module with its own `requirements.txt`, `tests/`, and `README.md`, but no containerization or pipeline integration was ever added.
 
-### 2. Remove orchestration runtime artifacts from git (P2)
+## Solution
 
-**Problem**: 31 generated JSON files under `orchestration/` were tracked in git. They are produced at runtime by the meta-orchestration tooling and bloat the repo with merge noise and sensitive runtime state.
+1. **Dockerfile**: Create `orchestrator/Dockerfile` following the backend pattern (Python 3.12-slim, uvicorn, HEALTHCHECK)
+2. **docker-compose.yml**: Add `orchestrator` service with env vars, healthcheck, depends_on mongo+redis
+3. **k8s/orchestrator.yaml**: Create Deployment (2 replicas), Service (ClusterIP on 8100), HPA (2-10 replicas)
+4. **CI**: Add `orchestrator` job to `.github/workflows/ci.yml` that installs deps and runs `pytest orchestrator/tests -q`
+5. **Tests**: Verify `orchestrator/tests/test_orchestrator.py` passes (offline, no MongoDB needed)
 
-**Fix**: Added `orchestration/*.json` to `.gitignore` and removed the files from git tracking with `git rm --cached`. Local copies are preserved for running tooling.
+## Architecture Changes
 
-**Files**: `.gitignore`, 31 deleted files under `orchestration/`
+- New container: `orchestrator` (FastAPI on port 8100)
+- Shares MongoDB (`forge_review` database) and Redis with backend
+- Frontend already has `VITE_ORCHESTRATOR_URL=http://localhost:8100` env var
 
-## Remaining Backlog
+## Database Changes
 
-| Priority | Item | Status |
-|----------|------|--------|
-| P1 | `get_db()` slow-fail on index provisioning | ✅ Completed |
-| P2 | `orchestration/` runtime JSON artifacts committed to git | ✅ Completed |
-| P2 | Review Board (`orchestrator/`) not wired into compose/k8s/CI | Open |
-| P3 | Docker-in-docker deployment privilege surface | Open |
+- None. The orchestrator uses its own MongoDB database (`forge_review`) which it creates on first run.
+
+## API Changes
+
+- None. The orchestrator API is unchanged.
+
+## UI Changes
+
+- None. The frontend already has the `VITE_ORCHESTRATOR_URL` env var configured.
+
+## Testing Strategy
+
+- Unit: `pytest orchestrator/tests -q` (offline, no MongoDB)
+- Integration: `docker compose up orchestrator` + healthcheck
+- CI: new job runs tests on every PR
+
+## Risks
+
+- **Very low**: The orchestrator is a standalone service with no shared code with the backend API. Adding it to compose/k8s/CI is purely additive.
+- **Low**: The orchestrator needs its own MongoDB database (`forge_review`). In docker-compose, it shares the same mongo container. In k8s, it uses the same MongoDB StatefulSet. The database is created on first run.
+
+## Rollback Plan
+
+- Remove the `orchestrator` service from `docker-compose.yml` and delete `orchestrator/Dockerfile`
+- Delete `k8s/orchestrator.yaml`
+- Revert `.github/workflows/ci.yml` to remove the `orchestrator` job

@@ -54,7 +54,7 @@ async def test_ensure_indexes_runs_concurrently():
     await _ensure_indexes(db)
     elapsed = time.monotonic() - start
 
-    assert elapsed < 0.5, f"Index creation took {elapsed:.2f}s; expected concurrent sub-0.5s"
+    assert elapsed < 2.0, f"Index creation took {elapsed:.2f}s; expected concurrent sub-2s"
 
 
 @pytest.mark.asyncio

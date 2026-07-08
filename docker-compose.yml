@@ -71,6 +71,37 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  orchestrator:
+    build: ./orchestrator
+    ports:
+      - "8100:8100"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_review?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+    volumes:
+      - ./orchestrator:/app
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
   frontend:
     build: ./frontend
     ports:
@@ -78,9 +109,7 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8000
       - VITE_WS_URL=ws://localhost:8000
-      # Review Board orchestrator — separate service, run manually for now
-      # (not yet a docker-compose service): uvicorn orchestrator.main:app --port 8100
-      - VITE_ORCHESTRATOR_URL=http://localhost:8100
+      - VITE_ORCHESTRATOR_URL=http://orchestrator:8100
     volumes:
       - ./frontend:/app
       - /app/node_modules

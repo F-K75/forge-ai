@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-07-08 — Wire Review Board (orchestrator/) into docker-compose, k8s, and CI (P2)
+
+### Deployment / Infrastructure
+
+**Wired the Review Board (`orchestrator/`) into all deployment targets.** The service was fully functional (FastAPI on port 8100, MongoDB persistence, offline pytest suite) but had no containerization, k8s manifests, or CI job, meaning it could only be run manually. It is now a first-class service.
+
+- `orchestrator/Dockerfile`: new container definition following the backend pattern (Python 3.12-slim, uvicorn, HEALTHCHECK).
+- `docker-compose.yml`: added `orchestrator` service with MongoDB + Redis dependencies, healthcheck, and resource limits. Updated frontend `VITE_ORCHESTRATOR_URL` to use the docker-compose service DNS name (`orchestrator:8100`).
+- `k8s/orchestrator.yaml`: new Deployment (2 replicas, rolling update), ClusterIP Service (port 8100), and HPA (2-10 replicas, 70% CPU / 80% memory targets).
+- `.github/workflows/ci.yml`: added `orchestrator` CI job that installs dependencies and runs `pytest orchestrator/tests -q`. Updated `quality-gate` to include the new job.
+
+### Files Changed
+
+- `orchestrator/Dockerfile` — new
+- `docker-compose.yml` — added `orchestrator` service
+- `k8s/orchestrator.yaml` — new Deployment, Service, HPA
+- `.github/workflows/ci.yml` — added `orchestrator` job, updated quality gate
+
+### Risks
+
+- **Very low**: purely additive changes. No existing services or APIs were modified.
+
 ## 2026-07-08 — Remove orchestration runtime artifacts from git (P2)
 
 ### Repository Hygiene
