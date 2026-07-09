@@ -219,6 +219,12 @@ class Build(BaseModel):
     context_tokens: int = 0
     debug_iterations: int = 0
     business_model: Optional[Dict[str, Any]] = None
+    # Interactive builds pause between agents and wait for the user to
+    # approve each stage (and to answer the architect's clarifying
+    # questions). pending_gate holds the gate the pipeline is currently
+    # blocked on; POST /builds/{id}/gate writes its "response" key.
+    interactive: bool = False
+    pending_gate: Optional[Dict[str, Any]] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
 
@@ -477,6 +483,13 @@ class WSEventType(str, Enum):
     DEBUG_START = "debug_start"
     STREAM_TOKEN = "stream_token"
     CREDITS_UPDATE = "credits_update"
+
+    # Interactive builds: per-agent structured output for the workspace's
+    # center panel, plus pause/resume gates between agents (see
+    # core/orchestrator.py::Orchestrator._wait_for_gate).
+    AGENT_OUTPUT = "agent_output"
+    GATE_REQUEST = "gate_request"
+    GATE_RESOLVED = "gate_resolved"
 
 
 class WSEvent(BaseModel):

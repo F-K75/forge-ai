@@ -13,4 +13,7 @@ export const WS_EVENT_TYPES = {
   debug_start: "debug_start",
   stream_token: "stream_token",
   credits_update: "credits_update",
+  agent_output: "agent_output",
+  gate_request: "gate_request",
+  gate_resolved: "gate_resolved",
 } as const

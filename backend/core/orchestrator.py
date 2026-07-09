@@ -1,4 +1,7 @@
+import asyncio
 import json
+import time
+import uuid
 from typing import Callable, Optional
 from datetime import datetime
 
@@ -19,6 +22,11 @@ from sandbox.csp import apply_csp
 settings = get_settings()
 
 MAX_DEBUG_ITERATIONS = 3
+
+
+class BuildCancelled(Exception):
+    """User declined an interactive gate. Distinct from generic failures so
+    tasks/build_tasks.py never auto-retries a build the user chose to stop."""
 
 
 class Orchestrator:
@@ -71,6 +79,40 @@ class Orchestrator:
 
             # --- 1. ARCHITECT ---
             await self._start_agent(build, AgentType.ARCHITECT, emit, skip_credits=byok_active)
+
+            # Interactive first builds: surface what's ambiguous about the
+            # idea and let the user answer before the blueprint is drawn.
+            # Follow-up builds already carry context in conversation_history.
+            if build.interactive and not conversation_history:
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_UPDATE,
+                    build_id=build.id,
+                    data={"agent": "architect", "message": "Reviewing your idea for open questions"}
+                ))
+                questions = await self.architect.clarify(
+                    build.prompt,
+                    user_id=build.user_id,
+                    build_id=build.id,
+                    project_id=build.project_id,
+                    template=template,
+                )
+                if questions:
+                    response = await self._wait_for_gate(
+                        build, emit, stage="clarify", agent="architect",
+                        kind="questions", questions=questions,
+                    )
+                    qa = [
+                        f"Q: {q}\nA: {a.strip()}"
+                        for q, a in zip(questions, response.get("answers") or [])
+                        if isinstance(a, str) and a.strip()
+                    ]
+                    if qa:
+                        conversation_history = list(conversation_history or [])
+                        conversation_history.append({
+                            "role": "user",
+                            "content": "Answers to the architect's clarifying questions:\n\n" + "\n\n".join(qa),
+                        })
+
             blueprint = await self.architect.blueprint(
                 build.prompt,
                 conversation_history=conversation_history,
@@ -93,6 +135,9 @@ class Orchestrator:
                 data={"agent": "architect", "files_changed": []}
             ))
 
+            await self._emit_output(build, "architect", emit, blueprint)
+            await self._wait_for_gate(build, emit, stage="architect", agent="architect")
+
             # --- 2. BUSINESS MODEL ---
             await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit, skip_credits=byok_active)
             business_model = await self.business_model.improve(build.prompt, blueprint=blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
@@ -107,6 +152,9 @@ class Orchestrator:
                 data={"agent": "business_improver", "message": "Business model improvements ready"}
             ))
 
+            await self._emit_output(build, "business_improver", emit, business_model)
+            await self._wait_for_gate(build, emit, stage="business_improver", agent="business_improver")
+
             # --- 3. DESIGNER ---
             await self._start_agent(build, AgentType.DESIGNER, emit, skip_credits=byok_active)
             design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
@@ -117,6 +165,9 @@ class Orchestrator:
                 build_id=build.id,
                 data={"agent": "designer", "message": "Design complete"},
             ))
+
+            await self._emit_output(build, "designer", emit, design)
+            await self._wait_for_gate(build, emit, stage="designer", agent="designer")
 
             # --- 4. DEVELOPER (with streaming) ---
             await self._start_agent(build, AgentType.DEVELOPER, emit, skip_credits=byok_active)
@@ -193,6 +244,11 @@ class Orchestrator:
                     data={"agent": "integration", "message": "Integration complete"},
                 ))
 
+                await self._emit_output(
+                    build, "integration", emit,
+                    {"instructions": int_result.get("instructions", "")},
+                )
+
 
             # --- CONTENT SECURITY POLICY (generated apps) ---
             # Inject a secure default CSP into the generated app itself (HTML
@@ -229,6 +285,7 @@ class Orchestrator:
                     build, AgentType.PM, emit,
                     output=json.dumps(validation)
                 )
+                await self._emit_output(build, "pm", emit, validation)
 
                 errors = list(sandbox_errors)
                 sandbox_errors = []
@@ -326,6 +383,85 @@ class Orchestrator:
 
 
         return build, files
+
+    async def _emit_output(self, build: Build, agent: str, emit: Callable, output) -> None:
+        """Structured (already-parsed) agent output for the workspace's center
+        panel — AgentStep.output carries the same data as a JSON string, but
+        making clients re-parse it proved error-prone."""
+        await emit(WSEvent(
+            type=WSEventType.AGENT_OUTPUT,
+            build_id=build.id,
+            # Copy: the pipeline keeps mutating some outputs after this point
+            # (PM validation gains moderation/csp reports), and emit callbacks
+            # may hold the event beyond this call.
+            data={"agent": agent, "output": dict(output) if isinstance(output, dict) else output},
+        ))
+
+    async def _wait_for_gate(
+        self,
+        build: Build,
+        emit: Callable,
+        stage: str,
+        agent: str,
+        kind: str = "approval",
+        questions: Optional[list] = None,
+    ) -> dict:
+        """Pause an interactive build until the user responds via
+        POST /builds/{build_id}/gate (which writes pending_gate.response),
+        the gate times out (auto-approve), or the user cancels.
+
+        Polling the build document — rather than waiting on an in-process
+        signal — keeps this working across processes: the API server that
+        receives the response is not the Celery worker running this pipeline.
+        """
+        if not build.interactive:
+            return {"action": "approve", "auto": True}
+
+        db = await get_db()
+        gate = {
+            "gate_id": str(uuid.uuid4()),
+            "stage": stage,
+            "agent": agent,
+            "kind": kind,
+            "questions": questions or [],
+            "timeout_seconds": settings.gate_timeout,
+            "requested_at": datetime.utcnow().isoformat(),
+        }
+        await db.builds.update_one({"id": build.id}, {"$set": {"pending_gate": gate}})
+        await emit(WSEvent(type=WSEventType.GATE_REQUEST, build_id=build.id, data=gate))
+
+        response: dict = {"action": "approve", "auto": True}
+        deadline = time.monotonic() + settings.gate_timeout
+        while time.monotonic() < deadline:
+            doc = await db.builds.find_one({"id": build.id}, {"_id": 0, "pending_gate": 1})
+            pending = (doc or {}).get("pending_gate") or {}
+            if pending.get("gate_id") == gate["gate_id"] and pending.get("response"):
+                response = pending["response"]
+                break
+            await asyncio.sleep(settings.gate_poll_interval)
+
+        await db.builds.update_one({"id": build.id}, {"$set": {"pending_gate": None}})
+        await emit(WSEvent(
+            type=WSEventType.GATE_RESOLVED,
+            build_id=build.id,
+            data={
+                "gate_id": gate["gate_id"],
+                "stage": stage,
+                "agent": agent,
+                "action": response.get("action", "approve"),
+                "auto": bool(response.get("auto", False)),
+            },
+        ))
+
+        if response.get("auto"):
+            await emit(WSEvent(
+                type=WSEventType.AGENT_UPDATE,
+                build_id=build.id,
+                data={"agent": agent, "message": "No response — continuing automatically"},
+            ))
+        if response.get("action") == "cancel":
+            raise BuildCancelled("Build cancelled by user")
+        return response
 
     async def _is_byok_active(self, user_id: str) -> bool:
         """Pro+ users with a stored BYOK key skip credit costs (see the
