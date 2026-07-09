@@ -2,6 +2,8 @@
 
 Describe your app in natural language and a coordinated team of AI agents builds the full stack — frontend, backend, database, and integrations.
 
+> **Documentation:** the essential docs (architecture, API reference, configuration, deployment & operations) live in [`docs/`](docs/README.md).
+
 ## Architecture
 
 ```
