@@ -38,13 +38,13 @@ export default function Launch() {
           <div className="flex items-center gap-6 text-sm">
             <Link
               to="/home"
-              className="text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/60"
             >
               What is Forge?
             </Link>
             <Link
               to="/login"
-              className="text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/60"
             >
               Sign in
             </Link>
@@ -68,7 +68,7 @@ export default function Launch() {
 
           <Link
             to="/home"
-            className="pointer-events-auto mt-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="pointer-events-auto mt-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/60"
           >
             or explore the platform <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </Link>
@@ -79,11 +79,7 @@ export default function Launch() {
         <ul aria-label="Forge build agents" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 px-6">
           {AGENTS.map((agent) => (
             <li key={agent.id} className="flex items-center gap-1.5 text-xs text-faint">
-              <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: agent.hue }}
-                aria-hidden="true"
-              />
+              <span className="w-1 h-1 rounded-full bg-faint" aria-hidden="true" />
               {agent.label}
             </li>
           ))}
@@ -110,10 +106,10 @@ function PromptBar() {
   return (
     <form
       onSubmit={onSubmit}
-      className="pointer-events-auto mt-10 w-full flex items-center gap-3 rounded-lg border border-border bg-panel/80 backdrop-blur px-4 py-3 text-left focus-within:border-accent/60 focus-within:shadow-[0_0_0_1px_rgba(124,92,255,0.3),0_0_40px_rgba(124,92,255,0.15)] transition-shadow"
+      className="pointer-events-auto mt-10 w-full flex items-center gap-3 rounded-lg border border-border bg-panel/80 backdrop-blur px-4 py-3 text-left focus-within:border-muted/60 focus-within:shadow-[0_0_0_1px_rgba(232,232,240,0.12),0_0_40px_rgba(232,232,240,0.06)] transition-shadow"
       onClick={() => inputRef.current?.focus()}
     >
-      <span className="font-mono text-sm text-accent select-none" aria-hidden="true">
+      <span className="font-mono text-sm text-muted select-none" aria-hidden="true">
         $
       </span>
       <div className="relative flex-1 min-w-0">
@@ -128,13 +124,14 @@ function PromptBar() {
         {value === "" && (
           <span aria-hidden="true" className="absolute inset-0 flex items-center pointer-events-none font-mono text-sm text-faint truncate">
             <span className="text-muted mr-1.5">forge build</span>
-            <span className="cursor truncate">{placeholder}</span>
+            <span className="truncate">{placeholder}</span>
+            <span className="text-muted animate-[blink_1s_step-end_infinite] motion-reduce:animate-none ml-px">▋</span>
           </span>
         )}
       </div>
       <button
         type="submit"
-        className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-accent text-white text-sm font-medium px-4 py-1.5 hover:bg-accent/90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+        className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-ink text-base text-sm font-medium px-4 py-1.5 hover:bg-ink/90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
       >
         Build <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
       </button>

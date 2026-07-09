@@ -1,24 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import createGlobe from "cobe";
-import { AGENTS } from "../lib/agents";
 
 // WebGL earth for the Launch splash, rendered with cobe (~5 kB): dotted
-// continents, atmosphere glow, city markers tinted with the agent palette,
-// and arcs suggesting builds shipping across the network. Drag to spin.
-// Falls back to the original CSS wireframe globe when WebGL is unavailable.
+// continents, atmosphere glow, city markers, and arcs suggesting builds
+// shipping across the network — all in a restrained monochrome palette.
+// Drag to spin. Falls back to the original CSS wireframe globe when WebGL
+// is unavailable.
 
-type Vec3 = [number, number, number];
-
-const hex01 = (hex: string): Vec3 => [
-  parseInt(hex.slice(1, 3), 16) / 255,
-  parseInt(hex.slice(3, 5), 16) / 255,
-  parseInt(hex.slice(5, 7), 16) / 255,
-];
-
-const ACCENT: Vec3 = hex01("#7C5CFF");
-const AGENT_COLORS = AGENTS.map((a) => hex01(a.hue));
-
-// Rough build hubs — [lat, lon] — cycled through the agent palette.
+// Rough build hubs — [lat, lon].
 const HUBS: [number, number][] = [
   [37.77, -122.41], // San Francisco
   [40.71, -74.0], // New York
@@ -35,7 +24,6 @@ const HUBS: [number, number][] = [
 const MARKERS = HUBS.map((location, i) => ({
   location,
   size: i % 3 === 0 ? 0.035 : 0.022,
-  color: AGENT_COLORS[i % AGENT_COLORS.length],
 }));
 
 const ARCS = [
@@ -90,10 +78,10 @@ export default function LaunchGlobe() {
       mapSamples: 22000,
       mapBrightness: 4.2,
       mapBaseBrightness: 0.04,
-      baseColor: [0.32, 0.32, 0.42],
-      markerColor: ACCENT,
-      glowColor: [0.16, 0.12, 0.32],
-      arcColor: [0.4, 0.3, 0.78],
+      baseColor: [0.36, 0.36, 0.39],
+      markerColor: [0.85, 0.85, 0.88],
+      glowColor: [0.13, 0.13, 0.15],
+      arcColor: [0.38, 0.38, 0.42],
       arcWidth: 0.5,
       arcHeight: 0.22,
       opacity: 0.9,
@@ -197,7 +185,7 @@ function CssGlobe() {
         })}
       </div>
 
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-accent/25" />
+      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-muted/25" />
       <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,hsl(0_0%_4%/0.55)_0%,transparent_45%,hsl(0_0%_4%)_88%)]" />
     </div>
   );
