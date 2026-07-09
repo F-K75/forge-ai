@@ -11,7 +11,7 @@ from celery_app import celery_app as current_app
 from core.config import get_settings
 from core.metrics import build_outcomes_total, build_duration_seconds, build_credits_used
 from core.models import Build, BuildStatus, BuildDeadLetter, WSEvent, WSEventType, BuildFile
-from core.orchestrator import Orchestrator
+from core.orchestrator import BuildCancelled, Orchestrator
 from core.database import get_db
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager
@@ -206,6 +206,11 @@ def run_build(
             is_final_attempt = self.request.retries >= max_retries
             made_progress = any(a.status == BuildStatus.SUCCESS for a in build.agents)
 
+            # A user declining an interactive gate is a decision, not a
+            # transient failure — retrying would rerun agents they cancelled.
+            if isinstance(e, BuildCancelled):
+                is_final_attempt = True
+
             if not made_progress and not is_final_attempt:
                 raise self.retry(
                     exc=e,
@@ -228,7 +233,11 @@ def run_build(
             build_duration_seconds.observe(time.monotonic() - start_time)
             build_outcomes_total.labels(status="failed").inc()
             build_credits_used.observe(used)
-            await _dead_letter("exception", str(e), self.request.retries)
+            await _dead_letter(
+                "cancelled" if isinstance(e, BuildCancelled) else "exception",
+                str(e),
+                self.request.retries,
+            )
             raise
 
     return _run_async(_run())

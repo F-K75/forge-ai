@@ -174,6 +174,11 @@ class Settings(BaseSettings):
     max_request_size: int = 10 * 1024 * 1024
     anthropic_timeout: int = 120
     build_timeout: int = 600  # 10 minutes max per build
+    # Interactive builds: how long a gate waits for the user before
+    # auto-approving and moving on. Must stay well under build_timeout or a
+    # walked-away user burns the whole build window on a single gate.
+    gate_timeout: int = 180
+    gate_poll_interval: float = 2.0
     field_encryption_key: str = ""
 
     # Observability

@@ -52,6 +52,10 @@ class CreateBuildRequest(BaseModel):
     project_id: str
     prompt: str = Field(..., max_length=50000)
     idempotency_key: Optional[str] = Field(None, max_length=64)
+    # Interactive builds pause after the planning agents (architect,
+    # business model, designer) for user approval, and let the architect
+    # ask clarifying questions before drawing the blueprint.
+    interactive: bool = False
 
 
 @router.post("/")
@@ -154,6 +158,7 @@ async def create_build(
         prompt=sanitize_prompt(req.prompt),
         idempotency_key=req.idempotency_key,
         status=BuildStatus.PENDING,
+        interactive=req.interactive,
     )
 
     await db.builds.insert_one(build.model_dump())
@@ -220,6 +225,53 @@ async def get_build_files(
         raise HTTPException(status_code=404, detail="Build not found")
     files = await db.build_files.find({"build_id": build_id}, {"_id": 0, "path": 1, "content": 1}).to_list(None)
     return {f["path"]: f["content"] for f in files}
+
+
+class GateResponseRequest(BaseModel):
+    gate_id: str = Field(..., max_length=64)
+    action: str = Field(..., pattern="^(approve|cancel|answers)$")
+    answers: Optional[list[str]] = None
+
+    @property
+    def normalized_answers(self) -> list[str]:
+        return [a[:2000] for a in (self.answers or []) if isinstance(a, str)][:8]
+
+
+@router.post("/{build_id}/gate")
+async def respond_to_gate(
+    build_id: str,
+    req: GateResponseRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Resolve an interactive build's pending gate (approve / cancel /
+    clarifying-question answers). The Celery worker running the pipeline
+    polls pending_gate.response — see Orchestrator._wait_for_gate."""
+    db = await get_db()
+    build = await db.builds.find_one(
+        {"id": build_id}, {"_id": 0, "user_id": 1, "project_id": 1, "pending_gate": 1}
+    )
+    if not build or not await has_build_access(db, current_user.id, build):
+        raise HTTPException(status_code=404, detail="Build not found")
+
+    pending = build.get("pending_gate") or {}
+    if pending.get("gate_id") != req.gate_id:
+        raise HTTPException(status_code=409, detail="No matching pending gate")
+    if pending.get("response"):
+        raise HTTPException(status_code=409, detail="Gate already resolved")
+
+    await db.builds.update_one(
+        {"id": build_id, "pending_gate.gate_id": req.gate_id},
+        {
+            "$set": {
+                "pending_gate.response": {
+                    "action": req.action,
+                    "answers": req.normalized_answers,
+                    "responded_at": datetime.utcnow().isoformat(),
+                }
+            }
+        },
+    )
+    return {"status": "ok"}
 
 
 @router.post("/{build_id}/rollback/{version}")
