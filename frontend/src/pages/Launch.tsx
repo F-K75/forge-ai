@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { AGENTS } from "../lib/agents";
+import LaunchGlobe from "../components/LaunchGlobe";
 
 // Public entry splash at "/": an immersive, globe-centered portal with a
 // terminal-style prompt bar as the single CTA. Deliberately distinct from
 // the marketing page at /home (which carries the full hero/pricing/FAQ) —
-// this screen is the "front door", /home is the brochure. Pure CSS/SVG,
-// no 3D library. Already-authenticated visitors never see this: PublicRoute
-// bounces them to /projects.
+// this screen is the "front door", /home is the brochure. The earth is a
+// WebGL render (see LaunchGlobe) and can be dragged to spin. Already-
+// authenticated visitors never see this: PublicRoute bounces them to
+// /projects.
 
 const EXAMPLE_PROMPTS = [
   "a habit tracker with streaks and reminders",
@@ -22,7 +24,7 @@ export default function Launch() {
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-base text-ink flex flex-col">
       <Starfield />
-      <Globe />
+      <LaunchGlobe />
 
       <header className="relative z-10">
         <nav aria-label="Primary" className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -50,13 +52,15 @@ export default function Launch() {
         </nav>
       </header>
 
-      <main className="relative z-10 flex-1 flex items-center justify-center px-6">
+      {/* pointer-events-none lets drag gestures in the empty space reach the
+          globe canvas below; interactive children re-enable their own events */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-6 pointer-events-none">
         <div className="w-full max-w-xl flex flex-col items-center text-center">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-faint mb-6">The software foundry</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-faint mb-6 [text-shadow:0_1px_10px_rgba(10,10,15,0.9)]">The software foundry</p>
 
-          <h1 className="font-display text-7xl md:text-8xl font-medium tracking-tight leading-none">Forge</h1>
+          <h1 className="font-display text-7xl md:text-8xl font-medium tracking-tight leading-none [text-shadow:0_2px_24px_rgba(10,10,15,0.8)]">Forge</h1>
 
-          <p className="mt-5 text-muted">
+          <p className="mt-5 text-muted [text-shadow:0_1px_10px_rgba(10,10,15,0.9)]">
             Six agents. One prompt. Working software.
           </p>
 
@@ -64,7 +68,7 @@ export default function Launch() {
 
           <Link
             to="/home"
-            className="mt-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="pointer-events-auto mt-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             or explore the platform <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </Link>
@@ -106,7 +110,7 @@ function PromptBar() {
   return (
     <form
       onSubmit={onSubmit}
-      className="mt-10 w-full flex items-center gap-3 rounded-lg border border-border bg-panel/80 backdrop-blur px-4 py-3 text-left focus-within:border-accent/60 focus-within:shadow-[0_0_0_1px_rgba(124,92,255,0.3),0_0_40px_rgba(124,92,255,0.15)] transition-shadow"
+      className="pointer-events-auto mt-10 w-full flex items-center gap-3 rounded-lg border border-border bg-panel/80 backdrop-blur px-4 py-3 text-left focus-within:border-accent/60 focus-within:shadow-[0_0_0_1px_rgba(124,92,255,0.3),0_0_40px_rgba(124,92,255,0.15)] transition-shadow"
       onClick={() => inputRef.current?.focus()}
     >
       <span className="font-mono text-sm text-accent select-none" aria-hidden="true">
@@ -208,49 +212,3 @@ function Starfield() {
   );
 }
 
-function Globe() {
-  const parallels = [-60, -30, 0, 30, 60];
-  const meridianCount = 8;
-
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-      style={{ width: "min(92vh, 92vw)", height: "min(92vh, 92vw)" }}
-    >
-      <div className="w-full h-full rounded-full bg-[radial-gradient(circle_at_32%_28%,hsl(0_0%_16%),hsl(0_0%_4%)_72%)] border border-muted/30" />
-
-      {/* Meridians — vertical ellipses rotating around the sphere's Y axis */}
-      <div className="absolute inset-0 [transform-style:preserve-3d] animate-[spin-globe_50s_linear_infinite] motion-reduce:animate-none">
-        {Array.from({ length: meridianCount }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute inset-0 rounded-full border border-muted/20"
-            style={{ transform: `rotateY(${(i * 180) / meridianCount}deg)` }}
-          />
-        ))}
-      </div>
-
-      {/* Parallels — horizontal rings for latitude lines */}
-      <div className="absolute inset-0">
-        {parallels.map((deg) => {
-          const scale = Math.cos((deg * Math.PI) / 180);
-          const offset = 50 - scale * 50;
-          return (
-            <div
-              key={deg}
-              className="absolute left-0 right-0 rounded-full border border-muted/15"
-              style={{ top: `${offset}%`, height: `${scale * 100}%` }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Equator, drawn brighter as a fixed reference line */}
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-accent/25" />
-
-      {/* Vignette so the center stays dark enough for the overlaid content */}
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,hsl(0_0%_4%/0.55)_0%,transparent_45%,hsl(0_0%_4%)_88%)]" />
-    </div>
-  );
-}
