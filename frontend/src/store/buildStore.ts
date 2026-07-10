@@ -1,7 +1,10 @@
 import { create } from 'zustand'
+import toast from 'react-hot-toast'
 import type { AnyWSEvent } from '../lib/wsContract'
 import { isRecord } from '../lib/wsContract'
 import type { Agent } from '../lib/agents'
+import { buildsApi } from '../lib/api'
+import { LIVE_MODE } from '../lib/env'
 import { useDeploymentStore } from './deploymentStore'
 
 // Legacy per-agent tracker — kept for backward-compat selectors.
@@ -28,6 +31,20 @@ export interface BuildMessage {
   text: string
 }
 
+// A pause point in an interactive build: the pipeline is waiting for the
+// user to approve the stage (kind "approval") or answer the architect's
+// clarifying questions (kind "questions"). See backend Orchestrator._wait_for_gate.
+export interface PendingGate {
+  gateId: string
+  stage: string
+  agent: string
+  kind: 'approval' | 'questions'
+  questions: string[]
+  timeoutSeconds: number | null
+}
+
+export type GateAction = 'approve' | 'cancel' | 'answers'
+
 export interface DebugInfo {
   iteration: number
   errors: string[]
@@ -41,6 +58,12 @@ export interface BuildState {
   // Pipeline-driven state
   activeAgent: Agent['id'] | null
   agentStates: Record<string, PipelineNodeState>
+
+  // Interactive flow: structured per-agent results + the gate (if any)
+  // the pipeline is currently paused on.
+  agentOutputs: Record<string, unknown>
+  pendingGate: PendingGate | null
+  gateSubmitting: boolean
 
   // Chat
   messages: BuildMessage[]
@@ -73,6 +96,7 @@ export interface BuildState {
   setOpenFile: (path: string | null) => void
   setBuildId: (buildId: string | null) => void
   setFiles: (files: Record<string, string>) => void
+  respondGate: (action: GateAction, answers?: string[]) => Promise<void>
   reset: () => void
 }
 
@@ -99,13 +123,17 @@ const AGENT_LABELS: Record<string, string> = {
   debugger: 'Debugger',
 }
 
-export const useBuildStore = create<BuildState>((set, _get) => ({
+export const useBuildStore = create<BuildState>((set, get) => ({
   buildId: null,
   status: 'idle',
   prompt: '',
 
   activeAgent: null,
   agentStates: initialAgentStates(),
+
+  agentOutputs: {},
+  pendingGate: null,
+  gateSubmitting: false,
 
   messages: [],
 
@@ -134,6 +162,9 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
       status: 'running',
       activeAgent: null,
       agentStates: initialAgentStates(),
+      agentOutputs: {},
+      pendingGate: null,
+      gateSubmitting: false,
       files: {},
       openFile: null,
       streamBuffer: '',
@@ -247,6 +278,8 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
           return {
             status: 'complete',
             activeAgent: null,
+            pendingGate: null,
+            gateSubmitting: false,
             files,
             openFile: state.openFile ?? (paths.length > 0 ? paths[0] : null),
             validation: data.validation ?? null,
@@ -265,6 +298,8 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
           return {
             status: 'failed',
             error: data.error ?? 'Build failed',
+            pendingGate: null,
+            gateSubmitting: false,
             messages: [...state.messages, { from: 'system', text: `Build failed: ${data.error ?? 'Unknown error'}` }],
           }
         }
@@ -284,6 +319,50 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
           }
         }
 
+        case 'agent_output': {
+          return {
+            agentOutputs: { ...state.agentOutputs, [data.agent]: data.output },
+          }
+        }
+
+        case 'gate_request': {
+          const label = AGENT_LABELS[data.agent] ?? data.agent
+          const isQuestions = data.kind === 'questions'
+          return {
+            pendingGate: {
+              gateId: data.gate_id,
+              stage: data.stage,
+              agent: data.agent,
+              kind: isQuestions ? 'questions' : 'approval',
+              questions: Array.isArray(data.questions) ? data.questions : [],
+              timeoutSeconds: typeof data.timeout_seconds === 'number' ? data.timeout_seconds : null,
+            },
+            gateSubmitting: false,
+            messages: [
+              ...state.messages,
+              {
+                from: 'system',
+                text: isQuestions
+                  ? `${label} has questions before drawing the architecture`
+                  : `${label} finished — waiting for your go-ahead`,
+              },
+            ],
+          }
+        }
+
+        case 'gate_resolved': {
+          // Only clear if it's the gate we're showing (a stale resolve for a
+          // previous gate must not dismiss a newer one).
+          if (state.pendingGate && state.pendingGate.gateId !== data.gate_id) return state
+          return {
+            pendingGate: null,
+            gateSubmitting: false,
+            messages: data.auto
+              ? [...state.messages, { from: 'system', text: 'No response — continuing automatically' }]
+              : state.messages,
+          }
+        }
+
         case 'credits_update': {
           return { creditsUsed: data.credits_used ?? state.creditsUsed }
         }
@@ -300,6 +379,36 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
 
   setFiles: (files) => set({ files }),
 
+  respondGate: async (action, answers) => {
+    const { buildId, pendingGate, gateSubmitting } = get()
+    if (!buildId || !pendingGate || gateSubmitting) return
+
+    if (!LIVE_MODE) {
+      // Demo mode: the mock emitter watches pendingGate and resumes its
+      // timeline once cleared — see runMockBuild.
+      set(state => ({
+        pendingGate: null,
+        messages:
+          action === 'cancel'
+            ? state.messages
+            : [...state.messages, { from: 'system', text: action === 'answers' ? 'Answers sent' : 'Approved — continuing' }],
+        ...(action === 'cancel' ? { status: 'failed' as const, error: 'Build cancelled' } : {}),
+      }))
+      return
+    }
+
+    set({ gateSubmitting: true })
+    try {
+      await buildsApi.respondGate(buildId, { gate_id: pendingGate.gateId, action, answers })
+      // pendingGate clears when the worker emits gate_resolved; keep
+      // gateSubmitting on so the buttons stay disabled until then.
+    } catch (err: any) {
+      set({ gateSubmitting: false })
+      const detail = err?.response?.data?.detail
+      toast.error(typeof detail === 'string' ? detail : 'Failed to send response')
+    }
+  },
+
   reset: () => {
     useDeploymentStore.getState().reset()
     set({
@@ -308,6 +417,9 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
       prompt: '',
       activeAgent: null,
       agentStates: initialAgentStates(),
+      agentOutputs: {},
+      pendingGate: null,
+      gateSubmitting: false,
       messages: [],
       files: {},
       openFile: null,

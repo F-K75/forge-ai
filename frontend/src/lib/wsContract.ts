@@ -40,6 +40,24 @@ export type DebugStartEvent = WSEventBase<'debug_start', { iteration?: number; e
 export type CreditsUpdateEvent = WSEventBase<'credits_update', { credits_used?: number }>
 export type ErrorEvent = WSEventBase<'error', { error?: string; agent?: string }>
 
+// Interactive builds: structured per-agent results + pause/resume gates.
+export type AgentOutputEvent = WSEventBase<'agent_output', { agent: string; output: unknown }>
+export type GateRequestEvent = WSEventBase<
+  'gate_request',
+  {
+    gate_id: string
+    stage: string
+    agent: string
+    kind: 'approval' | 'questions'
+    questions?: string[]
+    timeout_seconds?: number
+  }
+>
+export type GateResolvedEvent = WSEventBase<
+  'gate_resolved',
+  { gate_id: string; stage: string; agent?: string; action: string; auto?: boolean }
+>
+
 export type AnyWSEvent =
   | BuildStartEvent
   | AgentStartEvent
@@ -53,6 +71,9 @@ export type AnyWSEvent =
   | DebugStartEvent
   | CreditsUpdateEvent
   | ErrorEvent
+  | AgentOutputEvent
+  | GateRequestEvent
+  | GateResolvedEvent
 
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -127,6 +148,15 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
     case WS_EVENT_TYPES.error:
       if (!isRecord(data)) return null
       return raw as ErrorEvent
+    case WS_EVENT_TYPES.agent_output:
+      if (!isRecord(data) || !isString((data as any).agent) || !('output' in data)) return null
+      return raw as AgentOutputEvent
+    case WS_EVENT_TYPES.gate_request:
+      if (!isRecord(data) || !isString((data as any).gate_id) || !isString((data as any).stage)) return null
+      return raw as GateRequestEvent
+    case WS_EVENT_TYPES.gate_resolved:
+      if (!isRecord(data) || !isString((data as any).gate_id)) return null
+      return raw as GateResolvedEvent
     default:
       return null
   }

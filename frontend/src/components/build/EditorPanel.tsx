@@ -30,7 +30,7 @@ function languageFor(path: string): string {
   }
 }
 
-export function EditorPanel() {
+export function EditorPanel({ bare = false }: { bare?: boolean }) {
   const files = useBuildStore((s) => s.files);
   const openFile = useBuildStore((s) => s.openFile);
   const setOpenFile = useBuildStore((s) => s.setOpenFile);
@@ -42,7 +42,12 @@ export function EditorPanel() {
   const content = openFile != null ? files[openFile] ?? "" : streamBuffer;
 
   return (
-    <section className="flex-1 min-w-0 flex bg-base border-r border-border" aria-label="Code editor">
+    // `bare` drops the standalone flex/border shell when the panel is hosted
+    // inside CenterPanel's tab area instead of directly in the workspace row.
+    <section
+      className={bare ? "h-full min-w-0 flex bg-base" : "flex-1 min-w-0 flex bg-base border-r border-border"}
+      aria-label="Code editor"
+    >
       <nav className="w-52 shrink-0 overflow-y-auto border-r border-border-soft py-2" aria-label="Files">
         {paths.length === 0 ? (
           <p className="px-3 py-2 text-xs text-faint">Files appear here as agents write code.</p>

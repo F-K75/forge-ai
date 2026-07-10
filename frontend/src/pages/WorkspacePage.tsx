@@ -9,7 +9,7 @@ import { PROJECTS } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
 import { TopBar } from "../components/build/TopBar";
 import { ChatPanel } from "../components/build/ChatPanel";
-import { EditorPanel } from "../components/build/EditorPanel";
+import { CenterPanel } from "../components/build/CenterPanel";
 import { PreviewPanel } from "../components/build/PreviewPanel";
 import { StatusBar } from "../components/build/StatusBar";
 
@@ -101,7 +101,10 @@ export default function WorkspacePage() {
       if (LIVE_MODE) {
         if (!project) return;
         try {
-          const { build_id } = await buildsApi.create({ project_id: project.id, prompt });
+          // interactive: the pipeline pauses after each planning agent for
+          // approval in the center panel, and the architect can ask
+          // clarifying questions before drawing the blueprint.
+          const { build_id } = await buildsApi.create({ project_id: project.id, prompt, interactive: true });
           startBuild(build_id, prompt);
           setBuildId(build_id);
         } catch (err: any) {
@@ -154,7 +157,7 @@ export default function WorkspacePage() {
       <TopBar projectName={project.name} projectId={project.id} />
       <div className="flex-1 min-h-0 flex">
         <ChatPanel onSubmit={handleSubmit} />
-        <EditorPanel />
+        <CenterPanel />
         <PreviewPanel />
       </div>
       <StatusBar connectionStatus={connectionStatus} />

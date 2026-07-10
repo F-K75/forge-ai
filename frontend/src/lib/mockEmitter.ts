@@ -1,4 +1,5 @@
 import type { AnyWSEvent } from './wsContract'
+import { useBuildStore } from '../store/buildStore'
 
 const COUNTER_FILE_V1 = `import { useState } from "react";
 
@@ -80,110 +81,189 @@ function chunkTokens(text: string): string[] {
   return tokens
 }
 
-interface ScheduledEvent {
-  delay: number
-  event: AnyWSEvent
+// Structured outputs matching what the live pipeline's agent_output events
+// carry (architect blueprint shape from agents/architect.py, etc.).
+const BLUEPRINT = {
+  app_name: 'Habit Tracker',
+  description: 'Daily habit tracking with streaks, heatmaps, and reminders.',
+  pages: [
+    { name: 'Dashboard', route: '/', description: 'Today’s habits with streaks', components: ['HabitList', 'StreakBadge'] },
+    { name: 'History', route: '/history', description: 'Completion heatmap', components: ['Heatmap'] },
+    { name: 'Settings', route: '/settings', description: 'Reminders and account', components: ['ReminderForm'] },
+  ],
+  data_models: [
+    { name: 'Habit', fields: [{ name: 'title', type: 'string', required: true }, { name: 'cadence', type: 'string', required: true }] },
+    { name: 'Completion', fields: [{ name: 'habit_id', type: 'string', required: true }, { name: 'date', type: 'date', required: true }] },
+  ],
+  api_endpoints: [
+    { method: 'GET', path: '/api/habits', description: 'List habits', auth_required: true },
+    { method: 'POST', path: '/api/habits', description: 'Create habit', auth_required: true },
+    { method: 'POST', path: '/api/habits/:id/complete', description: 'Mark complete', auth_required: true },
+  ],
+  features: ['Streak tracking', 'Daily reminders', 'Completion heatmap'],
+  integrations: [],
+  auth_required: true,
 }
 
-/**
- * Builds the full mocked event timeline for a build run. Every event here
- * is a real, typed AnyWSEvent dispatched through the same handler the live
- * socket uses — swapping this for useBuildSocket requires no UI changes.
- */
-function buildTimeline(buildId: string): ScheduledEvent[] {
-  const events: ScheduledEvent[] = []
-  let t = 0
-  const at = (delay: number, event: AnyWSEvent) => {
-    t += delay
-    events.push({ delay: t, event })
-  }
-  const base = { build_id: buildId }
-
-  at(300, { ...base, type: 'agent_start', data: { agent: 'architect' } })
-  at(900, { ...base, type: 'agent_complete', data: { agent: 'architect', files_changed: ['src/App.tsx', 'src/main.tsx'] } })
-
-  at(200, { ...base, type: 'agent_start', data: { agent: 'designer' } })
-  at(800, { ...base, type: 'agent_complete', data: { agent: 'designer', files_changed: ['src/styles.css'] } })
-
-  at(200, { ...base, type: 'agent_start', data: { agent: 'developer' } })
-  for (const token of chunkTokens(COUNTER_FILE_V1)) {
-    at(35, { ...base, type: 'stream_token', data: { agent: 'developer', token } })
-  }
-  at(150, {
-    ...base,
-    type: 'file_update',
-    data: {
-      delta: {
-        changed: {
-          'src/App.tsx': APP_FILE,
-          'src/main.tsx': MAIN_FILE,
-          'src/styles.css': STYLES_FILE,
-          'src/components/Counter.tsx': COUNTER_FILE_V1,
-        },
-        deleted: [],
-      },
-    },
-  })
-
-  at(400, { ...base, type: 'debug_start', data: { iteration: 1, errors: ["TypeError: Cannot read properties of undefined (reading 'value')"] } })
-  for (const token of chunkTokens(COUNTER_FILE_V2)) {
-    at(30, { ...base, type: 'stream_token', data: { agent: 'developer', token } })
-  }
-  at(150, {
-    ...base,
-    type: 'file_update',
-    data: { delta: { changed: { 'src/components/Counter.tsx': COUNTER_FILE_V2 }, deleted: [] } },
-  })
-  at(300, { ...base, type: 'agent_complete', data: { agent: 'developer', files_changed: ['src/components/Counter.tsx'] } })
-
-  at(200, { ...base, type: 'agent_start', data: { agent: 'integration' } })
-  at(700, {
-    ...base,
-    type: 'file_update',
-    data: { delta: { changed: { 'src/lib/api.ts': API_FILE }, deleted: [] } },
-  })
-  at(200, { ...base, type: 'agent_complete', data: { agent: 'integration', files_changed: ['src/lib/api.ts'] } })
-
-  at(200, { ...base, type: 'agent_start', data: { agent: 'pm' } })
-  at(600, {
-    ...base,
-    type: 'file_update',
-    data: { delta: { changed: { 'README.md': README_FILE }, deleted: [] } },
-  })
-  at(200, { ...base, type: 'agent_complete', data: { agent: 'pm', files_changed: ['README.md'] } })
-
-  at(400, {
-    ...base,
-    type: 'build_complete',
-    data: {
-      files: {
-        'src/App.tsx': APP_FILE,
-        'src/main.tsx': MAIN_FILE,
-        'src/styles.css': STYLES_FILE,
-        'src/components/Counter.tsx': COUNTER_FILE_V2,
-        'src/lib/api.ts': API_FILE,
-        'README.md': README_FILE,
-      },
-      validation: { score: 93 },
-      credits_used: 13,
-    },
-  })
-
-  return events
+const BUSINESS_MODEL = {
+  target_user: 'People building routines who abandon generic todo apps',
+  pricing: 'Freemium — unlimited habits on the paid tier',
+  retention_lever: 'Streaks and a daily reminder loop',
+  risks: ['Crowded market; differentiation must come from simplicity'],
 }
+
+const DESIGN = {
+  direction: 'Calm, dark, single-accent interface centered on today',
+  theme: { mode: 'dark', accent: '#7C5CFF', font: 'Inter' },
+  components: ['HabitList', 'StreakBadge', 'Heatmap', 'ReminderForm'],
+}
+
+const CLARIFY_QUESTIONS = [
+  'Is this just for you, or will other people sign up too?',
+  'Should reminders arrive by email, push notification, or both?',
+]
 
 /**
  * Drives a build's event sequence into `dispatch` (the store's handleEvent)
- * on realistic timers. Returns a cancel function to clear pending timers
- * on unmount or buildId change.
+ * on realistic timers — including the interactive gates the live pipeline
+ * emits: it pauses at each gate_request until the store's pendingGate clears
+ * (the user clicking Approve/Send answers in the demo just clears it — see
+ * buildStore.respondGate). Returns a cancel function.
  */
 export function runMockBuild(buildId: string, dispatch: (event: AnyWSEvent) => void): () => void {
-  const timeline = buildTimeline(buildId)
-  const timeoutIds = timeline.map(({ delay, event }) =>
-    window.setTimeout(() => dispatch(event), delay)
-  )
+  let cancelled = false
+  let timer: number | undefined
+
+  const sleep = (ms: number) =>
+    new Promise<void>(resolve => {
+      timer = window.setTimeout(resolve, ms)
+    })
+
+  const base = { build_id: buildId }
+  const send = (event: AnyWSEvent) => {
+    if (!cancelled) dispatch(event)
+  }
+
+  const gate = async (agent: string, stage: string, kind: 'approval' | 'questions', questions: string[] = []) => {
+    send({
+      ...base,
+      type: 'gate_request',
+      data: { gate_id: `mock-${stage}`, stage, agent, kind, questions, timeout_seconds: 180 },
+    })
+    while (!cancelled && useBuildStore.getState().pendingGate) {
+      await sleep(150)
+    }
+    // Cancelled via the gate's "Cancel build" button ends the run.
+    return !cancelled && useBuildStore.getState().status !== 'failed'
+  }
+
+  ;(async () => {
+    await sleep(300)
+    send({ ...base, type: 'agent_start', data: { agent: 'architect' } })
+    await sleep(700)
+
+    if (!(await gate('architect', 'clarify', 'questions', CLARIFY_QUESTIONS))) return
+    await sleep(600)
+    send({ ...base, type: 'agent_update', data: { agent: 'architect', message: 'Architecture blueprint created' } })
+    send({ ...base, type: 'agent_output', data: { agent: 'architect', output: BLUEPRINT } })
+    send({ ...base, type: 'agent_complete', data: { agent: 'architect', files_changed: [] } })
+    if (!(await gate('architect', 'architect', 'approval'))) return
+
+    send({ ...base, type: 'agent_start', data: { agent: 'business_improver' } })
+    await sleep(800)
+    send({ ...base, type: 'agent_output', data: { agent: 'business_improver', output: BUSINESS_MODEL } })
+    send({ ...base, type: 'agent_complete', data: { agent: 'business_improver', files_changed: [] } })
+    if (!(await gate('business_improver', 'business_improver', 'approval'))) return
+
+    send({ ...base, type: 'agent_start', data: { agent: 'designer' } })
+    await sleep(800)
+    send({ ...base, type: 'agent_output', data: { agent: 'designer', output: DESIGN } })
+    send({ ...base, type: 'agent_complete', data: { agent: 'designer', files_changed: ['src/styles.css'] } })
+    if (!(await gate('designer', 'designer', 'approval'))) return
+
+    send({ ...base, type: 'agent_start', data: { agent: 'developer' } })
+    for (const token of chunkTokens(COUNTER_FILE_V1)) {
+      await sleep(35)
+      send({ ...base, type: 'stream_token', data: { agent: 'developer', token } })
+    }
+    await sleep(150)
+    send({
+      ...base,
+      type: 'file_update',
+      data: {
+        delta: {
+          changed: {
+            'src/App.tsx': APP_FILE,
+            'src/main.tsx': MAIN_FILE,
+            'src/styles.css': STYLES_FILE,
+            'src/components/Counter.tsx': COUNTER_FILE_V1,
+          },
+          deleted: [],
+        },
+      },
+    })
+
+    await sleep(400)
+    send({ ...base, type: 'debug_start', data: { iteration: 1, errors: ["TypeError: Cannot read properties of undefined (reading 'value')"] } })
+    for (const token of chunkTokens(COUNTER_FILE_V2)) {
+      await sleep(30)
+      send({ ...base, type: 'stream_token', data: { agent: 'developer', token } })
+    }
+    await sleep(150)
+    send({
+      ...base,
+      type: 'file_update',
+      data: { delta: { changed: { 'src/components/Counter.tsx': COUNTER_FILE_V2 }, deleted: [] } },
+    })
+    await sleep(300)
+    send({ ...base, type: 'agent_complete', data: { agent: 'developer', files_changed: ['src/components/Counter.tsx'] } })
+
+    await sleep(200)
+    send({ ...base, type: 'agent_start', data: { agent: 'integration' } })
+    await sleep(700)
+    send({
+      ...base,
+      type: 'file_update',
+      data: { delta: { changed: { 'src/lib/api.ts': API_FILE }, deleted: [] } },
+    })
+    send({ ...base, type: 'agent_output', data: { agent: 'integration', output: { instructions: 'Wired the habits API client. No external service keys needed.' } } })
+    await sleep(200)
+    send({ ...base, type: 'agent_complete', data: { agent: 'integration', files_changed: ['src/lib/api.ts'] } })
+
+    await sleep(200)
+    send({ ...base, type: 'agent_start', data: { agent: 'pm' } })
+    await sleep(600)
+    send({
+      ...base,
+      type: 'file_update',
+      data: { delta: { changed: { 'README.md': README_FILE }, deleted: [] } },
+    })
+    send({ ...base, type: 'agent_output', data: { agent: 'pm', output: { score: 93, passed: true, missing_features: [] } } })
+    await sleep(200)
+    send({ ...base, type: 'agent_complete', data: { agent: 'pm', files_changed: ['README.md'] } })
+
+    await sleep(400)
+    send({
+      ...base,
+      type: 'build_complete',
+      data: {
+        files: {
+          'src/App.tsx': APP_FILE,
+          'src/main.tsx': MAIN_FILE,
+          'src/styles.css': STYLES_FILE,
+          'src/components/Counter.tsx': COUNTER_FILE_V2,
+          'src/lib/api.ts': API_FILE,
+          'README.md': README_FILE,
+        },
+        validation: { score: 93 },
+        credits_used: 13,
+      },
+    })
+  })()
+
   return () => {
-    timeoutIds.forEach(id => window.clearTimeout(id))
+    cancelled = true
+    if (timer !== undefined) window.clearTimeout(timer)
   }
 }
 
