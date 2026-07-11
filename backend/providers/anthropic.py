@@ -18,14 +18,32 @@ class AnthropicAdapter(BaseProviderAdapter):
         if not self.api_key:
             return CompletionResponse(text="", provider=self.name, model=model, usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
 
+        create_kwargs: Dict[str, Any] = {
+            "model": model,
+            "max_tokens": kwargs.get("max_tokens", 8192),
+            "messages": messages,
+        }
+        if kwargs.get("temperature") is not None:
+            create_kwargs["temperature"] = kwargs["temperature"]
+        if kwargs.get("tools"):
+            create_kwargs["tools"] = kwargs["tools"]
+
         client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
-        response = await client.messages.create(model=model, max_tokens=kwargs.get("max_tokens", 8192), messages=messages)
-        text = "".join(block.text for block in getattr(response.content, "__iter__", lambda: [])() if getattr(block, "type", None) == "text")
+        response = await client.messages.create(**create_kwargs)
+        blocks = list(getattr(response.content, "__iter__", lambda: [])())
+        text = "".join(block.text for block in blocks if getattr(block, "type", None) == "text")
+        tool_calls = [
+            {"id": block.id, "name": block.name, "arguments": block.input}
+            for block in blocks
+            if getattr(block, "type", None) == "tool_use"
+        ] or None
         usage = getattr(response, "usage", None)
         return CompletionResponse(
             text=text or "",
             provider=self.name,
             model=model,
+            finish_reason=getattr(response, "stop_reason", None),
+            tool_calls=tool_calls,
             usage={
                 "prompt_tokens": getattr(usage, "input_tokens", 0) or 0,
                 "completion_tokens": getattr(usage, "output_tokens", 0) or 0,

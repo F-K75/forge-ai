@@ -25,6 +25,7 @@ from api.initiatives import router as initiatives_router
 from api.llm import router as llm_router
 from api.marketplace import router as marketplace_router
 from api.projects import router as projects_router
+from api.prompts import router as prompts_router
 from api.razorpay import router as razorpay_router
 from api.releases import router as releases_router
 from api.sprints import router as sprints_router
@@ -51,6 +52,7 @@ v1_router.include_router(initiatives_router)
 v1_router.include_router(llm_router)
 v1_router.include_router(marketplace_router)
 v1_router.include_router(projects_router)
+v1_router.include_router(prompts_router)
 v1_router.include_router(razorpay_router)
 v1_router.include_router(releases_router)
 v1_router.include_router(sprints_router)

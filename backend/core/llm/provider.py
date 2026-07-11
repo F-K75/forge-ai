@@ -28,6 +28,8 @@ class CompletionResponse:
     provider: str
     model: str
     usage: Dict[str, int] = field(default_factory=dict)
+    finish_reason: Optional[str] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
     raw: Optional[Any] = None
 
 

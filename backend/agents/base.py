@@ -7,7 +7,7 @@ from core.models import AgentType, PlanTier, WSEvent, WSEventType
 from core.ai_usage import check_budget
 from core.database import get_db
 from core.encryption import decrypt_field
-from core.llm.router import get_llm_router
+from gateway import GatewayRequest, get_ai_gateway
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -108,11 +108,42 @@ _llm_circuit_breaker = CircuitBreaker()
 
 class BaseAgent:
     agent_type: AgentType
-    system_prompt: str
+    system_prompt: str = ""
+    # Optional: (role, version) key into the Prompt Builder's template
+    # registry. When set, the agent's system prompt is generated dynamically
+    # per call instead of using the hardcoded `system_prompt` string above --
+    # this is the incremental-migration switch (see backend/prompt_builder/
+    # MIGRATION.md). Agents that don't set this keep using `system_prompt`
+    # unchanged, so migration can happen one agent at a time.
+    prompt_role: Optional[str] = None
+    prompt_template_version: str = "v1"
 
     def __init__(self):
-        self.router = get_llm_router()
+        self.gateway = get_ai_gateway()
         self.model = settings.default_model
+
+    def _resolve_system_prompt(
+        self, messages: list, extra_system: str, prompt_template_version: Optional[str] = None
+    ) -> str:
+        if not self.prompt_role:
+            return self.system_prompt + (f"\n\n{extra_system}" if extra_system else "")
+
+        from prompt_builder import PromptContext, get_prompt_builder
+
+        task = ""
+        for m in reversed(messages):
+            if m.get("role") == "user":
+                task = m.get("content", "")
+                break
+
+        context = PromptContext(
+            agent_role=self.prompt_role,
+            task=task,
+            template_version=prompt_template_version or self.prompt_template_version,
+            user_request=extra_system,
+        )
+        result = get_prompt_builder().build(context)
+        return result.prompt
 
     async def _call_llm(
         self,
@@ -123,6 +154,7 @@ class BaseAgent:
         build_id: Optional[str] = None,
         project_id: Optional[str] = None,
         org_id: Optional[str] = None,
+        prompt_template_version: Optional[str] = None,
     ) -> str:
         if not _llm_circuit_breaker.can_call():
             retry_after = _llm_circuit_breaker.retry_after()
@@ -134,7 +166,7 @@ class BaseAgent:
             await check_budget(user_id, org_id=org_id)
 
         try:
-            response = await self.router.generate(
+            request = GatewayRequest(
                 agent_name=self.__class__.__name__.lower(),
                 messages=messages,
                 # Pass None (not self.model) so a per-agent config override
@@ -147,11 +179,12 @@ class BaseAgent:
                 build_id=build_id,
                 project_id=project_id,
                 org_id=org_id,
-                extra_system=self.system_prompt + (f"\n\n{extra_system}" if extra_system else ""),
+                system_prompt=self._resolve_system_prompt(messages, extra_system, prompt_template_version),
                 byok=byok,
             )
+            response = await self.gateway.generate(request)
             _llm_circuit_breaker.record_success()
-            return response.text
+            return response.content
         except Exception:
             _llm_circuit_breaker.record_failure()
             raise
@@ -166,6 +199,7 @@ class BaseAgent:
         project_id: Optional[str] = None,
         org_id: Optional[str] = None,
         usage_out: Optional[dict] = None,
+        prompt_template_version: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
         if not _llm_circuit_breaker.can_call():
             retry_after = _llm_circuit_breaker.retry_after()
@@ -177,7 +211,7 @@ class BaseAgent:
             await check_budget(user_id, org_id=org_id)
 
         try:
-            response = await self.router.generate(
+            request = GatewayRequest(
                 agent_name=self.__class__.__name__.lower(),
                 messages=messages,
                 model=None,
@@ -186,13 +220,14 @@ class BaseAgent:
                 build_id=build_id,
                 project_id=project_id,
                 org_id=org_id,
-                extra_system=self.system_prompt + (f"\n\n{extra_system}" if extra_system else ""),
+                system_prompt=self._resolve_system_prompt(messages, extra_system, prompt_template_version),
                 byok=byok,
                 usage_out=usage_out,
+                streaming=True,
             )
+            async for chunk in self.gateway.stream(request):
+                yield chunk
             _llm_circuit_breaker.record_success()
-            for token in response.text:
-                yield token
         except Exception:
             _llm_circuit_breaker.record_failure()
             raise
@@ -207,10 +242,19 @@ class BaseAgent:
         project_id: Optional[str] = None,
         org_id: Optional[str] = None,
         usage_out: Optional[dict] = None,
+        prompt_template_version: Optional[str] = None,
     ) -> str:
         chunks = []
         async for chunk in self.stream(
-            messages, extra_system, max_tokens, user_id, build_id, project_id, org_id, usage_out=usage_out
+            messages,
+            extra_system,
+            max_tokens,
+            user_id,
+            build_id,
+            project_id,
+            org_id,
+            usage_out=usage_out,
+            prompt_template_version=prompt_template_version,
         ):
             chunks.append(chunk)
         return "".join(chunks)

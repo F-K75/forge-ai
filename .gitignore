@@ -36,6 +36,11 @@ build/
 !frontend/src/components/build/
 *.egg-info/
 
+# Local MongoDB artifacts for local development
+backend/mongodb/
+backend/mongodb_data/
+backend/mongod.log
+
 # Docker
 .docker/
 

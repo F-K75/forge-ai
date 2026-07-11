@@ -23,6 +23,18 @@ DEFAULT_LLM_CONFIG: Dict[str, Any] = {
         "architect": {"provider": "anthropic", "model": "claude-sonnet-4-6"},
         "developer": {"provider": "anthropic", "model": "claude-sonnet-4-6"},
     },
+    "policy": {
+        "approved_providers": None,
+        "approved_models": None,
+        "max_tokens_per_request": None,
+        "max_cost_per_request_usd": None,
+        "guardrails_enabled": True,
+        # None = use GuardrailsEngine's baseline categories. A configured
+        # list is ADDITIVE to the baseline, not a replacement -- an org/
+        # agent can widen coverage but can't silently disable the safety
+        # floor by omitting a baseline category.
+        "blocked_categories": None,
+    },
 }
 
 
@@ -41,9 +53,22 @@ class LLMConfigLoader:
         # since load() runs on every single agent LLM call and must stay a
         # pure in-memory read with zero I/O.
         self._db_overrides: Dict[str, Dict[str, Any]] = {}
+        # Process-local cache of the MongoDB-backed per-org policy overrides
+        # (collection `llm_org_policy_overrides`), keyed by org_id to a
+        # `policy` dict. Same fail-open, explicit-refresh-only discipline as
+        # `_db_overrides` above.
+        self._org_policy_overrides: Dict[str, Dict[str, Any]] = {}
 
-    async def load(self, *, agent_name: Optional[str] = None) -> Dict[str, Any]:
+    async def load(self, *, agent_name: Optional[str] = None, org_id: Optional[str] = None) -> Dict[str, Any]:
         config = dict(self._config)
+        if org_id:
+            # Org-level policy sits between the global default and any
+            # per-agent policy override -- more specific (agent) wins over
+            # less specific (org), matching the shallow-merge precedence
+            # already used for agent_overrides/db_overrides below.
+            org_policy = self._org_policy_overrides.get(org_id)
+            if org_policy:
+                config["policy"] = org_policy
         if agent_name:
             agent_override = config.get("agent_overrides", {}).get(agent_name, {})
             if agent_override:
@@ -60,7 +85,14 @@ class LLMConfigLoader:
         config.setdefault("retry", {"max_attempts": 2, "backoff_seconds": 0.25})
         config.setdefault("timeout_seconds", 120)
         config.setdefault("cache_ttl_seconds", 300)
+        config.setdefault("policy", {})
         return config
+
+    def get_org_policy(self, org_id: str) -> Dict[str, Any]:
+        """Zero-I/O read of the in-memory org policy cache, for callers
+        (e.g. the rate limiter) that need just the org override without a
+        full load() -- same underlying cache load() itself reads."""
+        return self._org_policy_overrides.get(org_id, {})
 
     async def reload(self) -> Dict[str, Any]:
         self._config = self._load_from_disk()
@@ -78,6 +110,7 @@ class LLMConfigLoader:
         # api/admin.py's FEATURE_FLAGS_CACHE_TTL, which is also only
         # eventually consistent across replicas, not instant).
         await self.refresh_db_overrides()
+        await self.refresh_org_policy_overrides()
         return await self.load()
 
     async def refresh_db_overrides(self) -> None:
@@ -101,12 +134,52 @@ class LLMConfigLoader:
             db = await get_db()
             overrides: Dict[str, Dict[str, Any]] = {}
             async for doc in db.llm_agent_overrides.find({}):
-                entry = {key: doc[key] for key in ("provider", "model") if doc.get(key) is not None}
+                entry = {key: doc[key] for key in ("provider", "model", "policy") if doc.get(key) is not None}
                 if entry and doc.get("agent"):
                     overrides[doc["agent"]] = entry
             self._db_overrides = overrides
         except Exception as exc:
             logger.warning("Failed to refresh LLM agent overrides from MongoDB: %s", exc)
+
+    async def refresh_org_policy_overrides(self) -> None:
+        """Pull the live, admin-editable per-org policy overrides from
+        MongoDB into the in-memory `_org_policy_overrides` cache. Mirrors
+        `refresh_db_overrides()` exactly: never called from `load()`, fails
+        open (never clears the cache to `{}` on a transient error)."""
+        try:
+            from core.database import get_db
+
+            db = await get_db()
+            overrides: Dict[str, Dict[str, Any]] = {}
+            async for doc in db.llm_org_policy_overrides.find({}):
+                policy = doc.get("policy")
+                if policy and doc.get("org_id"):
+                    overrides[doc["org_id"]] = policy
+            self._org_policy_overrides = overrides
+        except Exception as exc:
+            logger.warning("Failed to refresh LLM org policy overrides from MongoDB: %s", exc)
+
+    async def set_org_policy_override(
+        self, org_id: str, policy: Dict[str, Any], updated_by: Optional[str] = None
+    ) -> Dict[str, Any]:
+        try:
+            from core.database import get_db
+
+            db = await get_db()
+            await db.llm_org_policy_overrides.update_one(
+                {"org_id": org_id},
+                {"$set": {"org_id": org_id, "policy": policy, "updated_by": updated_by, "updated_at": datetime.utcnow()}},
+                upsert=True,
+            )
+        except Exception as exc:
+            logger.warning("Failed to persist LLM org policy override for %s to MongoDB: %s", org_id, exc)
+
+        # Reflect immediately in this process's in-memory cache, same as
+        # set_agent_override() -- the writer's own next load() call sees it
+        # with no reload()/restart needed.
+        merged = {**self._org_policy_overrides.get(org_id, {}), **policy}
+        self._org_policy_overrides[org_id] = merged
+        return merged
 
     async def set_agent_override(
         self, agent_name: str, override: Dict[str, Any], updated_by: Optional[str] = None

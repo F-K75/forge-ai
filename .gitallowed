@@ -27,6 +27,22 @@ whsec_1234567890abcdef
 # named `secret`, not a credential.
 secret=secret
 
+# api_key parameter/attribute/dict-value references across core/llm/provider.py,
+# core/llm/router.py's BYOK path, and the provider adapters — variable
+# references, not literal secrets. A real hardcoded key is always a quoted
+# string literal, never a bare identifier or attribute access.
+self\.api_key = api_key
+api_key=self\.api_key
+api_key = byok\.get\("api_key"\)
+api_key=api_key
+api_key=settings\.[a-zA-Z_]*api_key
+
+# tests/test_content_moderation.py feeds fixed, clearly-fake credential
+# strings into the content-moderation scanner under test — the string
+# literals are test input, not real secrets, and never change.
+sk_live_4eC39HqLyjWDarjtT1zdp7dc
+ghp_0123456789abcdefABCDEF0123456789abcd
+
 # Scanner config files (secret-scanning.yml, pre-commit hook) define regex
 # literals that self-match the URL patterns they define. The substrings
 # `redis://:[` / `mongodb://[` only appear in pattern definitions, never in a

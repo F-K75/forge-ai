@@ -27,14 +27,12 @@ import core.security as security_module
 
 @pytest.fixture(autouse=True)
 def _reset_llm_rate_limit_state():
-    # These tests drive the real LLMRouter.generate() with user_id="user-1"
-    # in rapid succession. Redis isn't reachable in this sandbox, so the
-    # per-user LLM rate limiter (core.security.LLM_RATE_LIMIT_DIMENSIONS) falls back
-    # to the module-level, process-wide _in_memory_rate_limits dict --
-    # without clearing it, repeated "user-1" calls here would share state
-    # with other test modules that also use "user-1" (e.g.
-    # test_llm_byok.py), risking spurious rate-limit failures unrelated to
-    # what either test is actually checking.
+    # LLM request-frequency limiting now lives in core.llm.rate_limiter's
+    # RateLimiter, whose in-memory fallback is per-LLMRouter-instance (each
+    # LLMRouter() below gets its own fresh instance, so it no longer needs
+    # resetting between tests). This still clears the *other*,
+    # still-shared, module-level in-memory fallback used by the HTTP/login/
+    # email rate limiters, in case any of those run in the same process.
     security_module._in_memory_rate_limits.clear()
     yield
     security_module._in_memory_rate_limits.clear()

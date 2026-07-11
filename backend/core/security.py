@@ -60,28 +60,6 @@ USER_RATE_LIMITS = {
     "api": 1000,   # max API calls per hour
 }
 
-# Per-identity LLM request-rate limits (distinct from the daily token BUDGET
-# in core/ai_usage.py -- this bounds call FREQUENCY, not spend). Every agent LLM
-# call in the app funnels through LLMRouter.generate(), for both Forge-paid
-# and BYOK providers, so a buggy retry loop or malicious script hammering that
-# method could exhaust Forge's shared provider rate limits (degrading every
-# other user's builds) while staying comfortably under the daily token budget.
-#
-# Multi-dimensional: user / project / org. A request is rejected if ANY
-# dimension is over its limit, so a single runaway build loop (project) can't
-# starve the user's other projects, and an org can't crowd out others at the
-# org level. All keys are Redis-backed (survive process restarts in steady
-# state) with an in-memory fail-closed fallback, consistent with the rest of
-# the app's rate limiters.
-LLM_RATE_LIMIT_DIMENSIONS = {
-    # Generous for a normal multi-agent build (a handful of calls per stage).
-    "user": {"limit": 60, "window": 60},
-    # Bounds one build's agent loop; trips only on a pathological runaway.
-    "project": {"limit": 30, "window": 60},
-    # Org-wide backstop against one org dominating shared provider capacity.
-    "org": {"limit": 300, "window": 60},
-}
-
 # Per-email auth rate limits (for unauthenticated endpoints)
 EMAIL_RATE_LIMITS = {
     "forgot_password": {"limit": 3, "window": 3600},    # 3/hour
@@ -640,55 +618,3 @@ async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int
         return await _check_in_memory_rate_limit(
             key, limit, window, fallback_limit=fallback_limit
         )
-
-
-async def check_llm_rate_limit(
-    user_id: str, *, project_id: Optional[str] = None, org_id: Optional[str] = None
-) -> tuple[bool, int]:
-    """Multi-dimensional request-rate limit for LLMRouter.generate().
-
-    Bounds call FREQUENCY (not spend -- see the daily token BUDGET in
-    core/ai_usage.py). Enforces three independent dimensions -- user, project,
-    and org -- and rejects the request if ANY dimension is over its limit, so a
-    single runaway build loop (project) can't starve the user's other projects
-    and an org can't crowd out others at the org level.
-
-    Each dimension is a Redis INCR+EXPIRE key (survives process restarts in
-    steady state), with the same in-memory fail-closed fallback used by
-    check_email_rate_limit on Redis failure. Returns (is_allowed, remaining),
-    where remaining is the tightest remaining budget across all dimensions."""
-    dimensions = [("user", user_id)]
-    if project_id:
-        dimensions.append(("project", project_id))
-    if org_id:
-        dimensions.append(("org", org_id))
-
-    allowed = True
-    tightest_remaining = None
-    for dimension, identity in dimensions:
-        cfg = LLM_RATE_LIMIT_DIMENSIONS[dimension]
-        key = f"rl:llm:{dimension}:{identity}"
-        limit = cfg["limit"]
-        window = cfg["window"]
-        try:
-            redis = await get_redis()
-            current = await redis.incr(key)
-            if current == 1:
-                await redis.expire(key, window)
-            remaining = max(0, limit - current)
-            if current > limit:
-                allowed = False
-            tightest_remaining = remaining if tightest_remaining is None else min(tightest_remaining, remaining)
-        except Exception:
-            # Redis unavailable -- fail closed within this process via the
-            # in-memory limiter with a conservative 50 % limit so a
-            # multi-replica outage doesn't silently multiply the effective
-            # ceiling (SEC-004).
-            fallback_limit = max(1, limit // 2)
-            rem = await _check_in_memory_rate_limit(
-                key, limit, window, fallback_limit=fallback_limit
-            )
-            allowed = allowed and rem[0]
-            tightest_remaining = rem[1] if tightest_remaining is None else min(tightest_remaining, rem[1])
-
-    return allowed, (tightest_remaining or 0)

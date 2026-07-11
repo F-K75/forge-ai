@@ -6,60 +6,22 @@ import json
 
 class ArchitectAgent(BaseAgent):
     agent_type = AgentType.ARCHITECT
-    system_prompt = """You are the Architect Agent in a multi-agent full-stack app builder.
-
-Your job: analyze the user's app idea and produce a precise technical blueprint.
-
-Output ONLY a JSON object with this exact structure:
-{
-  "app_name": "string",
-  "description": "string",
-  "pages": [
-    {
-      "name": "string",
-      "route": "string",
-      "description": "string",
-      "components": ["string"]
-    }
-  ],
-  "data_models": [
-    {
-      "name": "string",
-      "fields": [{"name": "string", "type": "string", "required": true}]
-    }
-  ],
-  "api_endpoints": [
-    {
-      "method": "GET|POST|PUT|DELETE",
-      "path": "string",
-      "description": "string",
-      "auth_required": true
-    }
-  ],
-  "features": ["string"],
-  "integrations": ["string"],
-  "auth_required": true,
-  "clarifications": ["string"]
-}
-
-Rules:
-- Be precise. Downstream agents depend on this blueprint.
-- List every page, every data model, every API endpoint the app needs.
-- integrations: only list services actually needed (Stripe, Slack, etc.)
-- clarifications: things that are ambiguous in the prompt that would change the architecture.
-- Output ONLY the JSON. No prose, no markdown, no explanation.
-"""
+    prompt_role = "architect"
 
     async def clarify(self, prompt: str, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None, template: Optional[str] = None) -> list[str]:
         """Questions worth asking before committing to a blueprint. Best-effort:
-        any parse/LLM failure returns [] so the pipeline never stalls on it."""
+        any parse/LLM failure returns [] so the pipeline never stalls on it.
+
+        Uses the 'clarify-v1' prompt template variant (see prompt_builder/
+        templates/architect_v1.py) so it gets a different system prompt from
+        blueprint() without needing a second agent class."""
         extra_system = (
             f"The user picked the '{template}' starter template for this project."
             if template
             else ""
         )
         try:
-            response = await _clarify_agent.run(
+            response = await self.run(
                 [{"role": "user", "content": f"App idea: {prompt}"}],
                 extra_system=extra_system,
                 max_tokens=512,
@@ -67,6 +29,7 @@ Rules:
                 build_id=build_id,
                 project_id=project_id,
                 org_id=org_id,
+                prompt_template_version="clarify-v1",
             )
             questions = json.loads(_strip_fences(response), strict=False)
         except Exception:
@@ -116,29 +79,3 @@ def _strip_fences(response: str) -> str:
         if clean.startswith("json"):
             clean = clean[4:]
     return clean.strip().rstrip("```")
-
-
-class _ClarifyAgent(BaseAgent):
-    """Pre-blueprint pass of the Architect: BaseAgent always prefixes the
-    class system_prompt, so the clarify step needs its own class to avoid
-    conflicting output-format instructions with the blueprint prompt."""
-
-    agent_type = AgentType.ARCHITECT
-    system_prompt = """You are the Architect Agent in a multi-agent full-stack app builder.
-
-Before designing the architecture, identify what is genuinely ambiguous about
-the user's app idea — things whose answer would change the architecture
-(target users, auth needs, data ownership, payments, realtime, scale).
-
-Output ONLY a JSON array of at most 4 short questions, most important first:
-["question", ...]
-
-Rules:
-- Only ask questions the prompt does not already answer.
-- Never ask about visual style, branding, or nice-to-haves.
-- If the idea is unambiguous enough to build, output [].
-- Output ONLY the JSON array. No prose, no markdown.
-"""
-
-
-_clarify_agent = _ClarifyAgent()

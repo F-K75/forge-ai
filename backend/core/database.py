@@ -96,6 +96,8 @@ async def _ensure_indexes(db):
             db.build_files.create_index([("build_id", 1)]),
             # Team member indexes
             db.team_members.create_index([("org_id", 1), ("user_id", 1)], unique=True),
+            # LLM org policy override indexes
+            db.llm_org_policy_overrides.create_index("org_id", unique=True),
             # Subscription indexes
             db.subscriptions.create_index("stripe_subscription_id", unique=True),
             db.subscriptions.create_index([("user_id", 1)]),

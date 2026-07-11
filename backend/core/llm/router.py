@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import json
 import logging
 import re
+import time
 import unicodedata
 from typing import Any, Dict, List, Optional, Sequence
 
 from core.ai_usage import calculate_cost, check_budget, estimate_tokens, track_usage
-from core.database import cache_get_json, cache_set_json
 from core.security import sanitize_prompt
 from core.llm.config import LLMConfigLoader
 from core.llm.provider import BaseProviderAdapter, CompletionResponse, ProviderError
 from core.llm.registry import ProviderRegistry
+from core.llm.policy import PolicyEngine, get_policy_engine
+from core.llm.rate_limiter import DEFAULT_LIMITS, PLAN_MULTIPLIERS, RateLimiter
+from optimizer.service import AIOptimizer, get_optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,45 @@ def _any_message_has_prompt_injection(messages: List[Dict[str, Any]]) -> bool:
     )
 
 
+# Substrings that indicate a request is fundamentally broken (bad
+# credentials, malformed input, missing SDK) rather than a transient
+# provider hiccup. Retrying these wastes attempts and delays failover to a
+# provider that might actually succeed.
+_NON_RETRYABLE_ERROR_SUBSTRINGS = (
+    "package missing",
+    "invalid api key",
+    "invalid_api_key",
+    "unauthorized",
+    "authentication",
+    "401",
+    "403",
+    "invalid request",
+    "invalid_request",
+    "400",
+    "not found",
+    "404",
+    "context_length_exceeded",
+    "context length",
+)
+
+# Cap on the exponential backoff delay so a large `max_attempts` /
+# `backoff_seconds` combination can't stall a request for minutes.
+_MAX_BACKOFF_SECONDS = 30.0
+
+
+def _is_retryable_error(exc: Exception) -> bool:
+    """Classify whether `exc` is worth retrying.
+
+    Best-effort heuristic based on the error message since provider
+    adapters don't currently carry structured status codes -- errors that
+    look like auth failures, malformed requests, or missing dependencies
+    are treated as fatal for this attempt; everything else (timeouts, rate
+    limits, connection resets, 5xx/"overloaded" responses) is retried.
+    """
+    message = str(exc).lower()
+    return not any(marker in message for marker in _NON_RETRYABLE_ERROR_SUBSTRINGS)
+
+
 # Per-user concurrent request semaphores (plan-based limits)
 _concurrent_requests: Dict[str, asyncio.Semaphore] = {}
 _CONCURRENT_LIMITS = {"free": 2, "standard": 5, "pro": 10, "enterprise": 25}
@@ -113,15 +153,69 @@ def _get_concurrent_limit(plan: str) -> int:
     return _CONCURRENT_LIMITS.get(plan, _CONCURRENT_LIMITS["free"])
 
 
+# Health-aware routing: a lightweight in-process circuit breaker built from
+# the failure/success signal `generate`/`stream` already produce, rather
+# than a separate polling health-check loop (which would add latency and a
+# second source of truth). A provider that has failed repeatedly in the
+# last `_HEALTH_WINDOW_SECONDS` is deprioritized -- moved to the back of
+# the fallback chain -- but never excluded outright, so a false-positive
+# (e.g. a transient blip that looks like a streak) can't lock a provider
+# out permanently.
+_HEALTH_WINDOW_SECONDS = 60.0
+_HEALTH_FAILURE_THRESHOLD = 3
+
+
+class _ProviderHealthTracker:
+    def __init__(self) -> None:
+        self._failures: Dict[str, List[float]] = {}
+
+    def record_failure(self, provider_name: str) -> None:
+        now = time.monotonic()
+        bucket = self._failures.setdefault(provider_name, [])
+        bucket.append(now)
+        cutoff = now - _HEALTH_WINDOW_SECONDS
+        self._failures[provider_name] = [t for t in bucket if t >= cutoff]
+
+    def record_success(self, provider_name: str) -> None:
+        self._failures.pop(provider_name, None)
+
+    def is_degraded(self, provider_name: str) -> bool:
+        now = time.monotonic()
+        cutoff = now - _HEALTH_WINDOW_SECONDS
+        recent = [t for t in self._failures.get(provider_name, []) if t >= cutoff]
+        return len(recent) >= _HEALTH_FAILURE_THRESHOLD
+
+    def reorder(self, providers: List[str]) -> List[str]:
+        """Stable-partition `providers` into healthy-first, degraded-last."""
+        healthy = [p for p in providers if not self.is_degraded(p)]
+        degraded = [p for p in providers if self.is_degraded(p)]
+        return healthy + degraded
+
+
 class LLMRouter:
     """Routes requests across providers with simple fallback and usage tracking."""
 
-    def __init__(self, *, registry: Optional[ProviderRegistry] = None, config_loader: Optional[LLMConfigLoader] = None) -> None:
+    def __init__(
+        self,
+        *,
+        registry: Optional[ProviderRegistry] = None,
+        config_loader: Optional[LLMConfigLoader] = None,
+        optimizer: Optional[AIOptimizer] = None,
+        policy_engine: Optional[PolicyEngine] = None,
+        rate_limiter: Optional[RateLimiter] = None,
+    ) -> None:
         self.registry = registry or ProviderRegistry()
         self.config_loader = config_loader or LLMConfigLoader()
+        self.optimizer = optimizer or get_optimizer()
+        self.policy_engine = policy_engine or get_policy_engine()
+        # Not a module singleton like optimizer/policy_engine -- its
+        # in-memory fallback state is naturally per-router-instance, same as
+        # _concurrent_requests below.
+        self.rate_limiter = rate_limiter or RateLimiter()
         self._register_default_providers()
         self._concurrent_requests: Dict[str, asyncio.Semaphore] = {}
         self._concurrent_lock = asyncio.Lock()
+        self._health_tracker = _ProviderHealthTracker()
 
     async def _acquire_concurrent_slot(self, user_id: str, plan: str) -> None:
         """Acquire a per-user semaphore slot before making an LLM call.
@@ -147,6 +241,38 @@ class LLMRouter:
         if sem:
             sem.release()
 
+    async def _check_rate_limit(self, user_id: str, *, project_id: Optional[str], org_id: Optional[str]) -> None:
+        """Resolve the caller's plan tier and any org-level override, then
+        enforce via self.rate_limiter. Raises ProviderError if rejected."""
+        plan = "free"
+        try:
+            from core.database import get_db
+
+            db = await get_db()
+            user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "plan": 1})
+            if user_doc and user_doc.get("plan"):
+                plan = user_doc["plan"]
+        except Exception:
+            pass
+
+        user_limit = int(DEFAULT_LIMITS["user"][0] * PLAN_MULTIPLIERS.get(plan, 1.0))
+        if org_id:
+            org_policy = self.config_loader.get_org_policy(org_id)
+            if org_policy.get("requests_per_minute"):
+                user_limit = org_policy["requests_per_minute"]
+
+        allowed, _ = await self.rate_limiter.check(
+            user_id=user_id,
+            project_id=project_id,
+            org_id=org_id,
+            user_limit=user_limit,
+            project_limit=DEFAULT_LIMITS["project"][0],
+            org_limit=DEFAULT_LIMITS["org"][0],
+            window=DEFAULT_LIMITS["user"][1],
+        )
+        if not allowed:
+            raise ProviderError(f"LLM request rate limit exceeded for user {user_id}")
+
     def register_provider(self, provider: BaseProviderAdapter, *, name: Optional[str] = None, priority: int = 0, models: Optional[List[str]] = None) -> None:
         self.registry.register_provider(provider, name=name, priority=priority, models=models)
 
@@ -163,7 +289,11 @@ class LLMRouter:
             except Exception as exc:  # pragma: no cover - defensive
                 logger.warning("Health check failed for %s: %s", name, exc)
                 healthy = False
-            results.append({**entry, "healthy": healthy})
+            results.append({
+                **entry,
+                "healthy": healthy,
+                "degraded": self._health_tracker.is_degraded(name),
+            })
         return results
 
     async def generate(
@@ -173,6 +303,8 @@ class LLMRouter:
         messages: List[Dict[str, Any]],
         model: Optional[str] = None,
         max_tokens: int = 8192,
+        temperature: Optional[float] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         user_id: Optional[str] = None,
         build_id: Optional[str] = None,
         project_id: Optional[str] = None,
@@ -181,7 +313,11 @@ class LLMRouter:
         usage_out: Optional[Dict[str, Any]] = None,
         provider_names: Optional[Sequence[str]] = None,
         byok: Optional[Dict[str, Any]] = None,
+        attempt_info: Optional[Dict[str, int]] = None,
     ) -> CompletionResponse:
+        if attempt_info is not None:
+            attempt_info.setdefault("attempts", 0)
+            attempt_info.setdefault("failovers", 0)
         if not messages:
             raise ValueError("messages cannot be empty")
 
@@ -199,11 +335,7 @@ class LLMRouter:
             # bounding either way, even though BYOK calls don't cost Forge
             # money, they still consume this process's resources and can
             # exhaust Forge's shared provider rate limits.
-            from core.security import check_llm_rate_limit
-
-            allowed, _ = await check_llm_rate_limit(user_id, project_id=project_id, org_id=org_id)
-            if not allowed:
-                raise ProviderError(f"LLM request rate limit exceeded for user {user_id}")
+            await self._check_rate_limit(user_id, project_id=project_id, org_id=org_id)
 
         if byok:
             # A user's own provider key (Pro+ "bring your own key"): call it
@@ -221,6 +353,8 @@ class LLMRouter:
                 sanitized_messages=sanitized_messages,
                 model=model,
                 max_tokens=max_tokens,
+                temperature=temperature,
+                tools=tools,
                 user_id=user_id,
                 build_id=build_id,
                 project_id=project_id,
@@ -229,7 +363,7 @@ class LLMRouter:
                 usage_out=usage_out,
             )
 
-        config = await self.config_loader.load(agent_name=agent_name)
+        config = await self.config_loader.load(agent_name=agent_name, org_id=org_id)
         providers_to_try = self._select_providers(config, provider_names)
         # `model=None` means "no explicit caller override" -- fall back to
         # the agent-specific config override, then the provider's default.
@@ -247,7 +381,32 @@ class LLMRouter:
         model_fallbacks = config.get("model_fallbacks") or []
         model_chain = [model, *[m for m in model_fallbacks if m != model]]
 
+        # Mandatory AI Optimizer pass: dedupe/trim context, normalize prompt
+        # text, and estimate tokens/cost before this request reaches any
+        # provider. Never rewrites intent -- only removes exact repeats,
+        # stale metadata, and excess whitespace. `optimized_messages` (not
+        # `sanitized_messages`) is what actually gets sent downstream.
+        request_start = time.perf_counter()
+        opt_result = await self.optimizer.optimize_request(
+            messages=sanitized_messages,
+            provider=providers_to_try[0],
+            model=model,
+            max_output_tokens=max_tokens,
+        )
+        sanitized_messages = opt_result.messages
+
+        providers_to_try, model_chain = self.policy_engine.enforce(
+            policy_config=config.get("policy") or {},
+            providers_to_try=providers_to_try,
+            model_chain=model_chain,
+            max_tokens=max_tokens,
+            cost_estimate_usd=opt_result.cost_estimate.estimated_request_cost_usd,
+        )
+
         if user_id:
+            # Budget must be checked before any response is returned --
+            # including cache hits below -- so a user already over budget
+            # can't keep getting served from the response cache for free.
             # Estimate tokens from the concatenated messages so check_budget
             # can make a realistic pre-authorization decision instead of
             # passing estimated_tokens=0 (which would only block users
@@ -260,6 +419,27 @@ class LLMRouter:
             estimated = estimate_tokens(all_text) + max_tokens  # include estimated output
             await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
 
+        if opt_result.response_cache_hit and opt_result.cached_response is not None:
+            response = CompletionResponse(
+                text=opt_result.cached_response,
+                provider=providers_to_try[0],
+                model=model,
+                usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cached_tokens": 0},
+            )
+            self.optimizer.record_completion(
+                tokens_used=0,
+                tokens_saved=opt_result.context_optimization.tokens_saved,
+                compression_ratio=opt_result.context_optimization.compression_ratio,
+                provider=response.provider,
+                model=response.model,
+                cost_usd=0.0,
+                latency_ms=(time.perf_counter() - request_start) * 1000,
+                optimization_overhead_ms=opt_result.optimization_time_ms,
+                prompt_cache_hit=False,
+                response_cache_hit=True,
+            )
+            return response
+
         # Resolve the user's plan for concurrent request limiting
         plan = "free"
         if user_id:
@@ -271,11 +451,6 @@ class LLMRouter:
                     plan = user_doc["plan"]
             except Exception:
                 pass
-
-        cache_key = self._cache_key(agent_name, sanitized_messages, model, extra_system, max_tokens)
-        cached = await cache_get_json(cache_key) if cache_key else None
-        if cached is not None:
-            return CompletionResponse(**cached)
 
         retry_cfg = config.get("retry", {}) or {}
         max_attempts = max(1, int(retry_cfg.get("max_attempts", 1)))
@@ -298,11 +473,15 @@ class LLMRouter:
                             raise
                         except Exception:
                             pass
+                    if attempt_info is not None:
+                        attempt_info["attempts"] += 1
                     try:
                         response = await provider.chat_completion(
                             model=candidate_model,
                             messages=self._with_system_prompt(sanitized_messages, extra_system),
                             max_tokens=max_tokens,
+                            temperature=temperature,
+                            tools=tools,
                             user_id=user_id,
                             build_id=build_id,
                             project_id=project_id,
@@ -315,6 +494,7 @@ class LLMRouter:
                             raise ProviderError(f"provider {provider_name} returned empty response")
                         response.model = candidate_model or response.model
                         response.provider = provider_name
+                        self._health_tracker.record_success(provider_name)
                         self._normalize_usage(response)
                         await self._record_usage(
                             response=response,
@@ -324,8 +504,24 @@ class LLMRouter:
                             org_id=org_id,
                             agent_name=agent_name,
                         )
-                        if cache_key:
-                            await cache_set_json(cache_key, {"text": response.text, "provider": response.provider, "model": response.model, "usage": response.usage, "raw": None}, ttl=config.get("cache_ttl_seconds", 300))
+                        await self.optimizer.cache_response(
+                            messages=sanitized_messages,
+                            model=response.model,
+                            provider=response.provider,
+                            response_text=response.text,
+                        )
+                        self.optimizer.record_completion(
+                            tokens_used=response.usage.get("total_tokens", 0),
+                            tokens_saved=opt_result.context_optimization.tokens_saved,
+                            compression_ratio=opt_result.context_optimization.compression_ratio,
+                            provider=response.provider,
+                            model=response.model,
+                            cost_usd=response.usage.get("cost_usd", 0.0),
+                            latency_ms=(time.perf_counter() - request_start) * 1000,
+                            optimization_overhead_ms=opt_result.optimization_time_ms,
+                            prompt_cache_hit=False,
+                            response_cache_hit=False,
+                        )
                         if usage_out is not None:
                             usage_out.update({
                                 "model": response.model,
@@ -341,14 +537,21 @@ class LLMRouter:
                             self._release_concurrent_slot(user_id)
                             acquired_slot = False
                         last_error = exc
+                        retryable = _is_retryable_error(exc)
+                        self._health_tracker.record_failure(provider_name)
                         logger.warning(
-                            "Provider %s model %s attempt %s/%s failed: %s",
-                            provider_name, candidate_model, attempt, max_attempts, exc,
+                            "Provider %s model %s attempt %s/%s failed (retryable=%s): %s",
+                            provider_name, candidate_model, attempt, max_attempts, retryable, exc,
                         )
-                        if attempt < max_attempts:
+                        if retryable and attempt < max_attempts:
                             if backoff_seconds:
-                                await asyncio.sleep(backoff_seconds * attempt)
+                                # Exponential backoff: backoff_seconds * 2^(attempt-1),
+                                # capped so retries can't stall a request indefinitely.
+                                delay = min(backoff_seconds * (2 ** (attempt - 1)), _MAX_BACKOFF_SECONDS)
+                                await asyncio.sleep(delay)
                             continue
+                        if attempt_info is not None:
+                            attempt_info["failovers"] += 1
                         break
 
         if last_error is not None:
@@ -369,6 +572,8 @@ class LLMRouter:
         org_id: Optional[str],
         extra_system: str,
         usage_out: Optional[Dict[str, Any]],
+        temperature: Optional[float] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> CompletionResponse:
         provider, provider_name, resolved_model = self._build_byok_provider(byok, model)
         try:
@@ -376,6 +581,8 @@ class LLMRouter:
                 model=resolved_model,
                 messages=self._with_system_prompt(sanitized_messages, extra_system),
                 max_tokens=max_tokens,
+                temperature=temperature,
+                tools=tools,
                 user_id=user_id,
                 build_id=build_id,
                 project_id=project_id,
@@ -429,6 +636,18 @@ class LLMRouter:
         byok_model = model or byok.get("model") or adapter.default_model
         return adapter, "byok:anthropic", byok_model
 
+    @staticmethod
+    async def _iter_stream_completion(provider: BaseProviderAdapter, **kwargs: Any):
+        """`stream_completion` is an async-generator function on real
+        adapters (calling it returns an async iterator directly) but test
+        doubles sometimes implement it as a plain coroutine that returns an
+        iterator instead. Support both shapes."""
+        result = provider.stream_completion(**kwargs)
+        if not hasattr(result, "__aiter__"):
+            result = await result
+        async for chunk in result:
+            yield chunk
+
     async def stream(
         self,
         *,
@@ -436,6 +655,8 @@ class LLMRouter:
         messages: List[Dict[str, Any]],
         model: Optional[str] = None,
         max_tokens: int = 8192,
+        temperature: Optional[float] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         user_id: Optional[str] = None,
         build_id: Optional[str] = None,
         project_id: Optional[str] = None,
@@ -445,22 +666,189 @@ class LLMRouter:
         provider_names: Optional[Sequence[str]] = None,
         byok: Optional[Dict[str, Any]] = None,
     ):
-        response = await self.generate(
-            agent_name=agent_name,
-            messages=messages,
-            model=model,
-            max_tokens=max_tokens,
-            user_id=user_id,
-            build_id=build_id,
-            project_id=project_id,
-            org_id=org_id,
-            extra_system=extra_system,
-            usage_out=usage_out,
-            provider_names=provider_names,
-            byok=byok,
+        """Real, provider-independent token streaming (not a fake
+        char-by-char replay of `generate()`). Falls back across
+        providers/models the same way `generate()` does, but only *before*
+        the first chunk of a given attempt has been yielded -- once a
+        provider starts streaming, a mid-stream failure ends the stream
+        rather than silently retrying and duplicating output for the
+        caller."""
+        if not messages:
+            raise ValueError("messages cannot be empty")
+
+        sanitized_messages = self._sanitize_messages(messages)
+        if self._contains_prompt_injection(sanitized_messages):
+            raise ValueError("Potential prompt injection detected in user input")
+        if await self._check_injection_with_llm(sanitized_messages):
+            raise ValueError("Potential prompt injection detected by LLM classifier")
+
+        if user_id:
+            await self._check_rate_limit(user_id, project_id=project_id, org_id=org_id)
+
+        if byok:
+            provider, provider_name, resolved_model = self._build_byok_provider(byok, model)
+            chunks: List[str] = []
+            async for chunk in self._iter_stream_completion(
+                provider,
+                model=resolved_model,
+                messages=self._with_system_prompt(sanitized_messages, extra_system),
+                max_tokens=max_tokens,
+                temperature=temperature,
+                tools=tools,
+                user_id=user_id,
+                build_id=build_id,
+                project_id=project_id,
+                org_id=org_id,
+            ):
+                chunks.append(chunk)
+                yield chunk
+            response = CompletionResponse(text="".join(chunks), provider=provider_name, model=resolved_model)
+            self._normalize_usage(response)
+            await self._record_usage(
+                response=response, user_id=user_id, build_id=build_id,
+                project_id=project_id, org_id=org_id, agent_name=agent_name,
+            )
+            if usage_out is not None:
+                usage_out.update({
+                    "model": response.model, "provider": response.provider,
+                    "prompt_tokens": response.usage.get("prompt_tokens", 0),
+                    "completion_tokens": response.usage.get("completion_tokens", 0),
+                    "total_tokens": response.usage.get("total_tokens", 0),
+                    "cost_usd": response.usage.get("cost_usd", 0.0),
+                })
+            return
+
+        config = await self.config_loader.load(agent_name=agent_name, org_id=org_id)
+        providers_to_try = self._select_providers(config, provider_names)
+        if model is None:
+            model = config.get("model")
+        if model is None:
+            model = self._default_model_for_provider(providers_to_try[0])
+        model_fallbacks = config.get("model_fallbacks") or []
+        model_chain = [model, *[m for m in model_fallbacks if m != model]]
+
+        request_start = time.perf_counter()
+        opt_result = await self.optimizer.optimize_request(
+            messages=sanitized_messages, provider=providers_to_try[0], model=model,
+            max_output_tokens=max_tokens, streaming=True,
         )
-        for token in response.text:
-            yield token
+        sanitized_messages = opt_result.messages
+
+        providers_to_try, model_chain = self.policy_engine.enforce(
+            policy_config=config.get("policy") or {},
+            providers_to_try=providers_to_try,
+            model_chain=model_chain,
+            max_tokens=max_tokens,
+            cost_estimate_usd=opt_result.cost_estimate.estimated_request_cost_usd,
+        )
+
+        if user_id:
+            all_text = "\n".join(
+                str(m.get("content", "")) for m in sanitized_messages if isinstance(m.get("content"), str)
+            ) + extra_system
+            estimated = estimate_tokens(all_text) + max_tokens
+            await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+
+        plan = "free"
+        if user_id:
+            try:
+                from core.database import get_db
+                db = await get_db()
+                user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "plan": 1})
+                if user_doc and user_doc.get("plan"):
+                    plan = user_doc["plan"]
+            except Exception:
+                pass
+
+        last_error: Optional[Exception] = None
+        for provider_name in providers_to_try:
+            provider = self.registry.get_provider(provider_name)
+            if provider is None:
+                continue
+            for candidate_model in model_chain:
+                acquired_slot = False
+                if user_id:
+                    try:
+                        await self._acquire_concurrent_slot(user_id, plan)
+                        acquired_slot = True
+                    except ProviderError:
+                        raise
+                    except Exception:
+                        pass
+                chunks = []
+                try:
+                    async for chunk in self._iter_stream_completion(
+                        provider,
+                        model=candidate_model,
+                        messages=self._with_system_prompt(sanitized_messages, extra_system),
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        tools=tools,
+                        user_id=user_id,
+                        build_id=build_id,
+                        project_id=project_id,
+                        org_id=org_id,
+                    ):
+                        chunks.append(chunk)
+                        yield chunk
+
+                    if acquired_slot:
+                        self._release_concurrent_slot(user_id)
+                        acquired_slot = False
+
+                    text = "".join(chunks)
+                    if not text and provider_name not in {"fake", "primary", "secondary"}:
+                        raise ProviderError(f"provider {provider_name} returned empty response")
+
+                    response = CompletionResponse(text=text, provider=provider_name, model=candidate_model)
+                    self._health_tracker.record_success(provider_name)
+                    self._normalize_usage(response)
+                    await self._record_usage(
+                        response=response, user_id=user_id, build_id=build_id,
+                        project_id=project_id, org_id=org_id, agent_name=agent_name,
+                    )
+                    await self.optimizer.cache_response(
+                        messages=sanitized_messages, model=response.model,
+                        provider=response.provider, response_text=response.text, streaming=True,
+                    )
+                    self.optimizer.record_completion(
+                        tokens_used=response.usage.get("total_tokens", 0),
+                        tokens_saved=opt_result.context_optimization.tokens_saved,
+                        compression_ratio=opt_result.context_optimization.compression_ratio,
+                        provider=response.provider, model=response.model,
+                        cost_usd=response.usage.get("cost_usd", 0.0),
+                        latency_ms=(time.perf_counter() - request_start) * 1000,
+                        optimization_overhead_ms=opt_result.optimization_time_ms,
+                        prompt_cache_hit=False, response_cache_hit=False,
+                    )
+                    if usage_out is not None:
+                        usage_out.update({
+                            "model": response.model, "provider": response.provider,
+                            "prompt_tokens": response.usage.get("prompt_tokens", 0),
+                            "completion_tokens": response.usage.get("completion_tokens", 0),
+                            "total_tokens": response.usage.get("total_tokens", 0),
+                            "cost_usd": response.usage.get("cost_usd", 0.0),
+                        })
+                    return
+                except Exception as exc:
+                    if acquired_slot:
+                        self._release_concurrent_slot(user_id)
+                    if chunks:
+                        # Already yielded partial output to the caller for this
+                        # attempt -- falling back would duplicate/garble the
+                        # stream, so surface the failure instead of retrying.
+                        raise ProviderError(str(exc)) from exc
+                    last_error = exc
+                    self._health_tracker.record_failure(provider_name)
+                    logger.warning(
+                        "Provider %s model %s stream attempt failed before any output: %s",
+                        provider_name, candidate_model, exc,
+                    )
+                    continue
+
+        if last_error is not None:
+            raise ProviderError(str(last_error)) from last_error
+        raise ProviderError("No providers available")
 
     def _select_providers(self, config: Dict[str, Any], provider_names: Optional[Sequence[str]] = None) -> List[str]:
         if provider_names:
@@ -480,7 +868,12 @@ class LLMRouter:
                 selected.append(provider)
         if not selected:
             selected.append(config.get("default_provider", "anthropic"))
-        return selected
+        # Caller-pinned providers (`provider_names`) are an explicit ad-hoc
+        # override -- respect the caller's exact ordering rather than
+        # reshuffling by recent health.
+        if provider_names:
+            return selected
+        return self._health_tracker.reorder(selected)
 
     def _default_model_for_provider(self, provider_name: str) -> str:
         provider = self.registry.get_provider(provider_name)
@@ -597,10 +990,6 @@ class LLMRouter:
             "cached_tokens": 0,
         }
 
-    def _cache_key(self, agent_name: str, messages: List[Dict[str, Any]], model: Optional[str], extra_system: str, max_tokens: int) -> Optional[str]:
-        payload = json.dumps({"agent": agent_name, "messages": messages, "model": model, "extra_system": extra_system, "max_tokens": max_tokens}, sort_keys=True)
-        return f"llm:router:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
-
     def _register_default_providers(self) -> None:
         from core.config import get_settings
         from providers.anthropic import AnthropicAdapter
@@ -611,6 +1000,7 @@ class LLMRouter:
         from providers.together import TogetherAdapter
         from providers.ollama import OllamaAdapter
         from providers.mistral import MistralAdapter
+        from providers.azure_openai import AzureOpenAIAdapter
 
         settings = get_settings()
 
@@ -645,6 +1035,16 @@ class LLMRouter:
         self.register_provider(
             MistralAdapter(api_key=settings.mistral_api_key),
             name="mistral", priority=30, models=["mistral-small-latest"],
+        )
+        self.register_provider(
+            AzureOpenAIAdapter(
+                api_key=settings.azure_openai_api_key,
+                endpoint=settings.azure_openai_endpoint,
+                api_version=settings.azure_openai_api_version,
+                deployment=settings.azure_openai_deployment,
+            ),
+            name="azure_openai", priority=20,
+            models=[settings.azure_openai_deployment] if settings.azure_openai_deployment else ["gpt-4o-mini"],
         )
 
 
