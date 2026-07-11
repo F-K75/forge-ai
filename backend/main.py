@@ -31,6 +31,8 @@ from api.sprints import router as sprints_router
 from api.releases import router as releases_router
 from api.agent_executions import router as agent_executions_router
 from api.llm import router as llm_router
+from api.optimizer import router as optimizer_router
+from api.org_llm_policy import router as org_llm_policy_router
 from api.v1 import v1_router
 from core.database import close_connections
 from core.config import get_settings
@@ -115,6 +117,7 @@ async def lifespan(app: FastAPI):
     try:
         from core.llm.router import get_llm_router
         await get_llm_router().config_loader.refresh_db_overrides()
+        await get_llm_router().config_loader.refresh_org_policy_overrides()
     except Exception:
         logger.warning("LLM agent override pre-warm failed; continuing with YAML/env config", exc_info=True)
 
@@ -272,6 +275,8 @@ app.include_router(sprints_router)
 app.include_router(releases_router)
 app.include_router(agent_executions_router)
 app.include_router(llm_router)
+app.include_router(optimizer_router)
+app.include_router(org_llm_policy_router)
 
 
 @app.get("/health")
@@ -417,5 +422,7 @@ async def metrics():
     """Prometheus metrics endpoint."""
     if PROMETHEUS_ENABLED:
         from fastapi.responses import Response
+        from core.metrics import update_optimizer_gauges
+        update_optimizer_gauges()
         return Response(generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
     return {"status": "metrics not enabled"}

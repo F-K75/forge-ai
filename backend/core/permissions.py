@@ -1,5 +1,20 @@
 """Shared ownership/membership checks for resources shared within an org."""
 
+from fastapi import HTTPException
+
+from core.models import Role
+
+
+async def require_org_role(db, *, user_id: str, org_id: str, allowed_roles=(Role.OWNER, Role.ADMIN)) -> dict:
+    """Raise 403 unless `user_id` is a member of `org_id` with one of
+    `allowed_roles`. Returns the membership doc otherwise. Factors out the
+    inline `team_members.find_one(...)` + role check duplicated across
+    `api/auth.py`'s organization endpoints."""
+    membership = await db.team_members.find_one({"org_id": org_id, "user_id": user_id}, {"_id": 0})
+    if not membership or membership["role"] not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    return membership
+
 
 async def has_initiative_access(db, user_id: str, initiative: dict) -> bool:
     """Same shape as has_build_access, for Agile PM initiatives."""

@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional, Sequence
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class GatewayRequest(BaseModel):
+    """Provider-independent request contract. Agents build one of these and
+    hand it to `AIGateway.generate`/`AIGateway.stream` instead of talking to
+    `LLMRouter` or any provider adapter directly."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    agent_name: str
+    messages: List[Dict[str, Any]]
+    system_prompt: str = ""
+    model: Optional[str] = None
+    max_tokens: int = 8192
+    temperature: float = 0.0
+    tools: Optional[List[Dict[str, Any]]] = None
+    structured_output_schema: Optional[Dict[str, Any]] = None
+    streaming: bool = False
+    user_id: Optional[str] = None
+    build_id: Optional[str] = None
+    project_id: Optional[str] = None
+    org_id: Optional[str] = None
+    provider_names: Optional[Sequence[str]] = None
+    byok: Optional[Dict[str, Any]] = None
+    usage_out: Optional[Dict[str, Any]] = None
+
+
+class GatewayResponse(BaseModel):
+    """Unified response contract. Agents never parse provider-specific
+    response shapes -- only this model."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    content: str
+    finish_reason: Optional[str] = None
+    usage: Dict[str, int] = Field(default_factory=dict)
+    latency_ms: float = 0.0
+    provider: str
+    model: str
+    request_id: str
+    cost_usd: float = 0.0
+    tool_calls: Optional[List[Dict[str, Any]]] = None
+    structured_data: Optional[Dict[str, Any]] = None
+    structured_output_errors: Optional[List[str]] = None
+    guardrail_blocked: bool = False
+    guardrail_categories: Optional[List[str]] = None
+    raw: Optional[Any] = None

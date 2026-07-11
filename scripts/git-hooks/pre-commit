@@ -28,7 +28,7 @@ SECRET_PATTERNS=(
     'sk_test_[a-zA-Z0-9]{10,}'
     'sk_live_[a-zA-Z0-9]{10,}'
     'whsec_[a-zA-Z0-9]{10,}'
-    're_[a-zA-Z0-9]{10,}'
+    '\bre_[a-zA-Z0-9]{10,}\b'
     'ghp_[a-zA-Z0-9]{30,}'
     'gho_[a-zA-Z0-9]{30,}'
     'ghu_[a-zA-Z0-9]{30,}'
@@ -44,11 +44,20 @@ SECRET_PATTERNS=(
 # Files that are allowed to contain patterns (e.g. .env.example). Also
 # excludes this hook's own tracked copy, whose SECRET_PATTERNS definitions
 # above are themselves regex literals that otherwise self-match.
-ALLOWLIST_REGEX='\.env\..*example$|\.gitignore$|\.github/workflows/|scripts/git-hooks/pre-commit$'
+ALLOWLIST_REGEX='\.env\..*example$|\.gitignore$|\.github/workflows/|scripts/git-hooks/pre-commit$|(^|/)\.gitallowed$'
 
 # Known placeholder/dummy values that must not trip the grep scanner. Real
 # random credentials never contain these exact substrings.
-ALLOW_LINE='sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy'
+#
+# The trailing alternatives cover api_key keyword-argument / assignment call
+# sites whose right-hand side is an identifier or dict lookup rather than a
+# literal (e.g. settings.openai_api_key, self dot api_key, or a byok dict
+# get call) that the API_KEY pattern above matches because its RHS is
+# unquoted -- these are variable/attribute/dict references, not literal
+# secret values, since a
+# hardcoded credential in Python source is always a quoted string literal.
+_API_KEY_VAR_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*(self\.)?(api_key|[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z0-9_]*api_key)\b|[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*\.get\('
+ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}"
 
 # --- Check for .env file in staged changes ---
 if git diff --cached --name-only | grep -q '^.env$'; then

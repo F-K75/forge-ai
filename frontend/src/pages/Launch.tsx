@@ -58,7 +58,7 @@ export default function Launch() {
         <div className="w-full max-w-xl flex flex-col items-center text-center">
           <p className="text-[11px] uppercase tracking-[0.3em] text-faint mb-6 [text-shadow:0_1px_10px_rgba(10,10,15,0.9)]">The software foundry</p>
 
-          <h1 className="font-display text-7xl md:text-8xl font-medium tracking-tight leading-none [text-shadow:0_2px_24px_rgba(10,10,15,0.8)]">Forge</h1>
+          <h1 className="font-raster text-4xl md:text-5xl leading-none tracking-wide [image-rendering:pixelated] [text-shadow:0_2px_0_rgba(10,10,15,0.9)]">Forge</h1>
 
           <p className="mt-5 text-muted [text-shadow:0_1px_10px_rgba(10,10,15,0.9)]">
             Six agents. One prompt. Working software.
@@ -79,7 +79,11 @@ export default function Launch() {
         <ul aria-label="Forge build agents" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 px-6">
           {AGENTS.map((agent) => (
             <li key={agent.id} className="flex items-center gap-1.5 text-xs text-faint">
-              <span className="w-1 h-1 rounded-full bg-faint" aria-hidden="true" />
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: agent.hue, boxShadow: `0 0 6px 0 ${agent.hue}99` }}
+                aria-hidden="true"
+              />
               {agent.label}
             </li>
           ))}

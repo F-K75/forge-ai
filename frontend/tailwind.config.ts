@@ -44,6 +44,8 @@ export default {
       },
       fontFamily: {
         display: ['"Space Grotesk"', "Inter", "sans-serif"],
+        brand: ['"Bricolage Grotesque"', '"Space Grotesk"', "Inter", "sans-serif"],
+        raster: ['"Press Start 2P"', '"JetBrains Mono"', "ui-monospace", "monospace"],
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },

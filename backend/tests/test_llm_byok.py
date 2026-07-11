@@ -18,14 +18,12 @@ import core.security as security_module
 
 @pytest.fixture(autouse=True)
 def _reset_in_memory_rate_limit_state():
-    # Several tests below drive the real LLMRouter.generate() with the same
-    # user_id="user-1" in rapid succession. Redis isn't reachable in this
-    # sandbox, so the per-user LLM rate limiter (core.security.LLM_RATE_LIMIT_DIMENSIONS)
-    # falls back to the module-level, process-wide _in_memory_rate_limits
-    # dict -- without clearing it, repeated "user-1" calls here would share
-    # state with other test modules that also use "user-1" (e.g.
-    # test_ai_cost_tracking_wired.py), risking spurious rate-limit failures
-    # that have nothing to do with what either test is actually checking.
+    # LLM request-frequency limiting now lives in core.llm.rate_limiter's
+    # RateLimiter, whose in-memory fallback is per-LLMRouter-instance (each
+    # LLMRouter() below gets its own fresh instance, so it no longer needs
+    # resetting between tests). This still clears the *other*,
+    # still-shared, module-level in-memory fallback used by the HTTP/login/
+    # email rate limiters, in case any of those run in the same process.
     security_module._in_memory_rate_limits.clear()
     yield
     security_module._in_memory_rate_limits.clear()
@@ -296,12 +294,13 @@ async def test_stream_end_to_end_uses_byok(monkeypatch):
 
     captured = {}
 
-    async def fake_chat_completion(self, *, model, messages, **kwargs):
+    async def fake_stream_completion(self, *, model, messages, **kwargs):
         captured["base_url"] = self.base_url
         captured["model"] = model
-        return CompletionResponse(text="byok-stream-response", provider="openai", model=model, usage={})
+        for token in ["byok-", "stream-", "response"]:
+            yield token
 
-    monkeypatch.setattr(openai_module.OpenAIAdapter, "chat_completion", fake_chat_completion)
+    monkeypatch.setattr(openai_module.OpenAIAdapter, "stream_completion", fake_stream_completion)
 
     agent = _make_test_agent()
     chunks = [chunk async for chunk in agent.stream([{"role": "user", "content": "hi"}], user_id="user-1")]

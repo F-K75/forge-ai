@@ -1,7 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
+
+const easeOut = [0.16, 1, 0.3, 1] as const;
+
+const panelStagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: easeOut } },
+};
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,6 +35,81 @@ function validatePassword(value: string): string | undefined {
 
 type Errors = Partial<Record<"email" | "password" | "form", string>>;
 
+const NETWORK_NODES = [
+  { x: 60, y: 40 },
+  { x: 220, y: 90 },
+  { x: 140, y: 190 },
+  { x: 300, y: 220 },
+  { x: 70, y: 300 },
+  { x: 250, y: 340 },
+];
+
+const NETWORK_EDGES: [number, number][] = [
+  [0, 1],
+  [1, 2],
+  [2, 0],
+  [1, 3],
+  [2, 4],
+  [3, 5],
+  [4, 5],
+];
+
+function AgentNetworkArt() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1, ease: easeOut }}
+        className="absolute -right-24 -top-16 w-[420px] h-[420px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, hsl(217 90% 62% / 0.16) 0%, transparent 70%)",
+        }}
+      />
+      <svg viewBox="0 0 360 380" className="absolute right-0 bottom-0 w-[440px] h-[440px] opacity-[0.9]" fill="none">
+        {NETWORK_EDGES.map(([a, b], i) => {
+          const from = NETWORK_NODES[a];
+          const to = NETWORK_NODES[b];
+          return (
+            <motion.line
+              key={`${a}-${b}`}
+              x1={from.x}
+              y1={from.y}
+              x2={to.x}
+              y2={to.y}
+              stroke="hsl(0 0% 96% / 0.14)"
+              strokeWidth={1}
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.9, delay: 0.3 + i * 0.08, ease: easeOut }}
+            />
+          );
+        })}
+        {NETWORK_NODES.map((n, i) => (
+          <motion.circle
+            key={i}
+            cx={n.x}
+            cy={n.y}
+            r={i === 1 ? 5 : 3}
+            fill={i === 1 ? "hsl(217 90% 62%)" : "hsl(0 0% 96% / 0.5)"}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale: [0, 1.3, 1],
+              opacity: 1,
+              y: [n.y, n.y - 5, n.y],
+            }}
+            transition={{
+              scale: { duration: 0.4, delay: 0.5 + i * 0.08 },
+              opacity: { duration: 0.4, delay: 0.5 + i * 0.08 },
+              y: { duration: 4 + i, repeat: Infinity, ease: "easeInOut", delay: 1 + i * 0.3 },
+            }}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
@@ -39,6 +127,17 @@ export default function AuthPage() {
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaError, setMfaError] = useState<string | undefined>();
+
+  const loginShake = useAnimationControls();
+  const mfaShake = useAnimationControls();
+
+  useEffect(() => {
+    if (errors.form) loginShake.start({ x: [0, -8, 8, -6, 6, 0], transition: { duration: 0.4, ease: easeOut } });
+  }, [errors.form, loginShake]);
+
+  useEffect(() => {
+    if (mfaError) mfaShake.start({ x: [0, -8, 8, -6, 6, 0], transition: { duration: 0.4, ease: easeOut } });
+  }, [mfaError, mfaShake]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,13 +183,22 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-land-paper text-land-ink">
-      <header className="border-b border-land-border/60">
+      <motion.header
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: easeOut }}
+        className="border-b border-land-border/60"
+      >
         <div className="max-w-6xl mx-auto px-6">
           <nav className="flex items-center justify-between h-16">
-            <Link to="/home" className="flex items-center gap-2">
-              <div className="w-6 h-6 border border-land-ink flex items-center justify-center">
+            <Link to="/home" className="flex items-center gap-2 group">
+              <motion.div
+                whileHover={{ rotate: 90 }}
+                transition={{ duration: 0.3, ease: easeOut }}
+                className="w-6 h-6 border border-land-ink flex items-center justify-center"
+              >
                 <Sparkles className="w-3 h-3" aria-hidden="true" />
-              </div>
+              </motion.div>
               <span className="font-display font-medium tracking-tight">Forge</span>
             </Link>
             <div className="text-sm text-land-muted">
@@ -101,40 +209,53 @@ export default function AuthPage() {
             </div>
           </nav>
         </div>
-      </header>
+      </motion.header>
 
       <main className="grid lg:grid-cols-2 min-h-[calc(100vh-4rem)]">
         {/* Editorial panel */}
-        <aside className="hidden lg:flex flex-col justify-between p-12 xl:p-16 border-r border-land-border/60">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-land-muted">
+        <motion.aside
+          initial="hidden"
+          animate="show"
+          variants={panelStagger}
+          className="hidden lg:flex flex-col justify-between p-12 xl:p-16 border-r border-land-border/60 relative overflow-hidden"
+        >
+          <AgentNetworkArt />
+          <motion.div variants={fadeUp} className="relative z-10 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-land-muted">
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" />
             Forge · Console
-          </div>
-          <div className="max-w-md space-y-8">
-            <h1 className="font-display text-4xl xl:text-5xl font-medium leading-[1.05] tracking-tight">
+          </motion.div>
+          <div className="relative z-10 max-w-md space-y-8">
+            <motion.h1 variants={fadeUp} className="font-display text-4xl xl:text-5xl font-medium leading-[1.05] tracking-tight">
               Ship production software at the speed of thought.
-            </h1>
-            <p className="text-land-muted leading-relaxed">
+            </motion.h1>
+            <motion.p variants={fadeUp} className="text-land-muted leading-relaxed">
               Sign in to orchestrate specialist agents that plan, design, build, and validate your applications
               end-to-end.
-            </p>
+            </motion.p>
             <ul className="space-y-3 text-sm">
               {["Six specialized agents, one workspace", "Self-correcting debug loop on every build", "Ship in minutes, not sprints"].map((t) => (
-                <li key={t} className="flex items-center gap-3 text-land-muted">
+                <motion.li key={t} variants={fadeUp} className="flex items-center gap-3 text-land-muted">
                   <span className="w-5 h-5 rounded-full border border-land-border flex items-center justify-center">
                     <Check className="w-3 h-3 text-land-ink" aria-hidden="true" />
                   </span>
                   {t}
-                </li>
+                </motion.li>
               ))}
             </ul>
           </div>
-          <div className="text-xs text-land-muted/70 font-mono">// forge.ai — build pipeline</div>
-        </aside>
+          <motion.div variants={fadeUp} className="relative z-10 text-xs text-land-muted/70 font-mono">
+            // forge.ai — build pipeline
+          </motion.div>
+        </motion.aside>
 
         {/* Form */}
         <section className="flex items-center justify-center p-6 sm:p-10">
-          <div className="w-full max-w-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: easeOut }}
+            className="w-full max-w-sm"
+          >
             <div className="mb-10">
               <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
                 <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Sign in
@@ -143,22 +264,42 @@ export default function AuthPage() {
               <p className="text-sm text-land-muted mt-2">Enter your credentials to access your workspace.</p>
             </div>
 
+            <AnimatePresence mode="wait" initial={false}>
             {mfaToken ? (
-              <form onSubmit={handleMfaSubmit} noValidate className="space-y-5">
+              <motion.form
+                key="mfa"
+                onSubmit={handleMfaSubmit}
+                noValidate
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24, transition: { duration: 0.2, ease: easeOut } }}
+                transition={{ duration: 0.35, ease: easeOut }}
+                className="space-y-5"
+              >
+              <motion.div animate={mfaShake} className="space-y-5">
                 <p className="text-sm text-land-muted">
                   Enter the 6-digit code from your authenticator app, or one of your backup codes.
                 </p>
+                <AnimatePresence>
                 {mfaError && (
-                  <div role="alert" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2, ease: easeOut }}
+                    role="alert"
+                    className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive overflow-hidden"
+                  >
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
                     <span>{mfaError}</span>
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
                 <div className="space-y-2">
                   <label htmlFor="mfa-code" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
                     Authentication code
                   </label>
-                  <input
+                  <motion.input
                     id="mfa-code"
                     type="text"
                     inputMode="numeric"
@@ -167,12 +308,16 @@ export default function AuthPage() {
                     value={mfaCode}
                     onChange={(e) => setMfaCode(e.target.value)}
                     autoFocus
+                    whileFocus={{ scale: 1.01 }}
+                    transition={{ duration: 0.15, ease: easeOut }}
                     className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition tracking-widest"
                   />
                 </div>
-                <button
+                <motion.button
                   type="submit"
                   disabled={loading || !mfaCode.trim()}
+                  whileHover={{ scale: loading ? 1 : 1.01 }}
+                  whileTap={{ scale: loading ? 1 : 0.98 }}
                   className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
                 >
                   {loading ? (
@@ -184,7 +329,7 @@ export default function AuthPage() {
                       Verify <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                     </>
                   )}
-                </button>
+                </motion.button>
                 <button
                   type="button"
                   onClick={() => {
@@ -196,22 +341,41 @@ export default function AuthPage() {
                 >
                   Back to sign in
                 </button>
-              </form>
+              </motion.div>
+              </motion.form>
             ) : (
-              <>
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
+              <motion.form
+                key="login"
+                onSubmit={handleSubmit}
+                noValidate
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 24, transition: { duration: 0.2, ease: easeOut } }}
+                transition={{ duration: 0.35, ease: easeOut }}
+                className="space-y-5"
+              >
+              <motion.div animate={loginShake} className="space-y-5">
+              <AnimatePresence>
               {errors.form && (
-                <div role="alert" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: easeOut }}
+                  role="alert"
+                  className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive overflow-hidden"
+                >
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
                   <span>{errors.form}</span>
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
 
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
                   Email
                 </label>
-                <input
+                <motion.input
                   id="email"
                   type="email"
                   autoComplete="email"
@@ -227,15 +391,26 @@ export default function AuthPage() {
                   }}
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? "email-error" : undefined}
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ duration: 0.15, ease: easeOut }}
                   className={`w-full h-11 px-3 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
                     errors.email ? "border-land-destructive/60" : "border-land-border"
                   }`}
                 />
+                <AnimatePresence>
                 {errors.email && (
-                  <p id="email-error" className="text-xs text-land-destructive flex items-center gap-1.5">
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    id="email-error"
+                    className="text-xs text-land-destructive flex items-center gap-1.5"
+                  >
                     <AlertCircle className="w-3 h-3" aria-hidden="true" /> {errors.email}
-                  </p>
+                  </motion.p>
                 )}
+                </AnimatePresence>
               </div>
 
               <div className="space-y-2">
@@ -248,7 +423,7 @@ export default function AuthPage() {
                   </Link>
                 </div>
                 <div className="relative">
-                  <input
+                  <motion.input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
@@ -264,6 +439,8 @@ export default function AuthPage() {
                     }}
                     aria-invalid={!!errors.password}
                     aria-describedby={errors.password ? "password-error" : undefined}
+                    whileFocus={{ scale: 1.01 }}
+                    transition={{ duration: 0.15, ease: easeOut }}
                     className={`w-full h-11 pl-3 pr-10 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
                       errors.password ? "border-land-destructive/60" : "border-land-border"
                     }`}
@@ -272,33 +449,57 @@ export default function AuthPage() {
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-land-muted hover:text-land-ink transition"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-land-muted hover:text-land-ink transition overflow-hidden"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={showPassword ? "off" : "on"}
+                        initial={{ opacity: 0, rotate: -45 }}
+                        animate={{ opacity: 1, rotate: 0 }}
+                        exit={{ opacity: 0, rotate: 45 }}
+                        transition={{ duration: 0.15, ease: easeOut }}
+                        className="block"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
+                      </motion.span>
+                    </AnimatePresence>
                   </button>
                 </div>
+                <AnimatePresence mode="wait">
                 {errors.password ? (
-                  <p id="password-error" className="text-xs text-land-destructive flex items-center gap-1.5">
+                  <motion.p
+                    key="error"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    id="password-error"
+                    className="text-xs text-land-destructive flex items-center gap-1.5"
+                  >
                     <AlertCircle className="w-3 h-3" aria-hidden="true" /> {errors.password}
-                  </p>
+                  </motion.p>
                 ) : (
-                  <div className="flex gap-1 pt-1" aria-hidden="true">
+                  <div key="strength" className="flex gap-1 pt-1" aria-hidden="true">
                     {[0, 1, 2].map((i) => (
-                      <div
+                      <motion.div
                         key={i}
-                        className={`h-0.5 flex-1 rounded-full transition-colors ${
-                          i < passwordStrength
-                            ? passwordStrength === 1
-                              ? "bg-land-destructive/70"
-                              : passwordStrength === 2
-                              ? "bg-yellow-500/70"
-                              : "bg-land-accent"
-                            : "bg-land-border"
-                        }`}
+                        animate={{
+                          backgroundColor:
+                            i < passwordStrength
+                              ? passwordStrength === 1
+                                ? "hsl(0 84% 60% / 0.7)"
+                                : passwordStrength === 2
+                                ? "hsl(45 93% 47% / 0.7)"
+                                : "hsl(217 90% 62%)"
+                              : "hsl(0 0% 12%)",
+                        }}
+                        transition={{ duration: 0.25, ease: easeOut }}
+                        className="h-0.5 flex-1 rounded-full"
                       />
                     ))}
                   </div>
                 )}
+                </AnimatePresence>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-land-muted select-none cursor-pointer">
@@ -311,9 +512,11 @@ export default function AuthPage() {
                 Keep me signed in for 30 days
               </label>
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={loading}
+                whileHover={{ scale: loading ? 1 : 1.01 }}
+                whileTap={{ scale: loading ? 1 : 0.98 }}
                 className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
               >
                 {loading ? (
@@ -325,15 +528,16 @@ export default function AuthPage() {
                     Sign in <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                   </>
                 )}
-              </button>
-            </form>
+              </motion.button>
 
-            <p className="mt-8 text-xs text-land-muted text-center leading-relaxed">
-              By continuing you agree to Forge's Terms and Privacy Policy.
-            </p>
-              </>
+              <p className="mt-2 text-xs text-land-muted text-center leading-relaxed">
+                By continuing you agree to Forge's Terms and Privacy Policy.
+              </p>
+              </motion.div>
+              </motion.form>
             )}
-          </div>
+            </AnimatePresence>
+          </motion.div>
         </section>
       </main>
     </div>

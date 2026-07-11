@@ -6,6 +6,7 @@ from core.llm.router import get_llm_router
 from core.ai_usage import get_spending_dashboard
 from core.models import User
 from api.admin import admin_required
+from gateway import GatewayRequest, get_ai_gateway
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
 
@@ -21,6 +22,10 @@ class LLMTestRequest(BaseModel):
 class AgentOverrideRequest(BaseModel):
     provider: Optional[str] = None
     model: Optional[str] = None
+    approved_providers: Optional[List[str]] = None
+    approved_models: Optional[List[str]] = None
+    max_tokens_per_request: Optional[int] = None
+    max_cost_per_request_usd: Optional[float] = None
 
 
 @router.get("/providers")
@@ -50,21 +55,28 @@ async def health(admin: User = Depends(admin_required)) -> Dict[str, Any]:
 
 @router.post("/test")
 async def test_provider(request: LLMTestRequest, admin: User = Depends(admin_required)) -> Dict[str, Any]:
-    router_instance = get_llm_router()
-    response = await router_instance.generate(
-        agent_name=request.agent,
-        messages=request.messages,
-        provider_names=request.provider_names,
-        model=request.model,
-        max_tokens=request.max_tokens,
+    gateway = get_ai_gateway()
+    response = await gateway.generate(
+        GatewayRequest(
+            agent_name=request.agent,
+            messages=request.messages,
+            provider_names=request.provider_names,
+            model=request.model,
+            max_tokens=request.max_tokens,
+        )
     )
-    return {"text": response.text, "provider": response.provider, "model": response.model, "usage": response.usage}
+    return {"text": response.content, "provider": response.provider, "model": response.model, "usage": response.usage}
 
 
 @router.put("/agent/{agent}")
 async def set_agent_override(agent: str, payload: AgentOverrideRequest, admin: User = Depends(admin_required)) -> Dict[str, Any]:
     router_instance = get_llm_router()
-    override = {k: v for k, v in payload.model_dump().items() if v is not None}
+    policy_fields = {"approved_providers", "approved_models", "max_tokens_per_request", "max_cost_per_request_usd"}
+    values = payload.model_dump()
+    override = {k: v for k, v in values.items() if v is not None and k not in policy_fields}
+    policy = {k: v for k, v in values.items() if v is not None and k in policy_fields}
+    if policy:
+        override["policy"] = policy
     updated = await router_instance.set_agent_override(agent, override, updated_by=admin.id)
     return {"agent": agent, "configured": True, "override": updated}
 
