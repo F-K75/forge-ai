@@ -44,7 +44,7 @@ export function NotificationsBell() {
       >
         <Bell size={15} aria-hidden="true" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
+          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-ink" aria-hidden="true" />
         )}
       </button>
 

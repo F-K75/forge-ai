@@ -1,10 +1,9 @@
 # Migrating an agent to the Prompt Builder
 
-`PMAgent`, `ArchitectAgent`, and `DeveloperAgent` (`backend/agents/pm.py`,
-`architect.py`, `developer.py`) are already migrated — use them as reference.
-`BaseAgent` supports the old (`system_prompt` string) and new (`prompt_role`)
-mechanisms simultaneously and indefinitely, so there is no deadline: migrate
-one agent at a time, whenever convenient.
+All agents are migrated. `BaseAgent` still supports the old (`system_prompt`
+string) and new (`prompt_role`) mechanisms simultaneously and indefinitely,
+so a future agent can use either, but every agent currently in
+`backend/agents/*.py` uses `prompt_role`.
 
 ## Steps, per agent
 
@@ -28,19 +27,15 @@ one agent at a time, whenever convenient.
    against the original hardcoded string to confirm no instruction content
    was lost.
 
-## Remaining agents to migrate
+## Migrated agents
 
-- [ ] `designer.py` (`DesignerAgent`) — template already seeded as `designer_v1`
-- [ ] `business_analyst.py`
-- [ ] `prd_writer.py`
-- [ ] `epic_generator.py`
-- [ ] `story_generator.py`
-- [ ] `task_generator.py`
-- [ ] `sprint_planner.py`
-- [ ] `scrum_master.py`
-- [ ] `decision_engine.py`
-- [ ] `integration.py`
-- [ ] `task_executor.py`
+`pm.py` (`product_manager`), `architect.py` (`architect` / `architect`
+clarify-v1), `developer.py` (`developer`), `designer.py` (`designer`),
+`business_analyst.py`, `prd_writer.py` (role `prd_writer` — distinct from
+`product_manager`, which is `PMAgent`'s build-validation role),
+`epic_generator.py`, `story_generator.py`, `task_generator.py`,
+`sprint_planner.py`, `scrum_master.py`, `decision_engine.py`,
+`integration.py`, `task_executor.py`.
 
 Note: `qa_v1`, `security_v1`, `research_v1`, and `devops_v1` templates are
 also seeded in the registry for future agents in those roles, even though no

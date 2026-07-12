@@ -487,23 +487,30 @@ async def _run_deployment_background(
         files = build.get("files", {})
         temp_dir = tempfile.mkdtemp(prefix=f"forge-deploy-{deployment.id}-")
         try:
-            for path, content in files.items():
-                # Build-file paths are attacker/AI-influenced: reject traversal
-                # and absolute paths so a malicious "file" can't escape the
-                # sandbox dir (P0-HIGH-005 path traversal / arbitrary file write).
-                file_path = safe_join_path(temp_dir, path)
-                if file_path is None:
-                    logger.warning("Skipping unsafe deployment file path: %r", path)
-                    continue
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-
             dockerfile_content = _infer_dockerfile(
                 temp_dir, project.get("tech_stack", {})
             )
-            with open(os.path.join(temp_dir, "Dockerfile"), "w", encoding="utf-8") as f:
-                f.write(dockerfile_content)
+
+            def _write_deploy_files_sync():
+                for path, content in files.items():
+                    # Build-file paths are attacker/AI-influenced: reject traversal
+                    # and absolute paths so a malicious "file" can't escape the
+                    # sandbox dir (P0-HIGH-005 path traversal / arbitrary file write).
+                    file_path = safe_join_path(temp_dir, path)
+                    if file_path is None:
+                        logger.warning("Skipping unsafe deployment file path: %r", path)
+                        continue
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        f.write(content)
+
+                with open(os.path.join(temp_dir, "Dockerfile"), "w", encoding="utf-8") as f:
+                    f.write(dockerfile_content)
+
+            # Writing potentially many/large generated files is real I/O work;
+            # keep it off the event loop so it doesn't stall other requests
+            # being served by this worker.
+            await asyncio.to_thread(_write_deploy_files_sync)
 
             await db.deployments.update_one(
                 {"id": deployment.id},
@@ -654,9 +661,13 @@ async def _github_push_background(
         try:
             # Use GIT_ASKPASS to pass token securely instead of embedding in URL
             askpass_script = os.path.join(temp_dir, ".git-askpass.sh")
-            with open(askpass_script, "w") as f:
-                f.write("#!/bin/sh\necho \"$GITHUB_TOKEN\"\n")
-            os.chmod(askpass_script, 0o700)
+
+            def _write_askpass_sync():
+                with open(askpass_script, "w") as f:
+                    f.write("#!/bin/sh\necho \"$GITHUB_TOKEN\"\n")
+                os.chmod(askpass_script, 0o700)
+
+            await asyncio.to_thread(_write_askpass_sync)
 
             env = os.environ.copy()
             env["GIT_ASKPASS"] = askpass_script
@@ -670,16 +681,20 @@ async def _github_push_background(
             )
 
             files = build.get("files", {})
-            for path, content in files.items():
-                # Same traversal guard as the docker deploy path: a malicious
-                # file path must not escape the cloned repo dir.
-                file_path = safe_join_path(temp_dir, path)
-                if file_path is None:
-                    logger.warning("Skipping unsafe github-push file path: %r", path)
-                    continue
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(content)
+
+            def _write_repo_files_sync():
+                for path, content in files.items():
+                    # Same traversal guard as the docker deploy path: a malicious
+                    # file path must not escape the cloned repo dir.
+                    file_path = safe_join_path(temp_dir, path)
+                    if file_path is None:
+                        logger.warning("Skipping unsafe github-push file path: %r", path)
+                        continue
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        f.write(content)
+
+            await asyncio.to_thread(_write_repo_files_sync)
 
             index = repo.index
             index.add(["."])

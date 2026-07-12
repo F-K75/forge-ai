@@ -11,6 +11,7 @@ const TABS = [
   { to: "", label: "Overview", end: true },
   { to: "board", label: "Board" },
   { to: "sprints", label: "Sprints" },
+  { to: "agent-runs", label: "Agent runs" },
   { to: "roadmap", label: "Roadmap" },
   { to: "graph", label: "Graph" },
   { to: "releases", label: "Releases" },

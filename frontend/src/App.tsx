@@ -23,6 +23,7 @@ const BillingPage     = lazy(() => import('./pages/BillingPage'))
 const SettingsPage    = lazy(() => import('./pages/SettingsPage'))
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
 const LLMManagementPage = lazy(() => import('./pages/LLMManagementPage'))
+const OptimizationDashboard = lazy(() => import('./pages/OptimizationDashboard'))
 // Step 3: in-shell surfaces
 const AdminConsole    = lazy(() => import('./pages/AdminConsole'))
 const ProjectHistory  = lazy(() => import('./pages/ProjectHistory'))
@@ -32,6 +33,7 @@ const InitiativeLayout    = lazy(() => import('./pages/pm/InitiativeLayout'))
 const OverviewTab         = lazy(() => import('./pages/pm/OverviewTab'))
 const KanbanTab           = lazy(() => import('./pages/pm/KanbanTab'))
 const SprintsTab          = lazy(() => import('./pages/pm/SprintsTab'))
+const AgentRunsTab        = lazy(() => import('./pages/pm/AgentRunsTab'))
 const RoadmapTab          = lazy(() => import('./pages/pm/RoadmapTab'))
 const GraphTab            = lazy(() => import('./pages/pm/GraphTab'))
 const ReleasesTab         = lazy(() => import('./pages/pm/ReleasesTab'))
@@ -172,6 +174,7 @@ export default function App() {
             <Route path="/billing" element={<Suspense fallback={<RouteSkeleton />}><BillingPage /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={<RouteSkeleton />}><SettingsPage /></Suspense>} />
             <Route path="/llm-management" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><LLMManagementPage /></Suspense></AdminRoute>} />
+            <Route path="/optimization-dashboard" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><OptimizationDashboard /></Suspense></AdminRoute>} />
             {/* Step 3: in-shell surfaces */}
             <Route path="/admin-console" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense></AdminRoute>} />
             <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />
@@ -182,6 +185,7 @@ export default function App() {
               <Route index element={<OverviewTab />} />
               <Route path="board" element={<KanbanTab />} />
               <Route path="sprints" element={<SprintsTab />} />
+              <Route path="agent-runs" element={<AgentRunsTab />} />
               <Route path="roadmap" element={<RoadmapTab />} />
               <Route path="graph" element={<GraphTab />} />
               <Route path="releases" element={<ReleasesTab />} />

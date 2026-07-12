@@ -146,7 +146,12 @@ class Settings(BaseSettings):
     # it isn't JSON, so both JSON arrays and comma-separated strings work
     # NOTE: Keep type syntax compatible with older Python versions in CI.
     # (Python 3.9 doesn't support `list[str] | str` reliably.)
-    allowed_origins: "list[str]" = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins: "list[str]" = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
     
 
     allowed_hosts: str = "localhost,127.0.0.1,testserver"

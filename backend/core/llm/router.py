@@ -13,6 +13,8 @@ from core.llm.config import LLMConfigLoader
 from core.llm.provider import BaseProviderAdapter, CompletionResponse, ProviderError
 from core.llm.registry import ProviderRegistry
 from core.llm.policy import PolicyEngine, get_policy_engine
+from core.llm.budget_manager import BudgetManager, get_budget_manager
+from core.llm.model_router import ModelRouter, TaskComplexity, get_model_router
 from core.llm.rate_limiter import DEFAULT_LIMITS, PLAN_MULTIPLIERS, RateLimiter
 from optimizer.service import AIOptimizer, get_optimizer
 
@@ -202,12 +204,16 @@ class LLMRouter:
         config_loader: Optional[LLMConfigLoader] = None,
         optimizer: Optional[AIOptimizer] = None,
         policy_engine: Optional[PolicyEngine] = None,
+        budget_manager: Optional[BudgetManager] = None,
+        model_router: Optional[ModelRouter] = None,
         rate_limiter: Optional[RateLimiter] = None,
     ) -> None:
         self.registry = registry or ProviderRegistry()
         self.config_loader = config_loader or LLMConfigLoader()
         self.optimizer = optimizer or get_optimizer()
         self.policy_engine = policy_engine or get_policy_engine()
+        self.budget_manager = budget_manager or get_budget_manager()
+        self.model_router = model_router or get_model_router()
         # Not a module singleton like optimizer/policy_engine -- its
         # in-memory fallback state is naturally per-router-instance, same as
         # _concurrent_requests below.
@@ -302,6 +308,8 @@ class LLMRouter:
         agent_name: str,
         messages: List[Dict[str, Any]],
         model: Optional[str] = None,
+        task_complexity: Optional[str] = None,
+        use_retrieval: bool = False,
         max_tokens: int = 8192,
         temperature: Optional[float] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
@@ -369,6 +377,7 @@ class LLMRouter:
         # the agent-specific config override, then the provider's default.
         # Callers that pass an explicit model (e.g. POST /api/llm/test)
         # always win, since that's a deliberate ad-hoc override.
+        explicit_model = model is not None
         if model is None:
             model = config.get("model")
         if model is None:
@@ -381,6 +390,13 @@ class LLMRouter:
         model_fallbacks = config.get("model_fallbacks") or []
         model_chain = [model, *[m for m in model_fallbacks if m != model]]
 
+        # Smart routing: pick the tier-appropriate model from the already-
+        # configured chain for this task's complexity, unless the caller
+        # pinned an explicit model.
+        if task_complexity and not explicit_model:
+            model_chain = self.model_router.reorder(model_chain, TaskComplexity(task_complexity))
+            model = model_chain[0]
+
         # Mandatory AI Optimizer pass: dedupe/trim context, normalize prompt
         # text, and estimate tokens/cost before this request reaches any
         # provider. Never rewrites intent -- only removes exact repeats,
@@ -392,6 +408,9 @@ class LLMRouter:
             provider=providers_to_try[0],
             model=model,
             max_output_tokens=max_tokens,
+            use_retrieval=use_retrieval,
+            org_id=org_id,
+            project_id=project_id,
         )
         sanitized_messages = opt_result.messages
 
@@ -418,6 +437,19 @@ class LLMRouter:
             ) + extra_system
             estimated = estimate_tokens(all_text) + max_tokens  # include estimated output
             await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+
+        # Org/project/agent dollar budgets, layered on top of the per-user
+        # daily token budget above. May reorder model_chain cheapest-first
+        # (soft limit) or raise BudgetLimitExceeded (hard limit).
+        model_chain, budget_check = await self.budget_manager.enforce(
+            org_id=org_id,
+            project_id=project_id,
+            agent_name=agent_name,
+            estimated_cost_usd=opt_result.cost_estimate.estimated_request_cost_usd,
+            model_chain=model_chain,
+        )
+        for warning in budget_check.warnings:
+            logger.warning(warning)
 
         if opt_result.response_cache_hit and opt_result.cached_response is not None:
             response = CompletionResponse(
@@ -509,6 +541,8 @@ class LLMRouter:
                             model=response.model,
                             provider=response.provider,
                             response_text=response.text,
+                            org_id=org_id,
+                            project_id=project_id,
                         )
                         self.optimizer.record_completion(
                             tokens_used=response.usage.get("total_tokens", 0),
@@ -575,7 +609,7 @@ class LLMRouter:
         temperature: Optional[float] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
     ) -> CompletionResponse:
-        provider, provider_name, resolved_model = self._build_byok_provider(byok, model)
+        provider, provider_name, resolved_model = await self._build_byok_provider(byok, model)
         try:
             response = await provider.chat_completion(
                 model=resolved_model,
@@ -613,8 +647,9 @@ class LLMRouter:
             })
         return response
 
-    def _build_byok_provider(self, byok: Dict[str, Any], model: Optional[str]) -> tuple[BaseProviderAdapter, str, str]:
+    async def _build_byok_provider(self, byok: Dict[str, Any], model: Optional[str]) -> tuple[BaseProviderAdapter, str, str]:
         from core.config import get_settings
+        from core.security import validate_byok_base_url
         from providers.anthropic import AnthropicAdapter
         from providers.openai import OpenAIAdapter
 
@@ -629,6 +664,13 @@ class LLMRouter:
             byok_model = model or byok.get("model")
             if not base_url or not byok_model:
                 raise ProviderError("BYOK openai_compatible provider requires base_url and model")
+            # Re-validate at call time, not just when the user saved the
+            # setting -- the hostname is re-resolved here so a DNS record
+            # repointed at an internal/metadata IP after save is still
+            # caught before we ever connect to it.
+            is_valid, error = await validate_byok_base_url(base_url)
+            if not is_valid:
+                raise ProviderError(f"BYOK base URL rejected: {error}")
             adapter = OpenAIAdapter(api_key=api_key, base_url=base_url, timeout=settings.anthropic_timeout)
             return adapter, "byok:openai_compatible", byok_model
 
@@ -654,6 +696,8 @@ class LLMRouter:
         agent_name: str,
         messages: List[Dict[str, Any]],
         model: Optional[str] = None,
+        task_complexity: Optional[str] = None,
+        use_retrieval: bool = False,
         max_tokens: int = 8192,
         temperature: Optional[float] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
@@ -686,7 +730,7 @@ class LLMRouter:
             await self._check_rate_limit(user_id, project_id=project_id, org_id=org_id)
 
         if byok:
-            provider, provider_name, resolved_model = self._build_byok_provider(byok, model)
+            provider, provider_name, resolved_model = await self._build_byok_provider(byok, model)
             chunks: List[str] = []
             async for chunk in self._iter_stream_completion(
                 provider,
@@ -720,6 +764,7 @@ class LLMRouter:
 
         config = await self.config_loader.load(agent_name=agent_name, org_id=org_id)
         providers_to_try = self._select_providers(config, provider_names)
+        explicit_model = model is not None
         if model is None:
             model = config.get("model")
         if model is None:
@@ -727,10 +772,15 @@ class LLMRouter:
         model_fallbacks = config.get("model_fallbacks") or []
         model_chain = [model, *[m for m in model_fallbacks if m != model]]
 
+        if task_complexity and not explicit_model:
+            model_chain = self.model_router.reorder(model_chain, TaskComplexity(task_complexity))
+            model = model_chain[0]
+
         request_start = time.perf_counter()
         opt_result = await self.optimizer.optimize_request(
             messages=sanitized_messages, provider=providers_to_try[0], model=model,
             max_output_tokens=max_tokens, streaming=True,
+            use_retrieval=use_retrieval, org_id=org_id, project_id=project_id,
         )
         sanitized_messages = opt_result.messages
 
@@ -748,6 +798,16 @@ class LLMRouter:
             ) + extra_system
             estimated = estimate_tokens(all_text) + max_tokens
             await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+
+        model_chain, budget_check = await self.budget_manager.enforce(
+            org_id=org_id,
+            project_id=project_id,
+            agent_name=agent_name,
+            estimated_cost_usd=opt_result.cost_estimate.estimated_request_cost_usd,
+            model_chain=model_chain,
+        )
+        for warning in budget_check.warnings:
+            logger.warning(warning)
 
         plan = "free"
         if user_id:
@@ -810,6 +870,7 @@ class LLMRouter:
                     await self.optimizer.cache_response(
                         messages=sanitized_messages, model=response.model,
                         provider=response.provider, response_text=response.text, streaming=True,
+                        org_id=org_id, project_id=project_id,
                     )
                     self.optimizer.record_completion(
                         tokens_used=response.usage.get("total_tokens", 0),
@@ -1004,48 +1065,65 @@ class LLMRouter:
 
         settings = get_settings()
 
-        self.register_provider(
-            AnthropicAdapter(api_key=settings.anthropic_api_key, timeout=settings.anthropic_timeout),
-            name="anthropic", priority=100, models=["claude-sonnet-4-6", "claude-opus-3"],
-        )
-        self.register_provider(
-            OpenAIAdapter(api_key=settings.openai_api_key),
-            name="openai", priority=90, models=["gpt-4o-mini", "gpt-4.1"],
-        )
-        self.register_provider(
-            OpenRouterAdapter(api_key=settings.openrouter_api_key),
-            name="openrouter", priority=80, models=["openrouter/auto"],
-        )
-        self.register_provider(
-            GeminiAdapter(api_key=settings.gemini_api_key),
-            name="gemini", priority=70, models=["gemini-1.5-pro"],
-        )
-        self.register_provider(
-            GroqAdapter(api_key=settings.groq_api_key),
-            name="groq", priority=60, models=["llama-3.1-8b"],
-        )
-        self.register_provider(
-            TogetherAdapter(api_key=settings.together_api_key),
-            name="together", priority=50, models=["meta-llama/Llama-3-8b-chat-hf"],
-        )
+        # Only register a provider once its credentials are actually
+        # configured. An unconditionally-registered provider with no key
+        # still gets tried first if it has top priority, silently wasting a
+        # failed round-trip (surfaced as a confusing "empty response" error)
+        # before the chain falls back to a provider that actually works.
+        # Ollama is the exception: it's a self-hosted server addressed by
+        # base_url rather than an API key, so there's no "missing credential"
+        # signal to gate on -- it always registers and simply fails its own
+        # connection if nothing is listening at ollama_base_url.
+        if settings.anthropic_api_key:
+            self.register_provider(
+                AnthropicAdapter(api_key=settings.anthropic_api_key, timeout=settings.anthropic_timeout),
+                name="anthropic", priority=100, models=["claude-sonnet-4-6", "claude-opus-3"],
+            )
+        if settings.openai_api_key:
+            self.register_provider(
+                OpenAIAdapter(api_key=settings.openai_api_key),
+                name="openai", priority=90, models=["gpt-4o-mini", "gpt-4.1"],
+            )
+        if settings.openrouter_api_key:
+            self.register_provider(
+                OpenRouterAdapter(api_key=settings.openrouter_api_key),
+                name="openrouter", priority=80, models=["openrouter/auto"],
+            )
+        if settings.gemini_api_key:
+            self.register_provider(
+                GeminiAdapter(api_key=settings.gemini_api_key),
+                name="gemini", priority=70, models=["gemini-1.5-pro"],
+            )
+        if settings.groq_api_key:
+            self.register_provider(
+                GroqAdapter(api_key=settings.groq_api_key),
+                name="groq", priority=60, models=["llama-3.1-8b"],
+            )
+        if settings.together_api_key:
+            self.register_provider(
+                TogetherAdapter(api_key=settings.together_api_key),
+                name="together", priority=50, models=["meta-llama/Llama-3-8b-chat-hf"],
+            )
         self.register_provider(
             OllamaAdapter(base_url=settings.ollama_base_url),
             name="ollama", priority=40, models=["llama3.2"],
         )
-        self.register_provider(
-            MistralAdapter(api_key=settings.mistral_api_key),
-            name="mistral", priority=30, models=["mistral-small-latest"],
-        )
-        self.register_provider(
-            AzureOpenAIAdapter(
-                api_key=settings.azure_openai_api_key,
-                endpoint=settings.azure_openai_endpoint,
-                api_version=settings.azure_openai_api_version,
-                deployment=settings.azure_openai_deployment,
-            ),
-            name="azure_openai", priority=20,
-            models=[settings.azure_openai_deployment] if settings.azure_openai_deployment else ["gpt-4o-mini"],
-        )
+        if settings.mistral_api_key:
+            self.register_provider(
+                MistralAdapter(api_key=settings.mistral_api_key),
+                name="mistral", priority=30, models=["mistral-small-latest"],
+            )
+        if settings.azure_openai_api_key and settings.azure_openai_endpoint:
+            self.register_provider(
+                AzureOpenAIAdapter(
+                    api_key=settings.azure_openai_api_key,
+                    endpoint=settings.azure_openai_endpoint,
+                    api_version=settings.azure_openai_api_version,
+                    deployment=settings.azure_openai_deployment,
+                ),
+                name="azure_openai", priority=20,
+                models=[settings.azure_openai_deployment] if settings.azure_openai_deployment else ["gpt-4o-mini"],
+            )
 
 
 _default_router = LLMRouter()

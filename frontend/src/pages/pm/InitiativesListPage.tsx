@@ -15,6 +15,13 @@ interface Initiative {
   vision?: string;
   updated_at?: string;
   created_at?: string;
+  tech_stack?: string[];
+  estimated_timeline?: string;
+  project_ids?: string[];
+  business_goals?: string[];
+  functional_requirements?: string[];
+  non_functional_requirements?: string[];
+  risks?: { description: string; severity: string; mitigation?: string }[];
 }
 
 const STATUS_MAP: Record<string, "complete" | "running" | "failed" | "pending"> = {
@@ -114,25 +121,74 @@ export default function InitiativesListPage() {
           <p className="text-sm text-faint">No initiatives yet — describe an idea above to generate your first plan.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border">
-            {initiatives.map(initiative => (
-              <article key={initiative.id} className="bg-base">
-                <button
-                  onClick={() => navigate(`/initiatives/${initiative.id}`)}
-                  className="w-full h-full text-left p-6 hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="font-mono text-sm text-ink truncate">{initiative.name}</span>
-                    <span className="text-[11px] text-faint shrink-0">
-                      {formatRelativeTime(initiative.updated_at ?? initiative.created_at)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted mb-4 leading-relaxed line-clamp-2">
-                    {initiative.vision || initiative.prompt}
-                  </p>
-                  <StatusPill status={STATUS_MAP[initiative.status] ?? "pending"} />
-                </button>
-              </article>
-            ))}
+            {initiatives.map(initiative => {
+              const techStack = initiative.tech_stack ?? [];
+              const visibleStack = techStack.slice(0, 4);
+              const extraStack = techStack.length - visibleStack.length;
+              const projectCount = initiative.project_ids?.length ?? 0;
+
+              const metaParts: string[] = [];
+              if (initiative.estimated_timeline) metaParts.push(initiative.estimated_timeline);
+              if (projectCount > 0) metaParts.push(`${projectCount} app${projectCount === 1 ? "" : "s"}`);
+
+              const goalsCount = initiative.business_goals?.length ?? 0;
+              const reqsCount =
+                (initiative.functional_requirements?.length ?? 0) + (initiative.non_functional_requirements?.length ?? 0);
+              const risksCount = initiative.risks?.length ?? 0;
+              const progressParts: string[] = [];
+              if (goalsCount) progressParts.push(`${goalsCount} goal${goalsCount === 1 ? "" : "s"}`);
+              if (reqsCount) progressParts.push(`${reqsCount} requirement${reqsCount === 1 ? "" : "s"}`);
+              if (risksCount) progressParts.push(`${risksCount} risk${risksCount === 1 ? "" : "s"}`);
+
+              return (
+                <article key={initiative.id} className="bg-base">
+                  <button
+                    onClick={() => navigate(`/initiatives/${initiative.id}`)}
+                    className="w-full h-full text-left p-6 hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="font-mono text-sm text-ink truncate">{initiative.name}</span>
+                      <span className="text-[11px] text-faint shrink-0">
+                        {formatRelativeTime(initiative.updated_at ?? initiative.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted mb-4 leading-relaxed line-clamp-2">
+                      {initiative.vision || initiative.prompt}
+                    </p>
+
+                    {visibleStack.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {visibleStack.map(tech => (
+                          <span
+                            key={tech}
+                            className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-border-soft bg-panel-alt text-muted"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                        {extraStack > 0 && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-border-soft bg-panel-alt text-faint">
+                            +{extraStack}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="min-w-0 space-y-0.5">
+                        {metaParts.length > 0 && (
+                          <p className="text-[11px] text-muted truncate">{metaParts.join(" · ")}</p>
+                        )}
+                        {progressParts.length > 0 && (
+                          <p className="text-[11px] text-faint truncate">{progressParts.join(" · ")}</p>
+                        )}
+                      </div>
+                      <StatusPill status={STATUS_MAP[initiative.status] ?? "pending"} />
+                    </div>
+                  </button>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

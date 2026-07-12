@@ -1,12 +1,22 @@
 from prompt_builder.templates import (
     architect_v1,
+    business_analyst_v1,
+    decision_engine_v1,
     designer_v1,
     developer_v1,
     devops_v1,
+    epic_generator_v1,
+    integration_v1,
+    prd_writer_v1,
     product_manager_v1,
     qa_v1,
     research_v1,
+    scrum_master_v1,
     security_v1,
+    sprint_planner_v1,
+    story_generator_v1,
+    task_executor_v1,
+    task_generator_v1,
 )
 from prompt_builder.templates.base import PromptTemplate
 
@@ -23,4 +33,14 @@ TEMPLATE_REGISTRY: dict[tuple[str, str], PromptTemplate] = {
     ("product_manager", "v1"): product_manager_v1.TEMPLATE,
     ("research", "v1"): research_v1.TEMPLATE,
     ("devops", "v1"): devops_v1.TEMPLATE,
+    ("business_analyst", "v1"): business_analyst_v1.TEMPLATE,
+    ("prd_writer", "v1"): prd_writer_v1.TEMPLATE,
+    ("epic_generator", "v1"): epic_generator_v1.TEMPLATE,
+    ("story_generator", "v1"): story_generator_v1.TEMPLATE,
+    ("task_generator", "v1"): task_generator_v1.TEMPLATE,
+    ("sprint_planner", "v1"): sprint_planner_v1.TEMPLATE,
+    ("scrum_master", "v1"): scrum_master_v1.TEMPLATE,
+    ("decision_engine", "v1"): decision_engine_v1.TEMPLATE,
+    ("integration", "v1"): integration_v1.TEMPLATE,
+    ("task_executor", "v1"): task_executor_v1.TEMPLATE,
 }

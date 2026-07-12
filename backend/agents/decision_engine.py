@@ -6,22 +6,7 @@ import json
 class DecisionEngineAgent(BaseAgent):
     """Reacts to a task-state change and recommends plan updates (Module 14)."""
 
-    system_prompt = """You are the AI Decision Engine in an AI-native agile project management system.
-A task's state just changed. Given the current sprint/task snapshot, decide what (if anything) should change elsewhere in the plan.
-
-Output ONLY a JSON object with this exact structure:
-{
-  "summary": "string (1-2 sentences)",
-  "re_estimates": [{"task_title": "string", "new_estimated_hours": 0, "reason": "string"}],
-  "risks": [{"description": "string", "severity": "low|medium|high"}],
-  "recommended_next_tasks": ["string (task title)"],
-  "bottlenecks": ["string"]
-}
-
-Rules:
-- Only include re_estimates/risks/recommended_next_tasks/bottlenecks you're actually confident about from the data given -- empty lists are a valid, common answer.
-- Output ONLY the JSON. No prose, no markdown, no explanation.
-"""
+    prompt_role = "decision_engine"
 
     async def decide(self, event: str, sprint: dict, tasks: list, user_id: str = None, initiative_id: str = None, org_id: str = None) -> dict:
         context = {

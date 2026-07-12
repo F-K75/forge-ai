@@ -16,6 +16,8 @@ class GatewayRequest(BaseModel):
     messages: List[Dict[str, Any]]
     system_prompt: str = ""
     model: Optional[str] = None
+    task_complexity: Optional[str] = None
+    use_retrieval: bool = False
     max_tokens: int = 8192
     temperature: float = 0.0
     tools: Optional[List[Dict[str, Any]]] = None

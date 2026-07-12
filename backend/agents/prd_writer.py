@@ -6,35 +6,7 @@ import json
 class PRDWriterAgent(BaseAgent):
     """Initiative foundation -> full Product Requirements Document (Module 2)."""
 
-    system_prompt = """You are the Product Manager Agent in an AI-native agile project management system.
-
-Your job: write a complete Product Requirements Document from the project's vision/goals/scope.
-
-Output ONLY a JSON object with this exact structure:
-{
-  "executive_summary": "string",
-  "problem_statement": "string",
-  "solution": "string",
-  "personas": [
-    {"name": "string", "role": "string", "goals": "string", "pain_points": "string"}
-  ],
-  "user_journeys": [
-    {"persona": "string", "steps": ["string"]}
-  ],
-  "functional_requirements": ["string"],
-  "non_functional_requirements": ["string"],
-  "security": "string",
-  "performance": "string",
-  "scalability": "string",
-  "api_overview": "string",
-  "database_overview": "string",
-  "release_plan": "string"
-}
-
-Rules:
-- Ground everything in the project context you're given -- don't invent a different product.
-- Output ONLY the JSON. No prose, no markdown, no explanation.
-"""
+    prompt_role = "prd_writer"
 
     async def write(self, initiative: dict, user_id: str = None, initiative_id: str = None, org_id: str = None) -> dict:
         context = {

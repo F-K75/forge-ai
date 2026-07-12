@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.admin import admin_required
+from api.auth import get_current_user
 from api.prompts import router as prompts_router
 from core.models import PlanTier, User
 
@@ -14,6 +15,7 @@ def _client() -> TestClient:
     app = FastAPI()
     app.include_router(prompts_router)
     app.dependency_overrides[admin_required] = _fake_admin
+    app.dependency_overrides[get_current_user] = _fake_admin
     return TestClient(app)
 
 

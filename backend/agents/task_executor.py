@@ -24,20 +24,7 @@ class TaskExecutorAgent(BaseAgent):
     one.
     """
 
-    system_prompt = """You are an AI engineering agent executing one scoped task inside a larger project.
-
-Output ONLY a JSON object with this exact structure:
-{
-  "summary": "string (what you did, 1-3 sentences)",
-  "files": {"path/to/file.ext": "full file content"},
-  "notes": "string (anything a human reviewer should know)"
-}
-
-Rules:
-- Only touch files relevant to this task -- you are one task among many running concurrently.
-- Write complete, working file contents, not diffs or snippets.
-- Output ONLY the JSON. No prose, no markdown, no explanation.
-"""
+    prompt_role = "task_executor"
 
     async def execute(self, task: dict, context: dict, user_id: str = None, initiative_id: str = None, org_id: str = None) -> dict:
         role = task.get("assigned_agent", "backend_agent")

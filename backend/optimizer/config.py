@@ -16,6 +16,9 @@ class OptimizerConfig:
     response_cache_ttl_seconds: int = 600
     compression_level: int = 1  # 0=off, 1=whitespace+dedupe, 2=aggressive
     response_cache_enabled: bool = True
+    semantic_cache_enabled: bool = True
+    semantic_cache_similarity_threshold: float = 0.92
+    semantic_cache_index_size: int = 200
 
     @classmethod
     def from_env(cls) -> "OptimizerConfig":
@@ -27,6 +30,9 @@ class OptimizerConfig:
             response_cache_ttl_seconds=int(os.getenv("AI_OPTIMIZER_RESPONSE_CACHE_TTL", "600")),
             compression_level=int(os.getenv("AI_OPTIMIZER_COMPRESSION_LEVEL", "1")),
             response_cache_enabled=os.getenv("AI_OPTIMIZER_RESPONSE_CACHE_ENABLED", "true").lower() != "false",
+            semantic_cache_enabled=os.getenv("AI_OPTIMIZER_SEMANTIC_CACHE_ENABLED", "true").lower() != "false",
+            semantic_cache_similarity_threshold=float(os.getenv("AI_OPTIMIZER_SEMANTIC_CACHE_THRESHOLD", "0.92")),
+            semantic_cache_index_size=int(os.getenv("AI_OPTIMIZER_SEMANTIC_CACHE_INDEX_SIZE", "200")),
         )
 
 
