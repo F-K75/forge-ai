@@ -84,6 +84,35 @@ try:
     llm_cost_by_provider_usd = Gauge(
         "llm_cost_by_provider_usd", "Total LLM cost in USD, by provider", ["provider"], registry=registry,
     )
+    llm_semantic_cache_hit_ratio = Gauge(
+        "llm_semantic_cache_hit_ratio",
+        "Share of response-cache hits served by semantic (near-duplicate) matching rather than exact match",
+        registry=registry,
+    )
+
+    # Budget Manager metrics -- recorded in core/llm/budget_manager.py's
+    # BudgetManager.enforce(), called from LLMRouter.generate()/stream().
+    llm_budget_downgrades_total = Counter(
+        "llm_budget_downgrades_total",
+        "Total requests downgraded to a cheaper model after crossing a soft spend limit",
+        ["scope"],
+        registry=registry,
+    )
+    llm_budget_rejections_total = Counter(
+        "llm_budget_rejections_total",
+        "Total requests rejected for exceeding a hard spend limit",
+        ["scope"],
+        registry=registry,
+    )
+
+    # Smart Model Router metrics -- recorded in core/llm/router.py wherever
+    # ModelRouter.reorder() is applied.
+    llm_routing_decisions_total = Counter(
+        "llm_routing_decisions_total",
+        "Total complexity-based model routing decisions, by requested complexity and selected model",
+        ["complexity", "model"],
+        registry=registry,
+    )
 except ImportError:
     registry = None
 
@@ -109,6 +138,10 @@ except ImportError:
     llm_optimization_ratio = _NoOpMetric()  # type: ignore[assignment]
     llm_tokens_saved_total = _NoOpMetric()  # type: ignore[assignment]
     llm_cost_by_provider_usd = _NoOpMetric()  # type: ignore[assignment]
+    llm_semantic_cache_hit_ratio = _NoOpMetric()  # type: ignore[assignment]
+    llm_budget_downgrades_total = _NoOpMetric()  # type: ignore[assignment]
+    llm_budget_rejections_total = _NoOpMetric()  # type: ignore[assignment]
+    llm_routing_decisions_total = _NoOpMetric()  # type: ignore[assignment]
 
 
 def update_optimizer_gauges() -> None:
@@ -124,6 +157,8 @@ def update_optimizer_gauges() -> None:
     cache_stats = optimizer.get_cache_statistics()
 
     llm_cache_hit_ratio.set(cache_stats.response_cache_hit_ratio)
+    if cache_stats.response_cache_hits:
+        llm_semantic_cache_hit_ratio.set(cache_stats.semantic_response_cache_hits / cache_stats.response_cache_hits)
     llm_optimization_ratio.set(metrics_snapshot.average_compression_ratio)
     llm_tokens_saved_total.set(metrics_snapshot.total_tokens_saved)
     for provider, cost in metrics_snapshot.cost_by_provider.items():

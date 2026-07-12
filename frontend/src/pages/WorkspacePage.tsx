@@ -25,6 +25,10 @@ export default function WorkspacePage() {
   const [project, setProject] = useState<WorkspaceProject | null>(
     LIVE_MODE ? null : PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0]
   );
+  // Distinct from `project === null` (still loading) -- lets the render
+  // below stop showing an infinite spinner when project creation/fetch
+  // fails, instead of silently spinning forever past a missed toast.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Guards against creating a duplicate project if this effect re-runs
   // (e.g. React StrictMode's double-invoke in dev) while projectId is "new".
@@ -52,7 +56,10 @@ export default function WorkspacePage() {
           if (!cancelled) setProject({ id: p.id, name: p.name });
         })
         .catch(() => {
-          if (!cancelled) toast.error("Failed to create project");
+          if (!cancelled) {
+            toast.error("Failed to create project");
+            setLoadError("Failed to create project");
+          }
         });
       return () => {
         cancelled = true;
@@ -140,6 +147,20 @@ export default function WorkspacePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project]);
+
+  if (loadError && !project) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-base px-6 text-center">
+        <p className="text-sm text-muted">{loadError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (!project) {
     return (

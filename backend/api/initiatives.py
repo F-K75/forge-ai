@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from core.models import User, PaginationParams
+from core.models import User, PaginationParams, Project
 from core.database import get_db, paginated_query
 from core.pm_models import Initiative, InitiativeStatus
 from core.permissions import has_initiative_access
@@ -48,12 +48,28 @@ class PaginatedInitiatives(BaseModel):
 @router.post("/")
 async def create_initiative(req: CreateInitiativeRequest, current_user: User = Depends(get_current_user)):
     db = await get_db()
+    name = req.name or req.prompt[:60]
     initiative = Initiative(
         user_id=current_user.id,
-        name=req.name or req.prompt[:60],
+        name=name,
         prompt=req.prompt,
         status=InitiativeStatus.DRAFT,
     )
+
+    # Every initiative gets one companion Project up front, in the same slot
+    # execute_task already reads from (initiative.project_ids[0], via
+    # tasks/pm_tasks.py) to reuse the latest successful build's files as
+    # codegen context for later tasks. Without this, that reuse path was
+    # silently a no-op because project_ids was never populated anywhere.
+    project = Project(
+        user_id=current_user.id,
+        org_id=initiative.org_id,
+        name=name,
+        description=req.prompt,
+    )
+    initiative.project_ids = [project.id]
+
+    await db.projects.insert_one(project.model_dump())
     await db.initiatives.insert_one(initiative.model_dump())
     generate_initiative_plan.delay(initiative.id)
     return initiative

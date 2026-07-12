@@ -57,7 +57,27 @@ ALLOWLIST_REGEX='\.env\..*example$|\.gitignore$|\.github/workflows/|scripts/git-
 # secret values, since a
 # hardcoded credential in Python source is always a quoted string literal.
 _API_KEY_VAR_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*(self\.)?(api_key|[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z0-9_]*api_key)\b|[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*\.get\('
-ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}"
+
+# .claude/skills/design/scripts/{icon,logo,cip}/generate.py read a Gemini/Google
+# key from the environment and pass the resulting variable on to genai.Client --
+# no literal key value appears in any of these three cases:
+#   1. `GEMINI_API_KEY = os.environ.get(...)` / `api_key = os.environ.get(...)`
+#      -- the existing `.get(` alternative above only covers a single-segment
+#      receiver (e.g. `byok.get(`), not the two-segment `os.environ.get(`.
+#   2. `client = genai.Client(api_key=GEMINI_API_KEY)` -- RHS is a bare
+#      ALL_CAPS_WITH_UNDERSCORES identifier, i.e. a variable reference; a real
+#      hardcoded credential in Python is always a quoted string literal.
+#   3. `export GEMINI_API_KEY='your-key'` inside a print(...) usage hint --
+#      the existing `your_..._here` placeholder pattern requires underscores
+#      and a `_here` suffix, so it doesn't cover this hyphenated placeholder.
+_ENV_KEY_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*os\.(environ\.get|getenv)\(|[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[A-Z][A-Z0-9_]*_API_KEY\b|API_KEY='"'"'your-key'"'"''
+
+# frontend/src/App.tsx lazy-imports the ForgotPassword/ResetPassword page
+# components -- "Password" here is a substring of a route/component name,
+# not a credential value.
+_ROUTE_NAME_REF='(ForgotPassword|ResetPassword)[[:space:]]*=[[:space:]]*lazy\('
+
+ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}"
 
 # --- Check for .env file in staged changes ---
 if git diff --cached --name-only | grep -q '^.env$'; then

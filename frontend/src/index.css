@@ -163,6 +163,16 @@ body {
   animation: agent-pulse 1.5s ease-in-out infinite;
 }
 
+/* Project card thumbnail hover-preview drift ("video" placeholder) */
+@keyframes preview-drift {
+  0%, 100% { transform: translate(-6%, -6%) scale(1.15) rotate(0deg); }
+  50% { transform: translate(6%, 4%) scale(1.15) rotate(8deg); }
+}
+
+.animate-preview-drift {
+  animation: preview-drift 7s ease-in-out infinite;
+}
+
 /* Revolving globe on the Launch screen */
 @keyframes spin-globe {
   from { transform: rotateY(0deg); }

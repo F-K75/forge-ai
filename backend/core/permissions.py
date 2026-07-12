@@ -16,6 +16,14 @@ async def require_org_role(db, *, user_id: str, org_id: str, allowed_roles=(Role
     return membership
 
 
+async def is_org_member(db, *, user_id: str, org_id: str) -> bool:
+    """True if `user_id` belongs to `org_id` in any role. Used where any
+    member (not just owner/admin) should have access to an org-scoped
+    resource -- e.g. the org's own semantic retrieval index."""
+    membership = await db.team_members.find_one({"org_id": org_id, "user_id": user_id}, {"_id": 0})
+    return membership is not None
+
+
 async def has_initiative_access(db, user_id: str, initiative: dict) -> bool:
     """Same shape as has_build_access, for Agile PM initiatives."""
     if not initiative:

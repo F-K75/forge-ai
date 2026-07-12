@@ -135,46 +135,65 @@ async def create_build(
         db, current_user.id, reserved.get("plan", "free"), reserved["credits"]
     )
 
-    # Build deduplication: prevent duplicate builds for the same project within 30 seconds
-    thirty_seconds_ago = datetime.utcnow() - timedelta(seconds=30)
-    recent_build = await db.builds.find_one(
-        {
-            "project_id": req.project_id,
-            "user_id": current_user.id,
-            "status": {"$in": ["pending", "building"]},
-            "created_at": {"$gte": thirty_seconds_ago},
-        },
-        {"_id": 0},
-    )
-    if recent_build:
-        raise HTTPException(
-            status_code=429,
-            detail="A build is already in progress for this project. Please wait.",
+    try:
+        # Build deduplication: prevent duplicate builds for the same project within 30 seconds
+        thirty_seconds_ago = datetime.utcnow() - timedelta(seconds=30)
+        recent_build = await db.builds.find_one(
+            {
+                "project_id": req.project_id,
+                "user_id": current_user.id,
+                "status": {"$in": ["pending", "building"]},
+                "created_at": {"$gte": thirty_seconds_ago},
+            },
+            {"_id": 0},
+        )
+        if recent_build:
+            raise HTTPException(
+                status_code=429,
+                detail="A build is already in progress for this project. Please wait.",
+            )
+
+        build = Build(
+            project_id=req.project_id,
+            user_id=current_user.id,
+            prompt=sanitize_prompt(req.prompt),
+            idempotency_key=req.idempotency_key,
+            status=BuildStatus.PENDING,
+            interactive=req.interactive,
         )
 
-    build = Build(
-        project_id=req.project_id,
-        user_id=current_user.id,
-        prompt=sanitize_prompt(req.prompt),
-        idempotency_key=req.idempotency_key,
-        status=BuildStatus.PENDING,
-        interactive=req.interactive,
-    )
+        # Omit idempotency_key entirely when unset rather than writing null --
+        # the unique index on (user_id, idempotency_key) is only partial over
+        # documents where the field `$exists`, so a stored null still "exists"
+        # and every no-idempotency-key build for a user collided with the
+        # first one (DuplicateKeyError on the 2nd+ build, every time).
+        build_dict = build.model_dump()
+        if build_dict.get("idempotency_key") is None:
+            build_dict.pop("idempotency_key", None)
 
-    await db.builds.insert_one(build.model_dump())
+        await db.builds.insert_one(build_dict)
 
-    conversation_history, existing_files = await _get_prior_build_context(
-        db, req.project_id
-    )
+        conversation_history, existing_files = await _get_prior_build_context(
+            db, req.project_id
+        )
 
-    run_build.delay(
-        build.id,
-        req.project_id,
-        current_user.id,
-        max_credits,
-        conversation_history,
-        existing_files,
-    )
+        run_build.delay(
+            build.id,
+            req.project_id,
+            current_user.id,
+            max_credits,
+            conversation_history,
+            existing_files,
+        )
+    except Exception:
+        # Anything failing between reservation and a successfully dispatched
+        # Celery task (duplicate build, DB error, etc.) would otherwise leak
+        # the reserved credits forever -- run_build's own refund logic never
+        # gets a chance to run because the task was never enqueued.
+        await db.users.update_one(
+            {"id": current_user.id}, {"$inc": {"credits": max_credits}}
+        )
+        raise
 
     return {"build_id": build.id, "status": build.status}
 

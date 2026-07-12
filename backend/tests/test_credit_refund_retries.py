@@ -27,16 +27,34 @@ from celery.exceptions import SoftTimeLimitExceeded
 import tasks.build_tasks as build_tasks_module
 
 
+class FakeCursor:
+    def __init__(self, docs):
+        self._docs = docs
+
+    async def to_list(self, length=None):
+        return list(self._docs)
+
+
 class FakeCollection:
     def __init__(self, docs):
         self.docs = {d["id"]: d for d in docs}
         self.inc_calls = []
         self.set_calls = []
         self.inserted = []
+        self.deleted_many_calls = []
 
     async def find_one(self, query, projection=None):
         doc = self.docs.get(query.get("id"))
         return dict(doc) if doc else None
+
+    def find(self, query, projection=None):
+        # Only build_files uses a non-id `find` in these tests (queried by
+        # build_id, not id) -- filter on whatever key is present.
+        matches = [
+            dict(d) for d in self.docs.values()
+            if all(d.get(k) == v for k, v in query.items())
+        ]
+        return FakeCursor(matches)
 
     async def update_one(self, query, update):
         if "$inc" in update:
@@ -47,6 +65,22 @@ class FakeCollection:
 
     async def insert_one(self, doc):
         self.inserted.append(doc)
+        return None
+
+    async def insert_many(self, docs):
+        docs = list(docs)
+        self.inserted.extend(docs)
+        for d in docs:
+            self.docs[d.get("id", len(self.docs))] = d
+        return None
+
+    async def delete_many(self, query):
+        self.deleted_many_calls.append(query)
+        build_id = query.get("build_id")
+        if build_id is not None:
+            self.docs = {
+                k: v for k, v in self.docs.items() if v.get("build_id") != build_id
+            }
         return None
 
 
@@ -163,14 +197,17 @@ def test_refund_across_all_attempts_of_a_retried_build_totals_once(monkeypatch):
     assert len(fake_db.users.inc_calls) == 1
 
 
-def test_retry_after_progress_fails_immediately_instead_of_rerunning_pipeline(monkeypatch):
-    """Regression test: run_build reruns the entire pipeline from scratch on
-    every retry (it isn't resumable), so a whole-task retry after any agent
-    has already succeeded would silently discard and redo that real,
-    already-paid-for LLM work rather than recovering anything. Once
-    build.agents contains a success, a transient failure should fail this
-    attempt for good — even on a non-final attempt (retries=0, well under
-    max_retries=3) — rather than retrying.
+def test_retry_after_progress_retries_instead_of_failing_immediately(monkeypatch):
+    """run_build is now resume-aware (core/orchestrator.py's
+    `_try_recover_json`/`resume_ok` chain skips any agent step that already
+    has a persisted SUCCESS record instead of re-running it), so a retry
+    after partial progress is no longer wasteful — it resumes rather than
+    restarting from scratch. A transient failure on a non-final attempt
+    (retries=0, well under max_retries=3) should therefore still retry via
+    self.retry(), even though build.agents already contains a success,
+    exactly like the zero-progress case in
+    test_non_final_retry_does_not_refund_or_finalize — nothing should be
+    refunded or finalized yet.
     """
     build, user = _make_build_and_user()
     build["agents"] = [
@@ -202,10 +239,8 @@ def test_retry_after_progress_fails_immediately_instead_of_rerunning_pipeline(mo
     finally:
         build_tasks_module.run_build.pop_request()
 
-    assert len(fake_db.users.inc_calls) == 1
-    assert fake_db.users.inc_calls[0] == ("u1", {"credits": 100})
-    assert len(fake_db.builds.set_calls) == 1
-    assert fake_db.builds.set_calls[0][1]["status"] == "failed"
+    assert fake_db.users.inc_calls == []
+    assert fake_db.builds.set_calls == []
 
 
 def test_soft_time_limit_refunds_and_fails_build_without_retry(monkeypatch):

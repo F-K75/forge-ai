@@ -41,7 +41,12 @@ class AIOptimizer:
         self.config = config or get_optimizer_config()
         self.analytics = analytics or get_analytics()
         self.prompt_cache = prompt_cache or PromptCache(ttl_seconds=self.config.prompt_cache_ttl_seconds)
-        self.response_cache = response_cache or ResponseCache(ttl_seconds=self.config.response_cache_ttl_seconds)
+        self.response_cache = response_cache or ResponseCache(
+            ttl_seconds=self.config.response_cache_ttl_seconds,
+            semantic_enabled=self.config.semantic_cache_enabled,
+            similarity_threshold=self.config.semantic_cache_similarity_threshold,
+            index_size=self.config.semantic_cache_index_size,
+        )
 
     async def optimize_request(
         self,
@@ -54,13 +59,29 @@ class AIOptimizer:
         has_tools: bool = False,
         temperature: float = 0.0,
         cacheable: bool = True,
+        use_retrieval: bool = False,
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        retrieval_top_k: int = 3,
     ) -> OptimizeResult:
         """Run the full optimization pipeline for one request: dedupe/trim
         context, normalize prompt text, estimate tokens/cost, and check the
         response cache. Does not itself call the provider -- callers use
         `cached_response`/`response_cache_hit` to decide whether to skip the
-        provider call, and `cache_response()` afterward to populate it."""
+        provider call, and `cache_response()` afterward to populate it.
+
+        `use_retrieval=True` prepends the top-k semantically relevant chunks
+        (code/docs/conversation history/etc, see `retrieval.service`) as an
+        extra system message before context trimming, so they're subject to
+        the same char budget as everything else. Off by default -- it adds
+        an embeddings API round-trip to the request, which conflicts with
+        this engine's own low-overhead goal unless a caller opts in."""
         start = time.perf_counter()
+
+        if use_retrieval:
+            messages = await self._augment_with_retrieval(
+                messages, org_id=org_id, project_id=project_id, top_k=retrieval_top_k
+            )
 
         if not self.config.enabled:
             token_estimate = estimate_request_tokens(
@@ -97,7 +118,9 @@ class AIOptimizer:
             streaming=streaming, has_tools=has_tools, temperature=temperature, cacheable=cacheable
         )
         if is_cacheable:
-            cached = await self.response_cache.get(optimized_messages, model, provider)
+            cached = await self.response_cache.get(
+                optimized_messages, model, provider, org_id=org_id, project_id=project_id
+            )
             if cached is not None:
                 response_cache_hit = True
                 cached_response = cached.get("text")
@@ -130,6 +153,41 @@ class AIOptimizer:
             cached_response=cached_response,
         )
 
+    async def _augment_with_retrieval(
+        self,
+        messages: List[Dict[str, Any]],
+        *,
+        org_id: Optional[str],
+        project_id: Optional[str],
+        top_k: int,
+    ) -> List[Dict[str, Any]]:
+        query = next(
+            (str(m.get("content", "")) for m in reversed(messages) if m.get("role") == "user" and m.get("content")),
+            "",
+        )
+        if not query:
+            return messages
+
+        from retrieval.service import get_semantic_retriever
+
+        try:
+            chunks = await get_semantic_retriever().retrieve(
+                query, top_k=top_k, org_id=org_id, project_id=project_id,
+            )
+        except Exception:
+            logger.warning("semantic retrieval augmentation failed; continuing without it", exc_info=True)
+            return messages
+
+        if not chunks:
+            return messages
+
+        context_block = "\n\n".join(f"[{c.source_type.value}:{c.source_id}] {c.text}" for c in chunks)
+        retrieval_message = {
+            "role": "system",
+            "content": f"Relevant context retrieved from the knowledge base:\n\n{context_block}",
+        }
+        return [retrieval_message, *messages]
+
     async def cache_response(
         self,
         *,
@@ -141,6 +199,8 @@ class AIOptimizer:
         has_tools: bool = False,
         temperature: float = 0.0,
         cacheable: bool = True,
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
     ) -> bool:
         """Store a completed response for future exact-match reuse. Returns
         False (no-op) for anything the cache policy excludes, so callers can
@@ -151,7 +211,9 @@ class AIOptimizer:
             streaming=streaming, has_tools=has_tools, temperature=temperature, cacheable=cacheable
         ):
             return False
-        await self.response_cache.set(messages, model, provider, {"text": response_text})
+        await self.response_cache.set(
+            messages, model, provider, {"text": response_text}, org_id=org_id, project_id=project_id
+        )
         return True
 
     async def cache_prompt(self, *, messages: List[Dict[str, Any]], model: str, optimized: Dict[str, Any]) -> None:
@@ -205,6 +267,7 @@ class AIOptimizer:
             prompt_cache_misses=prompt_stats["misses"],
             response_cache_hits=response_stats["hits"],
             response_cache_misses=response_stats["misses"],
+            semantic_response_cache_hits=response_stats.get("semantic_hits", 0),
         )
 
     def get_pricing_table(self) -> Dict[str, Any]:

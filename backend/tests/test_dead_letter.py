@@ -399,6 +399,11 @@ def test_retry_dead_letter_requeues_build(monkeypatch):
 
 
 def test_dead_letter_persistence_across_terminal_failures(monkeypatch):
+    """run_build is resume-aware (see core/orchestrator.py), so a failure
+    after partial progress is no longer treated as terminal on its own --
+    retries=3 (== max_retries) is what actually makes this the last attempt
+    Celery will make, and that's what should dead-letter here, same as any
+    other terminal failure (see test_terminal_failure_inserts_dead_letter)."""
     build, user = _make_build_and_user()
     build["agents"] = [
         {
@@ -422,7 +427,7 @@ def test_dead_letter_persistence_across_terminal_failures(monkeypatch):
     monkeypatch.setattr(build_tasks_module, "get_db", fake_get_db)
     monkeypatch.setattr(build_tasks_module.orchestrator, "run_build", failing_run_build)
 
-    build_tasks_module.run_build.push_request(retries=0)
+    build_tasks_module.run_build.push_request(retries=3)
     try:
         with pytest.raises(RuntimeError):
             build_tasks_module.run_build.run("build-1", "p1", "u1", 100)
@@ -430,4 +435,4 @@ def test_dead_letter_persistence_across_terminal_failures(monkeypatch):
         build_tasks_module.run_build.pop_request()
 
     assert len(fake_db.build_dead_letters.inserted) == 1
-    assert fake_db.build_dead_letters.inserted[0]["retry_count"] == 0
+    assert fake_db.build_dead_letters.inserted[0]["retry_count"] == 3

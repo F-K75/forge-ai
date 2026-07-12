@@ -8,6 +8,7 @@ from core.ai_usage import check_budget
 from core.database import get_db
 from core.encryption import decrypt_field
 from gateway import GatewayRequest, get_ai_gateway
+from prompt_builder import PromptContext, get_prompt_builder
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -127,8 +128,6 @@ class BaseAgent:
     ) -> str:
         if not self.prompt_role:
             return self.system_prompt + (f"\n\n{extra_system}" if extra_system else "")
-
-        from prompt_builder import PromptContext, get_prompt_builder
 
         task = ""
         for m in reversed(messages):

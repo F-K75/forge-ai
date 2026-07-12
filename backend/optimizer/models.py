@@ -34,6 +34,7 @@ class CacheStatistics(BaseModel):
     prompt_cache_misses: int = 0
     response_cache_hits: int = 0
     response_cache_misses: int = 0
+    semantic_response_cache_hits: int = 0
     saved_latency_ms: float = 0.0
     saved_tokens: int = 0
 

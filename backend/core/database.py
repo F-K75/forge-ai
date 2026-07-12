@@ -98,6 +98,12 @@ async def _ensure_indexes(db):
             db.team_members.create_index([("org_id", 1), ("user_id", 1)], unique=True),
             # LLM org policy override indexes
             db.llm_org_policy_overrides.create_index("org_id", unique=True),
+            # Budget manager indexes
+            db.budget_limits.create_index([("scope", 1), ("scope_id", 1)], unique=True),
+            # Semantic retrieval indexes
+            db.semantic_chunks.create_index("id", unique=True),
+            db.semantic_chunks.create_index([("source_id", 1)]),
+            db.semantic_chunks.create_index([("org_id", 1), ("project_id", 1), ("source_type", 1)]),
             # Subscription indexes
             db.subscriptions.create_index("stripe_subscription_id", unique=True),
             db.subscriptions.create_index([("user_id", 1)]),

@@ -100,6 +100,57 @@ async def test_generate_records_retry_and_failover_counts():
     assert after == before + 1
 
 
+@pytest.mark.asyncio
+async def test_routing_decision_metric_recorded_on_complexity_hint():
+    from core.llm.config import LLMConfigLoader
+
+    config_loader = LLMConfigLoader()
+    config_loader._db_overrides["developer"] = {
+        "model": "claude-opus-3",
+        "model_fallbacks": ["anthropic/claude-haiku-4.5"],
+    }
+    router = LLMRouter(config_loader=config_loader)
+    router.register_provider(FakeProvider(text="ok"), name="fake", priority=1)
+    gateway = AIGateway(router=router)
+
+    before = _sample("llm_routing_decisions_total", {"complexity": "simple", "model": "anthropic/claude-haiku-4.5"}) or 0
+
+    await gateway.generate(GatewayRequest(
+        agent_name="developer", messages=[{"role": "user", "content": "hi"}],
+        task_complexity="simple", provider_names=["fake"],
+    ))
+
+    after = _sample("llm_routing_decisions_total", {"complexity": "simple", "model": "anthropic/claude-haiku-4.5"}) or 0
+    assert after == before + 1
+
+
+@pytest.mark.asyncio
+async def test_budget_rejection_metric_recorded_on_hard_limit(monkeypatch):
+    from core.llm.budget_manager import BudgetLimitExceeded, BudgetManager, BudgetScope, BudgetCheckResult
+
+    class _AlwaysRejectBudgetManager(BudgetManager):
+        async def enforce(self, **kwargs):
+            from core.metrics import llm_budget_rejections_total
+
+            llm_budget_rejections_total.labels(scope=BudgetScope.ORG.value).inc()
+            raise BudgetLimitExceeded("blocked", scope="org", scope_id="org-1", used_usd=10.0, limit_usd=10.0)
+
+    router = LLMRouter(budget_manager=_AlwaysRejectBudgetManager())
+    router.register_provider(FakeProvider(text="ok"), name="fake", priority=1)
+    gateway = AIGateway(router=router)
+
+    before = _sample("llm_budget_rejections_total", {"scope": "org"}) or 0
+
+    with pytest.raises(BudgetLimitExceeded):
+        await gateway.generate(GatewayRequest(
+            agent_name="developer", messages=[{"role": "user", "content": "hi"}],
+            org_id="org-1", provider_names=["fake"],
+        ))
+
+    after = _sample("llm_budget_rejections_total", {"scope": "org"}) or 0
+    assert after == before + 1
+
+
 def test_update_optimizer_gauges_reflects_optimizer_analytics():
     optimizer = get_optimizer()
     optimizer.record_completion(

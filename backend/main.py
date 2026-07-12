@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 from api.builds import router as builds_router
 from api.projects import router as projects_router
-from api.auth import router as auth_router
+from api.auth import get_current_user, router as auth_router
 from api.billing import router as billing_router
 from api.razorpay import router as razorpay_router
 from api.admin import router as admin_router
@@ -33,6 +33,8 @@ from api.agent_executions import router as agent_executions_router
 from api.llm import router as llm_router
 from api.optimizer import router as optimizer_router
 from api.org_llm_policy import router as org_llm_policy_router
+from api.budget import router as budget_router
+from api.retrieval import router as retrieval_router
 from api.v1 import v1_router
 from core.database import close_connections
 from core.config import get_settings
@@ -118,6 +120,7 @@ async def lifespan(app: FastAPI):
         from core.llm.router import get_llm_router
         await get_llm_router().config_loader.refresh_db_overrides()
         await get_llm_router().config_loader.refresh_org_policy_overrides()
+        await get_llm_router().budget_manager.refresh_limits()
     except Exception:
         logger.warning("LLM agent override pre-warm failed; continuing with YAML/env config", exc_info=True)
 
@@ -277,6 +280,8 @@ app.include_router(agent_executions_router)
 app.include_router(llm_router)
 app.include_router(optimizer_router)
 app.include_router(org_llm_policy_router)
+app.include_router(budget_router)
+app.include_router(retrieval_router)
 
 
 @app.get("/health")
@@ -412,7 +417,7 @@ async def health_pools():
 
 
 @app.get("/integrations/playbooks")
-async def list_playbooks():
+async def list_playbooks(user: dict = Depends(get_current_user)):
     from agents.integration import IntegrationAgent
     return IntegrationAgent.get_available_playbooks()
 

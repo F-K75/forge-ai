@@ -10,9 +10,7 @@ class ScrumMasterAgent(BaseAgent):
     against the same sprint/task context, differing only in what's asked for.
     """
 
-    system_prompt = """You are the AI Scrum Master Agent in an AI-native agile project management system.
-Ground everything in the sprint/task data you're given. Never invent tasks or people that aren't in the context.
-Output ONLY valid JSON matching the requested structure. No prose, no markdown, no explanation."""
+    prompt_role = "scrum_master"
 
     def _context(self, sprint: dict, tasks: list) -> dict:
         return {

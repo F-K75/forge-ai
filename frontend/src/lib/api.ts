@@ -221,6 +221,24 @@ export const llmApi = {
   reload: () => api.post('/api/llm/reload').then(r => r.data),
 }
 
+// AI Optimizer
+export const optimizerApi = {
+  costBreakdown: (days?: number) => api.get('/api/optimizer/cost-breakdown', { params: { days } }).then(r => r.data),
+  metrics: () => api.get('/api/optimizer/metrics').then(r => r.data),
+  cacheStats: () => api.get('/api/optimizer/cache-stats').then(r => r.data),
+  pricing: () => api.get('/api/optimizer/pricing').then(r => r.data),
+}
+
+// Budget Manager
+export const budgetsApi = {
+  list: () => api.get('/api/budgets').then(r => r.data),
+  get: (scope: string, scopeId: string) => api.get(`/api/budgets/${scope}/${scopeId}`).then(r => r.data),
+  set: (scope: string, scopeId: string, data: { soft_limit_usd?: number | null; hard_limit_usd?: number | null; period?: 'daily' | 'monthly' }) =>
+    api.put(`/api/budgets/${scope}/${scopeId}`, data).then(r => r.data),
+  remove: (scope: string, scopeId: string) => api.delete(`/api/budgets/${scope}/${scopeId}`).then(r => r.data),
+  spending: (days?: number, limit?: number) => api.get('/api/budgets/analytics/spending', { params: { days, limit } }).then(r => r.data),
+}
+
 // Admin
 export const adminApi = {
   overview: () => api.get('/admin/analytics/overview').then(r => r.data),

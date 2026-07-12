@@ -30,20 +30,27 @@ class SandboxRunner:
                 "Please simplify the generated code."
             )
 
+    def _write_files_sync(self, tmpdir: str, files: dict) -> list:
+        errors = []
+        for path, content in files.items():
+            # Reject traversal/absolute paths so a malicious generated file
+            # name cannot escape the sandbox dir (P0-HIGH-005).
+            full_path = safe_join_path(tmpdir, path)
+            if full_path is None:
+                errors.append(f"Refused unsafe file path: {path}")
+                continue
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "w") as f:
+                f.write(content)
+        return errors
+
     async def _run_impl(self, files: dict) -> str:
         errors = []
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Write all files
-            for path, content in files.items():
-                # Reject traversal/absolute paths so a malicious generated file
-                # name cannot escape the sandbox dir (P0-HIGH-005).
-                full_path = safe_join_path(tmpdir, path)
-                if full_path is None:
-                    errors.append(f"Refused unsafe file path: {path}")
-                    continue
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "w") as f:
-                    f.write(content)
+            # Write all files off the event loop -- this can be many files
+            # with nontrivial content, and blocking here stalls every other
+            # in-flight request on this worker.
+            errors.extend(await asyncio.to_thread(self._write_files_sync, tmpdir, files))
 
             # Check Python syntax
             py_errors = await self._check_python(tmpdir, files)

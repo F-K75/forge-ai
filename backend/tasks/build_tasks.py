@@ -44,12 +44,17 @@ def _run_async(coro):
 class BuildTask(current_app.Task):
     """Base task class with error handling and retry configuration.
 
-    No autoretry_for: run_build isn't resumable (every invocation restarts
-    the whole pipeline from the Architect, see core/orchestrator.py), so
-    blindly retrying on any exception would silently discard and re-run
-    agents that already succeeded, rather than recovering anything. Instead
-    run_build's except block retries manually via self.retry(), and only
-    when zero agents have completed yet -- see the made_progress check.
+    No autoretry_for: retries need to happen through the resume-aware path
+    below, not Celery's blind autoretry. run_build is resumable at agent-step
+    granularity for the architect/business_model/designer/developer/
+    integration stages (see core/orchestrator.py's `_try_recover_json`/
+    `resume_ok` chain and this module's `persist_files`/`resumed_files`
+    wiring) -- a retried attempt of the same build_id skips any step that
+    already has a persisted SUCCESS record instead of re-running (and
+    re-charging) it. The PM/debug loop always restarts from PM validation on
+    resume; it is never resumed at sub-step granularity. run_build's except
+    block retries manually via self.retry() for any exception up to
+    max_retries (see the retry call below).
     """
 
     retry_kwargs = {"max_retries": 3, "countdown": 60}
@@ -106,6 +111,22 @@ def run_build(
         )
         template = project_doc.get("template") if project_doc else None
 
+        # If this build_id already has persisted files -- i.e. this is a
+        # resumed attempt after a mid-pipeline crash, since build_id is a
+        # fresh UUID per Build and never reused across distinct attempts --
+        # those take priority over the `existing_files` task argument, which
+        # represents a *different* prior build's files for the amend flow
+        # (see api/builds.py's _get_prior_build_context). On a first attempt
+        # this collection has no rows for this build_id yet, so behavior is
+        # unchanged.
+        resumed_files: Optional[dict] = None
+        existing_build_files = await db.build_files.find(
+            {"build_id": build_id}, {"_id": 0, "path": 1, "content": 1}
+        ).to_list(None)
+        if existing_build_files:
+            resumed_files = {f["path"]: f["content"] for f in existing_build_files}
+        effective_existing_files = resumed_files if resumed_files else existing_files
+
         async def emit(event: WSEvent) -> None:
             await db.builds.update_one(
                 {"id": build_id},
@@ -119,6 +140,20 @@ def run_build(
                 },
             )
             await manager.emit(event)
+
+        async def persist_files(current_files: dict) -> None:
+            """Incrementally persists generated files as the pipeline runs,
+            so a crash after e.g. the developer step doesn't lose that work
+            -- see core/orchestrator.py's resume-check logic, which reads
+            these back in as `effective_existing_files` on a retried attempt
+            of the same build_id."""
+            if not current_files:
+                return
+            await db.build_files.delete_many({"build_id": build_id})
+            await db.build_files.insert_many([
+                BuildFile(build_id=build_id, path=path, content=content).model_dump()
+                for path, content in current_files.items()
+            ])
 
         async def _dead_letter(reason: str, error_msg: str, retry_count: int) -> None:
             await db.build_dead_letters.insert_one(
@@ -141,8 +176,9 @@ def run_build(
                 emit=emit,
                 sandbox_runner=sandbox,
                 conversation_history=conversation_history,
-                existing_files=existing_files,
+                existing_files=effective_existing_files,
                 template=template,
+                persist_files=persist_files,
             )
             await db.builds.update_one({"id": build_id}, {"$set": build.model_dump()})
 
@@ -204,14 +240,18 @@ def run_build(
         except Exception as e:
             max_retries = self.retry_kwargs.get("max_retries", 0)
             is_final_attempt = self.request.retries >= max_retries
-            made_progress = any(a.status == BuildStatus.SUCCESS for a in build.agents)
 
             # A user declining an interactive gate is a decision, not a
             # transient failure — retrying would rerun agents they cancelled.
             if isinstance(e, BuildCancelled):
                 is_final_attempt = True
 
-            if not made_progress and not is_final_attempt:
+            # Retry regardless of prior progress: run_build is now
+            # resume-aware (see BuildTask's docstring above), so a retry
+            # after partial success skips already-completed agents instead
+            # of wastefully -- and expensively -- re-running the whole
+            # pipeline from the Architect.
+            if not is_final_attempt:
                 raise self.retry(
                     exc=e,
                     countdown=self.retry_kwargs.get("countdown", 60),

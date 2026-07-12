@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 
 from api.admin import admin_required
+from api.auth import get_current_user
 from core.models import User
 from prompt_builder import PromptContext, get_prompt_builder, get_template_registry
 from prompt_builder.builder import PromptValidationError
@@ -35,7 +36,7 @@ class EstimateTokensRequest(BaseModel):
 
 
 @router.post("/build")
-async def build_prompt_endpoint(context: PromptContext) -> Dict[str, Any]:
+async def build_prompt_endpoint(context: PromptContext, user: User = Depends(get_current_user)) -> Dict[str, Any]:
     try:
         result = get_prompt_builder().build(context)
     except TemplateNotFoundError as exc:
@@ -46,7 +47,7 @@ async def build_prompt_endpoint(context: PromptContext) -> Dict[str, Any]:
 
 
 @router.post("/preview")
-async def preview_prompt(context: PromptContext) -> Dict[str, Any]:
+async def preview_prompt(context: PromptContext, user: User = Depends(get_current_user)) -> Dict[str, Any]:
     """Same as /build but explicitly a dry run: does not affect any usage or
     metrics counters (there are none in this pipeline today, but this
     endpoint is the contract that guarantees it stays that way)."""
@@ -60,7 +61,7 @@ async def preview_prompt(context: PromptContext) -> Dict[str, Any]:
 
 
 @router.post("/validate")
-async def validate_prompt(context: PromptContext) -> Dict[str, Any]:
+async def validate_prompt(context: PromptContext, user: User = Depends(get_current_user)) -> Dict[str, Any]:
     try:
         template = get_template_registry().get(context.agent_role, context.template_version)
     except TemplateNotFoundError as exc:
@@ -70,7 +71,9 @@ async def validate_prompt(context: PromptContext) -> Dict[str, Any]:
 
 
 @router.post("/estimate-tokens")
-async def estimate_tokens_endpoint(request: EstimateTokensRequest) -> Dict[str, Any]:
+async def estimate_tokens_endpoint(
+    request: EstimateTokensRequest, user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
     if request.context is not None:
         template = get_template_registry().get(request.context.agent_role, request.context.template_version)
         text = template.render(request.context)
@@ -80,7 +83,7 @@ async def estimate_tokens_endpoint(request: EstimateTokensRequest) -> Dict[str, 
 
 
 @router.get("/templates")
-async def list_templates() -> Dict[str, Any]:
+async def list_templates(admin: User = Depends(admin_required)) -> Dict[str, Any]:
     templates = get_template_registry().list()
     return {
         "templates": [
@@ -90,7 +93,7 @@ async def list_templates() -> Dict[str, Any]:
 
 
 @router.get("/templates/{role}/{version}")
-async def get_template(role: str, version: str) -> Dict[str, Any]:
+async def get_template(role: str, version: str, admin: User = Depends(admin_required)) -> Dict[str, Any]:
     try:
         template = get_template_registry().get(role, version)
     except TemplateNotFoundError as exc:

@@ -1,8 +1,9 @@
 import asyncio
 import json
+import logging
 import time
 import uuid
-from typing import Callable, Optional
+from typing import Awaitable, Callable, Optional
 from datetime import datetime
 
 from agents.architect import ArchitectAgent
@@ -20,6 +21,7 @@ from sandbox.moderation import scan_code
 from sandbox.csp import apply_csp
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 MAX_DEBUG_ITERATIONS = 3
 
@@ -46,6 +48,7 @@ class Orchestrator:
         conversation_history: list = None,
         existing_files: dict = None,
         template: Optional[str] = None,
+        persist_files: Optional[Callable[[dict], Awaitable[None]]] = None,
     ) -> tuple[Build, dict]:
 
         """
@@ -54,12 +57,27 @@ class Orchestrator:
 
         conversation_history / existing_files: prior build's architect exchange
         and generated files, when this build amends an existing project instead
-        of starting from scratch.
+        of starting from scratch. On a resumed (retried) build, `build.agents`
+        and `existing_files` may already carry a prior attempt's completed
+        steps and generated files -- see the `_recovered`/`resume_ok` checks
+        below, which skip re-running (and re-charging) any step that already
+        has a persisted SUCCESS record instead of restarting the whole
+        pipeline from the Architect. The PM/debug loop is never resumed at
+        sub-step granularity; it always restarts from PM validation.
+
+        persist_files: optional async fn(files) called after every point
+        `files` changes, so a caller (tasks/build_tasks.py) can persist
+        generated files incrementally instead of only once at the very end --
+        this is what makes resume possible after a crash mid-pipeline.
 
         Returns (build, files): build output no longer carries a `files` field
         (persisted separately in the build_files collection), so the generated
         files are returned alongside the build for the caller to persist.
         """
+        if persist_files is None:
+            async def persist_files(_files: dict) -> None:
+                return None
+
         files: dict = dict(existing_files) if existing_files else {}
         # Computed once per build (never cached on self -- this Orchestrator
         # instance is a shared singleton across every concurrent user's
@@ -78,176 +96,215 @@ class Orchestrator:
             ))
 
             # --- 1. ARCHITECT ---
-            await self._start_agent(build, AgentType.ARCHITECT, emit, skip_credits=byok_active)
+            architect_recovered, blueprint = self._try_recover_json(build, AgentType.ARCHITECT)
+            if architect_recovered:
+                logger.info("Build %s: resuming -- architect already SUCCESS, skipping.", build.id)
+            else:
+                await self._start_agent(build, AgentType.ARCHITECT, emit, skip_credits=byok_active)
 
-            # Interactive first builds: surface what's ambiguous about the
-            # idea and let the user answer before the blueprint is drawn.
-            # Follow-up builds already carry context in conversation_history.
-            if build.interactive and not conversation_history:
-                await emit(WSEvent(
-                    type=WSEventType.AGENT_UPDATE,
-                    build_id=build.id,
-                    data={"agent": "architect", "message": "Reviewing your idea for open questions"}
-                ))
-                questions = await self.architect.clarify(
+                # Interactive first builds: surface what's ambiguous about the
+                # idea and let the user answer before the blueprint is drawn.
+                # Follow-up builds already carry context in conversation_history.
+                if build.interactive and not conversation_history:
+                    await emit(WSEvent(
+                        type=WSEventType.AGENT_UPDATE,
+                        build_id=build.id,
+                        data={"agent": "architect", "message": "Reviewing your idea for open questions"}
+                    ))
+                    questions = await self.architect.clarify(
+                        build.prompt,
+                        user_id=build.user_id,
+                        build_id=build.id,
+                        project_id=build.project_id,
+                        template=template,
+                    )
+                    if questions:
+                        response = await self._wait_for_gate(
+                            build, emit, stage="clarify", agent="architect",
+                            kind="questions", questions=questions,
+                        )
+                        qa = [
+                            f"Q: {q}\nA: {a.strip()}"
+                            for q, a in zip(questions, response.get("answers") or [])
+                            if isinstance(a, str) and a.strip()
+                        ]
+                        if qa:
+                            conversation_history = list(conversation_history or [])
+                            conversation_history.append({
+                                "role": "user",
+                                "content": "Answers to the architect's clarifying questions:\n\n" + "\n\n".join(qa),
+                            })
+
+                blueprint = await self.architect.blueprint(
                     build.prompt,
+                    conversation_history=conversation_history,
                     user_id=build.user_id,
                     build_id=build.id,
                     project_id=build.project_id,
                     template=template,
                 )
-                if questions:
-                    response = await self._wait_for_gate(
-                        build, emit, stage="clarify", agent="architect",
-                        kind="questions", questions=questions,
-                    )
-                    qa = [
-                        f"Q: {q}\nA: {a.strip()}"
-                        for q, a in zip(questions, response.get("answers") or [])
-                        if isinstance(a, str) and a.strip()
-                    ]
-                    if qa:
-                        conversation_history = list(conversation_history or [])
-                        conversation_history.append({
-                            "role": "user",
-                            "content": "Answers to the architect's clarifying questions:\n\n" + "\n\n".join(qa),
-                        })
+                await self._complete_agent(build, AgentType.ARCHITECT, emit, output=json.dumps(blueprint))
 
-            blueprint = await self.architect.blueprint(
-                build.prompt,
-                conversation_history=conversation_history,
-                user_id=build.user_id,
-                build_id=build.id,
-                project_id=build.project_id,
-                template=template,
-            )
-            await self._complete_agent(build, AgentType.ARCHITECT, emit, output=json.dumps(blueprint))
-
-            await emit(WSEvent(
-                type=WSEventType.AGENT_UPDATE,
-                build_id=build.id,
-                data={"agent": "architect", "message": "Architecture blueprint created"}
-            ))
-
-            await emit(WSEvent(
-                type=WSEventType.AGENT_COMPLETE,
-                build_id=build.id,
-                data={"agent": "architect", "files_changed": []}
-            ))
-
-            await self._emit_output(build, "architect", emit, blueprint)
-            await self._wait_for_gate(build, emit, stage="architect", agent="architect")
-
-            # --- 2. BUSINESS MODEL ---
-            await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit, skip_credits=byok_active)
-            business_model = await self.business_model.improve(build.prompt, blueprint=blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
-            build.business_model = business_model
-            await self._complete_agent(
-                build, AgentType.BUSINESS_IMPROVER, emit, output=json.dumps(business_model)
-            )
-
-            await emit(WSEvent(
-                type=WSEventType.AGENT_UPDATE,
-                build_id=build.id,
-                data={"agent": "business_improver", "message": "Business model improvements ready"}
-            ))
-
-            await self._emit_output(build, "business_improver", emit, business_model)
-            await self._wait_for_gate(build, emit, stage="business_improver", agent="business_improver")
-
-            # --- 3. DESIGNER ---
-            await self._start_agent(build, AgentType.DESIGNER, emit, skip_credits=byok_active)
-            design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
-            await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design))
-
-            await emit(WSEvent(
-                type=WSEventType.AGENT_UPDATE,
-                build_id=build.id,
-                data={"agent": "designer", "message": "Design complete"},
-            ))
-
-            await self._emit_output(build, "designer", emit, design)
-            await self._wait_for_gate(build, emit, stage="designer", agent="designer")
-
-            # --- 4. DEVELOPER (with streaming) ---
-            await self._start_agent(build, AgentType.DEVELOPER, emit, skip_credits=byok_active)
-
-            await emit(WSEvent(
-                type=WSEventType.AGENT_PROGRESS,
-                build_id=build.id,
-                data={"agent": "developer", "progress": 0, "message": "Generating files"}
-            ))
-
-            stream_buffer = []
-            async def stream_token(chunk: str):
-                stream_buffer.append(chunk)
                 await emit(WSEvent(
-                    type=WSEventType.STREAM_TOKEN,
+                    type=WSEventType.AGENT_UPDATE,
                     build_id=build.id,
-                    data={"agent": "developer", "token": chunk}
+                    data={"agent": "architect", "message": "Architecture blueprint created"}
                 ))
 
-            files_result = await self.developer.generate_files(
-                blueprint, design, stream_callback=stream_token, existing_files=existing_files,
-                user_id=build.user_id, build_id=build.id, project_id=build.project_id,
-            )
-            files.update(files_result.get("files", {}))
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_COMPLETE,
+                    build_id=build.id,
+                    data={"agent": "architect", "files_changed": []}
+                ))
 
-            await self._complete_agent(
-                build, AgentType.DEVELOPER, emit,
-                output=f"Generated {len(files)} files",
-                files_changed=list(files_result.get("files", {}).keys())
-            )
+                await self._emit_output(build, "architect", emit, blueprint)
+                await self._wait_for_gate(build, emit, stage="architect", agent="architect")
 
-            await emit(WSEvent(
-                type=WSEventType.AGENT_UPDATE,
-                build_id=build.id,
-                data={"agent": "developer", "message": "Developer finished generating files"}
-            ))
+            resume_ok = architect_recovered
 
-            new_files = files_result.get("files", {})
-            # Previously followed by a second FILE_UPDATE shaped {"files":
-            # files} -- the frontend's file_update handler only ever
-            # understood that shape, not this one, so this delta event was
-            # silently dropped by parseWSEvent's validation and the
-            # redundant full-dict event was doing all the real work (WS-002).
-            # Both sides now agree on the delta shape; see wsContract.ts.
-            await emit(WSEvent(
-                type=WSEventType.FILE_UPDATE,
-                build_id=build.id,
-                data={"delta": {"changed": new_files, "deleted": []}}
-            ))
+            # --- 2. BUSINESS MODEL ---
+            bm_recovered, business_model = (resume_ok and self._try_recover_json(build, AgentType.BUSINESS_IMPROVER)) or (False, None)
+            if bm_recovered:
+                logger.info("Build %s: resuming -- business_model already SUCCESS, skipping.", build.id)
+                build.business_model = business_model
+            else:
+                await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit, skip_credits=byok_active)
+                business_model = await self.business_model.improve(build.prompt, blueprint=blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
+                build.business_model = business_model
+                await self._complete_agent(
+                    build, AgentType.BUSINESS_IMPROVER, emit, output=json.dumps(business_model)
+                )
+
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_UPDATE,
+                    build_id=build.id,
+                    data={"agent": "business_improver", "message": "Business model improvements ready"}
+                ))
+
+                await self._emit_output(build, "business_improver", emit, business_model)
+                await self._wait_for_gate(build, emit, stage="business_improver", agent="business_improver")
+
+            resume_ok = resume_ok and bm_recovered
+
+            # --- 3. DESIGNER ---
+            designer_recovered, design = (resume_ok and self._try_recover_json(build, AgentType.DESIGNER)) or (False, None)
+            if designer_recovered:
+                logger.info("Build %s: resuming -- designer already SUCCESS, skipping.", build.id)
+            else:
+                await self._start_agent(build, AgentType.DESIGNER, emit, skip_credits=byok_active)
+                design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
+                await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design))
+
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_UPDATE,
+                    build_id=build.id,
+                    data={"agent": "designer", "message": "Design complete"},
+                ))
+
+                await self._emit_output(build, "designer", emit, design)
+                await self._wait_for_gate(build, emit, stage="designer", agent="designer")
+
+            resume_ok = resume_ok and designer_recovered
+
+            # --- 4. DEVELOPER (with streaming) ---
+            developer_recovered = resume_ok and self._find_success_output(build, AgentType.DEVELOPER) is not None
+            if developer_recovered and not files:
+                logger.warning(
+                    "Build %s: developer step is SUCCESS but no files were recovered -- "
+                    "forcing a full regeneration to avoid an empty build.", build.id,
+                )
+                developer_recovered = False
+            if developer_recovered:
+                logger.info(
+                    "Build %s: resuming -- developer already SUCCESS, skipping generation "
+                    "(files recovered from persisted build_files).", build.id,
+                )
+            else:
+                await self._start_agent(build, AgentType.DEVELOPER, emit, skip_credits=byok_active)
+
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_PROGRESS,
+                    build_id=build.id,
+                    data={"agent": "developer", "progress": 0, "message": "Generating files"}
+                ))
+
+                stream_buffer = []
+                async def stream_token(chunk: str):
+                    stream_buffer.append(chunk)
+                    await emit(WSEvent(
+                        type=WSEventType.STREAM_TOKEN,
+                        build_id=build.id,
+                        data={"agent": "developer", "token": chunk}
+                    ))
+
+                files_result = await self.developer.generate_files(
+                    blueprint, design, stream_callback=stream_token, existing_files=existing_files,
+                    user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                )
+                files.update(files_result.get("files", {}))
+                await persist_files(files)
+
+                await self._complete_agent(
+                    build, AgentType.DEVELOPER, emit,
+                    output=f"Generated {len(files)} files",
+                    files_changed=list(files_result.get("files", {}).keys())
+                )
+
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_UPDATE,
+                    build_id=build.id,
+                    data={"agent": "developer", "message": "Developer finished generating files"}
+                ))
+
+                new_files = files_result.get("files", {})
+                # Previously followed by a second FILE_UPDATE shaped {"files":
+                # files} -- the frontend's file_update handler only ever
+                # understood that shape, not this one, so this delta event was
+                # silently dropped by parseWSEvent's validation and the
+                # redundant full-dict event was doing all the real work (WS-002).
+                # Both sides now agree on the delta shape; see wsContract.ts.
+                await emit(WSEvent(
+                    type=WSEventType.FILE_UPDATE,
+                    build_id=build.id,
+                    data={"delta": {"changed": new_files, "deleted": []}}
+                ))
 
 
-            await emit(WSEvent(
-                type=WSEventType.AGENT_PROGRESS,
-                build_id=build.id,
-                data={"agent": "developer", "progress": 100, "message": "Files generated"}
-            ))
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_PROGRESS,
+                    build_id=build.id,
+                    data={"agent": "developer", "progress": 100, "message": "Files generated"}
+                ))
 
+            resume_ok = resume_ok and developer_recovered
 
             # --- 5. INTEGRATION ---
             integrations = blueprint.get("integrations", [])
             if integrations:
-                await self._start_agent(build, AgentType.INTEGRATION, emit, skip_credits=byok_active)
-                int_result = await self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
-                files.update(int_result.get("files", {}))
-                await self._complete_agent(
-                    build, AgentType.INTEGRATION, emit,
-                output=int_result.get("instructions", ""),
-                    files_changed=list(int_result.get("files", {}).keys())
-                )
-                
-                await emit(WSEvent(
-                    type=WSEventType.AGENT_UPDATE,
-                    build_id=build.id,
-                    data={"agent": "integration", "message": "Integration complete"},
-                ))
+                integration_recovered = resume_ok and self._find_success_output(build, AgentType.INTEGRATION) is not None
+                if integration_recovered:
+                    logger.info("Build %s: resuming -- integration already SUCCESS, skipping.", build.id)
+                else:
+                    await self._start_agent(build, AgentType.INTEGRATION, emit, skip_credits=byok_active)
+                    int_result = await self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
+                    files.update(int_result.get("files", {}))
+                    await persist_files(files)
+                    await self._complete_agent(
+                        build, AgentType.INTEGRATION, emit,
+                    output=int_result.get("instructions", ""),
+                        files_changed=list(int_result.get("files", {}).keys())
+                    )
 
-                await self._emit_output(
-                    build, "integration", emit,
-                    {"instructions": int_result.get("instructions", "")},
-                )
+                    await emit(WSEvent(
+                        type=WSEventType.AGENT_UPDATE,
+                        build_id=build.id,
+                        data={"agent": "integration", "message": "Integration complete"},
+                    ))
+
+                    await self._emit_output(
+                        build, "integration", emit,
+                        {"instructions": int_result.get("instructions", "")},
+                    )
 
 
             # --- CONTENT SECURITY POLICY (generated apps) ---
@@ -276,7 +333,11 @@ class Orchestrator:
             # reports errors, the debugger (a specialized pass of the developer agent)
             # patches them, then PM re-validates, up to MAX_DEBUG_ITERATIONS times
             # before giving up.
-            iteration = 0
+            # Seeded from the build's lifetime debug-iteration counter (not
+            # reset to 0) so a build that crashes and resumes repeatedly
+            # can't accumulate an unbounded number of debug iterations by
+            # getting a fresh MAX_DEBUG_ITERATIONS budget on every retry.
+            iteration = build.debug_iterations
             validation = {}
             while True:
                 await self._start_agent(build, AgentType.PM, emit, skip_credits=byok_active)
@@ -329,6 +390,7 @@ class Orchestrator:
                     user_id=build.user_id, build_id=build.id, project_id=build.project_id,
                 )
                 files.update(patched.get("files", {}))
+                await persist_files(files)
                 await self._complete_agent(
                     build, AgentType.DEBUGGER, emit,
                     output=f"Patched {len(patched.get('files', {}))} files",
@@ -413,6 +475,17 @@ class Orchestrator:
         Polling the build document — rather than waiting on an in-process
         signal — keeps this working across processes: the API server that
         receives the response is not the Celery worker running this pipeline.
+
+        Resume trade-off: `_complete_agent` for a stage always runs before
+        that stage's `_wait_for_gate` call, so a crash mid-poll (after the
+        step is durably SUCCESS but before the user answered the gate) means
+        a resumed attempt will treat the stage as fully recovered and skip
+        calling this method entirely for that stage -- i.e. it silently
+        proceeds as if the gate had been auto-approved, rather than showing
+        it to the user again. This is an accepted limitation of resume, not
+        a bug: fixing it would require reordering gate-before-complete,
+        which changes the interactive-build UX (approve happens today only
+        after the user has seen the stage's output).
         """
         if not build.interactive:
             return {"action": "approve", "auto": True}
@@ -462,6 +535,34 @@ class Orchestrator:
         if response.get("action") == "cancel":
             raise BuildCancelled("Build cancelled by user")
         return response
+
+    def _find_success_output(self, build: Build, agent_type: AgentType) -> Optional[str]:
+        """First SUCCESS step's raw `output` for this agent type, if a prior
+        (possibly crashed) attempt already completed it -- used to skip
+        re-running a step on resume."""
+        for step in build.agents:
+            if step.agent == agent_type and step.status == BuildStatus.SUCCESS:
+                return step.output
+        return None
+
+    def _try_recover_json(self, build: Build, agent_type: AgentType) -> tuple[bool, Optional[dict]]:
+        """Like `_find_success_output`, but also JSON-decodes it (architect/
+        business_model/designer store their dict output as `json.dumps(...)`).
+        Never raises: a step recorded SUCCESS with output that fails to parse
+        is treated as not-yet-done so the pipeline safely re-runs it instead
+        of crashing or silently continuing with a broken value."""
+        output = self._find_success_output(build, agent_type)
+        if output is None:
+            return False, None
+        try:
+            return True, json.loads(output)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(
+                "Build %s: SUCCESS %s step output failed to JSON-parse on resume; "
+                "treating as not-yet-done and re-running.",
+                build.id, agent_type.value,
+            )
+            return False, None
 
     async def _is_byok_active(self, user_id: str) -> bool:
         """Pro+ users with a stored BYOK key skip credit costs (see the

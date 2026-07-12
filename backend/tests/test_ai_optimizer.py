@@ -165,6 +165,41 @@ async def test_response_cache_exact_match(fake_redis):
     assert cached["text"] == "4"
 
 
+async def test_response_cache_semantic_match_on_near_duplicate_prompt(fake_redis):
+    cache = ResponseCache(ttl_seconds=60, semantic_enabled=True, similarity_threshold=0.8)
+    original = [{"role": "user", "content": "please summarize this quarterly report for me"}]
+    rephrased = [{"role": "user", "content": "please summarize this quarterly report for me now"}]
+
+    await cache.set(original, "claude-sonnet-4-6", "anthropic", {"text": "summary"})
+    cached = await cache.get(rephrased, "claude-sonnet-4-6", "anthropic")
+
+    assert cached["text"] == "summary"
+    assert cache.stats()["semantic_hits"] == 1
+
+
+async def test_response_cache_semantic_match_disabled_by_default_flag(fake_redis):
+    cache = ResponseCache(ttl_seconds=60, semantic_enabled=False)
+    original = [{"role": "user", "content": "please summarize this quarterly report for me"}]
+    rephrased = [{"role": "user", "content": "please summarize this quarterly report for me now"}]
+
+    await cache.set(original, "claude-sonnet-4-6", "anthropic", {"text": "summary"})
+    cached = await cache.get(rephrased, "claude-sonnet-4-6", "anthropic")
+
+    assert cached is None
+    assert cache.stats()["semantic_hits"] == 0
+
+
+async def test_response_cache_semantic_match_rejects_dissimilar_prompt(fake_redis):
+    cache = ResponseCache(ttl_seconds=60, semantic_enabled=True, similarity_threshold=0.8)
+    original = [{"role": "user", "content": "please summarize this quarterly report for me"}]
+    unrelated = [{"role": "user", "content": "write a haiku about the ocean at sunset"}]
+
+    await cache.set(original, "claude-sonnet-4-6", "anthropic", {"text": "summary"})
+    cached = await cache.get(unrelated, "claude-sonnet-4-6", "anthropic")
+
+    assert cached is None
+
+
 def test_response_cache_refuses_streaming_and_tools_and_randomized():
     assert ResponseCache.is_cacheable(streaming=True, has_tools=False) is False
     assert ResponseCache.is_cacheable(streaming=False, has_tools=True) is False
@@ -239,6 +274,72 @@ async def test_optimize_request_skips_cache_for_streaming(fake_redis):
     assert cached is False
     result = await optimizer.optimize_request(messages=messages, provider="anthropic", model="claude-sonnet-4-6", streaming=True)
     assert result.response_cache_hit is False
+
+
+async def test_optimize_request_with_retrieval_prepends_relevant_chunks(fake_redis, monkeypatch):
+    from retrieval.models import RetrievedChunk, SourceType
+
+    async def fake_retrieve(query, *, top_k=3, org_id=None, project_id=None, **kwargs):
+        assert query == "how do I add auth?"
+        return [
+            RetrievedChunk(
+                id="c1", source_type=SourceType.DOCUMENTATION, source_id="doc-1",
+                text="Use JWT for auth.", score=0.95,
+            )
+        ]
+
+    class _FakeRetriever:
+        retrieve = staticmethod(fake_retrieve)
+
+    monkeypatch.setattr("retrieval.service.get_semantic_retriever", lambda: _FakeRetriever())
+
+    optimizer = AIOptimizer(config=OptimizerConfig(enabled=True))
+    messages = [{"role": "user", "content": "how do I add auth?"}]
+
+    result = await optimizer.optimize_request(
+        messages=messages, provider="anthropic", model="claude-sonnet-4-6", use_retrieval=True,
+    )
+
+    assert result.messages[0]["role"] == "system"
+    assert "Use JWT for auth." in result.messages[0]["content"]
+    assert result.messages[-1]["content"] == "how do I add auth?"
+
+
+async def test_optimize_request_retrieval_failure_does_not_break_request(fake_redis, monkeypatch):
+    class _FailingRetriever:
+        async def retrieve(self, *args, **kwargs):
+            raise RuntimeError("embeddings API down")
+
+    monkeypatch.setattr("retrieval.service.get_semantic_retriever", lambda: _FailingRetriever())
+
+    optimizer = AIOptimizer(config=OptimizerConfig(enabled=True))
+    messages = [{"role": "user", "content": "how do I add auth?"}]
+
+    result = await optimizer.optimize_request(
+        messages=messages, provider="anthropic", model="claude-sonnet-4-6", use_retrieval=True,
+    )
+
+    assert result.messages == messages
+
+
+async def test_optimize_request_without_retrieval_flag_skips_augmentation(fake_redis, monkeypatch):
+    calls = []
+
+    async def fake_retrieve(*args, **kwargs):
+        calls.append(1)
+        return []
+
+    class _FakeRetriever:
+        retrieve = staticmethod(fake_retrieve)
+
+    monkeypatch.setattr("retrieval.service.get_semantic_retriever", lambda: _FakeRetriever())
+
+    optimizer = AIOptimizer(config=OptimizerConfig(enabled=True))
+    messages = [{"role": "user", "content": "how do I add auth?"}]
+
+    await optimizer.optimize_request(messages=messages, provider="anthropic", model="claude-sonnet-4-6")
+
+    assert calls == []
 
 
 async def test_optimize_request_disabled_is_noop():
