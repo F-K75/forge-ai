@@ -5,96 +5,107 @@ retry:
   max_attempts: 2
   backoff_seconds: 0.25
 cache_ttl_seconds: 300
+# TEMPORARY: the paid anthropic/* models below require OpenRouter account
+# credits, which this account currently has none of (402 Insufficient
+# credits). Every agent_overrides entry below has been swapped to
+# OpenRouter's zero-cost `:free`-suffixed models so the app is usable
+# without a paid key. These are shared, rate-limited capacity (expect
+# occasional 429s under load) and lower quality than the Anthropic models
+# they replace. Once the OpenRouter account has credits, revert each
+# `model`/`model_fallbacks` pair below to the anthropic/claude-* value
+# (see git history on this file) to restore full quality.
 agent_overrides:
-  # Highest-reasoning (most expensive) tier: reserved only for the two
-  # agents whose output correctness has the largest blast radius --
-  # a wrong system design or wrong code both cascade into every
-  # downstream agent and the actual generated app. If opus is
-  # rate-limited/unavailable, fall back to sonnet then haiku rather than
-  # failing the whole request.
+  # Highest-reasoning tier: reserved only for the two agents whose output
+  # correctness has the largest blast radius -- a wrong system design or
+  # wrong code both cascade into every downstream agent and the actual
+  # generated app.
   architectagent:
     provider: openrouter
-    model: anthropic/claude-opus-4.8
+    model: openai/gpt-oss-120b:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
+      - openai/gpt-oss-20b:free
   developeragent:
     provider: openrouter
-    model: anthropic/claude-opus-4.8
+    model: openai/gpt-oss-120b:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
+      - openai/gpt-oss-20b:free
 
   # Mid tier: agents that need solid reasoning (decisions, execution,
   # cross-service integration, requirements writing) but whose mistakes
-  # are cheaper to catch/retry than architecture or code. Falls back to
-  # haiku if sonnet is unavailable.
+  # are cheaper to catch/retry than architecture or code.
   decisionengineagent:
     provider: openrouter
-    model: anthropic/claude-sonnet-5
+    model: openai/gpt-oss-20b:free
     model_fallbacks:
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
   taskexecutoragent:
     provider: openrouter
-    model: anthropic/claude-sonnet-5
+    model: openai/gpt-oss-20b:free
     model_fallbacks:
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
   businessanalystagent:
     provider: openrouter
-    model: anthropic/claude-sonnet-5
+    model: openai/gpt-oss-20b:free
     model_fallbacks:
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
   designeragent:
     provider: openrouter
-    model: anthropic/claude-sonnet-5
+    model: openai/gpt-oss-20b:free
     model_fallbacks:
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
   pmagent:
     provider: openrouter
-    model: anthropic/claude-sonnet-5
+    model: openai/gpt-oss-20b:free
     model_fallbacks:
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
   integrationagent:
     provider: openrouter
-    model: anthropic/claude-sonnet-5
+    model: openai/gpt-oss-20b:free
     model_fallbacks:
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
   prdwriteragent:
     provider: openrouter
-    model: anthropic/claude-sonnet-5
+    model: openai/gpt-oss-20b:free
     model_fallbacks:
-      - anthropic/claude-haiku-4.5
+      - nvidia/nemotron-3-super-120b-a12b:free
 
   # Fast/cheap tier: high-volume, mostly templated/structured-output
-  # generation where haiku-level reasoning is sufficient. Falls back up
-  # to sonnet only because there's no cheaper tier below haiku.
+  # generation.
   businessmodelagent:
     provider: openrouter
-    model: anthropic/claude-haiku-4.5
+    model: nvidia/nemotron-nano-9b-v2:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
+      - google/gemma-4-26b-a4b-it:free
+      - openai/gpt-oss-20b:free
   epicgeneratoragent:
     provider: openrouter
-    model: anthropic/claude-haiku-4.5
+    model: nvidia/nemotron-nano-9b-v2:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
+      - google/gemma-4-26b-a4b-it:free
+      - openai/gpt-oss-20b:free
   scrummasteragent:
     provider: openrouter
-    model: anthropic/claude-haiku-4.5
+    model: nvidia/nemotron-nano-9b-v2:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
+      - google/gemma-4-26b-a4b-it:free
+      - openai/gpt-oss-20b:free
   sprintplanneragent:
     provider: openrouter
-    model: anthropic/claude-haiku-4.5
+    model: nvidia/nemotron-nano-9b-v2:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
+      - google/gemma-4-26b-a4b-it:free
+      - openai/gpt-oss-20b:free
   taskgeneratoragent:
     provider: openrouter
-    model: anthropic/claude-haiku-4.5
+    model: nvidia/nemotron-nano-9b-v2:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
+      - google/gemma-4-26b-a4b-it:free
+      - openai/gpt-oss-20b:free
   storygeneratoragent:
     provider: openrouter
-    model: anthropic/claude-haiku-4.5
+    model: nvidia/nemotron-nano-9b-v2:free
     model_fallbacks:
-      - anthropic/claude-sonnet-5
+      - google/gemma-4-26b-a4b-it:free
+      - openai/gpt-oss-20b:free
