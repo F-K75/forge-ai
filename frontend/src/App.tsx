@@ -24,6 +24,7 @@ const SettingsPage    = lazy(() => import('./pages/SettingsPage'))
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
 const LLMManagementPage = lazy(() => import('./pages/LLMManagementPage'))
 const OptimizationDashboard = lazy(() => import('./pages/OptimizationDashboard'))
+const PromptStudioPage = lazy(() => import('./pages/PromptStudioPage'))
 // Step 3: in-shell surfaces
 const AdminConsole    = lazy(() => import('./pages/AdminConsole'))
 const ProjectHistory  = lazy(() => import('./pages/ProjectHistory'))
@@ -175,6 +176,7 @@ export default function App() {
             <Route path="/settings" element={<Suspense fallback={<RouteSkeleton />}><SettingsPage /></Suspense>} />
             <Route path="/llm-management" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><LLMManagementPage /></Suspense></AdminRoute>} />
             <Route path="/optimization-dashboard" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><OptimizationDashboard /></Suspense></AdminRoute>} />
+            <Route path="/prompt-studio" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><PromptStudioPage /></Suspense></AdminRoute>} />
             {/* Step 3: in-shell surfaces */}
             <Route path="/admin-console" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense></AdminRoute>} />
             <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />

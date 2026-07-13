@@ -229,6 +229,57 @@ export const optimizerApi = {
   pricing: () => api.get('/api/optimizer/pricing').then(r => r.data),
 }
 
+// Prompt Builder (templates are admin-only; preview/validate need auth only —
+// see backend/api/prompts.py, mounted under /v1)
+export interface PromptTemplatePayload {
+  role: string
+  version: string
+  identity: string
+  responsibilities: string[]
+  goals: string[]
+  constraints: string[]
+  required_inputs: string[]
+  output_format: string
+  quality_rules: string[]
+}
+
+export interface PromptContextPayload {
+  agent_role: string
+  task: string
+  user_request?: string
+  template_version?: string
+  relevant_files?: string[]
+  previous_outputs?: Record<string, string>
+  project_state?: {
+    project_name?: string
+    tech_stack?: string[]
+    architecture_summary?: string
+    current_milestone?: string
+    completed_tasks?: string[]
+    pending_tasks?: string[]
+    dependencies?: string[]
+    coding_standards?: string
+  }
+}
+
+export const promptsApi = {
+  templates: () => api.get('/v1/prompts/templates').then(r => r.data),
+  template: (role: string, version: string) =>
+    api.get(`/v1/prompts/templates/${role}/${version}`).then(r => r.data),
+  createTemplate: (data: PromptTemplatePayload) =>
+    api.post('/v1/prompts/templates', data).then(r => r.data),
+  updateTemplate: (role: string, version: string, data: PromptTemplatePayload) =>
+    api.put(`/v1/prompts/templates/${role}/${version}`, data).then(r => r.data),
+  deleteTemplate: (role: string, version: string) =>
+    api.delete(`/v1/prompts/templates/${role}/${version}`).then(r => r.data),
+  preview: (context: PromptContextPayload) =>
+    api.post('/v1/prompts/preview', context).then(r => r.data),
+  validate: (context: PromptContextPayload) =>
+    api.post('/v1/prompts/validate', context).then(r => r.data),
+  estimateTokens: (data: { text?: string; context?: PromptContextPayload }) =>
+    api.post('/v1/prompts/estimate-tokens', data).then(r => r.data),
+}
+
 // Budget Manager
 export const budgetsApi = {
   list: () => api.get('/api/budgets').then(r => r.data),
