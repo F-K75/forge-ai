@@ -11,7 +11,7 @@ OLLAMA_BASE_URL = "http://localhost:11434"
 
 class OllamaAdapter(BaseProviderAdapter):
     name = "ollama"
-    default_model = "llama3.2"
+    default_model = "llama3.1:8b"
 
     async def health_check(self) -> bool:
         url = f"{self.base_url or OLLAMA_BASE_URL}/api/tags"
