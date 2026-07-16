@@ -178,6 +178,11 @@ class Settings(BaseSettings):
     celery_broker_url: str = ""
     celery_result_backend: str = ""
 
+    # Google OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = ""
+
     # Security
     trusted_proxies: str = "127.0.0.1,::1"
     max_request_size: int = 10 * 1024 * 1024

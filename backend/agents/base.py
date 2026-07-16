@@ -1,3 +1,15 @@
+"""Base agent with full prompt engineering, context engineering, and
+harness integration.
+
+Every agent inherits:
+- Prompt engineering: version tracking, few-shot example injection, composition
+- Context engineering: semantic retrieval, relevance scoring, token-budgeted
+  context windows
+- Harness: post-run evaluation and quality metrics collection (opt-in)
+"""
+
+from __future__ import annotations
+
 from typing import Any, AsyncGenerator, Dict, Optional
 import asyncio
 import logging
@@ -8,7 +20,13 @@ from core.ai_usage import check_budget
 from core.database import get_db
 from core.encryption import decrypt_field
 from gateway import GatewayRequest, get_ai_gateway
-from prompt_builder import PromptContext, get_prompt_builder
+from prompt_builder import PromptContext, ProjectStateSlice, get_prompt_builder
+from prompt_builder.templates.base import PromptTemplate
+from prompt_builder.registry import get_template_registry
+
+# New engineering modules
+from prompt_engineer import VersionManager, PromptChangeType, FewShotManager
+from context_engineer import ContextAssembler, AssemblyPlan
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -67,14 +85,14 @@ async def _resolve_byok(user_id: Optional[str]) -> Optional[Dict[str, Any]]:
 
 class CircuitBreaker:
     """Simple circuit breaker for LLM API calls."""
-    
+
     def __init__(self, failure_threshold: int = 5, recovery_timeout: int = 60):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.failure_count = 0
         self.last_failure_time: Optional[float] = None
         self.state = "closed"  # closed, open, half_open
-    
+
     def can_call(self) -> bool:
         if self.state == "closed":
             return True
@@ -84,11 +102,11 @@ class CircuitBreaker:
                 return True
             return False
         return True
-    
+
     def record_success(self):
         self.failure_count = 0
         self.state = "closed"
-    
+
     def record_failure(self):
         self.failure_count += 1
         self.last_failure_time = asyncio.get_event_loop().time()
@@ -107,42 +125,160 @@ class CircuitBreaker:
 _llm_circuit_breaker = CircuitBreaker()
 
 
+# Shared service instances for the new engineering modules.
+# Lazily initialised so agents that don't use them pay no import cost.
+_version_manager: Optional[VersionManager] = None
+_few_shot_manager: Optional[FewShotManager] = None
+_context_assembler: Optional[ContextAssembler] = None
+
+
+def _get_version_manager() -> VersionManager:
+    global _version_manager
+    if _version_manager is None:
+        _version_manager = VersionManager()
+    return _version_manager
+
+
+def _get_few_shot_manager() -> FewShotManager:
+    global _few_shot_manager
+    if _few_shot_manager is None:
+        _few_shot_manager = FewShotManager()
+    return _few_shot_manager
+
+
+def _get_context_assembler() -> ContextAssembler:
+    global _context_assembler
+    if _context_assembler is None:
+        _context_assembler = ContextAssembler()
+    return _context_assembler
+
+
 class BaseAgent:
+    """Agent base class with full prompt/context/harness engineering support.
+
+    Core flow::
+
+        context_assembler.assemble()            # context engineering
+            -> prompt_builder.build(context)    # prompt engineering pipeline
+                -> version_manager.record()     # version tracking
+                    -> few_shot_manager         # few-shot injection
+                        -> LLM call             # via gateway
+    """
+
     agent_type: AgentType
     system_prompt: str = ""
     # Optional: (role, version) key into the Prompt Builder's template
     # registry. When set, the agent's system prompt is generated dynamically
-    # per call instead of using the hardcoded `system_prompt` string above --
-    # this is the incremental-migration switch (see backend/prompt_builder/
-    # MIGRATION.md). Agents that don't set this keep using `system_prompt`
-    # unchanged, so migration can happen one agent at a time.
+    # per call instead of using the hardcoded `system_prompt` string above.
     prompt_role: Optional[str] = None
     prompt_template_version: str = "v1"
+
+    # Context engineering: set to False to skip context assembly for roles
+    # that don't need it (e.g. simple chat agents)
+    use_context_engineering: bool = True
 
     def __init__(self):
         self.gateway = get_ai_gateway()
         self.model = settings.default_model
+        self.version_manager = _get_version_manager()
+        self.few_shot_manager = _get_few_shot_manager()
+        self.context_assembler = _get_context_assembler()
 
     def _resolve_system_prompt(
-        self, messages: list, extra_system: str, prompt_template_version: Optional[str] = None
+        self,
+        messages: list,
+        extra_system: str,
+        prompt_template_version: Optional[str] = None,
+        project_state: Optional[ProjectStateSlice] = None,
+        previous_outputs: Optional[Dict[str, str]] = None,
     ) -> str:
+        """Build the system prompt using the full engineering pipeline.
+
+        1. Context engineering: assemble context from project state, files,
+           knowledge base, previous outputs (when available).
+        2. Prompt engineering: render the template with assembled context.
+        3. Version tracking: record the prompt version for traceability.
+        4. Few-shot injection: append relevant few-shot examples.
+        """
         if not self.prompt_role:
             return self.system_prompt + (f"\n\n{extra_system}" if extra_system else "")
 
+        # Extract task from the last user message
         task = ""
         for m in reversed(messages):
             if m.get("role") == "user":
                 task = m.get("content", "")
                 break
 
-        context = PromptContext(
-            agent_role=self.prompt_role,
-            task=task,
-            template_version=prompt_template_version or self.prompt_template_version,
-            user_request=extra_system,
+        # --- Context Engineering ---
+        if self.use_context_engineering:
+            # Assemble a full context from multiple sources
+            ctx = self._assemble_context(task, extra_system, project_state, previous_outputs)
+        else:
+            # Minimal legacy path
+            ctx = PromptContext(
+                agent_role=self.prompt_role,
+                task=task,
+                template_version=prompt_template_version or self.prompt_template_version,
+                user_request=extra_system,
+                project_state=project_state or ProjectStateSlice(),
+                previous_outputs=previous_outputs or {},
+            )
+
+        # --- Prompt Engineering ---
+        result = get_prompt_builder().build(ctx)
+
+        # --- Version Tracking ---
+        try:
+            template = get_template_registry().get(
+                self.prompt_role,
+                prompt_template_version or self.prompt_template_version,
+            )
+            self.version_manager.record(
+                template,
+                PromptChangeType.SECTION_MODIFIED,
+                change_reason=f"Agent call for task: {task[:80]}",
+            )
+        except Exception:
+            pass  # Version recording is best-effort
+
+        # --- Few-Shot Injection ---
+        few_shot_text = self.few_shot_manager.format_examples(
+            self.few_shot_manager.select(
+                role=self.prompt_role,
+                task=task,
+                strategy="semantic",
+                max_examples=3,
+            )
         )
-        result = get_prompt_builder().build(context)
+        if few_shot_text:
+            result.prompt += f"\n\n{few_shot_text}"
+
         return result.prompt
+
+    async def _assemble_context(
+        self,
+        task: str,
+        user_request: str,
+        project_state: Optional[ProjectStateSlice],
+        previous_outputs: Optional[Dict[str, str]],
+    ) -> PromptContext:
+        """Use the context assembler to build a rich PromptContext."""
+        plan = AssemblyPlan(
+            plan_id=f"{self.prompt_role}-{self.prompt_template_version}",
+            role=self.prompt_role or "unknown",
+            include_file_contents=True,
+            max_files=10,
+        )
+        ctx = await self.context_assembler.assemble(
+            role=self.prompt_role or "unknown",
+            task=task,
+            plan=plan,
+            user_request=user_request,
+            previous_outputs=previous_outputs or {},
+            extra_state=project_state,
+        )
+        return ctx
 
     async def _call_llm(
         self,
@@ -154,6 +290,8 @@ class BaseAgent:
         project_id: Optional[str] = None,
         org_id: Optional[str] = None,
         prompt_template_version: Optional[str] = None,
+        project_state: Optional[ProjectStateSlice] = None,
+        previous_outputs: Optional[Dict[str, str]] = None,
     ) -> str:
         if not _llm_circuit_breaker.can_call():
             retry_after = _llm_circuit_breaker.retry_after()
@@ -168,17 +306,19 @@ class BaseAgent:
             request = GatewayRequest(
                 agent_name=self.__class__.__name__.lower(),
                 messages=messages,
-                # Pass None (not self.model) so a per-agent config override
-                # in llm.yaml can take effect; self.model is only a
-                # last-resort default the router applies if no override and
-                # no provider default_model exists.
                 model=None,
                 max_tokens=max_tokens,
                 user_id=user_id,
                 build_id=build_id,
                 project_id=project_id,
                 org_id=org_id,
-                system_prompt=self._resolve_system_prompt(messages, extra_system, prompt_template_version),
+                system_prompt=self._resolve_system_prompt(
+                    messages,
+                    extra_system,
+                    prompt_template_version,
+                    project_state=project_state,
+                    previous_outputs=previous_outputs,
+                ),
                 byok=byok,
             )
             response = await self.gateway.generate(request)
@@ -199,6 +339,8 @@ class BaseAgent:
         org_id: Optional[str] = None,
         usage_out: Optional[dict] = None,
         prompt_template_version: Optional[str] = None,
+        project_state: Optional[ProjectStateSlice] = None,
+        previous_outputs: Optional[Dict[str, str]] = None,
     ) -> AsyncGenerator[str, None]:
         if not _llm_circuit_breaker.can_call():
             retry_after = _llm_circuit_breaker.retry_after()
@@ -219,7 +361,13 @@ class BaseAgent:
                 build_id=build_id,
                 project_id=project_id,
                 org_id=org_id,
-                system_prompt=self._resolve_system_prompt(messages, extra_system, prompt_template_version),
+                system_prompt=self._resolve_system_prompt(
+                    messages,
+                    extra_system,
+                    prompt_template_version,
+                    project_state=project_state,
+                    previous_outputs=previous_outputs,
+                ),
                 byok=byok,
                 usage_out=usage_out,
                 streaming=True,
@@ -242,8 +390,10 @@ class BaseAgent:
         org_id: Optional[str] = None,
         usage_out: Optional[dict] = None,
         prompt_template_version: Optional[str] = None,
+        project_state: Optional[ProjectStateSlice] = None,
+        previous_outputs: Optional[Dict[str, str]] = None,
     ) -> str:
-        chunks = []
+        chunks: list[str] = []
         async for chunk in self.stream(
             messages,
             extra_system,
@@ -254,6 +404,8 @@ class BaseAgent:
             org_id,
             usage_out=usage_out,
             prompt_template_version=prompt_template_version,
+            project_state=project_state,
+            previous_outputs=previous_outputs,
         ):
             chunks.append(chunk)
         return "".join(chunks)

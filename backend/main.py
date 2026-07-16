@@ -35,6 +35,8 @@ from api.optimizer import router as optimizer_router
 from api.org_llm_policy import router as org_llm_policy_router
 from api.budget import router as budget_router
 from api.retrieval import router as retrieval_router
+from api.engineering import router as engineering_router
+from engineering_plugins import register_engineering_plugins
 from api.v1 import v1_router
 from core.database import close_connections
 from core.config import get_settings
@@ -123,6 +125,11 @@ async def lifespan(app: FastAPI):
         await get_llm_router().budget_manager.refresh_limits()
     except Exception:
         logger.warning("LLM agent override pre-warm failed; continuing with YAML/env config", exc_info=True)
+
+    # Register engineering plugins (few-shot injection, context budget tagging,
+    # version tracking, metrics annotation) into the prompt_builder pipeline.
+    # These run automatically on every prompt_builder.build() call.
+    register_engineering_plugins()
 
     # Best-effort, non-fatal schema/data migrations (DB-002). Each migration is
     # versioned and recorded in __forge_migrations; a failure is logged and
@@ -282,6 +289,7 @@ app.include_router(optimizer_router)
 app.include_router(org_llm_policy_router)
 app.include_router(budget_router)
 app.include_router(retrieval_router)
+app.include_router(engineering_router)
 
 
 @app.get("/health")
@@ -430,4 +438,86 @@ async def metrics():
         from core.metrics import update_optimizer_gauges
         update_optimizer_gauges()
         return Response(generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
-    return {"status": "metrics not enabled"}
+
+
+# ---- Engineering modules Prometheus metrics ----
+if PROMETHEUS_ENABLED:
+    from prometheus_client import Counter, Histogram
+
+    # Prompt engineering
+    prompt_version_changes_total = Counter(
+        "prompt_version_changes_total",
+        "Prompt template version changes recorded",
+        ["role", "change_type", "author"],
+        registry=registry,
+    )
+    prompt_optimizations_total = Counter(
+        "prompt_optimizations_total",
+        "Prompt optimization runs",
+        ["role", "success"],
+        registry=registry,
+    )
+    prompt_optimization_duration_seconds = Histogram(
+        "prompt_optimization_duration_seconds",
+        "Prompt optimization duration",
+        ["role"],
+        registry=registry,
+    )
+
+    # Context engineering
+    context_retrieval_chunks = Histogram(
+        "context_retrieval_chunks",
+        "Number of context chunks retrieved per request",
+        ["role"],
+        buckets=[0, 1, 2, 5, 10, 20, 50],
+        registry=registry,
+    )
+    context_assembly_duration_seconds = Histogram(
+        "context_assembly_duration_seconds",
+        "Context assembly duration",
+        ["role"],
+        registry=registry,
+    )
+
+    # Harness engineering
+    harness_evaluations_total = Counter(
+        "harness_evaluations_total",
+        "Harness evaluation runs",
+        ["role", "result"],
+        registry=registry,
+    )
+    harness_score = Histogram(
+        "harness_score",
+        "Harness evaluation scores distribution",
+        ["role"],
+        buckets=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        registry=registry,
+    )
+    harness_ab_tests_total = Counter(
+        "harness_ab_tests_total",
+        "A/B test runs",
+        ["role", "winner"],
+        registry=registry,
+    )
+
+    # Loop engineering
+    loop_iteration_count = Histogram(
+        "loop_iteration_count",
+        "Number of iterations in improvement loops",
+        ["role"],
+        buckets=[0, 1, 2, 3, 5, 10],
+        registry=registry,
+    )
+    loop_quality_delta = Histogram(
+        "loop_quality_delta",
+        "Quality improvement delta in improvement loops",
+        ["role"],
+        buckets=[-0.5, -0.2, -0.1, 0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5],
+        registry=registry,
+    )
+    loop_convergence_total = Counter(
+        "loop_convergence_total",
+        "Loop convergence outcomes",
+        ["role", "converged"],
+        registry=registry,
+    )

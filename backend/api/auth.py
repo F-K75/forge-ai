@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Union
 from datetime import datetime, timedelta
@@ -23,6 +24,8 @@ from auth import (
     create_refresh_token,
     decode_token,
 )
+from authlib.integrations.requests_client import OAuth2Session
+import json as json_module
 
 settings = get_settings()
 
@@ -1028,6 +1031,100 @@ async def verify_email(token: str):
     return {"ok": True}
 
 
+@router.get("/google")
+async def google_login(request: Request):
+    """Initiate Google OAuth flow."""
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise HTTPException(status_code=500, detail="Google OAuth is not configured")
+
+    client = OAuth2Session(
+        settings.google_client_id,
+        settings.google_client_secret,
+        scope="openid email profile",
+        redirect_uri=settings.google_redirect_uri,
+    )
+    auth_url, _ = client.create_authorization_url("https://accounts.google.com/o/oauth2/v2/auth")
+    return RedirectResponse(url=auth_url)
+
+
+@router.get("/google/callback")
+async def google_callback(request: Request, response: Response):
+    """Handle Google OAuth callback and redirect to frontend with tokens."""
+    code = request.query_params.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing authorization code")
+
+    client = OAuth2Session(
+        settings.google_client_id,
+        settings.google_client_secret,
+        redirect_uri=settings.google_redirect_uri,
+    )
+    try:
+        token = await client.fetch_token(
+            "https://oauth2.googleapis.com/token",
+            code=code,
+            grant_type="authorization_code",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch token: {str(e)}")
+
+    # Get user info from Google
+    user_info_client = OAuth2Session(settings.google_client_id, token=token)
+    user_info = await user_info_client.get("https://www.googleapis.com/oauth2/v2/userinfo")
+    if user_info.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to fetch user info")
+    
+    google_user = user_info.json()
+    email = google_user.get("email")
+    name = google_user.get("name")
+    picture = google_user.get("picture")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="No email provided by Google")
+
+    db = await get_db()
+    user_doc = await db.users.find_one({"email": email}, {"_id": 0})
+
+    if user_doc:
+        user = User(
+            id=user_doc["id"],
+            email=user_doc["email"],
+            name=user_doc["name"],
+            plan=user_doc.get("plan", PlanTier.FREE),
+            credits=user_doc.get("credits", 10),
+            avatar_url=user_doc.get("avatar_url"),
+        )
+    else:
+        user = User(
+            email=email,
+            name=name,
+            plan=PlanTier.FREE,
+            credits=10,
+            avatar_url=picture,
+        )
+        user_dict = user.model_dump()
+        user_dict["email_verified"] = True
+        try:
+            await db.users.insert_one(user_dict)
+        except Exception as e:
+            if hasattr(e, 'code') and e.code == 11000:
+                raise HTTPException(status_code=400, detail="Email already registered")
+            raise
+
+    access_token = create_access_token({"sub": user.id, "email": user.email})
+    refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
+
+    await _record_session(db, user.id, access_token, refresh_token, request)
+
+    # Prefer explicit Google frontend app URL if provided; otherwise fall back
+    # to settings.app_url. This avoids mismatches when frontend dev server
+    # runs on a different port than API/app URL config.
+    frontend_base = getattr(settings, "google_frontend_app_url", None) or settings.app_url
+    user_json = json_module.dumps(user.model_dump())
+    frontend_callback_url = f"{frontend_base}/google-callback?access_token={access_token}&refresh_token={refresh_token}&user={user_json}"
+    return RedirectResponse(url=frontend_callback_url)
+
+
 @router.post("/resend-verification")
 async def resend_verification(req: ResendVerificationRequest):
     """Send a new verification email. Needed because the original one may
@@ -1037,7 +1134,8 @@ async def resend_verification(req: ResendVerificationRequest):
     """
     db = await get_db()
 
-    allowed, remaining = await check_email_rate_limit(req.email, "resend_verification", db)
+    # Removed unused variable
+    allowed, _ = await check_email_rate_limit(req.email, "resend_verification", db)
     if not allowed:
         raise HTTPException(
             status_code=429,

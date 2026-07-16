@@ -19,11 +19,20 @@ from core.config import get_settings
 from core.database import get_db
 from sandbox.moderation import scan_code
 from sandbox.csp import apply_csp
+from harness.evaluator import PromptEvaluator
+from harness.metrics import MetricsCollector
+from harness.models import TestCase, TestSuite
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
 MAX_DEBUG_ITERATIONS = 3
+
+# Best-effort harness evaluation after each agent step.
+ENABLE_LOOP_ENGINEERING = settings.app_env == "development"
+
+_evaluator = PromptEvaluator()
+_metrics_collector = MetricsCollector()
 
 
 class BuildCancelled(Exception):
@@ -346,6 +355,7 @@ class Orchestrator:
                     build, AgentType.PM, emit,
                     output=json.dumps(validation)
                 )
+                await self._evaluate_agent_output(build.id, "pm", json.dumps(validation), emit)
                 await self._emit_output(build, "pm", emit, validation)
 
                 errors = list(sandbox_errors)
@@ -603,6 +613,44 @@ class Orchestrator:
             data={"agent": agent_type.value}
         ))
 
+    async def _evaluate_agent_output(self, build_id: str, agent: str, output: str, emit: Callable):
+        """Best-effort harness evaluation emitted as WS event when enabled."""
+        if not ENABLE_LOOP_ENGINEERING:
+            return
+        try:
+            suite = TestSuite(
+                suite_id=f"orch-{build_id}-{agent}",
+                role=agent,
+                template_version="v1",
+                cases=[
+                    TestCase(
+                        case_id=f"{agent}-non-empty",
+                        role=agent,
+                        task=output[:200],
+                        expected_output_patterns=[output[:50]] if output else [],
+                        expected_format="text",
+                    ),
+                ],
+            )
+            result = _evaluator.evaluate_suite(output, suite)
+            metrics = _metrics_collector.from_test_results(result.results)
+            await emit(WSEvent(
+                type=WSEventType.AGENT_UPDATE,
+                build_id=build_id,
+                data={
+                    "agent": agent,
+                    "message": "Harness evaluation",
+                    "harness": {
+                        "pass_rate": result.pass_rate,
+                        "format_compliance": metrics.format_compliance,
+                        "completeness": metrics.completeness,
+                        "relevance": metrics.relevance,
+                    },
+                },
+            ))
+        except Exception:
+            pass
+
     async def _complete_agent(
         self,
         build: Build,
@@ -618,6 +666,8 @@ class Orchestrator:
                 step.output = output
                 step.files_changed = files_changed or []
                 break
+
+        await self._evaluate_agent_output(build.id, agent_type.value, output, emit)
 
         await emit(WSEvent(
             type=WSEventType.AGENT_COMPLETE,

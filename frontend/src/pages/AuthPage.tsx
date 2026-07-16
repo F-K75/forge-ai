@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Chrome } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
+import { API_URL } from "../store/authStore";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
@@ -528,6 +529,28 @@ export default function AuthPage() {
                     Sign in <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                   </>
                 )}
+              </motion.button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-land-border" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-land-paper text-land-muted">Or continue with</span>
+                </div>
+              </div>
+
+              <motion.button
+                type="button"
+                onClick={() => {
+                  window.location.href = `${API_URL}/auth/google`
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full h-11 rounded-md border border-land-border bg-land-paper text-land-ink text-sm font-medium hover:bg-land-border/30 transition inline-flex items-center justify-center gap-2"
+              >
+                <Chrome className="w-4 h-4" aria-hidden="true" />
+                Google
               </motion.button>
 
               <p className="mt-2 text-xs text-land-muted text-center leading-relaxed">

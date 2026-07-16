@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { api, authApi } from '../lib/api'
 import { LIVE_MODE } from '../lib/env'
 
+export const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
+
 export interface User {
   id: string
   email: string
@@ -36,6 +38,7 @@ interface AuthState {
   register: (email: string, name: string, password: string) => Promise<void>
   logout: () => Promise<void>
   fetchMe: () => Promise<void>
+  googleLogin: () => Promise<void>
 }
 
 // Demo mode has no backend to authenticate against — this stands in for a
@@ -68,6 +71,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       return { mfaRequired: true, mfaToken: res.data.mfa_token }
     }
     set({ user: res.data.user, isAuthenticated: true, isLoading: false })
+  },
+
+  googleLogin: async () => {
+    if (!LIVE_MODE) {
+      set({ user: demoUser(), isAuthenticated: true, isLoading: false })
+      return
+    }
+    // Use full-page redirect instead of popup to avoid cross-origin issues.
+    window.location.href = `${API_URL}/auth/google`
   },
 
   verifyMfa: async (mfaToken: string, code: string) => {

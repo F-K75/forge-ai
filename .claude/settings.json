@@ -115,7 +115,25 @@
       "Bash(kill -9 9784)",
       "Bash(awk '{print $9, $2}')",
       "Bash(uniq -c -w5)",
-      "Bash(awk '{print $9}')"
+      "Bash(awk '{print $9}')",
+      "Bash(grep -nE \"sk-[a-zA-Z0-9]{20,}|sk_live_|sk_test_|AKIA[0-9A-Z]{16}|-----BEGIN|password[[:space:]]*=[[:space:]]*['\\\\\"][^'\\\\\"]{6,}\")",
+      "Bash(git commit -m ' *)",
+      "Bash(git restore *)",
+      "Bash(cp scripts/git-hooks/pre-commit .git/hooks/pre-commit)",
+      "Bash(chmod +x .git/hooks/pre-commit)",
+      "Bash(bash -n .git/hooks/pre-commit)",
+      "Bash(bash -c ' *)",
+      "Bash(gh pr create --base main --head claude/ui-redesign-and-backend-fixes --title 'Minimalist Projects/Initiatives redesign + AI Gateway runtime fixes' --body ' *)",
+      "Bash(brew install *)",
+      "Bash(curl -s https://api.github.com/repos/cli/cli/releases/latest)",
+      "Bash(curl -sL -o gh.zip https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_macOS_arm64.zip)",
+      "Bash(unzip -o -q gh.zip)",
+      "Bash(mkdir -p ~/.local/bin)",
+      "Bash(cp /private/tmp/claude-501/-Users-keshav-forge-ai/c96e5296-744b-4417-9396-afc08e097dab/scratchpad/gh_2.96.0_macOS_arm64/bin/gh ~/.local/bin/gh)",
+      "Bash(chmod +x ~/.local/bin/gh)",
+      "Bash(~/.local/bin/gh --version)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)"
     ]
   }
 }

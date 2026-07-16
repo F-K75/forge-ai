@@ -12,6 +12,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
+const GoogleCallback = lazy(() => import('./pages/GoogleCallback'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 // App shell + routed pages (step 1)
@@ -153,6 +154,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><ForgotPassword /></Suspense></PublicRoute></ErrorBoundary>} />
           <Route path="/reset-password" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><ResetPassword /></Suspense></PublicRoute></ErrorBoundary>} />
           <Route path="/verify-email" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><VerifyEmail /></Suspense></ErrorBoundary>} />
+          <Route path="/google-callback" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><GoogleCallback /></Suspense></ErrorBoundary>} />
           <Route path="/onboarding" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ErrorBoundary>} />
 
           {/* Launch — public entry splash; already-authenticated visitors are bounced straight to /projects by PublicRoute */}
