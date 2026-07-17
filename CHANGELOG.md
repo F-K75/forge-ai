@@ -1,5 +1,64 @@
 # Changelog
 
+## 2026-07-17 — AI Gateway runtime: prompt/context engineering, harness, loop engineer + Google OAuth (P0/P1)
+
+### Features Added
+
+**Added the "AI Gateway" runtime that systematically improves the prompts and
+context every agent receives, plus Google OAuth login on the frontend.**
+
+- **`backend/prompt_builder/`** — provider-agnostic, dynamic prompt assembly.
+  Agents declare a `prompt_role`; `BaseAgent._resolve_system_prompt`
+  (`backend/agents/base.py`) builds the system prompt from versioned role
+  templates (`templates/<role>_v1.py`) filtered by `context_selector`,
+  validated by `validator`, and served via `api/prompts.py`
+  (`POST /prompts/build|preview|validate|estimate-tokens`,
+  `/prompts/templates/...`). See `backend/prompt_builder/README.md` and
+  `MIGRATION.md`.
+- **`backend/prompt_engineer/`** — prompt composer, few-shot management,
+  versioned prompt history, and an optimization pass.
+- **`backend/context_engineer/`** — retriever + scorer for relevant project
+  state, `window_manager` for bounded context, `assembler` for the final
+  context payload.
+- **`backend/optimizer/`** — prompt/response caching, context optimization,
+  cost and token estimation.
+- **`backend/retrieval/`** — embeddings + vector index for semantic search.
+- **`backend/harness/`** — prompt evaluator, A/B test, regression, benchmark,
+  and metrics for offline quality measurement.
+- **`backend/loop_engineer/`** — controller that drives iterative prompt
+  improvement (measure → propose → evaluate → adopt).
+- **`backend/gateway/`** — service, guardrails, and audit wrapping outbound
+  LLM calls.
+- **`backend/api/engineering.py`** (`/engineering`) — unified REST surface for
+  all of the above; `backend/engineering_plugins.py` and
+  `backend/engineering_repository.py` wire it into the build/PM pipelines.
+- **Frontend Google OAuth** — `frontend/src/pages/GoogleCallback.tsx`,
+  `frontend/src/store/authStore.ts` updates, and `backend/api/auth.py`
+  (`GET /auth/google`, `GET /auth/google/callback`). Config via
+  `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`.
+
+### Files Changed
+
+- New backend modules: `prompt_engineer/`, `context_engineer/`, `harness/`,
+  `loop_engineer/`, `gateway/`, `optimizer/`, `retrieval/`,
+  `engineering_plugins.py`, `engineering_repository.py`, `api/engineering.py`.
+- `backend/agents/base.py`, `backend/core/orchestrator.py`,
+  `backend/core/config.py`, `backend/main.py` — Prompt Builder integration.
+- `backend/api/auth.py`, `frontend/src/App.tsx`, `frontend/src/pages/AuthPage.tsx`,
+  `frontend/src/pages/GoogleCallback.tsx`, `frontend/src/store/authStore.ts`.
+- `.env.example` — added Google OAuth variables.
+
+### Validation
+
+- New test modules: `test_prompt_engineer.py`, `test_context_engineer.py`,
+  `test_harness.py`, `test_loop_engineer.py`.
+- Backend test suite: **376 passed, 0 failed** ✅
+
+### Migration notes
+
+- No action required. The Prompt Builder coexists with legacy `system_prompt`
+  strings indefinitely; both mechanisms are supported.
+
 ## 2026-07-09 — Test coverage enforcement with CI gate (P1)
 
 ### Features Added

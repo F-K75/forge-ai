@@ -32,6 +32,8 @@ WebSockets authenticate with a short-lived token from `POST /auth/ws-token`.
 | POST | `/auth/forgot-password` / `/auth/reset-password` | Password reset flow |
 | GET | `/auth/verify-email` · POST `/auth/resend-verification` | Email verification |
 | POST/GET | `/auth/organizations` … | Organizations: create, list, invite, accept invitation, members, roles |
+| GET | `/auth/google` | Initiate Google OAuth flow (500 if unconfigured) |
+| GET | `/auth/google/callback` | Google OAuth callback, issues tokens and redirects to frontend |
 
 ## Builds — `/builds`
 
@@ -102,6 +104,31 @@ spending.
 `GET /providers`, `GET /models`, `GET /usage`, `GET /health`, `POST /test`,
 `PUT /agent/{agent}` (per-agent model override, persisted in DB),
 `POST /reload` (refresh override cache).
+
+## Prompt Builder — `/prompts`
+
+`POST /prompts/build|preview|validate|estimate-tokens`, `GET /prompts/templates`,
+`GET/POST/PUT/DELETE /prompts/templates/{role}/{version}` (write ops admin-gated).
+Assembles every agent's system prompt dynamically from versioned role templates.
+
+## Prompt / Context / Harness / Loop engineering — `/engineering`
+
+Unified surface for the AI Gateway runtime (`api/engineering.py`):
+
+| Group | Endpoints |
+|---|---|
+| Versions | `GET /engineering/versions/{role}/{version}`, `POST /engineering/versions/rollback`, `POST /engineering/versions/diff` |
+| Prompt Engineer | `POST /engineering/optimize`, `GET/POST /engineering/few-shot[/{role}]`, `POST /engineering/few-shot/select`, `POST /engineering/compose` |
+| Context Engineer | `POST /engineering/context/assemble`, `GET /engineering/context/sources` |
+| Harness | `POST /engineering/evaluate`, `POST /engineering/ab-test`, `POST /engineering/regression`, `POST /engineering/metrics`, `POST /engineering/benchmark` |
+| Loop Engineer | `POST /engineering/loop/improve`, `GET /engineering/loop/config` |
+| Metrics | `GET /engineering/metrics/prompt-quality`, `GET /engineering/metrics/loop-summary`, `GET /engineering/metrics/agent-stats` |
+
+## Optimizer & Retrieval — `/optimizer`, `/retrieval`
+
+`/optimizer/*` (prompt/response caching, cost & token estimation, context
+optimization) and `/retrieval/*` (embeddings + vector index for semantic
+context search) back the AI Gateway runtime above.
 
 ## Operational endpoints (unversioned)
 

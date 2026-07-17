@@ -1,7 +1,11 @@
 # Implementation Plan: Test Coverage Enforcement (P1)
 
+> **Status: COMPLETED (2026-07-09).** Coverage enforcement (`fail_under = 60`)
+> shipped in `backend/pyproject.toml` with a CI gate in `.github/workflows/ci.yml`.
+> See the matching CHANGELOG entry. This file is retained for historical context.
+
 ## Problem
-The backend has 450 tests but no coverage measurement or enforcement. Untested code paths (especially error handlers, fallback paths, and security controls) could regress without detection.
+The backend had 450 tests but no coverage measurement or enforcement. Untested code paths (especially error handlers, fallback paths, and security controls) could regress without detection.
 
 ## Root Cause
 `pytest.ini` and `pyproject.toml` have no `--cov` configuration. CI runs tests without coverage flags.

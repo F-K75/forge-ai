@@ -31,10 +31,11 @@
 - GDPR compliance (data export, cascade deletion)
 - Marketplace for sharing templates/components
 - Webhook system with SSRF protection
+- AI Gateway runtime: Prompt Builder (dynamic per-role prompts), Prompt/Context Engineer, Optimizer (prompt/response caching), Retrieval (embeddings), Harness (evaluate/ab-test/regression/benchmark), Loop Engineer (iterative prompt improvement)
 
 ## 2. Feature Inventory
 
-- [x] **Authentication**: JWT-based, email/password + OAuth (GitHub), MFA (TOTP), refresh tokens, JTI blacklist, per-email rate limits
+- [x] **Authentication**: JWT-based, email/password + OAuth (GitHub, Google), MFA (TOTP), refresh tokens, JTI blacklist, per-email rate limits
 - [x] **Build Pipeline**: Multi-agent LLM orchestration, Celery async execution, WebSocket streaming, sandbox validation, content moderation, CSP injection
 - [x] **Billing**: Stripe + Razorpay, subscription tiers, credit purchases, webhook idempotency
 - [x] **Admin**: User management, credit adjustments, audit log viewer, dead letter queue
@@ -44,14 +45,14 @@
 - [x] **Security**: CSRF (JTI-based), CSP headers, prompt injection detection (pattern + LLM), path traversal prevention, SSRF protection (webhooks + BYOK), secret scanning CI
 - [x] **Observability**: Prometheus metrics (HTTP + build), Sentry error tracking, detailed health endpoints, request correlation IDs, connection pool monitoring
 - [x] **Infrastructure**: Docker Compose (dev + prod), K8s manifests (backend/frontend/mongo/redis/orchestrator/monitoring/ingress), CI/CD pipelines, MongoDB backup with integrity verification, DR runbook
-- [x] **Testing**: 450 backend tests (8 skipped), 20 frontend tests, secret scanning, pip-audit, lint
+- [x] **Testing**: backend test suite (grows with new modules — 376 passing at last report), frontend Vitest suite, secret scanning, pip-audit, lint, coverage gate (`fail_under = 60`)
 
 ## 3. Current Test Suite Health
 
 | Suite | Count | Status |
 |-------|-------|--------|
-| Backend tests | 450 passed, 8 skipped | ✅ Green |
-| Frontend tests | 20 tests (Vitest) | ✅ Green |
+| Backend tests | 376 passed, 0 failed (suite grows with new modules) | ✅ Green |
+| Frontend tests | Vitest suite (grows with new components) | ✅ Green |
 | Frontend build | tsc + Vite | ✅ Green |
 | pytest coverage | Not configured | ⚠️ Missing |
 | E2E tests | 0 | ❌ Missing |

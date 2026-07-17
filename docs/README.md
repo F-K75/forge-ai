@@ -27,6 +27,8 @@ else is historical or component-local.
 |---|---|
 | [`../orchestrator/README.md`](../orchestrator/README.md) | Review Board service: agent JSON schema, API, provider abstraction |
 | [`../orchestration/README.md`](../orchestration/README.md) | Meta-orchestration workflow engine (internal tooling) |
+| [`../backend/prompt_builder/README.md`](../backend/prompt_builder/README.md) | AI Gateway: dynamic Prompt Builder (per-role templates + context selection) |
+| [`../backend/prompt_builder/MIGRATION.md`](../backend/prompt_builder/MIGRATION.md) | How agents migrated to the Prompt Builder |
 | [`../k8s/README.md`](../k8s/README.md) | Why the k8s manifests are **not** the live deploy path |
 
 ## Historical / audit trail

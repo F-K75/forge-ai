@@ -6,7 +6,7 @@ design system, code, integrations, and QA validation, streamed live to the
 browser.
 
 This document describes the platform as it exists in the code (verified
-2026-07-09).
+2026-07-17).
 
 ## Services
 
@@ -57,11 +57,45 @@ reports. Tasks can be linked to GitHub and executed by a task-executor agent.
 ## LLM provider layer
 
 `backend/providers/` implements adapters for Anthropic, OpenAI, OpenRouter,
-Gemini, Groq, Together, Mistral, and Ollama. `core/llm/router.py` routes each
-agent to a model using YAML/env config plus DB-backed per-agent overrides
-(managed at runtime through `/api/llm/agent/{agent}` and `/api/llm/reload`).
-BYOK (bring-your-own-key) is supported for Pro+ users. AI usage and cost are
-tracked (`core/ai_usage.py`) with daily budget enforcement.
+Gemini, Groq, Together, Mistral, Azure OpenAI, and Ollama. `core/llm/router.py`
+routes each agent to a model using YAML/env config plus DB-backed per-agent
+overrides (managed at runtime through `/api/llm/agent/{agent}` and
+`/api/llm/reload`). BYOK (bring-your-own-key) is supported for Pro+ users.
+AI usage and cost are tracked (`core/ai_usage.py`) with daily budget
+enforcement (`api/budget.py`) and org-level LLM policy controls
+(`api/org_llm_policy.py`).
+
+## AI Gateway runtime (prompt & context engineering)
+
+On top of the provider layer, Forge ships an "AI Gateway" that systematically
+improves the prompts and context each agent receives. It is exposed through the
+`/engineering` REST API (`api/engineering.py`) and persistence in
+`engineering_repository.py`.
+
+- **Prompt Builder** (`prompt_builder/`): provider-agnostic, dynamic prompt
+  assembly. Every agent declares a `prompt_role`; `BaseAgent._resolve_system_prompt`
+  builds the system prompt from templates (`templates/<role>_v1.py`) filtered by
+  `context_selector`, validated by `validator`, and registered via `registry`.
+  REST surface: `POST /prompts/build|preview|validate|estimate-tokens`,
+  `GET/POST/PUT/DELETE /prompts/templates/{role}/{version}` (`api/prompts.py`).
+- **Prompt Engineer** (`prompt_engineer/`): composes prompts, manages
+  few-shot examples, versioned prompt history (`versioning.py`), and an
+  optimizer pass.
+- **Context Engineer** (`context_engineer/`): `retriever` + `scorer` pull
+  relevant project state, `window_manager` assembles a bounded context window,
+  `assembler` produces the final context payload.
+- **Optimizer** (`optimizer/`): prompt/response caching (`prompt_cache`,
+  `response_cache`), `context_optimizer`, `cost_estimator`, `token_estimator`.
+- **Retrieval** (`retrieval/`): embeddings + vector `index` for semantic
+  context search.
+- **Harness** (`harness/`): prompt `evaluator`, `ab_test`, `regression`,
+  `benchmark`, and `metrics` for offline quality measurement.
+- **Loop Engineer** (`loop_engineer/`): `controller` drives iterative prompt
+  improvement (measure → propose → evaluate → adopt).
+- **Gateway** (`gateway/`): `service`, `guardrails`, and `audit` wrap outbound
+  LLM calls.
+
+`engineering_plugins.py` wires these into the build/PM pipelines.
 
 ## Backend cross-cutting concerns (`backend/main.py`, `backend/core/`)
 
@@ -73,7 +107,8 @@ tracked (`core/ai_usage.py`) with daily budget enforcement.
   protection (JTI-based, `X-CSRF-Token`), TrustedHost, CORS.
 - **Auth** (`api/auth.py`, `auth.py`): JWT access+refresh with JTI blacklist,
   MFA (TOTP), session management, email verification, password reset, GitHub
-  OAuth, and organizations with member roles/invitations.
+  OAuth, Google OAuth (`/auth/google`, `/auth/google/callback`), and
+  organizations with member roles/invitations.
 - **Field-level encryption** (`core/encryption.py`): sensitive tokens are
   encrypted with an independent `FIELD_ENCRYPTION_KEY` (rotation runbook:
   `docs/FIELD_ENCRYPTION_KEY_ROTATION.md`).

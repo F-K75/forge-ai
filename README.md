@@ -11,8 +11,14 @@ User prompt
     │
     ▼
 ┌─────────────────────────────────────────────┐
-│              Orchestrator                   │
+│            Backend API (FastAPI)             │
+│  ┌───────────────────────────────────────┐  │
+│  │  AI Gateway runtime                     │  │
+│  │  Prompt Builder → prompt/context eng.   │  │
+│  │  Optimizer → harness → loop engineer     │  │
+│  └───────────────────────────────────────┘  │
 │                                             │
+│  Build pipeline:                            │
 │  1. Architect      → blueprint (JSON)       │
 │  2. Designer       → design system (JSON)   │
 │  3. Developer      → all code files         │
@@ -21,10 +27,14 @@ User prompt
 │  6. Business Model → pricing / monetization │
 │         │                                   │
 │         └─► Debug loop (max 3×)             │
+│                                             │
+│  Agile PM pipeline:                        │
+│  BA → PRD → Epics → Stories → Tasks →      │
+│  Sprint Planner → Scrum Master             │
 └─────────────────────────────────────────────┘
     │
     ▼
-GitHub sync + containerized deploy
+Celery worker → GitHub sync + containerized deploy
 ```
 
 **Generated tech stack (for user apps):**
@@ -36,6 +46,7 @@ GitHub sync + containerized deploy
 
 **Platform tech stack:**
 - Backend: FastAPI + Python + Motor + Redis + Celery
+- AI Gateway: Prompt Builder, Prompt/Context Engineer, Optimizer, Harness, Loop Engineer, multi-provider LLM router (Anthropic, OpenAI, OpenRouter, Gemini, Groq, Together, Mistral, Azure, Ollama)
 - Frontend: React + Vite + Zustand + Monaco Editor + React Router
 - DB: MongoDB (project/build/billing storage)
 - Realtime: WebSockets (build event streaming)
@@ -45,104 +56,89 @@ GitHub sync + containerized deploy
 ```
 .
 ├── backend/
-│   ├── agents/
-│   │   ├── base.py              # BaseAgent with LLM streaming
-│   │   ├── architect.py         # Prompt → blueprint JSON
-│   │   ├── designer.py          # Blueprint → design system
-│   │   ├── developer.py         # Blueprint + design → all code files
-│   │   ├── integration.py       # API connectors (Stripe, Slack, etc)
-│   │   ├── pm.py                # QA validation
-│   │   └── business_model.py    # Pricing / monetization logic
+│   ├── agents/                 # Build + Agile PM agents (all use the Prompt Builder)
+│   │   ├── base.py             # BaseAgent with LLM streaming + prompt_role
+│   │   ├── architect.py        # Prompt → blueprint JSON
+│   │   ├── designer.py         # Blueprint → design system
+│   │   ├── developer.py        # Blueprint + design → all code files
+│   │   ├── integration.py      # API connectors (Stripe, Slack, etc)
+│   │   ├── pm.py               # QA validation (product_manager role)
+│   │   ├── business_model.py   # Pricing / monetization logic
+│   │   ├── business_analyst.py / prd_writer.py
+│   │   ├── epic_generator.py / story_generator.py / task_generator.py
+│   │   ├── sprint_planner.py / scrum_master.py / task_executor.py
+│   │   └── decision_engine.py
 │   ├── api/
-│   │   ├── builds.py            # POST /builds, GET, WebSocket
-│   │   ├── projects.py          # CRUD for projects
-│   │   ├── auth.py              # JWT + OAuth routes
-│   │   ├── billing.py           # Stripe subscriptions + invoices
-│   │   ├── admin.py             # Admin console routes
-│   │   ├── analytics.py         # Usage + revenue analytics
-│   │   ├── marketplace.py       # Playbook / template marketplace
-│   │   ├── growth.py            # Referrals + onboarding
-│   │   ├── api_keys.py          # API key management
-│   │   ├── webhooks.py          # Stripe / external webhooks
-│   │   ├── gdpr.py              # Data export / deletion
-│   │   └── deployments.py       # GitHub + cloud deploy
+│   │   ├── builds.py           # POST /builds, GET, WebSocket
+│   │   ├── projects.py         # CRUD for projects
+│   │   ├── auth.py             # JWT + GitHub + Google OAuth routes
+│   │   ├── billing.py / razorpay.py  # Stripe + Razorpay subscriptions
+│   │   ├── admin.py            # Admin console routes
+│   │   ├── analytics.py        # Usage + revenue analytics
+│   │   ├── marketplace.py      # Playbook / template marketplace
+│   │   ├── growth.py           # Referrals + onboarding
+│   │   ├── api_keys.py         # API key management
+│   │   ├── webhooks.py         # Stripe / external webhooks
+│   │   ├── gdpr.py             # Data export / deletion
+│   │   ├── deployments.py      # GitHub + cloud deploy
+│   │   ├── prompts.py          # Prompt Builder REST API
+│   │   ├── engineering.py      # Prompt/Context/Harness/Loop engineering API
+│   │   ├── optimizer.py / retrieval.py / llm.py
+│   │   ├── initiatives.py / epics.py / stories.py / tasks.py / sprints.py / releases.py
+│   │   └── agent_executions.py / org_llm_policy.py / budget.py / support.py
 │   ├── core/
-│   │   ├── config.py            # Settings from env
-│   │   ├── database.py          # MongoDB + Redis connections
-│   │   ├── models.py            # Pydantic models
-│   │   ├── security.py          # Rate limiting, CORS, CSRF
-│   │   ├── encryption.py        # Field-level encryption
-│   │   └── orchestrator.py      # Build pipeline coordination
-│   ├── sandbox/
-│   │   └── runner.py            # Syntax / import check generated code
-│   ├── services/
-│   │   ├── ws_manager.py        # WebSocket connection manager
-│   │   └── webhook.py           # Incoming webhook handlers
-│   ├── auth.py                  # JWT auth utilities
-│   ├── celery_app.py            # Celery worker (build + deploy tasks)
-│   └── main.py                  # FastAPI app
+│   │   ├── config.py           # Settings from env
+│   │   ├── database.py         # MongoDB + Redis connections
+│   │   ├── models.py           # Pydantic models
+│   │   ├── security.py         # Rate limiting, CORS, CSRF
+│   │   ├── encryption.py       # Field-level encryption
+│   │   ├── orchestrator.py     # Build pipeline coordination
+│   │   ├── pm_orchestrator.py  # Agile PM pipeline coordination
+│   │   ├── llm/                # LLM router + model registry
+│   │   └── ...
+│   ├── prompt_builder/         # Provider-agnostic dynamic prompt assembly
+│   │   ├── builder.py / registry.py / context_selector.py / validator.py
+│   │   ├── token_estimator.py / plugins.py / models.py
+│   │   └── templates/          # One PromptTemplate per role, versioned
+│   ├── optimizer/              # Prompt + response cache, context/cost optimization
+│   ├── providers/              # LLM adapters: anthropic, openai, openrouter, gemini,
+│   │                           #   groq, mistral, together, azure_openai, ollama
+│   ├── gateway/                # AI Gateway service, audit, guardrails
+│   ├── prompt_engineer/        # Composer, few-shot, optimizer, versioning
+│   ├── context_engineer/       # Assembler, retriever, scorer, window_manager
+│   ├── harness/                # Evaluator, ab_test, regression, benchmark, metrics
+│   ├── loop_engineer/          # Controller that improves prompts over iterations
+│   ├── retrieval/              # Embeddings + vector index service
+│   ├── sandbox/                # Syntax / import check generated code
+│   ├── services/               # ws_manager, webhook handlers
+│   ├── auth.py                 # JWT auth utilities
+│   ├── celery_app.py           # Celery worker (build + deploy + PM tasks)
+│   ├── engineering_plugins.py / engineering_repository.py
+│   └── main.py                 # FastAPI app
 ├── frontend/
 │   └── src/
 │       ├── components/
-│       │   ├── chat/
-│       │   │   ├── ChatPanel.tsx      # Prompt input + message thread
-│       │   │   └── AgentPipeline.tsx  # Real-time agent status
-│       │   ├── editor/
-│       │   │   └── FileEditor.tsx     # Monaco + file tree
-│       │   ├── preview/
-│       │   │   └── PreviewPanel.tsx   # iframe live preview + QA score
-│       │   └── layout/
-│       │       └── WorkspaceLayout.tsx # 3-panel layout
-│       ├── pages/
-│       │   ├── LandingPage.tsx
-│       │   ├── AuthPage.tsx / Login.tsx / Signup.tsx
-│       │   ├── WorkspacePage.tsx
-│       │   ├── ProjectHistory.tsx
-│       │   ├── MarketplacePage.tsx
-│       │   ├── BillingPage.tsx / SettingsPage.tsx
-│       │   └── AdminConsole.tsx
-│       ├── hooks/
-│       │   └── useBuildSocket.ts      # WebSocket → Zustand events
-│       ├── lib/
-│       │   ├── api.ts                 # Axios API client
-│       │   ├── wsContract.ts          # WebSocket event types
-│       │   ├── agents.ts              # Agent metadata/icons
-│       │   └── constants.ts
-│       └── store/
-│           ├── buildStore.ts         # Zustand build state
-│           ├── authStore.ts          # Auth state
-│           └── useBuildSelectors.ts  # Build selectors
-├── orchestrator/
-│   ├── main.py                # FastAPI ASGI app (review board)
-│   ├── api.py                 # Review + backlog routes
-│   ├── service.py             # Pipeline coordinator
-│   ├── runner.py              # Parallel fan-out runner
-│   ├── consolidator.py        # CTO model aggregation
-│   ├── loader.py              # Load + validate agent JSONs
-│   ├── context.py             # File-tree + trigger scoping
-│   ├── providers.py           # LLM provider abstraction
-│   ├── models.py              # Pydantic v2 models
-│   ├── store.py               # Motor persistence
-│   ├── events.py              # In-memory pub/sub + WebSocket
-│   ├── config.py              # Env-driven settings
+│       │   ├── chat/           # Prompt input + agent pipeline status
+│       │   ├── editor/         # Monaco + file tree
+│       │   ├── preview/        # iframe live preview + QA score
+│       │   ├── build/ / agentRun/ / ui/
+│       │   └── layout/         # Workspace layout
+│       ├── pages/              # Landing, Auth, Workspace, Projects, Marketplace,
+│       │   │                   #   Billing, Settings, Admin, LLM Mgmt, pm/, reviews/,
+│       │   │                   #   GoogleCallback
+│       ├── hooks/              # useBuildSocket, etc.
+│       ├── lib/                # api client, wsContract, agents, types, generated
+│       └── store/              # buildStore, authStore, selectors
+├── orchestrator/               # Standalone Review Board service (port 8100)
+│   ├── main.py / api.py / service.py / runner.py / consolidator.py
+│   ├── loader.py / context.py / providers.py / models.py / store.py / events.py
 │   └── tests/
-│       └── test_orchestrator.py
-├── orchestration/
-│   ├── tool_gateway.py        # MCP / tool routing
-│   ├── engine/
-│   │   ├── workflow_engine.py
-│   │   ├── scheduler.py
-│   │   ├── state_machine.py
-│   │   ├── retry_engine.py
-│   │   ├── dependency_resolver.py
-│   │   └── event_bus.py
-│   ├── PROJECT_MANIFEST.json
-│   ├── CURRENT_TASK.json
-│   └── TASK_REGISTRY.json.lock
+├── orchestration/              # Meta-orchestration workflow engine (internal tooling)
+│   ├── engine/                 # workflow_engine, scheduler, state_machine, retry, ...
+│   ├── agent_runtime.py / api.py / tool_gateway.py / knowledge_service.py
+│   └── README.md + audit/report JSON artifacts
 ├── docker-compose.yml
 ├── .env.example
-├── SECURITY_SCANNING.md
-├── TODO.md
 └── README.md
 ```
 
@@ -152,7 +148,7 @@ GitHub sync + containerized deploy
 - Docker + Docker Compose
 - Node 20+
 - Python 3.12+
-- An Anthropic API key
+- At least one LLM provider key (Anthropic by default; OpenAI, OpenRouter, Gemini, Groq, Together, Mistral, Azure, or Ollama also supported via `backend/providers/`)
 
 ### 2. Setup
 ```bash
@@ -203,17 +199,20 @@ uvicorn main:app --reload --port 8100
 
 | Variable | Purpose |
 |---|---|
-| `ANTHROPIC_API_KEY` | LLM provider |
+| `ANTHROPIC_API_KEY` | Default LLM provider |
 | `OPENAI_API_KEY` | Optional fallback provider |
+| `OPENROUTER_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY` / `TOGETHER_API_KEY` / `MISTRAL_API_KEY` / `AZURE_OPENAI_*` / `OLLAMA_BASE_URL` | Optional provider keys (see `backend/providers/`) |
 | `MONGODB_URL` | Mongo connection string |
 | `REDIS_URL` | Redis connection string |
 | `JWT_SECRET` | Auth signing secret |
 | `FIELD_ENCRYPTION_KEY` | Independent 32-byte key for encrypted tokens; back up and rotate per `docs/FIELD_ENCRYPTION_KEY_ROTATION.md` |
 | `APP_ENV` | Runtime environment (`development` or `production`) |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | Google OAuth (new) |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Required live billing credentials in production |
 | `STRIPE_PUBLISHABLE_KEY` | Required live publishable key in production |
 | `STRIPE_PRICE_*` | Six unique monthly/annual Stripe Price IDs required in production |
+| `RAZORPAY_*` | Razorpay credentials for the India market (optional) |
 | `RESEND_API_KEY` | Transactional email |
 | `APP_URL` / `API_URL` | Public endpoints |
 | `ADMIN_EMAILS` | Admin allowlist |
