@@ -77,7 +77,13 @@ _ENV_KEY_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*os\.(environ\.g
 # not a credential value.
 _ROUTE_NAME_REF='(ForgotPassword|ResetPassword)[[:space:]]*=[[:space:]]*lazy\('
 
-ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}"
+# docker-compose.yml (and similar) interpolate secrets from the environment
+# at container-start time, e.g. ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} or
+# mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/... -- the ${...} / ${...:?}
+# form is a shell variable reference, never a literal credential value.
+_SHELL_VAR_REF='\$\{[A-Z_][A-Z0-9_]*(:\?)?\}'
+
+ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}|${_SHELL_VAR_REF}"
 
 # --- Check for .env file in staged changes ---
 if git diff --cached --name-only | grep -q '^.env$'; then

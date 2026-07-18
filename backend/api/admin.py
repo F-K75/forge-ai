@@ -3,8 +3,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from pathlib import Path
 import csv
 import io
+import json
 
 from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams, BuildDeadLetter
 from core.database import get_db, get_redis, cache_get_json, cache_set_json, paginated_query
@@ -187,6 +189,13 @@ class AIUsageMetrics(BaseModel):
     prompt_tokens: int
     completion_tokens: int
     cost_usd: float
+
+
+class SecurityEventsByDay(BaseModel):
+    date: str
+    severity: str
+    event_type: str
+    count: int
 
 
 class SystemHealthResponse(BaseModel):
@@ -737,6 +746,74 @@ async def list_security_events(
         per_page=result.per_page,
         total_pages=result.total_pages
     )
+
+
+@router.get("/fraud/events-by-day", response_model=List[SecurityEventsByDay])
+async def get_security_events_by_day(
+    days: int = Query(30, ge=1, le=365),
+    admin: User = Depends(admin_required)
+):
+    cache_key = f"cache:admin:analytics:security_events:{days}"
+    cached = await cache_get_json(cache_key)
+    if cached is not None:
+        try:
+            return [SecurityEventsByDay(**d) for d in cached]
+        except Exception:
+            pass
+
+    db = await get_db()
+
+    date_format = "%Y-%m-%d"
+    pipeline = [
+        {
+            "$group": {
+                "_id": {
+                    "date": {"$dateToString": {"format": date_format, "date": "$created_at"}},
+                    "severity": "$severity",
+                    "event_type": "$event_type",
+                },
+                "count": {"$sum": 1},
+            }
+        },
+        {"$sort": {"_id.date": -1}},
+        {"$limit": days * 5}
+    ]
+
+    metrics = []
+    async for doc in db.security_events.aggregate(pipeline):
+        metrics.append(SecurityEventsByDay(
+            date=doc["_id"]["date"],
+            severity=doc["_id"].get("severity", "unknown"),
+            event_type=doc["_id"].get("event_type", "unknown"),
+            count=doc.get("count", 0)
+        ))
+
+    await cache_set_json(cache_key, [m.model_dump() for m in metrics], ttl=ADMIN_ANALYTICS_CACHE_TTL)
+    return metrics
+
+
+@router.get("/engineering-health")
+async def get_engineering_health(admin: User = Depends(admin_required)) -> Dict[str, Any]:
+    """Reads the repo-root orchestration/ snapshot files (velocity, per-dimension
+    scores, task/sprint progress, certification status). Local-dev only today:
+    the production image only COPYs the backend/ build context, so orchestration/
+    is never present there — this degrades to available=False instead of a 500
+    rather than requiring a bigger change to the production Docker build."""
+    orchestration_dir = Path(__file__).resolve().parents[2] / "orchestration"
+
+    def _load(filename: str) -> Optional[Dict[str, Any]]:
+        try:
+            return json.loads((orchestration_dir / filename).read_text())
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return None
+
+    dashboard = _load("DASHBOARD_DATA.json")
+    return {
+        "available": dashboard is not None,
+        "metrics": _load("METRICS.json"),
+        "dashboard": dashboard,
+        "benchmark": _load("BENCHMARK_REPORT.json"),
+    }
 
 
 @router.post("/feature-flags", response_model=FeatureFlagResponse)

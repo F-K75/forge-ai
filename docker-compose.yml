@@ -17,6 +17,10 @@ services:
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?}@redis:6379/0
     volumes:
       - ./backend:/app
+      # Read-only: powers GET /admin/engineering-health in local dev. Not
+      # present in the prod image (backend/Dockerfile only COPYs ./backend),
+      # so that endpoint degrades gracefully there instead of erroring.
+      - ./orchestration:/app/orchestration:ro
     depends_on:
       mongo:
         condition: service_healthy

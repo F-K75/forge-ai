@@ -435,8 +435,9 @@ async def metrics():
     """Prometheus metrics endpoint."""
     if PROMETHEUS_ENABLED:
         from fastapi.responses import Response
-        from core.metrics import update_optimizer_gauges
+        from core.metrics import update_optimizer_gauges, update_build_queue_gauges
         update_optimizer_gauges()
+        await update_build_queue_gauges()
         return Response(generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
 
 

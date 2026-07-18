@@ -65,6 +65,9 @@ spec:
       annotations:
         summary: "High latency on {{ $labels.app }}"
         description: "95th percentile latency above 2 seconds"
+    # TODO: inert until a job="mongodb" Prometheus scrape target exists (no
+    # mongodb_exporter is deployed yet — see k8s/mongodb.yaml and the
+    # "Forge AI Database" Grafana dashboard, which has the same gap).
     # Database down alert
     - alert: DatabaseDown
       expr: up{namespace="forge-ai-prod",job="mongodb"} == 0
@@ -74,6 +77,8 @@ spec:
       annotations:
         summary: "MongoDB is down"
         description: "MongoDB replica set is unreachable"
+    # TODO: inert until a job="redis" Prometheus scrape target exists (no
+    # redis_exporter is deployed yet — same gap as DatabaseDown above).
     # Redis down alert
     - alert: RedisDown
       expr: up{namespace="forge-ai-prod",job="redis"} == 0

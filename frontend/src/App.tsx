@@ -1,50 +1,51 @@
-import { useEffect, useState, Suspense, lazy } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
-import { useAuthStore } from './store/authStore'
-import { ErrorBoundary } from './components/ui/ErrorBoundary'
-import { LIVE_MODE } from './lib/env'
+import { useEffect, useState, Suspense, lazy } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { Toaster } from "react-hot-toast"
+import { useAuthStore } from "./store/authStore"
+import { ErrorBoundary } from "./components/ui/ErrorBoundary"
+import { LIVE_MODE } from "./lib/env"
 
-const AuthPage = lazy(() => import('./pages/AuthPage'))
-const Signup = lazy(() => import('./pages/Signup'))
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
-const Onboarding = lazy(() => import('./pages/Onboarding'))
-const ResetPassword = lazy(() => import('./pages/ResetPassword'))
-const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
-const GoogleCallback = lazy(() => import('./pages/GoogleCallback'))
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const AuthPage = lazy(() => import("./pages/AuthPage"))
+const Signup = lazy(() => import("./pages/Signup"))
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"))
+const Onboarding = lazy(() => import("./pages/Onboarding"))
+const ResetPassword = lazy(() => import("./pages/ResetPassword"))
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"))
+const GoogleCallback = lazy(() => import("./pages/GoogleCallback"))
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"))
 
 // App shell + routed pages (step 1)
-const AppShell        = lazy(() => import('./components/AppShell'))
-const Launch          = lazy(() => import('./pages/Launch'))
-const ProjectsPage    = lazy(() => import('./pages/ProjectsPage'))
-const MarketplacePage = lazy(() => import('./pages/MarketplacePage'))
-const BillingPage     = lazy(() => import('./pages/BillingPage'))
-const SettingsPage    = lazy(() => import('./pages/SettingsPage'))
-const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
-const LLMManagementPage = lazy(() => import('./pages/LLMManagementPage'))
-const OptimizationDashboard = lazy(() => import('./pages/OptimizationDashboard'))
-const PromptStudioPage = lazy(() => import('./pages/PromptStudioPage'))
+const AppShell = lazy(() => import("./components/AppShell"))
+const Launch = lazy(() => import("./pages/Launch"))
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage"))
+const MarketplacePage = lazy(() => import("./pages/MarketplacePage"))
+const BillingPage = lazy(() => import("./pages/BillingPage"))
+const SettingsPage = lazy(() => import("./pages/SettingsPage"))
+const WorkspacePage = lazy(() => import("./pages/WorkspacePage"))
+const LLMManagementPage = lazy(() => import("./pages/LLMManagementPage"))
+const OptimizationDashboard = lazy(() => import("./pages/OptimizationDashboard"))
+const EngineeringHealthPage = lazy(() => import("./pages/EngineeringHealthPage"))
+const PromptStudioPage = lazy(() => import("./pages/PromptStudioPage"))
 // Step 3: in-shell surfaces
-const AdminConsole    = lazy(() => import('./pages/AdminConsole'))
-const ProjectHistory  = lazy(() => import('./pages/ProjectHistory'))
+const AdminConsole = lazy(() => import("./pages/AdminConsole"))
+const ProjectHistory = lazy(() => import("./pages/ProjectHistory"))
 // AI-native Agile PM layer (Initiatives): vision/PRD -> epics/stories/tasks -> sprints -> board -> releases
-const InitiativesListPage = lazy(() => import('./pages/pm/InitiativesListPage'))
-const InitiativeLayout    = lazy(() => import('./pages/pm/InitiativeLayout'))
-const OverviewTab         = lazy(() => import('./pages/pm/OverviewTab'))
-const KanbanTab           = lazy(() => import('./pages/pm/KanbanTab'))
-const SprintsTab          = lazy(() => import('./pages/pm/SprintsTab'))
-const AgentRunsTab        = lazy(() => import('./pages/pm/AgentRunsTab'))
-const RoadmapTab          = lazy(() => import('./pages/pm/RoadmapTab'))
-const GraphTab            = lazy(() => import('./pages/pm/GraphTab'))
-const ReleasesTab         = lazy(() => import('./pages/pm/ReleasesTab'))
-const ActivityTab         = lazy(() => import('./pages/pm/ActivityTab'))
+const InitiativesListPage = lazy(() => import("./pages/pm/InitiativesListPage"))
+const InitiativeLayout = lazy(() => import("./pages/pm/InitiativeLayout"))
+const OverviewTab = lazy(() => import("./pages/pm/OverviewTab"))
+const KanbanTab = lazy(() => import("./pages/pm/KanbanTab"))
+const SprintsTab = lazy(() => import("./pages/pm/SprintsTab"))
+const AgentRunsTab = lazy(() => import("./pages/pm/AgentRunsTab"))
+const RoadmapTab = lazy(() => import("./pages/pm/RoadmapTab"))
+const GraphTab = lazy(() => import("./pages/pm/GraphTab"))
+const ReleasesTab = lazy(() => import("./pages/pm/ReleasesTab"))
+const ActivityTab = lazy(() => import("./pages/pm/ActivityTab"))
 // Review board — orchestrator UI (separate backend service, see lib/orchestratorApi.ts)
-const ReviewsListPage  = lazy(() => import('./pages/reviews/ReviewsListPage'))
-const ReviewDetailPage = lazy(() => import('./pages/reviews/ReviewDetailPage'))
+const ReviewsListPage = lazy(() => import("./pages/reviews/ReviewsListPage"))
+const ReviewDetailPage = lazy(() => import("./pages/reviews/ReviewDetailPage"))
 // Step 5: public marketing surface (independent theme, no shell, no auth)
-const LandingPage     = lazy(() => import('./pages/LandingPage'))
+const LandingPage = lazy(() => import("./pages/LandingPage"))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,9 +77,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    fetchMe().catch(() => {
-      useAuthStore.setState({ isAuthenticated: false, user: null })
-    }).finally(() => setChecking(false))
+    fetchMe()
+      .catch(() => {
+        useAuthStore.setState({ isAuthenticated: false, user: null })
+      })
+      .finally(() => setChecking(false))
   }, [fetchMe])
 
   if (checking || isLoading) {
@@ -102,9 +105,11 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!LIVE_MODE) return
-    fetchMe().catch(() => {
-      useAuthStore.setState({ isAuthenticated: false, user: null })
-    }).finally(() => setChecking(false))
+    fetchMe()
+      .catch(() => {
+        useAuthStore.setState({ isAuthenticated: false, user: null })
+      })
+      .finally(() => setChecking(false))
   }, [fetchMe])
 
   if (checking || (LIVE_MODE && isLoading)) {
@@ -131,9 +136,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   // Admin check: verify via user object from /auth/me
-  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean)
-  const isAdmin = adminEmails.includes(user?.email || '')
-  
+  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean)
+  const isAdmin = adminEmails.includes(user?.email || "")
+
   if (!isAdmin) {
     return <Navigate to="/projects" replace />
   }
@@ -147,18 +155,107 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Step 5: public landing — independent theme, no shell, no auth gate */}
-          <Route path="/home" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><LandingPage /></Suspense></ErrorBoundary>} />
+          <Route
+            path="/home"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <LandingPage />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
 
-          <Route path="/login" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><AuthPage /></Suspense></ErrorBoundary>} />
-          <Route path="/signup" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Signup /></Suspense></PublicRoute></ErrorBoundary>} />
-          <Route path="/forgot-password" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><ForgotPassword /></Suspense></PublicRoute></ErrorBoundary>} />
-          <Route path="/reset-password" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><ResetPassword /></Suspense></PublicRoute></ErrorBoundary>} />
-          <Route path="/verify-email" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><VerifyEmail /></Suspense></ErrorBoundary>} />
-          <Route path="/google-callback" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><GoogleCallback /></Suspense></ErrorBoundary>} />
-          <Route path="/onboarding" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><Onboarding /></Suspense></ErrorBoundary>} />
+          <Route
+            path="/login"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <AuthPage />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <ErrorBoundary>
+                <PublicRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <Signup />
+                  </Suspense>
+                </PublicRoute>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <ErrorBoundary>
+                <PublicRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <ForgotPassword />
+                  </Suspense>
+                </PublicRoute>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <ErrorBoundary>
+                <PublicRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <ResetPassword />
+                  </Suspense>
+                </PublicRoute>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/verify-email"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <VerifyEmail />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/google-callback"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <GoogleCallback />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <Onboarding />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
 
           {/* Launch — public entry splash; already-authenticated visitors are bounced straight to /projects by PublicRoute */}
-          <Route path="/" element={<ErrorBoundary><PublicRoute><Suspense fallback={<RouteSkeleton />}><Launch /></Suspense></PublicRoute></ErrorBoundary>} />
+          <Route
+            path="/"
+            element={
+              <ErrorBoundary>
+                <PublicRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <Launch />
+                  </Suspense>
+                </PublicRoute>
+              </ErrorBoundary>
+            }
+          />
 
           {/* App shell — rail + routed pages */}
           <Route
@@ -172,20 +269,129 @@ export default function App() {
               </ErrorBoundary>
             }
           >
-            <Route path="/projects" element={<Suspense fallback={<RouteSkeleton />}><ProjectsPage /></Suspense>} />
-            <Route path="/marketplace" element={<Suspense fallback={<RouteSkeleton />}><MarketplacePage /></Suspense>} />
-            <Route path="/billing" element={<Suspense fallback={<RouteSkeleton />}><BillingPage /></Suspense>} />
-            <Route path="/settings" element={<Suspense fallback={<RouteSkeleton />}><SettingsPage /></Suspense>} />
-            <Route path="/llm-management" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><LLMManagementPage /></Suspense></AdminRoute>} />
-            <Route path="/optimization-dashboard" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><OptimizationDashboard /></Suspense></AdminRoute>} />
-            <Route path="/prompt-studio" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><PromptStudioPage /></Suspense></AdminRoute>} />
+            <Route
+              path="/projects"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <ProjectsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/marketplace"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <MarketplacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/billing"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <BillingPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <SettingsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/llm-management"
+              element={
+                <AdminRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <LLMManagementPage />
+                  </Suspense>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/optimization-dashboard"
+              element={
+                <AdminRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <OptimizationDashboard />
+                  </Suspense>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/engineering-health"
+              element={
+                <AdminRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <EngineeringHealthPage />
+                  </Suspense>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/prompt-studio"
+              element={
+                <AdminRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <PromptStudioPage />
+                  </Suspense>
+                </AdminRoute>
+              }
+            />
             {/* Step 3: in-shell surfaces */}
-            <Route path="/admin-console" element={<AdminRoute><Suspense fallback={<RouteSkeleton />}><AdminConsole /></Suspense></AdminRoute>} />
-            <Route path="/project/:projectId" element={<Suspense fallback={<RouteSkeleton />}><ProjectHistory /></Suspense>} />
-            <Route path="/reviews" element={<Suspense fallback={<RouteSkeleton />}><ReviewsListPage /></Suspense>} />
-            <Route path="/reviews/:runId" element={<Suspense fallback={<RouteSkeleton />}><ReviewDetailPage /></Suspense>} />
-            <Route path="/initiatives" element={<Suspense fallback={<RouteSkeleton />}><InitiativesListPage /></Suspense>} />
-            <Route path="/initiatives/:initiativeId" element={<Suspense fallback={<RouteSkeleton />}><InitiativeLayout /></Suspense>}>
+            <Route
+              path="/admin-console"
+              element={
+                <AdminRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <AdminConsole />
+                  </Suspense>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/project/:projectId"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <ProjectHistory />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/reviews"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <ReviewsListPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/reviews/:runId"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <ReviewDetailPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/initiatives"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <InitiativesListPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/initiatives/:initiativeId"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <InitiativeLayout />
+                </Suspense>
+              }
+            >
               <Route index element={<OverviewTab />} />
               <Route path="board" element={<KanbanTab />} />
               <Route path="sprints" element={<SprintsTab />} />
@@ -198,18 +404,38 @@ export default function App() {
           </Route>
 
           {/* Workspace — full-screen, no shell (step 4 fills this) */}
-          <Route path="/build/:projectId" element={<ErrorBoundary><ProtectedRoute><Suspense fallback={<RouteSkeleton />}><WorkspacePage /></Suspense></ProtectedRoute></ErrorBoundary>} />
+          <Route
+            path="/build/:projectId"
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <WorkspacePage />
+                  </Suspense>
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          />
 
-          <Route path="*" element={<ErrorBoundary><Suspense fallback={<RouteSkeleton />}><NotFoundPage /></Suspense></ErrorBoundary>} />
+          <Route
+            path="*"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <NotFoundPage />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
         </Routes>
         <Toaster
           position="bottom-right"
           toastOptions={{
             style: {
-              background: '#111118',
-              color: '#e2e2f0',
-              border: '1px solid #1e1e2e',
-              fontSize: '13px',
+              background: "#111118",
+              color: "#e2e2f0",
+              border: "1px solid #1e1e2e",
+              fontSize: "13px",
             },
           }}
         />

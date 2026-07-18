@@ -1,5 +1,12 @@
-import { useEffect, useState } from 'react'
-import { optimizerApi, budgetsApi } from '../lib/api'
+import { useEffect, useState } from "react"
+import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts"
+import { optimizerApi, budgetsApi } from "../lib/api"
+import { ChartContainer } from "../components/charts/ChartContainer"
+import { ChartTooltip } from "../components/charts/ChartTooltip"
+import { colorForAgent, colorForIndex } from "../components/charts/palette"
+
+const AXIS_COLOR = "#64748b" // slate-500, matches this page's slate palette
+const GRID_COLOR = "#1e293b" // slate-800
 
 interface BreakdownEntry {
   provider?: string
@@ -42,7 +49,7 @@ interface BudgetLimit {
   scope_id: string
   soft_limit_usd: number | null
   hard_limit_usd: number | null
-  period: 'daily' | 'monthly'
+  period: "daily" | "monthly"
 }
 
 interface SpendingEntry {
@@ -63,10 +70,15 @@ function StatCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-function BreakdownTable({ title, keyLabel, rows, keyField }: {
+function BreakdownTable({
+  title,
+  keyLabel,
+  rows,
+  keyField,
+}: {
   title: string
   keyLabel: string
-  keyField: 'provider' | 'agent' | 'project_id'
+  keyField: "provider" | "agent" | "project_id"
   rows: BreakdownEntry[]
 }) {
   return (
@@ -86,12 +98,14 @@ function BreakdownTable({ title, keyLabel, rows, keyField }: {
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-2 text-slate-500">No data in this window.</td>
+                <td colSpan={5} className="p-2 text-slate-500">
+                  No data in this window.
+                </td>
               </tr>
             )}
             {rows.map((row, idx) => (
               <tr key={idx} className="border-t border-slate-800">
-                <td className="p-2">{row[keyField] ?? '—'}</td>
+                <td className="p-2">{row[keyField] ?? "—"}</td>
                 <td className="p-2">{row.requests}</td>
                 <td className="p-2">{row.prompt_tokens}</td>
                 <td className="p-2">{row.completion_tokens}</td>
@@ -105,6 +119,50 @@ function BreakdownTable({ title, keyLabel, rows, keyField }: {
   )
 }
 
+function BreakdownBarChart({
+  rows,
+  keyField,
+  colorFor,
+}: {
+  rows: BreakdownEntry[]
+  keyField: "provider" | "agent"
+  colorFor: (key: string, index: number) => string
+}) {
+  const data = rows.map((r) => ({ key: r[keyField] ?? "—", cost_usd: r.cost_usd }))
+  if (data.length === 0) return null
+
+  return (
+    <ChartContainer height={Math.max(120, data.length * 32)}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+        <CartesianGrid stroke={GRID_COLOR} horizontal={false} />
+        <XAxis
+          type="number"
+          stroke={AXIS_COLOR}
+          fontSize={10}
+          tickFormatter={(v) => `$${v}`}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          type="category"
+          dataKey="key"
+          stroke={AXIS_COLOR}
+          fontSize={10}
+          width={110}
+          tickLine={false}
+          axisLine={false}
+        />
+        <Tooltip content={<ChartTooltip formatter={(v) => [`$${v.toFixed(4)}`, "Cost"]} />} />
+        <Bar dataKey="cost_usd" radius={[0, 3, 3, 0]}>
+          {data.map((d, i) => (
+            <Cell key={d.key} fill={colorFor(d.key, i)} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  )
+}
+
 export default function OptimizationDashboard() {
   const [days, setDays] = useState(30)
   const [breakdown, setBreakdown] = useState<CostBreakdown | null>(null)
@@ -113,26 +171,22 @@ export default function OptimizationDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [scope, setScope] = useState<'org' | 'project' | 'agent'>('org')
-  const [scopeId, setScopeId] = useState('')
-  const [softLimit, setSoftLimit] = useState('')
-  const [hardLimit, setHardLimit] = useState('')
+  const [scope, setScope] = useState<"org" | "project" | "agent">("org")
+  const [scopeId, setScopeId] = useState("")
+  const [softLimit, setSoftLimit] = useState("")
+  const [hardLimit, setHardLimit] = useState("")
   const [saveStatus, setSaveStatus] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
     setError(null)
-    Promise.all([
-      optimizerApi.costBreakdown(days),
-      budgetsApi.list(),
-      budgetsApi.spending(days),
-    ])
+    Promise.all([optimizerApi.costBreakdown(days), budgetsApi.list(), budgetsApi.spending(days)])
       .then(([breakdownPayload, limitsPayload, spendingPayload]) => {
         setBreakdown(breakdownPayload)
         setLimits(limitsPayload.limits || [])
         setSpending(spendingPayload.users || [])
       })
-      .catch(() => setError('Failed to load optimization data'))
+      .catch(() => setError("Failed to load optimization data"))
       .finally(() => setLoading(false))
   }
 
@@ -143,19 +197,19 @@ export default function OptimizationDashboard() {
 
   const saveLimit = async () => {
     if (!scopeId.trim()) {
-      setSaveStatus('Scope ID is required')
+      setSaveStatus("Scope ID is required")
       return
     }
-    setSaveStatus('Saving…')
+    setSaveStatus("Saving…")
     try {
       await budgetsApi.set(scope, scopeId.trim(), {
         soft_limit_usd: softLimit ? parseFloat(softLimit) : null,
         hard_limit_usd: hardLimit ? parseFloat(hardLimit) : null,
       })
-      setSaveStatus('Saved')
+      setSaveStatus("Saved")
       load()
     } catch {
-      setSaveStatus('Failed to save')
+      setSaveStatus("Failed to save")
     }
   }
 
@@ -166,17 +220,21 @@ export default function OptimizationDashboard() {
 
   const totalCost = spending.reduce((sum, s) => sum + s.cost_usd, 0)
   const cache = breakdown?.cache_savings
-  const responseCacheHitRatio = cache && cache.response_cache_hits + cache.response_cache_misses > 0
-    ? cache.response_cache_hits / (cache.response_cache_hits + cache.response_cache_misses)
-    : 0
-  const semanticShare = cache && cache.response_cache_hits > 0
-    ? cache.semantic_response_cache_hits / cache.response_cache_hits
-    : 0
+  const responseCacheHitRatio =
+    cache && cache.response_cache_hits + cache.response_cache_misses > 0
+      ? cache.response_cache_hits / (cache.response_cache_hits + cache.response_cache_misses)
+      : 0
+  const semanticShare =
+    cache && cache.response_cache_hits > 0
+      ? cache.semantic_response_cache_hits / cache.response_cache_hits
+      : 0
 
   return (
     <div className="p-8 text-sm text-slate-200">
       <h1 className="text-2xl font-semibold">AI Optimization Dashboard</h1>
-      <p className="mt-2 text-slate-400">Spend, cache effectiveness, and optimization savings across the AI Gateway.</p>
+      <p className="mt-2 text-slate-400">
+        Spend, cache effectiveness, and optimization savings across the AI Gateway.
+      </p>
 
       <div className="mt-4 flex items-center gap-3">
         <label className="flex items-center gap-2 text-xs text-slate-400">
@@ -201,11 +259,18 @@ export default function OptimizationDashboard() {
         <>
           <section className="mt-6 grid gap-4 md:grid-cols-4">
             <StatCard label="Total spend" value={`$${totalCost.toFixed(4)}`} />
-            <StatCard label="Response cache hit ratio" value={`${(responseCacheHitRatio * 100).toFixed(1)}%`} />
+            <StatCard
+              label="Response cache hit ratio"
+              value={`${(responseCacheHitRatio * 100).toFixed(1)}%`}
+            />
             <StatCard label="Semantic cache share" value={`${(semanticShare * 100).toFixed(1)}%`} />
             <StatCard
               label="Avg compression ratio"
-              value={breakdown ? breakdown.optimization_savings.average_compression_ratio.toFixed(3) : '—'}
+              value={
+                breakdown
+                  ? breakdown.optimization_savings.average_compression_ratio.toFixed(3)
+                  : "—"
+              }
             />
           </section>
 
@@ -213,9 +278,34 @@ export default function OptimizationDashboard() {
             <h2 className="text-lg font-medium">Cost Breakdown</h2>
             {breakdown && (
               <>
-                <BreakdownTable title="By Provider" keyLabel="Provider" keyField="provider" rows={breakdown.by_provider} />
-                <BreakdownTable title="By Agent" keyLabel="Agent" keyField="agent" rows={breakdown.by_agent} />
-                <BreakdownTable title="By Project" keyLabel="Project" keyField="project_id" rows={breakdown.by_project} />
+                <BreakdownBarChart
+                  rows={breakdown.by_provider}
+                  keyField="provider"
+                  colorFor={(_, i) => colorForIndex(i)}
+                />
+                <BreakdownTable
+                  title="By Provider"
+                  keyLabel="Provider"
+                  keyField="provider"
+                  rows={breakdown.by_provider}
+                />
+                <BreakdownBarChart
+                  rows={breakdown.by_agent}
+                  keyField="agent"
+                  colorFor={(key, i) => colorForAgent(key, i)}
+                />
+                <BreakdownTable
+                  title="By Agent"
+                  keyLabel="Agent"
+                  keyField="agent"
+                  rows={breakdown.by_agent}
+                />
+                <BreakdownTable
+                  title="By Project"
+                  keyLabel="Project"
+                  keyField="project_id"
+                  rows={breakdown.by_project}
+                />
               </>
             )}
           </section>
@@ -263,7 +353,9 @@ export default function OptimizationDashboard() {
                 <tbody>
                   {limits.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="p-2 text-slate-500">No budget limits configured.</td>
+                      <td colSpan={6} className="p-2 text-slate-500">
+                        No budget limits configured.
+                      </td>
                     </tr>
                   )}
                   {limits.map((l) => (
@@ -271,10 +363,13 @@ export default function OptimizationDashboard() {
                       <td className="p-2">{l.scope}</td>
                       <td className="p-2">{l.scope_id}</td>
                       <td className="p-2">{l.period}</td>
-                      <td className="p-2">{l.soft_limit_usd ?? '—'}</td>
-                      <td className="p-2">{l.hard_limit_usd ?? '—'}</td>
+                      <td className="p-2">{l.soft_limit_usd ?? "—"}</td>
+                      <td className="p-2">{l.hard_limit_usd ?? "—"}</td>
                       <td className="p-2">
-                        <button onClick={() => removeLimit(l)} className="rounded bg-slate-800 px-2 py-1 hover:bg-rose-900/60">
+                        <button
+                          onClick={() => removeLimit(l)}
+                          className="rounded bg-slate-800 px-2 py-1 hover:bg-rose-900/60"
+                        >
                           Remove
                         </button>
                       </td>
@@ -287,7 +382,11 @@ export default function OptimizationDashboard() {
             <div className="mt-4 flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-slate-400">Scope</span>
-                <select value={scope} onChange={(e) => setScope(e.target.value as typeof scope)} className="rounded bg-slate-800 px-2 py-1">
+                <select
+                  value={scope}
+                  onChange={(e) => setScope(e.target.value as typeof scope)}
+                  className="rounded bg-slate-800 px-2 py-1"
+                >
                   <option value="org">org</option>
                   <option value="project">project</option>
                   <option value="agent">agent</option>
@@ -295,17 +394,35 @@ export default function OptimizationDashboard() {
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-slate-400">Scope ID</span>
-                <input value={scopeId} onChange={(e) => setScopeId(e.target.value)} className="rounded bg-slate-800 px-2 py-1" placeholder="org-123" />
+                <input
+                  value={scopeId}
+                  onChange={(e) => setScopeId(e.target.value)}
+                  className="rounded bg-slate-800 px-2 py-1"
+                  placeholder="org-123"
+                />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-slate-400">Soft limit (USD)</span>
-                <input value={softLimit} onChange={(e) => setSoftLimit(e.target.value)} className="rounded bg-slate-800 px-2 py-1" placeholder="optional" />
+                <input
+                  value={softLimit}
+                  onChange={(e) => setSoftLimit(e.target.value)}
+                  className="rounded bg-slate-800 px-2 py-1"
+                  placeholder="optional"
+                />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-slate-400">Hard limit (USD)</span>
-                <input value={hardLimit} onChange={(e) => setHardLimit(e.target.value)} className="rounded bg-slate-800 px-2 py-1" placeholder="optional" />
+                <input
+                  value={hardLimit}
+                  onChange={(e) => setHardLimit(e.target.value)}
+                  className="rounded bg-slate-800 px-2 py-1"
+                  placeholder="optional"
+                />
               </label>
-              <button onClick={saveLimit} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500">
+              <button
+                onClick={saveLimit}
+                className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500"
+              >
                 Save limit
               </button>
             </div>

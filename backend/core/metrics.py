@@ -32,6 +32,22 @@ try:
         registry=registry,
     )
 
+    # Gauges refreshed at scrape time -- see update_build_queue_gauges().
+    # Computed centrally by the API process (which already talks to Redis and
+    # Mongo) rather than reported by whichever Celery worker happens to run a
+    # task: queue depth is a property of the broker/queue, not of one worker
+    # process, and Celery workers don't expose their own /metrics endpoint.
+    celery_queue_depth = Gauge(
+        "celery_queue_depth",
+        "Pending tasks on the Celery 'build' queue (Redis broker list length)",
+        registry=registry,
+    )
+    celery_active_tasks = Gauge(
+        "celery_active_tasks",
+        "Builds currently running or debugging, per core.models.BuildStatus",
+        registry=registry,
+    )
+
     # AI Gateway metrics -- recorded in gateway/service.py's AIGateway.generate(),
     # the single choke point every LLM request passes through.
     llm_requests_total = Counter(
@@ -129,6 +145,8 @@ except ImportError:
     build_outcomes_total = _NoOpMetric()  # type: ignore[assignment]
     build_duration_seconds = _NoOpMetric()  # type: ignore[assignment]
     build_credits_used = _NoOpMetric()  # type: ignore[assignment]
+    celery_queue_depth = _NoOpMetric()  # type: ignore[assignment]
+    celery_active_tasks = _NoOpMetric()  # type: ignore[assignment]
     llm_requests_total = _NoOpMetric()  # type: ignore[assignment]
     llm_request_duration_seconds = _NoOpMetric()  # type: ignore[assignment]
     llm_retry_attempts_total = _NoOpMetric()  # type: ignore[assignment]
@@ -163,3 +181,33 @@ def update_optimizer_gauges() -> None:
     llm_tokens_saved_total.set(metrics_snapshot.total_tokens_saved)
     for provider, cost in metrics_snapshot.cost_by_provider.items():
         llm_cost_by_provider_usd.labels(provider=provider).set(cost)
+
+
+async def update_build_queue_gauges() -> None:
+    """Refresh celery_queue_depth/celery_active_tasks at scrape time (main.py).
+    Best-effort: a momentary Redis/Mongo hiccup shouldn't take down /metrics,
+    so each source is wrapped independently and just leaves its gauge at its
+    last known value on failure."""
+    if registry is None:
+        return
+
+    try:
+        from core.database import get_redis
+
+        redis = await get_redis()
+        # Celery's default Redis broker uses the queue name as the list key
+        # directly (see celery_app.py's task_routes -- everything routes to
+        # "build", the only queue actually in use today).
+        depth = await redis.llen("build")
+        celery_queue_depth.set(depth)
+    except Exception:
+        pass
+
+    try:
+        from core.database import get_db
+
+        db = await get_db()
+        active = await db.builds.count_documents({"status": {"$in": ["running", "debugging"]}})
+        celery_active_tasks.set(active)
+    except Exception:
+        pass
