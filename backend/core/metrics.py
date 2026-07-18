@@ -57,6 +57,13 @@ try:
         registry=registry,
     )
 
+    llm_tokens_total = Counter(
+        "llm_tokens_total",
+        "Total tokens through the AI Gateway, by direction (input/output)",
+        ["provider", "model", "agent", "direction"],
+        registry=registry,
+    )
+
     llm_request_duration_seconds = Histogram(
         "llm_request_duration_seconds",
         "AI Gateway request latency in seconds",
@@ -148,6 +155,7 @@ except ImportError:
     celery_queue_depth = _NoOpMetric()  # type: ignore[assignment]
     celery_active_tasks = _NoOpMetric()  # type: ignore[assignment]
     llm_requests_total = _NoOpMetric()  # type: ignore[assignment]
+    llm_tokens_total = _NoOpMetric()  # type: ignore[assignment]
     llm_request_duration_seconds = _NoOpMetric()  # type: ignore[assignment]
     llm_retry_attempts_total = _NoOpMetric()  # type: ignore[assignment]
     llm_failovers_total = _NoOpMetric()  # type: ignore[assignment]

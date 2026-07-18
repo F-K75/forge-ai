@@ -16,11 +16,6 @@ data:
         "uid": "forge-ai-overview",
         "panels": [
           {
-            "title": "Not yet instrumented",
-            "type": "text",
-            "content": "LLM Token Usage and Database Connections below have no data source yet: no LLM token-volume counter is instrumented, and no mongodb_exporter is deployed (see backend/core/metrics.py for what's actually instrumented). Left in place as a to-do, not deleted."
-          },
-          {
             "title": "Request Rate",
             "targets": [
               {
@@ -69,7 +64,7 @@ data:
             "title": "LLM Token Usage",
             "targets": [
               {
-                "expr": "rate(llm_tokens_total[5m])"
+                "expr": "sum by (direction) (rate(llm_tokens_total[5m]))"
               }
             ],
             "type": "graph"
@@ -87,7 +82,7 @@ data:
             "title": "Database Connections",
             "targets": [
               {
-                "expr": "mongodb_connections_active"
+                "expr": "mongodb_connections{state=\"current\"}"
               }
             ],
             "type": "stat"
@@ -102,15 +97,10 @@ data:
         "uid": "forge-ai-database",
         "panels": [
           {
-            "title": "Not yet instrumented",
-            "type": "text",
-            "content": "This entire dashboard has no data source yet: no mongodb_exporter or redis_exporter is deployed anywhere (k8s/mongodb.yaml, k8s/redis.yaml), and no `job=\"mongodb\"`/`job=\"redis\"` Prometheus scrape target exists. Every panel below will show no data until an exporter is added. Left in place as a to-do, not deleted."
-          },
-          {
             "title": "MongoDB Connections",
             "targets": [
               {
-                "expr": "mongodb_connections_active"
+                "expr": "mongodb_connections{state=\"current\"}"
               }
             ],
             "type": "graph"
@@ -119,16 +109,16 @@ data:
             "title": "MongoDB Operations",
             "targets": [
               {
-                "expr": "rate(mongodb_operations_total[5m])"
+                "expr": "sum by (type) (rate(mongodb_op_counters_total[5m]))"
               }
             ],
             "type": "graph"
           },
           {
-            "title": "MongoDB Latency",
+            "title": "MongoDB Latency (avg by op type)",
             "targets": [
               {
-                "expr": "histogram_quantile(0.95, mongodb_operation_duration_seconds_bucket)"
+                "expr": "rate(mongodb_mongod_op_latencies_latency_total[5m]) / rate(mongodb_mongod_op_latencies_ops_total[5m])"
               }
             ],
             "type": "graph"
@@ -146,7 +136,7 @@ data:
             "title": "Redis Operations",
             "targets": [
               {
-                "expr": "rate(redis_commands_total[5m])"
+                "expr": "sum(rate(redis_commands_total[5m]))"
               }
             ],
             "type": "graph"
@@ -155,7 +145,7 @@ data:
             "title": "Redis Hit Rate",
             "targets": [
               {
-                "expr": "rate(redis_keyspace_hits[5m]) / (rate(redis_keyspace_hits[5m]) + rate(redis_keyspace_misses[5m]))"
+                "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))"
               }
             ],
             "type": "graph"
@@ -169,11 +159,6 @@ data:
         "title": "Forge AI Pipeline",
         "uid": "forge-ai-ai-pipeline",
         "panels": [
-          {
-            "title": "Not yet instrumented",
-            "type": "text",
-            "content": "LLM Token Usage by Model below has no data source: no token-volume counter is instrumented (llm_requests_total counts calls, not tokens). Left in place as a to-do, not deleted."
-          },
           {
             "title": "Agent Success Rate",
             "targets": [

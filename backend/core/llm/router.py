@@ -8,6 +8,7 @@ import unicodedata
 from typing import Any, Dict, List, Optional, Sequence
 
 from core.ai_usage import calculate_cost, check_budget, estimate_tokens, track_usage
+from core.metrics import llm_tokens_total
 from core.security import sanitize_prompt
 from core.llm.config import LLMConfigLoader
 from core.llm.provider import BaseProviderAdapter, CompletionResponse, ProviderError
@@ -943,12 +944,22 @@ class LLMRouter:
         return getattr(provider, "default_model", "claude-sonnet-4-6")
 
     async def _record_usage(self, *, response: CompletionResponse, user_id: Optional[str], build_id: Optional[str], project_id: Optional[str], org_id: Optional[str], agent_name: str) -> None:
-        if not user_id:
-            return
         usage = response.usage or {}
         prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
         completion_tokens = int(usage.get("completion_tokens", 0) or 0)
         if prompt_tokens + completion_tokens <= 0:
+            return
+        # Prometheus token volume is recorded before the user_id gate: token
+        # throughput is a platform-level signal, not a billing one.
+        if prompt_tokens:
+            llm_tokens_total.labels(
+                provider=response.provider, model=response.model, agent=agent_name, direction="input",
+            ).inc(prompt_tokens)
+        if completion_tokens:
+            llm_tokens_total.labels(
+                provider=response.provider, model=response.model, agent=agent_name, direction="output",
+            ).inc(completion_tokens)
+        if not user_id:
             return
         cost_usd = calculate_cost(response.model, prompt_tokens, completion_tokens, cached_tokens=int(usage.get("cached_tokens", 0) or 0))
         await track_usage(

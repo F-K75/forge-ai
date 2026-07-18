@@ -81,7 +81,11 @@ _ROUTE_NAME_REF='(ForgotPassword|ResetPassword)[[:space:]]*=[[:space:]]*lazy\('
 # at container-start time, e.g. ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} or
 # mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/... -- the ${...} / ${...:?}
 # form is a shell variable reference, never a literal credential value.
-_SHELL_VAR_REF='\$\{[A-Z_][A-Z0-9_]*(:\?)?\}'
+# k8s container env vars use the analogous $(VAR) form (Kubernetes'
+# downward-API-style interpolation, resolved by the kubelet -- not a shell
+# command substitution) -- e.g. k8s/mongodb.yaml's mongodb exporter URI
+# "mongodb://forge:$(MONGO_PASSWORD)@localhost:27017/admin".
+_SHELL_VAR_REF='\$\{[A-Z_][A-Z0-9_]*(:\?)?\}|\$\([A-Z_][A-Z0-9_]*\)'
 
 ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}|${_SHELL_VAR_REF}"
 
