@@ -199,14 +199,18 @@ jobs:
       - name: Set up Python
         # `npm run build`'s prebuild hook runs backend/scripts/export_ws_events.py,
         # which imports backend/core/models.py to regenerate wsEvents.ts from
-        # WSEventType — the frontend/backend WebSocket event contract check. It
-        # only needs pydantic importable, not the full backend dependency set.
+        # WSEventType — the frontend/backend WebSocket event contract check.
+        # core/models.py imports fastapi at module level (PaginationParams
+        # uses fastapi.Query), so both it and pydantic must be importable —
+        # not the full backend dependency set. Versions must match
+        # backend/requirements.txt — fastapi 0.139.0 requires pydantic>=2.9,
+        # so an older pydantic pin here makes pip's resolver reject the pair.
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install prebuild script dependency (pydantic)
-        run: pip install pydantic==2.7.1
+      - name: Install prebuild script dependencies (pydantic, fastapi)
+        run: pip install pydantic==2.13.4 fastapi==0.139.0
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci
