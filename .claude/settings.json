@@ -165,7 +165,13 @@
       "Bash(kill -9 69206)",
       "Bash(./runenv/bin/python3 -m pytest tests/ -q --tb=short -rf --timeout=30 --timeout-method=thread)",
       "Bash(./runenv/bin/python3 -m pytest tests/ -q --tb=short -rf --deselect \"tests/test_webhook_service.py::TestProcessWebhookQueue::test_brpop_loop_delivers_and_does_not_retry_on_success\")",
-      "Bash(git rev-list *)"
+      "Bash(git rev-list *)",
+      "Bash(bash scripts/git-hooks/pre-commit)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(cp scripts/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit && diff .git/hooks/pre-commit scripts/git-hooks/pre-commit && echo \"IN SYNC\")"
+    ],
+    "additionalDirectories": [
+      "/Users/keshav/forge-ai/.git/hooks"
     ]
   }
 }

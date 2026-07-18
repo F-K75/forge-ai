@@ -38,6 +38,74 @@ spec:
     path: /metrics
     interval: 30s
 ---
+# Scrape targets for the database exporter sidecars (k8s/mongodb.yaml,
+# k8s/redis.yaml). The `job` Service label + `jobLabel` below pin the
+# Prometheus job names to "mongodb"/"redis", which the DatabaseDown/RedisDown
+# alerts and the "Forge AI Database" Grafana dashboard expect.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-metrics
+  namespace: forge-ai-prod
+  labels:
+    app: mongodb-exporter
+    job: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+  - port: 9216
+    name: metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-metrics
+  namespace: forge-ai-prod
+  labels:
+    app: redis-exporter
+    job: redis
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 9121
+    name: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mongodb-exporter
+  namespace: forge-ai-prod
+  labels:
+    app: forge-ai
+spec:
+  jobLabel: job
+  selector:
+    matchLabels:
+      app: mongodb-exporter
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-exporter
+  namespace: forge-ai-prod
+  labels:
+    app: forge-ai
+spec:
+  jobLabel: job
+  selector:
+    matchLabels:
+      app: redis-exporter
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -65,10 +133,8 @@ spec:
       annotations:
         summary: "High latency on {{ $labels.app }}"
         description: "95th percentile latency above 2 seconds"
-    # TODO: inert until a job="mongodb" Prometheus scrape target exists (no
-    # mongodb_exporter is deployed yet — see k8s/mongodb.yaml and the
-    # "Forge AI Database" Grafana dashboard, which has the same gap).
-    # Database down alert
+    # Database down alert (job="mongodb" scraped via the mongodb-exporter
+    # sidecar in k8s/mongodb.yaml and the mongodb-metrics ServiceMonitor above)
     - alert: DatabaseDown
       expr: up{namespace="forge-ai-prod",job="mongodb"} == 0
       for: 1m
@@ -77,9 +143,8 @@ spec:
       annotations:
         summary: "MongoDB is down"
         description: "MongoDB replica set is unreachable"
-    # TODO: inert until a job="redis" Prometheus scrape target exists (no
-    # redis_exporter is deployed yet — same gap as DatabaseDown above).
-    # Redis down alert
+    # Redis down alert (job="redis" scraped via the redis-exporter sidecar in
+    # k8s/redis.yaml and the redis-metrics ServiceMonitor above)
     - alert: RedisDown
       expr: up{namespace="forge-ai-prod",job="redis"} == 0
       for: 1m

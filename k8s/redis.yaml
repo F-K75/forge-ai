@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: redis
   namespace: forge-ai-prod
@@ -7,6 +7,7 @@ metadata:
     app: redis
     component: cache
 spec:
+  serviceName: redis-headless
   replicas: 3
   selector:
     matchLabels:
@@ -68,6 +69,34 @@ spec:
         volumeMounts:
         - name: redis-data
           mountPath: /data
+      # Prometheus exporter sidecar: serves the "Forge AI Database" Grafana
+      # dashboard and the RedisDown alert (job="redis").
+      - name: redis-exporter
+        image: oliver006/redis_exporter:v1.62.0-alpine
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_ADDR
+          value: "redis://localhost:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: redis-password
+        ports:
+        - containerPort: 9121
+          name: metrics
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 59000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
   volumeClaimTemplates:
   - metadata:
       name: redis-data
@@ -78,6 +107,40 @@ spec:
         requests:
           storage: 5Gi
 ---
+# PodDisruptionBudget: keep at least 2 of 3 replicas up during voluntary
+# disruptions (node drains, cluster upgrades) -- mirrors k8s/mongodb.yaml.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis
+  namespace: forge-ai-prod
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: redis
+---
+# Headless service required by the StatefulSet's `serviceName` for stable
+# per-pod DNS (redis-0.redis-headless, redis-1.redis-headless, ...). Not
+# used for client connections -- see the load-balanced "redis" Service below.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+  namespace: forge-ai-prod
+  labels:
+    app: redis
+spec:
+  clusterIP: None
+  ports:
+  - port: 6379
+    name: redis
+  selector:
+    app: redis
+---
+# Client service (load-balanced connections) -- this is the hostname
+# REDIS_URL points at in k8s/backend.yaml, k8s/celery-worker.yaml,
+# k8s/orchestrator.yaml ("redis://:$(REDIS_PASSWORD)@redis:6379").
 apiVersion: v1
 kind: Service
 metadata:
