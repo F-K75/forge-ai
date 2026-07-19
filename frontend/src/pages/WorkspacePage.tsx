@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { motion, useReducedMotion } from "motion/react";
+import { presets } from "../lib/animationPresets";
 import { useBuildStore } from "../store/buildStore";
 import { useBuildSocket } from "../hooks/useBuildSocket";
 import { runMockBuild } from "../lib/mockEmitter";
@@ -21,6 +23,7 @@ interface WorkspaceProject {
 export default function WorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>();
   const location = useLocation();
+  const reduceMotion = useReducedMotion();
 
   const [project, setProject] = useState<WorkspaceProject | null>(
     LIVE_MODE ? null : PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0]
@@ -108,7 +111,7 @@ export default function WorkspacePage() {
       if (LIVE_MODE) {
         if (!project) return;
         try {
-          const { build_id } = await buildsApi.create({ project_id: project.id, prompt });
+          const { build_id } = await buildsApi.create({ project_id: project.id, prompt, interactive: true });
           startBuild(build_id, prompt);
           setBuildId(build_id);
         } catch (err: any) {
@@ -150,35 +153,51 @@ export default function WorkspacePage() {
 
   if (loadError && !project) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-base px-6 text-center">
+      <motion.div
+        className="h-screen flex flex-col items-center justify-center gap-4 bg-base px-6 text-center"
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
         <p className="text-sm text-muted">{loadError}</p>
-        <button
+        <motion.button
           onClick={() => window.location.reload()}
           className="px-4 py-2 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors"
+          {...presets.button}
         >
           Retry
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     );
   }
 
   if (!project) {
     return (
-      <div className="h-screen flex items-center justify-center bg-base">
+      <motion.div
+        className="h-screen flex items-center justify-center bg-base"
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
         <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-base">
+    <motion.div
+      className="h-screen flex flex-col bg-base bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(232,130,60,0.08),transparent_60%)]"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <TopBar projectName={project.name} projectId={project.id} />
-      <div className="flex-1 min-h-0 flex">
+      <div className="flex-1 min-h-0 grid grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)_320px] gap-3 p-3">
         <ChatPanel onSubmit={handleSubmit} />
         <EditorPanel />
         <PreviewPanel />
       </div>
       <StatusBar connectionStatus={connectionStatus} />
-    </div>
+    </motion.div>
   );
 }

@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Star, Download, Search } from "lucide-react";
 import toast from "react-hot-toast";
+import { motion, useReducedMotion } from "motion/react";
+import { motionVariants } from "../lib/animations";
+import { presets } from "../lib/animationPresets";
 import { TEMPLATES } from "../lib/mockData";
 import type { Template } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
@@ -50,6 +53,7 @@ function toDisplayTemplate(raw: RawItem): Template {
 
 export default function MarketplacePage() {
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [liveTemplates, setLiveTemplates] = useState<Template[] | null>(null);
@@ -89,7 +93,12 @@ export default function MarketplacePage() {
   };
 
   return (
-    <div className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto">
+    <motion.div
+      className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
         <div>
@@ -147,23 +156,34 @@ export default function MarketplacePage() {
       {LIVE_MODE && liveTemplates === null ? (
         <p className="text-center text-muted text-sm py-20">Loading templates…</p>
       ) : visible.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border" role="list">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border"
+          role="list"
+          variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+          initial={reduceMotion ? false : "hidden"}
+          animate="visible"
+        >
           {visible.map(template => (
             <TemplateCard key={template.id} template={template} onInstall={() => handleInstall(template)} />
           ))}
-        </div>
+        </motion.div>
       ) : (
         <p className="text-center text-muted text-sm py-20">
           No templates match your search.
         </p>
       )}
-    </div>
+    </motion.div>
   );
 }
 
 function TemplateCard({ template, onInstall }: { template: Template; onInstall: () => void }) {
   return (
-    <article role="listitem" className="flex flex-col gap-4 p-6 bg-base">
+    <motion.article
+      role="listitem"
+      className="flex flex-col gap-4 p-6 glass-strong"
+      {...presets.card}
+      variants={motionVariants.staggerItem}
+    >
       {/* Header */}
       <div className="flex items-start gap-3">
         <div
@@ -201,15 +221,16 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
           <Star size={11} className="text-warn fill-warn" aria-hidden="true" />
           <span>{template.rating}</span>
         </div>
-        <button
+        <motion.button
           onClick={onInstall}
+          {...presets.button}
           className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink font-medium hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
           aria-label={`Install ${template.name} — ${template.installs} installs`}
         >
           <Download size={11} aria-hidden="true" />
           {template.installs}
-        </button>
+        </motion.button>
       </div>
-    </article>
+    </motion.article>
   );
 }

@@ -6,6 +6,8 @@ import { usePMStore } from "../../store/pmStore";
 import { usePMSocket } from "../../hooks/usePMSocket";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
+import { motion, motionVariants } from "../../lib/animations";
+import { presets } from "../../lib/animationPresets";
 
 const TABS = [
   { to: "", label: "Overview", end: true },
@@ -58,23 +60,27 @@ export default function InitiativeLayout() {
   return (
     <div className="flex flex-col h-full min-h-0">
       <header className="px-6 md:px-8 pt-6 pb-0 border-b border-border shrink-0">
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <motion.div className="flex items-start justify-between gap-4 mb-4" variants={motionVariants.fadeIn} initial="hidden" animate="visible">
           <div className="min-w-0">
-            <button
+            <motion.button
               onClick={() => navigate("/initiatives")}
+              {...presets.tab}
               className="text-xs text-muted hover:text-ink transition-colors motion-reduce:transition-none mb-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded"
             >
               ← All initiatives
-            </button>
+            </motion.button>
             <h1 className="font-display text-xl md:text-2xl font-medium tracking-tight text-ink truncate">
               {initiative.name}
             </h1>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <span
+            <motion.span
               className={`w-1.5 h-1.5 rounded-full ${connectionStatus === "online" ? "bg-ok" : "bg-faint"}`}
               aria-label={`Live updates: ${connectionStatus}`}
               title={`Live updates: ${connectionStatus}`}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
             />
             {generationStatus === "generating" ? (
               <span className="flex items-center gap-1.5 text-xs text-muted">
@@ -82,33 +88,41 @@ export default function InitiativeLayout() {
                 {generationStage ? `Generating ${generationStage}…` : "Generating…"}
               </span>
             ) : (
-              <button
+              <motion.button
                 onClick={handleRegenerate}
+                {...presets.button}
                 className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
               >
                 <RefreshCw size={11} aria-hidden="true" />
                 Regenerate
-              </button>
+              </motion.button>
             )}
           </div>
-        </div>
+        </motion.div>
 
         <nav aria-label="Initiative sections" className="flex gap-1 -mb-px overflow-x-auto">
-          {TABS.map(tab => (
-            <NavLink
+          {TABS.map((tab, i) => (
+            <motion.div
               key={tab.to}
-              to={tab.to}
-              end={tab.end}
-              className={({ isActive }) =>
-                [
-                  "px-3 py-2.5 text-sm border-b-2 whitespace-nowrap transition-colors motion-reduce:transition-none",
-                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
-                  isActive ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
-                ].join(" ")
-              }
+              variants={motionVariants.fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: i * 0.03 }}
             >
-              {tab.label}
-            </NavLink>
+              <NavLink
+                to={tab.to}
+                end={tab.end}
+                className={({ isActive }) =>
+                  [
+                    "px-3 py-2.5 text-sm border-b-2 whitespace-nowrap transition-colors motion-reduce:transition-none",
+                    "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
+                    isActive ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
+                  ].join(" ")
+                }
+              >
+                {tab.label}
+              </NavLink>
+            </motion.div>
           ))}
         </nav>
       </header>

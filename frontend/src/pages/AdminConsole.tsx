@@ -23,6 +23,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { motion, useReducedMotion } from "motion/react"
+import { motionVariants } from "../lib/animations"
+import { presets } from "../lib/animationPresets"
 import { adminApi, analyticsApi } from "../lib/api"
 import { LIVE_MODE } from "../lib/env"
 import { StatusPill } from "../components/StatusPill"
@@ -112,6 +115,7 @@ function toPillStatus(status: string): "complete" | "running" | "debugging" | "f
 
 export default function AdminConsole() {
   const [search, setSearch] = useState("")
+  const reduceMotion = useReducedMotion()
 
   const { data: overview } = useQuery<AnalyticsOverview>({
     queryKey: ["admin-overview"],
@@ -234,7 +238,12 @@ export default function AdminConsole() {
   }, [securityEventsData])
 
   return (
-    <div className="px-6 md:px-10 py-10 md:py-14 max-w-7xl mx-auto">
+    <motion.div
+      className="px-6 md:px-10 py-10 md:py-14 max-w-7xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       {/* Header */}
       <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
         <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
@@ -255,7 +264,12 @@ export default function AdminConsole() {
 
       {/* Stat cards */}
       <section aria-label="Platform statistics" className="mb-9">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+        <motion.div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border"
+          variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+          initial={reduceMotion ? false : "hidden"}
+          animate="visible"
+        >
           <StatCard label="Total users" value={overview?.total_users ?? "—"} icon={Users} />
           <StatCard label="Total builds" value={overview?.total_builds ?? "—"} icon={Activity} />
           <StatCard
@@ -268,19 +282,27 @@ export default function AdminConsole() {
             value={overview?.active_subscriptions ?? "—"}
             icon={Zap}
           />
-        </div>
+        </motion.div>
       </section>
 
       {/* Two-column: system health + builds */}
       <div className="flex flex-col lg:flex-row gap-5 mb-9">
-        <section
+        <motion.section
           aria-label="System health"
-          className="lg:w-1/3 border border-border rounded-lg p-4"
+          className="lg:w-1/3 glass-strong rounded-lg p-4"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
             System health
           </h2>
-          <div className="divide-y divide-border-soft">
+          <motion.div
+            className="divide-y divide-border-soft"
+            variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+            initial={reduceMotion ? false : "hidden"}
+            animate="visible"
+          >
             <ServiceRow icon={Server} label="API" status={health?.status} />
             <ServiceRow
               icon={Database}
@@ -292,12 +314,15 @@ export default function AdminConsole() {
               label="Redis"
               status={health?.redis?.status as string | undefined}
             />
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
-        <section
+        <motion.section
           aria-label="Recent builds"
-          className="flex-1 border border-border rounded-lg overflow-hidden"
+          className="flex-1 glass-strong rounded-lg overflow-hidden"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
         >
           <div className="px-4 py-3 border-b border-border">
             <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
@@ -322,11 +347,16 @@ export default function AdminConsole() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <motion.tbody
+                variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+                initial={reduceMotion ? false : "hidden"}
+                animate="visible"
+              >
                 {builds.map((b) => (
-                  <tr
+                  <motion.tr
                     key={b.id}
                     className="border-t border-border-soft hover:bg-panel-alt transition motion-reduce:transition-none"
+                    variants={motionVariants.staggerItem}
                   >
                     <td className="px-4 py-2.5">
                       <span className="font-mono text-xs text-muted">{b.id.slice(0, 8)}…</span>
@@ -342,7 +372,7 @@ export default function AdminConsole() {
                         {new Date(b.created_at).toLocaleDateString()}
                       </span>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
                 {builds.length === 0 && (
                   <tr>
@@ -351,17 +381,20 @@ export default function AdminConsole() {
                     </td>
                   </tr>
                 )}
-              </tbody>
+              </motion.tbody>
             </table>
           </div>
-        </section>
+        </motion.section>
       </div>
 
       {/* Revenue + AI usage (last 30 days) */}
       <div className="flex flex-col lg:flex-row gap-5 mb-9">
-        <section
+        <motion.section
           aria-label="Revenue (last 30 days)"
-          className="lg:w-1/2 border border-border rounded-lg overflow-hidden"
+          className="lg:w-1/2 glass-strong rounded-lg overflow-hidden"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
@@ -397,8 +430,8 @@ export default function AdminConsole() {
                     type="monotone"
                     dataKey="revenue"
                     name="Revenue"
-                    stroke="#7C5CFF"
-                    fill="#7C5CFF"
+                    stroke="#E8823C"
+                    fill="#E8823C"
                     fillOpacity={0.15}
                     strokeWidth={2}
                   />
@@ -447,11 +480,14 @@ export default function AdminConsole() {
               </tbody>
             </table>
           </div>
-        </section>
+        </motion.section>
 
-        <section
+        <motion.section
           aria-label="AI usage (last 30 days)"
-          className="lg:w-1/2 border border-border rounded-lg overflow-hidden"
+          className="lg:w-1/2 glass-strong rounded-lg overflow-hidden"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
@@ -542,13 +578,16 @@ export default function AdminConsole() {
               </tbody>
             </table>
           </div>
-        </section>
+        </motion.section>
       </div>
 
       {/* Build success rate (last 30 days) */}
-      <section
+      <motion.section
         aria-label="Build success rate (last 30 days)"
-        className="mb-9 border border-border rounded-lg overflow-hidden"
+        className="mb-9 glass-strong rounded-lg overflow-hidden"
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
@@ -636,12 +675,15 @@ export default function AdminConsole() {
             </tbody>
           </table>
         </div>
-      </section>
+      </motion.section>
 
       {/* Security events (last 30 days) */}
-      <section
+      <motion.section
         aria-label="Security events (last 30 days)"
-        className="mb-9 border border-border rounded-lg overflow-hidden"
+        className="mb-9 glass-strong rounded-lg overflow-hidden"
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
@@ -723,10 +765,16 @@ export default function AdminConsole() {
             </tbody>
           </table>
         </div>
-      </section>
+      </motion.section>
 
       {/* Users */}
-      <section aria-label="Users" className="border border-border rounded-lg overflow-hidden">
+      <motion.section
+        aria-label="Users"
+        className="glass-strong rounded-lg overflow-hidden"
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Users</h2>
           <div className="flex items-center gap-2">
@@ -744,14 +792,15 @@ export default function AdminConsole() {
                 className="bg-transparent border border-border rounded-md h-9 pl-8 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 w-64 transition"
               />
             </div>
-            <button
+            <motion.button
               onClick={handleExportUsers}
               disabled={exporting}
               className="flex items-center gap-1.5 h-9 px-3 rounded-md border border-border text-sm text-ink hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none disabled:opacity-50 shrink-0"
+              {...presets.button}
             >
               <Download size={13} aria-hidden="true" />
               {exporting ? "Exporting…" : "Export CSV"}
-            </button>
+            </motion.button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -775,11 +824,16 @@ export default function AdminConsole() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <motion.tbody
+              variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+              initial={reduceMotion ? false : "hidden"}
+              animate="visible"
+            >
               {users.map((u) => (
-                <tr
+                <motion.tr
                   key={u.id}
                   className="border-t border-border-soft hover:bg-panel-alt transition motion-reduce:transition-none"
+                  variants={motionVariants.staggerItem}
                 >
                   <td className="px-4 py-2.5 text-sm text-ink">{u.email}</td>
                   <td className="px-4 py-2.5 text-sm text-muted">{u.name}</td>
@@ -798,7 +852,7 @@ export default function AdminConsole() {
                       +100 credits
                     </button>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
               {users.length === 0 && (
                 <tr>
@@ -807,11 +861,11 @@ export default function AdminConsole() {
                   </td>
                 </tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   )
 }
 
@@ -825,13 +879,13 @@ function StatCard({
   icon: typeof Users
 }) {
   return (
-    <div className="bg-base p-4">
+    <motion.div className="glass-strong p-4" {...presets.card} variants={motionVariants.staggerItem}>
       <div className="w-9 h-9 border border-border flex items-center justify-center mb-3">
         <Icon size={16} className="text-ink" aria-hidden="true" />
       </div>
       <p className="font-mono text-[1.4rem] font-medium text-ink leading-none mb-1">{value}</p>
       <p className="text-xs text-faint">{label}</p>
-    </div>
+    </motion.div>
   )
 }
 
@@ -846,7 +900,7 @@ function ServiceRow({
 }) {
   const ok = status === "ok"
   return (
-    <div className="flex items-center gap-3 py-2.5 first:pt-1">
+    <motion.div className="flex items-center gap-3 py-2.5 first:pt-1" variants={motionVariants.staggerItem}>
       <Icon size={14} className="text-faint shrink-0" aria-hidden="true" />
       <span className="text-sm text-ink flex-1 truncate">{label}</span>
       {status === undefined ? (
@@ -858,6 +912,6 @@ function ServiceRow({
           <AlertTriangle size={11} aria-hidden="true" /> {status}
         </span>
       )}
-    </div>
+    </motion.div>
   )
 }

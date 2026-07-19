@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { motionVariants } from '../lib/animations'
+import { presets } from '../lib/animationPresets'
 import { promptsApi, type PromptTemplatePayload, type PromptContextPayload } from '../lib/api'
 
 interface TemplateSummary {
@@ -53,6 +56,7 @@ function ListField({ label, value, onChange }: { label: string; value: string; o
 }
 
 export default function PromptStudioPage() {
+  const reduceMotion = useReducedMotion()
   const [templates, setTemplates] = useState<TemplateSummary[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -235,7 +239,12 @@ export default function PromptStudioPage() {
   const versionsForRole = templates.filter(t => t.role === pgRole).map(t => t.version)
 
   return (
-    <div className="p-8 text-sm text-slate-200">
+    <motion.div
+      className="p-8 text-sm text-slate-200"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
       <h1 className="text-2xl font-semibold">Prompt Studio</h1>
       <p className="mt-2 text-slate-400">
         Prompt Builder templates and a preview playground — the first layer of the Prompt Builder → Optimizer → Gateway pipeline.
@@ -253,11 +262,19 @@ export default function PromptStudioPage() {
                 New template
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <motion.div
+              className="mt-3 flex flex-wrap gap-2"
+              variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+              initial={reduceMotion ? false : 'hidden'}
+              animate="visible"
+            >
               {templates.map((t) => (
-                <button
+                <motion.button
                   key={`${t.role}-${t.version}`}
                   onClick={() => openTemplate(t.role, t.version)}
+                  variants={motionVariants.staggerItem}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                   className={`rounded-full px-3 py-1 text-xs ${
                     selected?.role === t.role && selected?.version === t.version
                       ? 'bg-emerald-600 text-white'
@@ -265,13 +282,18 @@ export default function PromptStudioPage() {
                   }`}
                 >
                   {t.role} / {t.version}
-                </button>
+                </motion.button>
               ))}
               {!templates.length && <p className="text-slate-400">No templates registered.</p>}
-            </div>
+            </motion.div>
 
             {(selected || isNew) && (
-              <div className="mt-4 space-y-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+              <motion.div
+                className="mt-4 space-y-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+              >
                 <div className="flex gap-3">
                   <label className="flex flex-1 flex-col gap-1">
                     <span className="text-xs text-slate-400">Role</span>
@@ -316,9 +338,9 @@ export default function PromptStudioPage() {
                 </label>
                 <ListField label="Quality rules" value={form.quality_rules} onChange={(v) => setForm({ ...form, quality_rules: v })} />
                 <div className="flex items-center gap-3">
-                  <button onClick={saveTemplate} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500">
+                  <motion.button onClick={saveTemplate} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500" {...presets.button}>
                     {isNew ? 'Create' : 'Save'}
-                  </button>
+                  </motion.button>
                   {!isNew && (
                     <button onClick={deleteTemplate} className="rounded bg-rose-700/70 px-3 py-1 hover:bg-rose-600">
                       Delete
@@ -326,7 +348,7 @@ export default function PromptStudioPage() {
                   )}
                   {editorStatus && <span className="text-xs text-slate-400">{editorStatus}</span>}
                 </div>
-              </div>
+              </motion.div>
             )}
           </section>
 
@@ -401,9 +423,9 @@ export default function PromptStudioPage() {
                 </label>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={runPreview} disabled={pgBusy || !pgRole} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500 disabled:opacity-50">
+                <motion.button onClick={runPreview} disabled={pgBusy || !pgRole} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500 disabled:opacity-50" {...presets.button}>
                   Preview prompt
-                </button>
+                </motion.button>
                 <button onClick={runValidate} disabled={pgBusy || !pgRole} className="rounded bg-slate-800 px-3 py-1 hover:bg-slate-700 disabled:opacity-50">
                   Validate context
                 </button>
@@ -413,7 +435,12 @@ export default function PromptStudioPage() {
             </div>
 
             {validation && (
-              <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+              <motion.div
+                className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+              >
                 <p className={validation.is_valid ? 'text-emerald-400' : 'text-rose-400'}>
                   {validation.is_valid ? 'Context is valid for this template.' : 'Context has problems:'}
                 </p>
@@ -426,11 +453,16 @@ export default function PromptStudioPage() {
                     ))}
                   </ul>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {preview && (
-              <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+              <motion.div
+                className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+              >
                 <div className="flex flex-wrap gap-2 text-xs text-slate-400">
                   <span className="rounded-full bg-slate-800 px-2 py-1">~{preview.metadata.estimated_tokens} tokens</span>
                   <span className="rounded-full bg-slate-800 px-2 py-1">{preview.metadata.build_time_ms.toFixed(1)} ms build</span>
@@ -442,11 +474,11 @@ export default function PromptStudioPage() {
                 <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-slate-950 p-3 font-mono text-xs text-slate-300">
                   {preview.prompt}
                 </pre>
-              </div>
+              </motion.div>
             )}
           </section>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

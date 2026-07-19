@@ -18,12 +18,12 @@ export const colorForIndex = (i: number): string =>
 // AgentType enum values (backend/core/models.py) rather than the Tailwind
 // class suffix (which uses hyphens instead of underscores).
 export const AGENT_COLORS: Record<string, string> = {
-  architect: "#6366F1",
-  designer: "#A855F7",
-  developer: "#22D3EE",
-  integration: "#F59E0B",
-  pm: "#34D399",
-  business_improver: "#EC4899",
+  architect: "#F4A261",
+  designer: "#E8823C",
+  developer: "#D9722C",
+  integration: "#C2631F",
+  pm: "#A85423",
+  business_improver: "#F0934D",
 }
 
 export const colorForAgent = (agent: string, fallbackIndex: number): string =>

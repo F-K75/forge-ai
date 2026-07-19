@@ -1,5 +1,7 @@
 import type { ReactElement } from "react"
 import { ResponsiveContainer } from "recharts"
+import { motion } from "motion/react"
+import { useReducedMotion } from "motion/react"
 
 export function ChartContainer({
   height = 220,
@@ -8,9 +10,17 @@ export function ChartContainer({
   height?: number
   children: ReactElement
 }) {
+  const reduceMotion = useReducedMotion()
+
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      {children}
-    </ResponsiveContainer>
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, scaleY: 0.85, transformOrigin: "bottom" }}
+      animate={{ opacity: 1, scaleY: 1 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    >
+      <ResponsiveContainer width="100%" height={height}>
+        {children}
+      </ResponsiveContainer>
+    </motion.div>
   )
 }

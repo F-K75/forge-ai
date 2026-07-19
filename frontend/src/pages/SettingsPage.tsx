@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, Copy, LifeBuoy } from "lucide-react";
+import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, LifeBuoy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { motionVariants } from "../lib/animations";
+import { presets } from "../lib/animationPresets";
 import { DEFAULT_SETTINGS } from "../lib/mockData";
 import { Row } from "../components/Row";
 import { Toggle } from "../components/Toggle";
+import { ClipboardCopyButton } from "../components/ui/ClipboardCopyButton";
 import { LIVE_MODE } from "../lib/env";
 import { authApi, supportApi } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
@@ -62,6 +66,7 @@ function formatLastActive(iso: string): string {
 
 export default function SettingsPage() {
   const { user, fetchMe } = useAuthStore();
+  const reduceMotion = useReducedMotion();
 
   // Demo-mode-only local state (no backend to persist to).
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -249,37 +254,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleCopyBackupCodes = async () => {
-    const text = backupCodes.join("\n");
-    // navigator.clipboard is undefined outside a secure context (e.g. a
-    // plain-HTTP deployment) -- these codes are shown exactly once, so a
-    // silent failure here is worse than for a typical "copy" button.
-    if (navigator.clipboard && window.isSecureContext) {
-      try {
-        await navigator.clipboard.writeText(text);
-        toast.success("Backup codes copied");
-      } catch {
-        toast.error("Failed to copy");
-      }
-      return;
-    }
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    try {
-      document.execCommand("copy");
-      toast.success("Backup codes copied");
-    } catch {
-      toast.error("Failed to copy");
-    } finally {
-      document.body.removeChild(textarea);
-    }
-  };
-
   const handleDoneWithBackupCodes = () => {
     setMfaStep("idle");
     setBackupCodes([]);
@@ -357,17 +331,27 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="px-6 md:px-10 py-10 md:py-14">
+    <motion.div
+      className="px-6 md:px-10 py-10 md:py-14"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
         <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
         Account
       </div>
       <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink mb-12">Settings</h1>
 
-      <div className="max-w-2xl space-y-12">
+      <motion.div
+        className="max-w-2xl space-y-12"
+        variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+        initial={reduceMotion ? false : "hidden"}
+        animate="visible"
+      >
 
         {/* API key */}
-        <section aria-labelledby="section-api-key">
+        <motion.section aria-labelledby="section-api-key" variants={motionVariants.staggerItem}>
           <div className="flex items-center gap-2 mb-3">
             <Key size={13} className="text-muted" aria-hidden="true" />
             <h2 id="section-api-key" className="text-sm font-medium text-ink">API key</h2>
@@ -422,7 +406,12 @@ export default function SettingsPage() {
             </Row>
 
             {canUseByok && !byokConnected && showByokInput && (
-              <div className="px-4 py-4 border-t border-border-soft space-y-3">
+              <motion.div
+                className="px-4 py-4 border-t border-border-soft space-y-3"
+                initial={reduceMotion ? false : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
                 <div className="flex gap-2" role="radiogroup" aria-label="Provider">
                   {(["anthropic", "openai_compatible"] as const).map((p) => (
                     <button
@@ -471,24 +460,25 @@ export default function SettingsPage() {
                   </>
                 )}
 
-                <button
+                <motion.button
                   onClick={handleConnectByok}
                   disabled={
                     savingByok ||
                     !byokKeyInput.trim() ||
                     (byokProvider === "openai_compatible" && (!byokBaseUrlInput.trim() || !byokModelInput.trim()))
                   }
+                  {...presets.button}
                   className="h-8 px-3 rounded-md bg-ink text-base text-xs font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
                 >
                   {savingByok ? "Saving…" : "Save"}
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             )}
           </div>
-        </section>
+        </motion.section>
 
         {/* Connections */}
-        <section aria-labelledby="section-connections">
+        <motion.section aria-labelledby="section-connections" variants={motionVariants.staggerItem}>
           <div className="flex items-center gap-2 mb-3">
             <Github size={13} className="text-muted" aria-hidden="true" />
             <h2 id="section-connections" className="text-sm font-medium text-ink">Connections</h2>
@@ -548,10 +538,10 @@ export default function SettingsPage() {
               )}
             </Row>
           </div>
-        </section>
+        </motion.section>
 
         {/* Notifications */}
-        <section aria-labelledby="section-notifications">
+        <motion.section aria-labelledby="section-notifications" variants={motionVariants.staggerItem}>
           <div className="flex items-center gap-2 mb-3">
             <Bell size={13} className="text-muted" aria-hidden="true" />
             <h2 id="section-notifications" className="text-sm font-medium text-ink">Notifications</h2>
@@ -571,10 +561,10 @@ export default function SettingsPage() {
               />
             </Row>
           </div>
-        </section>
+        </motion.section>
 
         {/* Defaults */}
-        <section aria-labelledby="section-defaults">
+        <motion.section aria-labelledby="section-defaults" variants={motionVariants.staggerItem}>
           <div className="flex items-center gap-2 mb-3">
             <Sliders size={13} className="text-muted" aria-hidden="true" />
             <h2 id="section-defaults" className="text-sm font-medium text-ink">Defaults</h2>
@@ -630,11 +620,11 @@ export default function SettingsPage() {
               </div>
             </Row>
           </div>
-        </section>
+        </motion.section>
 
         {/* Two-factor authentication */}
         {LIVE_MODE && (
-          <section aria-labelledby="section-security">
+          <motion.section aria-labelledby="section-security" variants={motionVariants.staggerItem}>
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck size={13} className="text-muted" aria-hidden="true" />
               <h2 id="section-security" className="text-sm font-medium text-ink">Security</h2>
@@ -683,45 +673,60 @@ export default function SettingsPage() {
                 )}
               </Row>
 
-              {mfaStep === "qr" && (
-                <div className="px-4 py-4 border-t border-border space-y-4">
-                  <p className="text-xs text-muted leading-relaxed">
-                    Scan this QR code with an authenticator app (e.g. Google Authenticator, 1Password), then enter the
-                    6-digit code it generates.
-                  </p>
-                  <div className="bg-white p-3 rounded-md inline-block">
-                    <QRCodeSVG value={mfaOtpauthUri} size={160} />
-                  </div>
-                  <p className="text-[11px] font-mono text-faint break-all">Secret: {mfaSecret}</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={mfaSetupCode}
-                      onChange={e => setMfaSetupCode(e.target.value)}
-                      placeholder="123456"
-                      aria-label="6-digit authentication code"
-                      className="h-8 px-2.5 w-28 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition tracking-widest"
-                    />
-                    <button
-                      onClick={handleVerifyMfaSetup}
-                      disabled={mfaBusy || !mfaSetupCode.trim()}
-                      className="text-xs text-ink hover:opacity-70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-opacity disabled:opacity-50"
-                    >
-                      {mfaBusy ? "Verifying…" : "Verify & enable"}
-                    </button>
-                    <button
-                      onClick={() => { setMfaStep("idle"); setMfaSecret(""); setMfaOtpauthUri(""); }}
-                      className="text-xs text-muted hover:text-ink"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>
+                {mfaStep === "qr" && (
+                  <motion.div
+                    key="mfa-qr"
+                    className="px-4 py-4 border-t border-border space-y-4"
+                    initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    <p className="text-xs text-muted leading-relaxed">
+                      Scan this QR code with an authenticator app (e.g. Google Authenticator, 1Password), then enter the
+                      6-digit code it generates.
+                    </p>
+                    <div className="bg-white p-3 rounded-md inline-block">
+                      <QRCodeSVG value={mfaOtpauthUri} size={160} />
+                    </div>
+                    <p className="text-[11px] font-mono text-faint break-all">Secret: {mfaSecret}</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={mfaSetupCode}
+                        onChange={e => setMfaSetupCode(e.target.value)}
+                        placeholder="123456"
+                        aria-label="6-digit authentication code"
+                        className="h-8 px-2.5 w-28 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition tracking-widest"
+                      />
+                      <motion.button
+                        onClick={handleVerifyMfaSetup}
+                        disabled={mfaBusy || !mfaSetupCode.trim()}
+                        {...presets.button}
+                        className="text-xs text-ink hover:opacity-70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-opacity disabled:opacity-50"
+                      >
+                        {mfaBusy ? "Verifying…" : "Verify & enable"}
+                      </motion.button>
+                      <button
+                        onClick={() => { setMfaStep("idle"); setMfaSecret(""); setMfaOtpauthUri(""); }}
+                        className="text-xs text-muted hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {mfaStep === "backup-codes" && (
-                <div className="px-4 py-4 border-t border-border space-y-3">
+                <motion.div
+                  className="px-4 py-4 border-t border-border space-y-3"
+                  initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                >
                   <p className="text-xs text-ink font-medium">Save your backup codes</p>
                   <p className="text-xs text-muted leading-relaxed">
                     Each code can be used once to sign in if you lose access to your authenticator app. They will not
@@ -733,12 +738,11 @@ export default function SettingsPage() {
                     ))}
                   </div>
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleCopyBackupCodes}
+                    <ClipboardCopyButton
+                      text={backupCodes.join("\n")}
+                      successMessage="Backup codes copied"
                       className="inline-flex items-center gap-1 text-xs text-ink hover:opacity-70 transition-opacity"
-                    >
-                      <Copy size={12} aria-hidden="true" /> Copy codes
-                    </button>
+                    />
                     <button
                       onClick={handleDoneWithBackupCodes}
                       className="text-xs text-muted hover:text-ink"
@@ -746,15 +750,15 @@ export default function SettingsPage() {
                       Done
                     </button>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
-          </section>
+          </motion.section>
         )}
 
         {/* Active sessions */}
         {LIVE_MODE && (
-          <section aria-labelledby="section-sessions">
+          <motion.section aria-labelledby="section-sessions" variants={motionVariants.staggerItem}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Monitor size={13} className="text-muted" aria-hidden="true" />
@@ -804,11 +808,11 @@ export default function SettingsPage() {
                 ))
               )}
             </div>
-          </section>
+          </motion.section>
         )}
 
         {/* Support */}
-        <section aria-labelledby="section-support">
+        <motion.section aria-labelledby="section-support" variants={motionVariants.staggerItem}>
           <div className="flex items-center gap-2 mb-3">
             <LifeBuoy size={13} className="text-muted" aria-hidden="true" />
             <h2 id="section-support" className="text-sm font-medium text-ink">Support</h2>
@@ -838,17 +842,18 @@ export default function SettingsPage() {
                 className="w-full resize-none bg-transparent border border-border rounded-md px-3 py-2.5 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
               />
             </div>
-            <button
+            <motion.button
               onClick={handleSubmitSupportTicket}
               disabled={supportSubmitting || !supportSubject.trim() || !supportDescription.trim()}
+              {...presets.button}
               className="h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
             >
               {supportSubmitting ? "Submitting…" : "Submit ticket"}
-            </button>
+            </motion.button>
           </div>
-        </section>
+        </motion.section>
 
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

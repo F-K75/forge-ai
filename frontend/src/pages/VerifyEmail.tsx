@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { Loader2, ArrowRight, AlertCircle, Check, Mail } from "lucide-react"
+import { motion } from "motion/react"
+import { presets } from "../lib/animationPresets"
+import { shouldReduceMotion } from "../lib/animations"
 
 type Status = "verifying" | "success" | "error"
 
@@ -13,6 +16,8 @@ export default function VerifyEmail() {
   const [resendEmail, setResendEmail] = useState("")
   const [resendSent, setResendSent] = useState(false)
   const [resending, setResending] = useState(false)
+  const reduce = shouldReduceMotion()
+  const pageMotion = reduce ? {} : presets.pageTransition
 
   useEffect(() => {
     if (!token) return
@@ -62,11 +67,11 @@ export default function VerifyEmail() {
   if (status === "verifying") {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center">
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center">
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-6 text-land-muted" aria-hidden="true" />
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Verifying your email…</h1>
           <p className="text-sm text-land-muted">This will only take a second.</p>
-        </div>
+        </motion.div>
       </div>
     )
   }
@@ -74,20 +79,20 @@ export default function VerifyEmail() {
   if (status === "success") {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center" role="status" aria-live="polite">
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center" role="status" aria-live="polite">
           <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Email verified</h1>
           <p className="text-sm text-land-muted">Redirecting you to Forge…</p>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+      <motion.div {...pageMotion} className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-10 h-10 rounded-full border border-land-destructive/40 flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-4 h-4 text-land-destructive" aria-hidden="true" />
@@ -124,11 +129,12 @@ export default function VerifyEmail() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={resending || !resendEmail}
-              className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
-            >
+          <motion.button
+            type="submit"
+            disabled={resending || !resendEmail}
+            {...(reduce ? {} : presets.button)}
+            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+          >
               {resending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Sending…
@@ -140,7 +146,7 @@ export default function VerifyEmail() {
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                 </>
               )}
-            </button>
+            </motion.button>
           </form>
         )}
 
@@ -149,7 +155,7 @@ export default function VerifyEmail() {
             Back to sign in
           </Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   )
 }

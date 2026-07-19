@@ -1,11 +1,19 @@
 import { Link } from 'react-router-dom'
 import { Hammer, Home, ArrowLeft } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 
 export default function NotFoundPage() {
+  const reduceMotion = useReducedMotion()
+
   return (
     <div className="min-h-screen bg-base flex items-center justify-center p-6">
-      <main className="text-center max-w-sm">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-panel border border-border mb-6">
+      <motion.main
+        className="text-center max-w-sm"
+        initial={reduceMotion ? false : { opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl glass mb-6">
           <Hammer size={24} className="text-accent" aria-hidden="true" />
         </div>
         <h1 className="text-4xl font-bold text-ink mb-2">404</h1>
@@ -29,7 +37,7 @@ export default function NotFoundPage() {
             Dashboard
           </Link>
         </div>
-      </main>
+      </motion.main>
     </div>
   )
 }

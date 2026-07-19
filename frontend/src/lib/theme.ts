@@ -7,16 +7,16 @@ export const COLORS = {
   base: "#0A0A0F",
   ink: "#E8E8F0",
   muted: "#8B8B9E",
-  accent: "#7C5CFF",
+  accent: "#E8823C",
   ok: "#34D399",
   warn: "#F59E0B",
   error: "#EF4444",
-  agentArchitect: "#6366F1",
-  agentBusinessImprover: "#EC4899",
-  agentDesigner: "#A855F7",
-  agentDeveloper: "#22D3EE",
-  agentIntegration: "#F59E0B",
-  agentPm: "#34D399",
+  agentArchitect: "#F4A261",
+  agentBusinessImprover: "#F0934D",
+  agentDesigner: "#E8823C",
+  agentDeveloper: "#D9722C",
+  agentIntegration: "#C2631F",
+  agentPm: "#A85423",
 } as const
 
 // Stable per-item accent for cards with no backend-provided color field

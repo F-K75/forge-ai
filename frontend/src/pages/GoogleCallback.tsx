@@ -1,6 +1,10 @@
 import { useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 
 export default function GoogleCallback() {
+  const reduceMotion = useReducedMotion()
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const accessToken = params.get('access_token')
@@ -38,7 +42,15 @@ export default function GoogleCallback() {
 
   return (
     <div className="min-h-screen flex items-center justify-center text-sm">
-      Completing sign-in...
+      <motion.div
+        className="flex items-center gap-2"
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
+        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+        Completing sign-in...
+      </motion.div>
     </div>
   )
 }

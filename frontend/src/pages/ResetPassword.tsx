@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { Loader2, ArrowRight, AlertCircle, Check } from "lucide-react"
+import { motion } from "motion/react"
+import { presets } from "../lib/animationPresets"
+import { shouldReduceMotion } from "../lib/animations"
 import { validateNewPassword } from "../lib/passwordPolicy"
 
 export default function ResetPassword() {
@@ -13,12 +16,15 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const reduce = shouldReduceMotion()
 
   useEffect(() => {
     if (!token) {
       setError("Invalid or missing reset token")
     }
   }, [token])
+
+  const pageMotion = reduce ? {} : presets.pageTransition
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,7 +66,7 @@ export default function ResetPassword() {
   if (!token) {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center">
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center">
           <div className="w-10 h-10 rounded-full border border-land-destructive/40 flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-4 h-4 text-land-destructive" aria-hidden="true" />
           </div>
@@ -71,7 +77,7 @@ export default function ResetPassword() {
           <Link to="/forgot-password" className="text-sm text-land-ink underline underline-offset-4 hover:text-land-muted transition">
             Request a new link
           </Link>
-        </div>
+        </motion.div>
       </div>
     )
   }
@@ -79,20 +85,20 @@ export default function ResetPassword() {
   if (success) {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center" role="status" aria-live="polite">
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center" role="status" aria-live="polite">
           <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Password updated</h1>
           <p className="text-sm text-land-muted">Redirecting you to sign in…</p>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+      <motion.div {...pageMotion} className="w-full max-w-sm">
         <div className="mb-10">
           <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
@@ -145,9 +151,10 @@ export default function ResetPassword() {
             />
           </div>
 
-          <button
+          <motion.button
             type="submit"
             disabled={loading || !token}
+            {...(reduce ? {} : presets.button)}
             className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
           >
             {loading ? (
@@ -159,7 +166,7 @@ export default function ResetPassword() {
                 Update password <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </>
             )}
-          </button>
+          </motion.button>
 
           <p className="text-center text-sm text-land-muted">
             <Link to="/login" className="text-land-ink hover:underline underline-offset-4">
@@ -167,7 +174,7 @@ export default function ResetPassword() {
             </Link>
           </p>
         </form>
-      </div>
+      </motion.div>
     </div>
   )
 }

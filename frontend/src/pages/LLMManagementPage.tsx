@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { motionVariants } from '../lib/animations'
+import { presets } from '../lib/animationPresets'
 import { llmApi } from '../lib/api'
 
 interface ProviderStatus {
@@ -24,6 +27,7 @@ interface UsageEntry {
 }
 
 export default function LLMManagementPage() {
+  const reduceMotion = useReducedMotion()
   const [providers, setProviders] = useState<ProviderStatus[]>([])
   const [models, setModels] = useState<ModelEntry[]>([])
   const [usage, setUsage] = useState<UsageEntry[]>([])
@@ -76,7 +80,12 @@ export default function LLMManagementPage() {
   const totalCost = usage.reduce((sum, entry) => sum + (entry.cost_usd || 0), 0)
 
   return (
-    <div className="p-8 text-sm text-slate-200">
+    <motion.div
+      className="p-8 text-sm text-slate-200"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
       <h1 className="text-2xl font-semibold">LLM Management</h1>
       <p className="mt-2 text-slate-400">Provider status, model assignments, cost, and per-agent routing.</p>
 
@@ -86,9 +95,19 @@ export default function LLMManagementPage() {
         <>
           <section className="mt-6">
             <h2 className="text-lg font-medium">Providers</h2>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <motion.div
+              className="mt-3 grid gap-4 md:grid-cols-2"
+              variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+              initial={reduceMotion ? false : 'hidden'}
+              animate="visible"
+            >
               {providers.map((provider) => (
-                <div key={provider.name} className="rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+                <motion.div
+                  key={provider.name}
+                  className="rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+                  {...presets.card}
+                  variants={motionVariants.staggerItem}
+                >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{provider.name}</span>
                     <span className={`rounded-full px-2 py-1 text-xs ${provider.healthy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
@@ -97,27 +116,37 @@ export default function LLMManagementPage() {
                   </div>
                   <p className="mt-2 text-slate-400">Priority: {provider.priority}</p>
                   <p className="text-slate-400">Default model: {provider.default_model || '—'}</p>
-                  <button
+                  <motion.button
                     onClick={() => testConnection(provider.name)}
                     className="mt-3 rounded bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700"
+                    {...presets.button}
                   >
                     Test connection
-                  </button>
-                </div>
+                  </motion.button>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
             {testStatus && <p className="mt-3 text-xs text-slate-400">{testStatus}</p>}
           </section>
 
           <section className="mt-8">
             <h2 className="text-lg font-medium">Models</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <motion.div
+              className="mt-3 flex flex-wrap gap-2"
+              variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+              initial={reduceMotion ? false : 'hidden'}
+              animate="visible"
+            >
               {models.map((model) => (
-                <span key={`${model.provider}-${model.name}`} className="rounded-full bg-slate-800 px-3 py-1 text-xs">
+                <motion.span
+                  key={`${model.provider}-${model.name}`}
+                  className="rounded-full bg-slate-800 px-3 py-1 text-xs"
+                  variants={motionVariants.staggerItem}
+                >
                   {model.provider} / {model.name}
-                </span>
+                </motion.span>
               ))}
-            </div>
+            </motion.div>
           </section>
 
           <section className="mt-8">
@@ -133,16 +162,20 @@ export default function LLMManagementPage() {
                     <th className="p-2">Cost (USD)</th>
                   </tr>
                 </thead>
-                <tbody>
+                <motion.tbody
+                  variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+                  initial={reduceMotion ? false : 'hidden'}
+                  animate="visible"
+                >
                   {usage.map((entry, idx) => (
-                    <tr key={idx} className="border-t border-slate-800">
+                    <motion.tr key={idx} className="border-t border-slate-800" variants={motionVariants.staggerItem}>
                       <td className="p-2">{entry.model || '—'}</td>
                       <td className="p-2">{entry.prompt_tokens ?? '—'}</td>
                       <td className="p-2">{entry.completion_tokens ?? '—'}</td>
                       <td className="p-2">{entry.cost_usd?.toFixed(4) ?? '—'}</td>
-                    </tr>
+                    </motion.tr>
                   ))}
-                </tbody>
+                </motion.tbody>
               </table>
             </div>
           </section>
@@ -180,14 +213,14 @@ export default function LLMManagementPage() {
                   placeholder="e.g. claude-sonnet-4-6"
                 />
               </label>
-              <button onClick={saveOverride} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500">
+              <motion.button onClick={saveOverride} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500" {...presets.button}>
                 Apply
-              </button>
+              </motion.button>
             </div>
             {saveStatus && <p className="mt-3 text-xs text-slate-400">{saveStatus}</p>}
           </section>
         </>
       )}
-    </div>
+    </motion.div>
   )
 }

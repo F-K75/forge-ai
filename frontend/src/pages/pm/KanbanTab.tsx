@@ -4,6 +4,8 @@ import { DndContext, useDraggable, useDroppable, type DragEndEvent, PointerSenso
 import { Play, Loader2, GitBranch } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { tasksApi } from "../../lib/pmApi";
+import { motion, motionVariants } from "../../lib/animations";
+import { presets } from "../../lib/animationPresets";
 
 const COLUMNS: { id: string; label: string }[] = [
   { id: "backlog", label: "Backlog" },
@@ -16,7 +18,7 @@ const COLUMNS: { id: string; label: string }[] = [
   { id: "support", label: "Support" },
 ];
 
-function TaskCard({ task }: { task: Record<string, any> }) {
+function TaskCard({ task, index }: { task: Record<string, any>; index: number }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const [running, setRunning] = useState(false);
   const { setTaskLocal } = usePMStore();
@@ -40,12 +42,15 @@ function TaskCard({ task }: { task: Record<string, any> }) {
   };
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      className={`bg-panel border border-border rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing ${isDragging ? "opacity-60" : ""}`}
+      variants={motionVariants.staggerItem}
+      custom={index}
+      {...presets.kanbanCard}
+      className={`glass rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing ${isDragging ? "opacity-60" : ""}`}
     >
       <p className="text-sm text-ink mb-2 leading-snug">{task.title}</p>
       <div className="flex items-center justify-between gap-2">
@@ -70,27 +75,28 @@ function TaskCard({ task }: { task: Record<string, any> }) {
           </button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 function Column({ id, label, tasks }: { id: string; label: string; tasks: Record<string, any>[] }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
+      variants={motionVariants.scaleIn}
       className={`w-64 shrink-0 flex flex-col rounded-lg border ${isOver ? "border-ink/40 bg-panel-alt" : "border-border-soft"} p-2`}
     >
       <div className="flex items-center justify-between px-1.5 py-1.5 mb-1">
         <span className="text-xs font-medium text-muted uppercase tracking-[0.08em]">{label}</span>
         <span className="text-[10px] font-mono text-faint">{tasks.length}</span>
       </div>
-      <div className="overflow-y-auto flex-1 min-h-8">
-        {tasks.map(t => (
-          <TaskCard key={t.id} task={t} />
+      <motion.div className="overflow-y-auto flex-1 min-h-8" variants={motionVariants.staggerContainer}>
+        {tasks.map((t, i) => (
+          <TaskCard key={t.id} task={t} index={i} />
         ))}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -130,7 +136,7 @@ export default function KanbanTab() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-6 md:px-8 py-3 border-b border-border-soft shrink-0 flex-wrap">
+      <motion.div className="flex items-center gap-2 px-6 md:px-8 py-3 border-b border-border-soft shrink-0 flex-wrap" variants={motionVariants.fadeIn}>
         <select
           value={sprintFilter}
           onChange={e => setSprintFilter(e.target.value)}
@@ -157,16 +163,16 @@ export default function KanbanTab() {
           placeholder="Search tasks…"
           className="h-8 bg-transparent border border-border rounded-md px-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 min-w-[160px]"
         />
-      </div>
+      </motion.div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6">
-          <div className="flex gap-3 h-full">
+        <motion.div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+          <motion.div className="flex gap-3 h-full" variants={motionVariants.staggerContainer}>
             {COLUMNS.map(col => (
               <Column key={col.id} id={col.id} label={col.label} tasks={filtered.filter(t => t.status === col.id)} />
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </DndContext>
     </div>
   );

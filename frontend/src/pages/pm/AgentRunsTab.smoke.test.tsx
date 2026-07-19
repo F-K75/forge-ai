@@ -138,7 +138,9 @@ describe("AgentRunsTab", () => {
     expect(screen.getAllByText(/Self-serve downgrade flow/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Re-estimated proration task/)).toBeTruthy();
     expect(screen.getByText(/Running tests/)).toBeTruthy();
-    expect(screen.getAllByText(/Not wired into the initiative pipeline/).length).toBe(2);
+    expect(screen.getByText(/Integration/)).toBeTruthy();
+    expect(screen.getByText(/No tech stack defined for this initiative yet/)).toBeTruthy();
+    expect(screen.getByText(/doesn't have a backend data source in the initiative pipeline yet/)).toBeTruthy();
     await waitFor(() =>
       expect(screen.getByText(/Currency formatting per locale/)).toBeTruthy()
     );

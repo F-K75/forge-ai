@@ -133,12 +133,16 @@ export const projectsApi = {
 
 // Builds
 export const buildsApi = {
-  create: (data: { project_id: string; prompt: string }) =>
+  create: (data: { project_id: string; prompt: string; interactive?: boolean }) =>
     api.post("/builds/", data).then((r) => r.data),
   get: (id: string) => api.get(`/builds/${id}`).then((r) => r.data),
   getFiles: (id: string) => api.get(`/builds/${id}/files`).then((r) => r.data),
   rollback: (id: string, version: number) =>
     api.post(`/builds/${id}/rollback/${version}`).then((r) => r.data),
+  // Resolves an interactive build's pending gate — see
+  // backend/core/orchestrator.py's _wait_for_gate and POST /builds/{id}/gate.
+  respondToGate: (buildId: string, data: { gate_id: string; action: "approve" | "cancel" | "answers"; answers?: string[] }) =>
+    api.post(`/builds/${buildId}/gate`, data).then((r) => r.data),
 }
 
 // Billing

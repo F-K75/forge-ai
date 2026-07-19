@@ -1,60 +1,80 @@
-import { Loader2, Check, X, Bot } from "lucide-react";
-import { COLORS } from "../lib/theme";
+import { useRef, useEffect } from "react"
+import { Loader2, Check, X, Bot } from "lucide-react"
+import { COLORS } from "../lib/theme"
+import gsap from "gsap"
+import { useReducedMotion } from "motion/react"
 
-// Visually consistent with components/AgentPipeline.tsx (same base/panel/ink tokens,
-// ping-halo/spinner for active, check for done) but NOT a reuse of it: review
-// agent ids come from agents/*.json (config-driven, can grow) rather than the
-// fixed roster in lib/agents.ts, so there's no per-agent icon/hue lookup here
-// — just one consistent accent color and a humanized id as the label.
-export type ReviewAgentState = "idle" | "active" | "done" | "failed";
+export type ReviewAgentState = "idle" | "active" | "done" | "failed"
 
 export interface ReviewPipelineNode {
-  id: string;
-  state: ReviewAgentState;
-  detail?: string;
+  id: string
+  state: ReviewAgentState
+  detail?: string
 }
 
 export interface ReviewAgentPipelineProps {
-  nodes: ReviewPipelineNode[];
-  compact?: boolean;
+  nodes: ReviewPipelineNode[]
+  compact?: boolean
 }
 
-const ACCENT = COLORS.accent;
-const FAILED = COLORS.error;
+const ACCENT = COLORS.accent
+const FAILED = COLORS.error
 
 function humanize(id: string): string {
-  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export function ReviewAgentPipeline({ nodes, compact = false }: ReviewAgentPipelineProps) {
-  const tileSz = compact ? 28 : 34;
-  const iconSz = compact ? 12 : 14;
-  const connectorMinH = compact ? 10 : 18;
+  const tileSz = compact ? 28 : 34
+  const iconSz = compact ? 12 : 14
+  const connectorMinH = compact ? 10 : 18
+  const listRef = useRef<HTMLOListElement>(null)
+  const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (reduceMotion || !listRef.current) return
+    const items = listRef.current.querySelectorAll("[data-review-node]")
+    gsap.from(items, {
+      opacity: 0,
+      x: -20,
+      scale: 0.9,
+      stagger: 0.08,
+      duration: 0.5,
+      ease: "back.out(1.4)",
+    })
+  }, [nodes, reduceMotion])
 
   return (
-    <ol aria-label="Review agent pipeline">
+    <ol ref={listRef} aria-label="Review agent pipeline">
       {nodes.map((node, i) => {
-        const isLast = i === nodes.length - 1;
-        const label = humanize(node.id);
+        const isLast = i === nodes.length - 1
+        const label = humanize(node.id)
 
         const labelClass = [
           compact ? "text-xs" : "text-sm",
           "font-medium leading-none",
           node.state === "idle" ? "text-faint" : node.state === "failed" ? "text-error" : "text-ink",
-        ].join(" ");
+        ].join(" ")
 
         const detailClass = [
           compact ? "text-[10px]" : "text-xs",
           "mt-0.5",
           node.state === "failed" ? "text-error" : "text-muted",
-        ].join(" ");
+        ].join(" ")
 
         return (
-          <li key={node.id} aria-label={`${label}: ${node.state}`} className="flex gap-3">
-            {/* Track column: tile + connector */}
+          <li
+            key={node.id}
+            data-review-node
+            aria-label={`${label}: ${node.state}`}
+            className="flex gap-3 group"
+          >
             <div className="flex flex-col items-center shrink-0" style={{ width: tileSz }}>
               {node.state === "active" ? (
-                <div className="relative shrink-0" style={{ width: tileSz, height: tileSz }}>
+                <div
+                  className="relative shrink-0 group-hover:scale-110 transition-transform duration-200"
+                  style={{ width: tileSz, height: tileSz }}
+                >
                   <span
                     className="absolute inset-0 rounded-lg animate-ping motion-reduce:hidden"
                     style={{ backgroundColor: `${ACCENT}4D` }}
@@ -75,6 +95,7 @@ export function ReviewAgentPipeline({ nodes, compact = false }: ReviewAgentPipel
                 <div
                   className={[
                     "rounded-lg border flex items-center justify-center shrink-0",
+                    "transition-transform duration-200 group-hover:scale-110",
                     node.state === "idle"
                       ? "bg-panel-alt border-border"
                       : node.state === "failed"
@@ -111,14 +132,13 @@ export function ReviewAgentPipeline({ nodes, compact = false }: ReviewAgentPipel
               )}
             </div>
 
-            {/* Content column */}
             <div className={["flex-1 min-w-0", isLast ? "pb-0" : compact ? "pb-3" : "pb-5"].join(" ")}>
               <p className={labelClass}>{label}</p>
               {node.detail && <p className={detailClass}>{node.detail}</p>}
             </div>
           </li>
-        );
+        )
       })}
     </ol>
-  );
+  )
 }

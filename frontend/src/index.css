@@ -10,11 +10,17 @@
   }
 
   .bb-panel {
-    @apply bg-panel border border-border rounded-2xl;
+    @apply border border-border rounded-2xl;
+    background: rgba(19, 19, 27, 0.72);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
   }
 
   .bb-card {
-    @apply bg-panel/60 border border-border rounded-xl;
+    @apply border border-border rounded-xl;
+    background: rgba(19, 19, 27, 0.5);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
   }
 
   .bb-btn {
@@ -74,9 +80,9 @@
   --surface: #1a1a1a;
   --surface-2: #262626;
   --border: #333333;
-  --accent: #8b5cf6;
-  --accent-hover: #a78bfa;
-  --accent-glow: rgba(139, 92, 246, 0.15);
+  --accent: #e8823c;
+  --accent-hover: #f4a261;
+  --accent-glow: rgba(232, 130, 60, 0.15);
   --text: #ffffff;
   --text-secondary: #a0a0a0;
   --muted: #707070;
@@ -93,7 +99,7 @@
 
 /* Accessible focus styles */
 :focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid #e8823c;
   outline-offset: 2px;
 }
 
@@ -101,15 +107,15 @@
 .glass {
   background: rgba(17, 17, 24, 0.62);
   border: 1px solid rgba(30, 30, 46, 0.8);
-  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .glass-strong {
   background: rgba(17, 17, 24, 0.78);
   border: 1px solid rgba(30, 30, 46, 0.92);
-  backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
 }
 
 /* Reduced motion support */
@@ -137,7 +143,7 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.16), transparent 24%), var(--bg);
+  background: radial-gradient(circle at top left, rgba(232, 130, 60, 0.14), transparent 24%), var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -215,3 +221,43 @@ body {
   color: var(--accent);
   margin-left: 1px;
 }
+
+/* Build workspace ("ember") accent — see tailwind.config.ts */
+.gradient-ember {
+  background-image: linear-gradient(135deg, theme('colors.ember'), theme('colors.ember-glow'));
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2.2s linear infinite;
+}
+
+@keyframes tick {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.animate-tick { animation: tick 1.4s ease-in-out infinite; }
+
+/* Agent satellites orbiting the Launch globe — see OrbitingAgents in Launch.tsx */
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-orbit-spin { animation: orbit-spin 24s linear infinite; }
+
+/* Sonar-style rings radiating from the Launch globe, suggesting the platform
+   listening/thinking — see PulseRings in Launch.tsx */
+@keyframes pulse-ring {
+  0% { transform: scale(0.72); opacity: 0.4; }
+  100% { transform: scale(1.22); opacity: 0; }
+}
+
+.animate-pulse-ring { animation: pulse-ring 6s ease-out infinite; }

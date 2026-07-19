@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail } from 'lucide-react'
 import { api } from '../lib/api'
+import { motion } from 'motion/react'
+import { presets } from '../lib/animationPresets'
+import { shouldReduceMotion } from '../lib/animations'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -34,10 +37,15 @@ export default function ForgotPassword() {
     }
   }
 
+  const reduce = shouldReduceMotion()
+
   if (submitted) {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center">
+        <motion.div
+          {...(reduce ? {} : presets.pageTransition)}
+          className="w-full max-w-sm text-center"
+        >
           <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Mail className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
@@ -46,14 +54,17 @@ export default function ForgotPassword() {
           <Link to="/login" className="text-sm text-land-ink underline underline-offset-4 hover:text-land-muted transition">
             Back to sign in
           </Link>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+      <motion.div
+        {...(reduce ? {} : presets.pageTransition)}
+        className="w-full max-w-sm"
+      >
         <div className="mb-10">
           <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
@@ -89,13 +100,14 @@ export default function ForgotPassword() {
             />
           </div>
 
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
+            {...(reduce ? {} : presets.button)}
             className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
           >
             {loading ? 'Sending…' : 'Send reset link'}
-          </button>
+          </motion.button>
 
           <p className="text-center text-sm text-land-muted">
             <Link to="/login" className="text-land-ink hover:underline underline-offset-4">
@@ -103,7 +115,7 @@ export default function ForgotPassword() {
             </Link>
           </p>
         </form>
-      </div>
+      </motion.div>
     </div>
   )
 }

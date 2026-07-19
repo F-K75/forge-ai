@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Plus, Send, ArrowUpRight, Play, Search, LayoutGrid, List } from "lucide-react";
+import { Plus, Send, ArrowUpRight, Play, Search, LayoutGrid, List, FolderSearch } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { EmptyState } from "../components/ui/EmptyState";
 import { PROJECTS, STARTERS, type Project as MockProject } from "../lib/mockData";
 import { agentById } from "../lib/agents";
 import { getIcon } from "../lib/iconMap";
@@ -164,7 +165,7 @@ export default function ProjectsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
         aria-label="Build a new app"
-        className="mb-16 rounded-xl border border-border bg-panel p-6 md:p-8"
+        className="mb-16 rounded-xl glass-strong p-6 md:p-8"
       >
         <h2 className="font-display text-xl font-medium text-ink mb-1.5">What do you want to build?</h2>
         <p className="text-sm text-muted mb-6">Describe your app and Forge builds it end-to-end.</p>
@@ -279,8 +280,25 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {visibleProjects.length === 0 ? (
-          <p className="text-sm text-faint">No projects match your search.</p>
+        {projects.length === 0 ? (
+          <EmptyState
+            icon={Send}
+            title="No projects yet"
+            description="Describe what you want to build in the box above to create your first project."
+          />
+        ) : visibleProjects.length === 0 ? (
+          <EmptyState
+            icon={FolderSearch}
+            title="No projects match your filters"
+            description={search ? `Nothing found for "${search}".` : "Try a different status filter."}
+            secondaryAction={{
+              label: "Clear filters",
+              onClick: () => {
+                setSearch("");
+                setStatusFilter("all");
+              },
+            }}
+          />
         ) : viewMode === "grid" ? (
           <motion.div
             variants={gridVariants}
@@ -326,7 +344,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
         onClick={onClick}
         whileHover={{ y: -3 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
-        className="group w-full h-full text-left rounded-xl border border-border bg-panel overflow-hidden hover:border-ink/30 hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.5)] transition-[border-color,box-shadow] motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
+        className="group w-full h-full text-left rounded-xl glass-strong overflow-hidden hover:border-ink/30 hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.5)] transition-[border-color,box-shadow] motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
       >
         {/* Thumbnail — generated placeholder cover art until real per-project
             screenshots are wired up from the backend. Grayscale by default,

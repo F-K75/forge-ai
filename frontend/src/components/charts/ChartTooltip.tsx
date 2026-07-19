@@ -1,5 +1,6 @@
 import type { TooltipProps } from "recharts"
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent"
+import { motion } from "motion/react"
 
 interface ChartTooltipProps
   extends Omit<TooltipProps<ValueType, NameType>, "formatter" | "labelFormatter"> {
@@ -17,7 +18,13 @@ export function ChartTooltip({
   if (!active || !payload?.length) return null
 
   return (
-    <div className="rounded-lg border border-border bg-panel px-3 py-2 text-xs shadow-lg">
+    <motion.div
+      className="rounded-lg glass px-3 py-2 text-xs shadow-lg"
+      initial={{ opacity: 0, scale: 0.9, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+    >
       <p className="mb-1 text-faint">{labelFormatter ? labelFormatter(String(label)) : label}</p>
       {payload.map((entry) => {
         const [value, name] = formatter
@@ -33,6 +40,6 @@ export function ChartTooltip({
           </p>
         )
       })}
-    </div>
+    </motion.div>
   )
 }

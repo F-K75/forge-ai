@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Mail } from "lucide-react";
+import { motion } from "motion/react";
+import { presets } from "../lib/animationPresets";
+import { motionVariants, shouldReduceMotion } from "../lib/animations";
 import { useAuthStore } from "../store/authStore";
 import { validateNewPassword } from "../lib/passwordPolicy";
 
@@ -35,6 +38,8 @@ export default function Signup() {
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+
+  const reduce = shouldReduceMotion();
 
   const validateConfirmPassword = (value: string, passwordValue: string): string | undefined => {
     if (!value) return "Confirm your password";
@@ -80,7 +85,10 @@ export default function Signup() {
   if (submittedEmail) {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center">
+        <motion.div
+          {...(reduce ? {} : presets.pageTransition)}
+          className="w-full max-w-sm text-center"
+        >
           <div className="w-12 h-12 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Mail className="w-5 h-5 text-land-ink" aria-hidden="true" />
           </div>
@@ -96,7 +104,7 @@ export default function Signup() {
           >
             Continue to your projects <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -123,7 +131,10 @@ export default function Signup() {
       </header>
 
       <main className="grid lg:grid-cols-2 min-h-[calc(100vh-4rem)]">
-        <aside className="hidden lg:flex flex-col justify-between p-12 xl:p-16 border-r border-land-border/60">
+        <motion.aside
+          {...(reduce ? {} : { variants: motionVariants.fadeIn, initial: "hidden", animate: "visible" })}
+          className="hidden lg:flex flex-col justify-between p-12 xl:p-16 border-r border-land-border/60"
+        >
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-land-muted">
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" />
             Forge · Console
@@ -147,9 +158,12 @@ export default function Signup() {
             </ul>
           </div>
           <div className="text-xs text-land-muted/70 font-mono">// forge.ai — build pipeline</div>
-        </aside>
+        </motion.aside>
 
-        <section className="flex items-center justify-center p-6 sm:p-10">
+        <motion.section
+          {...(reduce ? {} : presets.pageTransition)}
+          className="flex items-center justify-center p-6 sm:p-10"
+        >
           <div className="w-full max-w-sm">
             <div className="mb-10">
               <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
@@ -338,7 +352,7 @@ export default function Signup() {
               By creating an account you agree to Forge's Terms and Privacy Policy.
             </p>
           </div>
-        </section>
+        </motion.section>
       </main>
     </div>
   );

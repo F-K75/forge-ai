@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import ReactFlow, { Background, Controls, type Node, type Edge, MarkerType } from "reactflow";
+import { useEffect, useMemo, useState, useRef } from "react";
+import ReactFlow, { Background, Controls, type Node, type Edge, MarkerType, useNodesState, useEdgesState } from "reactflow";
 import "reactflow/dist/style.css";
 import { usePMStore } from "../../store/pmStore";
 import { initiativesApi } from "../../lib/pmApi";
+import { useGsapFrom } from "../../lib/animations";
 
 const LAYER_ORDER = ["initiative", "epic", "story", "task", "agent_execution", "file", "commit"];
 const LAYER_COLOR: Record<string, string> = {
@@ -21,6 +22,7 @@ const NODE_Y_GAP = 64;
 export default function GraphTab() {
   const { initiative } = usePMStore();
   const [graph, setGraph] = useState<{ nodes: any[]; edges: any[] } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!initiative) return;
@@ -68,6 +70,11 @@ export default function GraphTab() {
     return { nodes, edges };
   }, [graph]);
 
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(nodes);
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(edges);
+
+  useGsapFrom(".react-flow__node", { opacity: 0, scale: 0.8, duration: 0.5, stagger: 0.04, ease: "power2.out" }, [graph]);
+
   if (!graph) {
     return <div className="flex h-full items-center justify-center text-sm text-faint">Loading graph…</div>;
   }
@@ -77,8 +84,8 @@ export default function GraphTab() {
   }
 
   return (
-    <div className="h-full w-full">
-      <ReactFlow nodes={nodes} edges={edges} fitView proOptions={{ hideAttribution: true }}>
+    <div ref={containerRef} className="h-full w-full">
+      <ReactFlow nodes={flowNodes} edges={flowEdges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView proOptions={{ hideAttribution: true }}>
         <Background color="#22222E" gap={20} />
         <Controls showInteractive={false} />
       </ReactFlow>

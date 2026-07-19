@@ -1,5 +1,10 @@
+import { useEffect, useRef } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { NavLink, Outlet } from "react-router-dom";
 import { LayoutGrid, Store, CreditCard, Settings, ShieldCheck, Rocket, Zap, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import gsap from "gsap";
+import { useStaggerIn } from "../lib/animations";
+import { presets } from "../lib/animationPresets";
 import { CURRENT_USER } from "../lib/mockData";
 import { useAuthStore } from "../store/authStore";
 import { useUiStore } from "../store/uiStore";
@@ -53,20 +58,41 @@ export default function AppShell() {
   const creditPct = !LIVE_MODE
     ? Math.round((CURRENT_USER.creditsUsed / CURRENT_USER.creditsTotal) * 100)
     : 0;
+  const reduceMotion = useReducedMotion();
+
+  // Lightweight staggered reveal of nav items via anime.js
+  useStaggerIn("[data-nav-item]", 55);
+
+  // GSAP sequential entrance for the rail chrome (logo → groups → footer)
+  const railRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (reduceMotion || !railRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from("[data-rail-seq]", {
+        opacity: 0,
+        y: 14,
+        duration: 0.45,
+        ease: "power3.out",
+        stagger: 0.08,
+      });
+    }, railRef);
+    return () => ctx.revert();
+  }, [reduceMotion]);
 
   return (
     <div className="flex h-screen bg-base overflow-hidden">
       {/* Rail */}
       <nav
+        ref={railRef}
         aria-label="Main navigation"
         className={[
-          "shrink-0 flex flex-col border-r border-border overflow-y-auto",
+          "shrink-0 flex flex-col glass-strong overflow-y-auto",
           "transition-[width] duration-200 motion-reduce:transition-none",
           sidebarCollapsed ? "w-14" : "w-14 md:w-56",
         ].join(" ")}
       >
         {/* Logo */}
-        <div className="flex items-center justify-center md:justify-between gap-2.5 px-4 md:px-5 py-5 border-b border-border">
+        <div data-rail-seq className="flex items-center justify-center md:justify-between gap-2.5 px-4 md:px-5 py-5 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="w-6 h-6 border border-ink flex items-center justify-center shrink-0">
               <Zap size={12} className="text-ink" aria-hidden="true" />
@@ -103,7 +129,7 @@ export default function AppShell() {
         )}
 
         {/* Nav groups */}
-        <div className="flex-1 px-1 md:px-3 py-4 space-y-4">
+        <div data-rail-seq className="flex-1 px-1 md:px-3 py-4 space-y-4">
           {NAV_GROUPS.map(group => (
             <div key={group.label} className="space-y-0.5">
               <div
@@ -116,37 +142,42 @@ export default function AppShell() {
                 {group.label}
               </div>
               {group.items.map(({ to, label, icon: Icon, end }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={end}
-                  aria-label={label}
-                  className={({ isActive }) =>
-                    [
-                      "flex items-center justify-center md:justify-start gap-3",
-                      "p-2 md:pl-3 md:pr-3 md:py-2 text-sm w-full border-l md:border-l-2",
-                      "transition-colors motion-reduce:transition-none",
-                      "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
-                      isActive
-                        ? "border-ink text-ink"
-                        : "border-transparent text-muted hover:text-ink",
-                    ].join(" ")
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Icon size={15} className={isActive ? "text-ink" : ""} aria-hidden="true" />
-                      <span className={["hidden", !sidebarCollapsed && "md:block"].filter(Boolean).join(" ")}>{label}</span>
-                    </>
-                  )}
-                </NavLink>
+                <motion.div key={to} data-nav-item {...presets.sidebarItem}>
+                  <NavLink
+                    to={to}
+                    end={end}
+                    aria-label={label}
+                    className={({ isActive }) =>
+                      [
+                        "flex items-center justify-center md:justify-start gap-3",
+                        "p-2 md:pl-3 md:pr-3 md:py-2 text-sm w-full border-l md:border-l-2",
+                        "transition-colors motion-reduce:transition-none",
+                        "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
+                        isActive
+                          ? "border-ink text-ink"
+                          : "border-transparent text-muted hover:text-ink",
+                      ].join(" ")
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon size={15} className={isActive ? "text-ink" : ""} aria-hidden="true" />
+                        <span className={["hidden", !sidebarCollapsed && "md:block"].filter(Boolean).join(" ")}>{label}</span>
+                      </>
+                    )}
+                  </NavLink>
+                </motion.div>
               ))}
             </div>
           ))}
         </div>
 
         {/* Bottom — credits card + user chip */}
-        <div className={["flex-col gap-4 px-4 py-5 border-t border-border", "hidden", !sidebarCollapsed && "md:flex"].filter(Boolean).join(" ")}>
+        <motion.div
+          data-rail-seq
+          {...presets.card}
+          className={["flex-col gap-4 px-4 py-5 border-t border-border", "hidden", !sidebarCollapsed && "md:flex"].filter(Boolean).join(" ")}
+        >
           {/* Credits */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -194,7 +225,7 @@ export default function AppShell() {
               <p className="text-[10px] text-faint truncate">{email}</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Compact avatar — shown on small screens, and at md+ when manually collapsed */}
         <div className={["flex justify-center py-4 border-t border-border", !sidebarCollapsed && "md:hidden"].filter(Boolean).join(" ")}>

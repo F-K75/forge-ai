@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import toast from "react-hot-toast";
+import { motion, useReducedMotion } from "motion/react";
+import { motionVariants } from "../lib/animations";
+import { presets } from "../lib/animationPresets";
 import { USAGE_STATS, AGENT_SPEND, PLANS } from "../lib/mockData";
 import type { UsageStat, Plan } from "../lib/mockData";
 import { agentById } from "../lib/agents";
@@ -35,6 +38,7 @@ interface RawSubscription {
 }
 
 export default function BillingPage() {
+  const reduceMotion = useReducedMotion();
   const [rawPlans, setRawPlans] = useState<RawPlan[] | null>(null);
   const [usage, setUsage] = useState<RawUsage | null>(null);
   const [subscription, setSubscription] = useState<RawSubscription | null | undefined>(undefined);
@@ -76,7 +80,12 @@ export default function BillingPage() {
   const maxRuns = usage ? Math.max(1, ...Object.values(usage.agents_runs)) : 1;
 
   return (
-    <div className="px-6 md:px-10 py-10 md:py-14 max-w-4xl mx-auto">
+    <motion.div
+      className="px-6 md:px-10 py-10 md:py-14 max-w-4xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       {/* Header */}
       <header className="mb-12">
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
@@ -98,38 +107,43 @@ export default function BillingPage() {
         <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-4">
           Usage this month
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border"
+          variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+          initial={reduceMotion ? false : "hidden"}
+          animate="visible"
+        >
           {LIVE_MODE ? (
             usage ? (
               <>
-                <div className="bg-base p-4">
+                <motion.div className="bg-base p-4" variants={motionVariants.staggerItem}>
                   <p className="text-xs text-faint mb-1">Credits used</p>
                   <p className="text-2xl font-medium text-ink">
                     {usage.credits_used} / {usage.credits_used + usage.credits_remaining}
                   </p>
-                </div>
-                <div className="bg-base p-4">
+                </motion.div>
+                <motion.div className="bg-base p-4" variants={motionVariants.staggerItem}>
                   <p className="text-xs text-faint mb-1">Credits remaining</p>
                   <p className="text-2xl font-medium text-ink">{usage.credits_remaining}</p>
-                </div>
-                <div className="bg-base p-4">
+                </motion.div>
+                <motion.div className="bg-base p-4" variants={motionVariants.staggerItem}>
                   <p className="text-xs text-faint mb-1">Builds this month</p>
                   <p className="text-2xl font-medium text-ink">{usage.builds_count}</p>
-                </div>
+                </motion.div>
               </>
             ) : (
               <p className="text-sm text-faint">Loading…</p>
             )
           ) : (
             USAGE_STATS.map(stat => (
-              <div key={stat.label} className="bg-base p-4">
+              <motion.div key={stat.label} className="bg-base p-4" variants={motionVariants.staggerItem}>
                 <p className="text-xs text-faint mb-1">{stat.label}</p>
                 <p className={`text-2xl font-medium ${TONE_CLASS[stat.tone]}`}>{stat.value}</p>
                 <p className="text-xs text-faint mt-1">{stat.sub}</p>
-              </div>
+              </motion.div>
             ))
           )}
-        </div>
+        </motion.div>
       </section>
 
       {/* Credits/Builds by agent */}
@@ -137,7 +151,12 @@ export default function BillingPage() {
         <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-4">
           {LIVE_MODE ? "Builds by agent" : "Credits by agent"}
         </h2>
-        <div className="space-y-3">
+        <motion.div
+          className="space-y-3"
+          variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+          initial={reduceMotion ? false : "hidden"}
+          animate="visible"
+        >
           {LIVE_MODE
             ? usage &&
               Object.entries(usage.agents_runs).map(([agentId, runs]) => {
@@ -145,7 +164,7 @@ export default function BillingPage() {
                 if (!agent) return null;
                 const pct = (runs / maxRuns) * 100;
                 return (
-                  <div key={agentId} className="flex items-center gap-3">
+                  <motion.div key={agentId} className="flex items-center gap-3" variants={motionVariants.staggerItem}>
                     <span className="text-xs text-muted w-24 shrink-0">{agent.label}</span>
                     <div
                       className="flex-1 h-px bg-border overflow-hidden"
@@ -158,7 +177,7 @@ export default function BillingPage() {
                       <div className="h-full bg-ink" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="font-mono text-xs text-faint w-8 text-right">{runs}</span>
-                  </div>
+                  </motion.div>
                 );
               })
             : AGENT_SPEND.map(({ agent: agentId, credits }) => {
@@ -166,7 +185,7 @@ export default function BillingPage() {
                 if (!agent) return null;
                 const pct = (credits / maxSpend) * 100;
                 return (
-                  <div key={agentId} className="flex items-center gap-3">
+                  <motion.div key={agentId} className="flex items-center gap-3" variants={motionVariants.staggerItem}>
                     <span className="text-xs text-muted w-24 shrink-0">{agent.label}</span>
                     <div
                       className="flex-1 h-px bg-border overflow-hidden"
@@ -179,10 +198,10 @@ export default function BillingPage() {
                       <div className="h-full bg-ink" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="font-mono text-xs text-faint w-8 text-right">{credits}</span>
-                  </div>
+                  </motion.div>
                 );
               })}
-        </div>
+        </motion.div>
       </section>
 
       {/* Plans */}
@@ -218,7 +237,12 @@ export default function BillingPage() {
             </div>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border"
+          variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+          initial={reduceMotion ? false : "hidden"}
+          animate="visible"
+        >
           {LIVE_MODE
             ? rawPlans?.map(plan => (
                 <RawPlanCard
@@ -231,9 +255,9 @@ export default function BillingPage() {
                 />
               ))
             : PLANS.map(plan => <PlanCard key={plan.name} plan={plan} />)}
-        </div>
+        </motion.div>
       </section>
-    </div>
+    </motion.div>
   );
 }
 
@@ -252,7 +276,7 @@ function RawPlanCard({
 }) {
   const displayPrice = interval === "annual" ? Math.round(plan.price_annual / 12) : plan.price_monthly;
   return (
-    <div className="relative bg-base p-6 flex flex-col gap-4">
+    <motion.div className="relative bg-base p-6 flex flex-col gap-4" {...presets.card} variants={motionVariants.staggerItem}>
       {active && <div className="absolute top-0 left-0 right-0 h-px bg-ink" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -284,9 +308,10 @@ function RawPlanCard({
         ))}
       </ul>
 
-      <button
+      <motion.button
         disabled={active || pending}
         onClick={onSelect}
+        {...presets.button}
         className={[
           "w-full h-10 rounded-md text-sm font-medium border",
           "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
@@ -296,14 +321,14 @@ function RawPlanCard({
         aria-disabled={active || pending}
       >
         {active ? "Current plan" : pending ? "Redirecting…" : plan.tier === "free" ? "Downgrade" : `Choose ${plan.name}`}
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 }
 
 function PlanCard({ plan }: { plan: Plan }) {
   return (
-    <div className="relative bg-base p-6 flex flex-col gap-4">
+    <motion.div className="relative bg-base p-6 flex flex-col gap-4" {...presets.card} variants={motionVariants.staggerItem}>
       {plan.active && <div className="absolute top-0 left-0 right-0 h-px bg-ink" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -330,9 +355,10 @@ function PlanCard({ plan }: { plan: Plan }) {
         ))}
       </ul>
 
-      <button
+      <motion.button
         disabled={plan.active}
         onClick={() => {/* subscription action — no-op until backend (demo mode) */}}
+        {...presets.button}
         className={[
           "w-full h-10 rounded-md text-sm font-medium border",
           "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
@@ -344,7 +370,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         aria-disabled={plan.active}
       >
         {plan.cta}
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 }

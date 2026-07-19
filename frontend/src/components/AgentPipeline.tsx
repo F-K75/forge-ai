@@ -1,34 +1,52 @@
-import { Loader2, Check, Zap } from "lucide-react";
-import type { Agent } from "../lib/agents";
-import { agentById } from "../lib/agents";
+import { useRef, useEffect } from "react"
+import { Loader2, Check, Zap } from "lucide-react"
+import type { Agent } from "../lib/agents"
+import { agentById } from "../lib/agents"
+import gsap from "gsap"
+import { useReducedMotion } from "motion/react"
 
-export type AgentState = "idle" | "active" | "done" | "debugging";
+export type AgentState = "idle" | "active" | "done" | "debugging"
 
 export interface PipelineNode {
-  id: Agent["id"];
-  state: AgentState;
-  detail?: string;
-  showCredits?: boolean;
+  id: Agent["id"]
+  state: AgentState
+  detail?: string
+  showCredits?: boolean
 }
 
 export interface AgentPipelineProps {
-  nodes: PipelineNode[];
-  orientation?: "vertical";
-  compact?: boolean;
+  nodes: PipelineNode[]
+  orientation?: "vertical"
+  compact?: boolean
 }
 
 export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
-  const tileSz = compact ? 28 : 34;
-  const iconSz = compact ? 12 : 14;
-  const connectorMinH = compact ? 10 : 18;
+  const tileSz = compact ? 28 : 34
+  const iconSz = compact ? 12 : 14
+  const connectorMinH = compact ? 10 : 18
+  const listRef = useRef<HTMLOListElement>(null)
+  const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (reduceMotion || !listRef.current) return
+    const items = listRef.current.querySelectorAll("[data-pipeline-node]")
+    gsap.from(items, {
+      opacity: 0,
+      x: -16,
+      scale: 0.92,
+      stagger: 0.07,
+      duration: 0.45,
+      ease: "power3.out",
+    })
+  }, [nodes, reduceMotion])
 
   return (
-    <ol aria-label="Agent pipeline">
+    <ol ref={listRef} aria-label="Agent pipeline">
       {nodes.map((node, i) => {
-        const agent = agentById(node.id);
-        if (!agent) return null;
-        const isLast = i === nodes.length - 1;
-        const Icon = agent.icon;
+        const agent = agentById(node.id)
+        if (!agent) return null
+        const isLast = i === nodes.length - 1
+        const Icon = agent.icon
 
         const labelClass = [
           compact ? "text-xs" : "text-sm",
@@ -38,26 +56,25 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
             : node.state === "debugging"
             ? "text-warn"
             : "text-ink",
-        ].join(" ");
+        ].join(" ")
 
         const detailClass = [
           compact ? "text-[10px]" : "text-xs",
           "mt-0.5",
           node.state === "debugging" ? "text-warn" : "text-muted",
-        ].join(" ");
+        ].join(" ")
 
         return (
           <li
             key={node.id}
+            data-pipeline-node
             aria-label={`${agent.label}: ${node.state}`}
-            className="flex gap-3"
+            className="flex gap-3 group"
           >
-            {/* Track column: tile + connector */}
             <div
               className="flex flex-col items-center shrink-0"
               style={{ width: tileSz }}
             >
-              {/* Tile */}
               {node.state === "active" ? (
                 <div
                   className="relative shrink-0"
@@ -79,6 +96,7 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
                 <div
                   className={[
                     "rounded-lg border flex items-center justify-center shrink-0",
+                    "transition-transform duration-200 group-hover:scale-110",
                     node.state === "idle"
                       ? "border-border"
                       : node.state === "debugging"
@@ -101,7 +119,6 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
                 </div>
               )}
 
-              {/* Connector below this tile */}
               {!isLast && (
                 <div
                   className={`flex-1 w-0.5 ${
@@ -113,7 +130,6 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
               )}
             </div>
 
-            {/* Content column */}
             <div
               className={[
                 "flex-1 flex items-start justify-between min-w-0",
@@ -144,8 +160,8 @@ export function AgentPipeline({ nodes, compact = false }: AgentPipelineProps) {
               )}
             </div>
           </li>
-        );
+        )
       })}
     </ol>
-  );
+  )
 }

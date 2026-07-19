@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Hammer, Check, Github, Key, ArrowUpRight } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motionVariants } from "../lib/animations";
+import { presets } from "../lib/animationPresets";
 import { getIcon } from "../lib/iconMap";
 import { useAuthStore } from "../store/authStore";
 import { LIVE_MODE } from "../lib/env";
@@ -38,6 +41,7 @@ const GOAL_STARTER_PROMPTS: Record<string, string> = {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const { user } = useAuthStore();
   const [step, setStep] = useState(0);
   const [goal, setGoal] = useState<Goal>(null);
@@ -58,15 +62,25 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg">
+      <motion.div
+        className="w-full max-w-lg"
+        initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         {/* Progress rail */}
         <nav aria-label="Onboarding steps" className="mb-8">
-          <ol className="flex items-start">
+          <motion.ol
+            className="flex items-start"
+            variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+            initial={reduceMotion ? false : "hidden"}
+            animate="visible"
+          >
             {STEP_LABELS.map((label, i) => {
               const isDone = i < step;
               const isCurrent = i === step;
               return (
-                <li key={label} className="flex items-center flex-1 last:flex-none">
+                <motion.li key={label} className="flex items-center flex-1 last:flex-none" variants={motionVariants.staggerItem}>
                   <div className="flex flex-col items-center">
                     <div
                       aria-current={isCurrent ? "step" : undefined}
@@ -103,10 +117,10 @@ export default function Onboarding() {
                       ].join(" ")}
                     />
                   )}
-                </li>
+                </motion.li>
               );
             })}
-          </ol>
+          </motion.ol>
         </nav>
 
         <span role="status" aria-live="polite" className="sr-only">
@@ -114,18 +128,29 @@ export default function Onboarding() {
         </span>
 
         {/* Step card */}
-        <div className="bg-panel rounded-2xl border border-border p-8">
-          {step === 0 && <StepWelcome />}
-          {step === 1 && <StepGoal goal={goal} onSelect={setGoal} />}
-          {step === 2 && (
-            <StepConnect
-              githubDone={githubDone}
-              anthropicDone={anthropicDone}
-              onGithub={() => window.open("/settings", "_blank", "noopener,noreferrer")}
-              onAnthropic={() => window.open("/settings", "_blank", "noopener,noreferrer")}
-            />
-          )}
-          {step === 3 && <StepReady goal={goal} />}
+        <div className="glass-strong rounded-2xl p-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              variants={reduceMotion ? undefined : motionVariants.slideInRight}
+              initial={reduceMotion ? false : "hidden"}
+              animate="visible"
+              exit="exit"
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              {step === 0 && <StepWelcome />}
+              {step === 1 && <StepGoal goal={goal} onSelect={setGoal} />}
+              {step === 2 && (
+                <StepConnect
+                  githubDone={githubDone}
+                  anthropicDone={anthropicDone}
+                  onGithub={() => window.open("/settings", "_blank", "noopener,noreferrer")}
+                  onAnthropic={() => window.open("/settings", "_blank", "noopener,noreferrer")}
+                />
+              )}
+              {step === 3 && <StepReady goal={goal} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Footer nav */}
@@ -144,15 +169,16 @@ export default function Onboarding() {
               Back
             </button>
           )}
-          <button
+          <motion.button
             type="button"
             onClick={handlePrimary}
             className="px-5 py-2 text-sm font-semibold bg-accent text-white rounded-lg hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+            {...presets.button}
           >
             {primaryLabel}
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -182,22 +208,31 @@ function StepGoal({
   goal: Goal;
   onSelect: (g: string) => void;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <div>
       <h2 className="text-lg font-bold text-ink mb-1">What are you building first?</h2>
       <p className="text-sm text-muted mb-5">
         Pick a goal and we'll load the right starters.
       </p>
-      <div className="grid grid-cols-2 gap-3">
+      <motion.div
+        className="grid grid-cols-2 gap-3"
+        variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+        initial={reduceMotion ? false : "hidden"}
+        animate="visible"
+      >
         {GOALS.map(({ label, iconName, hue }) => {
           const Icon = getIcon(iconName);
           const isSelected = goal === label;
           return (
-            <button
+            <motion.button
               key={label}
               type="button"
               aria-pressed={isSelected}
               onClick={() => onSelect(label)}
+              variants={motionVariants.staggerItem}
+              whileHover={reduceMotion ? {} : { scale: 1.02 }}
+              whileTap={reduceMotion ? {} : { scale: 0.98 }}
               className={[
                 "flex flex-col items-start gap-2.5 p-4 rounded-xl border text-left",
                 "transition motion-reduce:transition-none",
@@ -223,10 +258,10 @@ function StepGoal({
                 <Icon size={15} style={{ color: hue }} aria-hidden="true" />
               </div>
               <span className="text-sm font-medium text-ink">{label}</span>
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -242,30 +277,40 @@ function StepConnect({
   onGithub: () => void;
   onAnthropic: () => void;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <div>
       <h2 className="text-lg font-bold text-ink mb-1">Connect your tools</h2>
       <p className="text-sm text-muted mb-5">
         These open Settings in a new tab — come back here when you're done, or skip for now.
       </p>
-      <div className="flex flex-col gap-3">
-        <ConnectRow
-          icon={<Github size={16} className="text-ink" aria-hidden="true" />}
-          label="GitHub"
-          description="Push every build to a repo"
-          done={githubDone}
-          actionLabel="Connect in Settings"
-          onAction={onGithub}
-        />
-        <ConnectRow
-          icon={<Key size={16} className="text-ink" aria-hidden="true" />}
-          label="Anthropic API key"
-          description="Bring your own key on Pro — skip credit costs"
-          done={anthropicDone}
-          actionLabel="Add key in Settings"
-          onAction={onAnthropic}
-        />
-      </div>
+      <motion.div
+        className="flex flex-col gap-3"
+        variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+        initial={reduceMotion ? false : "hidden"}
+        animate="visible"
+      >
+        <motion.div variants={motionVariants.staggerItem}>
+          <ConnectRow
+            icon={<Github size={16} className="text-ink" aria-hidden="true" />}
+            label="GitHub"
+            description="Push every build to a repo"
+            done={githubDone}
+            actionLabel="Connect in Settings"
+            onAction={onGithub}
+          />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <ConnectRow
+            icon={<Key size={16} className="text-ink" aria-hidden="true" />}
+            label="Anthropic API key"
+            description="Bring your own key on Pro — skip credit costs"
+            done={anthropicDone}
+            actionLabel="Add key in Settings"
+            onAction={onAnthropic}
+          />
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

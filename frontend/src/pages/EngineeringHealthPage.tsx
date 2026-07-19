@@ -2,6 +2,9 @@ import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, Sparkles } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts"
+import { motion, useReducedMotion } from "motion/react"
+import { motionVariants } from "../lib/animations"
+import { presets } from "../lib/animationPresets"
 import { adminApi } from "../lib/api"
 import { LIVE_MODE } from "../lib/env"
 import { ChartContainer } from "../components/charts/ChartContainer"
@@ -64,14 +67,15 @@ const SEVERITY_STYLE: Record<string, string> = {
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-base p-4">
+    <motion.div className="bg-base p-4" {...presets.card} variants={motionVariants.staggerItem}>
       <p className="font-mono text-[1.4rem] font-medium text-ink leading-none mb-1">{value}</p>
       <p className="text-xs text-faint">{label}</p>
-    </div>
+    </motion.div>
   )
 }
 
 export default function EngineeringHealthPage() {
+  const reduceMotion = useReducedMotion()
   const { data, isLoading } = useQuery<EngineeringHealthResponse>({
     queryKey: ["admin-engineering-health"],
     queryFn: () => adminApi.engineeringHealth(),
@@ -97,7 +101,12 @@ export default function EngineeringHealthPage() {
   }, [data])
 
   return (
-    <div className="px-6 md:px-10 py-10 md:py-14 max-w-7xl mx-auto">
+    <motion.div
+      className="px-6 md:px-10 py-10 md:py-14 max-w-7xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
         <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
         Admin
@@ -129,7 +138,12 @@ export default function EngineeringHealthPage() {
       {LIVE_MODE && data?.available && data.dashboard && (
         <>
           <section aria-label="Overview" className="mb-9">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+            <motion.div
+              className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border"
+              variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+              initial={reduceMotion ? false : "hidden"}
+              animate="visible"
+            >
               <StatTile label="Overall score" value={`${data.dashboard.overall_score.value}/100`} />
               <StatTile
                 label="Tasks complete"
@@ -143,13 +157,16 @@ export default function EngineeringHealthPage() {
                 label="Certification"
                 value={data.benchmark?.current_certification_status?.level_name ?? "—"}
               />
-            </div>
+            </motion.div>
           </section>
 
           <div className="flex flex-col lg:flex-row gap-5 mb-9">
-            <section
+            <motion.section
               aria-label="Scores by dimension"
               className="lg:w-1/2 border border-border rounded-lg p-4"
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
               <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
                 Scores by dimension
@@ -190,11 +207,14 @@ export default function EngineeringHealthPage() {
               ) : (
                 <p className="text-sm text-faint">No dimension scores yet</p>
               )}
-            </section>
+            </motion.section>
 
-            <section
+            <motion.section
               aria-label="Tasks by priority"
               className="lg:w-1/2 border border-border rounded-lg p-4"
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
             >
               <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
                 Tasks by priority
@@ -232,35 +252,49 @@ export default function EngineeringHealthPage() {
               ) : (
                 <p className="text-sm text-faint">No task-priority data yet</p>
               )}
-            </section>
+            </motion.section>
           </div>
 
           <div className="flex flex-col lg:flex-row gap-5 mb-9">
-            <section aria-label="Alerts" className="lg:w-1/2 border border-border rounded-lg p-4">
+            <motion.section
+              aria-label="Alerts"
+              className="lg:w-1/2 border border-border rounded-lg p-4"
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            >
               <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
                 Alerts
               </h2>
               {data.dashboard.alerts.length === 0 ? (
                 <p className="text-sm text-faint">No alerts</p>
               ) : (
-                <ul className="space-y-2">
+                <motion.ul
+                  className="space-y-2"
+                  variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+                  initial={reduceMotion ? false : "hidden"}
+                  animate="visible"
+                >
                   {data.dashboard.alerts.map((a, i) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
+                    <motion.li key={i} className="text-sm flex items-start gap-2" variants={motionVariants.staggerItem}>
                       <AlertTriangle
                         size={13}
                         className={`mt-0.5 shrink-0 ${SEVERITY_STYLE[a.severity] ?? "text-muted"}`}
                         aria-hidden="true"
                       />
                       <span className="text-ink">{a.message}</span>
-                    </li>
+                    </motion.li>
                   ))}
-                </ul>
+                </motion.ul>
               )}
-            </section>
+            </motion.section>
 
-            <section
+            <motion.section
               aria-label="Recent activity"
               className="lg:w-1/2 border border-border rounded-lg p-4"
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
             >
               <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
                 Recent activity
@@ -268,19 +302,24 @@ export default function EngineeringHealthPage() {
               {data.dashboard.recent_activity.length === 0 ? (
                 <p className="text-sm text-faint">No recent activity</p>
               ) : (
-                <ul className="space-y-2">
+                <motion.ul
+                  className="space-y-2"
+                  variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+                  initial={reduceMotion ? false : "hidden"}
+                  animate="visible"
+                >
                   {data.dashboard.recent_activity.slice(0, 10).map((a, i) => (
-                    <li key={i} className="text-sm text-ink">
+                    <motion.li key={i} className="text-sm text-ink" variants={motionVariants.staggerItem}>
                       <span className="text-faint font-mono text-xs mr-2">{a.timestamp}</span>
                       {a.event}
-                    </li>
+                    </motion.li>
                   ))}
-                </ul>
+                </motion.ul>
               )}
-            </section>
+            </motion.section>
           </div>
         </>
       )}
-    </div>
+    </motion.div>
   )
 }

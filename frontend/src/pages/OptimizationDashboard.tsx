@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react"
 import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts"
+import { motion, useReducedMotion } from "motion/react"
+import { motionVariants } from "../lib/animations"
+import { presets } from "../lib/animationPresets"
 import { optimizerApi, budgetsApi } from "../lib/api"
 import { ChartContainer } from "../components/charts/ChartContainer"
 import { ChartTooltip } from "../components/charts/ChartTooltip"
@@ -63,10 +66,14 @@ interface SpendingEntry {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+    <motion.div
+      className="rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+      {...presets.card}
+      variants={motionVariants.staggerItem}
+    >
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-1 font-mono text-xl text-slate-100">{value}</p>
-    </div>
+    </motion.div>
   )
 }
 
@@ -81,6 +88,7 @@ function BreakdownTable({
   keyField: "provider" | "agent" | "project_id"
   rows: BreakdownEntry[]
 }) {
+  const reduceMotion = useReducedMotion()
   return (
     <div className="mt-4">
       <h3 className="text-sm font-medium text-slate-300">{title}</h3>
@@ -95,7 +103,11 @@ function BreakdownTable({
               <th className="p-2">Cost (USD)</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+            initial={reduceMotion ? false : "hidden"}
+            animate="visible"
+          >
             {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="p-2 text-slate-500">
@@ -104,15 +116,15 @@ function BreakdownTable({
               </tr>
             )}
             {rows.map((row, idx) => (
-              <tr key={idx} className="border-t border-slate-800">
+              <motion.tr key={idx} className="border-t border-slate-800" variants={motionVariants.staggerItem}>
                 <td className="p-2">{row[keyField] ?? "—"}</td>
                 <td className="p-2">{row.requests}</td>
                 <td className="p-2">{row.prompt_tokens}</td>
                 <td className="p-2">{row.completion_tokens}</td>
                 <td className="p-2">{row.cost_usd.toFixed(4)}</td>
-              </tr>
+              </motion.tr>
             ))}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
     </div>
@@ -164,6 +176,7 @@ function BreakdownBarChart({
 }
 
 export default function OptimizationDashboard() {
+  const reduceMotion = useReducedMotion()
   const [days, setDays] = useState(30)
   const [breakdown, setBreakdown] = useState<CostBreakdown | null>(null)
   const [limits, setLimits] = useState<BudgetLimit[]>([])
@@ -230,7 +243,12 @@ export default function OptimizationDashboard() {
       : 0
 
   return (
-    <div className="p-8 text-sm text-slate-200">
+    <motion.div
+      className="p-8 text-sm text-slate-200"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <h1 className="text-2xl font-semibold">AI Optimization Dashboard</h1>
       <p className="mt-2 text-slate-400">
         Spend, cache effectiveness, and optimization savings across the AI Gateway.
@@ -257,7 +275,12 @@ export default function OptimizationDashboard() {
         <p className="mt-6 text-rose-300">{error}</p>
       ) : (
         <>
-          <section className="mt-6 grid gap-4 md:grid-cols-4">
+          <motion.section
+            className="mt-6 grid gap-4 md:grid-cols-4"
+            variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+            initial={reduceMotion ? false : "hidden"}
+            animate="visible"
+          >
             <StatCard label="Total spend" value={`$${totalCost.toFixed(4)}`} />
             <StatCard
               label="Response cache hit ratio"
@@ -272,9 +295,14 @@ export default function OptimizationDashboard() {
                   : "—"
               }
             />
-          </section>
+          </motion.section>
 
-          <section className="mt-8">
+          <motion.section
+            className="mt-8"
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+          >
             <h2 className="text-lg font-medium">Cost Breakdown</h2>
             {breakdown && (
               <>
@@ -308,9 +336,14 @@ export default function OptimizationDashboard() {
                 />
               </>
             )}
-          </section>
+          </motion.section>
 
-          <section className="mt-8">
+          <motion.section
+            className="mt-8"
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
+          >
             <h2 className="text-lg font-medium">Per-User Spend</h2>
             <div className="mt-3 max-h-64 overflow-auto rounded border border-slate-800">
               <table className="w-full text-left text-xs">
@@ -322,21 +355,30 @@ export default function OptimizationDashboard() {
                     <th className="p-2">Cost (USD)</th>
                   </tr>
                 </thead>
-                <tbody>
+                <motion.tbody
+                  variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+                  initial={reduceMotion ? false : "hidden"}
+                  animate="visible"
+                >
                   {spending.map((s) => (
-                    <tr key={s.user_id} className="border-t border-slate-800">
+                    <motion.tr key={s.user_id} className="border-t border-slate-800" variants={motionVariants.staggerItem}>
                       <td className="p-2">{s.user_id}</td>
                       <td className="p-2">{s.requests}</td>
                       <td className="p-2">{s.total_tokens}</td>
                       <td className="p-2">{s.cost_usd.toFixed(4)}</td>
-                    </tr>
+                    </motion.tr>
                   ))}
-                </tbody>
+                </motion.tbody>
               </table>
             </div>
-          </section>
+          </motion.section>
 
-          <section className="mt-8">
+          <motion.section
+            className="mt-8"
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
+          >
             <h2 className="text-lg font-medium">Budget Limits</h2>
             <div className="mt-3 max-h-64 overflow-auto rounded border border-slate-800">
               <table className="w-full text-left text-xs">
@@ -350,7 +392,11 @@ export default function OptimizationDashboard() {
                     <th className="p-2" />
                   </tr>
                 </thead>
-                <tbody>
+                <motion.tbody
+                  variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+                  initial={reduceMotion ? false : "hidden"}
+                  animate="visible"
+                >
                   {limits.length === 0 && (
                     <tr>
                       <td colSpan={6} className="p-2 text-slate-500">
@@ -359,7 +405,7 @@ export default function OptimizationDashboard() {
                     </tr>
                   )}
                   {limits.map((l) => (
-                    <tr key={`${l.scope}-${l.scope_id}`} className="border-t border-slate-800">
+                    <motion.tr key={`${l.scope}-${l.scope_id}`} className="border-t border-slate-800" variants={motionVariants.staggerItem}>
                       <td className="p-2">{l.scope}</td>
                       <td className="p-2">{l.scope_id}</td>
                       <td className="p-2">{l.period}</td>
@@ -373,9 +419,9 @@ export default function OptimizationDashboard() {
                           Remove
                         </button>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
-                </tbody>
+                </motion.tbody>
               </table>
             </div>
 
@@ -419,17 +465,18 @@ export default function OptimizationDashboard() {
                   placeholder="optional"
                 />
               </label>
-              <button
+              <motion.button
                 onClick={saveLimit}
                 className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500"
+                {...presets.button}
               >
                 Save limit
-              </button>
+              </motion.button>
             </div>
             {saveStatus && <p className="mt-3 text-xs text-slate-400">{saveStatus}</p>}
-          </section>
+          </motion.section>
         </>
       )}
-    </div>
+    </motion.div>
   )
 }

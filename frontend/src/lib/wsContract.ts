@@ -21,6 +21,11 @@ export type AgentStartEvent = WSEventBase<'agent_start', { agent: string }>
 export type AgentUpdateEvent = WSEventBase<'agent_update', { agent?: string; message: string }>
 export type AgentProgressEvent = WSEventBase<'agent_progress', { agent?: string; progress?: number; message?: string }>
 export type AgentCompleteEvent = WSEventBase<'agent_complete', { agent: string; files_changed?: string[] }>
+// The full parsed (already-JSON-decoded) output of an agent's own work —
+// e.g. the Architect's blueprint or the Business Model agent's plan. Sent
+// once per agent, right after its agent_complete, for the workspace's
+// document explorer (see backend/core/orchestrator.py's _emit_output).
+export type AgentOutputEvent = WSEventBase<'agent_output', { agent: string; output: unknown }>
 export type FileUpdateEvent = WSEventBase<
   'file_update',
   { delta: { changed: Record<string, string>; deleted: string[] }; debug_iteration?: number }
@@ -34,6 +39,19 @@ export type BuildCompleteEvent = WSEventBase<
     business_model?: Record<string, unknown> | null
   }
 >
+// Interactive builds only (see CreateBuildRequest.interactive) — pauses the
+// pipeline after a stage completes (or, for the architect's "clarify" kind,
+// before it even starts) until the user responds via POST
+// /builds/{id}/gate, or gate_timeout_seconds elapses and the backend
+// auto-approves. See backend/core/orchestrator.py's _wait_for_gate.
+export type GateRequestEvent = WSEventBase<
+  'gate_request',
+  { gate_id: string; stage: string; agent: string; kind: 'approval' | 'questions'; questions: string[]; timeout_seconds: number; requested_at: string }
+>
+export type GateResolvedEvent = WSEventBase<
+  'gate_resolved',
+  { gate_id: string; stage: string; agent: string; action: string; auto: boolean }
+>
 export type BuildFailedEvent = WSEventBase<'build_failed', { error?: string }>
 export type StreamTokenEvent = WSEventBase<'stream_token', { agent?: string; token: string }>
 export type DebugStartEvent = WSEventBase<'debug_start', { iteration?: number; errors?: any }>
@@ -46,8 +64,11 @@ export type AnyWSEvent =
   | AgentUpdateEvent
   | AgentProgressEvent
   | AgentCompleteEvent
+  | AgentOutputEvent
   | FileUpdateEvent
   | BuildCompleteEvent
+  | GateRequestEvent
+  | GateResolvedEvent
   | BuildFailedEvent
   | StreamTokenEvent
   | DebugStartEvent
@@ -102,6 +123,9 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
     case WS_EVENT_TYPES.agent_complete:
       if (!isRecord(data) || !isString((data as any).agent)) return null
       return raw as AgentCompleteEvent
+    case WS_EVENT_TYPES.agent_output:
+      if (!isRecord(data) || !isString((data as any).agent) || (data as any).output === undefined) return null
+      return raw as AgentOutputEvent
     case WS_EVENT_TYPES.file_update:
       // Previously required data.files, which the backend stopped sending
       // in favor of data.delta -- that mismatch meant every delta-shaped
@@ -112,6 +136,12 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
     case WS_EVENT_TYPES.build_complete:
       if (!isRecord(data)) return null
       return raw as BuildCompleteEvent
+    case WS_EVENT_TYPES.gate_request:
+      if (!isRecord(data) || !isString((data as any).gate_id) || !isString((data as any).agent)) return null
+      return raw as GateRequestEvent
+    case WS_EVENT_TYPES.gate_resolved:
+      if (!isRecord(data) || !isString((data as any).gate_id)) return null
+      return raw as GateResolvedEvent
     case WS_EVENT_TYPES.build_failed:
       if (!isRecord(data)) return null
       return raw as BuildFailedEvent

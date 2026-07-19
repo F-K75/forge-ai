@@ -63,6 +63,7 @@ class AIOptimizer:
         org_id: Optional[str] = None,
         project_id: Optional[str] = None,
         retrieval_top_k: int = 3,
+        role: Optional[str] = None,
     ) -> OptimizeResult:
         """Run the full optimization pipeline for one request: dedupe/trim
         context, normalize prompt text, estimate tokens/cost, and check the
@@ -75,7 +76,11 @@ class AIOptimizer:
         extra system message before context trimming, so they're subject to
         the same char budget as everything else. Off by default -- it adds
         an embeddings API round-trip to the request, which conflicts with
-        this engine's own low-overhead goal unless a caller opts in."""
+        this engine's own low-overhead goal unless a caller opts in.
+
+        `role` allows per-role overrides of max prompt chars and other
+        configuration, enabling fine-grained control over how much context
+        each agent role is allowed to consume."""
         start = time.perf_counter()
 
         if use_retrieval:
@@ -104,7 +109,18 @@ class AIOptimizer:
                 optimization_time_ms=0.0,
             )
 
-        optimized_messages, context_result = optimize_context(messages, max_chars=self.config.max_prompt_chars)
+        # Determine effective max_chars: check per-role override first, then fall back to global
+        effective_max_chars = self.config.max_prompt_chars
+        if role and role in self.config.role_max_prompt_chars:
+            effective_max_chars = self.config.role_max_prompt_chars[role]
+
+        optimized_messages, context_result = optimize_context(
+            messages,
+            max_chars=effective_max_chars,
+            compression_level=self.config.compression_level,
+            preserve_recent_turns=self.config.preserve_recent_turns,
+            max_tool_result_chars=self.config.max_tool_result_chars,
+        )
 
         if self.config.compression_level > 0:
             for message in optimized_messages:
@@ -138,9 +154,9 @@ class AIOptimizer:
 
         logger.info(
             "ai_optimizer: provider=%s model=%s tokens_saved=%d compression=%.3f "
-            "response_cache_hit=%s overhead_ms=%.2f",
+            "response_cache_hit=%s overhead_ms=%.2f chars=%d level=%d",
             provider, model, context_result.tokens_saved, context_result.compression_ratio,
-            response_cache_hit, elapsed_ms,
+            response_cache_hit, elapsed_ms, effective_max_chars, self.config.compression_level,
         )
 
         return OptimizeResult(
@@ -181,10 +197,24 @@ class AIOptimizer:
         if not chunks:
             return messages
 
-        context_block = "\n\n".join(f"[{c.source_type.value}:{c.source_id}] {c.text}" for c in chunks)
+        # Include only the most relevant chunks up to a reasonable size limit
+        context_block_parts: List[str] = []
+        total_chars = 0
+        max_context_chars = 4000  # Total retrieval context budget
+        for c in chunks:
+            chunk_text = f"[{c.source_type.value}:{c.source_id}] {c.text}"
+            if total_chars + len(chunk_text) > max_context_chars:
+                break
+            context_block_parts.append(chunk_text)
+            total_chars += len(chunk_text)
+
+        if not context_block_parts:
+            return messages
+
+        context_block = "\n\n".join(context_block_parts)
         retrieval_message = {
             "role": "system",
-            "content": f"Relevant context retrieved from the knowledge base:\n\n{context_block}",
+            "content": f"Relevant context:\n\n{context_block}",
         }
         return [retrieval_message, *messages]
 

@@ -45,6 +45,18 @@ def test_truncate_to_budget_preserves_system_and_recent_turns():
     trimmed = truncate_to_budget(messages, max_chars=500)
     assert trimmed[0]["role"] == "system"
     assert trimmed[-1] == history[-1]
+    # Recent turns (default 5) are preserved, system is always kept
+    assert len(trimmed) >= 6  # system + at least 1 user turn
+    assert trimmed[1] == history[-5] or trimmed[1] == history[0]  # either recent preserved or oldest fit
+
+
+def test_truncate_to_budget_without_preserve_recent_turns():
+    """When preserve_recent_turns is 0, only the budget constrains output."""
+    system = [{"role": "system", "content": "x" * 100}]
+    history = [{"role": "user", "content": f"turn {i}" * 50} for i in range(20)]
+    messages = system + history
+    trimmed = truncate_to_budget(messages, max_chars=500, preserve_recent_turns=0)
+    assert trimmed[0]["role"] == "system"
     assert sum(len(str(m["content"])) for m in trimmed) <= 500 + 100
 
 
@@ -66,6 +78,65 @@ def test_optimize_context_strips_unused_metadata():
     assert "internal_id" not in optimized[0]
     assert "created_at" not in optimized[0]
     assert optimized[0]["content"] == "hi"
+
+
+def test_optimize_context_compression_level_2_merges_system_messages():
+    messages = [
+        {"role": "system", "content": "You are a developer."},
+        {"role": "system", "content": "Use Python 3.12."},
+        {"role": "user", "content": "Build a todo app."},
+    ]
+    optimized, result = optimize_context(messages, compression_level=2)
+    # System messages should be merged into one
+    system_msgs = [m for m in optimized if m.get("role") == "system"]
+    assert len(system_msgs) == 1
+    assert "You are a developer." in system_msgs[0]["content"]
+    assert "Use Python 3.12." in system_msgs[0]["content"]
+
+
+def test_optimize_context_compression_level_2_dedupe_tool_calls():
+    messages = [
+        {"role": "user", "content": "List files."},
+        {"role": "assistant", "content": "", "tool_calls": [{"id": "call_1", "function": {"name": "ls"}}]},
+        {"role": "tool", "content": "file1.txt", "tool_call_id": "call_1"},
+        {"role": "tool", "content": "file1.txt", "tool_call_id": "call_1"},  # duplicate
+        {"role": "user", "content": "Now read file1."},
+    ]
+    optimized, _ = optimize_context(messages, compression_level=2)
+    tool_msgs = [m for m in optimized if m.get("role") == "tool"]
+    assert len(tool_msgs) == 1  # duplicate tool result removed
+
+
+def test_optimize_context_compression_level_3_truncates_tool_results():
+    messages = [
+        {"role": "user", "content": "Read large file."},
+        {"role": "tool", "content": "x" * 5000, "tool_call_id": "call_1"},
+    ]
+    optimized, _ = optimize_context(messages, compression_level=3, max_tool_result_chars=100)
+    tool_msg = [m for m in optimized if m.get("role") == "tool"][0]
+    assert len(tool_msg["content"]) <= 100 + 20  # content + truncation marker
+    assert "[truncated...]" in tool_msg["content"]
+
+
+def test_optimize_context_compression_level_0_is_noop():
+    messages = [
+        {"role": "user", "content": "hi", "internal_id": "abc"},
+        {"role": "user", "content": "hi", "internal_id": "def"},
+    ]
+    optimized, result = optimize_context(messages, compression_level=0)
+    assert len(optimized) == 2  # no deduplication
+    assert result.compression_ratio == 1.0
+    assert result.tokens_saved == 0
+
+
+def test_optimize_context_semantic_dedupe_removes_near_duplicates():
+    messages = [
+        {"role": "user", "content": "Build a login page with authentication."},
+        {"role": "user", "content": "Build a login page with authentication.  "},  # extra whitespace
+        {"role": "user", "content": "Build a login page with authentication"},  # missing period
+    ]
+    optimized, _ = optimize_context(messages, compression_level=2)
+    assert len(optimized) == 1  # all three are semantically identical
 
 
 # --------------------------------------------------------------------------

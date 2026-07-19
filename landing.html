@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forge AI — Your AI Engineering Team</title>
+    <meta name="description" content="Forge deploys a team of AI agents — Architect, Designer, Developer, PM — to build full-stack applications from natural language." />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0a0a0f;
+            color: #e1e1e6;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+        }
+        .container { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+        /* Nav */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 24px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo { font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+        .logo span { color: #f59e0b; }
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a { color: #a1a1aa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover { color: #fff; }
+
+        /* Hero */
+        .hero {
+            padding: 100px 0 60px; text-align: center;
+        }
+        .hero-badge {
+            display: inline-block; padding: 6px 16px; border-radius: 100px;
+            background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);
+            color: #f59e0b; font-size: 13px; font-weight: 500; margin-bottom: 24px;
+        }
+        .hero h1 {
+            font-size: clamp(40px, 8vw, 72px); font-weight: 800;
+            line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero h1 em { font-style: normal; background: linear-gradient(135deg, #f59e0b, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p {
+            font-size: 18px; color: #a1a1aa; max-width: 640px; margin: 0 auto 40px;
+        }
+
+        /* Waitlist Form */
+        .waitlist-form {
+            display: flex; gap: 12px; max-width: 480px; margin: 0 auto;
+            flex-wrap: wrap; justify-content: center;
+        }
+        .waitlist-form input {
+            flex: 1; min-width: 240px; padding: 14px 20px; border-radius: 8px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; font-size: 16px; outline: none; transition: border 0.2s;
+        }
+        .waitlist-form input:focus { border-color: #f59e0b; }
+        .waitlist-form input::placeholder { color: #52525b; }
+        .waitlist-form button {
+            padding: 14px 32px; border-radius: 8px; background: #f59e0b;
+            color: #0a0a0f; font-size: 16px; font-weight: 600; border: none;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .waitlist-form button:hover { background: #d97706; transform: translateY(-1px); }
+        .waitlist-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .form-message { margin-top: 12px; font-size: 14px; text-align: center; }
+        .form-message.success { color: #22c55e; }
+        .form-message.error { color: #ef4444; }
+
+        /* Social proof */
+        .social-proof {
+            display: flex; justify-content: center; gap: 40px; margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        .social-proof .stat { text-align: center; }
+        .social-proof .stat .number { font-size: 28px; font-weight: 700; color: #fff; }
+        .social-proof .stat .label { font-size: 13px; color: #71717a; margin-top: 2px; }
+        .social-proof .stat .number.pulse::after { content: "+"; }
+
+        /* Features */
+        .features { padding: 80px 0; }
+        .features h2 { font-size: 36px; font-weight: 700; text-align: center; margin-bottom: 48px; }
+        .features-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        .feature-card {
+            padding: 32px; border-radius: 12px;
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.2s;
+        }
+        .feature-card:hover { border-color: rgba(245,158,11,0.3); transform: translateY(-2px); }
+        .feature-card .icon { font-size: 32px; margin-bottom: 16px; }
+        .feature-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .feature-card p { font-size: 14px; color: #a1a1aa; }
+
+        /* Agent Pipeline */
+        .pipeline { padding: 60px 0; text-align: center; }
+        .pipeline h2 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+        .pipeline > p { color: #a1a1aa; margin-bottom: 48px; }
+        .pipeline-steps {
+            display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+        }
+        .pipeline-step {
+            padding: 16px 24px; border-radius: 8px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            font-size: 14px; font-weight: 500;
+        }
+        .pipeline-step .arrow { color: #f59e0b; margin-left: 8px; }
+        .pipeline-step.active { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+
+        /* Pricing */
+        .pricing { padding: 80px 0; }
+        .pricing h2 { font-size: 36px; font-weight: 700; text-align: center; margin-bottom: 48px; }
+        .pricing-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px; max-width: 960px; margin: 0 auto;
+        }
+        .pricing-card {
+            padding: 32px; border-radius: 12px;
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+            text-align: center; transition: all 0.2s;
+        }
+        .pricing-card.featured {
+            border-color: #f59e0b; background: rgba(245,158,11,0.04);
+            transform: scale(1.03);
+        }
+        .pricing-card .tier { font-size: 14px; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px; }
+        .pricing-card .price { font-size: 42px; font-weight: 800; color: #fff; margin: 16px 0; }
+        .pricing-card .price span { font-size: 16px; color: #71717a; font-weight: 400; }
+        .pricing-card .perks { list-style: none; margin: 24px 0; }
+        .pricing-card .perks li { padding: 8px 0; font-size: 14px; color: #a1a1aa; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .pricing-card .perks li:last-child { border-bottom: none; }
+        .pricing-card .perks li strong { color: #e1e1e6; }
+
+        /* CTA */
+        .cta-section { padding: 80px 0; text-align: center; }
+        .cta-section h2 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+        .cta-section p { color: #a1a1aa; margin-bottom: 32px; }
+
+        /* Footer */
+        footer { padding: 40px 0; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; }
+        footer p { color: #52525b; font-size: 13px; }
+        footer .social-links { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; }
+        footer .social-links a { color: #71717a; text-decoration: none; font-size: 14px; }
+        footer .social-links a:hover { color: #fff; }
+
+        @media (max-width: 640px) {
+            .nav-links { display: none; }
+            .hero { padding: 60px 0 40px; }
+            .pricing-card.featured { transform: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<nav class="container">
+    <div class="logo">FORGE<span>.</span></div>
+    <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#waitlist">Join Waitlist</a>
+    </div>
+</nav>
+
+<section class="hero container" id="waitlist">
+    <div class="hero-badge">⚡ Multi-Agent AI Engineering Platform</div>
+    <h1>Your <em>AI Engineering</em> Team</h1>
+    <p>
+        Describe your app. Forge deploys a coordinated team of AI agents — 
+        Architect, Designer, Developer, PM — to build, validate, and deploy 
+        production-ready applications.
+    </p>
+
+    <form class="waitlist-form" id="waitlistForm">
+        <input type="email" id="email" placeholder="Enter your email" required />
+        <button type="submit" id="submitBtn">Join the Waitlist</button>
+    </form>
+    <div id="formMessage" class="form-message"></div>
+
+    <div class="social-proof">
+        <div class="stat">
+            <div class="number pulse">0</div>
+            <div class="label">Apps Built</div>
+        </div>
+        <div class="stat">
+            <div class="number pulse">0</div>
+            <div class="label">Developers</div>
+        </div>
+        <div class="stat">
+            <div class="number">6</div>
+            <div class="label">AI Agents</div>
+        </div>
+        <div class="stat">
+            <div class="number">8+</div>
+            <div class="label">LLM Providers</div>
+        </div>
+    </div>
+</section>
+
+<section class="pipeline container">
+    <h2>From Prompt to Production</h2>
+    <p>Six specialized AI agents collaborate to build your application</p>
+    <div class="pipeline-steps">
+        <div class="pipeline-step active">Architect <span class="arrow">→</span></div>
+        <div class="pipeline-step">Designer <span class="arrow">→</span></div>
+        <div class="pipeline-step">Developer <span class="arrow">→</span></div>
+        <div class="pipeline-step">Integration <span class="arrow">→</span></div>
+        <div class="pipeline-step">QA / PM <span class="arrow">→</span></div>
+        <div class="pipeline-step">Business Model</div>
+    </div>
+</section>
+
+<section class="features container" id="features">
+    <h2>Why Forge?</h2>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="icon">🧠</div>
+            <h3>Multi-Agent Architecture</h3>
+            <p>Not a single AI — a coordinated team. Architect, Designer, Developer, Integration, PM, and Business Model agents work together.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔄</div>
+            <h3>Self-Healing Debug Loop</h3>
+            <p>When code fails, Forge's agents identify the issue, fix it, and retry — up to 3 iterations automatically.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔌</div>
+            <h3>Multi-Provider LLM Support</h3>
+            <p>Works with Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Azure, Ollama — 8+ providers with automatic routing.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📋</div>
+            <h3>Agile PM Layer</h3>
+            <p>From business analysis to sprint planning — Forge generates PRDs, epics, stories, tasks, and manages sprints automatically.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔒</div>
+            <h3>Enterprise Security</h3>
+            <p>Prompt injection detection (pattern + LLM), rate limiting, CSRF, CSP, SSRF protection, and field-level encryption.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🌍</div>
+            <h3>India-Ready Billing</h3>
+            <p>Stripe + Razorpay dual billing. Full support for the India market with INR payments via Razorpay.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🏗️</div>
+            <h3>Full-Stack Generation</h3>
+            <p>React 18 + Vite + TypeScript + Tailwind frontend, FastAPI + MongoDB backend, JWT auth, Docker deployment.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔑</div>
+            <h3>BYOK (Bring Your Own Key)</h3>
+            <p>Pro users can use their own API keys — reducing costs and maintaining provider flexibility.</p>
+        </div>
+    </div>
+</section>
+
+<section class="pricing container" id="pricing">
+    <h2>Simple, Transparent Pricing</h2>
+    <div class="pricing-grid">
+        <div class="pricing-card">
+            <div class="tier">Free</div>
+            <div class="price">$0<span>/month</span></div>
+            <ul class="perks">
+                <li><strong>5</strong> credits</li>
+                <li>1 project</li>
+                <li>Basic models</li>
+                <li>Community support</li>
+            </ul>
+        </div>
+        <div class="pricing-card featured">
+            <div class="tier">Standard</div>
+            <div class="price">$20<span>/month</span></div>
+            <ul class="perks">
+                <li><strong>100</strong> credits/month</li>
+                <li>Unlimited projects</li>
+                <li>All models</li>
+                <li>Email support</li>
+                <li>WebSocket streaming</li>
+            </ul>
+        </div>
+        <div class="pricing-card">
+            <div class="tier">Pro</div>
+            <div class="price">$50<span>/month</span></div>
+            <ul class="perks">
+                <li><strong>750</strong> credits/month</li>
+                <li>Unlimited projects</li>
+                <li><strong>1M</strong> context window</li>
+                <li><strong>BYOK</strong> — Bring your own key</li>
+                <li>Priority support</li>
+                <li>VS Code extension (coming soon)</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section container">
+    <h2>Ready to Build?</h2>
+    <p>Join the waitlist. Be among the first to experience the future of AI software engineering.</p>
+    <div class="waitlist-form" style="max-width: 480px; margin: 0 auto;">
+        <input type="email" id="email2" placeholder="Enter your email" style="flex:1;min-width:240px;padding:14px 20px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;font-size:16px;outline:none;" />
+        <button onclick="document.getElementById('email').value = document.getElementById('email2').value; document.getElementById('waitlistForm').dispatchEvent(new Event('submit'));" style="padding:14px 32px;border-radius:8px;background:#f59e0b;color:#0a0a0f;font-size:16px;font-weight:600;border:none;cursor:pointer;">Join the Waitlist</button>
+    </div>
+</section>
+
+<footer class="container">
+    <div class="social-links">
+        <a href="https://github.com/F-K75/forge-ai" target="_blank">GitHub</a>
+        <a href="https://twitter.com" target="_blank">Twitter / X</a>
+    </div>
+    <p>&copy; 2026 Forge AI. All rights reserved.</p>
+</footer>
+
+<script>
+document.getElementById('waitlistForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const btn = document.getElementById('submitBtn');
+    const msg = document.getElementById('formMessage');
+
+    if (!email) { msg.textContent = 'Please enter your email.'; msg.className = 'form-message error'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Joining...';
+    msg.textContent = '';
+    msg.className = 'form-message';
+
+    // Send to waitlist API (will be set up later; for now just show success)
+    try {
+        // When backend waitlist endpoint is ready, uncomment:
+        // const resp = await fetch('https://api.forge.ai/waitlist', {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({ email })
+        // });
+        // if (!resp.ok) throw new Error('Failed to join');
+
+        // Simulate success for now:
+        await new Promise(r => setTimeout(r, 800));
+        msg.textContent = '✅ You\'re on the list! We\'ll be in touch soon.';
+        msg.className = 'form-message success';
+        document.getElementById('email').value = '';
+        document.getElementById('email2').value = '';
+    } catch (err) {
+        msg.textContent = '❌ Something went wrong. Please try again.';
+        msg.className = 'form-message error';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Join the Waitlist';
+    }
+});
+</script>
+</body>
+</html>

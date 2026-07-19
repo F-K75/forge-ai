@@ -63,6 +63,116 @@ describe('buildStore', () => {
     expect(s.activeAgent).toBeNull()
   })
 
+  it('agent_output stores each agent\'s structured document keyed by agent id', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    useBuildStore.getState().handleEvent({
+      type: 'agent_output',
+      data: { agent: 'architect', output: { app_name: 'Habit Tracker', pages: [] } },
+    } as any)
+    useBuildStore.getState().handleEvent({
+      type: 'agent_output',
+      data: { agent: 'business_improver', output: { executive_summary: 'A habit tracker for teams.' } },
+    } as any)
+    const s = useBuildStore.getState()
+    expect(s.agentOutputs.architect).toEqual({ app_name: 'Habit Tracker', pages: [] })
+    expect(s.agentOutputs.business_improver).toEqual({ executive_summary: 'A habit tracker for teams.' })
+  })
+
+  it('a debugger agent_complete merges patched files into the developer agent, not a separate entry', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    useBuildStore.getState().handleEvent({ type: 'agent_complete', data: { agent: 'developer', files_changed: ['x.ts'] } } as any)
+    useBuildStore.getState().handleEvent({ type: 'debug_start', data: { iteration: 1, errors: ['boom'] } } as any)
+    useBuildStore.getState().handleEvent({ type: 'agent_complete', data: { agent: 'debugger', files_changed: ['y.ts'] } } as any)
+    const s = useBuildStore.getState()
+    expect(s.agentStates.developer).toBe('done')
+    const developer = s.agents.find(a => a.type === 'developer')
+    expect(developer?.filesChanged.sort()).toEqual(['x.ts', 'y.ts'])
+    expect(s.agents.find(a => a.type === ('debugger' as any))).toBeUndefined()
+  })
+
+  it('gate_request records the pending gate and posts a chat message', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    useBuildStore.getState().handleEvent({
+      type: 'gate_request',
+      data: {
+        gate_id: 'g1',
+        stage: 'architect',
+        agent: 'architect',
+        kind: 'approval',
+        questions: [],
+        timeout_seconds: 180,
+        requested_at: '2026-01-01T00:00:00Z',
+      },
+    } as any)
+    const s = useBuildStore.getState()
+    expect(s.pendingGate).toEqual({
+      gateId: 'g1',
+      stage: 'architect',
+      agent: 'architect',
+      kind: 'approval',
+      questions: [],
+      timeoutSeconds: 180,
+      requestedAt: '2026-01-01T00:00:00Z',
+    })
+    expect(s.messages[s.messages.length - 1]?.text).toContain('waiting for approval')
+  })
+
+  it('gate_resolved clears a manually-approved gate and narrates the outcome', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    useBuildStore.getState().handleEvent({
+      type: 'gate_request',
+      data: { gate_id: 'g1', stage: 'architect', agent: 'architect', kind: 'approval', questions: [], timeout_seconds: 180, requested_at: 't' },
+    } as any)
+    useBuildStore.getState().handleEvent({
+      type: 'gate_resolved',
+      data: { gate_id: 'g1', stage: 'architect', agent: 'architect', action: 'approve', auto: false },
+    } as any)
+    const s = useBuildStore.getState()
+    expect(s.pendingGate).toBeNull()
+    expect(s.messages[s.messages.length - 1]?.text).toContain('approved')
+  })
+
+  it('gate_resolved with auto:true clears the gate without a duplicate narration message', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    useBuildStore.getState().handleEvent({
+      type: 'gate_request',
+      data: { gate_id: 'g1', stage: 'designer', agent: 'designer', kind: 'approval', questions: [], timeout_seconds: 180, requested_at: 't' },
+    } as any)
+    const messagesBefore = useBuildStore.getState().messages.length
+    useBuildStore.getState().handleEvent({
+      type: 'gate_resolved',
+      data: { gate_id: 'g1', stage: 'designer', agent: 'designer', action: 'approve', auto: true },
+    } as any)
+    const s = useBuildStore.getState()
+    expect(s.pendingGate).toBeNull()
+    expect(s.messages.length).toBe(messagesBefore)
+  })
+
+  it('gate_resolved ignores a stale event for an already-cleared gate', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    useBuildStore.getState().handleEvent({
+      type: 'gate_request',
+      data: { gate_id: 'g1', stage: 'architect', agent: 'architect', kind: 'approval', questions: [], timeout_seconds: 180, requested_at: 't' },
+    } as any)
+    useBuildStore.getState().handleEvent({
+      type: 'gate_request',
+      data: { gate_id: 'g2', stage: 'business_improver', agent: 'business_improver', kind: 'approval', questions: [], timeout_seconds: 180, requested_at: 't' },
+    } as any)
+    useBuildStore.getState().handleEvent({
+      type: 'gate_resolved',
+      data: { gate_id: 'g1', stage: 'architect', agent: 'architect', action: 'approve', auto: false },
+    } as any)
+    const s = useBuildStore.getState()
+    expect(s.pendingGate?.gateId).toBe('g2')
+  })
+
+  it('setAutoApprove toggles the client-only auto-approve preference', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    expect(useBuildStore.getState().autoApprove).toBe(false)
+    useBuildStore.getState().setAutoApprove(true)
+    expect(useBuildStore.getState().autoApprove).toBe(true)
+  })
+
   it('build_failed moves the store into a failed state with an error message', () => {
     useBuildStore.getState().startBuild('b1', 'p')
     useBuildStore.getState().handleEvent({ type: 'build_failed', data: { error: 'LLM timeout' } } as any)

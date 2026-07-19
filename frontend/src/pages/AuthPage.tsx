@@ -159,7 +159,7 @@ export default function AuthPage() {
       }
       navigate("/projects", { replace: true });
     } catch (err: any) {
-      setErrors({ form: err?.response?.data?.detail || "Invalid email or password." });
+      setErrors({ form: err?.response?.data?.detail || "That email and password don't match. Try again or reset your password." });
     } finally {
       setLoading(false);
     }
@@ -227,11 +227,11 @@ export default function AuthPage() {
           </motion.div>
           <div className="relative z-10 max-w-md space-y-8">
             <motion.h1 variants={fadeUp} className="font-display text-4xl xl:text-5xl font-medium leading-[1.05] tracking-tight">
-              Ship production software at the speed of thought.
+              An engineering team, one sign-in away.
             </motion.h1>
             <motion.p variants={fadeUp} className="text-land-muted leading-relaxed">
-              Sign in to orchestrate specialist agents that plan, design, build, and validate your applications
-              end-to-end.
+              Sign in to pick up where your specialist agents left off — planning, building, and validating
+              your applications end-to-end.
             </motion.p>
             <ul className="space-y-3 text-sm">
               {["Six specialized agents, one workspace", "Self-correcting debug loop on every build", "Ship in minutes, not sprints"].map((t) => (
@@ -262,7 +262,7 @@ export default function AuthPage() {
                 <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Sign in
               </div>
               <h2 className="font-display text-3xl font-medium tracking-tight">Welcome back</h2>
-              <p className="text-sm text-land-muted mt-2">Enter your credentials to access your workspace.</p>
+              <p className="text-sm text-land-muted mt-2">Sign in to pick up where your team left off.</p>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>

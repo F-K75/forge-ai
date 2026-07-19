@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ArrowLeft, Files, Bot as BotIcon, Zap, DollarSign, ListChecks } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { motionVariants } from "../../lib/animations";
 import { reviewsApi } from "../../lib/orchestratorApi";
 import { useReviewSocket } from "../../hooks/useReviewSocket";
 import { useReviewStore } from "../../store/reviewStore";
@@ -31,6 +33,7 @@ const TERMINAL_STATUSES = new Set(["complete", "failed"]);
 
 export default function ReviewDetailPage() {
   const { runId } = useParams<{ runId: string }>();
+  const reduceMotion = useReducedMotion();
   const [hydrated, setHydrated] = useState(false);
   const [backlog, setBacklog] = useState<BacklogItem[] | null>(null);
   const [backlogTotal, setBacklogTotal] = useState<number | null>(null);
@@ -85,7 +88,12 @@ export default function ReviewDetailPage() {
   }));
 
   return (
-    <div className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto">
+    <motion.div
+      className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <Link to="/reviews" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition mb-8">
         <ArrowLeft size={12} aria-hidden="true" />
         Back to reviews
@@ -102,26 +110,51 @@ export default function ReviewDetailPage() {
       </div>
 
       {/* Summary chips */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border mb-10">
-        <SummaryChip label="Candidate files" value={String(candidateFiles)} icon={<Files size={11} className="text-faint" aria-hidden="true" />} />
-        <SummaryChip label="Agents triggered" value={String(triggeredAgents.length)} icon={<BotIcon size={11} className="text-faint" aria-hidden="true" />} />
-        <SummaryChip
-          label="Overall score"
-          value={overallScore !== null ? String(overallScore) : "—"}
-          warn={recommendation === "NO_GO"}
-        />
-        <SummaryChip label="Recommendation" value={recommendation ?? "—"} warn={recommendation === "NO_GO"} />
-        <SummaryChip
-          label="Backlog items"
-          value={(backlogCount ?? backlogTotal) !== null ? String(backlogCount ?? backlogTotal) : "—"}
-          icon={<ListChecks size={11} className="text-faint" aria-hidden="true" />}
-        />
-        <SummaryChip label="Cost" value={`$${totalCostUsd.toFixed(4)}`} icon={<DollarSign size={11} className="text-faint" aria-hidden="true" />} />
-        <SummaryChip label="Tokens" value={totalTokens.toLocaleString()} icon={<Zap size={11} className="text-faint" aria-hidden="true" />} />
-      </div>
+      <motion.div
+        className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border mb-10"
+        variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+        initial={reduceMotion ? false : "hidden"}
+        animate="visible"
+      >
+        <motion.div variants={motionVariants.staggerItem}>
+          <SummaryChip label="Candidate files" value={String(candidateFiles)} icon={<Files size={11} className="text-faint" aria-hidden="true" />} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <SummaryChip label="Agents triggered" value={String(triggeredAgents.length)} icon={<BotIcon size={11} className="text-faint" aria-hidden="true" />} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <SummaryChip
+            label="Overall score"
+            value={overallScore !== null ? String(overallScore) : "—"}
+            warn={recommendation === "NO_GO"}
+          />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <SummaryChip label="Recommendation" value={recommendation ?? "—"} warn={recommendation === "NO_GO"} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <SummaryChip
+            label="Backlog items"
+            value={(backlogCount ?? backlogTotal) !== null ? String(backlogCount ?? backlogTotal) : "—"}
+            icon={<ListChecks size={11} className="text-faint" aria-hidden="true" />}
+          />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <SummaryChip label="Cost" value={`$${totalCostUsd.toFixed(4)}`} icon={<DollarSign size={11} className="text-faint" aria-hidden="true" />} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <SummaryChip label="Tokens" value={totalTokens.toLocaleString()} icon={<Zap size={11} className="text-faint" aria-hidden="true" />} />
+        </motion.div>
+      </motion.div>
 
       {/* Pipeline */}
-      <section aria-label="Review agent pipeline" className="mb-12 pb-12 border-b border-border">
+      <motion.section
+        aria-label="Review agent pipeline"
+        className="mb-12 pb-12 border-b border-border"
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+      >
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-5">
           <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
           Pipeline run
@@ -133,11 +166,16 @@ export default function ReviewDetailPage() {
             <ReviewAgentPipeline nodes={nodes} />
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* Backlog */}
       {status === "complete" && (
-        <section aria-label="Backlog">
+        <motion.section
+          aria-label="Backlog"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
+        >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted">
               <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
@@ -165,9 +203,14 @@ export default function ReviewDetailPage() {
           ) : backlog.length === 0 ? (
             <p className="text-sm text-faint">No issues found.</p>
           ) : (
-            <ul className="border-t border-border">
+            <motion.ul
+              className="border-t border-border"
+              variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+              initial={reduceMotion ? false : "hidden"}
+              animate="visible"
+            >
               {backlog.map((item) => (
-                <li key={item.id} className="border-b border-border p-5">
+                <motion.li key={item.id} className="border-b border-border p-5" variants={motionVariants.staggerItem}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[10px] font-semibold uppercase tracking-wide ${SEVERITY_COLOR[item.severity]}`}>
                       {item.severity}
@@ -181,12 +224,12 @@ export default function ReviewDetailPage() {
                   {item.files.length > 0 && (
                     <p className="text-[10px] font-mono text-faint mt-1.5 truncate">{item.files.join(", ")}</p>
                   )}
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
           )}
-        </section>
+        </motion.section>
       )}
-    </div>
+    </motion.div>
   );
 }

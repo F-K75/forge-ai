@@ -1,14 +1,20 @@
 import { useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import { Copy, Check } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 interface ClipboardCopyButtonProps {
   text: string
+  successMessage?: string
+  className?: string
   onSuccess?: () => void
   onError?: (error: Error) => void
 }
 
-export function ClipboardCopyButton({ text, onSuccess, onError }: ClipboardCopyButtonProps) {
+const DEFAULT_CLASSNAME =
+  'flex items-center gap-1.5 px-3 py-1.5 text-xs bg-base border border-border rounded-lg hover:bg-panel focus:outline-none focus:ring-2 focus:ring-accent'
+
+export function ClipboardCopyButton({ text, successMessage = 'Copied to clipboard!', className, onSuccess, onError }: ClipboardCopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(async () => {
@@ -16,7 +22,7 @@ export function ClipboardCopyButton({ text, onSuccess, onError }: ClipboardCopyB
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text)
         setCopied(true)
-        toast.success('Copied to clipboard!')
+        toast.success(successMessage)
         onSuccess?.()
         setTimeout(() => setCopied(false), 2000)
       } else {
@@ -30,7 +36,7 @@ export function ClipboardCopyButton({ text, onSuccess, onError }: ClipboardCopyB
         try {
           document.execCommand('copy')
           setCopied(true)
-          toast.success('Copied to clipboard!')
+          toast.success(successMessage)
           onSuccess?.()
           setTimeout(() => setCopied(false), 2000)
         } catch {
@@ -44,17 +50,52 @@ export function ClipboardCopyButton({ text, onSuccess, onError }: ClipboardCopyB
       toast.error('Copy failed. Please try manually.')
       onError?.(error)
     }
-  }, [text, onSuccess, onError])
+  }, [text, successMessage, onSuccess, onError])
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={handleCopy}
-      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-base border border-border rounded-lg hover:bg-panel transition focus:outline-none focus:ring-2 focus:ring-accent"
+      className={className ?? DEFAULT_CLASSNAME}
       aria-label="Copy to clipboard"
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
     >
-      {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-      {copied ? 'Copied' : 'Copy'}
-    </button>
+      <AnimatePresence mode="wait">
+        {copied ? (
+          <motion.span
+            key="check"
+            initial={{ scale: 0, rotate: -90 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 90 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            <Check className="w-3 h-3 text-emerald-400" />
+          </motion.span>
+        ) : (
+          <motion.span
+            key="copy"
+            initial={{ scale: 0, rotate: 90 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: -90 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            <Copy className="w-3 h-3" />
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={copied ? "copied" : "copy-label"}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.15 }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </motion.span>
+      </AnimatePresence>
+    </motion.button>
   )
 }

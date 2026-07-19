@@ -108,6 +108,16 @@ class Settings(BaseSettings):
     credits_debug: int = 2
     credits_business_model: int = 2
 
+    # Pricing Tiers ($USD)
+    # Free: 0 credits, Standard: 100 credits/mo @ $20, Pro: 750 credits/mo @ $50
+    # Credit packs available for purchase
+    standard_monthly_price: int = 20
+    pro_monthly_price: int = 50
+    enterprise_minimum_annual: int = 5000  # $5K/yr minimum for enterprise
+    free_credits: int = 5  # Reduced from 10 to limit abuse
+    standard_credits: int = 100
+    pro_credits: int = 750
+
     # Billing
     billing_provider: str = "stripe"
     stripe_secret_key: str = ""
@@ -148,8 +158,10 @@ class Settings(BaseSettings):
     # (Python 3.9 doesn't support `list[str] | str` reliably.)
     allowed_origins: "list[str]" = [
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
         "http://127.0.0.1:5173",
     ]
     

@@ -13,17 +13,29 @@ export default {
         ink:           "#E8E8F0",
         muted:         "#8B8B9E",
         faint:         "#5A5A6B",
-        accent:        "#7C5CFF",
-        "accent-soft": "rgba(124,92,255,0.12)",
+        // "Ember" is the app-wide accent — `ember`/`ember-glow` and
+        // `accent`/`accent-soft` are intentionally the same color under two
+        // names: `accent` is the original, broadly-used semantic token;
+        // `ember` is used where a named warm identity reads more clearly
+        // (e.g. gradient-ember). Keep both in sync if this ever changes.
+        accent:        "#E8823C",
+        "accent-soft": "rgba(232,130,60,0.12)",
         ok:            "#34D399",
         warn:          "#F59E0B",
         error:         "#EF4444",
-        "agent-architect":         "#6366F1",
-        "agent-business-improver": "#EC4899",
-        "agent-designer":          "#A855F7",
-        "agent-developer":         "#22D3EE",
-        "agent-integration":       "#F59E0B",
-        "agent-pm":                "#34D399",
+
+        ember:        "#E8823C",
+        "ember-glow": "#F4A261",
+
+        // One orange family (matching ember/ember-glow above), light to
+        // dark — kept in sync with src/lib/agents.ts, src/lib/theme.ts, and
+        // src/components/charts/palette.ts. Do not hand-retype elsewhere.
+        "agent-architect":         "#F4A261",
+        "agent-business-improver": "#F0934D",
+        "agent-designer":          "#E8823C",
+        "agent-developer":         "#D9722C",
+        "agent-integration":       "#C2631F",
+        "agent-pm":                "#A85423",
 
         // Public/pre-auth surface palette (landing + sign-in/up) — namespaced
         // with "land-" so it can diverge from the authenticated app's dark
