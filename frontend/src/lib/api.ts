@@ -358,6 +358,121 @@ export const budgetsApi = {
     api.get("/api/budgets/analytics/spending", { params: { days, limit } }).then((r) => r.data),
 }
 
+// Agent Registry — persistent engineering org per project (see
+// backend/api/agent_registry.py, mounted under /v1)
+export interface AgentStats {
+  tasks_completed: number
+  tasks_failed: number
+  success_rate: number
+  tokens_used: number
+  cost_incurred: number
+  review_scores: number[]
+  avg_review_score?: number | null
+  last_active_at?: string | null
+}
+
+export interface AgentProfile {
+  id: string
+  project_id: string
+  role: string
+  department: string
+  display_name: string
+  level: "junior" | "mid" | "senior" | "lead" | "principal"
+  status: "active" | "idle" | "retired"
+  owned_paths: string[]
+  preferred_tools: string[]
+  strengths: string[]
+  weaknesses: string[]
+  stats: AgentStats
+  decision_log: Array<Record<string, unknown>>
+  created_at: string
+  retired_at?: string | null
+  retired_reason?: string | null
+}
+
+export interface Department {
+  key: string
+  name: string
+  agent_ids: string[]
+}
+
+export interface EngineeringOrg {
+  id: string
+  project_id: string
+  leadership: {
+    cto_agent_id?: string | null
+    pm_agent_id?: string | null
+    tech_lead_agent_id?: string | null
+    architect_agent_id?: string | null
+  }
+  departments: Department[]
+  created_at: string
+  updated_at: string
+}
+
+export interface RouteAssignment {
+  role: string
+  department: string
+  agent_id: string
+  display_name: string
+  score: number
+  matched_keywords: string[]
+}
+
+export interface OwnershipSummaryEntry {
+  agent_id: string
+  role: string
+  department: string
+  display_name: string
+  file_count: number
+  top_level_breakdown: Record<string, number>
+}
+
+export interface GraphNode {
+  id: string
+  type: "agent" | "file" | "build" | "decision"
+  label: string
+  metadata: Record<string, unknown>
+}
+
+export interface GraphEdge {
+  source: string
+  target: string
+  relation: "owns" | "touched_in" | "ran_as" | "decided"
+  metadata: Record<string, unknown>
+}
+
+export const agentOrgApi = {
+  getOrg: (projectId: string) =>
+    api
+      .get(`/v1/projects/${projectId}/org`)
+      .then((r) => r.data as { org: EngineeringOrg; agents: AgentProfile[] }),
+  createAgent: (projectId: string, data: { role: string; department?: string; display_name?: string }) =>
+    api
+      .post(`/v1/projects/${projectId}/org/agents`, data)
+      .then((r) => r.data as { agent: AgentProfile; created: boolean }),
+  promote: (projectId: string, agentId: string, data?: { reason?: string; force?: boolean }) =>
+    api
+      .post(`/v1/projects/${projectId}/org/agents/${agentId}/promote`, data ?? {})
+      .then((r) => r.data as AgentProfile),
+  retire: (projectId: string, agentId: string, reason?: string) =>
+    api
+      .post(`/v1/projects/${projectId}/org/agents/${agentId}/retire`, { reason })
+      .then((r) => r.data as AgentProfile),
+  route: (projectId: string, request: string, max_assignments?: number) =>
+    api
+      .post(`/v1/projects/${projectId}/org/route`, { request, max_assignments })
+      .then((r) => r.data as { assignments: RouteAssignment[] }),
+  ownershipSummary: (projectId: string) =>
+    api
+      .get(`/v1/projects/${projectId}/org/ownership`)
+      .then((r) => r.data as { summary: OwnershipSummaryEntry[] }),
+  graph: (projectId: string) =>
+    api
+      .get(`/v1/projects/${projectId}/org/graph`)
+      .then((r) => r.data as { nodes: GraphNode[]; edges: GraphEdge[] }),
+}
+
 // Admin
 export const adminApi = {
   overview: () => api.get("/admin/analytics/overview").then((r) => r.data),

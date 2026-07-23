@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Clock, GitBranch, RefreshCw, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -228,6 +228,12 @@ export default function ProjectHistory() {
             {builds.length} builds ·{" "}
             {projectLive ? "live" : "idle"}
           </p>
+          <Link
+            to={`/project/${projectId}/org`}
+            className="text-xs text-muted hover:text-ink pl-3.5 mt-1 inline-block"
+          >
+            Engineering org →
+          </Link>
         </div>
 
         {/* Build list */}

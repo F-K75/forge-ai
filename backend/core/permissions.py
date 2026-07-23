@@ -37,6 +37,23 @@ async def has_initiative_access(db, user_id: str, initiative: dict) -> bool:
     return membership is not None
 
 
+async def has_project_access(db, user_id: str, project: dict) -> bool:
+    """Return True if user_id owns the project or shares its org."""
+    if not project:
+        return False
+    if project.get("user_id") == user_id:
+        return True
+
+    org_id = project.get("org_id")
+    if not org_id:
+        return False
+
+    membership = await db.team_members.find_one(
+        {"org_id": org_id, "user_id": user_id}, {"_id": 0}
+    )
+    return membership is not None
+
+
 async def has_build_access(db, user_id: str, build: dict) -> bool:
     """Return True if user_id owns the build or shares an org with its project."""
     if not build:

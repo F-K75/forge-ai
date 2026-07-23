@@ -30,6 +30,7 @@ const PromptStudioPage = lazy(() => import("./pages/PromptStudioPage"))
 // Step 3: in-shell surfaces
 const AdminConsole = lazy(() => import("./pages/AdminConsole"))
 const ProjectHistory = lazy(() => import("./pages/ProjectHistory"))
+const EngineeringOrgPage = lazy(() => import("./pages/EngineeringOrgPage"))
 // AI-native Agile PM layer (Initiatives): vision/PRD -> epics/stories/tasks -> sprints -> board -> releases
 const InitiativesListPage = lazy(() => import("./pages/pm/InitiativesListPage"))
 const InitiativeLayout = lazy(() => import("./pages/pm/InitiativeLayout"))
@@ -357,6 +358,14 @@ export default function App() {
               element={
                 <Suspense fallback={<RouteSkeleton />}>
                   <ProjectHistory />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/project/:projectId/org"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <EngineeringOrgPage />
                 </Suspense>
               }
             />

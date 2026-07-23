@@ -166,6 +166,14 @@ async def _ensure_indexes(db):
             db.agent_executions.create_index([("task_id", 1)]),
             db.releases.create_index([("initiative_id", 1), ("created_at", -1)]),
             db.decision_log.create_index([("initiative_id", 1), ("created_at", -1)]),
+            # --- Agent Registry (persistent engineering org per project) ---
+            db.engineering_orgs.create_index("project_id", unique=True),
+            db.agent_profiles.create_index([("project_id", 1), ("role", 1)], unique=True),
+            db.agent_profiles.create_index([("id", 1)]),
+            # --- Team Chat (agent communication layer) ---
+            db.team_messages.create_index([("project_id", 1), ("created_at", 1)]),
+            db.team_messages.create_index([("project_id", 1), ("thread_id", 1)]),
+            db.team_messages.create_index([("id", 1)], unique=True),
         ]
 
         results = await asyncio.gather(*index_coroutines, return_exceptions=True)

@@ -12,6 +12,7 @@ from agents.developer import DeveloperAgent
 from agents.integration import IntegrationAgent
 from agents.pm import PMAgent
 from agents.business_model import BusinessModelAgent
+from agent_registry import get_agent_registry
 from core.models import (
     Build, BuildStatus, AgentStep, AgentType, WSEvent, WSEventType, PlanTier
 )
@@ -34,6 +35,21 @@ ENABLE_LOOP_ENGINEERING = settings.app_env == "development"
 _evaluator = PromptEvaluator()
 _metrics_collector = MetricsCollector()
 
+# Maps each build-pipeline AgentType to the persistent agent_registry role/
+# department it runs as, so pipeline runs accumulate real experience on a
+# per-project AgentProfile instead of vanishing after each build. ARCHITECT
+# intentionally maps onto the org's leadership "architect" -- the same role
+# that owns architecture/scalability decisions for the project.
+_AGENT_TYPE_ROLE_DEPARTMENT = {
+    AgentType.ARCHITECT: ("architect", "leadership"),
+    AgentType.DESIGNER: ("designer", "frontend"),
+    AgentType.DEVELOPER: ("developer", "specialists"),
+    AgentType.INTEGRATION: ("integration", "backend"),
+    AgentType.PM: ("build_validator", "qa"),
+    AgentType.BUSINESS_IMPROVER: ("business_improver", "research"),
+    AgentType.DEBUGGER: ("debugger", "qa"),
+}
+
 
 class BuildCancelled(Exception):
     """User declined an interactive gate. Distinct from generic failures so
@@ -48,6 +64,7 @@ class Orchestrator:
         self.integration = IntegrationAgent()
         self.pm = PMAgent()
         self.business_model = BusinessModelAgent()
+        self._agent_registry = get_agent_registry()
 
     async def run_build(
         self,
@@ -441,6 +458,17 @@ class Orchestrator:
 
         except Exception as e:
             build.status = BuildStatus.FAILED
+            for step in build.agents:
+                if step.status == BuildStatus.RUNNING and step.agent_profile_id:
+                    try:
+                        await self._agent_registry.record_task_result(
+                            build.project_id, step.agent_profile_id, success=False,
+                        )
+                    except Exception:
+                        logger.debug(
+                            "Agent registry record_task_result (failure path) failed for build=%s",
+                            build.id, exc_info=True,
+                        )
             await emit(WSEvent(
                 type=WSEventType.BUILD_FAILED,
                 build_id=build.id,
@@ -590,10 +618,25 @@ class Orchestrator:
             return False
         return user_doc.get("plan") in (PlanTier.PRO.value, PlanTier.ENTERPRISE.value)
 
+    async def _resolve_agent_profile(self, build: Build, agent_type: AgentType) -> Optional[str]:
+        """Best-effort: look up (or create) the persistent AgentProfile this
+        pipeline stage runs as. Never raises -- a registry hiccup must not
+        block a build."""
+        role, department = _AGENT_TYPE_ROLE_DEPARTMENT.get(agent_type, (agent_type.value, "specialists"))
+        try:
+            profile, _ = await self._agent_registry.get_or_create_agent(
+                build.project_id, role, department=department
+            )
+            return profile.id
+        except Exception:
+            logger.debug("Agent registry lookup failed for role=%s build=%s", role, build.id, exc_info=True)
+            return None
+
     async def _start_agent(
         self, build: Build, agent_type: AgentType, emit: Callable, skip_credits: bool = False
     ):
         step = AgentStep(agent=agent_type, status=BuildStatus.RUNNING, started_at=datetime.utcnow())
+        step.agent_profile_id = await self._resolve_agent_profile(build, agent_type)
         build.agents.append(step)
         if not skip_credits:
             credit_map = {
@@ -659,13 +702,29 @@ class Orchestrator:
         output: str = "",
         files_changed: list = None,
     ):
+        completed_step = None
         for step in build.agents:
             if step.agent == agent_type and step.status == BuildStatus.RUNNING:
                 step.status = BuildStatus.SUCCESS
                 step.completed_at = datetime.utcnow()
                 step.output = output
                 step.files_changed = files_changed or []
+                completed_step = step
                 break
+
+        if completed_step and completed_step.agent_profile_id:
+            try:
+                await self._agent_registry.record_task_result(
+                    build.project_id,
+                    completed_step.agent_profile_id,
+                    success=True,
+                    files_touched=files_changed or None,
+                )
+            except Exception:
+                logger.debug(
+                    "Agent registry record_task_result failed for build=%s agent=%s",
+                    build.id, agent_type.value, exc_info=True,
+                )
 
         await self._evaluate_agent_output(build.id, agent_type.value, output, emit)
 

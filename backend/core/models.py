@@ -205,6 +205,9 @@ class AgentStep(BaseModel):
     output: str = ""
     files_changed: List[str] = []
     error: Optional[str] = None
+    # Persistent agent_registry.AgentProfile.id this step ran as, so its
+    # outcome can be recorded against that agent's running stats/ownership.
+    agent_profile_id: Optional[str] = None
 
 
 class Build(BaseModel):
