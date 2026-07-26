@@ -123,13 +123,37 @@ async def create_build(
         MAX_DEBUG_ITERATIONS * CREDIT_COSTS.get("debug", 2), estimated_credits
     )
 
-    reserved = await db.users.find_one_and_update(
-        {"id": current_user.id, "credits": {"$gte": max_credits}},
-        {"$inc": {"credits": -max_credits}},
+    # The first build on an account runs unmetered. A build reserves at least
+    # sum(CREDIT_COSTS) credits -- more once the project has a tech stack --
+    # while a new account is granted settings.free_credits, which is smaller.
+    # Without this grant a free user is rejected before their first build ever
+    # starts, so nobody can reach a finished application before paying.
+    #
+    # Claimed with a single atomic flag flip rather than by counting existing
+    # builds: two concurrent requests would both read a count of zero, but only
+    # one can win this update. The abuse ceiling is therefore exactly one
+    # unmetered build per account. The flag is consumed on claim, including
+    # when the build later fails -- see the caveat in FORGE_AUDIT_LOG.md.
+    free_build = await db.users.find_one_and_update(
+        {"id": current_user.id, "free_build_used": {"$ne": True}},
+        {"$set": {"free_build_used": True}},
         return_document=True,
     )
-    if not reserved:
-        raise HTTPException(status_code=402, detail="Insufficient credits")
+
+    if free_build is not None:
+        # Reserve nothing. The refund paths in tasks/build_tasks.py compute
+        # max(0, reserved_credits - used), so a zero reservation neither debits
+        # the account up front nor credits it back on completion.
+        max_credits = 0
+        reserved = free_build
+    else:
+        reserved = await db.users.find_one_and_update(
+            {"id": current_user.id, "credits": {"$gte": max_credits}},
+            {"$inc": {"credits": -max_credits}},
+            return_document=True,
+        )
+        if not reserved:
+            raise HTTPException(status_code=402, detail="Insufficient credits")
 
     await check_and_send_credit_alerts(
         db, current_user.id, reserved.get("plan", "free"), reserved["credits"]
@@ -193,6 +217,12 @@ async def create_build(
         await db.users.update_one(
             {"id": current_user.id}, {"$inc": {"credits": max_credits}}
         )
+        if free_build is not None:
+            # Same leak, one level up: the task never ran, so the account never
+            # got the unmetered build it just spent its one-shot grant on.
+            await db.users.update_one(
+                {"id": current_user.id}, {"$set": {"free_build_used": False}}
+            )
         raise
 
     return {"build_id": build.id, "status": build.status}
