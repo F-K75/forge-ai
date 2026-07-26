@@ -208,6 +208,24 @@ async def test_messages_are_project_scoped(monkeypatch):
     assert proj2_messages == []
 
 
+@pytest.mark.asyncio
+async def test_post_succeeds_even_when_org_event_emission_unavailable(monkeypatch):
+    """post() emits a best-effort OrgEvent (MESSAGE_POSTED) after saving.
+    services.org_ws_manager.get_db/get_redis are deliberately left unpatched
+    here (no real Redis is reachable in this environment) to prove the
+    try/except around the emission actually protects the caller -- posting
+    a message must still succeed even though the emission itself fails."""
+    chat, registry, db = _patched_chat(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    dev, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    msg = await chat.post("proj1", dev.id, "hello despite no redis")
+    assert msg.content == "hello despite no redis"
+
+    messages = await chat.list_messages("proj1")
+    assert len(messages) == 1
+
+
 # --------------------------------------------------------------------------- #
 # API endpoints
 # --------------------------------------------------------------------------- #

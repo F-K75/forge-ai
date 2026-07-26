@@ -22,6 +22,16 @@ from .knowledge_graph import (
     NodeType,
     get_knowledge_graph,
 )
+from .monitoring import (
+    FindingCategory,
+    FindingNotFound,
+    FindingSeverity,
+    FindingStatus,
+    MonitoringFinding,
+    MonitoringRepository,
+    RepositoryMonitor,
+    get_repository_monitor,
+)
 from .ownership import (
     AgentOwnershipSummary,
     CodeOwnership,
@@ -29,7 +39,36 @@ from .ownership import (
     OwnershipEntry,
     get_code_ownership,
 )
+from .planning import (
+    Plan,
+    PlanNotEditable,
+    PlanNotFound,
+    PlanningRepository,
+    PlanningService,
+    PlanStatus,
+    PlanTask,
+    RiskLevel,
+    get_planning_service,
+)
+from .pr_workflow import (
+    ChangeRequest,
+    ChangeRequestNotFound,
+    InvalidStageTransition,
+    PRStage,
+    PRWorkflow,
+    PRWorkflowRepository,
+    ReviewDecision,
+    StageTransition,
+    get_pr_workflow,
+)
+from .repo_memory import (
+    RepositoryMemory,
+    RepositoryMemoryRepository,
+    RepositoryMemoryService,
+    get_repository_memory_service,
+)
 from .repository import AgentRegistryRepository
+from .review_board_bridge import trigger_security_review
 from .task_router import Assignment, RoleMatch, TaskRouter, classify, get_task_router
 from .team_chat import (
     MessageType,
@@ -39,6 +78,7 @@ from .team_chat import (
     UnknownAgent,
     get_team_chat,
 )
+from .ws_events import OrgEvent, OrgEventType
 
 __all__ = [
     "AgentLevel",
@@ -70,10 +110,43 @@ __all__ = [
     "KnowledgeGraphService",
     "NodeType",
     "get_knowledge_graph",
+    "FindingCategory",
+    "FindingNotFound",
+    "FindingSeverity",
+    "FindingStatus",
+    "MonitoringFinding",
+    "MonitoringRepository",
+    "RepositoryMonitor",
+    "get_repository_monitor",
     "MessageType",
     "TeamChat",
     "TeamChatRepository",
     "TeamMessage",
     "UnknownAgent",
     "get_team_chat",
+    "ChangeRequest",
+    "ChangeRequestNotFound",
+    "InvalidStageTransition",
+    "PRStage",
+    "PRWorkflow",
+    "PRWorkflowRepository",
+    "ReviewDecision",
+    "StageTransition",
+    "get_pr_workflow",
+    "Plan",
+    "PlanNotEditable",
+    "PlanNotFound",
+    "PlanningRepository",
+    "PlanningService",
+    "PlanStatus",
+    "PlanTask",
+    "RiskLevel",
+    "get_planning_service",
+    "RepositoryMemory",
+    "RepositoryMemoryRepository",
+    "RepositoryMemoryService",
+    "get_repository_memory_service",
+    "trigger_security_review",
+    "OrgEvent",
+    "OrgEventType",
 ]

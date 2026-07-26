@@ -203,6 +203,13 @@ async def _ensure_indexes(db):
             db.team_messages.create_index([("project_id", 1), ("created_at", 1)]),
             db.team_messages.create_index([("project_id", 1), ("thread_id", 1)]),
             db.team_messages.create_index([("id", 1)], unique=True),
+            # --- PR Workflow (change request lifecycle) ---
+            db.change_requests.create_index([("project_id", 1), ("created_at", -1)]),
+            db.change_requests.create_index([("id", 1)], unique=True),
+            # --- Repository Monitoring (findings intake/triage) ---
+            db.monitoring_findings.create_index([("project_id", 1), ("created_at", -1)]),
+            db.monitoring_findings.create_index([("project_id", 1), ("status", 1)]),
+            db.monitoring_findings.create_index([("id", 1)], unique=True),
         ]
 
         results = await asyncio.gather(*index_coroutines, return_exceptions=True)

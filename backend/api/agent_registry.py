@@ -7,27 +7,41 @@ created once (dynamic specialists), promoted, or retired.
 
 from __future__ import annotations
 
+import asyncio
+import json
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from api.auth import get_current_user
 from core.database import get_db
 from core.models import User
 from core.permissions import has_project_access
+from services.org_ws_manager import org_manager, authenticate_org_websocket
 
 from agent_registry import (
     AgentNotFound,
+    ChangeRequestNotFound,
+    FindingCategory,
+    FindingNotFound,
+    FindingSeverity,
+    FindingStatus,
+    InvalidStageTransition,
     MessageType,
+    PRStage,
     PromotionNotEligible,
     UnknownAgent,
     get_agent_registry,
     get_code_ownership,
     get_knowledge_graph,
+    get_pr_workflow,
+    get_repository_monitor,
     get_task_router,
     get_team_chat,
 )
+from agent_registry.planning import PlanNotFound
+from agent_registry.pr_workflow import PlanNotApproved
 
 router = APIRouter(prefix="/projects/{project_id}/org", tags=["agent-registry"])
 
@@ -55,6 +69,7 @@ class TaskResultRequest(BaseModel):
 class PromoteRequest(BaseModel):
     reason: str = ""
     force: bool = False
+    approved_by_agent_id: Optional[str] = None
 
 
 class RetireRequest(BaseModel):
@@ -79,6 +94,48 @@ class PostMessageRequest(BaseModel):
     thread_id: Optional[str] = None
     reply_to_id: Optional[str] = None
     context: Optional[Dict[str, Any]] = None
+
+
+class OpenChangeRequest(BaseModel):
+    title: str
+    author_agent_id: str
+    description: str = ""
+    changed_paths: Optional[list[str]] = None
+    plan_id: Optional[str] = None
+
+
+class AdvanceStageRequest(BaseModel):
+    to_stage: PRStage
+    actor_agent_id: str
+    note: str = ""
+
+
+class RequestReviewRequest(BaseModel):
+    requester_agent_id: str
+    reviewer_agent_id: str
+
+
+class SubmitReviewRequest(BaseModel):
+    reviewer_agent_id: str
+    approved: bool
+    comment: str = ""
+
+
+class MergeRequest(BaseModel):
+    actor_agent_id: str
+
+
+class RecordFindingRequest(BaseModel):
+    category: FindingCategory
+    severity: FindingSeverity
+    title: str
+    description: str = ""
+    source: str = "manual"
+    auto_escalate: bool = True
+
+
+class ResolveFindingRequest(BaseModel):
+    resolved_by_agent_id: str
 
 
 @router.get("")
@@ -162,7 +219,13 @@ async def promote_agent(
 
     registry = get_agent_registry()
     try:
-        agent = await registry.promote(project_id, agent_id, reason=req.reason, force=req.force)
+        agent = await registry.promote(
+            project_id,
+            agent_id,
+            reason=req.reason,
+            force=req.force,
+            approved_by_agent_id=req.approved_by_agent_id,
+        )
     except AgentNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PromotionNotEligible as exc:
@@ -294,6 +357,118 @@ async def search_graph(
     return {"results": results}
 
 
+@router.post("/changes")
+async def open_change_request(
+    project_id: str, req: OpenChangeRequest, current_user: User = Depends(get_current_user)
+):
+    """Open a change request in the PLANNING stage. Reviewers are
+    auto-suggested from whoever already owns the touched paths."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    workflow = get_pr_workflow()
+    try:
+        cr = await workflow.open(
+            project_id, req.title, req.author_agent_id,
+            description=req.description, changed_paths=req.changed_paths,
+            plan_id=req.plan_id,
+        )
+    except (AgentNotFound, PlanNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PlanNotApproved as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return cr
+
+
+@router.get("/changes")
+async def list_change_requests(project_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    workflow = get_pr_workflow()
+    changes = await workflow.list_for_project(project_id)
+    return {"changes": changes}
+
+
+@router.get("/changes/{cr_id}")
+async def get_change_request(project_id: str, cr_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    workflow = get_pr_workflow()
+    try:
+        cr = await workflow.get(project_id, cr_id)
+    except ChangeRequestNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return cr
+
+
+@router.post("/changes/{cr_id}/advance")
+async def advance_change_request(
+    project_id: str, cr_id: str, req: AdvanceStageRequest, current_user: User = Depends(get_current_user)
+):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    workflow = get_pr_workflow()
+    try:
+        cr = await workflow.advance(project_id, cr_id, req.to_stage, req.actor_agent_id, note=req.note)
+    except (ChangeRequestNotFound, AgentNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidStageTransition as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return cr
+
+
+@router.post("/changes/{cr_id}/request-review")
+async def request_change_review(
+    project_id: str, cr_id: str, req: RequestReviewRequest, current_user: User = Depends(get_current_user)
+):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    workflow = get_pr_workflow()
+    try:
+        cr = await workflow.request_review(project_id, cr_id, req.requester_agent_id, req.reviewer_agent_id)
+    except (ChangeRequestNotFound, AgentNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return cr
+
+
+@router.post("/changes/{cr_id}/review")
+async def submit_change_review(
+    project_id: str, cr_id: str, req: SubmitReviewRequest, current_user: User = Depends(get_current_user)
+):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    workflow = get_pr_workflow()
+    try:
+        cr = await workflow.submit_review(
+            project_id, cr_id, req.reviewer_agent_id, approved=req.approved, comment=req.comment
+        )
+    except (ChangeRequestNotFound, AgentNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return cr
+
+
+@router.post("/changes/{cr_id}/merge")
+async def merge_change_request(
+    project_id: str, cr_id: str, req: MergeRequest, current_user: User = Depends(get_current_user)
+):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    workflow = get_pr_workflow()
+    try:
+        cr = await workflow.merge(project_id, cr_id, req.actor_agent_id)
+    except (ChangeRequestNotFound, AgentNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidStageTransition as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return cr
+
+
 @router.post("/agents/{agent_id}/retire")
 async def retire_agent(
     project_id: str,
@@ -310,3 +485,77 @@ async def retire_agent(
     except AgentNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return agent
+
+
+@router.post("/monitoring/findings")
+async def record_finding(
+    project_id: str, req: RecordFindingRequest, current_user: User = Depends(get_current_user)
+):
+    """Intake a monitoring finding (CI failure, security issue, performance
+    regression, etc.) from any watch source. HIGH/CRITICAL findings are
+    auto-escalated into a routed change request unless disabled."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    monitor = get_repository_monitor()
+    finding = await monitor.record_finding(
+        project_id,
+        req.category,
+        req.severity,
+        req.title,
+        description=req.description,
+        source=req.source,
+        auto_escalate=req.auto_escalate,
+    )
+    return finding
+
+
+@router.get("/monitoring/findings")
+async def list_findings(
+    project_id: str,
+    status: Optional[FindingStatus] = None,
+    category: Optional[FindingCategory] = None,
+    limit: int = Query(100, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
+):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    monitor = get_repository_monitor()
+    findings = await monitor.list_findings(project_id, status=status, category=category, limit=limit)
+    return {"findings": findings}
+
+
+@router.post("/monitoring/findings/{finding_id}/resolve")
+async def resolve_finding(
+    project_id: str,
+    finding_id: str,
+    req: ResolveFindingRequest,
+    current_user: User = Depends(get_current_user),
+):
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    monitor = get_repository_monitor()
+    try:
+        finding = await monitor.resolve(project_id, finding_id, resolved_by_agent_id=req.resolved_by_agent_id)
+    except (FindingNotFound, AgentNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return finding
+
+
+@router.websocket("/ws")
+async def org_websocket(websocket: WebSocket, project_id: str):
+    user = await authenticate_org_websocket(websocket, project_id)
+    if not user:
+        return
+
+    await org_manager.connect(websocket, project_id)
+    try:
+        while True:
+            try:
+                await asyncio.wait_for(websocket.receive_text(), timeout=30)
+            except asyncio.TimeoutError:
+                await websocket.send_text(json.dumps({"type": "ping"}))
+    except WebSocketDisconnect:
+        org_manager.disconnect(websocket, project_id)

@@ -147,6 +147,28 @@ class TeamChat:
             kwargs["thread_id"] = thread_id
         message = TeamMessage(**kwargs)
         await self._repo.save_message(message)
+
+        # Best-effort real-time push -- a Redis/WS hiccup must never break
+        # posting a chat message.
+        try:
+            from agent_registry.ws_events import OrgEvent, OrgEventType
+            from services.org_ws_manager import get_org_manager
+
+            await get_org_manager().emit(
+                OrgEvent(
+                    type=OrgEventType.MESSAGE_POSTED,
+                    project_id=project_id,
+                    data={
+                        "message_id": message.id,
+                        "from_agent_id": message.from_agent_id,
+                        "message_type": message.message_type.value,
+                        "content": message.content[:200],
+                    },
+                )
+            )
+        except Exception:
+            pass
+
         return message
 
     async def list_messages(

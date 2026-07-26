@@ -136,6 +136,7 @@ try:
         ["complexity", "model"],
         registry=registry,
     )
+
 except ImportError:
     registry = None
 
@@ -168,6 +169,8 @@ except ImportError:
     llm_budget_downgrades_total = _NoOpMetric()  # type: ignore[assignment]
     llm_budget_rejections_total = _NoOpMetric()  # type: ignore[assignment]
     llm_routing_decisions_total = _NoOpMetric()  # type: ignore[assignment]
+
+PROMETHEUS_ENABLED = registry is not None
 
 
 def update_optimizer_gauges() -> None:

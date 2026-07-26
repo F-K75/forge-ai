@@ -196,6 +196,28 @@ async def test_get_or_create_agent_recreates_after_retirement(monkeypatch):
     assert new_agent.id != agent.id
 
 
+@pytest.mark.asyncio
+async def test_get_or_create_agent_reuses_active_replacement_not_retired_original(monkeypatch):
+    """Once a retired agent's role has been re-created, further lookups must
+    keep reusing that new active agent -- not keep spinning up further
+    duplicates because the query happens to see the old retired doc first."""
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+
+    original, _ = await registry.get_or_create_agent("proj1", "rust_engineer")
+    await registry.retire("proj1", original.id, reason="tech no longer used")
+    replacement, created = await registry.get_or_create_agent("proj1", "rust_engineer")
+    assert created is True
+    assert replacement.id != original.id
+
+    again, created_again = await registry.get_or_create_agent("proj1", "rust_engineer")
+    assert created_again is False
+    assert again.id == replacement.id
+
+    roles = [a.role for a in await registry.list_agents("proj1") if a.role == "rust_engineer"]
+    assert len(roles) == 2  # exactly one retired + one active, never a third
+
+
 # --------------------------------------------------------------------------- #
 # Task-result bookkeeping and promotion
 # --------------------------------------------------------------------------- #
@@ -270,15 +292,144 @@ async def test_promote_force_ignores_thresholds(monkeypatch):
 @pytest.mark.asyncio
 async def test_promote_at_max_level_raises(monkeypatch):
     registry, db = _patched_registry(monkeypatch)
-    await registry.get_or_create_org("proj1")
+    org = await registry.get_or_create_org("proj1")
     agent, _ = await registry.get_or_create_agent("proj1", "developer")
+    cto_id = org.leadership.cto_agent_id
 
-    for level in [AgentLevel.MID, AgentLevel.SENIOR, AgentLevel.LEAD, AgentLevel.PRINCIPAL]:
+    # LEAD/PRINCIPAL require CTO approval regardless of force -- see the CTO
+    # gate tests above; MID/SENIOR need no approval.
+    for level in [AgentLevel.MID, AgentLevel.SENIOR]:
         agent = await registry.promote("proj1", agent.id, force=True)
+    for level in [AgentLevel.LEAD, AgentLevel.PRINCIPAL]:
+        agent = await registry.promote("proj1", agent.id, force=True, approved_by_agent_id=cto_id)
     assert agent.level == AgentLevel.PRINCIPAL
 
     with pytest.raises(PromotionNotEligible):
-        await registry.promote("proj1", agent.id, force=True)
+        await registry.promote("proj1", agent.id, force=True, approved_by_agent_id=cto_id)
+
+
+# --------------------------------------------------------------------------- #
+# Strength/weakness derivation from task-result stats
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_strength_recorded_after_five_successful_tasks(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    updated = None
+    for _ in range(5):
+        updated = await registry.record_task_result("proj1", agent.id, success=True)
+
+    assert updated.stats.tasks_completed == 5
+    assert updated.stats.success_rate == 1.0
+    assert len(updated.strengths) == 1
+    assert updated.weaknesses == []
+
+
+@pytest.mark.asyncio
+async def test_weakness_recorded_after_five_tasks_low_success_rate(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    outcomes = [False, False, False, True, True]  # 2/5 = 0.4 success rate
+    updated = None
+    for success in outcomes:
+        updated = await registry.record_task_result("proj1", agent.id, success=success)
+
+    assert updated.stats.tasks_completed == 5
+    assert updated.stats.success_rate == 0.4
+    assert len(updated.weaknesses) == 1
+    assert updated.strengths == []
+
+
+@pytest.mark.asyncio
+async def test_strength_tag_not_duplicated_across_repeated_calls(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    updated = None
+    for _ in range(8):
+        updated = await registry.record_task_result("proj1", agent.id, success=True)
+
+    assert updated.stats.tasks_completed == 8
+    assert len(updated.strengths) == 1
+    assert updated.strengths.count(updated.strengths[0]) == 1
+
+
+@pytest.mark.asyncio
+async def test_no_strength_or_weakness_before_threshold(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    updated = None
+    for _ in range(4):
+        updated = await registry.record_task_result("proj1", agent.id, success=True)
+
+    assert updated.stats.tasks_completed == 4
+    assert updated.strengths == []
+    assert updated.weaknesses == []
+
+
+# --------------------------------------------------------------------------- #
+# CTO gate on senior (LEAD/PRINCIPAL) promotions
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_promote_to_senior_needs_no_cto_approval(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    agent = await registry.promote("proj1", agent.id, force=True)  # JUNIOR -> MID
+    agent = await registry.promote("proj1", agent.id, force=True)  # MID -> SENIOR
+    assert agent.level == AgentLevel.SENIOR
+
+
+@pytest.mark.asyncio
+async def test_promote_to_lead_without_approval_raises(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+    agent = await registry.promote("proj1", agent.id, force=True)  # -> MID
+    agent = await registry.promote("proj1", agent.id, force=True)  # -> SENIOR
+
+    with pytest.raises(PromotionNotEligible):
+        await registry.promote("proj1", agent.id, force=True)  # -> LEAD, no approval
+
+
+@pytest.mark.asyncio
+async def test_promote_to_lead_with_cto_approval_succeeds(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    org = await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+    agent = await registry.promote("proj1", agent.id, force=True)  # -> MID
+    agent = await registry.promote("proj1", agent.id, force=True)  # -> SENIOR
+
+    promoted = await registry.promote(
+        "proj1", agent.id, force=True, approved_by_agent_id=org.leadership.cto_agent_id
+    )
+    assert promoted.level == AgentLevel.LEAD
+
+
+@pytest.mark.asyncio
+async def test_promote_to_lead_with_wrong_approver_raises_even_with_force(monkeypatch):
+    registry, db = _patched_registry(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    agent, _ = await registry.get_or_create_agent("proj1", "developer")
+    agent = await registry.promote("proj1", agent.id, force=True)  # -> MID
+    agent = await registry.promote("proj1", agent.id, force=True)  # -> SENIOR
+
+    with pytest.raises(PromotionNotEligible):
+        await registry.promote(
+            "proj1", agent.id, force=True, approved_by_agent_id="not-the-cto"
+        )
 
 
 # --------------------------------------------------------------------------- #

@@ -25,6 +25,9 @@ class NodeType(str, Enum):
     FILE = "file"
     BUILD = "build"
     DECISION = "decision"
+    CHANGE_REQUEST = "change_request"
+    MESSAGE = "message"
+    REPOSITORY_MEMORY = "repository_memory"
 
 
 class EdgeType(str, Enum):
@@ -32,6 +35,14 @@ class EdgeType(str, Enum):
     TOUCHED_IN = "touched_in"  # file -> build
     RAN_AS = "ran_as"  # build -> agent (a build stage executed as this agent)
     DECIDED = "decided"  # agent -> decision
+    AUTHORED = "authored"  # agent -> change_request
+    TOUCHES = "touches"  # change_request -> file
+    SUGGESTED_REVIEWER = "suggested_reviewer"  # change_request -> agent
+    SENT = "sent"  # agent -> message
+    ADDRESSED_TO = "addressed_to"  # message -> agent
+    UPDATED_BY = "updated_by"  # agent -> repository_memory (actor-as-source,
+    # matching OWNS/AUTHORED/SENT/DECIDED: the agent that performed the
+    # update is the edge source, the memory doc it updated is the target)
 
 
 @dataclass
@@ -88,6 +99,18 @@ def _build_node_id(build_id: str) -> str:
 
 def _decision_node_id(agent_id: str, idx: int) -> str:
     return f"decision:{agent_id}:{idx}"
+
+
+def _change_request_node_id(cr_id: str) -> str:
+    return f"cr:{cr_id}"
+
+
+def _message_node_id(msg_id: str) -> str:
+    return f"msg:{msg_id}"
+
+
+def _memory_node_id(memory_id: str) -> str:
+    return f"memory:{memory_id}"
 
 
 class KnowledgeGraphService:
@@ -150,6 +173,71 @@ class KnowledgeGraphService:
                     fid = _file_node_id(path)
                     graph.add_node(GraphNode(id=fid, type=NodeType.FILE, label=path, metadata={"path": path}))
                     graph.add_edge(GraphEdge(source=fid, target=bid, relation=EdgeType.TOUCHED_IN))
+
+        cursor = db.change_requests.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).limit(max_builds)
+        change_requests = await cursor.to_list(length=max_builds)
+        for cr in change_requests:
+            crid = _change_request_node_id(cr["id"])
+            graph.add_node(
+                GraphNode(
+                    id=crid,
+                    type=NodeType.CHANGE_REQUEST,
+                    label=cr["title"],
+                    metadata={"stage": cr.get("stage"), "description": (cr.get("description") or "")[:200]},
+                )
+            )
+            author_agent_id = cr.get("author_agent_id")
+            if author_agent_id:
+                graph.add_edge(GraphEdge(source=author_agent_id, target=crid, relation=EdgeType.AUTHORED))
+            for path in cr.get("changed_paths") or []:
+                fid = _file_node_id(path)
+                graph.add_node(GraphNode(id=fid, type=NodeType.FILE, label=path, metadata={"path": path}))
+                graph.add_edge(GraphEdge(source=crid, target=fid, relation=EdgeType.TOUCHES))
+            for reviewer_agent_id in cr.get("suggested_reviewer_ids") or []:
+                graph.add_edge(GraphEdge(source=crid, target=reviewer_agent_id, relation=EdgeType.SUGGESTED_REVIEWER))
+
+        cursor = db.team_messages.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).limit(max_builds)
+        messages = await cursor.to_list(length=max_builds)
+        for message in messages:
+            mid = _message_node_id(message["id"])
+            graph.add_node(
+                GraphNode(
+                    id=mid,
+                    type=NodeType.MESSAGE,
+                    label=message["content"][:80],
+                    metadata={"message_type": message.get("message_type"), "thread_id": message.get("thread_id")},
+                )
+            )
+            from_agent_id = message.get("from_agent_id")
+            if from_agent_id:
+                graph.add_edge(GraphEdge(source=from_agent_id, target=mid, relation=EdgeType.SENT))
+            for to_agent_id in message.get("to_agent_ids") or []:
+                graph.add_edge(GraphEdge(source=mid, target=to_agent_id, relation=EdgeType.ADDRESSED_TO))
+
+        memory_doc = await db.repository_memory.find_one({"project_id": project_id}, {"_id": 0})
+        if memory_doc:
+            mem_id = _memory_node_id(memory_doc["id"])
+            graph.add_node(
+                GraphNode(
+                    id=mem_id,
+                    type=NodeType.REPOSITORY_MEMORY,
+                    label="Repository Memory",
+                    metadata={
+                        "architecture_summary": (memory_doc.get("architecture_summary") or "")[:300],
+                        "database_schema_notes": (memory_doc.get("database_schema_notes") or "")[:300],
+                        "roadmap_notes": (memory_doc.get("roadmap_notes") or "")[:300],
+                        "design_system_notes": (memory_doc.get("design_system_notes") or "")[:300],
+                        "tech_stack": memory_doc.get("tech_stack") or [],
+                        "known_issues": memory_doc.get("known_issues") or [],
+                        "api_map": memory_doc.get("api_map") or [],
+                    },
+                )
+            )
+            updated_by_agent_id = memory_doc.get("updated_by_agent_id")
+            if updated_by_agent_id:
+                graph.add_edge(
+                    GraphEdge(source=updated_by_agent_id, target=mem_id, relation=EdgeType.UPDATED_BY)
+                )
 
         return graph
 

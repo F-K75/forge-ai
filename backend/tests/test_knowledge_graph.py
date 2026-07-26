@@ -74,6 +74,9 @@ class FakeDB:
         self.engineering_orgs = FakeCollection()
         self.agent_profiles = FakeCollection()
         self.builds = FakeCollection()
+        self.change_requests = FakeCollection()
+        self.team_messages = FakeCollection()
+        self.repository_memory = FakeCollection()
 
     def __getitem__(self, name):
         return getattr(self, name)
@@ -170,6 +173,333 @@ async def test_graph_is_project_scoped(monkeypatch):
 
     graph2 = await kg.build_for_project("proj2")
     assert dev1.id not in graph2.nodes
+
+
+@pytest.mark.asyncio
+async def test_graph_includes_change_request_node_with_authored_and_touches_edges(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    author, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    db.change_requests.docs.append({
+        "id": "cr-1",
+        "project_id": "proj1",
+        "title": "Add login endpoint",
+        "description": "Implements the login endpoint",
+        "author_agent_id": author.id,
+        "changed_paths": ["backend/api/auth.py"],
+        "stage": "planning",
+        "suggested_reviewer_ids": [],
+        "pending_reviewer_ids": [],
+        "reviews": [],
+        "history": [],
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+    })
+
+    graph = await kg.build_for_project("proj1")
+
+    cr_id = "cr:cr-1"
+    assert cr_id in graph.nodes
+    assert graph.nodes[cr_id].type == NodeType.CHANGE_REQUEST
+    assert graph.nodes[cr_id].label == "Add login endpoint"
+
+    authored = [e for e in graph.edges if e.relation == EdgeType.AUTHORED]
+    assert any(e.source == author.id and e.target == cr_id for e in authored)
+
+    file_id = "file:backend/api/auth.py"
+    assert file_id in graph.nodes
+    touches = [e for e in graph.edges if e.relation == EdgeType.TOUCHES]
+    assert any(e.source == cr_id and e.target == file_id for e in touches)
+
+
+@pytest.mark.asyncio
+async def test_graph_includes_change_request_suggested_reviewer_edges(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    author, _ = await registry.get_or_create_agent("proj1", "developer")
+    reviewer, _ = await registry.get_or_create_agent("proj1", "react_engineer")
+
+    db.change_requests.docs.append({
+        "id": "cr-2",
+        "project_id": "proj1",
+        "title": "Add checkout flow",
+        "description": "",
+        "author_agent_id": author.id,
+        "changed_paths": [],
+        "stage": "peer_review",
+        "suggested_reviewer_ids": [reviewer.id],
+        "pending_reviewer_ids": [reviewer.id],
+        "reviews": [],
+        "history": [],
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+    })
+
+    graph = await kg.build_for_project("proj1")
+
+    cr_id = "cr:cr-2"
+    suggested = [e for e in graph.edges if e.relation == EdgeType.SUGGESTED_REVIEWER]
+    assert any(e.source == cr_id and e.target == reviewer.id for e in suggested)
+
+
+@pytest.mark.asyncio
+async def test_graph_includes_message_node_with_sent_and_addressed_to_edges(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    sender, _ = await registry.get_or_create_agent("proj1", "developer")
+    recipient, _ = await registry.get_or_create_agent("proj1", "react_engineer")
+
+    db.team_messages.docs.append({
+        "id": "msg-1",
+        "project_id": "proj1",
+        "thread_id": "thread-1",
+        "reply_to_id": None,
+        "message_type": "review_request",
+        "from_agent_id": sender.id,
+        "to_agent_ids": [recipient.id],
+        "content": "Could you take a look at this change request?",
+        "context": {},
+        "created_at": "2026-07-24T00:00:00Z",
+    })
+
+    graph = await kg.build_for_project("proj1")
+
+    msg_id = "msg:msg-1"
+    assert msg_id in graph.nodes
+    assert graph.nodes[msg_id].type == NodeType.MESSAGE
+    assert graph.nodes[msg_id].label == "Could you take a look at this change request?"
+
+    sent = [e for e in graph.edges if e.relation == EdgeType.SENT]
+    assert any(e.source == sender.id and e.target == msg_id for e in sent)
+
+    addressed_to = [e for e in graph.edges if e.relation == EdgeType.ADDRESSED_TO]
+    assert any(e.source == msg_id and e.target == recipient.id for e in addressed_to)
+
+
+@pytest.mark.asyncio
+async def test_graph_change_requests_and_messages_are_project_scoped(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    await registry.get_or_create_org("proj2")
+    author, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    db.change_requests.docs.append({
+        "id": "cr-3",
+        "project_id": "proj1",
+        "title": "Proj1-only change",
+        "description": "",
+        "author_agent_id": author.id,
+        "changed_paths": [],
+        "stage": "planning",
+        "suggested_reviewer_ids": [],
+        "pending_reviewer_ids": [],
+        "reviews": [],
+        "history": [],
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+    })
+    db.team_messages.docs.append({
+        "id": "msg-2",
+        "project_id": "proj1",
+        "thread_id": "thread-2",
+        "reply_to_id": None,
+        "message_type": "comment",
+        "from_agent_id": author.id,
+        "to_agent_ids": [],
+        "content": "Proj1-only message",
+        "context": {},
+        "created_at": "2026-07-24T00:00:00Z",
+    })
+
+    graph2 = await kg.build_for_project("proj2")
+    assert "cr:cr-3" not in graph2.nodes
+    assert "msg:msg-2" not in graph2.nodes
+
+
+# --------------------------------------------------------------------------- #
+# repository_memory
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_graph_includes_repository_memory_node_with_metadata(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    author, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    db.repository_memory.docs.append({
+        "id": "repomem_1",
+        "project_id": "proj1",
+        "architecture_summary": "A layered pipeline: Prompt Builder -> AI Optimizer -> AI Gateway -> providers.",
+        "tech_stack": ["FastAPI", "Mongo", "React"],
+        "api_map": [{"method": "GET", "path": "/v1/projects", "description": "List projects"}],
+        "database_schema_notes": "Mongo collections keyed by project_id.",
+        "known_issues": ["Circuit breaker flaps under load"],
+        "roadmap_notes": "Ship the knowledge graph next.",
+        "design_system_notes": "Uses shadcn/ui + Tailwind.",
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+        "updated_by_agent_id": author.id,
+    })
+
+    graph = await kg.build_for_project("proj1")
+
+    mem_id = "memory:repomem_1"
+    assert mem_id in graph.nodes
+    node = graph.nodes[mem_id]
+    assert node.type == NodeType.REPOSITORY_MEMORY
+    assert node.label == "Repository Memory"
+    assert node.metadata["tech_stack"] == ["FastAPI", "Mongo", "React"]
+    assert node.metadata["known_issues"] == ["Circuit breaker flaps under load"]
+    assert node.metadata["api_map"] == [{"method": "GET", "path": "/v1/projects", "description": "List projects"}]
+    assert node.metadata["architecture_summary"].startswith("A layered pipeline")
+
+
+@pytest.mark.asyncio
+async def test_repository_memory_truncates_long_text_fields(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+
+    long_text = "x" * 1000
+    db.repository_memory.docs.append({
+        "id": "repomem_2",
+        "project_id": "proj1",
+        "architecture_summary": long_text,
+        "tech_stack": [],
+        "api_map": [],
+        "database_schema_notes": long_text,
+        "known_issues": [],
+        "roadmap_notes": long_text,
+        "design_system_notes": long_text,
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+        "updated_by_agent_id": None,
+    })
+
+    graph = await kg.build_for_project("proj1")
+
+    node = graph.nodes["memory:repomem_2"]
+    assert len(node.metadata["architecture_summary"]) < len(long_text)
+    assert len(node.metadata["database_schema_notes"]) < len(long_text)
+    assert len(node.metadata["roadmap_notes"]) < len(long_text)
+    assert len(node.metadata["design_system_notes"]) < len(long_text)
+
+
+@pytest.mark.asyncio
+async def test_repository_memory_search_finds_architecture_and_tech_stack_terms(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+
+    db.repository_memory.docs.append({
+        "id": "repomem_3",
+        "project_id": "proj1",
+        "architecture_summary": "Uses a bespoke Zephyrine caching layer.",
+        "tech_stack": ["QuantumDB"],
+        "api_map": [],
+        "database_schema_notes": "",
+        "known_issues": ["Flaky Widgetronic export job"],
+        "roadmap_notes": "",
+        "design_system_notes": "",
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+        "updated_by_agent_id": None,
+    })
+
+    results = await kg.search("proj1", "zephyrine")
+    assert any(n.id == "memory:repomem_3" for n in results)
+
+    results2 = await kg.search("proj1", "quantumdb")
+    assert any(n.id == "memory:repomem_3" for n in results2)
+
+    results3 = await kg.search("proj1", "widgetronic")
+    assert any(n.id == "memory:repomem_3" for n in results3)
+
+
+@pytest.mark.asyncio
+async def test_repository_memory_updated_by_edge_present_when_agent_set(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    updater, _ = await registry.get_or_create_agent("proj1", "developer")
+
+    db.repository_memory.docs.append({
+        "id": "repomem_4",
+        "project_id": "proj1",
+        "architecture_summary": "",
+        "tech_stack": [],
+        "api_map": [],
+        "database_schema_notes": "",
+        "known_issues": [],
+        "roadmap_notes": "",
+        "design_system_notes": "",
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+        "updated_by_agent_id": updater.id,
+    })
+
+    graph = await kg.build_for_project("proj1")
+
+    mem_id = "memory:repomem_4"
+    updated_by = [e for e in graph.edges if e.relation == EdgeType.UPDATED_BY]
+    # actor-as-source, matching OWNS/AUTHORED/SENT/DECIDED: the agent is the
+    # source, the memory node is the target.
+    assert any(e.source == updater.id and e.target == mem_id for e in updated_by)
+
+
+@pytest.mark.asyncio
+async def test_repository_memory_no_updated_by_edge_when_agent_id_none(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+
+    db.repository_memory.docs.append({
+        "id": "repomem_5",
+        "project_id": "proj1",
+        "architecture_summary": "",
+        "tech_stack": [],
+        "api_map": [],
+        "database_schema_notes": "",
+        "known_issues": [],
+        "roadmap_notes": "",
+        "design_system_notes": "",
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+        "updated_by_agent_id": None,
+    })
+
+    graph = await kg.build_for_project("proj1")
+
+    mem_id = "memory:repomem_5"
+    assert mem_id in graph.nodes
+    updated_by = [e for e in graph.edges if e.relation == EdgeType.UPDATED_BY]
+    assert not any(e.target == mem_id for e in updated_by)
+
+
+@pytest.mark.asyncio
+async def test_repository_memory_is_project_scoped(monkeypatch):
+    kg, registry, db = _patched_kg(monkeypatch)
+    await registry.get_or_create_org("proj1")
+    await registry.get_or_create_org("proj2")
+
+    db.repository_memory.docs.append({
+        "id": "repomem_6",
+        "project_id": "proj1",
+        "architecture_summary": "Proj1-only architecture notes.",
+        "tech_stack": [],
+        "api_map": [],
+        "database_schema_notes": "",
+        "known_issues": [],
+        "roadmap_notes": "",
+        "design_system_notes": "",
+        "created_at": "2026-07-24T00:00:00Z",
+        "updated_at": "2026-07-24T00:00:00Z",
+        "updated_by_agent_id": None,
+    })
+
+    graph2 = await kg.build_for_project("proj2")
+    assert "memory:repomem_6" not in graph2.nodes
+
+    graph1 = await kg.build_for_project("proj1")
+    assert "memory:repomem_6" in graph1.nodes
 
 
 # --------------------------------------------------------------------------- #

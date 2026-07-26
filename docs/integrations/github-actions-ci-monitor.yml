@@ -1,0 +1,37 @@
+name: Report CI failures to Forge
+
+# See docs/integrations/monitoring_webhook.md for the full write-up.
+#
+# Requires two repo secrets:
+#   FORGE_API_KEY     -- a Forge API key (Settings -> API Keys, or POST /api-keys/)
+#   FORGE_PROJECT_ID  -- the Forge project this repo maps to
+#
+# Adjust `workflows:` below to the name of the CI workflow you want to watch.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  report-to-forge:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post finding to Forge
+        env:
+          FORGE_API_KEY: ${{ secrets.FORGE_API_KEY }}
+          FORGE_PROJECT_ID: ${{ secrets.FORGE_PROJECT_ID }}
+          FORGE_API_URL: ${{ vars.FORGE_API_URL }}
+        run: |
+          curl -sf -X POST \
+            "$FORGE_API_URL/v1/projects/$FORGE_PROJECT_ID/monitoring/webhook/findings" \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: $FORGE_API_KEY" \
+            -d '{
+              "category": "ci_failure",
+              "severity": "high",
+              "title": "CI failed on '"${{ github.event.workflow_run.head_branch }}"'",
+              "description": "Workflow run: '"${{ github.event.workflow_run.html_url }}"'",
+              "source": "github-actions"
+            }'

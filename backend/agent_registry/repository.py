@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from core.database import get_db
 
-from .models import AgentProfile, EngineeringOrg
+from .models import AgentProfile, AgentStatus, EngineeringOrg
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +52,25 @@ class AgentRegistryRepository:
         return AgentProfile(**doc) if doc else None
 
     async def find_agent_by_role(self, project_id: str, role: str) -> Optional[AgentProfile]:
+        """Return the non-retired agent for `role`, if one exists.
+
+        A role can have multiple historical AgentProfile docs (retired ones
+        stay around for their decision_log/stats), so a plain find_one would
+        nondeterministically return whichever doc happens to match first --
+        including a retired one, which would make `get_or_create_agent`
+        believe no live agent exists and spin up a new one on every call
+        instead of reusing the current active replacement. Filter in Python
+        for the (at most one, by construction) non-retired doc.
+        """
         db = await get_db()
-        doc = await db[AGENT_COLLECTION].find_one(
+        cursor = db[AGENT_COLLECTION].find(
             {"project_id": project_id, "role": role}, {"_id": 0}
         )
-        return AgentProfile(**doc) if doc else None
+        docs = await cursor.to_list(length=500)
+        for doc in docs:
+            if doc.get("status") != AgentStatus.RETIRED.value:
+                return AgentProfile(**doc)
+        return None
 
     async def list_agents(self, project_id: str) -> List[AgentProfile]:
         db = await get_db()

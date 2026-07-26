@@ -46,22 +46,50 @@ PROMOTION_THRESHOLDS: Dict[AgentLevel, Tuple[int, float]] = {
     AgentLevel.LEAD: (150, 0.90),
 }
 
+# Minimum sample size before stats.success_rate is considered meaningful
+# enough to derive a strength/weakness tag from.
+COMPETENCE_SAMPLE_SIZE = 5
+STRENGTH_SUCCESS_RATE = 0.8
+WEAKNESS_SUCCESS_RATE = 0.5
+
+# Levels (by LEVEL_ORDER index) that require CTO sign-off to promote into,
+# regardless of `force` -- an organizational governance gate, not a
+# performance bar.
+CTO_APPROVAL_REQUIRED_FROM_INDEX = 3  # LEAD, PRINCIPAL
+
+
+def _strength_tag(role: str) -> str:
+    return f"reliable {role.replace('_', ' ')}"
+
+
+def _weakness_tag(role: str) -> str:
+    return f"inconsistent {role.replace('_', ' ')}"
+
 
 class AgentNotFound(Exception):
     pass
 
 
 class PromotionNotEligible(Exception):
-    def __init__(self, level: AgentLevel, required_tasks: int, required_rate: float, agent: AgentProfile):
+    def __init__(
+        self,
+        level: AgentLevel,
+        required_tasks: int,
+        required_rate: float,
+        agent: AgentProfile,
+        message: Optional[str] = None,
+    ):
         self.level = level
         self.required_tasks = required_tasks
         self.required_rate = required_rate
         self.agent = agent
-        super().__init__(
-            f"Agent {agent.id} ({level.value}) needs >= {required_tasks} tasks and "
-            f">= {required_rate:.0%} success rate to be promoted; has "
-            f"{agent.stats.tasks_completed} tasks at {agent.stats.success_rate:.0%}"
-        )
+        if message is None:
+            message = (
+                f"Agent {agent.id} ({level.value}) needs >= {required_tasks} tasks and "
+                f">= {required_rate:.0%} success rate to be promoted; has "
+                f"{agent.stats.tasks_completed} tasks at {agent.stats.success_rate:.0%}"
+            )
+        super().__init__(message)
 
 
 class AgentRegistry:
@@ -206,6 +234,20 @@ class AgentRegistry:
         if files_touched:
             agent.owned_paths = sorted(set(agent.owned_paths) | set(files_touched))
 
+        # Derive strengths/weaknesses from accumulated performance once there's
+        # a meaningful sample size. Append-only, like decision_log: a tag is
+        # never removed just because a later task nudges the rolling rate back
+        # across the threshold.
+        if stats.tasks_completed >= COMPETENCE_SAMPLE_SIZE:
+            if stats.success_rate >= STRENGTH_SUCCESS_RATE:
+                tag = _strength_tag(agent.role)
+                if tag not in agent.strengths:
+                    agent.strengths.append(tag)
+            if stats.success_rate < WEAKNESS_SUCCESS_RATE:
+                tag = _weakness_tag(agent.role)
+                if tag not in agent.weaknesses:
+                    agent.weaknesses.append(tag)
+
         agent.status = AgentStatus.ACTIVE
         await self._repo.save_agent(agent)
 
@@ -221,7 +263,13 @@ class AgentRegistry:
     # ------------------------------------------------------------------
 
     async def promote(
-        self, project_id: str, agent_id: str, *, reason: str = "", force: bool = False
+        self,
+        project_id: str,
+        agent_id: str,
+        *,
+        reason: str = "",
+        force: bool = False,
+        approved_by_agent_id: Optional[str] = None,
     ) -> AgentProfile:
         agent = await self._repo.get_agent(project_id, agent_id)
         if not agent:
@@ -231,13 +279,30 @@ class AgentRegistry:
         if idx == len(LEVEL_ORDER) - 1:
             raise PromotionNotEligible(agent.level, 0, 0.0, agent)
 
+        target_level = LEVEL_ORDER[idx + 1]
+
+        # Promotions into LEAD/PRINCIPAL require the project's CTO to sign
+        # off. This is a governance gate, not a performance bar, so `force`
+        # never bypasses it.
+        if LEVEL_ORDER.index(target_level) >= CTO_APPROVAL_REQUIRED_FROM_INDEX:
+            org = await self._repo.get_org(project_id)
+            cto_agent_id = org.leadership.cto_agent_id if org else None
+            if not cto_agent_id or approved_by_agent_id != cto_agent_id:
+                raise PromotionNotEligible(
+                    target_level,
+                    0,
+                    0.0,
+                    agent,
+                    message="promotion to lead/principal requires CTO approval",
+                )
+
         if not force:
             min_tasks, min_rate = PROMOTION_THRESHOLDS[agent.level]
             if agent.stats.tasks_completed < min_tasks or agent.stats.success_rate < min_rate:
                 raise PromotionNotEligible(agent.level, min_tasks, min_rate, agent)
 
         old_level = agent.level
-        agent.level = LEVEL_ORDER[idx + 1]
+        agent.level = target_level
         agent.decision_log.append(
             {
                 "event": "promoted",
