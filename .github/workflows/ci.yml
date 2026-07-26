@@ -69,7 +69,15 @@ jobs:
 
       - name: Type-check (pydantic / import graph smoke test)
         env:
+          # Both flags are required: core/config.py only substitutes a dummy
+          # jwt_secret when CI_TEST_MODE *and* TESTING are set. With CI_TEST_MODE
+          # alone this step aborted on `jwt_secret is required and must not be
+          # empty`, because the JWT_SECRET repository secret resolves to an empty
+          # string. This step checks that the import graph is clean, not that
+          # production secrets are configured, so it runs under the same
+          # no-live-services contract as the test step below.
           CI_TEST_MODE: "true"
+          TESTING: "true"
         run: |
           cd backend
           python -c "import main" || (echo "::error::main.py failed to import cleanly" && exit 1)
@@ -291,10 +299,15 @@ jobs:
           echo "✓ Backend image has HEALTHCHECK"
 
       - name: Smoke-test backend production configuration
+        # MONGODB_URL is quoted below because the connection string contains a
+        # literal `&`, which bash otherwise reads as a control operator. That
+        # backgrounded the half-built `docker run` (hence "requires at least 1
+        # argument") and left the following `-e ...` lines to be executed as
+        # commands ("-e: command not found").
         run: |
           docker run --rm \
             -e APP_ENV=production \
-            -e MONGODB_URL=mongodb://forge:ci-dummy@mongo:27017/forge?replicaSet=rs0&authSource=admin \
+            -e "MONGODB_URL=mongodb://forge:ci-dummy@mongo:27017/forge?replicaSet=rs0&authSource=admin" \
             -e REDIS_URL=redis://:ci-dummy@redis:6379 \
             -e JWT_SECRET=ci-dummy-jwt-secret-0123456789abcdef \
             -e FIELD_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \

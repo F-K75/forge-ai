@@ -79,6 +79,12 @@ risk · **P2** maintainability.
 - [ ] **P2 — Re-check the 9 pinned `--ignore-vuln` advisories** in
   `.github/workflows/ci.yml` for patched releases. Two are still being
   suppressed after the gitpython bump cleared the other eight.
+- [ ] **P2 — `backend/.coverage` and `backend/coverage.xml` are tracked in
+  git.** Both are build artifacts. Worse, the committed `coverage.xml` gets
+  picked up and published by the `upload-artifact` step even on runs where the
+  test step never executed, so a green-looking coverage artifact can be
+  attached to a run that measured nothing. Delete both from the index and add
+  them to `.gitignore`.
 - [ ] **P1 — A failed index provision poisons the Mongo client.**
   `core/database.py::get_db` assigns `_mongo_client` *before* awaiting
   `_ensure_indexes`. When provisioning raises, the client stays cached, so the
@@ -190,6 +196,28 @@ been sitting behind an earlier failure:
   field values, so a configured healthcheck prints as `{[CMD-SHELL ...] ...}`
   and the string `Cmd` never appears. The assertion could never have passed.
   Rewritten to test the template's own truthiness.
+
+**Third pass, same day.** Each repair let CI reach further and expose the next
+masked defect. Three more, all in the workflow itself, none of which had ever
+executed:
+
+- The backend's `import main` smoke test ran with `CI_TEST_MODE` but not
+  `TESTING`. `core/config.py` only substitutes a dummy `jwt_secret` when
+  **both** are set, and the `JWT_SECRET` repository secret resolves to an empty
+  string, so the step aborted on `jwt_secret is required and must not be
+  empty`. It checks that the import graph is clean, not that production secrets
+  exist, so it now runs under the same no-live-services contract as the tests.
+- The orchestrator test step died with **exit 4** (pytest usage error):
+  `pytest-timeout` was never declared, so `--timeout=30` was an unrecognised
+  argument. Declared alongside `ruff`.
+- The production config smoke test failed with `-e: command not found`. Its
+  `MONGODB_URL` contains a literal `&` and was unquoted, so bash treated it as
+  a control operator — backgrounding the half-built `docker run` and trying to
+  execute the remaining `-e ...` lines as commands. Quoted.
+
+Confirmed working from the same run: lint clean, `bandit` clean
+("No issues identified"), `pip-audit` clean, and the rewritten HEALTHCHECK
+assertion passed.
 
 **Not fixed.** Everything under Technical backlog above, most importantly the
 `secret-scan` workflow — red on `main` since 2026-07-17 for false positives,
