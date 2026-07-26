@@ -61,11 +61,24 @@ with no live services. Set both, or tests will stall on real network I/O.
 Severity: **P0** breaks production or the quality gate · **P1** real defect or
 risk · **P2** maintainability.
 
-- [ ] **P1 — `bandit` and `pip-audit` results are unreviewed.** Both steps sat
-  behind the failing lint gate from 2026-07-17 to 2026-07-26 and never
-  executed. The first green run is the first time they report. Triage whatever
-  they surface; the `--ignore-vuln` list in `.github/workflows/ci.yml` has 9
-  pinned advisories that should be re-checked for patched releases.
+- [ ] **P1 — `secret-scan` has failed on `main` since 2026-07-17.** It is a
+  separate workflow from `ci.yml` and is red for four false positives, none of
+  which are real credentials:
+  `.claude/skills/design/scripts/{icon,logo}/generate.py` pass the module-level
+  `GEMINI_API_KEY` *identifier* into `genai.Client(api_key=...)`, and
+  `.gitallowed:34` matches its own escaped `self\.api_key = api_key` entry
+  because `git secrets --scan` scans the allowlist file too. The fix is
+  allowlist entries, but loosening a secret scanner deserves its own reviewed
+  change — and note `.claude/skills/` is tooling, not application code, so the
+  better fix may be excluding it from the scan entirely.
+- [ ] **P2 — The frontend HEALTHCHECK assertion has the same bug just fixed on
+  the backend.** `.github/workflows/ci.yml` still greps `{{.Config.Healthcheck}}`
+  for the string `Cmd`, which Go never renders. It is currently unreachable —
+  `docker build --target=none` always fails, so the step takes the
+  grep-the-Dockerfile branch — but it will misfire the moment that changes.
+- [ ] **P2 — Re-check the 9 pinned `--ignore-vuln` advisories** in
+  `.github/workflows/ci.yml` for patched releases. Two are still being
+  suppressed after the gitpython bump cleared the other eight.
 - [ ] **P1 — A failed index provision poisons the Mongo client.**
   `core/database.py::get_db` assigns `_mongo_client` *before* awaiting
   `_ensure_indexes`. When provisioning raises, the client stays cached, so the
@@ -160,8 +173,31 @@ independent defects were hiding behind that.
 gate, suite runtime 152s → 36s. Orchestrator 15 passed. Both lint gates clean,
 `import main` clean, production compose validates.
 
-**Not fixed.** Everything under Technical backlog above. The `bandit` and
-`pip-audit` items matter most: they are about to run for the first time in nine
-days and nobody has seen their output.
+**Second pass, same day.** Pushing the above let CI reach steps it had not run
+in nine days, and three more real defects surfaced immediately — each one had
+been sitting behind an earlier failure:
+
+- `pip-audit` reported **8 vulnerabilities in `gitpython` 3.1.50**, the last
+  fixed in 3.1.55. Bumped; the scan is now clean (2 ignored, both pre-existing
+  pins). `bandit` passed.
+- The orchestrator's lint step died with **exit 127, `ruff: command not found`**
+  — `orchestrator/requirements.txt` never declared `ruff` even though the job
+  runs it. So that job has never actually linted anything. Added, pinned to
+  match the backend.
+- `prod-artifacts` got past compose validation and built the image, then
+  claimed `backend/Dockerfile is missing HEALTHCHECK`. **The Dockerfile has
+  one.** The check greps `{{.Config.Healthcheck}}` for `Cmd`, but Go renders
+  field values, so a configured healthcheck prints as `{[CMD-SHELL ...] ...}`
+  and the string `Cmd` never appears. The assertion could never have passed.
+  Rewritten to test the template's own truthiness.
+
+**Not fixed.** Everything under Technical backlog above, most importantly the
+`secret-scan` workflow — red on `main` since 2026-07-17 for false positives,
+unrelated to this branch, and deliberately left for a reviewed change of its
+own rather than being bundled into a CI repair.
+
+**Verification caveat.** The HEALTHCHECK fix is the one change here not
+verified locally: this container has no Docker daemon (`docker compose config`
+is client-side only). The reasoning is in the step's comment; CI is the check.
 
 **Next run: Business.**

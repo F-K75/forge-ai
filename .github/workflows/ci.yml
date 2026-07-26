@@ -275,8 +275,16 @@ jobs:
         run: docker build -t forge-backend-ci backend/
 
       - name: Verify backend Dockerfile has HEALTHCHECK
+        # Asserted on the template's own truthiness rather than by grepping the
+        # rendered struct. `{{.Config.Healthcheck}}` prints Go field *values*,
+        # so a configured healthcheck renders as `{[CMD-SHELL curl ...] ...}` --
+        # the string "Cmd" never appears, and the old grep reported every image
+        # as missing a HEALTHCHECK even when one was present. backend/Dockerfile
+        # has had one all along; this step only ever failed because the prior
+        # compose-validation step failed first and skipped it.
         run: |
-          if ! docker inspect forge-backend-ci --format '{{.Config.Healthcheck}}' | grep -q 'Cmd'; then
+          if [ "$(docker inspect forge-backend-ci \
+                    --format '{{if .Config.Healthcheck}}{{len .Config.Healthcheck.Test}}{{else}}0{{end}}')" -lt 1 ]; then
             echo "::error::backend/Dockerfile is missing HEALTHCHECK instruction"
             exit 1
           fi
