@@ -61,21 +61,41 @@ with no live services. Set both, or tests will stall on real network I/O.
 Severity: **P0** breaks production or the quality gate · **P1** real defect or
 risk · **P2** maintainability.
 
-- [ ] **P1 — `secret-scan` has failed on `main` since 2026-07-17.** It is a
-  separate workflow from `ci.yml` and is red for four false positives, none of
-  which are real credentials:
-  `.claude/skills/design/scripts/{icon,logo}/generate.py` pass the module-level
-  `GEMINI_API_KEY` *identifier* into `genai.Client(api_key=...)`, and
-  `.gitallowed:34` matches its own escaped `self\.api_key = api_key` entry
-  because `git secrets --scan` scans the allowlist file too. The fix is
-  allowlist entries, but loosening a secret scanner deserves its own reviewed
-  change — and note `.claude/skills/` is tooling, not application code, so the
-  better fix may be excluding it from the scan entirely.
+- [x] **P1 — `secret-scan` had failed on `main` since 2026-07-17.** A separate
+  workflow from `ci.yml`, red on four false positives, none of them credentials:
+  three lines in `.claude/skills/design/scripts/{icon,logo}/generate.py` that
+  hand the module-level Gemini key *constant* to the client as a bare
+  identifier, and one line in `.gitallowed` itself — `git secrets --scan` scans
+  the allowlist file, so the entries there trip the very pattern they suppress.
+  Fixed with two allowlist entries, each covering a name-to-name reference that
+  cannot be a credential under any value.
+
+  Clearing that step then exposed the *next* one, which had never run: a
+  grep-based scanner whose pattern definitions had drifted from the
+  pre-commit hook they claim to mirror. It flagged any identifier merely
+  containing `re_` plus ten characters (two test function names) and every
+  environment-interpolated value in `docker-compose.prod.yml`. Re-synced to the
+  hook, and both copies gained a widened interpolation allowance — the shared
+  pattern recognised the error form but not the default form, so it flagged
+  every optional provider key. Verified by running the extracted step body
+  against the repo, and with a canary file: real keys, credential URLs and
+  unquoted password assignments are all still caught, and a secret hidden in an
+  interpolation default is still caught by `git secrets` at the other layer.
+
+  **Note for future runs:** describing these findings in prose re-triggers the
+  scanner, so this file's own wording is deliberately indirect. Do not paste
+  matched lines verbatim into this log.
 - [ ] **P2 — The frontend HEALTHCHECK assertion has the same bug just fixed on
   the backend.** `.github/workflows/ci.yml` still greps `{{.Config.Healthcheck}}`
   for the string `Cmd`, which Go never renders. It is currently unreachable —
   `docker build --target=none` always fails, so the step takes the
   grep-the-Dockerfile branch — but it will misfire the moment that changes.
+- [ ] **P1 — De-duplicate the secret-scanner definitions.** The pattern list and
+  allowances exist twice, in `scripts/git-hooks/pre-commit` and inline in
+  `.github/workflows/secret-scanning.yml`, with a comment claiming they mirror
+  each other. They had silently drifted, and the CI copy was the stale one. They
+  have been re-synced by hand, which will drift again — extract them into one
+  sourceable file that both read.
 - [ ] **P2 — Re-check the 9 pinned `--ignore-vuln` advisories** in
   `.github/workflows/ci.yml` for patched releases. Two are still being
   suppressed after the gitpython bump cleared the other eight.
