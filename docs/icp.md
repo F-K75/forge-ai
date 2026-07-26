@@ -151,11 +151,12 @@ this ICP a single bad deliverable is unrecoverable.
 
 ---
 
-## Blocker: the free tier cannot demonstrate the product
+## Blocker (fixed): the free tier could not demonstrate the product
 
-Found while reconciling this ICP against `backend/core/config.py`. It invalidates
-the acquisition path for every persona above, so it is recorded here rather than
-left implicit.
+Found while reconciling this ICP against `backend/core/config.py`. It invalidated
+the acquisition path for every persona above. **Fixed in the same change**: the
+first build on an account now runs unmetered — see the end of this section. The
+diagnosis is kept because it explains why the grant exists.
 
 A build costs **15 credits** — architect 3, designer 2, developer 5, integration
 2, PM 1, business model 2 — plus 2 per debug iteration. The free tier grants
@@ -175,7 +176,25 @@ credit number in either direction:
 - Or ship pre-built showcase applications so proof does not depend on free credits
   at all. This also fills the empty marketplace noted in §4.
 
-Recommend both. Neither is priced work.
+**The first was implemented.** `api/builds.py` claims a one-shot
+`free_build_used` flag before reserving credits; when the claim succeeds the
+build reserves nothing and runs unmetered. The flag is flipped atomically rather
+than derived from a build count, so two concurrent first requests cannot both go
+free. A new account can now reach a finished application before paying, and the
+second build is metered normally.
+
+Two caveats worth knowing:
+
+- The reservation is `sum(CREDIT_COSTS) * (len(tech_stack) + 1)`, so it is 17 for
+  a bare project and grows with the stack — the gap between the grant and a real
+  build was wider than the flat 15 quoted above.
+- The grant is consumed when the build *starts*, not when it succeeds. A build
+  that fails for platform reasons burns it. Restoring it on failure would let a
+  user farm unmetered builds by making them fail, so this is a deliberate
+  trade — but if support tickets appear, an admin-side reset is the fix, not
+  automatic restoration.
+
+The second option — showcase applications — is still open and still worth doing.
 
 ---
 

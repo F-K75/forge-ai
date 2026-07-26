@@ -135,7 +135,7 @@ automatable inside this repo.
   product agencies (2–30 people), India first, with startup teams secondary and
   enterprise deliberately deferred. Framed as falsifiable hypotheses with a
   ranked validation plan, since Forge has zero users and nothing is confirmed.
-- [ ] **P0 — The free tier cannot complete a single build.** Found while writing
+- [x] **P0 — The free tier could not complete a single build.** Found while writing
   the ICP. A build costs 15 credits (architect 3, designer 2, developer 5,
   integration 2, PM 1, business model 2) plus 2 per debug iteration, but
   `free_credits` is 5 — reduced from 10 to limit abuse, per the comment in
@@ -145,6 +145,23 @@ automatable inside this repo.
   (10 credits being too generous) and the correction overshot. Fix by letting
   the first build always complete and metering after it, and by shipping
   pre-built showcase apps so proof does not depend on free credits at all.
+  **Fixed:** the first option is implemented — `api/builds.py` claims a one-shot
+  `free_build_used` flag before reserving, and an account whose claim succeeds
+  builds unmetered. The flag is flipped atomically rather than derived from a
+  build count, since two concurrent first requests would both read zero builds.
+  Note the reservation is `sum(CREDIT_COSTS) * (len(tech_stack) + 1)` — 17 for a
+  bare project and larger with a stack — so the real gap was wider than the flat
+  15 first recorded. The showcase-apps option remains open and still worth doing.
+- [ ] **P2 — The free-build grant is consumed on start, not on success.** A build
+  that fails for platform reasons burns it, and the account cannot retry
+  unmetered. Restoring it automatically would let a user farm unmetered builds by
+  forcing failures, so the trade is deliberate; the right fix is an admin-side
+  reset, which does not exist yet. Revisit if support tickets appear.
+- [ ] **P2 — `free_credits` is now vestigial.** With the first build unmetered, a
+  new account's 5 credits cannot buy anything: the cheapest possible second build
+  reserves 17. Either raise it to something that buys a real build or drop it to
+  zero and let the one free build be the whole free tier — but do not leave it at
+  a number that looks like a grant and functions as nothing.
 - [ ] **P0 — Positioning is undifferentiated.** §2/§7: "autonomous AI software
   engineering platform" does not say why Forge wins, and both `README.md` and
   `landing.html` currently lead with "Your AI Engineering Team" — aimed at
@@ -306,8 +323,22 @@ credits required, 5 granted. Logged as a new P0 above. This severs the funnel
 for every persona in the document, so the ICP work would have been academic
 without catching it.
 
-**Not fixed.** The free-tier blocker itself: it needs a product decision (let the
-first build always complete, versus shipping showcase apps) rather than a number
-change, and picking one is keshav's call, not a scheduled run's.
+**Free-tier blocker, resolved same session.** keshav chose "let the first build
+complete", so it was implemented rather than left as a decision. `api/builds.py`
+claims a one-shot `free_build_used` flag before the credit reservation; on a
+successful claim the build reserves zero and runs unmetered. Zero was chosen
+deliberately over a larger grant because every refund path already computes
+`max(0, reserved - used)`, so a zero reservation neither debits the account nor
+credits it back — `tasks/build_tasks.py` needed no changes at all.
+
+The claim is an atomic flag flip, not a build count: two concurrent first
+requests would both read zero builds and both go free. Five tests cover it,
+including a guard on that mechanism specifically, and all five were checked
+against the pre-fix code — three fail there, which is what makes them worth
+keeping. Backend now 737 passed at 68.11%.
+
+Two follow-ups were opened rather than silently accepted: the grant is consumed
+on start rather than success, and `free_credits` is now vestigial at 5. Both are
+in the Technical backlog above.
 
 **Next run: Technical.**

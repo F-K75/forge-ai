@@ -106,6 +106,12 @@ class User(BaseModel):
     preferences: dict = Field(default_factory=dict)
     plan: PlanTier = PlanTier.FREE
     credits: int = 50
+    # One-shot grant: the first build on an account runs unmetered so a new
+    # user can reach a finished application before paying. A build reserves at
+    # least sum(CREDIT_COSTS) credits and the free grant is far smaller, so
+    # without this a free account cannot complete a single build. Claimed
+    # atomically in api/builds.py; see that call site for the abuse ceiling.
+    free_build_used: bool = False
     stripe_customer_id: Optional[str] = None
     banned: bool = False
     trial_ends_at: Optional[datetime] = None
