@@ -172,7 +172,7 @@ async def test_ownership_summary_buckets_by_top_level_dir(monkeypatch):
 @pytest.mark.asyncio
 async def test_ownership_summary_omits_agents_with_no_files(monkeypatch):
     ownership, registry, db = _patched_ownership(monkeypatch)
-    org = await registry.get_or_create_org("proj1")
+    await registry.get_or_create_org("proj1")
 
     summary = await ownership.ownership_summary("proj1")
     # Freshly seeded org: no agent has touched any files yet.

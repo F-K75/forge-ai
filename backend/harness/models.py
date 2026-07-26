@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -98,6 +98,7 @@ class ABTestResult:
     significance: float = 0.0
     winner: Optional[str] = None       # template_version of the winner
     metric_deltas: Dict[str, float] = field(default_factory=dict)
+    duration_ms: float = 0.0
     ran_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
 
 

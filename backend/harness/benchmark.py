@@ -9,13 +9,12 @@ and execution speed.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from harness.evaluator import PromptEvaluator
 from harness.metrics import MetricsCollector
 from harness.models import (
     BenchmarkResult,
-    QualityMetrics,
     TestSuite,
 )
 
@@ -193,8 +192,8 @@ class PromptBenchmark:
             delta = sorted_scores[0][1] - sorted_scores[1][1]
             if delta < 0.02:
                 recommendations.append(
-                    f"Top variants are within 2% of each other; consider A/B testing "
-                    f"with real users for a definitive winner."
+                    "Top variants are within 2% of each other; consider A/B testing "
+                    "with real users for a definitive winner."
                 )
 
         if not recommendations:

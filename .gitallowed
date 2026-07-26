@@ -37,6 +37,17 @@ api_key = byok\.get\("api_key"\)
 api_key=api_key
 api_key=settings\.[a-zA-Z_]*api_key
 
+# git-secrets scans .gitallowed itself, so the entries above trip the API_KEY
+# pattern they exist to suppress. `api_key = api_key` is a name-to-name
+# reference and cannot be a credential under any value. This also covers the
+# spaced form in core/llm, which the unspaced `api_key=api_key` entry misses.
+api_key = api_key
+
+# .claude/skills/design/scripts/{icon,logo}/generate.py pass the module-level
+# GEMINI_API_KEY constant to the Gemini client. Same rationale as the entries
+# above: a bare SCREAMING_CASE identifier, never a literal key.
+api_key=GEMINI_API_KEY
+
 # tests/test_content_moderation.py feeds fixed, clearly-fake credential
 # strings into the content-moderation scanner under test — the string
 # literals are test input, not real secrets, and never change.

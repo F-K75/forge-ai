@@ -7,7 +7,7 @@ recency, source authority, and task alignment into a composite score.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from context_engineer.models import ContextChunk, ContextSource, RelevanceScore
 

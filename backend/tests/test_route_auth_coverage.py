@@ -46,6 +46,8 @@ AUTH_DEPENDENCY_NAMES = {
 PUBLIC_ROUTES: dict[tuple[str, str, str], str] = {
     ("auth.py", "/register", "post"): "account creation, precedes having credentials",
     ("auth.py", "/login", "post"): "issues the credentials this whole check is about",
+    ("auth.py", "/google", "get"): "OAuth login initiation, redirects to Google before any session exists",
+    ("auth.py", "/google/callback", "get"): "OAuth login completion, authenticates by Google authorization code",
     ("auth.py", "/refresh", "post"): "presents a refresh token instead of a session",
     ("auth.py", "/mfa/verify", "post"): "second step of login, presents a pending-mfa token",
     ("auth.py", "/csrf-token", "get"): "CSRF token issuance must precede authenticated calls",

@@ -8,17 +8,14 @@ a fully populated PromptContext that the prompt_builder can render.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from prompt_builder.models import PromptContext, ProjectStateSlice
 
 from context_engineer.models import (
     AssemblyPlan,
-    ContextChunk,
     ContextSource,
     ContextWindow,
-    RetrievalResult,
-    TokenBudget,
 )
 from context_engineer.retriever import ContextRetriever
 from context_engineer.scorer import RelevanceScorer

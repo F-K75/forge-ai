@@ -6,6 +6,7 @@ from typing import Optional, Union
 import asyncio
 import json
 import logging
+import os
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -14,6 +15,20 @@ _mongo_client: AsyncIOMotorClient = None
 _redis_client: Redis = None
 _db_lock = asyncio.Lock()
 _redis_lock = asyncio.Lock()
+
+
+def _server_selection_timeout_ms() -> int:
+    """5s in real deployments; near-immediate under the CI test contract.
+
+    CI runs the suite with CI_TEST_MODE + TESTING and no live MongoDB, so any
+    code path that reaches a real get_db() would otherwise stall 5s per
+    operation. Several tests drive the orchestrator, whose best-effort helpers
+    swallow the connection error but only after that wait, which is enough to
+    exceed pytest's 30s per-test timeout.
+    """
+    if os.getenv("CI_TEST_MODE") and os.getenv("TESTING"):
+        return 50
+    return 5000
 
 
 async def get_db():
@@ -31,7 +46,7 @@ async def get_db():
                     # recycled by maxIdleTimeMS.
                     maxIdleTimeMS=60_000,
                     waitQueueTimeoutMS=10_000,
-                    serverSelectionTimeoutMS=5000,
+                    serverSelectionTimeoutMS=_server_selection_timeout_ms(),
                     connectTimeoutMS=10000,
                 )
                 try:
@@ -49,13 +64,27 @@ async def apply_retention_ttl_indexes(db) -> None:
     that already exist. Failures are logged, not raised, so a single bad
     collection never blocks index provisioning for the rest.
     """
+    names: list[str] = []
+    coroutines = []
     for collection, ttl in RETENTION_TTL_SECONDS.items():
         coll = getattr(db, collection, None)
         if coll is None:
             continue
-        try:
-            await coll.create_index("created_at", expireAfterSeconds=ttl, name=f"retention_ttl_{collection}")
-        except Exception:  # pragma: no cover - defensive
+        names.append(collection)
+        coroutines.append(
+            coll.create_index("created_at", expireAfterSeconds=ttl, name=f"retention_ttl_{collection}")
+        )
+
+    if not coroutines:
+        return
+
+    # Issued concurrently for the same reason as the index batch in
+    # _ensure_indexes below: when MongoDB is unreachable every create_index
+    # waits serverSelectionTimeoutMS (5s), so awaiting them one at a time
+    # stalls for 5s x len(RETENTION_TTL_SECONDS) (~40s) instead of ~5s total.
+    results = await asyncio.gather(*coroutines, return_exceptions=True)
+    for collection, result in zip(names, results):
+        if isinstance(result, BaseException):  # pragma: no cover - defensive
             logger.warning("Failed to create retention TTL index on %s", collection)
 
 

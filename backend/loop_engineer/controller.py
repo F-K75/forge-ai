@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from prompt_builder.templates.base import PromptTemplate
 from prompt_builder.registry import get_template_registry
@@ -28,12 +28,11 @@ from prompt_engineer import (
     FewShotManager,
     OptimizationConfig,
 )
-from context_engineer import ContextAssembler, AssemblyPlan, TokenBudget
+from context_engineer import ContextAssembler
 from harness import (
     PromptEvaluator,
     RegressionTester,
     MetricsCollector,
-    TestCase,
     TestSuite,
 )
 
@@ -280,7 +279,7 @@ class LoopController:
                 # Add a constraint based on failure patterns
                 failed = [r for r in eval_result.results if not r.passed]
                 if failed:
-                    new_constraint = f"Ensure output passes test case requirements"
+                    new_constraint = "Ensure output passes test case requirements"
                     if new_constraint not in current_template.constraints:
                         current_template.constraints.append(new_constraint)
 

@@ -16,7 +16,6 @@ import json
 import pytest
 
 import tasks.build_tasks as build_tasks_module
-from core.models import AgentType, BuildStatus
 
 
 class FakeCursor:
@@ -285,7 +284,7 @@ def test_build_files_for_current_build_id_take_priority_over_existing_files_arg(
     async def fake_get_db():
         return fake_db
 
-    stubs = _patch_agents(monkeypatch)
+    _patch_agents(monkeypatch)
 
     captured = {}
     real_run_build = build_tasks_module.orchestrator.run_build

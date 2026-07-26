@@ -18,7 +18,6 @@ import logging
 
 import pytest
 
-import core.orchestrator as orchestrator_module
 from core.models import AgentStep, AgentType, Build, BuildStatus
 from core.orchestrator import Orchestrator
 

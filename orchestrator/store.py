@@ -11,7 +11,6 @@ from .models import (
     BacklogItem,
     ConsolidatedReport,
     Effort,
-    Issue,
     ReviewRun,
     SEVERITY_RANK,
     Severity,

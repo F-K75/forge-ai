@@ -4,10 +4,7 @@ import pytest
 from prompt_builder.templates.base import PromptTemplate
 from prompt_engineer.models import (
     FewShotExample,
-    FewShotSet,
-    OptimizationConfig,
     PromptChangeType,
-    PromptVersion,
 )
 from prompt_engineer.versioning import VersionManager
 from prompt_engineer.few_shot import FewShotManager

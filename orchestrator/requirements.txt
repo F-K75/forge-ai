@@ -9,3 +9,9 @@ pydantic-settings==2.3.0
 pathspec==0.12.1
 pytest==8.2.0
 pytest-asyncio==0.23.7
+# The CI job runs `ruff check` and `pytest --timeout=30` in this directory but
+# installed neither, so the lint step failed with exit 127 (command not found)
+# and the test step with exit 4 (pytest usage error: unrecognized --timeout).
+# Both pinned to match backend/requirements.txt.
+ruff==0.8.6
+pytest-timeout==2.4.0

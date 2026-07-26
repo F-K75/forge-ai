@@ -5,9 +5,6 @@ from harness.evaluator import PromptEvaluator
 from harness.models import (
     TestCase,
     TestSuite,
-    TestResult,
-    EvaluationResult,
-    ABTestConfig,
 )
 from harness.regression import RegressionTester
 from harness.metrics import MetricsCollector

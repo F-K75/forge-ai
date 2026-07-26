@@ -65,6 +65,23 @@ class _FakeDB:
         return getattr(self, name)
 
 
+@pytest.fixture(autouse=True)
+def _stub_audit_db(monkeypatch):
+    """Keep every test in this module off a real MongoDB.
+
+    AuditLogger.record() runs on every gateway request and calls get_db(),
+    which provisions indexes on first use. With no MongoDB reachable that
+    blocks for pymongo's full server-selection timeout (30s) and trips CI's
+    --timeout=30 on whichever test happens to hit it first.
+    """
+    fake_db = _FakeDB()
+
+    async def fake_get_db():
+        return fake_db
+
+    monkeypatch.setattr("gateway.audit.get_db", fake_get_db)
+
+
 @pytest.mark.asyncio
 async def test_generate_populates_structured_data_when_response_is_already_valid():
     router = LLMRouter()
@@ -83,7 +100,12 @@ async def test_generate_populates_structured_data_when_response_is_already_valid
 
 @pytest.mark.asyncio
 async def test_generate_repairs_invalid_structured_output_once():
-    router = LLMRouter()
+    # Guardrails are disabled for this org: the guardrail classifier issues its
+    # own router call, which would otherwise be counted in provider.calls and
+    # obscure the "one original + one repair" contract under test.
+    config_loader = LLMConfigLoader()
+    config_loader._org_policy_overrides["org-1"] = {"guardrails_enabled": False}
+    router = LLMRouter(config_loader=config_loader)
     provider = SequencedProvider(texts=['{"nope": true}', '{"name": "fixed"}'])
     router.register_provider(provider, name="fake", priority=1)
     gateway = AIGateway(router=router)
@@ -91,7 +113,7 @@ async def test_generate_repairs_invalid_structured_output_once():
 
     response = await gateway.generate(GatewayRequest(
         agent_name="developer", messages=[{"role": "user", "content": "hi"}],
-        structured_output_schema=schema,
+        structured_output_schema=schema, org_id="org-1",
     ))
 
     assert provider.calls == 2  # original attempt + one repair call

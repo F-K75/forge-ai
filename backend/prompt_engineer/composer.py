@@ -8,8 +8,7 @@ and router composition (select the best template based on task analysis).
 
 from __future__ import annotations
 
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from prompt_builder.models import PromptContext
 from prompt_builder.templates.base import PromptTemplate

@@ -17,12 +17,10 @@ from api.admin import admin_required
 from api.auth import get_current_user
 from core.models import User
 from prompt_builder import get_template_registry
-from prompt_builder.templates.base import PromptTemplate
 from prompt_builder.models import PromptContext
 
 from prompt_engineer import (
     VersionManager,
-    PromptChangeType,
     PromptOptimizer,
     FewShotManager,
     PromptComposer,
@@ -49,6 +47,7 @@ from harness import (
 )
 from harness.models import QualityMetrics
 from loop_engineer import LoopController, LoopConfig
+from engineering_repository import get_loop_repository
 
 router = APIRouter(prefix="/engineering", tags=["engineering"])
 
@@ -597,9 +596,7 @@ async def get_loop_config(user: User = Depends(get_current_user)):
 async def get_prompt_quality_metrics(role: Optional[str] = None, user: User = Depends(get_current_user)):
     """Aggregate quality metrics for prompt templates, optionally filtered by role."""
     try:
-        harness_repo = get_harness_repository()
         loop_repo = get_loop_repository()
-        version_repo = get_version_repository()
 
         # Collect loop results
         loop_history = await loop_repo.get_history(role or "", limit=50) if role else await loop_repo.get_history("", limit=50)

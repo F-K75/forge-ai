@@ -1,11 +1,10 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from api.admin import admin_required
 from core.ai_usage import get_spending_dashboard
-from core.database import get_db
 from core.llm.budget_manager import BudgetPeriod, BudgetScope, get_budget_manager
 from core.models import User
 
