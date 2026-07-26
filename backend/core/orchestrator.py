@@ -16,6 +16,7 @@ from agent_registry import get_agent_registry
 from core.models import (
     Build, BuildStatus, AgentStep, AgentType, WSEvent, WSEventType, PlanTier
 )
+from core.specialist_shadow import launch_shadow_comparison
 from core.config import get_settings
 from core.database import get_db
 from sandbox.moderation import scan_code
@@ -301,6 +302,14 @@ class Orchestrator:
                     build_id=build.id,
                     data={"agent": "developer", "progress": 100, "message": "Files generated"}
                 ))
+
+                # Specialist shadow comparison (docs/architecture/specialist-agent-
+                # execution-plan.md, Phase 2). Fire-and-forget, flag-gated (default
+                # OFF), and launched only after everything above -- the real
+                # Developer stage -- has fully completed. Never awaited here, adds
+                # no latency, and cannot affect `files`/credits/events above. See
+                # core/specialist_shadow.py for the full safety contract.
+                launch_shadow_comparison(build, blueprint, design, files)
 
             resume_ok = resume_ok and developer_recovered
 
