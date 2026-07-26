@@ -219,6 +219,18 @@ Confirmed working from the same run: lint clean, `bandit` clean
 ("No issues identified"), `pip-audit` clean, and the rewritten HEALTHCHECK
 assertion passed.
 
+**Fourth pass, same day.** Backend, Review Board, and Frontend all went green —
+the backend suite and coverage gate ran in CI for the first time since
+2026-07-17, and Review Board passed for the first time at all, having never
+had `ruff` installed. One more masked defect in `prod-artifacts`: the
+"Verify frontend dist contains entry point" step built the frontend twice and
+the *second* build omitted the `--build-arg` flags the Dockerfile requires —
+which the very next step asserts. That build failed, `2>/dev/null` swallowed
+the error, `BUILD_IMG` came back empty, and `docker run --rm ""` surfaced as
+`invalid reference format` rather than as a build failure. Now captures the id
+from the single already-correct build, with an explicit empty check so a future
+failure stays legible.
+
 **Not fixed.** Everything under Technical backlog above, most importantly the
 `secret-scan` workflow — red on `main` since 2026-07-17 for false positives,
 unrelated to this branch, and deliberately left for a reviewed change of its

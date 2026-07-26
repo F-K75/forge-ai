@@ -344,14 +344,25 @@ jobs:
           fi
 
       - name: Verify frontend dist contains entry point
+        # The build stage produces /app/dist; verify it contains index.html by
+        # inspecting the intermediate image's filesystem.
+        #
+        # The image id is captured from this single build rather than from a
+        # second one. The previous version rebuilt without the --build-arg
+        # flags, which the frontend Dockerfile requires -- as the very next
+        # step asserts -- so that build failed, 2>/dev/null swallowed the
+        # error, BUILD_IMG came back empty and `docker run --rm ""` reported
+        # `invalid reference format`. The empty check below keeps any future
+        # build failure legible instead of surfacing as a docker usage error.
         run: |
-          docker build frontend/ \
+          BUILD_IMG=$(docker build frontend/ \
             --build-arg VITE_API_URL=https://ci.invalid/api \
             --build-arg VITE_WS_URL=wss://ci.invalid/api \
-            --target=build -q
-          # The build stage produces /app/dist; verify it contains index.html
-          # by inspecting the intermediate image's filesystem.
-          BUILD_IMG=$(docker build frontend/ --target=build -q 2>/dev/null | tail -1)
+            --target=build -q | tail -1)
+          if [ -z "$BUILD_IMG" ]; then
+            echo "::error::Frontend build stage produced no image id"
+            exit 1
+          fi
           if ! docker run --rm "$BUILD_IMG" test -f /app/dist/index.html; then
             echo "::error::Frontend build output is missing /app/dist/index.html"
             exit 1
