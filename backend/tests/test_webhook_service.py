@@ -3,10 +3,12 @@ Tests for webhook delivery service (services/webhook.py).
 Covers SSRF re-validation at delivery time, HMAC signing, queue push/pop,
 retry logic, and worker initialisation — all without real Redis or HTTP.
 """
+import asyncio
+import contextlib
 import json
 import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from services.webhook import (
     deliver_webhook,
@@ -53,8 +55,9 @@ class TestDeliverWebhook:
         assert result is True
         # Verify the POST call
         fake_client.post.assert_awaited_once()
-        call_kwargs = fake_client.post.call_args[1]
-        assert call_kwargs["url"] == "https://hooks.example.com/evt"
+        # deliver_webhook passes the URL positionally: client.post(url, data=..., headers=...)
+        call_args, call_kwargs = fake_client.post.call_args
+        assert call_args[0] == "https://hooks.example.com/evt"
         headers = call_kwargs["headers"]
         assert headers["Content-Type"] == "application/json"
         assert "X-Forge-Timestamp" in headers
@@ -215,7 +218,13 @@ class TestQueueWebhookDelivery:
 
 
 class TestProcessWebhookQueue:
-    """process_webhook_queue() — Redis BRPOP loop + delivery + retry."""
+    """process_webhook_queue() — Redis BRPOP loop + delivery + retry.
+
+    The worker is an unbounded `while True` loop that treats a falsy BRPOP as
+    `continue`, so returning None from the mock never ends it. Each test drives
+    exactly one iteration and then raises CancelledError, which is a
+    BaseException and therefore passes through the loop's `except Exception`.
+    """
 
     async def test_brpop_loop_delivers_and_does_not_retry_on_success(self, monkeypatch):
         """A successful delivery is popped and not re-queued."""
@@ -251,11 +260,12 @@ class TestProcessWebhookQueue:
             call_count += 1
             if call_count == 1:
                 return ("webhook_queue", item)
-            return None
+            raise asyncio.CancelledError
 
         fake_redis.brpop = AsyncMock(side_effect=brpop_sequence)
 
-        await process_webhook_queue()
+        with contextlib.suppress(asyncio.CancelledError):
+            await process_webhook_queue()
 
         assert delivered == ["https://hook.example.com/ok"]
         fake_redis.lpush.assert_not_called()
@@ -275,6 +285,10 @@ class TestProcessWebhookQueue:
         }
 
         fake_redis = MagicMock()
+        # lpush is awaited by the worker, so it must be an AsyncMock -- a plain
+        # MagicMock returns a non-awaitable and the worker's `except Exception`
+        # would swallow the resulting TypeError, hiding the re-queue entirely.
+        fake_redis.lpush = AsyncMock()
         monkeypatch.setattr("services.webhook.get_redis", AsyncMock(return_value=fake_redis))
 
         monkeypatch.setattr(
@@ -289,11 +303,12 @@ class TestProcessWebhookQueue:
             call_count += 1
             if call_count == 1:
                 return ("webhook_queue", json.dumps(item))
-            return None
+            raise asyncio.CancelledError
 
         fake_redis.brpop = AsyncMock(side_effect=brpop_sequence)
 
-        await process_webhook_queue()
+        with contextlib.suppress(asyncio.CancelledError):
+            await process_webhook_queue()
 
         # Should have re-queued with attempts=1
         fake_redis.lpush.assert_awaited_once()
@@ -329,11 +344,12 @@ class TestProcessWebhookQueue:
             call_count += 1
             if call_count == 1:
                 return ("webhook_queue", json.dumps(item))
-            return None
+            raise asyncio.CancelledError
 
         fake_redis.brpop = AsyncMock(side_effect=brpop_sequence)
 
-        await process_webhook_queue()
+        with contextlib.suppress(asyncio.CancelledError):
+            await process_webhook_queue()
 
         fake_redis.lpush.assert_not_called()
 

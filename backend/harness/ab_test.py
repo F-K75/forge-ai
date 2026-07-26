@@ -8,16 +8,14 @@ configurable metrics.
 
 from __future__ import annotations
 
-import math
 import time
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from harness.evaluator import PromptEvaluator
 from harness.models import (
     ABTestConfig,
     ABTestResult,
     ABTestVariantResult,
-    TestCase,
 )
 
 
@@ -108,6 +106,7 @@ class ABTestRunner:
             significance=round(significance, 4),
             winner=winner,
             metric_deltas=metric_deltas,
+            duration_ms=round(elapsed_ms, 3),
         )
 
     def _compute_variant_result(

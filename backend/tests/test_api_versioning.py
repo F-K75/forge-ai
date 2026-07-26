@@ -64,10 +64,11 @@ def test_deprecation_middleware_skips_health_paths():
 
 
 def test_v1_router_contains_expected_prefixes():
-    router_paths = [r.path for r in main.v1_router.routes if hasattr(r, "path")]
-    assert any(p.startswith("/v1/admin") for p in router_paths)
-    assert any(p.startswith("/v1/auth") for p in router_paths)
-    assert any(p.startswith("/v1/builds") for p in router_paths)
-    assert any(p.startswith("/v1/projects") for p in router_paths)
-    assert any(p.startswith("/v1/webhooks") for p in router_paths)
-    assert any(p.startswith("/v1/gdpr") for p in router_paths)
+    # Asserted against the generated OpenAPI schema rather than
+    # `v1_router.routes`: since FastAPI 0.139 a router's `.routes` holds lazy
+    # `_IncludedRouter` placeholders (resolved at request dispatch) instead of
+    # flattened `APIRoute`s, so the old traversal silently matched nothing.
+    # The schema is the public contract and is stable across FastAPI versions.
+    schema_paths = main.app.openapi()["paths"].keys()
+    for prefix in ("/v1/admin", "/v1/auth", "/v1/builds", "/v1/projects", "/v1/webhooks", "/v1/gdpr"):
+        assert any(p.startswith(prefix) for p in schema_paths), f"no routes mounted under {prefix}"

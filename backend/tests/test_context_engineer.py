@@ -1,6 +1,5 @@
 """Tests for the context engineering module."""
 
-import pytest
 from context_engineer.models import (
     ContextChunk,
     ContextSource,

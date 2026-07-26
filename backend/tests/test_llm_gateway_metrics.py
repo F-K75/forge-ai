@@ -126,7 +126,7 @@ async def test_routing_decision_metric_recorded_on_complexity_hint():
 
 @pytest.mark.asyncio
 async def test_budget_rejection_metric_recorded_on_hard_limit(monkeypatch):
-    from core.llm.budget_manager import BudgetLimitExceeded, BudgetManager, BudgetScope, BudgetCheckResult
+    from core.llm.budget_manager import BudgetLimitExceeded, BudgetManager, BudgetScope
 
     class _AlwaysRejectBudgetManager(BudgetManager):
         async def enforce(self, **kwargs):

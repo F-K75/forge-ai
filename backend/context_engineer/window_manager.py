@@ -12,7 +12,6 @@ from typing import List, Optional
 
 from context_engineer.models import (
     ContextChunk,
-    ContextSource,
     ContextWindow,
     TokenBudget,
 )

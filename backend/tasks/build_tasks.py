@@ -3,8 +3,6 @@
 import asyncio
 import logging
 import time
-import uuid
-from datetime import datetime
 from typing import Optional
 from celery.exceptions import SoftTimeLimitExceeded
 from celery_app import celery_app as current_app

@@ -70,7 +70,10 @@ async def queue_webhook_delivery(
             "payload": payload,
             "attempts": 0,
             "max_attempts": 3,
-            "created_at": datetime.utcnow(),
+            # ISO string, not a datetime: this dict goes straight through
+            # json.dumps below, which cannot serialize datetime objects. The
+            # queue consumer reads created_at back as a string.
+            "created_at": datetime.utcnow().isoformat(),
         }
         await redis.lpush("webhook_queue", json.dumps(queue_item))
 

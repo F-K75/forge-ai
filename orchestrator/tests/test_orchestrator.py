@@ -6,7 +6,6 @@ DB-touching code paths are avoided. Run with::
     pytest orchestrator/tests -q
 """
 import json
-import os
 
 import pytest
 

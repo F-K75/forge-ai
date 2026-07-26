@@ -21,7 +21,6 @@ from core.database import get_db
 from core.encryption import decrypt_field
 from gateway import GatewayRequest, get_ai_gateway
 from prompt_builder import PromptContext, ProjectStateSlice, get_prompt_builder
-from prompt_builder.templates.base import PromptTemplate
 from prompt_builder.registry import get_template_registry
 
 # New engineering modules

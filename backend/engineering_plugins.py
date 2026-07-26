@@ -23,8 +23,7 @@ from typing import Optional
 from prompt_builder.plugins import PluginHook, register_plugin
 from prompt_builder.models import PromptContext
 
-from prompt_engineer import FewShotManager, VersionManager, PromptChangeType
-from prompt_engineer.models import FewShotExample
+from prompt_engineer import FewShotManager, VersionManager
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +110,6 @@ def version_tracker(prompt: str) -> str:
     Registered as POST_BUILD so it captures the final rendered output.
     """
     try:
-        vm = _get_vm()
         # The version_manager.record() call requires a PromptTemplate, which
         # isn't available in the POST_BUILD plugin context. Version tracking
         # is handled at the agent level in BaseAgent._resolve_system_prompt.

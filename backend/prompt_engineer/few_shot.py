@@ -8,8 +8,6 @@ selection (pick examples covering different patterns).
 
 from __future__ import annotations
 
-import json
-import math
 from typing import Dict, List, Optional, Set
 
 from prompt_engineer.models import FewShotExample, FewShotSet

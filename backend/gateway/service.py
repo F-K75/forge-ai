@@ -5,7 +5,7 @@ import time
 import uuid
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from core.llm.provider import CompletionResponse, ProviderError
+from core.llm.provider import CompletionResponse
 from core.llm.router import LLMRouter, get_llm_router
 from core.metrics import (
     llm_failovers_total,

@@ -8,7 +8,7 @@ import csv
 import io
 import json
 
-from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams, BuildDeadLetter
+from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams
 from core.database import get_db, get_redis, cache_get_json, cache_set_json, paginated_query
 
 ADMIN_ANALYTICS_CACHE_TTL = 120
@@ -536,8 +536,6 @@ async def retry_dead_letter_build(
         existing_files,
     )
 
-    client_ip = request.client.host if request and request.client else None
-    user_agent = request.headers.get("user-agent") if request and request.headers else None
     await record_audit_log(
         db, request, admin, "retry_dead_letter_build", "build",
         resource_id=build_id,
