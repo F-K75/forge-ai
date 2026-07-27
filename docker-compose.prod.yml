@@ -7,6 +7,7 @@ services:
       - "443:443"
     environment:
       - DOMAIN=${DOMAIN:?}
+      - STAGING_DOMAIN=${STAGING_DOMAIN:-}
     volumes:
       - ./deploy/nginx/templates:/etc/nginx/templates:ro
       - letsencrypt:/etc/letsencrypt:ro
