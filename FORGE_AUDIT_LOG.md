@@ -105,12 +105,28 @@ risk · **P2** maintainability.
   test step never executed, so a green-looking coverage artifact can be
   attached to a run that measured nothing. Delete both from the index and add
   them to `.gitignore`.
-- [ ] **P1 — A failed index provision poisons the Mongo client.**
+- [x] **P1 — A failed index provision poisons the Mongo client.**
   `core/database.py::get_db` assigns `_mongo_client` *before* awaiting
   `_ensure_indexes`. When provisioning raises, the client stays cached, so the
   error surfaces once and every later call silently proceeds against a database
   with no indexes. Assign only after provisioning succeeds, or reset the global
   in the failure path.
+
+  **Fixed:** the client is built into a local and published to the global only
+  after `_ensure_indexes` returns; the failure path closes it so the abandoned
+  attempt does not leak its pool and monitor tasks. Reproduced first — driving
+  `get_db` twice against a raising `_ensure_indexes` showed provisioning
+  attempted exactly once, with the second call handed a live handle. The
+  practical loss was the unique constraints, not query speed: `users.email`,
+  the partial `builds (user_id, idempotency_key)` behind BUS-007,
+  `credit_purchases.stripe_payment_intent_id`, `api_keys.key_hash` and
+  `token_blacklist.jti` all stop being enforced, so one transient Mongo hiccup
+  at startup silently permits duplicate accounts, duplicate builds and
+  double-credited payments for the whole life of the process. Four tests added
+  to `tests/test_index_provisioning.py`, checked against the pre-fix code —
+  three fail there. The fourth guards the happy path (provisioning still runs
+  once, not per call) and passes both ways by design. Backend 741 passed at
+  68.82%.
 - [ ] **P2 — `tasks/pm_tasks.py` is at 20% coverage** (148 statements, 118
   uncovered) and `services/pm_ws_manager.py` at 24%. These are the two weakest
   modules; overall coverage is 68% against a 60% gate, so the headroom exists to

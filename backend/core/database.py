@@ -36,7 +36,7 @@ async def get_db():
     if _mongo_client is None:
         async with _db_lock:
             if _mongo_client is None:
-                _mongo_client = AsyncIOMotorClient(
+                client = AsyncIOMotorClient(
                     settings.mongodb_url,
                     maxPoolSize=50,
                     minPoolSize=10,
@@ -50,10 +50,20 @@ async def get_db():
                     connectTimeoutMS=10000,
                 )
                 try:
-                    await _ensure_indexes(_mongo_client.forge)
+                    await _ensure_indexes(client.forge)
                 except Exception:
+                    # Publish the client to the module global only after
+                    # provisioning succeeds. Assigning first meant a failure left
+                    # a cached client behind: the error surfaced once, then the
+                    # `is None` guard above short-circuited every later call and
+                    # handed out a database whose unique indexes — user email,
+                    # build idempotency key, Stripe payment intent — were never
+                    # created. Closing the client here also keeps the failed
+                    # attempt from leaking its connection pool and monitor tasks.
+                    client.close()
                     logger.exception("MongoDB index provisioning failed")
                     raise
+                _mongo_client = client
     return _mongo_client.forge
 
 
