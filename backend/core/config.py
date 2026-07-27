@@ -7,14 +7,26 @@ from pydantic import field_validator, model_validator
 import base64
 import re
 
-# This file is backend/core/config.py, so parents[2] is the repo root. Resolved
-# at import rather than read from the cwd, because the two things that consume
-# this repo's env disagree about where .env lives: docker-compose interpolates
-# ${VAR} from the repo-root file, while `cd backend && uvicorn main:app` (what
-# the README says to run) makes a bare ".env" resolve to backend/.env. Missing
-# files are ignored by pydantic-settings, so this is a no-op in the container
-# image where the repo root isn't present.
-_REPO_ROOT_ENV = Path(__file__).resolve().parents[2] / ".env"
+def _repo_root_env() -> Path | None:
+    """The repo-root .env, or None when this isn't running from a checkout.
+
+    The two things that consume this repo's env disagree about where .env
+    lives: docker-compose interpolates ${VAR} from the repo-root file, while
+    `cd backend && uvicorn main:app` (what the README says to run) makes a bare
+    ".env" resolve to backend/.env. So Settings accepts both.
+
+    The identity check matters. backend/core/config.py means parents[2] is the
+    repo root in a checkout, but the container image copies backend/ to /app,
+    where the same expression resolves to "/" -- which would quietly put /.env
+    on the config search path of a service holding the field encryption key.
+    Requiring a docker-compose.yml alongside it keeps the second path scoped to
+    an actual checkout instead of the filesystem root.
+    """
+    candidate = Path(__file__).resolve().parents[2]
+    return candidate / ".env" if (candidate / "docker-compose.yml").is_file() else None
+
+
+_REPO_ROOT_ENV = _repo_root_env()
 
 
 class Settings(BaseSettings):
@@ -294,8 +306,9 @@ class Settings(BaseSettings):
     class Config:
         # Both locations are load-bearing, so accept both. Order matters:
         # pydantic-settings lets later files win, so an explicit backend/.env
-        # still overrides the shared repo-root one.
-        env_file = (_REPO_ROOT_ENV, ".env")
+        # still overrides the shared repo-root one. Outside a checkout the
+        # root entry drops out and this is exactly the old behaviour.
+        env_file = tuple(p for p in (_REPO_ROOT_ENV, ".env") if p is not None)
 
 
 @lru_cache
