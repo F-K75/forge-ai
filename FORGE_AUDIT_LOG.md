@@ -105,12 +105,42 @@ risk · **P2** maintainability.
   test step never executed, so a green-looking coverage artifact can be
   attached to a run that measured nothing. Delete both from the index and add
   them to `.gitignore`.
-- [ ] **P1 — A failed index provision poisons the Mongo client.**
+- [x] **P1 — A failed index provision poisons the Mongo client.**
   `core/database.py::get_db` assigns `_mongo_client` *before* awaiting
   `_ensure_indexes`. When provisioning raises, the client stays cached, so the
   error surfaces once and every later call silently proceeds against a database
   with no indexes. Assign only after provisioning succeeds, or reset the global
   in the failure path.
+
+  **Fixed:** the client is built into a local and published to the global only
+  after `_ensure_indexes` returns; the failure path closes it so the abandoned
+  attempt does not leak its pool and monitor tasks. Reproduced first — driving
+  `get_db` twice against a raising `_ensure_indexes` showed provisioning
+  attempted exactly once, with the second call handed a live handle. The
+  practical loss was the unique constraints, not query speed: `users.email`,
+  the partial `builds (user_id, idempotency_key)` behind BUS-007,
+  `credit_purchases.stripe_payment_intent_id`, `api_keys.key_hash` and
+  `token_blacklist.jti` all stop being enforced, so one transient Mongo hiccup
+  at startup silently permits duplicate accounts, duplicate builds and
+  double-credited payments for the whole life of the process. Four tests added
+  to `tests/test_index_provisioning.py`, checked against the pre-fix code —
+  three fail there. The fourth guards the happy path (provisioning still runs
+  once, not per call) and passes both ways by design. Backend 741 passed at
+  68.82%.
+- [ ] **P2 — `close_connections` closes the clients but never resets the
+  globals.** Same stale-global shape as the index-provision bug just fixed:
+  `core/database.py::close_connections` calls `.close()` on both clients and
+  leaves `_mongo_client` / `_redis_client` set, so a `get_db` after shutdown
+  returns a handle on a closed client. Not reachable today — shutdown is
+  terminal and `scripts/migrate_field_encryption_key.py` calls it last — which
+  is why it was not bundled into the fix. Reset both globals to `None`.
+- [ ] **P2 — A sustained Mongo outage now serialises every caller on
+  `_db_lock`.** Consequence of the index-provision fix, and the correct
+  trade: callers used to get an instant handle to an unindexed database, and
+  now they each pay one provisioning attempt (~5s, per INF-008 fast-fail)
+  behind the lock. Under an outage, N concurrent requests queue behind N
+  attempts. Bound it with a negative cache or a circuit breaker so a known-down
+  Mongo fails fast without re-attempting per request.
 - [ ] **P2 — `tasks/pm_tasks.py` is at 20% coverage** (148 statements, 118
   uncovered) and `services/pm_ws_manager.py` at 24%. These are the two weakest
   modules; overall coverage is 68% against a 60% gate, so the headroom exists to

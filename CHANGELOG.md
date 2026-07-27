@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-07-27 — A failed index provision no longer poisons the Mongo client (P1)
+
+### Fixed
+
+**A single transient MongoDB hiccup at startup used to switch off every unique
+constraint in the database for the rest of the process lifetime.**
+
+- **`backend/core/database.py`** — `get_db` assigned the client to its module
+  global *before* awaiting `_ensure_indexes`. When provisioning raised, the
+  client stayed cached: the error surfaced exactly once, then the `is None`
+  guard short-circuited every later call and handed back a database whose
+  indexes had never been created. What that costs is the unique constraints,
+  not query speed — `users.email`, the partial
+  `builds (user_id, idempotency_key)` index behind BUS-007,
+  `credit_purchases.stripe_payment_intent_id`, `api_keys.key_hash` and
+  `token_blacklist.jti` all stop being enforced, so duplicate accounts,
+  duplicate builds and double-credited payments become writable. The client is
+  now built into a local and published only after provisioning succeeds, and
+  the failure path closes it so the abandoned attempt does not leak its
+  connection pool and monitor tasks. Callers now keep erroring until
+  provisioning genuinely succeeds, and recover without a restart once MongoDB
+  returns.
+
+### Infrastructure
+
+- **`backend/tests/test_index_provisioning.py`** — five tests covering the
+  cached-client path: no caching on failure, retry until success, recovery
+  after a transient outage, caching once on the happy path, and concurrent
+  cold callers collapsing into a single provision. Three fail against the
+  pre-fix code. The fixture also swaps in a per-test `asyncio.Lock`, since a
+  module-level lock binds to whichever event loop first contends it.
+- **`CLAUDE.md`** — skill routing rules for gstack.
+- **`.gitignore`** — ignore the `.gstack/` runtime state directory.
+
 ## 2026-07-17 — AI Gateway runtime: prompt/context engineering, harness, loop engineer + Google OAuth (P0/P1)
 
 ### Features Added
@@ -1664,9 +1698,14 @@ consistent, clamped, and correct across the board.
   `auth.py`, the pre-commit hook's own regex literals) failed the `git secrets
   --scan` step. Expanded `.gitallowed` with narrow, anchored exemptions.
 - **P0 — credential URLs silently missed**: git-secrets scans with `grep -w`, so
-  `mongodb://user:pass@host` / `redis://:pass@host` never matched (verified with
-  a real `mongodb://admin:s3cr3tP@ssw0rd@host` URL). The grep fallback now covers
-  them with portable POSIX patterns.
+  Mongo and Redis connection strings carrying inline credentials never matched
+  (verified against a real one, including the awkward case where the password
+  itself contains an `@`). The grep fallback now covers them with portable POSIX
+  patterns. Wording here is deliberately indirect: spelling those connection
+  strings out literally re-trips the scanner this entry is describing, and the
+  grep layer scans every touched file in full, so any later change to this file
+  would fail `secret-scan` on prose alone. Same reason `FORGE_AUDIT_LOG.md`
+  hedges its wording.
 - **Pre-commit hook dead fallback**: its `SECRET_PATTERNS` had inline `# comments`
   that broke the combined `grep -E` regex; cleaned and extended with URL patterns.
 - Made git-secrets install robust on `ubuntu-latest` (install `make` before the
