@@ -1,0 +1,190 @@
+services:
+  backend:
+    image: ghcr.io/${GHCR_OWNER:?}/forge-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:?}
+      - STRIPE_PRICE_STANDARD_MONTHLY=${STRIPE_PRICE_STANDARD_MONTHLY:?}
+      - STRIPE_PRICE_PRO_MONTHLY=${STRIPE_PRICE_PRO_MONTHLY:?}
+      - STRIPE_PRICE_ENTERPRISE_MONTHLY=${STRIPE_PRICE_ENTERPRISE_MONTHLY:?}
+      - STRIPE_PRICE_STANDARD_ANNUAL=${STRIPE_PRICE_STANDARD_ANNUAL:?}
+      - STRIPE_PRICE_PRO_ANNUAL=${STRIPE_PRICE_PRO_ANNUAL:?}
+      - STRIPE_PRICE_ENTERPRISE_ANNUAL=${STRIPE_PRICE_ENTERPRISE_ANNUAL:?}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/1
+      - JWT_SECRET=${JWT_SECRET:?}
+      - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:?}
+      - APP_ENV=production
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?}@redis:6379/1
+      - ADMIN_EMAILS=${ADMIN_EMAILS:?}
+      - APP_URL=https://${STAGING_DOMAIN:?}
+      - API_URL=https://${STAGING_DOMAIN:?}/api
+      - ALLOWED_ORIGINS=https://${STAGING_DOMAIN:?}
+      - DEPLOYMENT_HOST=${STAGING_DOMAIN:?}
+      - ALLOWED_HOSTS=${STAGING_DOMAIN:?},localhost
+      - TRUSTED_PROXIES=127.0.0.1,::1
+      - FORWARDED_ALLOW_IPS=127.0.0.1,::1
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  worker:
+    image: ghcr.io/${GHCR_OWNER:?}/forge-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    stop_grace_period: 630s
+    command: ["celery", "-A", "celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "celery,deployment,build"]
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:?}
+      - STRIPE_PRICE_STANDARD_MONTHLY=${STRIPE_PRICE_STANDARD_MONTHLY:?}
+      - STRIPE_PRICE_PRO_MONTHLY=${STRIPE_PRICE_PRO_MONTHLY:?}
+      - STRIPE_PRICE_ENTERPRISE_MONTHLY=${STRIPE_PRICE_ENTERPRISE_MONTHLY:?}
+      - STRIPE_PRICE_STANDARD_ANNUAL=${STRIPE_PRICE_STANDARD_ANNUAL:?}
+      - STRIPE_PRICE_PRO_ANNUAL=${STRIPE_PRICE_PRO_ANNUAL:?}
+      - STRIPE_PRICE_ENTERPRISE_ANNUAL=${STRIPE_PRICE_ENTERPRISE_ANNUAL:?}
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/1
+      - JWT_SECRET=${JWT_SECRET:?}
+      - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:?}
+      - APP_ENV=production
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?}@redis:6379/1
+      - ADMIN_EMAILS=${ADMIN_EMAILS:?}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_app inspect ping -d celery@$$HOSTNAME"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: forge
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?}
+    volumes:
+      - mongo_data_staging:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?}", "--appendonly", "yes"]
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?}
+    volumes:
+      - redis_data_staging:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  backup:
+    image: alpine:3.19
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - mongo_data_staging:/data/db:ro
+      - backup_data_staging:/backups
+      - ./scripts:/app/scripts:ro
+    environment:
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?authSource=admin
+      - BACKUP_RETENTION_DAYS=30
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache mongodb-tools python3 py3-pip curl &&
+        echo "0 2 * * * python3 /app/scripts/backup_mongodb.py >> /var/log/backup.log 2>&1" |
+          crontab - &&
+        echo "0 14 * * * python3 /app/scripts/backup_verify.py /backups/latest >> /var/log/backup.log 2>&1" |
+          crontab - &&
+        mkdir -p /var/log &&
+        touch /var/log/backup.log &&
+        tail -F /var/log/backup.log &
+        crond -f -l 2
+    deploy:
+      resources:
+        limits:
+          cpus: '0.125'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
+
+volumes:
+  mongo_data_staging:
+  redis_data_staging:
+  backup_data_staging:
