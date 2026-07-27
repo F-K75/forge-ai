@@ -2,9 +2,31 @@ from typing import Dict
 
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
 from pydantic import field_validator, model_validator
 import base64
 import re
+
+def _repo_root_env() -> Path | None:
+    """The repo-root .env, or None when this isn't running from a checkout.
+
+    The two things that consume this repo's env disagree about where .env
+    lives: docker-compose interpolates ${VAR} from the repo-root file, while
+    `cd backend && uvicorn main:app` (what the README says to run) makes a bare
+    ".env" resolve to backend/.env. So Settings accepts both.
+
+    The identity check matters. backend/core/config.py means parents[2] is the
+    repo root in a checkout, but the container image copies backend/ to /app,
+    where the same expression resolves to "/" -- which would quietly put /.env
+    on the config search path of a service holding the field encryption key.
+    Requiring a docker-compose.yml alongside it keeps the second path scoped to
+    an actual checkout instead of the filesystem root.
+    """
+    candidate = Path(__file__).resolve().parents[2]
+    return candidate / ".env" if (candidate / "docker-compose.yml").is_file() else None
+
+
+_REPO_ROOT_ENV = _repo_root_env()
 
 
 class Settings(BaseSettings):
@@ -282,7 +304,11 @@ class Settings(BaseSettings):
         )
 
     class Config:
-        env_file = ".env"
+        # Both locations are load-bearing, so accept both. Order matters:
+        # pydantic-settings lets later files win, so an explicit backend/.env
+        # still overrides the shared repo-root one. Outside a checkout the
+        # root entry drops out and this is exactly the old behaviour.
+        env_file = tuple(p for p in (_REPO_ROOT_ENV, ".env") if p is not None)
 
 
 @lru_cache

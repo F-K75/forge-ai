@@ -179,6 +179,11 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
+Copy `.env.example` to `.env` in the **repo root** first. That one file serves
+both local dev and `docker compose`, which interpolates `${VAR}` from it. A
+`.env` inside `backend/` also works and takes precedence if you want a
+machine-local override.
+
 **Frontend:**
 ```bash
 cd frontend
