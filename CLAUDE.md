@@ -2,33 +2,30 @@
 
 Guidance for Claude Code and other AI coding agents working in this repository.
 
-## gstack (REQUIRED — global install)
+## gstack (recommended)
 
 This project uses [gstack](https://github.com/garrytan/gstack), a suite of Claude Code
-skills for planning, review, shipping, QA, and browsing. It is required for all
-AI-assisted work in this repo and enforced by a `PreToolUse` hook
-(`.claude/hooks/check-gstack.sh`), which denies skill invocations when gstack is missing.
+skills for planning, review, shipping, QA, and browsing. It is recommended, not required
+— nothing in this repo blocks work when it is absent.
 
-**Before doing ANY work, verify gstack is installed:**
+gstack is a per-developer install: it lives in `~/.claude/skills/gstack`, not in this
+repo. Install a pinned revision rather than tracking the default branch, since `./setup`
+executes code from the cloned repo:
 
 ```bash
-test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
+git clone --single-branch https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+cd ~/.claude/skills/gstack
+git checkout a3259400a366593e0c909dd9ac3e59752efd2488  # v1.60.1.0
+./setup
 ```
 
-If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
+Use `~/.claude/skills/gstack/...` for gstack file paths. `/gstack-upgrade` pulls and
+executes the latest revision — review what changed before running it, and bump the
+pinned SHA above when you do.
 
-> gstack is required for all AI-assisted work in this repo.
-> Install it:
-> ```bash
-> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-> cd ~/.claude/skills/gstack && ./setup --team
-> ```
-> Then restart your AI coding tool.
-
-Do not skip skills, ignore gstack errors, or work around missing gstack.
-gstack is a per-developer install: it lives in `~/.claude/skills/gstack`, not in this
-repo. Use `~/.claude/skills/gstack/...` for gstack file paths. Update with
-`/gstack-upgrade`.
+Note: `./setup` downloads a Playwright Chromium build. On restricted networks that step
+fails and the browser-backed skills (`/browse`, `/qa`, `/design-review`) will not work;
+the rest of gstack still installs.
 
 ### Web browsing
 
