@@ -83,11 +83,16 @@ def reset_mongo_client():
     """Isolate the module-global Mongo client around a test.
 
     ``get_db`` caches its client in a module global, so a test that drives it
-    must restore the previous value or it leaks into every later test.
+    must restore the previous value or it leaks into every later test. Any
+    client the test itself built is closed on the way out, otherwise its
+    connection pool and monitor tasks outlive the test.
     """
     previous = database._mongo_client
     database._mongo_client = None
     yield
+    created = database._mongo_client
+    if created is not None and created is not previous:
+        created.close()
     database._mongo_client = previous
 
 
