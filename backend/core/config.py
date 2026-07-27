@@ -2,9 +2,19 @@ from typing import Dict
 
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
 from pydantic import field_validator, model_validator
 import base64
 import re
+
+# This file is backend/core/config.py, so parents[2] is the repo root. Resolved
+# at import rather than read from the cwd, because the two things that consume
+# this repo's env disagree about where .env lives: docker-compose interpolates
+# ${VAR} from the repo-root file, while `cd backend && uvicorn main:app` (what
+# the README says to run) makes a bare ".env" resolve to backend/.env. Missing
+# files are ignored by pydantic-settings, so this is a no-op in the container
+# image where the repo root isn't present.
+_REPO_ROOT_ENV = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -282,7 +292,10 @@ class Settings(BaseSettings):
         )
 
     class Config:
-        env_file = ".env"
+        # Both locations are load-bearing, so accept both. Order matters:
+        # pydantic-settings lets later files win, so an explicit backend/.env
+        # still overrides the shared repo-root one.
+        env_file = (_REPO_ROOT_ENV, ".env")
 
 
 @lru_cache
