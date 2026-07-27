@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-07-27 — Following the setup docs now produces a backend that boots (P2)
+
+### Fixed
+
+**The documented local-dev path could not start the backend.** `core/config.py`
+set `env_file = ".env"`, which pydantic resolves against the current working
+directory. `docker-compose.yml` interpolates `${VAR}` from the **repo-root**
+`.env` in 23 places, which is why `.env.example` lives at the root, but
+`README.md` says to run `cd backend && uvicorn main:app`. Copy the example where
+it sits, run where the README says, and `Settings` came back with three empty
+required values (`MONGODB_URL`, `JWT_SECRET`, `FIELD_ENCRYPTION_KEY`) and an
+import-time crash. `env_file` now accepts both locations, with the cwd entry
+last so an explicit `backend/.env` still wins as a machine-local override.
+
+The repo-root path is only used when a `docker-compose.yml` sits beside it. The
+container image copies `backend/` to `/app`, where the same expression resolves
+to `/`, and without that check `/.env` would join the config search path of a
+service holding the field encryption key.
+
+### Documentation
+
+- **`docs/portfolio-mirror.md`** — runbook for the agency validation test: the
+  go/no-go rule for generated output (including a kill criterion), the reply
+  tracking table, and the outreach template.
+- **`README.md`** — states that the root `.env` serves both local dev and
+  `docker compose`.
+
 ## 2026-07-27 — A failed index provision no longer poisons the Mongo client (P1)
 
 ### Fixed
