@@ -184,5 +184,30 @@ async def test_recovers_once_mongo_comes_back(monkeypatch, reset_mongo_client):
     assert database._mongo_client is not None
 
 
+@pytest.mark.asyncio
+async def test_concurrent_cold_callers_provision_once(monkeypatch, reset_mongo_client):
+    """Callers racing the cold path must provision once between them.
+
+    `get_db` guards the global with a double-checked lock. The inner check is
+    what stops the second coroutine re-provisioning after the first has already
+    published, so drive both concurrently and assert only one build happened.
+    """
+    attempts = []
+
+    async def slow_ensure_indexes(db):
+        attempts.append(1)
+        await asyncio.sleep(0.05)
+
+    monkeypatch.setattr(database, "_ensure_indexes", slow_ensure_indexes)
+
+    first, second = await asyncio.gather(database.get_db(), database.get_db())
+
+    assert len(attempts) == 1, (
+        f"Provisioning ran {len(attempts)} times for concurrent cold callers; "
+        "the double-checked lock should collapse them into one."
+    )
+    assert first is not None and second is not None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
