@@ -86,14 +86,26 @@ def reset_mongo_client():
     must restore the previous value or it leaks into every later test. Any
     client the test itself built is closed on the way out, otherwise its
     connection pool and monitor tasks outlive the test.
+
+    ``_db_lock`` is swapped for a fresh one per test as well. An ``asyncio.Lock``
+    binds to an event loop the first time it actually has to wait, and each
+    async test runs in its own loop, so a shared module-level lock that two
+    tests both contend raises "bound to a different event loop" in whichever
+    runs second. Production is unaffected — the Celery workers deliberately
+    keep one loop per process (see ``tasks/build_tasks.py``) — but without this
+    the next concurrency test added here would fail for a reason that looks
+    nothing like its own code.
     """
     previous = database._mongo_client
+    previous_lock = database._db_lock
     database._mongo_client = None
+    database._db_lock = asyncio.Lock()
     yield
     created = database._mongo_client
     if created is not None and created is not previous:
         created.close()
     database._mongo_client = previous
+    database._db_lock = previous_lock
 
 
 @pytest.mark.asyncio
