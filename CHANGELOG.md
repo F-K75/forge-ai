@@ -1698,9 +1698,14 @@ consistent, clamped, and correct across the board.
   `auth.py`, the pre-commit hook's own regex literals) failed the `git secrets
   --scan` step. Expanded `.gitallowed` with narrow, anchored exemptions.
 - **P0 — credential URLs silently missed**: git-secrets scans with `grep -w`, so
-  `mongodb://user:pass@host` / `redis://:pass@host` never matched (verified with
-  a real `mongodb://admin:s3cr3tP@ssw0rd@host` URL). The grep fallback now covers
-  them with portable POSIX patterns.
+  Mongo and Redis connection strings carrying inline credentials never matched
+  (verified against a real one, including the awkward case where the password
+  itself contains an `@`). The grep fallback now covers them with portable POSIX
+  patterns. Wording here is deliberately indirect: spelling those connection
+  strings out literally re-trips the scanner this entry is describing, and the
+  grep layer scans every touched file in full, so any later change to this file
+  would fail `secret-scan` on prose alone. Same reason `FORGE_AUDIT_LOG.md`
+  hedges its wording.
 - **Pre-commit hook dead fallback**: its `SECRET_PATTERNS` had inline `# comments`
   that broke the combined `grep -E` regex; cleaned and extended with URL patterns.
 - Made git-secrets install robust on `ubuntu-latest` (install `make` before the
