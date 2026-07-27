@@ -238,5 +238,18 @@
       "/Users/keshav/forge-ai/.git/hooks",
       "/Users/keshav/.npm/_npx/705bc6b22212b352"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/check-gstack.sh\""
+          }
+        ]
+      }
+    ]
   }
 }

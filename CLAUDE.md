@@ -2,21 +2,33 @@
 
 Guidance for Claude Code and other AI coding agents working in this repository.
 
-## gstack
+## gstack (REQUIRED — global install)
 
 This project uses [gstack](https://github.com/garrytan/gstack), a suite of Claude Code
-skills for planning, review, shipping, QA, and browsing.
+skills for planning, review, shipping, QA, and browsing. It is required for all
+AI-assisted work in this repo and enforced by a `PreToolUse` hook
+(`.claude/hooks/check-gstack.sh`), which denies skill invocations when gstack is missing.
 
-### Install
-
-gstack is a per-developer install (it lives in `~/.claude/skills`, not in this repo):
+**Before doing ANY work, verify gstack is installed:**
 
 ```bash
-git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-cd ~/.claude/skills/gstack && ./setup
+test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
 ```
 
-Update later with `/gstack-upgrade`.
+If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
+
+> gstack is required for all AI-assisted work in this repo.
+> Install it:
+> ```bash
+> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+> cd ~/.claude/skills/gstack && ./setup --team
+> ```
+> Then restart your AI coding tool.
+
+Do not skip skills, ignore gstack errors, or work around missing gstack.
+gstack is a per-developer install: it lives in `~/.claude/skills/gstack`, not in this
+repo. Use `~/.claude/skills/gstack/...` for gstack file paths. Update with
+`/gstack-upgrade`.
 
 ### Web browsing
 
