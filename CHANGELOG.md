@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-07-27 — A failed index provision no longer poisons the Mongo client (P1)
+
+### Fixed
+
+**A single transient MongoDB hiccup at startup used to switch off every unique
+constraint in the database for the rest of the process lifetime.**
+
+- **`backend/core/database.py`** — `get_db` assigned the client to its module
+  global *before* awaiting `_ensure_indexes`. When provisioning raised, the
+  client stayed cached: the error surfaced exactly once, then the `is None`
+  guard short-circuited every later call and handed back a database whose
+  indexes had never been created. What that costs is the unique constraints,
+  not query speed — `users.email`, the partial
+  `builds (user_id, idempotency_key)` index behind BUS-007,
+  `credit_purchases.stripe_payment_intent_id`, `api_keys.key_hash` and
+  `token_blacklist.jti` all stop being enforced, so duplicate accounts,
+  duplicate builds and double-credited payments become writable. The client is
+  now built into a local and published only after provisioning succeeds, and
+  the failure path closes it so the abandoned attempt does not leak its
+  connection pool and monitor tasks. Callers now keep erroring until
+  provisioning genuinely succeeds, and recover without a restart once MongoDB
+  returns.
+
+### Infrastructure
+
+- **`backend/tests/test_index_provisioning.py`** — five tests covering the
+  cached-client path: no caching on failure, retry until success, recovery
+  after a transient outage, caching once on the happy path, and concurrent
+  cold callers collapsing into a single provision. Three fail against the
+  pre-fix code. The fixture also swaps in a per-test `asyncio.Lock`, since a
+  module-level lock binds to whichever event loop first contends it.
+- **`CLAUDE.md`** — skill routing rules for gstack.
+- **`.gitignore`** — ignore the `.gstack/` runtime state directory.
+
 ## 2026-07-17 — AI Gateway runtime: prompt/context engineering, harness, loop engineer + Google OAuth (P0/P1)
 
 ### Features Added

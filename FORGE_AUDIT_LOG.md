@@ -127,6 +127,20 @@ risk · **P2** maintainability.
   three fail there. The fourth guards the happy path (provisioning still runs
   once, not per call) and passes both ways by design. Backend 741 passed at
   68.82%.
+- [ ] **P2 — `close_connections` closes the clients but never resets the
+  globals.** Same stale-global shape as the index-provision bug just fixed:
+  `core/database.py::close_connections` calls `.close()` on both clients and
+  leaves `_mongo_client` / `_redis_client` set, so a `get_db` after shutdown
+  returns a handle on a closed client. Not reachable today — shutdown is
+  terminal and `scripts/migrate_field_encryption_key.py` calls it last — which
+  is why it was not bundled into the fix. Reset both globals to `None`.
+- [ ] **P2 — A sustained Mongo outage now serialises every caller on
+  `_db_lock`.** Consequence of the index-provision fix, and the correct
+  trade: callers used to get an instant handle to an unindexed database, and
+  now they each pay one provisioning attempt (~5s, per INF-008 fast-fail)
+  behind the lock. Under an outage, N concurrent requests queue behind N
+  attempts. Bound it with a negative cache or a circuit breaker so a known-down
+  Mongo fails fast without re-attempting per request.
 - [ ] **P2 — `tasks/pm_tasks.py` is at 20% coverage** (148 statements, 118
   uncovered) and `services/pm_ws_manager.py` at 24%. These are the two weakest
   modules; overall coverage is 68% against a 60% gate, so the headroom exists to
