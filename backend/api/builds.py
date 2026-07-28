@@ -19,9 +19,7 @@ from core.models import (
     PlanTier,
     BuildFile,
 )
-from core.orchestrator import Orchestrator, MAX_DEBUG_ITERATIONS
 from core.database import get_db
-from sandbox.runner import SandboxRunner
 from services.ws_manager import manager, authenticate_websocket
 from tasks.build_tasks import run_build
 from api.auth import get_current_user
@@ -31,8 +29,6 @@ from core.permissions import has_build_access
 from services.credit_alerts import check_and_send_credit_alerts
 
 router = APIRouter(prefix="/builds", tags=["builds"])
-orchestrator = Orchestrator()
-sandbox = SandboxRunner()
 settings = get_settings()
 
 

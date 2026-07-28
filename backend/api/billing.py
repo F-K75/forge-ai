@@ -14,6 +14,7 @@ from api.razorpay import create_rzp_order, _require_razorpay, get_razorpay_clien
 
 settings = get_settings()
 stripe.api_key = settings.stripe_secret_key
+stripe.default_http_timeout = settings.default_http_timeout
 BILLING_PROVIDER = settings.billing_provider or "stripe"
 
 # Actor identity for audit_logs entries written by Stripe webhook handlers --

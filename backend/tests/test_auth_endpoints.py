@@ -95,9 +95,11 @@ def test_register_creates_user_and_returns_tokens(app_client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["access_token"]
-    assert body["refresh_token"]
+    assert "access_token" not in body
+    assert "refresh_token" not in body
     assert body["user"]["email"] == "new@example.com"
+    assert "access_token" in resp.cookies
+    assert "refresh_token" in resp.cookies
 
     stored = db.users.docs[0]
     assert stored["hashed_password"] != STRONG_PASSWORD
@@ -150,8 +152,10 @@ def test_login_succeeds_with_correct_credentials(app_client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["access_token"]
-    assert body["refresh_token"]
+    assert "access_token" not in body
+    assert "refresh_token" not in body
+    assert "access_token" in resp.cookies
+    assert "refresh_token" in resp.cookies
     assert len(db.sessions.docs) == 1
 
 
@@ -222,13 +226,15 @@ def test_refresh_issues_new_tokens(app_client):
     login_resp = client.post(
         "/auth/login", json={"email": "user@example.com", "password": STRONG_PASSWORD}
     )
-    old_refresh = login_resp.json()["refresh_token"]
+    old_refresh = login_resp.cookies.get("refresh_token")
 
     refresh_resp = client.post("/auth/refresh", json={"refresh_token": old_refresh})
     assert refresh_resp.status_code == 200
     body = refresh_resp.json()
-    assert body["access_token"]
-    assert body["refresh_token"]
+    assert "access_token" not in body
+    assert "refresh_token" not in body
+    assert "access_token" in refresh_resp.cookies
+    assert "refresh_token" in refresh_resp.cookies
     # The refresh flow updates the existing session row in place rather
     # than growing a new one (BE-010) -- still exactly one session.
     assert len(db.sessions.docs) == 1

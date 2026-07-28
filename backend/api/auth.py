@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request
+from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request, Header
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Union
@@ -12,7 +12,7 @@ import pyotp
 import resend
 
 from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session, PaginationParams
-from core.database import get_db, paginated_query
+from core.database import get_db, get_redis, paginated_query
 from core.cache import cached_read, invalidate_cache, user_profile_cache_key, USER_PROFILE_CACHE_TTL
 from core.config import get_settings
 from core.security import validate_password_strength, check_email_rate_limit, get_client_ip, validate_byok_base_url
@@ -44,8 +44,6 @@ class LoginRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
     token_type: str = "bearer"
     user: dict
 
@@ -204,6 +202,7 @@ async def _record_session(
         now = datetime.utcnow()
 
         if old_refresh_jti:
+            await _blacklist_jti(db, old_refresh_jti)
             result = await db.sessions.update_one(
                 {"user_id": user_id, "refresh_jti": old_refresh_jti, "revoked_at": None},
                 {
@@ -243,83 +242,115 @@ async def _blacklist_jti(db, jti: Optional[str]) -> None:
     )
 
 
+_MFA_BINDING_PREFIX = "mfa:binding"
+_MFA_PENDING_PREFIX = "mfa:pending"
+
+
+def _mfa_binding_key(jti: str) -> str:
+    return f"{_MFA_BINDING_PREFIX}:{jti}"
+
+
+def _mfa_pending_key(user_id: str) -> str:
+    return f"{_MFA_PENDING_PREFIX}:{user_id}"
+
+
+async def _store_mfa_binding(jti: str, ip_address: str, user_agent: str, ttl: int = 300) -> None:
+    redis = await get_redis()
+    await redis.setex(
+        _mfa_binding_key(jti),
+        ttl,
+        json_module.dumps({"ip": ip_address, "user_agent": user_agent}),
+    )
+
+
+async def _validate_mfa_binding(jti: str, ip_address: str, user_agent: str) -> bool:
+    redis = await get_redis()
+    raw = await redis.get(_mfa_binding_key(jti))
+    if not raw:
+        return False
+    try:
+        data = json_module.loads(raw)
+    except Exception:
+        return False
+    if data.get("ip") != ip_address or data.get("user_agent") != user_agent:
+        return False
+    await redis.delete(_mfa_binding_key(jti))
+    return True
+
+
+async def invalidate_previous_mfa_pending(user_id: str) -> None:
+    redis = await get_redis()
+    await redis.delete(_mfa_pending_key(user_id))
+
+
+
 async def get_current_user(
     request: Request,
     response: Response,
     access_token: Optional[str] = Cookie(None),
     refresh_token: Optional[str] = Cookie(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> User:
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    if access_token:
+        payload = decode_token(access_token)
+        if payload and payload.get("type") == "access":
+            user_id = payload.get("sub")
+            db = await get_db()
 
-    payload = decode_token(access_token)
-    if not payload or payload.get("type") != "access":
-        # Try refresh token
-        if not refresh_token:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
+            token_jti = payload.get("jti")
+            if token_jti:
+                blacklisted = await db.token_blacklist.find_one({"jti": token_jti})
+                if blacklisted:
+                    raise HTTPException(status_code=401, detail="Token revoked")
 
+            user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
+            if not user_doc:
+                raise HTTPException(status_code=401, detail="User not found")
+
+            user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+            if "github_token" in user_data and user_data["github_token"]:
+                user_data["github_token"] = decrypt_field(user_data["github_token"])
+
+            request.state.jti = token_jti
+            return User(**user_data)
+
+    if x_api_key:
+        from api.api_keys import validate_api_key
+        user = await validate_api_key(x_api_key)
+        if user:
+            return user
+
+    if refresh_token:
         refresh_payload = decode_token(refresh_token)
-        if not refresh_payload or refresh_payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        if refresh_payload and refresh_payload.get("type") == "refresh":
+            user_id = refresh_payload.get("sub")
+            db = await get_db()
+            user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
+            if user_doc:
+                user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
+                if "github_token" in user_data and user_data["github_token"]:
+                    user_data["github_token"] = decrypt_field(user_data["github_token"])
+                user = User(**user_data)
+                new_access = create_access_token({"sub": user.id, "email": user.email})
+                new_refresh = create_refresh_token({"sub": user.id, "email": user.email})
 
-        user_id = refresh_payload.get("sub")
-        db = await get_db()
-        user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
-        if not user_doc:
-            raise HTTPException(status_code=401, detail="User not found")
+                response.set_cookie(
+                    "access_token",
+                    new_access,
+                    **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+                )
+                response.set_cookie(
+                    "refresh_token",
+                    new_refresh,
+                    **_get_cookie_kwargs(30 * 24 * 60 * 60),
+                )
+                old_refresh_jti = refresh_payload.get("jti")
+                await _record_session(db, user.id, new_access, new_refresh, request, old_refresh_jti)
+                new_access_payload = decode_token(new_access) or {}
+                request.state.jti = new_access_payload.get("jti")
+                return user
 
-        # Check if token is blacklisted by JTI
-        token_jti = payload.get("jti")
-        if token_jti:
-            blacklisted = await db.token_blacklist.find_one({"jti": token_jti})
-            if blacklisted:
-                raise HTTPException(status_code=401, detail="Token revoked")
-
-        # Decrypt sensitive fields
-        user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
-        if "github_token" in user_data and user_data["github_token"]:
-            user_data["github_token"] = decrypt_field(user_data["github_token"])
-        user = User(**user_data)
-        new_access = create_access_token({"sub": user.id, "email": user.email})
-        new_refresh = create_refresh_token({"sub": user.id, "email": user.email})
-
-        response.set_cookie(
-            "access_token",
-            new_access,
-            **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
-        )
-        response.set_cookie(
-            "refresh_token",
-            new_refresh,
-            **_get_cookie_kwargs(30 * 24 * 60 * 60),
-        )
-        old_refresh_jti = refresh_payload.get("jti")
-        await _record_session(db, user.id, new_access, new_refresh, request, old_refresh_jti)
-        new_access_payload = decode_token(new_access) or {}
-        request.state.jti = new_access_payload.get("jti")
-        return user
-
-    user_id = payload.get("sub")
-    db = await get_db()
-    
-    # Check if access token is blacklisted by JTI
-    token_jti = payload.get("jti")
-    if token_jti:
-        blacklisted = await db.token_blacklist.find_one({"jti": token_jti})
-        if blacklisted:
-            raise HTTPException(status_code=401, detail="Token revoked")
-
-    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user_doc:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    # Decrypt sensitive fields
-    user_data = {k: v for k, v in user_doc.items() if k in User.model_fields}
-    if "github_token" in user_data and user_data["github_token"]:
-        user_data["github_token"] = decrypt_field(user_data["github_token"])
-
-    request.state.jti = token_jti
-    return User(**user_data)
+    raise HTTPException(status_code=401, detail="Not authenticated")
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -422,14 +453,20 @@ async def login(req: LoginRequest, request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if user_doc.get("mfa_enabled"):
-        # Do not issue real tokens or record a session yet -- the client
-        # must complete the TOTP/backup-code challenge at /auth/mfa/verify
-        # first (SEC-007).
         mfa_token = create_access_token(
             {"sub": user.id, "email": user.email},
             expires_delta=timedelta(minutes=5),
             token_type="mfa_pending",
         )
+        mfa_jti = decode_token(mfa_token).get("jti") if decode_token(mfa_token) else None
+        if mfa_jti:
+            try:
+                await invalidate_previous_mfa_pending(user.id)
+                client_ip = await get_client_ip(request)
+                user_agent = request.headers.get("user-agent", "")
+                await _store_mfa_binding(mfa_jti, client_ip, user_agent)
+            except Exception:
+                logging.warning("Failed to store MFA binding; proceeding without context binding")
         return MfaRequiredResponse(mfa_token=mfa_token)
 
     access_token = create_access_token({"sub": user.id, "email": user.email})
@@ -449,8 +486,6 @@ async def login(req: LoginRequest, request: Request, response: Response):
     await _record_session(db, user.id, access_token, refresh_token, request)
 
     return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
         user=_public_user_dict(user_doc),
     )
 
@@ -491,8 +526,6 @@ async def refresh(req: RefreshRequest, request: Request, response: Response):
     await _record_session(db, user.id, access_token, new_refresh, request, old_refresh_jti)
 
     return TokenResponse(
-        access_token=access_token,
-        refresh_token=new_refresh,
         user=_public_user_dict(user_doc),
     )
 
@@ -506,7 +539,6 @@ async def logout(
 ):
     db = await get_db()
 
-    # Blacklist the access token by JTI for immediate revocation
     jti = None
     if access_token:
         payload = decode_token(access_token)
@@ -521,7 +553,6 @@ async def logout(
             refresh_jti = refresh_payload["jti"]
             await _blacklist_jti(db, refresh_jti)
 
-    # Mark the matching session as revoked so it drops off the sessions list.
     if jti:
         await db.sessions.update_one(
             {"user_id": user.id, "jti": jti, "revoked_at": None},
@@ -531,13 +562,6 @@ async def logout(
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"ok": True}
-
-
-def _generate_backup_codes(count: int = 10) -> List[str]:
-    """Generate plaintext backup codes. Callers must hash these before
-    storage and only return the plaintext once, in the setup-verification
-    response."""
-    return [secrets.token_hex(4).upper() for _ in range(count)]
 
 
 @router.post("/mfa/setup", response_model=MfaSetupResponse)
@@ -645,6 +669,14 @@ async def mfa_verify(req: MfaVerifyRequest, request: Request, response: Response
     if not user_doc.get("mfa_enabled"):
         raise HTTPException(status_code=400, detail="MFA is not enabled for this account")
 
+    client_ip = await get_client_ip(request)
+    user_agent = request.headers.get("user-agent", "")
+    try:
+        if not await _validate_mfa_binding(jti, client_ip, user_agent):
+            raise HTTPException(status_code=401, detail="Invalid or expired MFA token")
+    except Exception:
+        logging.warning("MFA binding validation failed; proceeding without context check")
+
     verified = False
 
     encrypted_secret = user_doc.get("totp_secret")
@@ -694,8 +726,6 @@ async def mfa_verify(req: MfaVerifyRequest, request: Request, response: Response
     await _record_session(db, user.id, access_token, refresh_token, request)
 
     return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
         user=_public_user_dict(user_doc),
     )
 
@@ -1043,13 +1073,29 @@ async def google_login(request: Request):
         scope="openid email profile",
         redirect_uri=settings.google_redirect_uri,
     )
-    auth_url, _ = client.create_authorization_url("https://accounts.google.com/o/oauth2/v2/auth")
+    state = secrets.token_urlsafe(32)
+    redis = await get_redis()
+    await redis.setex(f"oauth:state:{state}", 600, "1")
+    auth_url, _ = client.create_authorization_url(
+        "https://accounts.google.com/o/oauth2/v2/auth",
+        state=state,
+    )
     return RedirectResponse(url=auth_url)
 
 
 @router.get("/google/callback")
 async def google_callback(request: Request, response: Response):
-    """Handle Google OAuth callback and redirect to frontend with tokens."""
+    """Handle Google OAuth callback and redirect to frontend with HttpOnly cookies."""
+    state = request.query_params.get("state")
+    if not state:
+        raise HTTPException(status_code=400, detail="Missing state parameter")
+
+    redis = await get_redis()
+    stored_state = await redis.get(f"oauth:state:{state}")
+    if not stored_state:
+        raise HTTPException(status_code=400, detail="Invalid or expired state parameter")
+    await redis.delete(f"oauth:state:{state}")
+
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
@@ -1064,13 +1110,17 @@ async def google_callback(request: Request, response: Response):
             "https://oauth2.googleapis.com/token",
             code=code,
             grant_type="authorization_code",
+            timeout=settings.default_http_timeout,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to fetch token: {str(e)}")
 
     # Get user info from Google
     user_info_client = OAuth2Session(settings.google_client_id, token=token)
-    user_info = await user_info_client.get("https://www.googleapis.com/oauth2/v2/userinfo")
+    user_info = await user_info_client.get(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        timeout=settings.default_http_timeout,
+    )
     if user_info.status_code != 200:
         raise HTTPException(status_code=400, detail="Failed to fetch user info")
     
@@ -1114,15 +1164,25 @@ async def google_callback(request: Request, response: Response):
     access_token = create_access_token({"sub": user.id, "email": user.email})
     refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
 
+    response.set_cookie(
+        "access_token",
+        access_token,
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        **_get_cookie_kwargs(30 * 24 * 60 * 60),
+    )
+
     await _record_session(db, user.id, access_token, refresh_token, request)
 
-    # Prefer explicit Google frontend app URL if provided; otherwise fall back
-    # to settings.app_url. This avoids mismatches when frontend dev server
-    # runs on a different port than API/app URL config.
     frontend_base = getattr(settings, "google_frontend_app_url", None) or settings.app_url
-    user_json = json_module.dumps(user.model_dump())
-    frontend_callback_url = f"{frontend_base}/google-callback?access_token={access_token}&refresh_token={refresh_token}&user={user_json}"
-    return RedirectResponse(url=frontend_callback_url)
+    allowed_origins = [o.strip() for o in settings.allowed_origins.split(",") if o.strip()]
+    if frontend_base not in allowed_origins:
+        frontend_base = allowed_origins[0] if allowed_origins else frontend_base
+
+    return RedirectResponse(url=f"{frontend_base}/google-callback")
 
 
 @router.post("/resend-verification")

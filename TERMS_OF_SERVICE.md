@@ -104,7 +104,7 @@ Portions of Forge AI may be open source under the MIT License. Open-source compo
 
 ## 13. Governing Law
 
-These terms are governed by the laws of [Jurisdiction TBD]. Disputes shall be resolved through binding arbitration.
+These terms are governed by the laws of [PENDING: jurisdiction to be determined before accepting payments]. Disputes shall be resolved through binding arbitration.
 
 ## 14. Changes to Terms
 
@@ -116,4 +116,4 @@ For legal inquiries: legal@forge.ai
 
 ---
 
-**Entity:** Forge AI (entity registration in progress)
+**Entity:** Forge AI (entity registration pending — legal entity details to be completed before payment acceptance)

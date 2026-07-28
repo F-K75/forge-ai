@@ -1,4 +1,5 @@
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -172,14 +173,10 @@ if settings.sentry_dsn:
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Catch anything that escapes a route handler (a real bug, not an
-    intentional HTTPException -- FastAPI's built-in handler for those takes
-    precedence via its more specific type match, so this only fires for the
-    unexpected) with a consistent JSON body instead of Starlette's default
-    plain-text 500, and make sure it's actually logged and reported
-    somewhere centralized rather than only ever reaching a server's stdout
-    (BE-002).
-    """
+    if isinstance(exc, HTTPException):
+        raise
+    if isinstance(exc, RequestValidationError):
+        raise
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     if settings.sentry_dsn:
         import sentry_sdk

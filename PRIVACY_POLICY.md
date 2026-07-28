@@ -37,7 +37,7 @@ Forge AI ("we," "our," or "us") is committed to protecting your privacy. This Pr
 
 - **Encryption at Rest:** Sensitive fields are encrypted using AES-256
 - **Encryption in Transit:** All API traffic uses TLS 1.2+
-- **Data Residency:** Data is stored in [region TBD]. Contact us for enterprise data residency options.
+- **Data Residency:** Data is stored in [PENDING: region to be confirmed before production launch]. Contact us for enterprise data residency options.
 - **Retention:** Build files are retained for 90 days. Audit logs for 1 year. Account data until deletion request.
 
 ## 5. Data Sharing
@@ -93,4 +93,4 @@ Data Protection Officer: dpo@forge.ai
 
 ---
 
-**Entity:** Forge AI (entity registration in progress)
+**Entity:** Forge AI (entity registration pending — legal entity details to be completed before payment acceptance)
