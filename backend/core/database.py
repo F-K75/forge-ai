@@ -40,10 +40,6 @@ async def get_db():
                     settings.mongodb_url,
                     maxPoolSize=50,
                     minPoolSize=10,
-                    # INF-008: bounded pool + fast-fail. A request that cannot get
-                    # a pooled connection fails fast via waitQueueTimeoutMS rather
-                    # than blocking indefinitely, and idle connections are
-                    # recycled by maxIdleTimeMS.
                     maxIdleTimeMS=60_000,
                     waitQueueTimeoutMS=10_000,
                     serverSelectionTimeoutMS=_server_selection_timeout_ms(),
@@ -52,19 +48,18 @@ async def get_db():
                 try:
                     await _ensure_indexes(client.forge)
                 except Exception:
-                    # Publish the client to the module global only after
-                    # provisioning succeeds. Assigning first meant a failure left
-                    # a cached client behind: the error surfaced once, then the
-                    # `is None` guard above short-circuited every later call and
-                    # handed out a database whose unique indexes — user email,
-                    # build idempotency key, Stripe payment intent — were never
-                    # created. Closing the client here also keeps the failed
-                    # attempt from leaking its connection pool and monitor tasks.
                     client.close()
                     logger.exception("MongoDB index provisioning failed")
                     raise
                 _mongo_client = client
     return _mongo_client.forge
+
+
+async def get_mongo_client() -> AsyncIOMotorClient:
+    """Return the raw Motor client for transaction sessions."""
+    if _mongo_client is None:
+        await get_db()
+    return _mongo_client
 
 
 async def apply_retention_ttl_indexes(db) -> None:
@@ -182,6 +177,8 @@ async def _ensure_indexes(db):
             db.token_blacklist.create_index([("jti", 1)], unique=True),
             # Webhooks index
             db.webhooks.create_index([("user_id", 1)]),
+            # SAML config index
+            db.saml_configs.create_index([("org_id", 1)]),
             # AI usage indexes (AI-001)
             db.ai_usage.create_index([("user_id", 1), ("created_at", -1)]),
             db.ai_usage.create_index([("org_id", 1), ("created_at", -1)]),
@@ -361,3 +358,29 @@ async def close_connections():
         _mongo_client.close()
     if _redis_client:
         await _redis_client.aclose()
+
+
+async def with_transaction(callback):
+    """Run an async callback with a MongoDB transaction when the deployment
+    is a replica set; fall back to a plain call otherwise so development and
+    CI (which typically run standalone mongod) do not break.
+
+    The callback receives a ``session`` argument when transactions are active,
+    or ``None`` when falling back. Returns the callback's return value.
+    """
+    client = await get_mongo_client()
+    try:
+        session = await client.start_session()
+    except Exception:
+        return await callback(None)
+
+    try:
+        async with session.start_transaction():
+            result = await callback(session)
+            await session.commit_transaction()
+            return result
+    except Exception:
+        await session.abort_transaction()
+        raise
+    finally:
+        await session.end_session()

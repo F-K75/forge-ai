@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Chrome } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Chrome, Building2 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { API_URL } from "../store/authStore";
 
@@ -551,6 +551,18 @@ export default function AuthPage() {
               >
                 <Chrome className="w-4 h-4" aria-hidden="true" />
                 Google
+              </motion.button>
+
+              <motion.button
+                type="button"
+                disabled
+                title="SSO/SAML is available for Enterprise customers. Contact sales to enable."
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full h-11 rounded-md border border-land-border bg-land-paper text-land-ink text-sm font-medium hover:bg-land-border/30 transition inline-flex items-center justify-center gap-2 opacity-70 cursor-not-allowed"
+              >
+                <Building2 className="w-4 h-4" aria-hidden="true" />
+                SSO / SAML (Enterprise)
               </motion.button>
 
               <p className="mt-2 text-xs text-land-muted text-center leading-relaxed">

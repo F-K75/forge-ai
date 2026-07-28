@@ -23,6 +23,13 @@ celery_app.conf.task_routes = {
 
 celery_app.conf.task_serializer = "json"
 celery_app.conf.result_serializer = "json"
+celery_app.conf.beat_schedule = {
+    "cleanup-old-dead-letters": {
+        "task": "backend.tasks.build_tasks.cleanup_old_dead_letters",
+        "schedule": 3600.0,
+        "args": (30,),
+    },
+}
 
 import tasks.build_tasks  # noqa: E402,F401 - registers tasks on this app instance
 import tasks.pm_tasks  # noqa: E402,F401 - registers tasks on this app instance

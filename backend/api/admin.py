@@ -7,6 +7,7 @@ from pathlib import Path
 import csv
 import io
 import json
+import secrets
 
 from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams
 from core.database import get_db, get_redis, cache_get_json, cache_set_json, paginated_query
@@ -1060,4 +1061,76 @@ async def toggle_user_admin(
     await db.audit_logs.insert_one(audit_log.model_dump())
 
     return {"user_id": user_id, "is_admin": req.is_admin, "unchanged": False}
+
+
+class SamlConfigResponse(BaseModel):
+    id: str
+    org_id: Optional[str]
+    entity_id: str
+    sso_url: str
+    x509_cert: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class SamlConfigRequest(BaseModel):
+    org_id: Optional[str] = None
+    entity_id: str
+    sso_url: str
+    x509_cert: str
+
+
+@router.get("/sso/saml", response_model=List[SamlConfigResponse])
+async def list_saml_configs(
+    admin: User = Depends(admin_required),
+):
+    db = await get_db()
+    docs = await db.saml_configs.find({}, {"_id": 0}).to_list(None)
+    return [SamlConfigResponse(**doc) for doc in docs]
+
+
+@router.post("/sso/saml", response_model=SamlConfigResponse)
+async def create_saml_config(
+    req: SamlConfigRequest,
+    request: Request,
+    admin: User = Depends(admin_required),
+):
+    db = await get_db()
+    config_id = f"saml_{secrets.token_urlsafe(16)}"
+    now = datetime.utcnow()
+    doc = {
+        "id": config_id,
+        "org_id": req.org_id,
+        "entity_id": req.entity_id,
+        "sso_url": req.sso_url,
+        "x509_cert": req.x509_cert,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.saml_configs.insert_one(doc)
+
+    await record_audit_log(
+        db, request, admin, "create_saml_config", "saml_config",
+        resource_id=config_id,
+        changes={"entity_id": req.entity_id, "sso_url": req.sso_url},
+    )
+    return SamlConfigResponse(**doc)
+
+
+@router.delete("/sso/saml/{config_id}")
+async def delete_saml_config(
+    config_id: str,
+    request: Request,
+    admin: User = Depends(admin_required),
+):
+    db = await get_db()
+    result = await db.saml_configs.delete_one({"id": config_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="SAML config not found")
+
+    await record_audit_log(
+        db, request, admin, "delete_saml_config", "saml_config",
+        resource_id=config_id,
+    )
+    return {"ok": True}
 

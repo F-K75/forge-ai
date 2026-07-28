@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
 import { LIVE_MODE } from "./lib/env"
+import CookieConsent from "./components/CookieConsent"
 
 const AuthPage = lazy(() => import("./pages/AuthPage"))
 const Signup = lazy(() => import("./pages/Signup"))
@@ -448,6 +449,7 @@ export default function App() {
             },
           }}
         />
+        <CookieConsent />
       </BrowserRouter>
     </QueryClientProvider>
   )

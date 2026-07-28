@@ -9,7 +9,7 @@ from fastapi import (
     Depends,
 )
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 
 from core.models import (
@@ -18,8 +18,10 @@ from core.models import (
     User,
     PlanTier,
     BuildFile,
+    PaginationParams,
 )
-from core.database import get_db
+from core.orchestrator import MAX_DEBUG_ITERATIONS
+from core.database import get_db, with_transaction
 from services.ws_manager import manager, authenticate_websocket
 from tasks.build_tasks import run_build
 from api.auth import get_current_user
@@ -119,59 +121,64 @@ async def create_build(
         MAX_DEBUG_ITERATIONS * CREDIT_COSTS.get("debug", 2), estimated_credits
     )
 
-    # The first build on an account runs unmetered. A build reserves at least
-    # sum(CREDIT_COSTS) credits -- more once the project has a tech stack --
-    # while a new account is granted settings.free_credits, which is smaller.
-    # Without this grant a free user is rejected before their first build ever
-    # starts, so nobody can reach a finished application before paying.
-    #
-    # Claimed with a single atomic flag flip rather than by counting existing
-    # builds: two concurrent requests would both read a count of zero, but only
-    # one can win this update. The abuse ceiling is therefore exactly one
-    # unmetered build per account. The flag is consumed on claim, including
-    # when the build later fails -- see the caveat in FORGE_AUDIT_LOG.md.
-    free_build = await db.users.find_one_and_update(
-        {"id": current_user.id, "free_build_used": {"$ne": True}},
-        {"$set": {"free_build_used": True}},
-        return_document=True,
-    )
+    build = None
+    reserved_doc = None
+    used_free_build = False
 
-    if free_build is not None:
-        # Reserve nothing. The refund paths in tasks/build_tasks.py compute
-        # max(0, reserved_credits - used), so a zero reservation neither debits
-        # the account up front nor credits it back on completion.
-        max_credits = 0
-        reserved = free_build
-    else:
-        reserved = await db.users.find_one_and_update(
-            {"id": current_user.id, "credits": {"$gte": max_credits}},
-            {"$inc": {"credits": -max_credits}},
-            return_document=True,
-        )
-        if not reserved:
-            raise HTTPException(status_code=402, detail="Insufficient credits")
-
-    await check_and_send_credit_alerts(
-        db, current_user.id, reserved.get("plan", "free"), reserved["credits"]
-    )
-
-    try:
-        # Build deduplication: prevent duplicate builds for the same project within 30 seconds
-        thirty_seconds_ago = datetime.utcnow() - timedelta(seconds=30)
-        recent_build = await db.builds.find_one(
+    if req.idempotency_key:
+        existing = await db.builds.find_one(
             {
-                "project_id": req.project_id,
                 "user_id": current_user.id,
-                "status": {"$in": ["pending", "building"]},
-                "created_at": {"$gte": thirty_seconds_ago},
+                "idempotency_key": req.idempotency_key,
             },
             {"_id": 0},
         )
-        if recent_build:
-            raise HTTPException(
-                status_code=429,
-                detail="A build is already in progress for this project. Please wait.",
+        if existing:
+            return {
+                "build_id": existing["id"],
+                "status": existing.get("status", BuildStatus.PENDING),
+                "idempotent": True,
+            }
+
+    thirty_seconds_ago = datetime.utcnow() - timedelta(seconds=30)
+    recent_build = await db.builds.find_one(
+        {
+            "project_id": req.project_id,
+            "user_id": current_user.id,
+            "status": {"$in": ["pending", "building"]},
+            "created_at": {"$gte": thirty_seconds_ago},
+        },
+        {"_id": 0},
+    )
+    if recent_build:
+        raise HTTPException(
+            status_code=429,
+            detail="A build is already in progress for this project. Please wait.",
+        )
+
+    async def _create_build_in_txn(session) -> None:
+        nonlocal reserved_doc, build, used_free_build
+        users = db.users
+        builds = db.builds
+        free_build = await users.find_one_and_update(
+            {"id": current_user.id, "free_build_used": {"$ne": True}},
+            {"$set": {"free_build_used": True}},
+            session=session,
+            return_document=True,
+        )
+
+        if free_build is not None:
+            used_free_build = True
+            reserved_doc = free_build
+        else:
+            reserved_doc = await users.find_one_and_update(
+                {"id": current_user.id, "credits": {"$gte": max_credits}},
+                {"$inc": {"credits": -max_credits}},
+                session=session,
+                return_document=True,
             )
+            if not reserved_doc:
+                raise HTTPException(status_code=402, detail="Insufficient credits")
 
         build = Build(
             project_id=req.project_id,
@@ -181,18 +188,22 @@ async def create_build(
             status=BuildStatus.PENDING,
             interactive=req.interactive,
         )
-
-        # Omit idempotency_key entirely when unset rather than writing null --
-        # the unique index on (user_id, idempotency_key) is only partial over
-        # documents where the field `$exists`, so a stored null still "exists"
-        # and every no-idempotency-key build for a user collided with the
-        # first one (DuplicateKeyError on the 2nd+ build, every time).
         build_dict = build.model_dump()
         if build_dict.get("idempotency_key") is None:
             build_dict.pop("idempotency_key", None)
 
-        await db.builds.insert_one(build_dict)
+        await builds.insert_one(build_dict, session=session)
 
+    await with_transaction(_create_build_in_txn)
+
+    if reserved_doc is None or build is None:
+        raise HTTPException(status_code=500, detail="Build creation failed")
+
+    await check_and_send_credit_alerts(
+        db, current_user.id, reserved_doc.get("plan", "free"), reserved_doc.get("credits", 0)
+    )
+
+    try:
         conversation_history, existing_files = await _get_prior_build_context(
             db, req.project_id
         )
@@ -201,21 +212,15 @@ async def create_build(
             build.id,
             req.project_id,
             current_user.id,
-            max_credits,
+            max_credits if not used_free_build else 0,
             conversation_history,
             existing_files,
         )
     except Exception:
-        # Anything failing between reservation and a successfully dispatched
-        # Celery task (duplicate build, DB error, etc.) would otherwise leak
-        # the reserved credits forever -- run_build's own refund logic never
-        # gets a chance to run because the task was never enqueued.
         await db.users.update_one(
             {"id": current_user.id}, {"$inc": {"credits": max_credits}}
         )
-        if free_build is not None:
-            # Same leak, one level up: the task never ran, so the account never
-            # got the unmetered build it just spent its one-shot grant on.
+        if used_free_build:
             await db.users.update_one(
                 {"id": current_user.id}, {"$set": {"free_build_used": False}}
             )
@@ -392,4 +397,30 @@ async def websocket_endpoint(
                 await websocket.send_text(json.dumps({"type": "ping"}))
     except WebSocketDisconnect:
         manager.disconnect(websocket, build_id)
+
+
+class DeadLetterResponse(BaseModel):
+    build_id: str
+    reason: str
+    error: str
+    retry_count: int
+    credits_used: int
+    created_at: datetime
+    dead_lettered_at: datetime
+
+
+@router.get("/dead-letter", response_model=List[DeadLetterResponse])
+async def list_my_dead_letters(
+    current_user: User = Depends(get_current_user),
+    params: PaginationParams = Depends(),
+):
+    db = await get_db()
+    result = await paginated_query(
+        db.build_dead_letters,
+        {"user_id": current_user.id},
+        page=params.page,
+        per_page=params.per_page,
+        sort=[("dead_lettered_at", -1)],
+    )
+    return [DeadLetterResponse(**doc) for doc in result.items]
 

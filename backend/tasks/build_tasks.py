@@ -20,6 +20,32 @@ settings = get_settings()
 orchestrator = Orchestrator()
 sandbox = SandboxRunner()
 
+
+def _alert_dead_letter(build_id: str, user_id: str, reason: str, error_msg: str, retry_count: int) -> None:
+    if not settings.resend_api_key:
+        return
+    try:
+        import resend
+
+        resend.api_key = settings.resend_api_key
+        resend.Emails.send(
+            {
+                "from": settings.from_email,
+                "to": settings.admin_emails.split(",")[0].strip(),
+                "subject": f"Build {build_id} failed permanently after {retry_count} retries",
+                "html": (
+                    f"<p>Build <strong>{build_id}</strong> for user <strong>{user_id}</strong> "
+                    f"has been moved to the dead-letter queue after <strong>{retry_count}</strong> retries.</p>"
+                    f"<p><strong>Reason:</strong> {reason}</p>"
+                    f"<p><strong>Error:</strong> {error_msg}</p>"
+                    f"<p>Credits used: {settings.credits_architect + settings.credits_developer}</p>"
+                ),
+            }
+        )
+    except Exception:
+        logger.exception("Failed to send dead-letter alert email")
+
+
 _worker_loop: Optional[asyncio.AbstractEventLoop] = None
 
 
@@ -167,6 +193,7 @@ def run_build(
                     created_at=build.created_at,
                 ).model_dump()
             )
+            _alert_dead_letter(build_id, user_id, reason, error_msg, retry_count)
 
         try:
             build, files = await orchestrator.run_build(
@@ -277,6 +304,31 @@ def run_build(
                 self.request.retries,
             )
             raise
+
+    return _run_async(_run())
+
+
+@current_app.task(name="backend.tasks.build_tasks.cleanup_old_dead_letters")
+def cleanup_old_dead_letters(retention_days: int = 30) -> dict:
+    """Periodic task to purge dead-letter entries older than retention_days
+    and alert ops if the dead-letter queue is growing abnormally."""
+
+    async def _run():
+        db = await get_db()
+        cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        result = await db.build_dead_letters.delete_many(
+            {"dead_lettered_at": {"$lt": cutoff}}
+        )
+        count = await db.build_dead_letters.count_documents({})
+        if count > 100:
+            _alert_dead_letter(
+                "bulk",
+                "system",
+                "dead_letter_queue_overflow",
+                f"Dead-letter queue has {count} entries",
+                0,
+            )
+        return {"deleted": result.deleted_count, "remaining": count}
 
     return _run_async(_run())
 
