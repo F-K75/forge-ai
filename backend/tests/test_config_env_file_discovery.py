@@ -69,7 +69,7 @@ def test_settings_actually_consults_the_repo_root_env():
     pydantic rather than this repo's wiring. This is the one that fails if
     someone restores `env_file = ".env"`.
     """
-    env_file = config.Settings.Config.env_file
+    env_file = config.Settings.model_config.get("env_file")
 
     assert isinstance(env_file, tuple), f"expected a tuple of paths, got {env_file!r}"
     assert config._REPO_ROOT_ENV in env_file

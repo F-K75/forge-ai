@@ -7,6 +7,7 @@ from typing import Optional
 from celery.exceptions import SoftTimeLimitExceeded
 from celery_app import celery_app as current_app
 from core.config import get_settings
+from core.security import request_id_var
 from core.metrics import build_outcomes_total, build_duration_seconds, build_credits_used
 from core.models import Build, BuildStatus, BuildDeadLetter, WSEvent, WSEventType, BuildFile
 from core.orchestrator import BuildCancelled, Orchestrator
@@ -212,10 +213,12 @@ def run_build(
             return {"status": "success", "build_id": build_id, "credits_used": used}
 
         except SoftTimeLimitExceeded:
+            correlation_id = request_id_var.get()
             logger.exception(
-                "Build %s exceeded soft time limit of %ss",
+                "Build %s exceeded soft time limit of %s [correlation_id=%s]",
                 build_id,
                 settings.build_timeout,
+                correlation_id,
             )
             used = int(build.credits_used or 0)
             refund = max(0, reserved_credits - used)

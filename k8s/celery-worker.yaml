@@ -21,19 +21,22 @@ spec:
       labels:
         app: celery-worker
     spec:
-      # Celery's own SIGTERM handler already does a "warm" shutdown (stop
-      # accepting new tasks, finish the ones in flight) with no extra code
-      # needed -- but k8s's default 30s grace period was far shorter than a
-      # single build can take (build_timeout is 600s), so a rolling update
-      # or scale-down would still SIGKILL a worker mid-build regardless of
-      # Celery's own graceful handling (BE-005).
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: celery-worker
+              topologyKey: kubernetes.io/hostname
       terminationGracePeriodSeconds: 630
       containers:
       - name: celery
-        # Same image as k8s/backend.yaml -- the Celery worker runs the
-        # backend codebase, just with a different command below.
-        image: ghcr.io/GHCR_OWNER/forge-backend:latest
-        imagePullPolicy: Always
+        # Pin to an immutable tag (e.g. commit SHA or release version) via
+        # IMAGE_TAG env var / deploy-time substitution.
+        image: ghcr.io/GHCR_OWNER/forge-backend:${IMAGE_TAG:-latest}
+        imagePullPolicy: IfNotPresent
         command:
         - celery
         - -A

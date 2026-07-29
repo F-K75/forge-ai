@@ -9,7 +9,8 @@ import { buildsApi } from "../../lib/api";
 import { LIVE_MODE } from "../../lib/env";
 import { resolveMockGate } from "../../lib/mockEmitter";
 import { Toggle } from "../Toggle";
-import { AgentDocumentView, agentDocumentToMarkdown } from "./AgentDocument";
+import { AgentDocumentView } from "./AgentDocument";
+import { agentDocumentToMarkdown } from "./AgentDocument.utils";
 
 // Triggers a browser download built client-side from content already in the
 // store — there's no server endpoint for single-file/document export.

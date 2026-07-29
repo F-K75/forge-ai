@@ -4,6 +4,7 @@ import hmac
 import hashlib
 from typing import Dict, Any
 from datetime import datetime
+from core.models import utcnow
 
 import httpx
 
@@ -25,7 +26,7 @@ async def deliver_webhook(url: str, payload: Dict[str, Any], secret: str) -> boo
     if not valid:
         return False
 
-    timestamp = str(int(datetime.utcnow().timestamp()))
+    timestamp = str(int(utcnow().timestamp()))
     body = json.dumps(payload, separators=(",", ":"))
 
     signature = hmac.new(
@@ -62,7 +63,7 @@ async def queue_webhook_delivery(
     
     for webhook in webhooks:
         queue_item = {
-            "id": f"wh_{datetime.utcnow().timestamp()}",
+            "id": f"wh_{utcnow().timestamp()}",
             "webhook_id": webhook["id"],
             "url": webhook["url"],
             "secret": webhook["secret"],
@@ -73,7 +74,7 @@ async def queue_webhook_delivery(
             # ISO string, not a datetime: this dict goes straight through
             # json.dumps below, which cannot serialize datetime objects. The
             # queue consumer reads created_at back as a string.
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": utcnow().isoformat(),
         }
         await redis.lpush("webhook_queue", json.dumps(queue_item))
 

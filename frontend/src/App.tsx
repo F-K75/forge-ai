@@ -136,12 +136,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <LoadingSpinner />
   }
 
-  // Admin check: verify via user object from /auth/me
-  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean)
-  const isAdmin = adminEmails.includes(user?.email || "")
+  // Admin check: verify via server-side user object from /auth/me
+  // The server enforces admin authorization on all protected endpoints.
+  // The `is_admin` field is set by the backend based on server-side config,
+  // NOT by a client-side env var that can be inspected or bypassed.
+  const isAdmin = user?.is_admin === true
 
   if (!isAdmin) {
     return <Navigate to="/projects" replace />

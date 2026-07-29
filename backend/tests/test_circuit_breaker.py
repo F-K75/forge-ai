@@ -1,6 +1,7 @@
 """Tests for AI-006: graceful degradation when the LLM circuit breaker is open."""
 
 import asyncio
+import time
 
 import pytest
 
@@ -22,9 +23,9 @@ def test_circuit_breaker_retry_after_counts_down():
     cb.record_failure()
     assert cb.retry_after() == 10
     # Simulate time passing by adjusting last_failure_time.
-    cb.last_failure_time = asyncio.get_event_loop().time() - 5
+    cb.last_failure_time = time.monotonic() - 5
     assert cb.retry_after() == 5
-    cb.last_failure_time = asyncio.get_event_loop().time() - 15
+    cb.last_failure_time = time.monotonic() - 15
     assert cb.retry_after() == 0
 
 
@@ -34,7 +35,7 @@ def test_circuit_breaker_half_open_after_timeout():
     assert cb.state == "open"
     assert not cb.can_call()
     # After the recovery timeout elapses, can_call should half-open.
-    cb.last_failure_time = asyncio.get_event_loop().time() - 2
+    cb.last_failure_time = time.monotonic() - 2
     assert cb.can_call()
     assert cb.state == "half_open"
 

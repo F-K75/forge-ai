@@ -11,6 +11,7 @@ BaseModel, UUID4 string ids, no ORM -- routes persist via Motor dicts.
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from core.models import utcnow
 from enum import Enum
 import uuid
 
@@ -123,8 +124,8 @@ class Initiative(BaseModel):
     # Forge app-build Projects (core.models.Project) spawned to execute this plan.
     project_ids: List[str] = []
     generation_error: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- PRD (Module 2) ---
@@ -147,8 +148,8 @@ class PRD(BaseModel):
     database_overview: str = ""
     release_plan: str = ""
     version: int = 1
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Epic / Story / Task (Modules 3-5) ---
@@ -166,8 +167,8 @@ class Epic(BaseModel):
     owner: str = PMAgentRole.HUMAN.value
     status: WorkItemStatus = WorkItemStatus.BACKLOG
     order: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class Story(BaseModel):
@@ -185,8 +186,8 @@ class Story(BaseModel):
     dependencies: List[str] = []  # other Story ids
     status: WorkItemStatus = WorkItemStatus.BACKLOG
     order: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class Task(BaseModel):
@@ -209,8 +210,8 @@ class Task(BaseModel):
     generated_files: List[str] = []
     # branch, pr_number, pr_url, commit_shas, review_status, merge_status (Module 13)
     github: Dict[str, Any] = {}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
@@ -235,21 +236,21 @@ class Sprint(BaseModel):
     agent_load: Dict[str, int] = {}
     completion_probability: float = 0.0
     status: SprintStatus = SprintStatus.PLANNED
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class StandUp(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     sprint_id: str
     initiative_id: str
-    date: datetime = Field(default_factory=datetime.utcnow)
+    date: datetime = Field(default_factory=utcnow)
     yesterday: str = ""
     today: str = ""
     blockers: List[str] = []
     risks: List[str] = []
     sprint_health: str = ""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class SprintReview(BaseModel):
@@ -259,7 +260,7 @@ class SprintReview(BaseModel):
     summary: str = ""
     completed_tasks: List[str] = []
     demo_notes: str = ""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class SprintRetro(BaseModel):
@@ -269,7 +270,7 @@ class SprintRetro(BaseModel):
     what_went_well: List[str] = []
     what_went_wrong: List[str] = []
     action_items: List[str] = []
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class RiskReport(BaseModel):
@@ -277,14 +278,14 @@ class RiskReport(BaseModel):
     initiative_id: str
     sprint_id: Optional[str] = None
     risks: List[Dict[str, Any]] = []  # {description, severity, likelihood, mitigation}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class TechDebtSummary(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     initiative_id: str
     items: List[Dict[str, Any]] = []  # {description, location, severity, effort_to_fix}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Agent execution (Modules 9-10) ---
@@ -306,7 +307,7 @@ class AgentExecution(BaseModel):
     completed_at: Optional[datetime] = None
     duration_seconds: float = 0.0
     error: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Release (Module 12) ---
@@ -324,8 +325,8 @@ class Release(BaseModel):
     estimated_release_date: Optional[datetime] = None
     confidence_score: int = 0
     status: ReleaseStatus = ReleaseStatus.PLANNED
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Decision engine audit trail (Module 14) ---
@@ -337,7 +338,7 @@ class DecisionLogEntry(BaseModel):
     task_id: Optional[str] = None
     trigger: str = ""
     actions: List[str] = []
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- WebSocket events (separate channel from core.models.WSEvent, which is
@@ -368,4 +369,5 @@ class PMWSEvent(BaseModel):
     type: PMWSEventType
     initiative_id: str
     data: Dict[str, Any] = {}
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utcnow)
+    version: int = 1

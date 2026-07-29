@@ -5,6 +5,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
+from core.models import utcnow
 
 from core.database import get_db
 
@@ -119,7 +120,7 @@ async def get_user_budget(user_id: str, org_id: Optional[str] = None) -> Dict[st
     """Aggregate today's (UTC) token usage for a user or organization against its plan's daily limit."""
     db = await get_db()
     limit = await _effective_daily_limit(db, user_id, org_id)
-    day_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
     match: Dict[str, Any] = {"created_at": {"$gte": day_start}}
     match["org_id" if org_id else "user_id"] = org_id if org_id else user_id
@@ -281,7 +282,7 @@ async def track_usage(
         "cached_tokens": cached_tokens,
         "total_tokens": prompt_tokens + completion_tokens,
         "cost": round(cost_usd, 6),
-        "created_at": datetime.utcnow(),
+        "created_at": utcnow(),
     }
     await db.ai_usage.insert_one(record)
 
@@ -312,7 +313,7 @@ async def track_usage(
 async def get_spending_dashboard(days: int = 30, limit: int = 100) -> List[Dict[str, Any]]:
     """Admin-facing per-user spending summary over the trailing `days`."""
     db = await get_db()
-    since = datetime.utcnow() - timedelta(days=days)
+    since = utcnow() - timedelta(days=days)
     pipeline = [
         {"$match": {"created_at": {"$gte": since}}},
         {

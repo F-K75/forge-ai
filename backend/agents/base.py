@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any, AsyncGenerator, Dict, Optional
 import asyncio
 import logging
+import time
 
 from core.config import get_settings
 from core.models import AgentType, PlanTier, WSEvent, WSEventType
@@ -96,7 +97,7 @@ class CircuitBreaker:
         if self.state == "closed":
             return True
         if self.state == "open":
-            if self.last_failure_time and (asyncio.get_event_loop().time() - self.last_failure_time > self.recovery_timeout):
+            if self.last_failure_time and (time.monotonic() - self.last_failure_time > self.recovery_timeout):
                 self.state = "half_open"
                 return True
             return False
@@ -108,7 +109,7 @@ class CircuitBreaker:
 
     def record_failure(self):
         self.failure_count += 1
-        self.last_failure_time = asyncio.get_event_loop().time()
+        self.last_failure_time = time.monotonic()
         if self.failure_count >= self.failure_threshold:
             self.state = "open"
 
@@ -116,7 +117,7 @@ class CircuitBreaker:
         """Seconds until the circuit breaker may half-open."""
         if self.state != "open" or self.last_failure_time is None:
             return 0
-        elapsed = asyncio.get_event_loop().time() - self.last_failure_time
+        elapsed = time.monotonic() - self.last_failure_time
         remaining = self.recovery_timeout - int(elapsed)
         return max(0, remaining)
 

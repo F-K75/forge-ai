@@ -5,7 +5,7 @@ from datetime import datetime
 import stripe
 
 from core.config import get_settings
-from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus, AuditLog, PaginationParams
+from core.models import User, PlanTier, Subscription, CreditPurchase, SubscriptionStatus, AuditLog, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.cache import cached_read, PLANS_CACHE_KEY, PLANS_CACHE_TTL
 from api.auth import get_current_user
@@ -422,7 +422,7 @@ async def handle_subscription_updated(db: Any, sub: Dict[str, Any]):
             "current_period_start": datetime.fromtimestamp(sub["current_period_start"]),
             "current_period_end": datetime.fromtimestamp(sub["current_period_end"]),
             "cancel_at_period_end": sub.get("cancel_at_period_end", False),
-            "updated_at": datetime.utcnow(),
+            "updated_at": utcnow(),
         }},
     )
 
@@ -441,7 +441,7 @@ async def handle_subscription_deleted(db: Any, sub: Dict[str, Any]):
     subscription_id = sub["id"]
     await db.subscriptions.update_one(
         {"stripe_subscription_id": subscription_id},
-        {"$set": {"status": SubscriptionStatus.CANCELED, "updated_at": datetime.utcnow()}},
+        {"$set": {"status": SubscriptionStatus.CANCELED, "updated_at": utcnow()}},
     )
 
     sub_doc = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0, "user_id": 1})
@@ -618,13 +618,13 @@ async def cancel_subscription(req: CancelSubscriptionRequest, user: User = Depen
         stripe.Subscription.modify(sub["stripe_subscription_id"], cancel_at_period_end=True)
         await db.subscriptions.update_one(
             {"stripe_subscription_id": sub["stripe_subscription_id"]},
-            {"$set": {"cancel_at_period_end": True, "updated_at": datetime.utcnow()}},
+            {"$set": {"cancel_at_period_end": True, "updated_at": utcnow()}},
         )
     else:
         stripe.Subscription.delete(sub["stripe_subscription_id"])
         await db.subscriptions.update_one(
             {"stripe_subscription_id": sub["stripe_subscription_id"]},
-            {"$set": {"status": SubscriptionStatus.CANCELED, "cancel_at_period_end": False, "updated_at": datetime.utcnow()}},
+            {"$set": {"status": SubscriptionStatus.CANCELED, "cancel_at_period_end": False, "updated_at": utcnow()}},
         )
         await db.users.update_one({"id": user.id}, {"$set": {"plan": PlanTier.FREE}})
 
@@ -641,7 +641,7 @@ async def reactivate_subscription(user: User = Depends(get_current_user)):
     stripe.Subscription.modify(sub["stripe_subscription_id"], cancel_at_period_end=False)
     await db.subscriptions.update_one(
         {"stripe_subscription_id": sub["stripe_subscription_id"]},
-        {"$set": {"cancel_at_period_end": False, "updated_at": datetime.utcnow()}},
+        {"$set": {"cancel_at_period_end": False, "updated_at": utcnow()}},
     )
 
     return {"ok": True}

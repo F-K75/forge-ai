@@ -1,6 +1,11 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+
+def utcnow() -> datetime:
+    """Naive UTC datetime without using deprecated utcnow()."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 from enum import Enum
 import uuid
 
@@ -137,7 +142,7 @@ class User(BaseModel):
     totp_secret: Optional[str] = None
     mfa_backup_codes: List[str] = Field(default_factory=list)
     mfa_enrolled_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Organization ---
@@ -150,8 +155,8 @@ class Organization(BaseModel):
     owner_id: str
     plan: PlanTier = PlanTier.FREE
     seats: int = 1
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class TeamMember(BaseModel):
@@ -161,7 +166,7 @@ class TeamMember(BaseModel):
     role: Role = Role.MEMBER
     invited_by: Optional[str] = None
     joined_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class Invitation(BaseModel):
@@ -175,10 +180,10 @@ class Invitation(BaseModel):
     # Only hashed_token is persisted in the database.
     hashed_token: Optional[str] = None
     expires_at: datetime = Field(
-        default_factory=lambda: datetime.utcnow() + timedelta(days=7)
+        default_factory=lambda: utcnow() + timedelta(days=7)
     )
     accepted_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Project ---
@@ -196,8 +201,8 @@ class Project(BaseModel):
     tech_stack: Dict[str, str] = {}
     template: Optional[str] = None  # Onboarding template ID (e.g., "saas-starter", "ecommerce")
     template_data: Dict[str, Any] = {}  # Template-specific configuration
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Build ---
@@ -234,7 +239,7 @@ class Build(BaseModel):
     # blocked on; POST /builds/{id}/gate writes its "response" key.
     interactive: bool = False
     pending_gate: Optional[Dict[str, Any]] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     completed_at: Optional[datetime] = None
 
 
@@ -243,7 +248,7 @@ class BuildFile(BaseModel):
     build_id: str
     path: str
     content: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class BuildDeadLetter(BaseModel):
@@ -257,7 +262,7 @@ class BuildDeadLetter(BaseModel):
     retry_count: int = 0
     credits_used: int = 0
     created_at: datetime
-    dead_lettered_at: datetime = Field(default_factory=datetime.utcnow)
+    dead_lettered_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Message ---
@@ -270,7 +275,7 @@ class Message(BaseModel):
     role: str  # user | assistant
     content: str
     build_id: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Billing ---
@@ -289,8 +294,8 @@ class Subscription(BaseModel):
     current_period_start: Optional[datetime] = None
     current_period_end: Optional[datetime] = None
     cancel_at_period_end: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class Invoice(BaseModel):
@@ -303,7 +308,7 @@ class Invoice(BaseModel):
     status: str = "draft"
     hosted_invoice_url: Optional[str] = None
     provider: str = "stripe"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class CreditPurchase(BaseModel):
@@ -317,7 +322,7 @@ class CreditPurchase(BaseModel):
     currency: str = "inr"
     status: str = "pending"
     provider: str = "stripe"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Deployment ---
@@ -333,8 +338,8 @@ class Deployment(BaseModel):
     url: Optional[str] = None
     logs: str = ""
     env_vars: Dict[str, str] = {}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     deployed_at: Optional[datetime] = None
 
 
@@ -347,7 +352,7 @@ class AnalyticsEvent(BaseModel):
     project_id: Optional[str] = None
     event_name: str
     properties: Dict[str, Any] = {}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class OnboardingProgress(BaseModel):
@@ -356,8 +361,8 @@ class OnboardingProgress(BaseModel):
     step: str = "signup"
     completed_steps: List[str] = []
     current_step: str = "signup"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Marketplace ---
@@ -375,7 +380,7 @@ class MarketplaceItem(BaseModel):
     tags: List[str] = []
     downloads: int = 0
     is_public: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Admin ---
@@ -387,8 +392,8 @@ class FeatureFlag(BaseModel):
     enabled: bool = False
     description: str = ""
     updated_by: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class AuditLog(BaseModel):
@@ -401,7 +406,7 @@ class AuditLog(BaseModel):
     changes: Dict[str, Any] = {}
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- Session ---
@@ -414,8 +419,8 @@ class Session(BaseModel):
     refresh_jti: Optional[str] = None
     user_agent: Optional[str] = None
     ip_address: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    last_active_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    last_active_at: datetime = Field(default_factory=utcnow)
     revoked_at: Optional[datetime] = None
 
 
@@ -438,7 +443,7 @@ class SecurityEvent(BaseModel):
     severity: str = "low"  # low | medium | high | critical
     ip_address: Optional[str] = None
     metadata: Dict[str, Any] = {}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class SupportTicket(BaseModel):
@@ -448,8 +453,8 @@ class SupportTicket(BaseModel):
     description: str
     status: str = "open"  # open | in_progress | resolved | closed
     priority: str = "normal"  # low | normal | high | urgent
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- API Keys ---
@@ -463,7 +468,7 @@ class ApiKey(BaseModel):
     key_prefix: str
     scopes: List[str] = []
     expires_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     last_used_at: Optional[datetime] = None
 
 
@@ -505,4 +510,5 @@ class WSEvent(BaseModel):
     type: WSEventType
     build_id: str
     data: Dict[str, Any] = {}
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utcnow)
+    version: int = 1

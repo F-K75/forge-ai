@@ -14,6 +14,7 @@ os.environ.setdefault("JWT_SECRET", "test-jwt-secret-that-is-at-least-32-charact
 os.environ.setdefault("FIELD_ENCRYPTION_KEY", "01" * 32)
 
 from datetime import datetime, timedelta
+from core.models import utcnow
 
 from api.auth import _hash_token, hash_password
 from auth import verify_password
@@ -30,7 +31,7 @@ def test_reset_password_rejects_weak_password(app_client):
             "email": "reset@example.com",
             "hashed_password": hash_password(STRONG_PASSWORD),
             "password_reset_token": _hash_token(token),
-            "password_reset_expires": datetime.utcnow() + timedelta(hours=1),
+            "password_reset_expires": utcnow() + timedelta(hours=1),
         }
     )
 
@@ -56,7 +57,7 @@ def test_reset_password_rejects_password_missing_complexity(app_client):
             "email": "reset@example.com",
             "hashed_password": hash_password(STRONG_PASSWORD),
             "password_reset_token": _hash_token(token),
-            "password_reset_expires": datetime.utcnow() + timedelta(hours=1),
+            "password_reset_expires": utcnow() + timedelta(hours=1),
         }
     )
 
@@ -77,7 +78,7 @@ def test_reset_password_accepts_strong_password(app_client):
             "email": "reset@example.com",
             "hashed_password": hash_password(STRONG_PASSWORD),
             "password_reset_token": _hash_token(token),
-            "password_reset_expires": datetime.utcnow() + timedelta(hours=1),
+            "password_reset_expires": utcnow() + timedelta(hours=1),
         }
     )
 

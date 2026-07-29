@@ -142,6 +142,10 @@ def _is_retryable_error(exc: Exception) -> bool:
     are treated as fatal for this attempt; everything else (timeouts, rate
     limits, connection resets, 5xx/"overloaded" responses) is retried.
     """
+    from core.llm.provider import CircuitBreakerOpen
+
+    if isinstance(exc, CircuitBreakerOpen):
+        return False
     message = str(exc).lower()
     return not any(marker in message for marker in _NON_RETRYABLE_ERROR_SUBSTRINGS)
 
@@ -156,21 +160,21 @@ def _get_concurrent_limit(plan: str) -> int:
     return _CONCURRENT_LIMITS.get(plan, _CONCURRENT_LIMITS["free"])
 
 
-# Health-aware routing: a lightweight in-process circuit breaker built from
-# the failure/success signal `generate`/`stream` already produce, rather
-# than a separate polling health-check loop (which would add latency and a
-# second source of truth). A provider that has failed repeatedly in the
-# last `_HEALTH_WINDOW_SECONDS` is deprioritized -- moved to the back of
-# the fallback chain -- but never excluded outright, so a false-positive
-# (e.g. a transient blip that looks like a streak) can't lock a provider
-# out permanently.
+# Health-aware routing with a proper circuit breaker. A provider
+# that has failed repeatedly in the last _HEALTH_WINDOW_SECONDS
+# transitions from closed → open and is excluded from the fallback
+# chain entirely. After _HALF_OPEN_WINDOW seconds, the next request
+# is allowed through (half-open) to test recovery. If it succeeds,
+# the circuit closes again; if it fails, it reopens.
 _HEALTH_WINDOW_SECONDS = 60.0
 _HEALTH_FAILURE_THRESHOLD = 3
+_HALF_OPEN_WINDOW_SECONDS = 30.0
 
 
 class _ProviderHealthTracker:
     def __init__(self) -> None:
         self._failures: Dict[str, List[float]] = {}
+        self._opened_at: Dict[str, float] = {}
 
     def record_failure(self, provider_name: str) -> None:
         now = time.monotonic()
@@ -178,9 +182,12 @@ class _ProviderHealthTracker:
         bucket.append(now)
         cutoff = now - _HEALTH_WINDOW_SECONDS
         self._failures[provider_name] = [t for t in bucket if t >= cutoff]
+        if len(self._failures[provider_name]) >= _HEALTH_FAILURE_THRESHOLD:
+            self._opened_at[provider_name] = now
 
     def record_success(self, provider_name: str) -> None:
         self._failures.pop(provider_name, None)
+        self._opened_at.pop(provider_name, None)
 
     def is_degraded(self, provider_name: str) -> bool:
         now = time.monotonic()
@@ -188,10 +195,25 @@ class _ProviderHealthTracker:
         recent = [t for t in self._failures.get(provider_name, []) if t >= cutoff]
         return len(recent) >= _HEALTH_FAILURE_THRESHOLD
 
+    def is_open(self, provider_name: str) -> bool:
+        """True when the circuit breaker has tripped and the provider
+        should be excluded from the fallback chain."""
+        if provider_name not in self._opened_at:
+            return False
+        now = time.monotonic()
+        opened = self._opened_at[provider_name]
+        # After the half-open window, allow one probe request through.
+        if now - opened > _HEALTH_WINDOW_SECONDS + _HALF_OPEN_WINDOW_SECONDS:
+            # Window expired — circuit is closed again.
+            self._opened_at.pop(provider_name, None)
+            return False
+        return True
+
     def reorder(self, providers: List[str]) -> List[str]:
-        """Stable-partition `providers` into healthy-first, degraded-last."""
-        healthy = [p for p in providers if not self.is_degraded(p)]
-        degraded = [p for p in providers if self.is_degraded(p)]
+        """Stable-partition `providers` into healthy-first, degraded-last,
+        and exclude open-circuit providers entirely."""
+        healthy = [p for p in providers if not self.is_degraded(p) and not self.is_open(p)]
+        degraded = [p for p in providers if self.is_degraded(p) and not self.is_open(p)]
         return healthy + degraded
 
 
@@ -489,6 +511,20 @@ class LLMRouter:
         max_attempts = max(1, int(retry_cfg.get("max_attempts", 1)))
         backoff_seconds = float(retry_cfg.get("backoff_seconds", 0.0))
 
+        # Filter out providers whose circuit breaker is open.
+        providers_to_try = [
+            p for p in providers_to_try
+            if not self._health_tracker.is_open(p)
+        ]
+        if not providers_to_try:
+            from core.llm.provider import CircuitBreakerOpen
+
+            raise CircuitBreakerOpen(
+                "All LLM providers are currently unavailable. "
+                "Please try again shortly.",
+                retry_after=int(_HEALTH_WINDOW_SECONDS),
+            )
+
         last_error: Optional[Exception] = None
         for provider_name in providers_to_try:
             provider = self.registry.get_provider(provider_name)
@@ -566,6 +602,7 @@ class LLMRouter:
                                 "total_tokens": response.usage.get("total_tokens", 0),
                                 "cost_usd": response.usage.get("cost_usd", 0.0),
                             })
+                        await self._validate_response(response)
                         return response
                     except Exception as exc:  # pragma: no cover - exercised via fallback path
                         if acquired_slot:
@@ -646,6 +683,7 @@ class LLMRouter:
                 "total_tokens": response.usage.get("total_tokens", 0),
                 "cost_usd": response.usage.get("cost_usd", 0.0),
             })
+        await self._validate_response(response)
         return response
 
     async def _build_byok_provider(self, byok: Dict[str, Any], model: Optional[str]) -> tuple[BaseProviderAdapter, str, str]:
@@ -1135,6 +1173,37 @@ class LLMRouter:
                 name="azure_openai", priority=20,
                 models=[settings.azure_openai_deployment] if settings.azure_openai_deployment else ["gpt-4o-mini"],
             )
+
+
+    async def _validate_response(self, response: CompletionResponse, min_length: int = 10) -> None:
+        """Run basic sanity checks on an LLM response before returning it.
+
+        Raises ``ProviderError`` if the response looks degenerate. This is a
+        lightweight safeguard against empty outputs and obvious repetition
+        patterns — it is not a substitute for domain-specific output schema
+        validation, which should live at the agent / task layer.
+        """
+        text = response.text or ""
+        if not text.strip():
+            raise ProviderError("LLM returned an empty response")
+
+        if len(text.strip()) < min_length:
+            raise ProviderError(
+                f"LLM response is suspiciously short ({len(text.strip())} chars)"
+            )
+
+        # Detect degenerate repetition: a single token or phrase repeated
+        # more than 20 times in a row.
+        repetition_re = re.compile(r"(.{1,50})\1{20,}")
+        if repetition_re.search(text):
+            raise ProviderError("LLM response contains excessive repetition")
+
+        # Detect common error-indicating prefixes the model might emit when
+        # it has lost the plot (not exhaustive, just the most frequent).
+        error_prefixes = ("i'm sorry, i cannot", "as an ai language model", "i cannot assist")
+        lowered = text.lower().strip()
+        if any(lowered.startswith(prefix) for prefix in error_prefixes):
+            raise ProviderError("LLM response indicates a refusal or error state")
 
 
 _default_router = LLMRouter()

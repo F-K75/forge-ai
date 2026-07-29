@@ -1,6 +1,7 @@
 """Tests for LLM usage tracking and budget enforcement (P0-002)."""
 
 from datetime import datetime, timedelta
+from core.models import utcnow
 
 import pytest
 
@@ -196,7 +197,7 @@ async def test_check_budget_blocks_when_exceeded(fake_db):
         "prompt_tokens": DEFAULT_DAILY_TOKEN_BUDGETS["free"],
         "completion_tokens": 0,
         "cost": 1.0,
-        "created_at": datetime.utcnow(),
+        "created_at": utcnow(),
     })
     with pytest.raises(BudgetExceeded) as exc_info:
         await check_budget("user-1", estimated_tokens=1)
@@ -211,7 +212,7 @@ async def test_check_budget_ignores_usage_from_previous_day(fake_db):
         "prompt_tokens": DEFAULT_DAILY_TOKEN_BUDGETS["free"],
         "completion_tokens": 0,
         "cost": 1.0,
-        "created_at": datetime.utcnow() - timedelta(days=1, hours=1),
+        "created_at": utcnow() - timedelta(days=1, hours=1),
     })
     await check_budget("user-1", estimated_tokens=1)  # yesterday's usage shouldn't count today
 
@@ -225,7 +226,7 @@ async def test_get_spending_dashboard_aggregates_by_user(fake_db):
             "completion_tokens": 0,
             "total_tokens": tokens,
             "cost": tokens * 0.001,
-            "created_at": datetime.utcnow(),
+            "created_at": utcnow(),
         })
     dashboard = await get_spending_dashboard()
     by_user = {row["user_id"]: row for row in dashboard}

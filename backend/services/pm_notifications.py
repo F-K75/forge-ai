@@ -6,6 +6,7 @@ surfaces these without any change on that side.
 """
 
 from datetime import datetime
+from core.models import utcnow
 
 
 async def notify(db, user_id: str, title: str, message: str, type: str = "info") -> None:
@@ -13,12 +14,12 @@ async def notify(db, user_id: str, title: str, message: str, type: str = "info")
         return
     try:
         await db.notifications.insert_one({
-            "id": f"notif_{datetime.utcnow().timestamp()}",
+            "id": f"notif_{utcnow().timestamp()}",
             "user_id": user_id,
             "title": title,
             "message": message,
             "type": type,
-            "created_at": datetime.utcnow(),
+            "created_at": utcnow(),
         })
     except Exception:
         pass

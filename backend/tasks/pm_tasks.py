@@ -5,11 +5,12 @@ non-idempotent work, soft time limit as a stuck-pipeline backstop)."""
 
 import asyncio
 import logging
-from datetime import datetime
+from core.models import utcnow
 from typing import Optional
 
 from celery_app import celery_app as current_app
 from core.config import get_settings
+from core.security import request_id_var
 from core.database import get_db
 from core.pm_orchestrator import PMOrchestrator
 from core.pm_models import (
@@ -73,7 +74,7 @@ def generate_initiative_plan(self, initiative_id: str) -> dict:
             result = await pm_orchestrator.generate_plan(initiative, emit=emit)
 
             initiative = result["initiative"]
-            initiative.updated_at = datetime.utcnow()
+            initiative.updated_at = utcnow()
             await db.initiatives.update_one(
                 {"id": initiative_id}, {"$set": initiative.model_dump()}
             )
@@ -90,7 +91,11 @@ def generate_initiative_plan(self, initiative_id: str) -> dict:
             return {"status": "success", "initiative_id": initiative_id}
 
         except Exception as e:
-            logger.exception("Initiative plan generation failed for %s", initiative_id)
+            logger.exception(
+                "Initiative plan generation failed for %s [correlation_id=%s]",
+                initiative_id,
+                request_id_var.get(),
+            )
             await db.initiatives.update_one(
                 {"id": initiative_id},
                 {"$set": {"status": InitiativeStatus.FAILED.value, "generation_error": str(e)}},
@@ -147,7 +152,7 @@ def execute_task(self, task_id: str, user_id: str) -> dict:
 
         execution = AgentExecution(
             task_id=task_id, initiative_id=task.initiative_id, agent=task.assigned_agent,
-            status=AgentExecStatus.RUNNING, started_at=datetime.utcnow(),
+            status=AgentExecStatus.RUNNING, started_at=utcnow(),
         )
         await db.agent_executions.insert_one(execution.model_dump())
         await pm_manager.emit(PMWSEvent(
@@ -155,10 +160,10 @@ def execute_task(self, task_id: str, user_id: str) -> dict:
             data={"task_id": task_id, "execution_id": execution.id, "agent": task.assigned_agent.value},
         ))
 
-        started_at = task.started_at or datetime.utcnow()
+        started_at = task.started_at or utcnow()
         await db.tasks.update_one(
             {"id": task_id},
-            {"$set": {"status": TaskStatus.IN_PROGRESS.value, "started_at": started_at, "updated_at": datetime.utcnow()}},
+            {"$set": {"status": TaskStatus.IN_PROGRESS.value, "started_at": started_at, "updated_at": utcnow()}},
         )
         await pm_manager.emit(PMWSEvent(
             type=PMWSEventType.TASK_STATUS_CHANGED, initiative_id=task.initiative_id,
@@ -171,7 +176,7 @@ def execute_task(self, task_id: str, user_id: str) -> dict:
             )
             usage = result.get("_usage", {}) or {}
             files = result.get("files", {}) or {}
-            completed_at = datetime.utcnow()
+            completed_at = utcnow()
             duration = (completed_at - execution.started_at).total_seconds() if execution.started_at else 0.0
 
             await db.agent_executions.update_one(
@@ -212,13 +217,17 @@ def execute_task(self, task_id: str, user_id: str) -> dict:
             return {"status": "success", "task_id": task_id, "execution_id": execution.id}
 
         except Exception as e:
-            logger.exception("Task execution failed for %s", task_id)
+            logger.exception(
+                "Task execution failed for %s [correlation_id=%s]",
+                task_id,
+                request_id_var.get(),
+            )
             await db.agent_executions.update_one(
                 {"id": execution.id},
-                {"$set": {"status": AgentExecStatus.FAILED.value, "error": str(e)[:2000], "completed_at": datetime.utcnow()}},
+                {"$set": {"status": AgentExecStatus.FAILED.value, "error": str(e)[:2000], "completed_at": utcnow()}},
             )
             await db.tasks.update_one(
-                {"id": task_id}, {"$set": {"status": TaskStatus.BLOCKED.value, "updated_at": datetime.utcnow()}},
+                {"id": task_id}, {"$set": {"status": TaskStatus.BLOCKED.value, "updated_at": utcnow()}},
             )
             await pm_manager.emit(PMWSEvent(
                 type=PMWSEventType.AGENT_EXEC_FAILED, initiative_id=task.initiative_id,
@@ -271,7 +280,7 @@ def run_decision_engine(task_id: str, event: str) -> dict:
                 if title and isinstance(hours, (int, float)):
                     await db.tasks.update_one(
                         {"initiative_id": initiative_id, "title": title},
-                        {"$set": {"estimated_hours": hours, "updated_at": datetime.utcnow()}},
+                        {"$set": {"estimated_hours": hours, "updated_at": utcnow()}},
                     )
                     actions.append(f"Re-estimated '{title}' to {hours}h")
 
@@ -301,7 +310,11 @@ def run_decision_engine(task_id: str, event: str) -> dict:
             ))
             return {"status": "success"}
         except Exception:
-            logger.exception("Decision engine run failed for task %s", task_id)
+            logger.exception(
+                "Decision engine run failed for task %s [correlation_id=%s]",
+                task_id,
+                request_id_var.get(),
+            )
             return {"status": "error"}
 
     return _run_async(_run())

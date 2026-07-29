@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from api.admin import admin_required
-from core.models import User
+from core.models import User, utcnow
 from optimizer.service import get_optimizer
 
 router = APIRouter(prefix="/api/optimizer", tags=["optimizer"])
@@ -68,7 +68,7 @@ async def cost_breakdown(days: int = 30, admin: User = Depends(admin_required)) 
     from core.database import get_db
 
     db = await get_db()
-    since = datetime.utcnow() - timedelta(days=days)
+    since = utcnow() - timedelta(days=days)
 
     async def _group_by(field: str) -> List[Dict[str, Any]]:
         pipeline = [

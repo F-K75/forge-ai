@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.models import utcnow
 from enum import Enum
 from typing import Any, Dict, List
 
@@ -33,7 +34,7 @@ class ContextChunk:
     score: float = 0.0               # Relevance score 0.0–1.0
     priority: int = 0                # Higher = more important, included first
     metadata: Dict[str, Any] = field(default_factory=dict)
-    retrieved_at: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    retrieved_at: str = field(default_factory=lambda: utcnow().isoformat() + "Z")
 
 
 @dataclass

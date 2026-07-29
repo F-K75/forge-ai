@@ -48,3 +48,6 @@ backend/mongod.log
 # not source code. Do not commit; they are regenerated on each run.
 orchestration/*.json
 .gstack/
+
+# Tool-generated taste/profile data
+.commandcode/

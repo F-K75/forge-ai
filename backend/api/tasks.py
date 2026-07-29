@@ -7,7 +7,7 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import BaseModel, Field
 
-from core.models import User
+from core.models import User, utcnow
 from core.pm_models import Task, TaskStatus
 from core.database import get_db
 from core.permissions import has_initiative_access
@@ -130,7 +130,7 @@ async def update_task(task_id: str, req: UpdateTaskRequest, current_user: User =
         raise HTTPException(status_code=404, detail="Task not found")
     await _assert_initiative_access(db, task["initiative_id"], current_user.id)
     update = {k: v for k, v in req.model_dump().items() if v is not None}
-    update["updated_at"] = datetime.utcnow()
+    update["updated_at"] = utcnow()
     await db.tasks.update_one({"id": task_id}, {"$set": update})
     return {"ok": True}
 
@@ -149,7 +149,7 @@ async def update_task_status(task_id: str, req: UpdateTaskStatusRequest, current
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid status")
 
-    update = {"status": status.value, "updated_at": datetime.utcnow()}
+    update = {"status": status.value, "updated_at": utcnow()}
     if req.kanban_order is not None:
         update["kanban_order"] = req.kanban_order
     await db.tasks.update_one({"id": task_id}, {"$set": update})
@@ -200,10 +200,10 @@ async def link_github(task_id: str, req: GithubLinkRequest, current_user: User =
     await _assert_initiative_access(db, task["initiative_id"], current_user.id)
 
     github = {**(task.get("github") or {}), **{k: v for k, v in req.model_dump().items() if v is not None}}
-    update = {"github": github, "updated_at": datetime.utcnow()}
+    update = {"github": github, "updated_at": utcnow()}
     if req.merge_status == "merged":
         update["status"] = TaskStatus.DONE.value
-        update["completed_at"] = datetime.utcnow()
+        update["completed_at"] = utcnow()
     elif req.pr_number and task.get("status") not in (TaskStatus.DONE.value,):
         update["status"] = TaskStatus.CODE_REVIEW.value
     await db.tasks.update_one({"id": task_id}, {"$set": update})
@@ -249,7 +249,7 @@ async def github_webhook(request: Request):
     initiative = await db.initiatives.find_one({"id": task["initiative_id"]}, {"_id": 0, "user_id": 1})
     user_id = (initiative or {}).get("user_id")
     github = dict(task.get("github") or {})
-    update: dict = {"updated_at": datetime.utcnow()}
+    update: dict = {"updated_at": utcnow()}
 
     if event_type == "pull_request":
         pr = payload["pull_request"]
@@ -262,7 +262,7 @@ async def github_webhook(request: Request):
             github["review_status"] = "approved"
             github["merge_status"] = "merged"
             update["status"] = TaskStatus.DONE.value
-            update["completed_at"] = datetime.utcnow()
+            update["completed_at"] = utcnow()
             if user_id:
                 await notify_pr_merged(db, user_id, task["title"])
         elif action == "closed":

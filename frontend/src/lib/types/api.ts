@@ -6,6 +6,7 @@ export interface User {
   plan: 'free' | 'standard' | 'pro' | 'enterprise'
   credits: number
   created_at: string
+  is_admin?: boolean
 }
 
 export interface Project {

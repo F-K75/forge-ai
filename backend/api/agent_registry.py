@@ -18,7 +18,7 @@ from api.auth import get_current_user
 from core.database import get_db
 from core.models import User
 from core.permissions import has_project_access
-from services.org_ws_manager import org_manager, authenticate_org_websocket
+from services.org_ws_manager import org_manager, authenticate_org_websocket_token
 
 from agent_registry import (
     AgentNotFound,
@@ -545,9 +545,11 @@ async def resolve_finding(
 
 
 @router.websocket("/ws")
-async def org_websocket(websocket: WebSocket, project_id: str):
-    user = await authenticate_org_websocket(websocket, project_id)
+async def org_websocket(websocket: WebSocket, project_id: str, token: Optional[str] = Query(None)):
+    user = await authenticate_org_websocket_token(token, project_id=project_id)
     if not user:
+        await websocket.accept()
+        await websocket.close(code=4001, reason="Unauthorized")
         return
 
     await org_manager.connect(websocket, project_id)

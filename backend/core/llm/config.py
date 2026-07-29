@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime
+from core.models import utcnow
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -168,7 +169,7 @@ class LLMConfigLoader:
             db = await get_db()
             await db.llm_org_policy_overrides.update_one(
                 {"org_id": org_id},
-                {"$set": {"org_id": org_id, "policy": policy, "updated_by": updated_by, "updated_at": datetime.utcnow()}},
+                {"$set": {"org_id": org_id, "policy": policy, "updated_by": updated_by, "updated_at": utcnow()}},
                 upsert=True,
             )
         except Exception as exc:
@@ -190,7 +191,7 @@ class LLMConfigLoader:
             db = await get_db()
             await db.llm_agent_overrides.update_one(
                 {"agent": agent_name},
-                {"$set": {"agent": agent_name, **override, "updated_by": updated_by, "updated_at": datetime.utcnow()}},
+                {"$set": {"agent": agent_name, **override, "updated_by": updated_by, "updated_at": utcnow()}},
                 upsert=True,
             )
         except Exception as exc:

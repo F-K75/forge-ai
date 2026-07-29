@@ -17,6 +17,8 @@ import pytest
 
 import tasks.build_tasks as build_tasks_module
 
+from core.models import utcnow
+
 
 class FakeCursor:
     def __init__(self, docs):
@@ -111,7 +113,7 @@ def _make_build_and_user(agents=None, credits_used=0, debug_iterations=0):
         "context_tokens": 0,
         "debug_iterations": debug_iterations,
         "business_model": None,
-        "created_at": datetime.datetime.utcnow(),
+        "created_at": utcnow(),
         "completed_at": None,
     }
     user = {"id": "u1", "credits": 1000}
@@ -122,8 +124,8 @@ def _success_step(agent, output, files_changed=None):
     return {
         "agent": agent,
         "status": "success",
-        "started_at": datetime.datetime.utcnow(),
-        "completed_at": datetime.datetime.utcnow(),
+        "started_at": utcnow(),
+        "completed_at": utcnow(),
         "output": output if isinstance(output, str) else json.dumps(output),
         "files_changed": files_changed or [],
         "error": None,

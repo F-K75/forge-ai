@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.models import utcnow
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -58,7 +59,7 @@ class BudgetCheckResult:
 
 
 def _period_start(period: BudgetPeriod) -> datetime:
-    now = datetime.utcnow()
+    now = utcnow()
     if period == BudgetPeriod.DAILY:
         return now.replace(hour=0, minute=0, second=0, microsecond=0)
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -133,7 +134,7 @@ class BudgetManager:
             "hard_limit_usd": hard_limit_usd,
             "period": period.value,
             "updated_by": updated_by,
-            "updated_at": datetime.utcnow(),
+            "updated_at": utcnow(),
         }
         await db.budget_limits.update_one(
             {"scope": scope.value, "scope_id": scope_id},

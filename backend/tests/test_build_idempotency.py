@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 import api.auth as auth_module
 import api.builds as builds_module
-from core.models import User
+from core.models import User, utcnow, utcnow
 
 
 # --------------------------------------------------------------------------- #
@@ -255,7 +255,7 @@ def test_recent_build_blocks_duplicate_within_30_seconds(monkeypatch):
     db.projects.docs.append({"id": "proj1", "user_id": "u1", "tech_stack": {}})
     db.users.docs.append({"id": "u1", "email_verified": True, "credits": 1000})
     # An existing build created 10 seconds ago (within the 30s dedup window).
-    recent_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=10)
+    recent_time = utcnow() - datetime.timedelta(seconds=10)
     db.builds.docs.append(
         {
             "id": "b-recent",
@@ -292,7 +292,7 @@ def test_stale_build_does_not_block_new_build_after_30_seconds(monkeypatch):
     db.projects.docs.append({"id": "proj1", "user_id": "u1", "tech_stack": {}})
     db.users.docs.append({"id": "u1", "email_verified": True, "credits": 1000})
     # An existing build created 40 seconds ago (outside the 30s dedup window).
-    stale_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=40)
+    stale_time = utcnow() - datetime.timedelta(seconds=40)
     db.builds.docs.append(
         {
             "id": "b-stale",

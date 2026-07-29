@@ -70,8 +70,8 @@ export default function GraphTab() {
     return { nodes, edges };
   }, [graph]);
 
-  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(nodes);
-  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(edges);
+  const [flowNodes, , onNodesChange] = useNodesState(nodes);
+  const [flowEdges, , onEdgesChange] = useEdgesState(edges);
 
   useGsapFrom(".react-flow__node", { opacity: 0, scale: 0.8, duration: 0.5, stagger: 0.04, ease: "power2.out" }, [graph]);
 

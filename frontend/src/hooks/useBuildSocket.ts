@@ -53,19 +53,13 @@ export function useBuildSocket(buildId: string | null) {
           return
         }
 
-        // Auth is sent as the first message over the socket rather than a query
-        // param, so tokens don't leak into proxy/access logs.
-        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}`)
+        // Auth is sent as a query parameter at connection time so the server
+        // can reject unauthenticated upgrades before accepting the socket.
+        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}?token=${encodeURIComponent(wsToken)}`)
 
         wsRef.current = ws
 
-        // The server sends a keep-alive {"type":"ping"} every 30s when idle
-        // (see backend/api/builds.py's websocket_endpoint) so proxies don't
-        // drop the socket -- no client-side ping needed; parseWSEvent
-        // returns null for it below and it's ignored.
-
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: 'auth', token: wsToken }))
           reconnectAttemptsRef.current = 0
           setConnectionStatus('online')
         }

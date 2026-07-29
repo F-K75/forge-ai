@@ -14,12 +14,33 @@ Uses the existing Motor-based get_db() from core/database.py.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from core.database import get_db
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_mongo_value(value: str, max_length: int = 100) -> str:
+    """Sanitize a user-supplied string value for safe use in MongoDB queries.
+    
+    Prevents NoSQL injection by:
+    1. Stripping MongoDB operator prefixes ($regex, $gt, $ne, etc.)
+    2. Removing control characters
+    3. Limiting length
+    """
+    if not isinstance(value, str):
+        return ""
+    # Strip MongoDB operator prefixes
+    value = re.sub(r'^\$[\w]+', '', value)
+    # Remove null bytes and control characters
+    value = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', value)
+    # Limit length
+    if len(value) > max_length:
+        value = value[:max_length]
+    return value
 
 
 class VersionRepository:
@@ -47,12 +68,12 @@ class VersionRepository:
 
     async def get_versions(self, role: str, version: str) -> List[dict]:
         col = await self._collection
-        cursor = col.find({"role": role, "version": version}).sort("created_at", -1).limit(100)
+        cursor = col.find({"role": _sanitize_mongo_value(role), "version": _sanitize_mongo_value(version)}).sort("created_at", -1).limit(100)
         return await cursor.to_list(length=100)
 
     async def rollback_version(self, role: str, version: str, reason: str = "") -> Optional[dict]:
         col = await self._collection
-        doc = await col.find_one({"role": role, "version": version}, sort=[("created_at", -1)])
+        doc = await col.find_one({"role": _sanitize_mongo_value(role), "version": _sanitize_mongo_value(version)}, sort=[("created_at", -1)])
         if doc:
             await col.update_one({"_id": doc["_id"]}, {"$set": {"rolled_back_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), "rollback_reason": reason}})
         return doc
@@ -72,19 +93,19 @@ class FewShotRepository:
     async def save_example(self, example: dict) -> None:
         col = await self._collection
         await col.update_one(
-            {"example_id": example["example_id"]},
+            {"example_id": _sanitize_mongo_value(example["example_id"])},
             {"$set": {**example, "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}},
             upsert=True,
         )
 
     async def get_by_role(self, role: str, strategy: str = "semantic", max_examples: int = 10) -> List[dict]:
         col = await self._collection
-        cursor = col.find({"role": role, "strategy": strategy}).sort("score", -1).limit(max_examples)
+        cursor = col.find({"role": _sanitize_mongo_value(role), "strategy": _sanitize_mongo_value(strategy)}).sort("score", -1).limit(max_examples)
         return await cursor.to_list(length=max_examples)
 
     async def delete_example(self, example_id: str) -> bool:
         col = await self._collection
-        result = await col.delete_one({"example_id": example_id})
+        result = await col.delete_one({"example_id": _sanitize_mongo_value(example_id)})
         return result.deleted_count > 0
 
 
@@ -149,14 +170,14 @@ class HarnessRepository:
     async def set_baseline(self, role: str, template_version: str, metrics: dict) -> None:
         col = await self._baseline_col()
         await col.update_one(
-            {"role": role, "template_version": template_version},
+            {"role": _sanitize_mongo_value(role), "template_version": _sanitize_mongo_value(template_version)},
             {"$set": {"metrics": metrics, "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}},
             upsert=True,
         )
 
     async def get_baseline(self, role: str, template_version: str) -> Optional[dict]:
         col = await self._baseline_col()
-        return await col.find_one({"role": role, "template_version": template_version})
+        return await col.find_one({"role": _sanitize_mongo_value(role), "template_version": _sanitize_mongo_value(template_version)})
 
 
 class LoopRepository:
@@ -190,12 +211,12 @@ class LoopRepository:
 
     async def get_history(self, role: str, limit: int = 50) -> List[dict]:
         col = await self._collection
-        cursor = col.find({"role": role}).sort("created_at", -1).limit(limit)
+        cursor = col.find({"role": _sanitize_mongo_value(role)}).sort("created_at", -1).limit(limit)
         return await cursor.to_list(length=limit)
 
     async def get_latest(self, role: str) -> Optional[dict]:
         col = await self._collection
-        return await col.find_one({"role": role}, sort=[("created_at", -1)])
+        return await col.find_one({"role": _sanitize_mongo_value(role)}, sort=[("created_at", -1)])
 
 
 # Shared singletons

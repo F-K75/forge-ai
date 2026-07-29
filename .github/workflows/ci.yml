@@ -60,12 +60,7 @@ jobs:
       - name: Security scan — dependency vulnerabilities (pip-audit)
         run: |
           cd backend
-          pip-audit -r requirements.txt \
-            --ignore-vuln GHSA-wp53-j4wj-2cfg --ignore-vuln GHSA-6w46-j5rx-g56g \
-            --ignore-vuln GHSA-w853-jp5j-5j7f --ignore-vuln GHSA-qmgc-5h2g-mvrw \
-            --ignore-vuln GHSA-f96h-pmfr-66vw --ignore-vuln GHSA-2c2j-9gv5-cj73 \
-            --ignore-vuln GHSA-6v7p-g79w-8964 \
-            --ignore-vuln PYSEC-2026-1845 --ignore-vuln PYSEC-2026-1325
+          pip-audit -r requirements.txt
 
       - name: Type-check (pydantic / import graph smoke test)
         env:
@@ -242,6 +237,9 @@ jobs:
       - name: Type-check & build (tsc + vite)
         run: cd frontend && npm run build
 
+      - name: Check bundle size
+        run: node scripts/check-bundle-size.js
+
       - name: Upload build artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -377,15 +375,58 @@ jobs:
           fi
           echo "✓ Frontend build correctly requires VITE_API_URL and VITE_WS_URL"
 
+  backup-restore:
+    name: Backup & Restore Drill
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports: ["27017:27017"]
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: testpass
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install MongoDB tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mongodb-org-tools
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backup/restore drill
+        env:
+          TEST_MONGODB_URL: mongodb://root:testpass@localhost:27017/test_db?authSource=admin
+        run: |
+          cd backend
+          python3 ../../scripts/test_restore.py
+
   quality-gate:
     name: Quality Gate
-    needs: [backend, orchestrator, frontend, prod-artifacts]
+    needs: [backend, orchestrator, frontend, prod-artifacts, backup-restore]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Fail if any required job failed
         run: |
-          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.orchestrator.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ]; then
+          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.orchestrator.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ] || [ "${{ needs.backup-restore.result }}" != "success" ]; then
             echo "::error::One or more required CI jobs failed. Blocking merge."
             exit 1
           fi

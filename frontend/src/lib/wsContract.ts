@@ -14,6 +14,7 @@ export type WSEventBase<TType extends WSEventType, TData> = {
   build_id: string
   data: TData
   timestamp?: WSTimestamp
+  version: number
 }
 
 export type BuildStartEvent = WSEventBase<'build_start', Record<string, unknown>>
@@ -101,6 +102,9 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
 
   const build_id = raw.build_id
   if (!isString(build_id)) return null
+
+  const version = raw.version
+  if (typeof version !== 'number' || version < 1) return null
 
   const data = raw.data
   // data can be any but must be object/primitive for our purposes

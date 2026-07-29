@@ -4,7 +4,7 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 
-from core.models import User
+from core.models import User, utcnow
 from core.pm_models import Story
 from core.database import get_db
 from core.permissions import has_initiative_access
@@ -94,7 +94,7 @@ async def update_story(story_id: str, req: UpdateStoryRequest, current_user: Use
         raise HTTPException(status_code=404, detail="Story not found")
     await _assert_initiative_access(db, story["initiative_id"], current_user.id)
     update = {k: v for k, v in req.model_dump().items() if v is not None}
-    update["updated_at"] = datetime.utcnow()
+    update["updated_at"] = utcnow()
     await db.stories.update_one({"id": story_id}, {"$set": update})
     return {"ok": True}
 

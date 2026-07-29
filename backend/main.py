@@ -206,6 +206,19 @@ app.middleware("http")(request_size_limit_middleware)
 app.middleware("http")(csrf_protection_middleware)
 app.middleware("http")(rate_limit_middleware)
 
+# Timeout middleware: fail fast on long-running requests so a single slow
+# AI/model call or build cannot hold a worker indefinitely.
+@app.middleware("http")
+async def timeout_middleware(request: Request, call_next):
+    try:
+        response = await asyncio.wait_for(call_next(request), timeout=settings.request_timeout)
+        return response
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Request timed out. Please try again later."},
+        )
+
 # Drain middleware must be after rate limiting so it can see the
 # connection state but before request-ID middleware wraps the call.
 app.add_middleware(DrainMiddleware)

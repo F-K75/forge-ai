@@ -87,6 +87,7 @@ const EMPHASIS_CLASS: Record<NonNullable<RunLogLine["emphasis"]>, string> = {
 
 export function AgentRunShell({
   agent,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   runId,
   runTitle,
   runMeta,

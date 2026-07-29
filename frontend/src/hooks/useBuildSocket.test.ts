@@ -81,7 +81,7 @@ describe('useBuildSocket', () => {
   it('closes socket when buildId changes', async () => {
     const { api } = await import('../lib/api')
     vi.mocked(api.post).mockResolvedValueOnce({ data: { token: 'tok' } })
-    const { result, rerender } = renderHook(({ id }: { id: string | null }) => useBuildSocket(id), {
+    const { rerender } = renderHook(({ id }: { id: string | null }) => useBuildSocket(id), {
       initialProps: { id: 'build-1' },
     })
     await act(async () => { await Promise.resolve() })

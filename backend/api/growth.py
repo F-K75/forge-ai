@@ -7,7 +7,7 @@ import hashlib
 import resend
 
 from core.config import get_settings
-from core.models import User, PaginationParams
+from core.models import User, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from api.auth import get_current_user
 
@@ -80,7 +80,7 @@ async def send_email(to: str, subject: str, html: str):
 async def create_referral(req: ReferralCreate, user: User = Depends(get_current_user)):
     db = await get_db()
     
-    referral_code = hashlib.sha256(f"{user.id}{req.referred_email}{datetime.utcnow().timestamp()}".encode()).hexdigest()[:8]
+    referral_code = hashlib.sha256(f"{user.id}{req.referred_email}{utcnow().timestamp()}".encode()).hexdigest()[:8]
     
     referral = {
         "id": f"ref_{referral_code}",
@@ -88,7 +88,7 @@ async def create_referral(req: ReferralCreate, user: User = Depends(get_current_
         "referred_email": req.referred_email,
         "status": "pending",
         "referral_code": referral_code,
-        "created_at": datetime.utcnow(),
+        "created_at": utcnow(),
     }
     await db.referrals.insert_one(referral)
     
@@ -128,12 +128,12 @@ async def create_notification(req: NotificationCreate, user: User = Depends(get_
     db = await get_db()
     
     notification = {
-        "id": f"notif_{datetime.utcnow().timestamp()}",
+        "id": f"notif_{utcnow().timestamp()}",
         "user_id": user.id,
         "title": req.title,
         "message": req.message,
         "type": req.type,
-        "created_at": datetime.utcnow(),
+        "created_at": utcnow(),
     }
     await db.notifications.insert_one(notification)
     
@@ -167,7 +167,7 @@ async def mark_read(notification_id: str, user: User = Depends(get_current_user)
     db = await get_db()
     await db.notifications.update_one(
         {"id": notification_id, "user_id": user.id},
-        {"$set": {"read_at": datetime.utcnow()}}
+        {"$set": {"read_at": utcnow()}}
     )
     return {"ok": True}
 
@@ -177,11 +177,11 @@ async def track_onboarding(user: User = Depends(get_current_user)):
     db = await get_db()
     
     await db.analytics_events.insert_one({
-        "id": f"evt_{datetime.utcnow().timestamp()}",
+        "id": f"evt_{utcnow().timestamp()}",
         "user_id": user.id,
         "event_name": "onboarding_view",
         "properties": {},
-        "created_at": datetime.utcnow(),
+        "created_at": utcnow(),
     })
     
     return {"ok": True}

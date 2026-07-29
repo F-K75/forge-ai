@@ -7,10 +7,12 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
     Depends,
+    Query,
+    Request,
 )
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from core.models import (
     Build,
@@ -18,11 +20,12 @@ from core.models import (
     User,
     PlanTier,
     BuildFile,
+    utcnow,
 )
 from core.orchestrator import Orchestrator, MAX_DEBUG_ITERATIONS
 from core.database import get_db
 from sandbox.runner import SandboxRunner
-from services.ws_manager import manager, authenticate_websocket
+from services.ws_manager import manager, authenticate_websocket_token
 from tasks.build_tasks import run_build
 from api.auth import get_current_user
 from core.config import get_settings
@@ -61,6 +64,7 @@ class CreateBuildRequest(BaseModel):
 @router.post("/")
 async def create_build(
     req: CreateBuildRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     db = await get_db()
@@ -82,7 +86,7 @@ async def create_build(
             raise HTTPException(status_code=404, detail="Project not found")
 
     # Trial enforcement: check if trial has expired
-    if current_user.trial_ends_at and datetime.utcnow() > current_user.trial_ends_at:
+    if current_user.trial_ends_at and utcnow() > current_user.trial_ends_at:
         if current_user.plan == PlanTier.FREE:
             raise HTTPException(
                 status_code=402,
@@ -161,7 +165,7 @@ async def create_build(
 
     try:
         # Build deduplication: prevent duplicate builds for the same project within 30 seconds
-        thirty_seconds_ago = datetime.utcnow() - timedelta(seconds=30)
+        thirty_seconds_ago = utcnow() - timedelta(seconds=30)
         recent_build = await db.builds.find_one(
             {
                 "project_id": req.project_id,
@@ -201,13 +205,16 @@ async def create_build(
             db, req.project_id
         )
 
-        run_build.delay(
-            build.id,
-            req.project_id,
-            current_user.id,
-            max_credits,
-            conversation_history,
-            existing_files,
+        run_build.apply_async(
+            args=(
+                build.id,
+                req.project_id,
+                current_user.id,
+                max_credits,
+                conversation_history,
+                existing_files,
+            ),
+            headers={"correlation_id": request.headers.get("X-Request-ID", "-")},
         )
     except Exception:
         # Anything failing between reservation and a successfully dispatched
@@ -315,7 +322,7 @@ async def respond_to_gate(
                 "pending_gate.response": {
                     "action": req.action,
                     "answers": req.normalized_answers,
-                    "responded_at": datetime.utcnow().isoformat(),
+                    "responded_at": utcnow().isoformat(),
                 }
             }
         },
@@ -356,7 +363,7 @@ async def rollback_build(
         user_id=current_user.id,
         prompt=f"Rollback to build {target['id']} (version {version})",
         status=BuildStatus.SUCCESS,
-        completed_at=datetime.utcnow(),
+        completed_at=utcnow(),
     )
     await db.builds.insert_one(rollback_build_record.model_dump())
 
@@ -377,13 +384,17 @@ async def rollback_build(
 async def websocket_endpoint(
     websocket: WebSocket,
     build_id: str,
+    token: Optional[str] = Query(None),
 ):
-    # Auth happens via a first-message {"type": "auth", "token": ...} handshake
-    # rather than a query-string token, which leaks into proxy/access logs.
-    user = await authenticate_websocket(websocket, build_id=build_id)
+    user = await authenticate_websocket_token(token, build_id=build_id)
     if not user:
+        # Reject at the HTTP upgrade stage — closing before accepting makes
+        # Starlette respond with HTTP 403 and never upgrade the connection.
+        # This is the F-024 fix: no unauthenticated connection is ever opened.
+        await websocket.close(code=4001, reason="Unauthorized")
         return
 
+    await websocket.accept()
     await manager.connect(websocket, build_id)
 
     try:
@@ -391,8 +402,6 @@ async def websocket_endpoint(
             try:
                 await asyncio.wait_for(websocket.receive_text(), timeout=30)
             except asyncio.TimeoutError:
-                # Keep-alive ping so proxies don't drop the idle socket,
-                # matching the pattern already used by orchestrator/api.py.
                 await websocket.send_text(json.dumps({"type": "ping"}))
     except WebSocketDisconnect:
         manager.disconnect(websocket, build_id)

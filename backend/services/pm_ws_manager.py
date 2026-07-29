@@ -147,3 +147,26 @@ async def authenticate_pm_websocket(websocket: WebSocket, initiative_id: str):
         return None
 
     return user_doc
+
+
+async def authenticate_pm_websocket_token(token: Optional[str], initiative_id: Optional[str] = None):
+    """Validate a WebSocket token from query parameters BEFORE accepting the
+    connection. Returns the authenticated user doc, or None if the token is
+    missing/invalid."""
+    if not token:
+        return None
+    payload = decode_token(token)
+    if not payload or payload.get("type") not in ("access", "ws"):
+        return None
+    user_id = payload.get("sub")
+    db = await get_db()
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user_doc:
+        return None
+
+    if initiative_id:
+        initiative_doc = await db.initiatives.find_one({"id": initiative_id}, {"_id": 0})
+        if not initiative_doc or not await has_initiative_access(db, user_id, initiative_doc):
+            return None
+
+    return user_doc

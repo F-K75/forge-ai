@@ -19,9 +19,8 @@ environments.
 """
 from typing import Awaitable, Callable, List, Tuple
 import logging
-from datetime import datetime
 
-from core.models import PlanTier
+from core.models import PlanTier, utcnow
 from core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -29,6 +28,8 @@ settings = get_settings()
 
 # (version, name, description, coroutine(db) -> None)
 _MIGRATIONS: List[Tuple[int, str, str, Callable[[object], Awaitable[None]]]] = []
+# (version, name, description, coroutine(db) -> None) — reverse migrations
+_DOWNGRADES: List[Tuple[int, str, str, Callable[[object], Awaitable[None]]]] = []
 
 
 def migration(version: int, name: str, description: str = ""):
@@ -37,6 +38,20 @@ def migration(version: int, name: str, description: str = ""):
     def decorator(fn: Callable[[object], Awaitable[None]]):
         _MIGRATIONS.append((version, name, description, fn))
         _MIGRATIONS.sort(key=lambda m: m[0])
+        return fn
+
+    return decorator
+
+
+def downgrade(version: int, name: str, description: str = ""):
+    """Register a downgrade (rollback) for a migration.
+
+    Downgrades run in descending version order so that higher-version
+    rollbacks execute first, preserving referential integrity."""
+
+    def decorator(fn: Callable[[object], Awaitable[None]]):
+        _DOWNGRADES.append((version, name, description, fn))
+        _DOWNGRADES.sort(key=lambda m: m[0], reverse=True)
         return fn
 
     return decorator
@@ -61,7 +76,7 @@ async def _record(db, version: int, name: str, status: str, description: str) ->
                     "name": name,
                     "status": status,
                     "description": description,
-                    "finished_at": datetime.utcnow(),
+                    "finished_at": utcnow(),
                 }
             },
             upsert=True,
@@ -138,3 +153,64 @@ async def _migration_backfill_is_admin(db) -> None:
             "Migration v3 (backfill_is_admin) set is_admin=True for %d user(s)",
             result.matched_count,
         )
+
+
+async def run_downgrades(db, target_version: int = 0) -> List[dict]:
+    """Roll back applied migrations down to *target_version* (exclusive).
+
+    Migrations are rolled back in descending version order so that
+    higher-version rollbacks execute first, preserving referential
+    integrity. Each downgrade is recorded with status ``rolled_back``.
+
+    Returns a list of result dicts with ``version``, ``name``, and
+    ``status`` keys.
+    """
+    try:
+        results: List[dict] = []
+        for version, name, description, fn in _DOWNGRADES:
+            if version <= target_version:
+                continue
+            if not await _is_applied(db, version):
+                continue
+            try:
+                await fn(db)
+            except Exception:
+                logger.exception("Downgrade %s (v%s) failed", name, version)
+                await _record(db, version, name, "rollback_failed", description)
+                results.append({"version": version, "name": name, "status": "rollback_failed"})
+                continue
+            await _record(db, version, name, "rolled_back", description)
+            logger.info("Migration v%s (%s) rolled back", version, name)
+            results.append({"version": version, "name": name, "status": "rolled_back"})
+        return results
+    except Exception:
+        logger.exception("run_downgrades encountered an unexpected error")
+        return []
+
+
+@downgrade(3, "backfill_is_admin", "Remove the is_admin flag backfilled from ADMIN_EMAILS.")
+async def _downgrade_backfill_is_admin(db) -> None:
+    admin_emails_raw = settings.admin_emails or ""
+    admin_emails = [e.strip() for e in admin_emails_raw.split(",") if e.strip()]
+    if not admin_emails:
+        return
+    await db.users.update_many(
+        {"email": {"$in": admin_emails}},
+        {"$unset": {"is_admin": True}},
+    )
+
+
+@downgrade(2, "backfill_user_banned", "Remove the banned flag backfill.")
+async def _downgrade_backfill_user_banned(db) -> None:
+    await db.users.update_many(
+        {"banned": {"$exists": True}},
+        {"$unset": {"banned": True}},
+    )
+
+
+@downgrade(1, "backfill_user_plan", "Remove the plan tier backfill.")
+async def _downgrade_backfill_user_plan(db) -> None:
+    await db.users.update_many(
+        {"plan": PlanTier.FREE.value},
+        {"$unset": {"plan": True}},
+    )

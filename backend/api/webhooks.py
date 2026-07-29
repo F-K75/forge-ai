@@ -4,7 +4,7 @@ from typing import Optional, List
 from datetime import datetime
 import secrets
 
-from core.models import User, PaginationParams
+from core.models import User, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.security import validate_webhook_url
 from core.audit import record_audit_log
@@ -60,7 +60,7 @@ async def create_webhook(
         "secret": _generate_secret(),
         "events": req.events,
         "active": req.active,
-        "created_at": datetime.utcnow(),
+        "created_at": utcnow(),
         "last_triggered": None,
     }
     

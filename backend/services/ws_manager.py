@@ -197,9 +197,37 @@ async def authenticate_websocket(websocket: WebSocket, build_id: str) -> Optiona
         await websocket.close(code=4001, reason="User not found")
         return None
 
-    build_doc = await db.builds.find_one({"id": build_id}, {"_id": 0})
-    if not build_doc or not await has_build_access(db, user_id, build_doc):
-        await websocket.close(code=4001, reason="Foreign build")
+    if build_id:
+        build_doc = await db.builds.find_one({"id": build_id}, {"_id": 0})
+        if not build_doc or not await has_build_access(db, user_id, build_doc):
+            await websocket.close(code=4001, reason="Foreign build")
+            return None
+
+    return User(**user_doc)
+
+
+async def authenticate_websocket_token(token: Optional[str], build_id: Optional[str] = None) -> Optional[User]:
+    """Validate a WebSocket token from query parameters BEFORE accepting the
+    connection. Returns the authenticated User, or None if the token is
+    missing/invalid.
+
+    This allows the endpoint to reject unauthenticated connections at the
+    upgrade stage rather than after ``websocket.accept()``.
+    """
+    if not token:
         return None
+    payload = decode_token(token)
+    if not payload or payload.get("type") not in ("access", "ws"):
+        return None
+    user_id = payload.get("sub")
+    db = await get_db()
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user_doc:
+        return None
+
+    if build_id:
+        build_doc = await db.builds.find_one({"id": build_id}, {"_id": 0})
+        if not build_doc or not await has_build_access(db, user_id, build_doc):
+            return None
 
     return User(**user_doc)

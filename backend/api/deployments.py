@@ -23,6 +23,7 @@ from core.models import (
     WSEvent,
     WSEventType,
     User,
+    utcnow,
 )
 from core.security import safe_join_path
 from services.ws_manager import manager
@@ -579,7 +580,7 @@ async def _run_deployment_background(
                         "status": DeploymentStatus.LIVE,
                         "url": container_url,
                         "logs": f"{deployment.logs}\nBuild complete.\n{build_logs}",
-                        "deployed_at": datetime.utcnow().isoformat(),
+                        "deployed_at": utcnow().isoformat(),
                     }
                 },
             )
@@ -603,7 +604,7 @@ async def _run_deployment_background(
             {
                 "$set": {
                     "deployed_url": container_url,
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": utcnow().isoformat(),
                 }
             },
         )

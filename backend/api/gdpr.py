@@ -7,7 +7,7 @@ import hashlib
 import json
 import stripe
 
-from core.models import User
+from core.models import User, utcnow
 from core.database import get_db
 from core.config import get_settings
 from core.audit import record_audit_log
@@ -82,7 +82,7 @@ async def _collect_user_data(db, user: User) -> Dict[str, Any]:
 
     export: Dict[str, Any] = {
         "user": user_doc,
-        "exported_at": datetime.utcnow().isoformat(),
+        "exported_at": utcnow().isoformat(),
         "projects": await db.projects.find(
             {"id": {"$in": ids["project_ids"]}}, {"_id": 0}
         ).to_list(None),

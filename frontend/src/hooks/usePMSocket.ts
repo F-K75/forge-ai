@@ -55,11 +55,10 @@ export function usePMSocket(initiativeId: string | null) {
           return
         }
 
-        const ws = new WebSocket(`${WS_URL}/initiatives/ws/${id}`)
+        const ws = new WebSocket(`${WS_URL}/initiatives/ws/${id}?token=${encodeURIComponent(wsToken)}`)
         wsRef.current = ws
 
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: 'auth', token: wsToken }))
           reconnectAttemptsRef.current = 0
           setConnectionStatus('online')
         }

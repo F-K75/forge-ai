@@ -1,44 +1,38 @@
 import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
+import { useAuthStore } from '../store/authStore'
 
 export default function GoogleCallback() {
   const reduceMotion = useReducedMotion()
+  const { fetchMe, user } = useAuthStore()
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const accessToken = params.get('access_token')
-    const refreshToken = params.get('refresh_token')
-    const userJson = params.get('user')
-
-    if (accessToken && refreshToken && userJson) {
+    async function complete() {
       try {
-        const user = JSON.parse(decodeURIComponent(userJson))
-        // Set cookies from the URL params so the parent app can pick them up
-        document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`
-        document.cookie = `refresh_token=${refreshToken}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Strict`
-        
-        // Notify parent window
-        window.opener?.postMessage({
-          type: 'google-oauth-success',
-          user,
-        }, window.location.origin)
+        await fetchMe()
+        const currentUser = useAuthStore.getState().user
+        if (currentUser) {
+          window.opener?.postMessage({
+            type: 'google-oauth-success',
+            user: currentUser,
+          }, window.location.origin)
+        } else {
+          window.opener?.postMessage({
+            type: 'google-oauth-error',
+            error: 'Not authenticated after OAuth',
+          }, window.location.origin)
+        }
       } catch {
         window.opener?.postMessage({
           type: 'google-oauth-error',
-          error: 'Invalid user payload',
+          error: 'Failed to complete sign-in',
         }, window.location.origin)
       }
-    } else {
-      window.opener?.postMessage({
-        type: 'google-oauth-error',
-        error: 'Missing tokens from OAuth callback',
-      }, window.location.origin)
+      setTimeout(() => window.close(), 100)
     }
-
-    // Close the popup after a short delay
-    setTimeout(() => window.close(), 100)
-  }, [])
+    complete()
+  }, [fetchMe])
 
   return (
     <div className="min-h-screen flex items-center justify-center text-sm">

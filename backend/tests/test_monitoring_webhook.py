@@ -16,6 +16,7 @@ end-to-end rather than stubbed out.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from core.models import utcnow
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -136,7 +137,7 @@ def _seed_api_key(db, user_id, raw_key, *, expired=False):
     hashed with the real `_hash_key` from api.api_keys so `validate_api_key`
     is exercised for real rather than stubbed."""
     key_hash = api_keys_module._hash_key(raw_key)
-    expires_at = (datetime.utcnow() - timedelta(days=1)) if expired else None
+    expires_at = (utcnow() - timedelta(days=1)) if expired else None
     db.api_keys.docs.append(
         {
             "id": f"key_{user_id}",
@@ -145,7 +146,7 @@ def _seed_api_key(db, user_id, raw_key, *, expired=False):
             "key_hash": key_hash,
             "key_prefix": raw_key[:8],
             "scopes": [],
-            "created_at": datetime.utcnow(),
+            "created_at": utcnow(),
             "last_used_at": None,
             "expires_at": expires_at,
         }

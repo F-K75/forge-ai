@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.models import utcnow
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -33,7 +34,7 @@ class PromptVersion:
     change_type: PromptChangeType
     change_reason: str = ""
     author: str = "system"
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    created_at: str = field(default_factory=lambda: utcnow().isoformat() + "Z")
     parent_version: Optional[str] = None
     metrics_snapshot: Dict[str, float] = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
@@ -75,7 +76,7 @@ class FewShotExample:
     tags: List[str] = field(default_factory=list)
     score: float = 0.0        # Relevance score for dynamic selection
     token_count: int = 0
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    created_at: str = field(default_factory=lambda: utcnow().isoformat() + "Z")
 
 
 @dataclass
@@ -87,7 +88,7 @@ class FewShotSet:
     examples: List[FewShotExample] = field(default_factory=list)
     max_examples: int = 5
     selection_strategy: str = "fixed"   # "fixed" | "semantic" | "diversity"
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    created_at: str = field(default_factory=lambda: utcnow().isoformat() + "Z")
 
 
 @dataclass

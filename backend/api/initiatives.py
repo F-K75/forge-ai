@@ -3,16 +3,16 @@ import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel, Field
 
-from core.models import User, PaginationParams, Project
+from core.models import User, PaginationParams, Project, utcnow
 from core.database import get_db, paginated_query
 from core.pm_models import Initiative, InitiativeStatus
 from core.permissions import has_initiative_access
 from api.auth import get_current_user
 from tasks.pm_tasks import generate_initiative_plan
-from services.pm_ws_manager import pm_manager, authenticate_pm_websocket
+from services.pm_ws_manager import pm_manager, authenticate_pm_websocket_token
 
 router = APIRouter(prefix="/initiatives", tags=["initiatives"])
 
@@ -115,7 +115,7 @@ async def update_initiative(initiative_id: str, req: UpdateInitiativeRequest, cu
     db = await get_db()
     await _get_owned_initiative(db, initiative_id, current_user.id)
     update = {k: v for k, v in req.model_dump().items() if v is not None}
-    update["updated_at"] = datetime.utcnow()
+    update["updated_at"] = utcnow()
     await db.initiatives.update_one({"id": initiative_id}, {"$set": update})
     return {"ok": True}
 
@@ -183,7 +183,7 @@ async def update_prd(initiative_id: str, req: Dict[str, Any], current_user: User
         "scalability", "api_overview", "database_overview", "release_plan",
     }
     update = {k: v for k, v in req.items() if k in allowed}
-    update["updated_at"] = datetime.utcnow()
+    update["updated_at"] = utcnow()
     await db.prds.update_one({"initiative_id": initiative_id}, {"$set": update})
     return {"ok": True}
 
@@ -239,9 +239,11 @@ async def get_dependency_graph(initiative_id: str, current_user: User = Depends(
 
 
 @router.websocket("/ws/{initiative_id}")
-async def initiative_websocket(websocket: WebSocket, initiative_id: str):
-    user = await authenticate_pm_websocket(websocket, initiative_id=initiative_id)
+async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: Optional[str] = Query(None)):
+    user = await authenticate_pm_websocket_token(token, initiative_id=initiative_id)
     if not user:
+        await websocket.accept()
+        await websocket.close(code=4001, reason="Unauthorized")
         return
 
     await pm_manager.connect(websocket, initiative_id)

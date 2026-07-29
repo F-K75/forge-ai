@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import timedelta
 import asyncio
 import contextvars
 import ipaddress
@@ -11,10 +11,13 @@ import secrets
 import uuid
 import hashlib
 import os
+from collections import OrderedDict
 from urllib.parse import urlparse
 
+from auth import decode_token
+
 from core.database import get_db, get_redis
-from core.models import SecurityEvent
+from core.models import SecurityEvent, utcnow
 from core.config import get_settings
 
 settings = get_settings()
@@ -66,20 +69,26 @@ EMAIL_RATE_LIMITS = {
     "register":        {"limit": 5, "window": 3600},    # 5/hour
     "resend_verification": {"limit": 3, "window": 3600},  # 3/hour, same shape as forgot_password
     "login":           {"limit": 10, "window": 3600},   # 10/hour -- blocks credential
-                                                         # stuffing against one account
-                                                         # regardless of source IP; the
-                                                         # existing /auth/* limiter is
-                                                         # per-IP only and trivially
-                                                         # bypassed by spreading attempts
-                                                         # across IPs (SEC-011)
+                                                          # stuffing against one account
+                                                          # regardless of source IP; the
+                                                          # existing /auth/* limiter is
+                                                          # per-IP only and trivially
+                                                          # bypassed by spreading attempts
+                                                          # across IPs (SEC-011)
     "mfa_verify":      {"limit": 10, "window": 3600},   # 10/hour -- brute-force
-                                                         # protection on the 6-digit
-                                                         # TOTP code / backup codes
-                                                         # (SEC-007)
+                                                          # protection on the 6-digit
+                                                          # TOTP code / backup codes
+                                                          # (SEC-007)
 }
 
-# CSRF token storage (in production, use Redis)
-_csrf_tokens: dict[str, tuple[str, datetime]] = {}
+# Strict account lockout after consecutive failed login attempts.
+LOGIN_LOCKOUT_THRESHOLD = 5
+LOGIN_LOCKOUT_WINDOW = 900  # 15 minutes
+
+
+# CSRF tokens are stored exclusively in Redis. If Redis is unavailable,
+# CSRF protection fails closed rather than falling back to an in-memory
+# store that would not replicate across workers.
 
 
 def _get_limit_config(path: str) -> tuple[str, dict]:
@@ -131,22 +140,23 @@ async def request_size_limit_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self';"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     
     return response
 
 
-# In-memory fallback rate limiter for when Redis is unavailable
-_in_memory_rate_limits: dict[str, list[float]] = {}
+# In-memory fallback rate limiter for when Redis is unavailable.
+# Uses OrderedDict for LRU eviction instead of clearing everything.
+_in_memory_rate_limits: "OrderedDict[str, list[float]]" = OrderedDict()
 _IN_MEMORY_MAX_KEYS = 10000  # Prevent unbounded memory growth
 
 
 async def _check_in_memory_rate_limit(key: str, limit: int, window: int, *, fallback_limit: Optional[int] = None) -> tuple[bool, int]:
     """Check rate limit using in-memory store as fallback when Redis is down.
 
-    When Redis is unavailable, the in-memory fallback is per-process — each
+    When Redis is unavailable, the in-memory fallback is per-process -- each
     worker/replica maintains its own independent counter. To prevent the
     effective limit from scaling with the replica count during an outage, the
     *fallback_limit* (defaulting to ``limit`` for backward compatibility) is
@@ -156,12 +166,10 @@ async def _check_in_memory_rate_limit(key: str, limit: int, window: int, *, fall
     """
     effective_limit = fallback_limit if fallback_limit is not None else limit
     now = time.time()
-    # Clean old entries periodically
-    if len(_in_memory_rate_limits) > _IN_MEMORY_MAX_KEYS:
-        _in_memory_rate_limits.clear()
 
+    if key in _in_memory_rate_limits:
+        _in_memory_rate_limits.move_to_end(key)
     timestamps = _in_memory_rate_limits.get(key, [])
-    # Remove timestamps outside the window
     timestamps = [t for t in timestamps if now - t < window]
 
     if len(timestamps) >= effective_limit:
@@ -169,6 +177,10 @@ async def _check_in_memory_rate_limit(key: str, limit: int, window: int, *, fall
 
     timestamps.append(now)
     _in_memory_rate_limits[key] = timestamps
+
+    if len(_in_memory_rate_limits) > _IN_MEMORY_MAX_KEYS:
+        _in_memory_rate_limits.popitem(last=False)
+
     return True, effective_limit - len(timestamps)
 
 
@@ -190,14 +202,12 @@ async def rate_limit_middleware(request: Request, call_next):
     access_token = request.cookies.get("access_token")
     if access_token:
         try:
-            from auth import decode_token
-
             payload = decode_token(access_token)
             uid = (payload or {}).get("sub")
             if uid:
                 identity = f"user:{uid}"
         except Exception:
-            pass
+            logging.debug("Failed to decode access token for rate limit identity", exc_info=True)
 
     zone, config = _get_limit_config(path)
     key = f"rl:{zone}:{identity}"
@@ -239,7 +249,7 @@ async def rate_limit_middleware(request: Request, call_next):
                         ).model_dump()
                     )
                 except Exception:
-                    pass
+                    logging.warning("Failed to log rate limit security event", exc_info=True)
 
                 raise HTTPException(
                     status_code=429,
@@ -254,8 +264,7 @@ async def rate_limit_middleware(request: Request, call_next):
         except HTTPException:
             raise
         except Exception:
-            # Redis error — fall through to in-memory fallback
-            pass
+            logging.warning("Redis rate limiter failed, falling back to in-memory", exc_info=True)
     
     # Redis unavailable or error — use in-memory fallback (fail-closed).
     # The in-memory store is per-process, so the effective ceiling scales with
@@ -337,7 +346,6 @@ async def csrf_protection_middleware(request: Request, call_next):
         raise HTTPException(status_code=403, detail="CSRF: No session token")
     
     # Decode the JWT to get the session identifier (jti)
-    from auth import decode_token
     payload = decode_token(access_token)
     if not payload or not payload.get("jti"):
         raise HTTPException(status_code=403, detail="CSRF: Invalid session")
@@ -402,33 +410,35 @@ def generate_csrf_token() -> str:
 
 
 async def store_csrf_token(session_token: str, csrf_token: str, expires_in_minutes: int = 60) -> None:
-    """Store CSRF token in Redis with expiration."""
-    try:
-        redis = await get_redis()
-        key = f"csrf:{session_token}"
-        await redis.setex(key, expires_in_minutes * 60, csrf_token)
-    except Exception:
-        pass
+    """Store CSRF token in Redis with expiration.
+
+    Raises RuntimeError if Redis is unavailable so callers know the token
+    was not persisted. CSRF validation requires Redis — there is no
+    in-memory fallback.
+    """
+    redis = await get_redis()
+    key = f"csrf:{session_token}"
+    await redis.setex(key, expires_in_minutes * 60, csrf_token)
 
 
 async def validate_csrf_token(session_token: str, csrf_token: str) -> bool:
-    """Validate CSRF token from Redis."""
+    """Validate CSRF token from Redis.
+
+    Returns False if Redis is unavailable (fail-closed).
+    """
     if not session_token or not csrf_token:
         return False
-    
-    try:
-        redis = await get_redis()
-        key = f"csrf:{session_token}"
-        stored = await redis.get(key)
-        if not stored:
-            return False
-        return secrets.compare_digest(stored, csrf_token)
-    except Exception:
+
+    redis = await get_redis()
+    key = f"csrf:{session_token}"
+    stored = await redis.get(key)
+    if not stored:
         return False
+    return secrets.compare_digest(stored, csrf_token)
 
 
 async def check_anomalies(user_id: str, action: str, db) -> Optional[SecurityEvent]:
-    now = datetime.utcnow()
+    now = utcnow()
 
     # Check for rapid successive actions
     recent_events = await db.analytics_events.find(
@@ -618,3 +628,49 @@ async def check_email_rate_limit(email: str, action: str, db) -> tuple[bool, int
         return await _check_in_memory_rate_limit(
             key, limit, window, fallback_limit=fallback_limit
         )
+
+
+async def check_login_lockout(email: str) -> tuple[bool, int]:
+    """Check whether an account is locked out due to too many failed logins.
+
+    Returns (is_locked_out, remaining_seconds). ``is_locked_out`` is True
+    when the account has exceeded ``LOGIN_LOCKOUT_THRESHOLD`` consecutive
+    failures and the lockout has not yet expired.
+    """
+    key = f"login_lockout:{hashlib.sha256(email.encode()).hexdigest()[:16]}"
+    try:
+        redis = await get_redis()
+        ttl = await redis.ttl(key)
+        if ttl > 0:
+            return True, ttl
+        return False, 0
+    except Exception:
+        return False, 0
+
+
+async def record_failed_login(email: str) -> None:
+    """Record a failed login attempt. When the threshold is reached, set a
+    lockout for ``LOGIN_LOCKOUT_WINDOW`` seconds."""
+    key = f"login_attempts:{hashlib.sha256(email.encode()).hexdigest()[:16]}"
+    lockout_key = f"login_lockout:{hashlib.sha256(email.encode()).hexdigest()[:16]}"
+    try:
+        redis = await get_redis()
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, LOGIN_LOCKOUT_WINDOW)
+        if current >= LOGIN_LOCKOUT_THRESHOLD:
+            await redis.setex(lockout_key, LOGIN_LOCKOUT_WINDOW, "1")
+            await redis.delete(key)
+    except Exception:
+        logging.warning("Failed to record failed login attempt", exc_info=True)
+
+
+async def clear_login_attempts(email: str) -> None:
+    """Clear the failed-login counter and lockout for *email* on success."""
+    key = f"login_attempts:{hashlib.sha256(email.encode()).hexdigest()[:16]}"
+    lockout_key = f"login_lockout:{hashlib.sha256(email.encode()).hexdigest()[:16]}"
+    try:
+        redis = await get_redis()
+        await redis.delete(key, lockout_key)
+    except Exception:
+        logging.warning("Failed to clear login attempts", exc_info=True)

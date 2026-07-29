@@ -21,6 +21,8 @@ Celery will ever make for a given task.
 
 import datetime
 
+from core.models import utcnow
+
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 
@@ -108,7 +110,7 @@ def _make_build_and_user():
         "context_tokens": 0,
         "debug_iterations": 0,
         "business_model": None,
-        "created_at": datetime.datetime.utcnow(),
+        "created_at": utcnow(),
         "completed_at": None,
     }
     user = {"id": "u1", "credits": 100}
@@ -214,8 +216,8 @@ def test_retry_after_progress_retries_instead_of_failing_immediately(monkeypatch
         {
             "agent": "architect",
             "status": "success",
-            "started_at": datetime.datetime.utcnow(),
-            "completed_at": datetime.datetime.utcnow(),
+            "started_at": utcnow(),
+            "completed_at": utcnow(),
             "output": "{}",
             "files_changed": [],
             "error": None,

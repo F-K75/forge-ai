@@ -72,7 +72,7 @@ export default function AgentRunsTab() {
       .standups(latestSprint.id)
       .then((rows: any[]) => setStandup(rows?.[0] ?? null))
       .catch(() => setStandup(null));
-  }, [latestSprint?.id]);
+  }, [latestSprint]);
 
   const runStandup = async () => {
     if (!latestSprint) return;

@@ -3,7 +3,7 @@ from typing import Dict
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from pathlib import Path
-from pydantic import field_validator, model_validator
+from pydantic import ConfigDict, field_validator, model_validator
 import base64
 import re
 
@@ -222,6 +222,7 @@ class Settings(BaseSettings):
     max_request_size: int = 10 * 1024 * 1024
     anthropic_timeout: int = 120
     build_timeout: int = 600  # 10 minutes max per build
+    request_timeout: int = 120  # HTTP request timeout in seconds
     # Interactive builds: how long a gate waits for the user before
     # auto-approving and moving on. Must stay well under build_timeout or a
     # walked-away user burns the whole build window on a single gate.
@@ -303,12 +304,9 @@ class Settings(BaseSettings):
             "FIELD_ENCRYPTION_KEY must be 64 hexadecimal characters or a valid Fernet key"
         )
 
-    class Config:
-        # Both locations are load-bearing, so accept both. Order matters:
-        # pydantic-settings lets later files win, so an explicit backend/.env
-        # still overrides the shared repo-root one. Outside a checkout the
-        # root entry drops out and this is exactly the old behaviour.
-        env_file = tuple(p for p in (_REPO_ROOT_ENV, ".env") if p is not None)
+    model_config = ConfigDict(
+        env_file=tuple(p for p in (_REPO_ROOT_ENV, ".env") if p is not None)
+    )
 
 
 @lru_cache

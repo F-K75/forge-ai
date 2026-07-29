@@ -1,7 +1,7 @@
 import logging
 
 from celery import Celery
-from celery.signals import worker_shutting_down
+from celery.signals import worker_shutting_down, task_prerun, task_postrun
 from core.config import get_settings
 
 settings = get_settings()
@@ -26,6 +26,23 @@ celery_app.conf.result_serializer = "json"
 
 import tasks.build_tasks  # noqa: E402,F401 - registers tasks on this app instance
 import tasks.pm_tasks  # noqa: E402,F401 - registers tasks on this app instance
+
+
+@task_prerun.connect
+def _set_correlation_id(sender=None, headers=None, **kwargs):
+    """Propagate the X-Request-ID from the task header into a context
+    variable so that every log line inside the task carries the
+    correlation ID of the originating HTTP request."""
+    correlation_id = (headers or {}).get("correlation_id", "-")
+    from core.security import request_id_var  # noqa: F401 - sets the context var
+    request_id_var.set(correlation_id)
+
+
+@task_postrun.connect
+def _clear_correlation_id(sender=None, **kwargs):
+    """Reset the correlation ID context variable after a task finishes."""
+    from core.security import request_id_var  # noqa: F401 - resets the context var
+    request_id_var.set("-")
 
 
 @worker_shutting_down.connect

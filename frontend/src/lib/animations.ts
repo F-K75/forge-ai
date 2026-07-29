@@ -79,7 +79,7 @@ export const useCountUp = (ref: React.RefObject<HTMLSpanElement | null>, end: nu
         if (ref.current) ref.current.textContent = Math.round(obj.val).toLocaleString()
       },
     })
-  }, [end, duration, reduceMotion])
+  }, [ref, end, duration, reduceMotion])
 }
 
 export const useMagnetic = (ref: React.RefObject<HTMLElement | null>, strength: number = 0.3) => {
@@ -147,7 +147,7 @@ export const useTextReveal = (ref: React.RefObject<HTMLDivElement | null>) => {
       duration: 0.7,
       ease: 'power3.out',
     })
-  }, [reduceMotion])
+  }, [ref, reduceMotion])
 }
 
 // Splits an element's text with SplitType (no manual markup required, unlike
@@ -228,7 +228,7 @@ export const useProgressBar = (ref: React.RefObject<HTMLDivElement | null>, prog
       return
     }
     gsap.to(el, { width: `${progress}%`, duration: 0.6, ease: 'power2.out' })
-  }, [progress, reduceMotion])
+  }, [ref, progress, reduceMotion])
 }
 
 export const useTooltip = (ref: React.RefObject<HTMLElement | null>, show: boolean) => {
@@ -246,7 +246,7 @@ export const useTooltip = (ref: React.RefObject<HTMLElement | null>, show: boole
       duration: 0.25,
       ease: 'power2.out',
     })
-  }, [show, reduceMotion])
+  }, [ref, show, reduceMotion])
 }
 
 export { motion, useReducedMotion }

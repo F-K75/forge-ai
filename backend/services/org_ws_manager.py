@@ -163,3 +163,26 @@ async def authenticate_org_websocket(websocket: WebSocket, project_id: str) -> O
         return None
 
     return User(**user_doc)
+
+
+async def authenticate_org_websocket_token(token: Optional[str], project_id: Optional[str] = None) -> Optional[User]:
+    """Validate a WebSocket token from query parameters BEFORE accepting the
+    connection. Returns the authenticated User, or None if the token is
+    missing/invalid."""
+    if not token:
+        return None
+    payload = decode_token(token)
+    if not payload or payload.get("type") not in ("access", "ws"):
+        return None
+    user_id = payload.get("sub")
+    db = await get_db()
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user_doc:
+        return None
+
+    if project_id:
+        project_doc = await db.projects.find_one({"id": project_id}, {"_id": 0})
+        if not project_doc or not await has_project_access(db, user_id, project_doc):
+            return None
+
+    return User(**user_doc)

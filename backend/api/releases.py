@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 
-from core.models import User
+from core.models import User, utcnow
 from core.pm_models import Release, ReleaseStatus, TaskStatus
 from core.database import get_db
 from core.permissions import has_initiative_access
@@ -64,7 +64,7 @@ async def generate_release(req: GenerateReleaseRequest, current_user: User = Dep
         blocked_items=blocked,
         qa_status=qa_status,
         deployment_readiness=readiness,
-        estimated_release_date=datetime.utcnow() + timedelta(days=max(1, round((1 - completion_pct) * 14))),
+        estimated_release_date=utcnow() + timedelta(days=max(1, round((1 - completion_pct) * 14))),
         confidence_score=confidence,
         status=ReleaseStatus.PLANNED if readiness != "ready" else ReleaseStatus.IN_PROGRESS,
     )
@@ -98,6 +98,6 @@ async def update_release(release_id: str, req: UpdateReleaseRequest, current_use
         raise HTTPException(status_code=404, detail="Release not found")
     await _assert_initiative_access(db, release["initiative_id"], current_user.id)
     update = {k: v for k, v in req.model_dump().items() if v is not None}
-    update["updated_at"] = datetime.utcnow()
+    update["updated_at"] = utcnow()
     await db.releases.update_one({"id": release_id}, {"$set": update})
     return {"ok": True}

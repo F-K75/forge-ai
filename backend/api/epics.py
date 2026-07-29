@@ -4,7 +4,7 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 
-from core.models import User
+from core.models import User, utcnow
 from core.pm_models import Epic
 from core.database import get_db
 from core.permissions import has_initiative_access
@@ -73,7 +73,7 @@ async def update_epic(epic_id: str, req: UpdateEpicRequest, current_user: User =
         raise HTTPException(status_code=404, detail="Epic not found")
     await _assert_initiative_access(db, epic["initiative_id"], current_user.id)
     update = {k: v for k, v in req.model_dump().items() if v is not None}
-    update["updated_at"] = datetime.utcnow()
+    update["updated_at"] = utcnow()
     await db.epics.update_one({"id": epic_id}, {"$set": update})
     return {"ok": True}
 

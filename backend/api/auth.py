@@ -11,11 +11,11 @@ import secrets
 import pyotp
 import resend
 
-from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session, PaginationParams
+from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.cache import cached_read, invalidate_cache, user_profile_cache_key, USER_PROFILE_CACHE_TTL
 from core.config import get_settings
-from core.security import validate_password_strength, check_email_rate_limit, get_client_ip, validate_byok_base_url
+from core.security import validate_password_strength, check_email_rate_limit, get_client_ip, validate_byok_base_url, check_login_lockout, record_failed_login, clear_login_attempts
 from core.encryption import encrypt_field, decrypt_field
 from auth import (
     hash_password,
@@ -25,7 +25,6 @@ from auth import (
     decode_token,
 )
 from authlib.integrations.requests_client import OAuth2Session
-import json as json_module
 
 settings = get_settings()
 
@@ -201,7 +200,7 @@ async def _record_session(
 
         user_agent = request.headers.get("user-agent") if request else None
         ip_address = await get_client_ip(request) if request else None
-        now = datetime.utcnow()
+        now = utcnow()
 
         if old_refresh_jti:
             result = await db.sessions.update_one(
@@ -238,7 +237,7 @@ async def _blacklist_jti(db, jti: Optional[str]) -> None:
         return
     await db.token_blacklist.update_one(
         {"jti": jti},
-        {"$set": {"jti": jti, "created_at": datetime.utcnow()}},
+        {"$set": {"jti": jti, "created_at": utcnow()}},
         upsert=True,
     )
 
@@ -365,7 +364,7 @@ async def register(req: RegisterRequest, request: Request, response: Response):
 
     verification_token = uuid.uuid4().hex
     hashed_token = _hash_token(verification_token)
-    expires = datetime.utcnow() + timedelta(hours=24)
+    expires = utcnow() + timedelta(hours=24)
     await db.users.update_one(
         {"id": user.id},
         {"$set": {"verification_token": hashed_token, "verification_expires": expires}},
@@ -407,8 +406,16 @@ async def login(req: LoginRequest, request: Request, response: Response):
             detail="Too many login attempts for this account. Please try again later.",
         )
 
+    is_locked, lockout_ttl = await check_login_lockout(req.email)
+    if is_locked:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Account locked due to too many failed attempts. Try again in {lockout_ttl} seconds.",
+        )
+
     user_doc = await db.users.find_one({"email": req.email}, {"_id": 0})
     if not user_doc:
+        await record_failed_login(req.email)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Decrypt sensitive fields before validation
@@ -419,7 +426,10 @@ async def login(req: LoginRequest, request: Request, response: Response):
     user = User(**user_data)
     hashed = user_doc.get("hashed_password", "")
     if not verify_password(req.password, hashed):
+        await record_failed_login(req.email)
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    await clear_login_attempts(req.email)
 
     if user_doc.get("mfa_enabled"):
         # Do not issue real tokens or record a session yet -- the client
@@ -525,7 +535,7 @@ async def logout(
     if jti:
         await db.sessions.update_one(
             {"user_id": user.id, "jti": jti, "revoked_at": None},
-            {"$set": {"revoked_at": datetime.utcnow()}},
+            {"$set": {"revoked_at": utcnow()}},
         )
 
     response.delete_cookie("access_token")
@@ -582,7 +592,7 @@ async def mfa_verify_setup(
         {
             "$set": {
                 "mfa_enabled": True,
-                "mfa_enrolled_at": datetime.utcnow(),
+                "mfa_enrolled_at": utcnow(),
                 "mfa_backup_codes": hashed_codes,
             }
         },
@@ -748,7 +758,7 @@ async def revoke_session(
         return {"ok": True}
 
     await db.sessions.update_one(
-        {"id": session_id}, {"$set": {"revoked_at": datetime.utcnow()}}
+        {"id": session_id}, {"$set": {"revoked_at": utcnow()}}
     )
     await _blacklist_jti(db, session_doc.get("jti"))
     await _blacklist_jti(db, session_doc.get("refresh_jti"))
@@ -766,7 +776,7 @@ async def revoke_all_sessions(request: Request, user: User = Depends(get_current
         {"user_id": user.id, "revoked_at": None}, {"_id": 0}
     ).to_list(None)
 
-    now = datetime.utcnow()
+    now = utcnow()
     for doc in docs:
         if doc.get("jti") == current_jti:
             continue
@@ -915,7 +925,7 @@ async def change_password(
         action="change_password",
         resource_type="user",
         resource_id=user.id,
-        changes={"timestamp": datetime.utcnow().isoformat()},
+        changes={"timestamp": utcnow().isoformat()},
     )
     await db.audit_logs.insert_one(audit_log.model_dump())
 
@@ -943,7 +953,7 @@ async def forgot_password(req: ForgotPasswordRequest):
     if user_doc:
         reset_token = uuid.uuid4().hex
         hashed = _hash_token(reset_token)
-        expires = datetime.utcnow() + timedelta(hours=1)
+        expires = utcnow() + timedelta(hours=1)
         await db.users.update_one(
             {"email": req.email},
             {
@@ -985,7 +995,7 @@ async def reset_password(req: ResetPasswordRequest):
             detail="Invalid or expired reset token",
         )
     expires = user_doc.get("password_reset_expires")
-    if not expires or datetime.utcnow() > expires:
+    if not expires or utcnow() > expires:
         raise HTTPException(
             status_code=404,
             detail="Invalid or expired reset token",
@@ -1021,7 +1031,7 @@ async def verify_email(token: str):
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
 
     expires = user_doc.get("verification_expires")
-    if not expires or datetime.utcnow() > expires:
+    if not expires or utcnow() > expires:
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
 
     await db.users.update_one(
@@ -1120,9 +1130,18 @@ async def google_callback(request: Request, response: Response):
     # to settings.app_url. This avoids mismatches when frontend dev server
     # runs on a different port than API/app URL config.
     frontend_base = getattr(settings, "google_frontend_app_url", None) or settings.app_url
-    user_json = json_module.dumps(user.model_dump())
-    frontend_callback_url = f"{frontend_base}/google-callback?access_token={access_token}&refresh_token={refresh_token}&user={user_json}"
-    return RedirectResponse(url=frontend_callback_url)
+    redirect_response = RedirectResponse(url=frontend_base)
+    redirect_response.set_cookie(
+        "access_token",
+        access_token,
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+    )
+    redirect_response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        **_get_cookie_kwargs(30 * 24 * 60 * 60),
+    )
+    return redirect_response
 
 
 @router.post("/resend-verification")
@@ -1146,7 +1165,7 @@ async def resend_verification(req: ResendVerificationRequest):
     if user_doc and not user_doc.get("email_verified"):
         verification_token = uuid.uuid4().hex
         hashed_token = _hash_token(verification_token)
-        expires = datetime.utcnow() + timedelta(hours=24)
+        expires = utcnow() + timedelta(hours=24)
         await db.users.update_one(
             {"email": req.email},
             {"$set": {"verification_token": hashed_token, "verification_expires": expires}},
@@ -1226,7 +1245,7 @@ async def create_organization(
     await db.organizations.insert_one(org_dict)
 
     team_member = TeamMember(
-        org_id=org.id, user_id=user.id, role=Role.OWNER, joined_at=datetime.utcnow()
+        org_id=org.id, user_id=user.id, role=Role.OWNER, joined_at=utcnow()
     )
     await db.team_members.insert_one(team_member.model_dump())
 
@@ -1363,7 +1382,7 @@ async def accept_invitation(token: str, user: User = Depends(get_current_user)):
         {
             "hashed_token": hashed,
             "accepted_at": None,
-            "expires_at": {"$gt": datetime.utcnow()},
+            "expires_at": {"$gt": utcnow()},
         },
         {"_id": 0},
     )
@@ -1382,12 +1401,12 @@ async def accept_invitation(token: str, user: User = Depends(get_current_user)):
         org_id=invite["org_id"],
         user_id=user.id,
         role=invite["role"],
-        joined_at=datetime.utcnow(),
+        joined_at=utcnow(),
     )
     await db.team_members.insert_one(team_member.model_dump())
 
     await db.invitations.update_one(
-        {"hashed_token": hashed}, {"$set": {"accepted_at": datetime.utcnow()}}
+        {"hashed_token": hashed}, {"$set": {"accepted_at": utcnow()}}
     )
 
     return {"ok": True}

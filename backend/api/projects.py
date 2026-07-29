@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from core.models import Project, User, PaginationParams
+from core.models import Project, User, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.audit import record_audit_log
 from datetime import datetime
@@ -119,7 +119,7 @@ async def update_project(project_id: str, req: UpdateProjectRequest, current_use
         raise HTTPException(status_code=404, detail="Project not found")
     
     update = {k: v for k, v in req.model_dump().items() if v is not None}
-    update["updated_at"] = datetime.utcnow().isoformat()
+    update["updated_at"] = utcnow().isoformat()
     await db.projects.update_one({"id": project_id, "user_id": current_user.id}, {"$set": update})
     return {"ok": True}
 

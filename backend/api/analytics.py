@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from enum import Enum
 
-from core.models import AnalyticsEvent, User, BuildStatus, PlanTier
+from core.models import AnalyticsEvent, User, BuildStatus, PlanTier, utcnow
 from core.database import get_db, cache_get_json, cache_set_json
 from api.auth import get_current_user
 from api.admin import admin_required
@@ -142,7 +142,7 @@ async def get_funnel_metrics(
 
     db = await get_db()
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     signup_pipeline = [
         {"$match": {"event_name": "signup", "created_at": {"$gte": start_date}}},
@@ -209,7 +209,7 @@ async def get_retention_metrics(
 
     db = await get_db()
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     user_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
@@ -234,7 +234,7 @@ async def get_retention_metrics(
 
 
 async def _calculate_retention(db, days_after: int, period_days: int) -> float:
-    start_date = datetime.utcnow() - timedelta(days=period_days)
+    start_date = utcnow() - timedelta(days=period_days)
     retention_date = start_date + timedelta(days=days_after)
     
     retained_pipeline = [
@@ -290,7 +290,7 @@ async def get_build_success_rate(
 
     db = await get_db()
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     total_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},
@@ -345,7 +345,7 @@ async def get_conversion_metrics(
 ):
     db = await get_db()
     
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
     
     user_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
@@ -390,7 +390,7 @@ async def get_churn_metrics(
 
     db = await get_db()
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     churned_pipeline = [
         {"$match": {"status": "canceled", "updated_at": {"$gte": start_date}}},
@@ -452,7 +452,7 @@ async def get_ai_cost_data(
 
     db = await get_db()
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     total_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},
@@ -568,7 +568,7 @@ async def get_onboarding_metrics(
 
     db = await get_db()
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     total_users_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
@@ -620,7 +620,7 @@ async def get_personal_analytics(
 
     db = await get_db()
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     builds_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}, "user_id": current_user.id}},

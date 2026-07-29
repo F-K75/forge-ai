@@ -95,7 +95,7 @@ export default function ProjectsPage() {
     };
   }, []);
 
-  const projects = LIVE_MODE ? liveProjects ?? [] : PROJECTS;
+  const projects = useMemo(() => (LIVE_MODE ? liveProjects ?? [] : PROJECTS), [liveProjects])
 
   const visibleProjects = useMemo(() => {
     const q = search.trim().toLowerCase();

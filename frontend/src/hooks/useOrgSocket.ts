@@ -113,11 +113,10 @@ export function useOrgSocket(projectId: string | null) {
           return
         }
 
-        const ws = new WebSocket(`${WS_URL}/v1/projects/${id}/org/ws`)
+        const ws = new WebSocket(`${WS_URL}/v1/projects/${id}/org/ws?token=${encodeURIComponent(wsToken)}`)
         wsRef.current = ws
 
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: "auth", token: wsToken }))
           reconnectAttemptsRef.current = 0
           setConnectionStatus("online")
         }

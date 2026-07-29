@@ -12,7 +12,7 @@ import tasks.build_tasks as build_tasks_module
 from main import app
 from api.admin import admin_required
 from auth import create_access_token
-from core.models import User
+from core.models import User, utcnow
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +155,7 @@ def _make_build_and_user():
         "context_tokens": 0,
         "debug_iterations": 0,
         "business_model": None,
-        "created_at": datetime.datetime.utcnow(),
+        "created_at": utcnow(),
         "completed_at": None,
     }
     user = {"id": "u1", "credits": 100}
@@ -257,7 +257,7 @@ def _fake_get_db():
             "context_tokens": 0,
             "debug_iterations": 0,
             "business_model": None,
-            "created_at": datetime.datetime.utcnow(),
+            "created_at": utcnow(),
             "completed_at": None,
         },
         {"id": "admin-1", "email": "admin@forge.ai", "name": "Admin", "is_admin": True, "mfa_enabled": True, "credits": 100},
@@ -351,8 +351,8 @@ def test_retry_dead_letter_requeues_build(monkeypatch):
         "failure_reason": "exception",
         "retry_count": 3,
         "credits_used": 10,
-        "created_at": datetime.datetime.utcnow(),
-        "dead_lettered_at": datetime.datetime.utcnow(),
+        "created_at": utcnow(),
+        "dead_lettered_at": utcnow(),
     }
     fake_db.build_dead_letters.docs["build-1"] = dead_letter
 
@@ -409,8 +409,8 @@ def test_dead_letter_persistence_across_terminal_failures(monkeypatch):
         {
             "agent": "architect",
             "status": "success",
-            "started_at": datetime.datetime.utcnow(),
-            "completed_at": datetime.datetime.utcnow(),
+            "started_at": utcnow(),
+            "completed_at": utcnow(),
             "output": "{}",
             "files_changed": [],
             "error": None,

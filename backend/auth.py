@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from core.models import utcnow
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -24,7 +25,7 @@ def create_access_token(
     token_type: str = "access",
 ) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
+    expire = utcnow() + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
     to_encode.update({
         "exp": expire,
         "type": token_type,
@@ -35,7 +36,7 @@ def create_access_token(
 
 def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=30)
+    expire = utcnow() + timedelta(days=30)
     to_encode.update({
         "exp": expire,
         "type": "refresh",
@@ -46,6 +47,18 @@ def create_refresh_token(data: dict) -> str:
 
 def decode_token(token: str) -> Optional[dict]:
     try:
-        return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        # The `algorithms` parameter enforces that the token's `alg` header
+        # matches one of the expected algorithms. This prevents `alg: "none"`
+        # attacks because "none" is not in the allowed list.
+        # `verify_exp` ensures expired tokens are rejected.
+        return jwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm],
+            options={
+                "verify_signature": True,
+                "verify_exp": True,
+            },
+        )
     except JWTError:
         return None

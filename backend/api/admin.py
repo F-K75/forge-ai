@@ -8,7 +8,7 @@ import csv
 import io
 import json
 
-from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams
+from core.models import User, BuildStatus, PlanTier, FeatureFlag, AuditLog, PaginationParams, utcnow
 from core.database import get_db, get_redis, cache_get_json, cache_set_json, paginated_query
 
 ADMIN_ANALYTICS_CACHE_TTL = 120
@@ -316,7 +316,7 @@ async def export_users(
     )
     await db.audit_logs.insert_one(audit_log.model_dump())
 
-    filename = f"forge-users-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.csv"
+    filename = f"forge-users-{utcnow().strftime('%Y%m%d-%H%M%S')}.csv"
     return StreamingResponse(
         iter([buffer.getvalue()]),
         media_type="text/csv",
@@ -527,13 +527,16 @@ async def retry_dead_letter_build(
 
     conversation_history, existing_files = await _get_prior_build_context(db, build_doc["project_id"])
 
-    run_build.delay(
-        build_id,
-        build_doc["project_id"],
-        build_doc["user_id"],
-        max_credits,
-        conversation_history,
-        existing_files,
+    run_build.apply_async(
+        args=(
+            build_id,
+            build_doc["project_id"],
+            build_doc["user_id"],
+            max_credits,
+            conversation_history,
+            existing_files,
+        ),
+        headers={"correlation_id": request.headers.get("X-Request-ID", "-")},
     )
 
     await record_audit_log(
@@ -589,7 +592,7 @@ async def get_analytics_overview(admin: User = Depends(admin_required)):
     async for doc in db.users.aggregate(plan_pipeline):
         users_by_plan[doc["_id"]] = doc["count"]
     
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     month_start = today_start.replace(day=1)
     
     revenue_today_pipeline = [
@@ -828,13 +831,13 @@ async def create_or_update_feature_flag(
         "enabled": req.enabled,
         "description": req.description,
         "updated_by": admin.id,
-        "updated_at": datetime.utcnow(),
+        "updated_at": utcnow(),
     }
     
     if existing:
         await db.feature_flags.update_one({"key": req.key}, {"$set": flag_data})
         flag_data["id"] = existing["id"]
-        flag_data["created_at"] = existing.get("created_at", datetime.utcnow())
+        flag_data["created_at"] = existing.get("created_at", utcnow())
     else:
         flag = FeatureFlag(
             key=req.key,

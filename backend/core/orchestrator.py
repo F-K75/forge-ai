@@ -14,7 +14,8 @@ from agents.pm import PMAgent
 from agents.business_model import BusinessModelAgent
 from agent_registry import get_agent_registry
 from core.models import (
-    Build, BuildStatus, AgentStep, AgentType, WSEvent, WSEventType, PlanTier
+    Build, BuildStatus, AgentStep, AgentType, WSEvent, WSEventType, PlanTier,
+    utcnow,
 )
 from core.specialist_shadow import launch_shadow_comparison
 from core.config import get_settings
@@ -441,7 +442,7 @@ class Orchestrator:
 
             # --- 8. DONE ---
             build.status = BuildStatus.SUCCESS
-            build.completed_at = datetime.utcnow()
+            build.completed_at = utcnow()
 
             # Attach the final (post-debug-loop) moderation + CSP reports so
             # users see any non-blocking warnings even when blocking issues were
@@ -545,7 +546,7 @@ class Orchestrator:
             "kind": kind,
             "questions": questions or [],
             "timeout_seconds": settings.gate_timeout,
-            "requested_at": datetime.utcnow().isoformat(),
+            "requested_at": utcnow().isoformat(),
         }
         await db.builds.update_one({"id": build.id}, {"$set": {"pending_gate": gate}})
         await emit(WSEvent(type=WSEventType.GATE_REQUEST, build_id=build.id, data=gate))
@@ -644,7 +645,7 @@ class Orchestrator:
     async def _start_agent(
         self, build: Build, agent_type: AgentType, emit: Callable, skip_credits: bool = False
     ):
-        step = AgentStep(agent=agent_type, status=BuildStatus.RUNNING, started_at=datetime.utcnow())
+        step = AgentStep(agent=agent_type, status=BuildStatus.RUNNING, started_at=utcnow())
         step.agent_profile_id = await self._resolve_agent_profile(build, agent_type)
         build.agents.append(step)
         if not skip_credits:
@@ -715,7 +716,7 @@ class Orchestrator:
         for step in build.agents:
             if step.agent == agent_type and step.status == BuildStatus.RUNNING:
                 step.status = BuildStatus.SUCCESS
-                step.completed_at = datetime.utcnow()
+                step.completed_at = utcnow()
                 step.output = output
                 step.files_changed = files_changed or []
                 completed_step = step

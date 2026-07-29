@@ -21,14 +21,22 @@ spec:
       labels:
         app: backend
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: backend
+              topologyKey: kubernetes.io/hostname
       containers:
       - name: backend
-        # Replace GHCR_OWNER with the real GitHub org/user (see
-        # .env.production.example and .github/workflows/deploy.yml, which
-        # already push here) and pin to a specific tag/SHA for real
-        # rollouts rather than floating `latest`.
-        image: ghcr.io/GHCR_OWNER/forge-backend:latest
-        imagePullPolicy: Always
+        # Pin to an immutable tag (e.g. commit SHA or release version) via
+        # IMAGE_TAG env var / deploy-time substitution. Floating `latest`
+        # prevents reliable rollbacks.
+        image: ghcr.io/GHCR_OWNER/forge-backend:${IMAGE_TAG:-latest}
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
           name: http

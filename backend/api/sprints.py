@@ -4,7 +4,7 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 
-from core.models import User
+from core.models import User, utcnow
 from core.pm_models import SprintStatus, StandUp, SprintReview, SprintRetro, RiskReport, TechDebtSummary
 from core.database import get_db
 from core.permissions import has_initiative_access
@@ -60,7 +60,7 @@ async def update_sprint(sprint_id: str, req: UpdateSprintRequest, current_user: 
     db = await get_db()
     sprint = await _owned_sprint(db, sprint_id, current_user.id)
     update = {k: v for k, v in req.model_dump().items() if v is not None}
-    update["updated_at"] = datetime.utcnow()
+    update["updated_at"] = utcnow()
     await db.sprints.update_one({"id": sprint_id}, {"$set": update})
 
     if update.get("status") == SprintStatus.COMPLETED.value and sprint.get("status") != SprintStatus.COMPLETED.value:
