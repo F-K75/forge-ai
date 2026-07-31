@@ -140,7 +140,7 @@ export default function ProjectsPage() {
       {/* Command deck */}
       <section
         aria-label="Launch a build"
-        className="relative shrink-0 overflow-hidden rounded-apple-xl border border-border bg-panel p-5 shadow-apple md:p-7"
+        className="relative shrink-0 overflow-hidden rounded-apple-xl border border-outline bg-panel p-5 shadow-m3 md:p-7"
       >
         <div className="relative mx-auto max-w-3xl">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -152,14 +152,14 @@ export default function ProjectsPage() {
                 What do you want to forge?
               </h2>
             </div>
-            <div className="flex flex-wrap gap-2 text-[12px] font-medium text-muted">
-              <span className="rounded-full bg-accent-soft px-3 py-1 text-accent">
+            <div className="flex flex-wrap gap-2">
+              <span className="bb-chip bb-chip-selected">
                 {skillStats.full} visuals
               </span>
-              <span className="rounded-full bg-white/[0.06] px-3 py-1">
+              <span className="bb-chip">
                 {ORG_ROLE_COUNT} roles
               </span>
-              <span className="rounded-full bg-white/[0.06] px-3 py-1">
+              <span className="bb-chip">
                 {PLAYBOOK_COUNT} playbooks
               </span>
             </div>
@@ -168,7 +168,7 @@ export default function ProjectsPage() {
           <label htmlFor="forge-spotlight" className="sr-only">
             Describe what to build
           </label>
-          <div className="flex items-center gap-2 rounded-full border border-border bg-panel-alt px-3 py-2 shadow-apple transition focus-within:border-accent/40 focus-within:shadow-[0_0_0_4px_rgba(0,113,227,0.12)]">
+          <div className="flex items-center gap-2 rounded-full border border-outline bg-panel-alt px-3 py-2 shadow-m3 transition focus-within:border-accent/40 focus-within:shadow-[0_0_0_4px_var(--state-focus)]">
             <ZapMark />
             <input
               id="forge-spotlight"
@@ -185,7 +185,7 @@ export default function ProjectsPage() {
               disabled={creating}
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-[15px] font-medium text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              className="bb-btn bb-btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Send size={14} aria-hidden="true" />
               {creating ? "Opening…" : "Build"}
@@ -205,7 +205,7 @@ export default function ProjectsPage() {
                   type="button"
                   role="listitem"
                   onClick={() => handleBuild(starter.label, starter.label)}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1.5 text-[13px] font-medium text-muted transition hover:bg-accent-soft hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                  className="bb-chip cursor-pointer"
                 >
                   <Icon size={13} aria-hidden="true" />
                   {starter.label}
@@ -216,7 +216,7 @@ export default function ProjectsPage() {
               type="button"
               onClick={() => handleBuild("")}
               disabled={creating}
-              className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-[13px] font-medium text-accent transition hover:bg-accent/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50"
+              className="bb-chip bb-chip-selected ml-auto cursor-pointer disabled:opacity-50"
             >
               <Plus size={13} aria-hidden="true" />
               Blank project
@@ -229,8 +229,8 @@ export default function ProjectsPage() {
 
       {/* Project library */}
       <section aria-label="Project library" className="flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b border-ember/15 px-4 py-3 md:px-8">
-          <p className="mr-2 hidden font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ember sm:block">
+        <div className="flex flex-wrap items-center gap-2 border-b border-outline px-4 py-3 md:px-8">
+          <p className="mr-2 hidden text-caption font-medium uppercase tracking-[0.12em] text-accent sm:block">
             Library
           </p>
           <div className="relative min-w-[160px] flex-1">
@@ -245,14 +245,14 @@ export default function ProjectsPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search library…"
               aria-label="Search projects"
-              className="h-9 w-full rounded-lg border border-transparent bg-white/[0.04] pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-white/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+              className="h-9 w-full rounded-full border border-transparent bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
             aria-label="Filter by status"
-            className="h-9 cursor-pointer rounded-lg border border-transparent bg-white/[0.04] px-2 text-xs text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+            className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <option value="all">All</option>
             <option value="live">Live</option>
@@ -262,13 +262,13 @@ export default function ProjectsPage() {
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             aria-label="Sort projects"
-            className="h-9 cursor-pointer rounded-lg border border-transparent bg-white/[0.04] px-2 text-xs text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+            className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <option value="recent">Recent</option>
             <option value="name">Name</option>
             <option value="status">Status</option>
           </select>
-          <div className="flex shrink-0 gap-0.5 rounded-lg bg-white/[0.04] p-0.5" role="group" aria-label="View mode">
+          <div className="flex shrink-0 gap-0.5 rounded-full bg-panel-alt p-0.5" role="group" aria-label="View mode">
             {(
               [
                 { key: "icons" as const, icon: LayoutGrid, label: "Icon view" },
@@ -282,8 +282,8 @@ export default function ProjectsPage() {
                 aria-label={label}
                 aria-pressed={viewMode === key}
                 className={[
-                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40",
-                  viewMode === key ? "bg-white/10 text-ink" : "text-muted hover:text-ink",
+                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+                  viewMode === key ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
                 ].join(" ")}
               >
                 <Icon size={14} aria-hidden="true" />

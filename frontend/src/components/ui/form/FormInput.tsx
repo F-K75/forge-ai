@@ -47,10 +47,10 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
             aria-invalid={!!error && touched}
             aria-describedby={error && touched ? `${inputId}-error` : undefined}
             className={clsx(
-              'w-full bg-base border rounded-xl py-3 text-ink placeholder-muted focus:outline-none focus:ring-2',
-              icon ? 'pl-10 pr-4' : 'px-4',
+              'bb-input',
+              icon ? 'pl-10 pr-4' : '',
               showSuccess && !error && props.value ? 'pr-10' : '',
-              error && touched ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-accent',
+              error && touched ? '!border-[rgb(var(--error))]' : '',
               className
             )}
             {...props}

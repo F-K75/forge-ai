@@ -49,8 +49,9 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
       )}
       {primaryAction && (
         <motion.button
+          type="button"
           onClick={primaryAction.onClick}
-          className="px-5 py-2 bg-accent text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+          className="bb-btn bb-btn-primary"
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -62,8 +63,9 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
       )}
       {secondaryAction && (
         <motion.button
+          type="button"
           onClick={secondaryAction.onClick}
-          className="mt-2 px-5 py-2 text-sm text-muted hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent rounded"
+          className="bb-btn bb-btn-ghost mt-2 text-sm"
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}

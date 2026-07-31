@@ -98,12 +98,12 @@ export default function BillingPage() {
       </header>
 
       {/* Usage stats */}
-      <section aria-label="Usage this month" className="mb-12 pb-12 border-b border-border">
-        <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-4">
+      <section aria-label="Usage this month" className="mb-12 pb-12 border-b border-outline">
+        <h2 className="mb-4 text-caption font-medium uppercase tracking-wide text-faint">
           Usage this month
         </h2>
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-3"
           variants={reduceMotion ? undefined : motionVariants.staggerContainer}
           initial={reduceMotion ? false : "hidden"}
           animate="visible"
@@ -111,17 +111,17 @@ export default function BillingPage() {
           {LIVE_MODE ? (
             usage ? (
               <>
-                <motion.div className="bg-base p-4" variants={motionVariants.staggerItem}>
+                <motion.div className="bb-panel rounded-m3 p-4" variants={motionVariants.staggerItem}>
                   <p className="text-xs text-faint mb-1">Credits used</p>
                   <p className="text-2xl font-medium text-ink">
                     {usage.credits_used} / {usage.credits_used + usage.credits_remaining}
                   </p>
                 </motion.div>
-                <motion.div className="bg-base p-4" variants={motionVariants.staggerItem}>
+                <motion.div className="bb-panel rounded-m3 p-4" variants={motionVariants.staggerItem}>
                   <p className="text-xs text-faint mb-1">Credits remaining</p>
                   <p className="text-2xl font-medium text-ink">{usage.credits_remaining}</p>
                 </motion.div>
-                <motion.div className="bg-base p-4" variants={motionVariants.staggerItem}>
+                <motion.div className="bb-panel rounded-m3 p-4" variants={motionVariants.staggerItem}>
                   <p className="text-xs text-faint mb-1">Builds this month</p>
                   <p className="text-2xl font-medium text-ink">{usage.builds_count}</p>
                 </motion.div>
@@ -131,7 +131,7 @@ export default function BillingPage() {
             )
           ) : (
             USAGE_STATS.map(stat => (
-              <motion.div key={stat.label} className="bg-base p-4" variants={motionVariants.staggerItem}>
+              <motion.div key={stat.label} className="bb-panel rounded-m3 p-4" variants={motionVariants.staggerItem}>
                 <p className="text-xs text-faint mb-1">{stat.label}</p>
                 <p className={`text-2xl font-medium ${TONE_CLASS[stat.tone]}`}>{stat.value}</p>
                 <p className="text-xs text-faint mt-1">{stat.sub}</p>

@@ -48,7 +48,7 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
     <section
       aria-label="Agent fleet"
       className={[
-        "rounded-apple-xl border border-border bg-panel shadow-apple",
+        "rounded-apple-xl border border-outline bg-panel shadow-m3",
         compact ? "px-3 py-3" : "px-4 py-4 md:px-5",
       ].join(" ")}
     >
@@ -65,9 +65,9 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
           )}
         </div>
         <div className="flex items-center gap-1.5 text-[11px] font-medium">
-          <span className="rounded-full bg-ok/15 px-2.5 py-0.5 text-ok">{stats.full} live</span>
-          <span className="rounded-full bg-warn/15 px-2.5 py-0.5 text-warn">{stats.partial} partial</span>
-          <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-faint">{stats.minimal} thin</span>
+          <span className="bb-chip !bg-[rgb(var(--success)/0.15)] !text-ok">{stats.full} live</span>
+          <span className="bb-chip !bg-[rgb(var(--warning)/0.15)] !text-warn">{stats.partial} partial</span>
+          <span className="bb-chip">{stats.minimal} thin</span>
         </div>
       </div>
 

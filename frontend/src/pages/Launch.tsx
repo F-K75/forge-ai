@@ -259,35 +259,52 @@ function PromptBar() {
   };
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="pointer-events-auto mt-10 flex w-full items-center gap-2 rounded-full apple-glass-strong px-2 py-2 pl-4 text-left transition shadow-apple-lg focus-within:shadow-[0_0_0_4px_rgba(0,113,227,0.12)] sm:gap-3 sm:pl-5"
-      onClick={() => inputRef.current?.focus()}
-    >
-      <div className="relative min-w-0 flex-1">
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          aria-label="Describe what you want to build"
-          className="w-full bg-transparent text-[15px] text-ink placeholder-transparent focus:outline-none sm:text-[17px]"
-        />
-        {value === "" && (
-          <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center truncate text-[15px] text-faint sm:text-[17px]">
-            <span className="truncate">{placeholder}</span>
-            <span className="ml-0.5 animate-[blink_1s_step-end_infinite] text-accent motion-reduce:animate-none">|</span>
-          </span>
-        )}
-      </div>
-      <motion.button
-        type="submit"
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[15px] font-medium text-white transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-        {...presets.button}
+    <div className="pointer-events-auto mt-10 w-full">
+      <form
+        onSubmit={onSubmit}
+        className="flex w-full items-center gap-2 rounded-full apple-glass-strong px-2 py-2 pl-4 text-left shadow-apple-lg transition focus-within:shadow-[0_0_0_4px_var(--state-focus)] sm:gap-3 sm:pl-5"
+        onClick={() => inputRef.current?.focus()}
       >
-        Build <ArrowRight className="h-4 w-4" aria-hidden="true" />
-      </motion.button>
-    </form>
+        <div className="relative min-w-0 flex-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            aria-label="Describe what you want to build"
+            className="w-full bg-transparent text-[15px] text-ink placeholder-transparent focus:outline-none sm:text-[17px]"
+          />
+          {value === "" && (
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center truncate text-[15px] text-faint sm:text-[17px]">
+              <span className="truncate">{placeholder}</span>
+              <span className="ml-0.5 animate-[blink_1s_step-end_infinite] text-accent motion-reduce:animate-none">|</span>
+            </span>
+          )}
+        </div>
+        <motion.button
+          type="submit"
+          className="bb-btn bb-btn-primary shrink-0 px-5 py-2.5"
+          {...presets.button}
+        >
+          Build <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </motion.button>
+      </form>
+      <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Example prompts">
+        {EXAMPLE_PROMPTS.slice(0, 3).map((example) => (
+          <button
+            key={example}
+            type="button"
+            className="bb-chip pointer-events-auto cursor-pointer"
+            onClick={() => {
+              setValue(example);
+              inputRef.current?.focus();
+            }}
+          >
+            {example}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

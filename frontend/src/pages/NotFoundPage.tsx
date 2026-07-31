@@ -6,33 +6,27 @@ export default function NotFoundPage() {
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className="min-h-screen bg-base flex items-center justify-center p-6">
+    <div className="flex min-h-screen items-center justify-center bg-base p-6">
       <motion.main
-        className="text-center max-w-sm"
+        className="max-w-sm text-center"
         initial={reduceMotion ? false : { opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl glass mb-6">
+        <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl glass">
           <Hammer size={24} className="text-accent" aria-hidden="true" />
         </div>
-        <h1 className="text-4xl font-bold text-ink mb-2">404</h1>
-        <p className="text-base font-medium text-ink mb-2">Page not found</p>
-        <p className="text-sm text-muted mb-8">
-          This page doesn't exist or was moved.
+        <p className="mb-2 font-mono text-caption uppercase tracking-[0.14em] text-muted">Error 404</p>
+        <h1 className="mb-2 font-display text-display text-ink">Page not found</h1>
+        <p className="mb-8 text-body text-muted">
+          This page doesn&apos;t exist or was moved.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            to="/home"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-white text-sm font-semibold hover:opacity-90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link to="/home" className="bb-btn bb-btn-primary">
             <Home size={14} aria-hidden="true" />
             Go to home
           </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-panel border border-border text-sm text-ink hover:bg-panel-alt transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
+          <Link to="/" className="bb-btn bb-btn-outlined">
             <ArrowLeft size={14} aria-hidden="true" />
             Dashboard
           </Link>

@@ -15,6 +15,7 @@ import { useAuthStore } from "../store/authStore";
 import { CURRENT_USER } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
 import { NotificationsBell } from "./NotificationsBell";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface DockApp {
   to: string;
@@ -139,14 +140,15 @@ export default function AppShell() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden rounded-full bg-white/[0.06] px-3 py-1 font-mono text-xs text-muted md:inline">
+            <span className="bb-chip hidden font-mono text-xs md:inline">
               {creditsRemaining} credits · {plan}
             </span>
+            <ThemeToggle compact />
             <NotificationsBell />
             <button
               type="button"
               onClick={() => navigate("/settings")}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#0071E3] to-[#5E5CE6] text-sm font-semibold text-white shadow-apple transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white shadow-m3 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               aria-label="Open settings"
             >
               {initial}
@@ -184,7 +186,7 @@ export default function AppShell() {
                   to={app.to}
                   className={[
                     "apple-dock-item flex min-w-[3.25rem] flex-col items-center gap-1 rounded-2xl px-2.5 py-2 text-muted sm:min-w-[4.25rem]",
-                    active ? "is-active" : "hover:bg-white/[0.06]",
+                    active ? "is-active" : "",
                   ].join(" ")}
                   aria-current={active ? "page" : undefined}
                 >

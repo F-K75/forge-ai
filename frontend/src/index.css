@@ -2,27 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Apple × Material 3 — dark default */
 :root,
 .dark {
   --bg: 0 0 0;
-  --bg-elevated: 28 28 30;
-  --bg-subtle: 44 44 46;
-  --border: 255 255 255;
-  --border-alpha: 0.12;
-  --border-soft-alpha: 0.08;
-  --text: 245 245 247;
-  --text-secondary: 161 161 166;
-  --muted: 142 142 147;
-  --accent: 10 132 255;
-  --accent-hover: 64 156 255;
+  --surface: 28 28 30;
+  --surface-container: 44 44 46;
+  --surface-container-high: 58 58 60;
+  --on-surface: 245 245 247;
+  --on-surface-variant: 161 161 166;
+  --outline-muted: 142 142 147;
+  --outline: 255 255 255;
+  --outline-alpha: 0.14;
+  --outline-soft-alpha: 0.08;
+  --primary: 10 132 255;
+  --primary-hover: 64 156 255;
+  --primary-container: rgba(10, 132, 255, 0.16);
+  --secondary: 100 210 255;
+  --secondary-container: rgba(100, 210, 255, 0.14);
   --success: 48 209 88;
   --warning: 255 159 10;
   --error: 255 69 58;
-  --shadow-apple: 0 2px 16px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.08);
-  --shadow-apple-lg: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 1px rgba(255, 255, 255, 0.1);
-  --fill-subtle: rgba(255, 255, 255, 0.06);
-  --fill-hover: rgba(255, 255, 255, 0.1);
-  --accent-soft: rgba(10, 132, 255, 0.16);
+  --info: 100 210 255;
+  --state-hover: rgba(255, 255, 255, 0.08);
+  --state-pressed: rgba(255, 255, 255, 0.12);
+  --state-focus: rgba(10, 132, 255, 0.24);
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.08);
+  --elevation-2: 0 8px 28px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+  --elevation-3: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 1px rgba(255, 255, 255, 0.12);
+  --fill-subtle: var(--state-hover);
+  --fill-hover: var(--state-pressed);
+  --accent-soft: var(--primary-container);
   --accent-glow: rgba(10, 132, 255, 0.28);
   --electric-blue: #0a84ff;
   --electric-blue-glow: rgba(10, 132, 255, 0.3);
@@ -31,29 +41,51 @@
   --orange: #ff9f0a;
   --orange-glow: rgba(255, 159, 10, 0.3);
   --radius-apple: 20px;
+  /* legacy aliases */
+  --bg-elevated: var(--surface);
+  --bg-subtle: var(--surface-container);
+  --text: var(--on-surface);
+  --text-secondary: var(--on-surface-variant);
+  --muted: var(--outline-muted);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --border: var(--outline);
+  --border-alpha: var(--outline-alpha);
+  --border-soft-alpha: var(--outline-soft-alpha);
+  --shadow-apple: var(--elevation-1);
+  --shadow-apple-lg: var(--elevation-2);
   color-scheme: dark;
 }
 
 .light {
   --bg: 245 245 247;
-  --bg-elevated: 255 255 255;
-  --bg-subtle: 251 251 253;
-  --border: 0 0 0;
-  --border-alpha: 0.08;
-  --border-soft-alpha: 0.05;
-  --text: 29 29 31;
-  --text-secondary: 110 110 115;
-  --muted: 161 161 166;
-  --accent: 0 113 227;
-  --accent-hover: 0 119 237;
+  --surface: 255 255 255;
+  --surface-container: 251 251 253;
+  --surface-container-high: 240 240 242;
+  --on-surface: 29 29 31;
+  --on-surface-variant: 110 110 115;
+  --outline-muted: 161 161 166;
+  --outline: 0 0 0;
+  --outline-alpha: 0.12;
+  --outline-soft-alpha: 0.06;
+  --primary: 0 113 227;
+  --primary-hover: 0 119 237;
+  --primary-container: rgba(0, 113, 227, 0.1);
+  --secondary: 20 126 251;
+  --secondary-container: rgba(20, 126, 251, 0.1);
   --success: 48 209 88;
   --warning: 255 159 10;
   --error: 255 69 58;
-  --shadow-apple: 0 2px 16px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.08);
-  --shadow-apple-lg: 0 12px 40px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.06);
-  --fill-subtle: rgba(0, 0, 0, 0.04);
-  --fill-hover: rgba(0, 0, 0, 0.07);
-  --accent-soft: rgba(0, 113, 227, 0.1);
+  --info: 0 113 227;
+  --state-hover: rgba(0, 0, 0, 0.04);
+  --state-pressed: rgba(0, 0, 0, 0.08);
+  --state-focus: rgba(0, 113, 227, 0.2);
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.06);
+  --elevation-2: 0 8px 28px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.06);
+  --elevation-3: 0 16px 48px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  --fill-subtle: var(--state-hover);
+  --fill-hover: var(--state-pressed);
+  --accent-soft: var(--primary-container);
   --accent-glow: rgba(0, 113, 227, 0.18);
   --electric-blue: #0071e3;
   --electric-blue-glow: rgba(0, 113, 227, 0.25);
@@ -61,50 +93,98 @@
   --teal-glow: rgba(100, 210, 255, 0.25);
   --orange: #ff9f0a;
   --orange-glow: rgba(255, 159, 10, 0.25);
+  --bg-elevated: var(--surface);
+  --bg-subtle: var(--surface-container);
+  --text: var(--on-surface);
+  --text-secondary: var(--on-surface-variant);
+  --muted: var(--outline-muted);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --border: var(--outline);
+  --border-alpha: var(--outline-alpha);
+  --border-soft-alpha: var(--outline-soft-alpha);
+  --shadow-apple: var(--elevation-1);
+  --shadow-apple-lg: var(--elevation-2);
   color-scheme: light;
+}
+
+.hc,
+.high-contrast {
+  --outline-alpha: 0.4;
+  --outline-soft-alpha: 0.28;
+  --primary-container: rgba(10, 132, 255, 0.32);
+  --state-hover: rgba(255, 255, 255, 0.16);
+  --state-pressed: rgba(255, 255, 255, 0.22);
+}
+
+.light.hc,
+.light.high-contrast {
+  --outline-alpha: 0.28;
+  --outline-soft-alpha: 0.18;
+  --primary-container: rgba(0, 113, 227, 0.2);
+  --state-hover: rgba(0, 0, 0, 0.08);
+  --state-pressed: rgba(0, 0, 0, 0.14);
 }
 
 @layer components {
   .bb-focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-    --tw-ring-color: var(--accent-soft);
+    --tw-ring-color: var(--state-focus);
     --tw-ring-offset-color: rgb(var(--bg));
   }
 
   .bb-panel {
-    @apply rounded-apple border border-border bg-panel shadow-apple;
+    @apply rounded-m3-lg border border-outline bg-panel shadow-m3;
   }
 
   .bb-card {
-    @apply rounded-2xl border border-border bg-panel shadow-apple transition-all duration-300 ease-apple;
+    @apply rounded-m3-lg border border-outline bg-panel shadow-m3 transition-all duration-med ease-m3;
   }
 
   .bb-card:hover {
-    @apply shadow-apple-lg -translate-y-0.5;
+    @apply shadow-m3-2 -translate-y-0.5;
   }
 
+  /* Material 3 filled / tonal / text buttons (Apple rounded-full) */
   .bb-btn {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[15px] font-medium transition-all duration-200 ease-apple bb-focus-ring;
+    @apply relative inline-flex select-none items-center justify-center gap-2 overflow-hidden rounded-full px-6 py-2.5 text-[15px] font-medium tracking-tight transition-all duration-fast ease-m3 bb-focus-ring;
+  }
+
+  .bb-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    transition: background 150ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .bb-btn:hover::after {
+    background: var(--state-hover);
+  }
+
+  .bb-btn:active::after {
+    background: var(--state-pressed);
   }
 
   .bb-btn-primary {
-    @apply bg-accent text-white active:scale-[0.98] disabled:cursor-not-allowed;
-  }
-
-  .bb-btn-primary:hover {
-    filter: brightness(1.1);
+    @apply bg-accent text-white disabled:cursor-not-allowed;
   }
 
   .bb-btn-primary:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
+  }
+
+  .bb-btn-tonal {
+    @apply text-accent;
+    background: var(--primary-container);
   }
 
   .bb-btn-ghost {
-    @apply bg-transparent text-muted hover:text-ink active:opacity-80;
+    @apply bg-transparent text-muted;
   }
 
   .bb-btn-ghost:hover {
-    background: var(--fill-subtle);
+    color: rgb(var(--on-surface));
   }
 
   .bb-btn-subtle {
@@ -112,8 +192,8 @@
     background: var(--fill-subtle);
   }
 
-  .bb-btn-subtle:hover {
-    background: var(--fill-hover);
+  .bb-btn-outlined {
+    @apply border border-outline bg-transparent text-ink;
   }
 
   .bb-btn-icon {
@@ -121,12 +201,13 @@
   }
 
   .bb-input {
-    @apply w-full rounded-2xl border border-border bg-panel px-4 py-3 text-[15px] text-ink outline-none transition-all duration-200 placeholder:text-faint bb-focus-ring;
+    @apply w-full rounded-m3 border border-outline bg-panel-alt px-4 py-3 text-body text-ink outline-none transition-all duration-fast placeholder:text-faint bb-focus-ring;
   }
 
   .bb-input:focus {
-    border-color: rgb(var(--accent) / 0.45);
-    box-shadow: 0 0 0 4px var(--accent-soft);
+    border-color: rgb(var(--primary) / 0.55);
+    box-shadow: 0 0 0 4px var(--state-focus);
+    background: rgb(var(--surface));
   }
 
   .bb-textarea {
@@ -138,13 +219,67 @@
   }
 
   .bb-badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium;
+  }
+
+  .bb-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-medium transition-colors duration-fast;
+    background: var(--fill-subtle);
+    color: rgb(var(--on-surface-variant));
+  }
+
+  .bb-chip:hover {
+    background: var(--fill-hover);
+    color: rgb(var(--on-surface));
+  }
+
+  .bb-chip-selected {
+    background: var(--primary-container);
+    color: rgb(var(--primary));
+  }
+
+  .bb-field {
+    @apply relative;
+  }
+
+  .bb-field-label {
+    @apply pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body text-faint transition-all duration-fast ease-m3;
+  }
+
+  .bb-field:focus-within .bb-field-label,
+  .bb-field.has-value .bb-field-label {
+    top: 0.55rem;
+    transform: none;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(var(--primary));
+  }
+
+  .bb-field-input {
+    @apply bb-input pt-5 pb-2;
+  }
+
+  .bb-snackbar {
+    @apply apple-glass-strong rounded-full px-5 py-3 text-caption text-ink shadow-m3-2;
+  }
+
+  .bb-dialog {
+    @apply apple-glass-strong rounded-m3-lg p-6 shadow-apple-float;
+  }
+
+  .bb-skeleton {
+    @apply animate-shimmer rounded-m3 bg-panel-alt;
+  }
+
+  .bb-empty {
+    @apply flex flex-col items-center justify-center rounded-m3-lg border border-dashed border-outline px-6 py-16 text-center;
   }
 
   .apple-glass {
     background: rgba(28, 28, 30, 0.72);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: var(--shadow-apple);
+    box-shadow: var(--elevation-1);
     -webkit-backdrop-filter: blur(24px) saturate(1.4);
     backdrop-filter: blur(24px) saturate(1.4);
   }
@@ -155,21 +290,21 @@
   }
 
   .apple-glass-strong {
-    background: rgba(28, 28, 30, 0.88);
+    background: rgba(28, 28, 30, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: var(--shadow-apple-lg);
+    box-shadow: var(--elevation-2);
     -webkit-backdrop-filter: blur(28px) saturate(1.5);
     backdrop-filter: blur(28px) saturate(1.5);
   }
 
   .light .apple-glass-strong {
-    background: rgba(255, 255, 255, 0.86);
+    background: rgba(255, 255, 255, 0.88);
     border: 1px solid rgba(0, 0, 0, 0.06);
   }
 }
 
 :focus-visible {
-  outline: 2px solid rgb(var(--accent));
+  outline: 2px solid rgb(var(--primary));
   outline-offset: 2px;
 }
 
@@ -219,8 +354,8 @@ html {
 body {
   margin: 0;
   background: rgb(var(--bg));
-  color: rgb(var(--text));
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  color: rgb(var(--on-surface));
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.47;
   letter-spacing: -0.014em;
@@ -253,13 +388,13 @@ body {
 }
 
 .gradient-ember {
-  background-image: linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent-hover)));
+  background-image: linear-gradient(135deg, rgb(var(--primary)), rgb(var(--primary-hover)));
 }
 
 .cursor::after {
   content: "▋";
   animation: blink 1s step-end infinite;
-  color: rgb(var(--accent));
+  color: rgb(var(--primary));
   margin-left: 1px;
 }
 
@@ -313,7 +448,7 @@ body {
 /* —— App shell (Apple workspace) —— */
 .apple-shell {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(var(--accent) / 0.16), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(var(--primary) / 0.14), transparent 55%),
     rgb(var(--bg));
 }
 
@@ -344,8 +479,8 @@ body {
 }
 
 .apple-dock-item.is-active {
-  background: var(--accent-soft);
-  color: rgb(var(--accent));
+  background: var(--primary-container);
+  color: rgb(var(--primary));
 }
 
 /* —— Launch —— */
@@ -449,10 +584,10 @@ body {
 }
 
 .os-window {
-  background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--border) / var(--border-alpha));
+  background: rgb(var(--surface));
+  border: 1px solid rgb(var(--outline) / var(--outline-alpha));
   border-radius: 24px;
-  box-shadow: var(--shadow-apple-lg);
+  box-shadow: var(--elevation-2);
 }
 
 .shadow-blue-glow { box-shadow: 0 0 0 2px var(--electric-blue-glow); }

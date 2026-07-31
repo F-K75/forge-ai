@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, LifeBuoy } from "lucide-react";
+import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, LifeBuoy, Palette } from "lucide-react";
+import { ThemeSegmented } from "../components/ThemeToggle";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -343,6 +344,22 @@ export default function SettingsPage() {
         initial={reduceMotion ? false : "hidden"}
         animate="visible"
       >
+
+        {/* Appearance */}
+        <motion.section aria-labelledby="section-appearance" variants={motionVariants.staggerItem}>
+          <div className="mb-3 flex items-center gap-2">
+            <Palette size={13} className="text-muted" aria-hidden="true" />
+            <h2 id="section-appearance" className="text-sm font-medium text-ink">
+              Appearance
+            </h2>
+          </div>
+          <div className="bb-panel space-y-3 p-4">
+            <p className="text-caption text-muted">
+              Apple-inspired surfaces with Material 3 clarity. Choose dark, light, or high contrast.
+            </p>
+            <ThemeSegmented />
+          </div>
+        </motion.section>
 
         {/* API key */}
         <motion.section aria-labelledby="section-api-key" variants={motionVariants.staggerItem}>
