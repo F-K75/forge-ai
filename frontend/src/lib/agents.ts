@@ -15,12 +15,12 @@ export interface Agent {
 // light peach through the base ember to deep rust, so they read as one
 // cohesive identity rather than unrelated colors.
 export const AGENTS: Agent[] = [
-  { id: "architect",         label: "Architect",      icon: Compass,     hue: "#F4A261", credits: 3 },
-  { id: "business_improver", label: "Business Model", icon: TrendingUp,  hue: "#F0934D", credits: 2 },
-  { id: "designer",          label: "Designer",       icon: Palette,     hue: "#E8823C", credits: 2 },
-  { id: "developer",         label: "Developer",      icon: Code2,       hue: "#D9722C", credits: 5 },
-  { id: "integration",       label: "Integration",    icon: Plug,        hue: "#C2631F", credits: 2 },
-  { id: "pm",                label: "PM",             icon: ShieldCheck, hue: "#A85423", credits: 1 },
+  { id: "architect",         label: "Architect",      icon: Compass,     hue: "#F4F4F5", credits: 3 },
+  { id: "business_improver", label: "Business Model", icon: TrendingUp,  hue: "#E4E4E7", credits: 2 },
+  { id: "designer",          label: "Designer",       icon: Palette,     hue: "#D4D4D8", credits: 2 },
+  { id: "developer",         label: "Developer",      icon: Code2,       hue: "#A1A1AA", credits: 5 },
+  { id: "integration",       label: "Integration",    icon: Plug,        hue: "#71717A", credits: 2 },
+  { id: "pm",                label: "PM",             icon: ShieldCheck, hue: "#52525B", credits: 1 },
 ];
 
 export const agentById = (id: string): Agent | undefined =>

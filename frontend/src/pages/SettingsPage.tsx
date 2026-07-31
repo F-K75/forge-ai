@@ -332,19 +332,13 @@ export default function SettingsPage() {
 
   return (
     <motion.div
-      className="px-6 md:px-10 py-10 md:py-14"
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      className="px-4 py-5 md:px-8 md:py-6"
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
-        <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-        Account
-      </div>
-      <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink mb-12">Settings</h1>
-
       <motion.div
-        className="max-w-2xl space-y-12"
+        className="max-w-2xl space-y-10"
         variants={reduceMotion ? undefined : motionVariants.staggerContainer}
         initial={reduceMotion ? false : "hidden"}
         animate="visible"

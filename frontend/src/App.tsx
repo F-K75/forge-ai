@@ -56,18 +56,21 @@ const queryClient = new QueryClient({
 
 function LoadingSpinner() {
   return (
-    <div className="min-h-screen bg-base flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-[100dvh] bg-[#07070b] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-ember border-t-transparent rounded-full animate-spin" />
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Booting Forge OS</p>
+      </div>
     </div>
   )
 }
 
 function RouteSkeleton() {
   return (
-    <div className="min-h-screen bg-base flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-muted">Loading...</p>
+    <div className="min-h-full flex items-center justify-center py-20">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-ember border-t-transparent rounded-full animate-spin" />
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Opening…</p>
       </div>
     </div>
   )
