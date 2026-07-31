@@ -61,7 +61,9 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink/80">
-            <span className="launch-fleet-live relative flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
+            <span className="launch-fleet-live-icon relative flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true">
+              <span className="launch-fleet-live-ping" />
+            </span>
             Agent fleet · {build[active].label} live
           </p>
           {!compact && (

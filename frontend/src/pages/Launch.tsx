@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import gsap from "gsap";
 import { AGENTS } from "../lib/agents";
 import { coverageStats } from "../lib/skillVisuals";
@@ -136,12 +136,13 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
   const railRef = useRef<HTMLUListElement>(null);
+  const LiveIcon = AGENTS[active].icon;
 
   useEffect(() => {
     if (reduceMotion) return;
     const id = window.setInterval(() => {
       setActive((i) => (i + 1) % AGENTS.length);
-    }, 2400);
+    }, 2600);
     return () => window.clearInterval(id);
   }, [reduceMotion]);
 
@@ -151,120 +152,150 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
     const ctx = gsap.context(() => {
       gsap.from(nodes, {
         opacity: 0,
-        y: 22,
-        stagger: 0.06,
-        duration: 0.5,
+        y: 18,
+        stagger: 0.05,
+        duration: 0.48,
         ease: "power3.out",
-        delay: 0.3,
+        delay: 0.28,
       });
     }, railRef);
     return () => ctx.revert();
   }, [reduceMotion]);
 
   const live = AGENTS[active];
-  const progress = ((active + 1) / AGENTS.length) * 100;
+  const progress = (active / Math.max(AGENTS.length - 1, 1)) * 100;
 
   return (
     <motion.footer
-      className="launch-fleet relative z-10 border-t border-white/12 bg-gradient-to-t from-black/80 via-black/55 to-black/35 px-3 pt-3 pb-3.5 backdrop-blur-md sm:px-6"
+      className="launch-fleet relative z-10 border-t border-white/12 bg-gradient-to-t from-black/85 via-black/60 to-black/30 px-3 pt-3.5 pb-4 backdrop-blur-md sm:px-6"
       initial={reduceMotion ? false : { opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay: 0.3, ease: "easeOut" }}
+      transition={{ duration: 0.55, delay: 0.28, ease: "easeOut" }}
     >
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="launch-fleet-live relative flex h-1.5 w-1.5 shrink-0 rounded-full bg-ink" aria-hidden="true" />
-            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.28em] text-faint">
-              Agents online
-            </p>
+      <div className="mb-3 flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="launch-fleet-live-icon relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border border-white/20 bg-white/[0.06]">
+            <LiveIcon size={18} className="text-ink" aria-hidden="true" />
+            {!reduceMotion && <span className="launch-fleet-live-ping" aria-hidden="true" />}
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.28em] text-faint">
+                Agents online
+              </span>
+              <span className="hidden font-mono text-[9px] uppercase tracking-wider text-white/25 sm:inline">
+                · {live.credits} cr
+              </span>
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={live.id}
+                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+              >
+                <p className="mt-1 font-display text-base font-medium tracking-tight text-ink sm:text-lg">
+                  {live.label}
+                </p>
+                <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                  {AGENT_TASK[live.id]}
+                </p>
+              </motion.div>
+            </AnimatePresence>
           </div>
-          <p className="mt-1 font-display text-sm font-medium tracking-tight text-ink sm:text-base">
-            {live.label}
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-faint tabular-nums">
+            {String(active + 1).padStart(2, "0")}
+            <span className="text-white/30"> / </span>
+            {String(AGENTS.length).padStart(2, "0")}
           </p>
-          <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-            {AGENT_TASK[live.id]}
+          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.14em] text-faint/70">
+            {fullVisuals} visuals
           </p>
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-faint tabular-nums">
-          Step {String(active + 1).padStart(2, "0")} / {String(AGENTS.length).padStart(2, "0")}
-          <span className="mx-2 text-white/20">·</span>
-          {fullVisuals} visuals
-        </p>
       </div>
 
-      <div className="launch-fleet-track mb-3 h-px w-full overflow-hidden bg-white/10" aria-hidden="true">
+      <div className="launch-fleet-track relative mb-4 h-[2px] w-full bg-white/[0.08]" aria-hidden="true">
+        <span className="launch-fleet-track-fill absolute inset-y-0 left-0 bg-ink" style={{ width: `${progress}%` }} />
         <span
-          className="launch-fleet-track-fill block h-full bg-ink"
-          style={{ width: `${progress}%` }}
+          className="launch-fleet-track-head absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 bg-ink"
+          style={{ left: `${progress}%` }}
         />
+        {AGENTS.map((_, i) => (
+          <span
+            key={i}
+            className={[
+              "absolute top-1/2 h-1.5 w-px -translate-y-1/2",
+              i <= active ? "bg-ink/80" : "bg-white/20",
+            ].join(" ")}
+            style={{ left: `${(i / Math.max(AGENTS.length - 1, 1)) * 100}%` }}
+          />
+        ))}
       </div>
 
       <ul
         ref={railRef}
         aria-label="Forge build agents"
-        className="grid grid-cols-6 gap-1 sm:gap-2"
+        className="grid grid-cols-6 gap-1.5 sm:gap-3"
       >
         {AGENTS.map((agent, i) => {
           const Icon = agent.icon;
           const isActive = i === active;
           const isDone = i < active;
+          const state = isActive ? "run" : isDone ? "done" : "wait";
           return (
             <li key={agent.id} data-fleet-node className="min-w-0">
               <button
                 type="button"
                 aria-current={isActive ? "true" : undefined}
-                aria-label={`${agent.label}${isActive ? ", running" : isDone ? ", complete" : ", standby"}`}
+                aria-label={`${agent.label}, ${state === "run" ? "running" : state === "done" ? "complete" : "standby"}`}
                 onClick={() => setActive(i)}
                 className={[
-                  "launch-fleet-pillar group relative flex w-full flex-col items-center gap-2 px-0.5 py-1 outline-none",
+                  "launch-fleet-pillar group relative flex w-full flex-col items-center gap-2 px-0.5 outline-none",
                   "focus-visible:ring-1 focus-visible:ring-ink/50",
                   isActive ? "is-active" : "",
-                  isDone ? "is-done" : "",
+                  isDone ? "is-done" : "is-wait",
                 ].join(" ")}
               >
-                <span className="relative z-[1] flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9">
+                <span className="launch-fleet-meter relative w-full max-w-[2.5rem] sm:max-w-[3rem]" aria-hidden="true">
+                  <span className="launch-fleet-meter-fill" />
+                  {isActive && !reduceMotion && <span className="launch-fleet-meter-sweep" />}
+                </span>
+
+                <span className="flex flex-col items-center gap-1">
                   <Icon
-                    size={16}
+                    size={15}
                     className="transition-colors duration-300"
-                    style={{ color: isActive ? "#F4F4F5" : isDone ? "#A1A1AA" : "#52525B" }}
+                    style={{ color: isActive ? "#F4F4F5" : isDone ? "#A1A1AA" : "#3F3F46" }}
                     aria-hidden="true"
                   />
-                  {isActive && !reduceMotion && (
-                    <span className="launch-fleet-scan" aria-hidden="true" />
-                  )}
-                </span>
-
-                <span className="launch-fleet-meter relative w-full max-w-[2.75rem] sm:max-w-[3.25rem]" aria-hidden="true">
-                  <span className="launch-fleet-meter-fill" />
-                </span>
-
-                <span className="flex w-full flex-col items-center gap-0.5">
                   <span
                     className={[
-                      "font-mono text-[9px] font-bold uppercase tracking-[0.2em]",
-                      isActive ? "text-ink" : "text-faint",
+                      "font-mono text-[9px] font-bold uppercase tracking-[0.18em]",
+                      isActive ? "text-ink" : isDone ? "text-muted" : "text-faint",
                     ].join(" ")}
                   >
                     {AGENT_SHORT[agent.id]}
                   </span>
                   <span
                     className={[
-                      "hidden w-full truncate text-center text-[10px] sm:block",
-                      isActive ? "text-muted" : "text-faint/80",
+                      "hidden text-[10px] sm:block",
+                      isActive ? "text-muted" : "text-faint/70",
                     ].join(" ")}
                   >
                     {agent.label}
                   </span>
-                </span>
-
-                <span
-                  className={[
-                    "font-mono text-[8px] tabular-nums tracking-wider",
-                    isActive ? "text-ink/70" : "text-faint/50",
-                  ].join(" ")}
-                >
-                  {String(i + 1).padStart(2, "0")}
+                  <span
+                    className={[
+                      "font-mono text-[8px] uppercase tracking-[0.2em]",
+                      isActive ? "text-ink/70" : "text-faint/45",
+                    ].join(" ")}
+                  >
+                    {state}
+                  </span>
                 </span>
               </button>
             </li>

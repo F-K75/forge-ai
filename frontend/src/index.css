@@ -523,37 +523,45 @@ body {
 }
 
 /* Launch agent process pillars */
-.launch-fleet-live::after {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 999px;
-  border: 1px solid rgba(244, 244, 245, 0.55);
-  animation: launch-fleet-ping 1.8s ease-out infinite;
+.launch-fleet-live-icon {
+  position: relative;
 }
 
-.launch-fleet-track-fill {
-  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+.launch-fleet-live-ping {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(244, 244, 245, 0.4);
+  animation: launch-fleet-ping 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.launch-fleet-track-fill,
+.launch-fleet-track-head {
+  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1), left 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.launch-fleet-track-head {
+  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.9), 0 0 12px rgba(244, 244, 245, 0.35);
 }
 
 .launch-fleet-meter {
-  height: 2.75rem;
+  height: 3.25rem;
+  width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
     repeating-linear-gradient(
       180deg,
-      transparent 0,
-      transparent 3px,
-      rgba(255, 255, 255, 0.04) 3px,
-      rgba(255, 255, 255, 0.04) 4px
+      transparent 0 4px,
+      rgba(255, 255, 255, 0.035) 4px 5px
     ),
-    rgba(255, 255, 255, 0.02);
+    rgba(255, 255, 255, 0.015);
   overflow: hidden;
+  transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (min-width: 640px) {
   .launch-fleet-meter {
-    height: 3.5rem;
+    height: 4.25rem;
   }
 }
 
@@ -561,66 +569,78 @@ body {
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  height: 18%;
-  background: linear-gradient(180deg, rgba(244, 244, 245, 0.35), rgba(244, 244, 245, 0.12));
-  transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
+  height: 12%;
+  background: linear-gradient(180deg, rgba(244, 244, 245, 0.22), rgba(244, 244, 245, 0.06));
+  transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
+}
+
+.launch-fleet-pillar.is-wait .launch-fleet-meter-fill {
+  height: 12%;
 }
 
 .launch-fleet-pillar.is-done .launch-fleet-meter-fill {
-  height: 62%;
-  background: linear-gradient(180deg, rgba(161, 161, 170, 0.55), rgba(161, 161, 170, 0.15));
+  height: 70%;
+  background: linear-gradient(180deg, rgba(161, 161, 170, 0.65), rgba(161, 161, 170, 0.12));
+}
+
+.launch-fleet-pillar.is-active {
+  transform: translateY(-2px);
 }
 
 .launch-fleet-pillar.is-active .launch-fleet-meter {
-  border-color: rgba(244, 244, 245, 0.35);
+  border-color: rgba(244, 244, 245, 0.42);
   background-color: rgba(244, 244, 245, 0.04);
 }
 
 .launch-fleet-pillar.is-active .launch-fleet-meter-fill {
   height: 100%;
-  background: linear-gradient(180deg, #f4f4f5 0%, rgba(244, 244, 245, 0.45) 55%, rgba(244, 244, 245, 0.12) 100%);
-  animation: launch-fleet-pulse 1.4s ease-in-out infinite;
+  background: linear-gradient(
+    180deg,
+    #fafafa 0%,
+    rgba(244, 244, 245, 0.7) 40%,
+    rgba(244, 244, 245, 0.2) 100%
+  );
 }
 
-.launch-fleet-scan {
+.launch-fleet-meter-sweep {
   position: absolute;
-  inset: -4px;
-  border: 1px solid rgba(244, 244, 245, 0.35);
-  animation: launch-fleet-breathe 1.5s ease-in-out infinite;
+  inset-inline: 0;
+  height: 28%;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: launch-fleet-sweep 1.5s ease-in-out infinite;
   pointer-events: none;
 }
 
-.launch-fleet-pillar:hover .launch-fleet-meter-fill {
-  height: max(28%, var(--hover-h, 28%));
+.launch-fleet-pillar:hover:not(.is-active) .launch-fleet-meter {
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
-.launch-fleet-pillar:hover:not(.is-active) .launch-fleet-meter-fill {
-  height: 36%;
+.launch-fleet-pillar:hover:not(.is-active):not(.is-done) .launch-fleet-meter-fill {
+  height: 28%;
 }
 
 @keyframes launch-fleet-ping {
-  0% { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(2.4); opacity: 0; }
+  0% { transform: scale(1); opacity: 0.65; }
+  100% { transform: scale(1.55); opacity: 0; }
 }
 
-@keyframes launch-fleet-breathe {
-  0%, 100% { opacity: 0.25; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.08); }
-}
-
-@keyframes launch-fleet-pulse {
-  0%, 100% { filter: brightness(1); opacity: 1; }
-  50% { filter: brightness(1.15); opacity: 0.88; }
+@keyframes launch-fleet-sweep {
+  0% { bottom: -10%; opacity: 0; }
+  20% { opacity: 0.9; }
+  80% { opacity: 0.7; }
+  100% { bottom: 95%; opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .launch-fleet-live::after,
-  .launch-fleet-scan,
-  .launch-fleet-pillar.is-active .launch-fleet-meter-fill {
+  .launch-fleet-live-ping,
+  .launch-fleet-meter-sweep {
     animation: none !important;
   }
 
-  .launch-fleet-track-fill {
+  .launch-fleet-track-fill,
+  .launch-fleet-track-head,
+  .launch-fleet-meter-fill,
+  .launch-fleet-pillar.is-active {
     transition: none !important;
   }
 }
