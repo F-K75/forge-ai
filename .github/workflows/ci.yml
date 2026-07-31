@@ -426,7 +426,7 @@ jobs:
           TEST_MONGODB_URL: mongodb://root:testpass@localhost:27017/test_db?authSource=admin
         run: |
           cd backend
-          python3 ../../scripts/test_restore.py
+          python3 ../scripts/test_restore.py
 
   quality-gate:
     name: Quality Gate
