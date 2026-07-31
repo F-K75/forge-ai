@@ -11,7 +11,7 @@ else is historical or component-local.
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Services, build pipeline, PM layer, LLM routing, security model, data flow |
 | [`API_REFERENCE.md`](API_REFERENCE.md) | Every backend endpoint, WebSocket events, `/v1/` versioning rules |
 | [`CONFIGURATION.md`](CONFIGURATION.md) | Every environment variable and the startup validation rules |
-| [`DEPLOYMENT_AND_OPERATIONS.md`](DEPLOYMENT_AND_OPERATIONS.md) | How prod actually deploys (VPS + compose, **not** k8s), CI, health checks, backups, runbook notes |
+| [`DEPLOYMENT_AND_OPERATIONS.md`](DEPLOYMENT_AND_OPERATIONS.md) | How prod actually deploys (VPS + compose, **not** k8s), **first-time go-live checklist**, CI, health checks, backups, runbook notes |
 
 ## Operational runbooks
 

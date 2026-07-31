@@ -26,6 +26,94 @@ Production runs on a **single VPS via `docker-compose.prod.yml`**, driven by
 bootstrap with `deploy/scripts/init-letsencrypt.sh`) · `backup` (scheduled
 MongoDB backups).
 
+## First-time production go-live
+
+Do this once before the first successful `Deploy to production` run. Staging
+bootstrap is covered in `docs/GSTACK_RELEASE_PIPELINE.md`.
+
+### 1. VPS
+
+- Ubuntu 22.04+ (or similar), public IP, Docker Engine + Compose plugin installed.
+- Open ports **80** and **443**.
+- Create deploy dir and SSH user that can run Docker:
+
+```bash
+sudo mkdir -p /opt/forge
+sudo chown "$USER":"$USER" /opt/forge
+```
+
+### 2. DNS
+
+Create an A record for your domain → VPS IP (e.g. `forge.example.com`).
+
+### 3. GitHub Actions secrets & variables
+
+Repository **Secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `VPS_HOST` | VPS IP or hostname |
+| `VPS_USER` | SSH username |
+| `VPS_SSH_KEY` | Private key for that user (full PEM) |
+
+Repository **Variables**:
+
+| Variable | Value |
+|---|---|
+| `PUBLIC_DOMAIN` | Domain only, no scheme (e.g. `forge.example.com`) |
+| `ADMIN_EMAILS` | Comma-separated admin emails baked into the frontend |
+
+### 4. VPS `.env` (required before first compose up)
+
+On the VPS:
+
+```bash
+# From a machine with the repo (or scp these files once):
+scp docker-compose.prod.yml .env.production.example deploy/ "$VPS_USER@$VPS_HOST:/opt/forge/"
+# Then on the VPS:
+cd /opt/forge
+cp .env.production.example .env
+# Fill every REQUIRED value — see comments in the file.
+# Generate secrets with: openssl rand -hex 32
+```
+
+Minimum required: `DOMAIN`, `LETSENCRYPT_EMAIL`, `GHCR_OWNER`, `ANTHROPIC_API_KEY`,
+`JWT_SECRET`, `FIELD_ENCRYPTION_KEY`, `MONGO_PASSWORD`, `REDIS_PASSWORD`,
+`ADMIN_EMAILS`, Stripe live keys + price IDs, `APP_ENV=production`.
+
+`GHCR_OWNER` must be the lowercase GitHub user/org that owns the images
+(for this repo: `f-k75`).
+
+Log the VPS into GHCR so `docker compose pull` can fetch private/org images:
+
+```bash
+echo "$GHCR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
+```
+
+### 5. TLS bootstrap (once)
+
+```bash
+cd /opt/forge
+./deploy/scripts/init-letsencrypt.sh
+# Then either wait for CI deploy, or:
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### 6. Trigger deploy
+
+Push to `main` or run **Actions → Deploy to production → Run workflow**.
+Confirm `https://$DOMAIN/api/health` returns OK.
+
+### Common blockers
+
+| Symptom | Fix |
+|---|---|
+| Frontend image build: `npm ci` / lockfile out of sync | Run `npm install` in `frontend/` and commit `package-lock.json` |
+| Deploy SSH fails | Check `VPS_*` secrets and that the key user owns `/opt/forge` |
+| `curl https://$DOMAIN/api/health` fails after up | Check `.env` on VPS, `docker compose -f docker-compose.prod.yml ps`, backend logs |
+| Frontend built with empty API URL | Set repo variable `PUBLIC_DOMAIN` before building images |
+| Pull from GHCR denied | `docker login ghcr.io` on the VPS; ensure package visibility allows the account |
+
 ## Local development
 
 ```bash
