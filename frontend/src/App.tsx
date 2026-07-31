@@ -443,10 +443,12 @@ export default function App() {
           position="bottom-right"
           toastOptions={{
             style: {
-              background: "#111118",
-              color: "#e2e2f0",
-              border: "1px solid #1e1e2e",
-              fontSize: "13px",
+              background: "#FFFFFF",
+              color: "#1D1D1F",
+              border: "1px solid rgba(0,0,0,0.08)",
+              fontSize: "14px",
+              borderRadius: "16px",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.10)",
             },
           }}
         />

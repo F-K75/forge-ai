@@ -311,7 +311,7 @@ export default function AuthPage() {
                     autoFocus
                     whileFocus={{ scale: 1.01 }}
                     transition={{ duration: 0.15, ease: easeOut }}
-                    className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition tracking-widest"
+                    className="w-full h-11 px-4 bg-panel border border-border rounded-2xl text-[15px] text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 transition"
                   />
                 </div>
                 <motion.button
@@ -319,7 +319,7 @@ export default function AuthPage() {
                   disabled={loading || !mfaCode.trim()}
                   whileHover={{ scale: loading ? 1 : 1.01 }}
                   whileTap={{ scale: loading ? 1 : 0.98 }}
-                  className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+                  className="w-full h-11 rounded-full bg-accent text-white text-[15px] font-medium hover:bg-[#0077ED] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
                 >
                   {loading ? (
                     <>
@@ -518,7 +518,7 @@ export default function AuthPage() {
                 disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.01 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+                className="w-full h-11 rounded-full bg-accent text-white text-[15px] font-medium hover:bg-[#0077ED] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
               >
                 {loading ? (
                   <>
