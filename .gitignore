@@ -11,6 +11,7 @@ __pycache__/
 *.so
 venv/
 .venv/
+backend/runenv/
 
 # Node
 node_modules/
