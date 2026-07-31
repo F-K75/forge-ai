@@ -36,12 +36,12 @@ export default function Launch() {
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="launch-os-wash absolute inset-0" />
         <Starfield />
-        <LaunchGlobe />
-        <PulseRings />
-        <OrbitingAgents />
-        <p className="launch-os-watermark font-brand pointer-events-none absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 select-none">
-          FORGE
-        </p>
+        {/* Globe sits low-right so its rim never slices the brand mark. */}
+        <div className="launch-globe-stage absolute inset-0">
+          <LaunchGlobe />
+          <OrbitingAgents />
+        </div>
+        <div className="launch-name-clear absolute inset-0" />
       </div>
 
       <section
@@ -264,13 +264,15 @@ function OrbitingAgents() {
   const reduceMotion = useReducedMotion();
   if (reduceMotion) return null;
 
+  // Rings stay on the globe stage (lower-right). No pulse rings through the
+  // brand — those cut the letters and read as a bad halo on the name.
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
     >
       {AGENTS.map((agent, i) => {
-        const diameter = 98 + i * 15;
+        const diameter = 72 + i * 12;
         const duration = 26 + i * 7;
         return (
           <div
@@ -291,27 +293,6 @@ function OrbitingAgents() {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function PulseRings() {
-  const reduceMotion = useReducedMotion();
-  if (reduceMotion) return null;
-
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-      style={{ width: "min(92vh, 92vw)", height: "min(92vh, 92vw)" }}
-    >
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="absolute inset-0 animate-pulse-ring rounded-full border border-ink/20 motion-reduce:hidden"
-          style={{ animationDelay: `${i * 2}s` }}
-        />
-      ))}
     </div>
   );
 }

@@ -487,15 +487,17 @@ body {
     linear-gradient(180deg, rgba(9, 9, 11, 0.35), rgba(9, 9, 11, 0.72));
 }
 
-.launch-os-watermark {
-  font-size: clamp(5rem, 20vw, 13rem);
-  font-weight: 800;
-  letter-spacing: -0.06em;
-  line-height: 0.85;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(244, 244, 245, 0.08);
-  text-transform: uppercase;
-  opacity: 0.9;
+/* Keep the globe/orbits in the lower-right so no ring cuts the brand. */
+.launch-globe-stage {
+  transform: translate(18%, 22%) scale(0.78);
+  transform-origin: center;
+}
+
+/* Soft clear zone behind the title so residual rim/glow can't stripe letters. */
+.launch-name-clear {
+  background:
+    radial-gradient(ellipse 58% 42% at 50% 46%, rgba(9, 9, 11, 0.92) 0%, rgba(9, 9, 11, 0.55) 42%, transparent 72%);
+  pointer-events: none;
 }
 
 .launch-ticker-track {
