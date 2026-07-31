@@ -482,21 +482,20 @@ body {
 /* Launch OS — grey maximal public boot */
 .launch-os-wash {
   background:
-    radial-gradient(ellipse 70% 50% at 50% 45%, rgba(244, 244, 245, 0.06), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 15% 20%, rgba(161, 161, 170, 0.08), transparent 50%),
-    linear-gradient(180deg, rgba(9, 9, 11, 0.35), rgba(9, 9, 11, 0.72));
+    radial-gradient(ellipse 70% 50% at 50% 45%, rgba(244, 244, 245, 0.05), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 15% 20%, rgba(161, 161, 170, 0.07), transparent 50%),
+    linear-gradient(180deg, rgba(9, 9, 11, 0.2), rgba(9, 9, 11, 0.55));
 }
 
-/* Keep the globe/orbits in the lower-right so no ring cuts the brand. */
+/* Centered behind the brand mark — full-bleed OS backdrop. */
 .launch-globe-stage {
-  transform: translate(18%, 22%) scale(0.78);
-  transform-origin: center;
+  transform: none;
 }
 
-/* Soft clear zone behind the title so residual rim/glow can't stripe letters. */
-.launch-name-clear {
+/* Light center veil for type readability without hiding the globe. */
+.launch-name-veil {
   background:
-    radial-gradient(ellipse 58% 42% at 50% 46%, rgba(9, 9, 11, 0.92) 0%, rgba(9, 9, 11, 0.55) 42%, transparent 72%);
+    radial-gradient(ellipse 46% 34% at 50% 46%, rgba(9, 9, 11, 0.45) 0%, rgba(9, 9, 11, 0.18) 55%, transparent 78%);
   pointer-events: none;
 }
 

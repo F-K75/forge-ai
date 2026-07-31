@@ -36,12 +36,12 @@ export default function Launch() {
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="launch-os-wash absolute inset-0" />
         <Starfield />
-        {/* Globe sits low-right so its rim never slices the brand mark. */}
+        {/* Globe stays centered behind the brand — no pulse rings that stripe letters. */}
         <div className="launch-globe-stage absolute inset-0">
           <LaunchGlobe />
           <OrbitingAgents />
         </div>
-        <div className="launch-name-clear absolute inset-0" />
+        <div className="launch-name-veil absolute inset-0" />
       </div>
 
       <section
@@ -86,7 +86,7 @@ export default function Launch() {
             </motion.p>
 
             <motion.h1
-              className="font-brand text-[clamp(3.5rem,14vw,7.5rem)] font-extrabold uppercase leading-[0.85] tracking-[-0.05em] [text-shadow:0_2px_24px_rgba(0,0,0,0.85)]"
+              className="font-brand text-[clamp(3.5rem,14vw,7.5rem)] font-extrabold uppercase leading-[0.85] tracking-[-0.05em] text-ink [text-shadow:0_0_40px_rgba(9,9,11,0.95),0_2px_24px_rgba(9,9,11,0.9),0_1px_0_rgba(0,0,0,0.8)]"
               variants={motionVariants.staggerItem}
             >
               Forge
@@ -272,7 +272,7 @@ function OrbitingAgents() {
       className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
     >
       {AGENTS.map((agent, i) => {
-        const diameter = 72 + i * 12;
+        const diameter = 88 + i * 14;
         const duration = 26 + i * 7;
         return (
           <div
