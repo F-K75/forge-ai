@@ -345,7 +345,7 @@ body {
 
 .apple-dock-item.is-active {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: rgb(var(--accent));
 }
 
 /* —— Launch —— */
@@ -384,7 +384,7 @@ body {
 
 .launch-fleet-live-ping {
   position: absolute;
-  inset: -5px;
+  inset: -3px;
   border-radius: inherit;
   border: 1px solid rgba(10, 132, 255, 0.4);
   animation: launch-fleet-ping 1.8s ease-out infinite;
@@ -397,63 +397,11 @@ body {
 }
 
 .launch-fleet-track-head {
-  border-radius: 999px;
-  box-shadow: 0 0 0 3px #000, 0 0 14px rgba(10, 132, 255, 0.45);
+  box-shadow: 0 0 0 2px #000, 0 0 10px rgba(10, 132, 255, 0.45);
 }
 
-.launch-fleet-meter {
-  height: 3.25rem;
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    repeating-linear-gradient(180deg, transparent 0 4px, rgba(255, 255, 255, 0.04) 4px 5px),
-    rgba(255, 255, 255, 0.03);
-  overflow: hidden;
-  transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@media (min-width: 640px) {
-  .launch-fleet-meter {
-    height: 4rem;
-  }
-}
-
-.launch-fleet-meter-fill {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 12%;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(10, 132, 255, 0.45), rgba(10, 132, 255, 0.1));
-  transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
-}
-
-.launch-fleet-pillar.is-done .launch-fleet-meter-fill {
-  height: 70%;
-  background: linear-gradient(180deg, rgba(161, 161, 166, 0.45), rgba(161, 161, 166, 0.1));
-}
-
-.launch-fleet-pillar.is-active {
-  transform: translateY(-2px);
-}
-
-.launch-fleet-pillar.is-active .launch-fleet-meter {
-  border-color: rgba(10, 132, 255, 0.45);
-}
-
-.launch-fleet-pillar.is-active .launch-fleet-meter-fill {
-  height: 100%;
-  background: linear-gradient(180deg, #0a84ff 0%, rgba(10, 132, 255, 0.55) 55%, rgba(10, 132, 255, 0.15) 100%);
-}
-
-.launch-fleet-meter-sweep {
-  position: absolute;
-  inset-inline: 0;
-  height: 28%;
-  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.55), transparent);
-  animation: launch-fleet-sweep 1.5s ease-in-out infinite;
-  pointer-events: none;
+.launch-fleet-pill.is-active {
+  animation: launch-fleet-pill-pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes launch-fleet-ping {
@@ -461,20 +409,14 @@ body {
   100% { transform: scale(1.55); opacity: 0; }
 }
 
-@keyframes launch-fleet-sweep {
-  0% { bottom: -10%; opacity: 0; }
-  20% { opacity: 0.9; }
-  80% { opacity: 0.7; }
-  100% { bottom: 95%; opacity: 0; }
+@keyframes launch-fleet-pill-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .launch-fleet-live-ping,
-  .launch-fleet-meter-sweep,
-  .animate-orbit-spin,
-  .animate-preview-drift,
-  .animate-shimmer,
-  .agent-active {
+  .launch-fleet-pill.is-active {
     animation: none !important;
   }
 }
