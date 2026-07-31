@@ -13,12 +13,15 @@ import {
 } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { EmptyState } from "../components/ui/EmptyState";
+import { AgentFleetStrip } from "../components/AgentFleetStrip";
 import { PROJECTS, STARTERS, type Project as MockProject } from "../lib/mockData";
 import { getIcon } from "../lib/iconMap";
 import { LIVE_MODE } from "../lib/env";
 import { projectsApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
 import { coverGradient } from "../lib/coverArt";
+import { coverageStats, ORG_ROLE_COUNT, PLAYBOOK_COUNT, PROMPT_TEMPLATE_COUNT } from "../lib/skillVisuals";
+
 
 function toDisplayProject(raw: any): MockProject {
   return {
@@ -77,6 +80,7 @@ export default function ProjectsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("icons");
   const reduceMotion = useReducedMotion();
+  const skillStats = coverageStats();
 
   useEffect(() => {
     if (!LIVE_MODE) return;
@@ -133,16 +137,47 @@ export default function ProjectsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Spotlight launch bar — one job: start a build */}
+      {/* Maximal command deck */}
       <section
         aria-label="Launch a build"
-        className="shrink-0 border-b border-white/[0.06] px-4 py-5 md:px-8 md:py-6"
+        className="relative shrink-0 overflow-hidden border-b-2 border-ember/25 px-4 py-5 md:px-8 md:py-7"
       >
-        <div className="mx-auto max-w-3xl">
+        <div
+          className="pointer-events-none absolute -right-8 -top-10 font-brand text-[7rem] font-extrabold uppercase leading-none tracking-tighter text-ember/[0.07] md:text-[9rem]"
+          aria-hidden="true"
+        >
+          BUILD
+        </div>
+        <div className="relative mx-auto max-w-4xl">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-ember">
+                Command deck
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-bold uppercase tracking-tight text-ink md:text-3xl">
+                What do you want forged?
+              </h2>
+            </div>
+            <div className="flex flex-wrap gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wide">
+              <span className="border border-ember/40 bg-ember/15 px-2 py-1 text-ember">
+                {skillStats.full} full visuals
+              </span>
+              <span className="border border-white/15 bg-black/30 px-2 py-1 text-muted">
+                {ORG_ROLE_COUNT} org roles
+              </span>
+              <span className="border border-white/15 bg-black/30 px-2 py-1 text-muted">
+                {PLAYBOOK_COUNT} playbooks
+              </span>
+              <span className="border border-white/15 bg-black/30 px-2 py-1 text-muted">
+                {PROMPT_TEMPLATE_COUNT} prompts
+              </span>
+            </div>
+          </div>
+
           <label htmlFor="forge-spotlight" className="sr-only">
             Describe what to build
           </label>
-          <div className="os-spotlight flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] focus-within:border-ember/40 focus-within:shadow-[0_0_0_3px_rgba(232,130,60,0.12)] transition-[border-color,box-shadow] duration-200">
+          <div className="os-spotlight flex items-center gap-2 rounded-xl border-2 border-ember/35 bg-black/40 px-3 py-2 shadow-[0_0_40px_-18px_rgba(232,130,60,0.85)] focus-within:border-ember focus-within:shadow-[0_0_0_3px_rgba(232,130,60,0.2)] transition-[border-color,box-shadow] duration-200">
             <ZapMark />
             <input
               id="forge-spotlight"
@@ -151,7 +186,7 @@ export default function ProjectsPage() {
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleBuild()}
               placeholder="Tell Forge what to build…"
-              className="min-w-0 flex-1 bg-transparent py-2.5 text-[15px] text-ink placeholder:text-faint focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent py-2.5 text-base font-medium text-ink placeholder:text-faint focus:outline-none"
             />
             <motion.button
               type="button"
@@ -159,7 +194,7 @@ export default function ProjectsPage() {
               disabled={creating}
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-ember px-4 text-sm font-medium text-base shadow-[0_8px_24px_-12px_rgba(232,130,60,0.9)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
+              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-ember px-5 text-sm font-bold uppercase tracking-wide text-base shadow-[0_10px_28px_-10px_rgba(232,130,60,1)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
             >
               <Send size={14} aria-hidden="true" />
               {creating ? "Opening…" : "Build"}
@@ -179,7 +214,7 @@ export default function ProjectsPage() {
                   type="button"
                   role="listitem"
                   onClick={() => handleBuild(starter.label, starter.label)}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted transition-colors hover:bg-white/[0.05] hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+                  className="inline-flex cursor-pointer items-center gap-1.5 border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:border-ember/40 hover:bg-ember/10 hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
                 >
                   <Icon size={12} aria-hidden="true" />
                   {starter.label}
@@ -190,7 +225,7 @@ export default function ProjectsPage() {
               type="button"
               onClick={() => handleBuild("")}
               disabled={creating}
-              className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-ember transition-colors hover:bg-ember/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40 disabled:opacity-50"
+              className="ml-auto inline-flex cursor-pointer items-center gap-1.5 border border-ember/40 bg-ember/10 px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide text-ember transition-colors hover:bg-ember/20 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40 disabled:opacity-50"
             >
               <Plus size={12} aria-hidden="true" />
               Blank project
@@ -199,9 +234,14 @@ export default function ProjectsPage() {
         </div>
       </section>
 
+      <AgentFleetStrip />
+
       {/* Finder-style project library */}
       <section aria-label="Project library" className="flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.05] px-4 py-3 md:px-8">
+        <div className="flex flex-wrap items-center gap-2 border-b border-ember/15 px-4 py-3 md:px-8">
+          <p className="mr-2 hidden font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ember sm:block">
+            Library
+          </p>
           <div className="relative min-w-[160px] flex-1">
             <Search
               size={13}

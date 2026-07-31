@@ -7,6 +7,7 @@ import { initiativesApi } from "../../lib/pmApi";
 import { formatRelativeTime } from "../../lib/format";
 import { StatusPill } from "../../components/StatusPill";
 import { EmptyState, SkeletonCard } from "../../components/ui/EmptyState";
+import { AgentFleetStrip } from "../../components/AgentFleetStrip";
 import { motion, motionVariants } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
 
@@ -116,6 +117,8 @@ export default function InitiativesListPage() {
           </p>
         </div>
       </section>
+
+      <AgentFleetStrip compact />
 
       <section aria-label="Existing initiatives" className="min-h-0 flex-1 overflow-auto px-4 py-5 md:px-8 md:py-6">
         {!LIVE_MODE ? (
