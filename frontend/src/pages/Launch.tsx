@@ -114,44 +114,7 @@ export default function Launch() {
           </motion.div>
         </div>
 
-        <motion.footer
-          className="relative z-10 border-t border-white/10 bg-black/55 px-3 py-3 backdrop-blur-md sm:px-5"
-          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.25, ease: "easeOut" }}
-        >
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-faint">
-              Agent fleet online
-            </p>
-            <p className="font-mono text-[9px] uppercase tracking-wide text-faint">
-              {stats.full} full visuals
-            </p>
-          </div>
-          <ul
-            aria-label="Forge build agents"
-            className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {AGENTS.map((agent) => {
-              const Icon = agent.icon;
-              return (
-                <li
-                  key={agent.id}
-                  className="flex min-w-[4.75rem] flex-col items-center gap-1 rounded-lg border border-white/12 bg-white/[0.04] px-2 py-2"
-                  style={{ boxShadow: `inset 0 -2px 0 ${agent.hue}` }}
-                >
-                  <span
-                    className="flex h-8 w-8 items-center justify-center rounded-md"
-                    style={{ background: `${agent.hue}22`, color: agent.hue }}
-                  >
-                    <Icon size={14} aria-hidden="true" />
-                  </span>
-                  <span className="truncate text-[10px] font-medium text-ink/90">{agent.label}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </motion.footer>
+        <AgentPipelineDock fullVisuals={stats.full} />
       </section>
 
       <SiteNav />
@@ -162,6 +125,145 @@ export default function Launch() {
         <SiteFooter />
       </div>
     </div>
+  );
+}
+
+const AGENT_SHORT: Record<(typeof AGENTS)[number]["id"], string> = {
+  architect: "ARCH",
+  business_improver: "BIZ",
+  designer: "DES",
+  developer: "DEV",
+  integration: "INT",
+  pm: "PM",
+};
+
+const AGENT_TASK: Record<(typeof AGENTS)[number]["id"], string> = {
+  architect: "mapping system topology",
+  business_improver: "stress-testing the model",
+  designer: "composing the surface",
+  developer: "writing production paths",
+  integration: "wiring external services",
+  pm: "validating the ship gate",
+};
+
+function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
+  const reduceMotion = useReducedMotion();
+  const [active, setActive] = useState(0);
+  const railRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const id = window.setInterval(() => {
+      setActive((i) => (i + 1) % AGENTS.length);
+    }, 2200);
+    return () => window.clearInterval(id);
+  }, [reduceMotion]);
+
+  useEffect(() => {
+    if (reduceMotion || !railRef.current) return;
+    const nodes = railRef.current.querySelectorAll("[data-fleet-node]");
+    const ctx = gsap.context(() => {
+      gsap.from(nodes, {
+        opacity: 0,
+        y: 18,
+        scale: 0.86,
+        stagger: 0.08,
+        duration: 0.55,
+        ease: "power3.out",
+        delay: 0.2,
+      });
+    }, railRef);
+    return () => ctx.revert();
+  }, [reduceMotion]);
+
+  const live = AGENTS[active];
+
+  return (
+    <motion.footer
+      className="launch-fleet relative z-10 border-t border-white/10 bg-black/60 px-3 py-3 backdrop-blur-md sm:px-5 sm:py-3.5"
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+    >
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="launch-fleet-live relative flex h-1.5 w-1.5 shrink-0 rounded-full bg-ink" aria-hidden="true" />
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-faint">
+            Pipeline · {live.label}
+          </p>
+          <p className="hidden truncate font-mono text-[9px] uppercase tracking-wide text-muted sm:block">
+            {AGENT_TASK[live.id]}
+          </p>
+        </div>
+        <p className="font-mono text-[9px] uppercase tracking-wide text-faint">
+          {String(active + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")} · {fullVisuals} visuals
+        </p>
+      </div>
+
+      <ul
+        ref={railRef}
+        aria-label="Forge build agents"
+        className="launch-fleet-rail relative flex items-stretch justify-between gap-0 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {AGENTS.map((agent, i) => {
+          const Icon = agent.icon;
+          const isActive = i === active;
+          const isDone = !reduceMotion && i < active;
+          return (
+            <li key={agent.id} data-fleet-node className="relative flex min-w-0 flex-1 items-center">
+              <button
+                type="button"
+                aria-current={isActive ? "true" : undefined}
+                aria-label={`${agent.label}${isActive ? ", running" : isDone ? ", complete" : ", standby"}`}
+                onClick={() => setActive(i)}
+                className={[
+                  "launch-fleet-node group relative z-[1] flex w-full flex-col items-center gap-1.5 rounded-none px-1 py-1 outline-none",
+                  "focus-visible:ring-1 focus-visible:ring-ink/50",
+                  isActive ? "text-ink" : "text-muted",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "launch-fleet-glyph relative flex h-11 w-11 items-center justify-center sm:h-12 sm:w-12",
+                    isActive ? "is-active" : "",
+                    isDone ? "is-done" : "",
+                  ].join(" ")}
+                  style={{ ["--fleet-hue" as string]: agent.hue }}
+                >
+                  {isActive && !reduceMotion && (
+                    <span className="launch-fleet-ring" aria-hidden="true" />
+                  )}
+                  <Icon
+                    size={18}
+                    className={isActive ? "relative z-[1] text-base" : "relative z-[1]"}
+                    style={{ color: isActive ? "#09090B" : agent.hue }}
+                    aria-hidden="true"
+                  />
+                </span>
+                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em]">
+                  {AGENT_SHORT[agent.id]}
+                </span>
+                <span className="hidden max-w-full truncate text-[10px] font-medium sm:block">
+                  {agent.label}
+                </span>
+              </button>
+
+              {i < AGENTS.length - 1 && (
+                <span className="launch-fleet-link pointer-events-none absolute right-0 top-[1.375rem] z-0 h-px w-[calc(50%+0.25rem)] translate-x-1/2 sm:top-[1.5rem]" aria-hidden="true">
+                  <span
+                    className={[
+                      "launch-fleet-beam block h-full w-full",
+                      i < active ? "is-passed" : "",
+                      i === active ? "is-handoff" : "",
+                    ].join(" ")}
+                  />
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </motion.footer>
   );
 }
 
@@ -382,7 +484,7 @@ function StatusPanel() {
   return (
     <aside
       aria-hidden="true"
-      className="pointer-events-none absolute bottom-[7.5rem] right-4 z-10 hidden w-44 border border-white/15 bg-black/55 p-3 font-mono text-[9px] uppercase tracking-wide text-muted backdrop-blur-md sm:block md:right-6"
+      className="pointer-events-none absolute bottom-[9.5rem] right-4 z-10 hidden w-44 border border-white/15 bg-black/55 p-3 font-mono text-[9px] uppercase tracking-wide text-muted backdrop-blur-md sm:block md:right-6"
     >
       <p className="mb-2 font-bold text-ink/80">System · Live</p>
       <ul className="space-y-1.5">
