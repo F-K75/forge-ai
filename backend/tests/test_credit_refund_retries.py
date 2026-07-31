@@ -19,7 +19,6 @@ and only refunds / finalizes the build as `failed` on the last attempt
 Celery will ever make for a given task.
 """
 
-import datetime
 
 from core.models import utcnow
 

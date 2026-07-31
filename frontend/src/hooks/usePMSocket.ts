@@ -55,6 +55,11 @@ export function usePMSocket(initiativeId: string | null) {
           return
         }
 
+        if (!wsToken) {
+          setConnectionStatus('error')
+          return
+        }
+
         const ws = new WebSocket(`${WS_URL}/initiatives/ws/${id}?token=${encodeURIComponent(wsToken)}`)
         wsRef.current = ws
 

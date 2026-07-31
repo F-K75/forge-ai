@@ -19,8 +19,6 @@ from datetime import datetime, timezone
 import pytest
 
 import agent_registry.review_board_bridge as bridge_module
-from agent_registry.registry import AgentRegistry
-from agent_registry.repository import AgentRegistryRepository
 
 
 # --------------------------------------------------------------------------- #

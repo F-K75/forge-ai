@@ -4,7 +4,6 @@ from typing import Optional, List, Dict, Any
 from core.models import Project, User, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.audit import record_audit_log
-from datetime import datetime
 from api.auth import get_current_user
 
 router = APIRouter(prefix="/projects", tags=["projects"])

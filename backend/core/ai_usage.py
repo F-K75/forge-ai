@@ -4,7 +4,7 @@ import uuid
 import logging
 import re
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import timedelta
 from core.models import utcnow
 
 from core.database import get_db

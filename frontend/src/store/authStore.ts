@@ -18,6 +18,7 @@ export interface User {
   llm_base_url?: string
   llm_model?: string
   mfa_enabled?: boolean
+  is_admin?: boolean
   preferences?: Record<string, unknown>
 }
 

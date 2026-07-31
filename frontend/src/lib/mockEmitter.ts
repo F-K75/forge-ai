@@ -240,7 +240,7 @@ export function runMockBuild(buildId: string, dispatch: (event: AnyWSEvent) => v
   let cancelled = false
   let activeGateCancel: (() => void) | null = null
   let gateCounter = 0
-  const base = { build_id: buildId }
+  const base = { version: 1, build_id: buildId }
 
   const emit = (event: AnyWSEvent) => {
     if (!cancelled) dispatch(event)

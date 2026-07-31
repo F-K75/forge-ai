@@ -32,7 +32,7 @@ export default tseslint.config(
       "jsx-a11y/no-noninteractive-element-interactions": "warn",
       "jsx-a11y/role-has-required-aria-props": "error",
       "jsx-a11y/aria-props": "error",
-      "jsx-a11y/img-alt": "error",
+      "jsx-a11y/alt-text": "error",
       "jsx-a11y/heading-has-content": "warn",
       "jsx-a11y/label-has-associated-control": "warn",
     },

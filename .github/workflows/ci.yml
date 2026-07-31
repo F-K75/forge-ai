@@ -402,8 +402,16 @@ jobs:
 
       - name: Install MongoDB tools
         run: |
+          # mongodb-org-tools is not in Ubuntu's default apt repos; add MongoDB's
+          # official Noble repo and install the tools package that ships mongodump/mongorestore.
+          curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc \
+            | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 multiverse" \
+            | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
           sudo apt-get update
-          sudo apt-get install -y mongodb-org-tools
+          sudo apt-get install -y mongodb-database-tools
+          mongodump --version
+          mongorestore --version
 
       - name: Install backend dependencies
         run: |

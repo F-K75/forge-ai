@@ -13,7 +13,7 @@ os.environ.setdefault("TESTING", "true")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-that-is-at-least-32-characters")
 os.environ.setdefault("FIELD_ENCRYPTION_KEY", "01" * 32)
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from core.models import utcnow
 
 from api.auth import _hash_token, hash_password

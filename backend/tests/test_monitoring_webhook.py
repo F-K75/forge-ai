@@ -15,7 +15,7 @@ end-to-end rather than stubbed out.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from core.models import utcnow
 
 from fastapi import FastAPI

@@ -113,6 +113,11 @@ export function useOrgSocket(projectId: string | null) {
           return
         }
 
+        if (!wsToken) {
+          setConnectionStatus("error")
+          return
+        }
+
         const ws = new WebSocket(`${WS_URL}/v1/projects/${id}/org/ws?token=${encodeURIComponent(wsToken)}`)
         wsRef.current = ws
 
