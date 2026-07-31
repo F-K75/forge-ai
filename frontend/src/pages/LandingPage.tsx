@@ -342,33 +342,51 @@ export function Nav() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-land-paper/80 backdrop-blur border-b border-land-border" : "border-b border-transparent"
+        scrolled
+          ? "border-b border-white/15 bg-base/85 backdrop-blur-xl"
+          : "border-b border-transparent"
       }`}
     >
-      <div className="max-w-6xl mx-auto px-6">
-        <nav aria-label="Primary" className="flex items-center justify-between h-16">
-          <a href="#top" className="flex items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-land-accent">
-            <div className="w-6 h-6 border border-land-ink flex items-center justify-center">
-              <Sparkles className="w-3 h-3" aria-hidden="true" />
+      <div className="mx-auto max-w-6xl px-6">
+        <nav aria-label="Primary" className="flex h-14 items-center justify-between md:h-16">
+          <a
+            href="#top"
+            className="flex items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/50"
+          >
+            <div className="flex h-6 w-6 items-center justify-center border border-ink bg-ink/10">
+              <Sparkles className="h-3 w-3 text-ink" aria-hidden="true" />
             </div>
-            <span className="font-display font-medium tracking-tight">Forge</span>
+            <span className="font-brand text-sm font-bold uppercase tracking-tight text-ink">
+              Forge
+            </span>
+            <span className="hidden border border-white/20 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-muted sm:inline">
+              OS
+            </span>
           </a>
 
-          <div className="hidden md:flex items-center gap-8 text-sm text-land-muted">
-            <a href="#agents" className="hover:text-land-ink transition">Agents</a>
-            <a href="#workflow" className="hover:text-land-ink transition">Workflow</a>
-            <a href="#features" className="hover:text-land-ink transition">Features</a>
-            <a href="#pricing" className="hover:text-land-ink transition">Pricing</a>
+          <div className="hidden items-center gap-7 text-xs font-medium uppercase tracking-wide text-muted md:flex">
+            <a href="#agents" className="transition hover:text-ink">
+              Agents
+            </a>
+            <a href="#workflow" className="transition hover:text-ink">
+              Workflow
+            </a>
+            <a href="#features" className="transition hover:text-ink">
+              Features
+            </a>
+            <a href="#pricing" className="transition hover:text-ink">
+              Pricing
+            </a>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Link to="/login" className="text-sm text-land-muted hover:text-land-ink transition">
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="text-sm text-muted transition hover:text-ink">
               Sign in
             </Link>
             <motion.div {...presets.button}>
               <Link
                 to="/signup"
-                className="inline-flex items-center px-3.5 py-2 rounded-md text-sm font-medium bg-land-ink text-land-paper hover:bg-land-ink/90 transition"
+                className="inline-flex items-center rounded-md bg-ink px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-base transition hover:opacity-90"
               >
                 Start building
               </Link>

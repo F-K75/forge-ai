@@ -4,20 +4,13 @@ import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import gsap from "gsap";
 import { AGENTS } from "../lib/agents";
+import { coverageStats, ORG_ROLE_COUNT, PLAYBOOK_COUNT } from "../lib/skillVisuals";
 import { motionVariants } from "../lib/animations";
 import { presets } from "../lib/animationPresets";
 import LaunchGlobe from "../components/LaunchGlobe";
 import { LandingPageBody, Nav as SiteNav, Footer as SiteFooter } from "./LandingPage";
 
-// Public entry splash at "/": an immersive, globe-centered portal with a
-// terminal-style prompt bar, followed immediately by the same content that
-// lives at /home — scrolling past the globe carries straight into it instead
-// of requiring a click through to a separate route. The globe/hero is its
-// own h-screen section (overflow-hidden, so its decorations never leak past
-// the fold); everything below is the shared LandingPageBody. The earth is a
-// WebGL render (see LaunchGlobe) and can be dragged to spin. Already-
-// authenticated visitors never see any of this: PublicRoute bounces them to
-// /projects.
+// Public entry at "/": grey maximal OS boot + globe, then shared marketing body.
 
 const EXAMPLE_PROMPTS = [
   "a habit tracker with streaks and reminders",
@@ -27,64 +20,80 @@ const EXAMPLE_PROMPTS = [
   "a marketplace for vintage synthesizers",
 ];
 
+const TICKER = [
+  "SIX BUILD AGENTS IN ORBIT",
+  "GREY MAXIMAL ENGINEERING OS",
+  "PLAN · BUILD · VALIDATE · SHIP",
+  "NOT A DASHBOARD — AN OPERATING SYSTEM",
+];
+
 export default function Launch() {
   const reduceMotion = useReducedMotion();
+  const stats = coverageStats();
 
   return (
-    <div className="w-full scroll-smooth bg-base text-ink">
-      {/* Persistent backdrop — fixed to the viewport (not the hero section),
-          so the globe keeps rotating in the background behind every section
-          below, not just the first screen. The hero section's own background
-          is transparent (see below) so this shows straight through it too. */}
+    <div className="launch-os w-full scroll-smooth bg-base text-ink">
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="launch-os-wash absolute inset-0" />
         <Starfield />
         <LaunchGlobe />
         <PulseRings />
         <OrbitingAgents />
+        <p className="launch-os-watermark font-brand pointer-events-none absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 select-none">
+          FORGE
+        </p>
       </div>
 
-      <section id="top" className="relative z-10 h-screen w-screen overflow-hidden text-ink flex flex-col">
+      <section
+        id="top"
+        className="relative z-10 flex h-[100dvh] w-screen flex-col overflow-hidden text-ink"
+      >
+        {/* Space for fixed SiteNav */}
+        <div className="h-14 shrink-0 md:h-16" aria-hidden="true" />
+
+        <div className="relative z-20 overflow-hidden border-y border-white/10 bg-black/50" aria-hidden="true">
+          <div className="launch-ticker-track flex whitespace-nowrap font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-muted">
+            {[...TICKER, ...TICKER].map((bit, i) => (
+              <span key={`${bit}-${i}`} className="mx-6 py-1">
+                ◆ {bit} · {ORG_ROLE_COUNT} ORG · {PLAYBOOK_COUNT} PLAYBOOKS
+              </span>
+            ))}
+          </div>
+        </div>
+
         <motion.div
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.4, ease: "easeOut" }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
         >
           <SynapseField />
           <MissionControlHUD />
+          <StatusPanel />
         </motion.div>
 
-        {/* No local header here — SiteNav (fixed, imported from LandingPage)
-            now covers the whole merged page, including this hero, so it's
-            visible immediately instead of only after scrolling past the fold. */}
-
-        {/* pointer-events-none lets drag gestures in the empty space reach the
-            globe canvas below; interactive children re-enable their own events.
-            Not a <main> — the page's one <main> wraps LandingPageBody below,
-            since this hero is now the first section of a longer page rather
-            than the whole page. */}
-        <div className="relative z-10 flex-1 flex items-center justify-center px-6 pointer-events-none">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pointer-events-none sm:px-6">
           <motion.div
-            className="w-full max-w-xl flex flex-col items-center text-center"
+            className="flex w-full max-w-3xl flex-col items-center text-center"
             variants={reduceMotion ? undefined : motionVariants.staggerContainer}
             initial={reduceMotion ? false : "hidden"}
             animate="visible"
           >
             <motion.p
-              className="text-[11px] uppercase tracking-[0.3em] text-faint mb-6 [text-shadow:0_1px_10px_rgba(10,10,15,0.9)]"
+              className="mb-4 font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-muted [text-shadow:0_1px_12px_rgba(0,0,0,0.9)]"
               variants={motionVariants.staggerItem}
             >
-              The AI engineering foundry
+              Engineering OS · Public Boot
             </motion.p>
 
             <motion.h1
-              className="font-raster text-4xl md:text-5xl leading-none tracking-wide [image-rendering:pixelated] [text-shadow:0_2px_0_rgba(10,10,15,0.9)]"
+              className="font-brand text-[clamp(3.5rem,14vw,7.5rem)] font-extrabold uppercase leading-[0.85] tracking-[-0.05em] [text-shadow:0_2px_24px_rgba(0,0,0,0.85)]"
               variants={motionVariants.staggerItem}
             >
               Forge
             </motion.h1>
 
             <motion.p
-              className="mt-5 text-muted [text-shadow:0_1px_10px_rgba(10,10,15,0.9)]"
+              className="mt-4 max-w-md text-sm text-muted md:text-base [text-shadow:0_1px_12px_rgba(0,0,0,0.9)]"
               variants={motionVariants.staggerItem}
             >
               Six agents. One prompt. Production software.
@@ -97,31 +106,50 @@ export default function Launch() {
             <motion.div variants={motionVariants.staggerItem}>
               <a
                 href="#problem"
-                className="pointer-events-auto mt-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/60"
+                className="pointer-events-auto mt-6 inline-flex items-center gap-1.5 border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted transition hover:border-white/30 hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/60"
               >
-                or keep scrolling <ArrowRight className="w-3.5 h-3.5 rotate-90" aria-hidden="true" />
+                Enter system <ArrowRight className="h-3.5 w-3.5 rotate-90" aria-hidden="true" />
               </a>
             </motion.div>
           </motion.div>
         </div>
 
         <motion.footer
-          className="relative z-10 pb-8"
+          className="relative z-10 border-t border-white/10 bg-black/55 px-3 py-3 backdrop-blur-md sm:px-5"
           initial={reduceMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.45, delay: 0.25, ease: "easeOut" }}
         >
-          <ul aria-label="Forge build agents" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 px-6">
-            {AGENTS.map((agent) => (
-              <li key={agent.id} className="flex items-center gap-1.5 text-xs text-faint">
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: agent.hue, boxShadow: `0 0 6px 0 ${agent.hue}99` }}
-                  aria-hidden="true"
-                />
-                {agent.label}
-              </li>
-            ))}
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-faint">
+              Agent fleet online
+            </p>
+            <p className="font-mono text-[9px] uppercase tracking-wide text-faint">
+              {stats.full} full visuals
+            </p>
+          </div>
+          <ul
+            aria-label="Forge build agents"
+            className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {AGENTS.map((agent) => {
+              const Icon = agent.icon;
+              return (
+                <li
+                  key={agent.id}
+                  className="flex min-w-[4.75rem] flex-col items-center gap-1 rounded-lg border border-white/12 bg-white/[0.04] px-2 py-2"
+                  style={{ boxShadow: `inset 0 -2px 0 ${agent.hue}` }}
+                >
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-md"
+                    style={{ background: `${agent.hue}22`, color: agent.hue }}
+                  >
+                    <Icon size={14} aria-hidden="true" />
+                  </span>
+                  <span className="truncate text-[10px] font-medium text-ink/90">{agent.label}</span>
+                </li>
+              );
+            })}
           </ul>
         </motion.footer>
       </section>
@@ -137,9 +165,6 @@ export default function Launch() {
   );
 }
 
-// Terminal-style prompt input. Typing is optional — submitting (with or
-// without text) heads to signup, carrying the draft prompt in router state
-// so a future onboarding step can pre-fill it.
 function PromptBar() {
   const navigate = useNavigate();
   const [value, setValue] = useState("");
@@ -154,13 +179,16 @@ function PromptBar() {
   return (
     <form
       onSubmit={onSubmit}
-      className="pointer-events-auto mt-10 w-full flex items-center gap-2 sm:gap-3 rounded-lg glass-strong px-3 sm:px-4 py-3 text-left focus-within:border-muted/60 focus-within:shadow-[0_0_0_1px_rgba(232,232,240,0.12),0_0_40px_rgba(232,232,240,0.06)] transition-shadow"
+      className="pointer-events-auto mt-8 flex w-full items-center gap-2 rounded-xl border-2 border-white/20 bg-black/55 px-3 py-2.5 text-left shadow-[0_0_40px_-16px_rgba(244,244,245,0.35)] backdrop-blur-md transition-shadow focus-within:border-ink/50 focus-within:shadow-[0_0_0_3px_rgba(212,212,216,0.12)] sm:gap-3 sm:px-4"
       onClick={() => inputRef.current?.focus()}
     >
-      <span className="font-mono text-sm text-muted select-none" aria-hidden="true">
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink/15 font-mono text-sm text-ink"
+        aria-hidden="true"
+      >
         $
       </span>
-      <div className="relative flex-1 min-w-0">
+      <div className="relative min-w-0 flex-1">
         <input
           ref={inputRef}
           type="text"
@@ -170,27 +198,29 @@ function PromptBar() {
           className="w-full bg-transparent font-mono text-sm text-ink placeholder-transparent focus:outline-none"
         />
         {value === "" && (
-          <span aria-hidden="true" className="absolute inset-0 flex items-center pointer-events-none font-mono text-sm text-faint truncate">
-            <span className="hidden sm:inline text-muted mr-1.5">forge build</span>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 flex items-center truncate font-mono text-sm text-faint"
+          >
+            <span className="mr-1.5 hidden text-muted sm:inline">forge build</span>
             <span className="truncate">{placeholder}</span>
-            <span className="text-muted animate-[blink_1s_step-end_infinite] motion-reduce:animate-none ml-px">▋</span>
+            <span className="ml-px animate-[blink_1s_step-end_infinite] text-muted motion-reduce:animate-none">
+              ▋
+            </span>
           </span>
         )}
       </div>
       <motion.button
         type="submit"
-        className="shrink-0 inline-flex items-center gap-1 sm:gap-1.5 rounded-md gradient-ember text-base text-sm font-medium px-3 sm:px-4 py-1.5 hover:brightness-110 transition-[filter] focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+        className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-ink px-3 py-2 text-sm font-bold uppercase tracking-wide text-base transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/60 sm:gap-1.5 sm:px-4"
         {...presets.button}
       >
-        Build <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+        Build <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
       </motion.button>
     </form>
   );
 }
 
-// Types out each example prompt, holds it, deletes it, moves to the next.
-// Paused while the user has typed their own text; static first example when
-// the visitor prefers reduced motion.
 function useTypedPlaceholder(examples: string[], active: boolean) {
   const [text, setText] = useState("");
 
@@ -230,9 +260,6 @@ function useTypedPlaceholder(examples: string[], active: boolean) {
   return text;
 }
 
-// Small colored satellites — one per agent, reusing each agent's real hue —
-// circling the globe on concentric rings at different speeds/directions.
-// Literal read: a team of AI agents in orbit around your software.
 function OrbitingAgents() {
   const reduceMotion = useReducedMotion();
   if (reduceMotion) return null;
@@ -240,7 +267,7 @@ function OrbitingAgents() {
   return (
     <div
       aria-hidden="true"
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
     >
       {AGENTS.map((agent, i) => {
         const diameter = 98 + i * 15;
@@ -248,7 +275,7 @@ function OrbitingAgents() {
         return (
           <div
             key={agent.id}
-            className="animate-orbit-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full motion-reduce:animate-none"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-orbit-spin rounded-full motion-reduce:animate-none"
             style={{
               width: `min(${diameter}vh, ${diameter}vw)`,
               height: `min(${diameter}vh, ${diameter}vw)`,
@@ -258,7 +285,7 @@ function OrbitingAgents() {
           >
             <span
               title={agent.label}
-              className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
+              className="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
               style={{ backgroundColor: agent.hue, boxShadow: `0 0 8px 1px ${agent.hue}99` }}
             />
           </div>
@@ -268,8 +295,6 @@ function OrbitingAgents() {
   );
 }
 
-// Sonar-style rings expanding outward from the globe on a loop — reads as
-// the platform actively listening/thinking, not just a static illustration.
 function PulseRings() {
   const reduceMotion = useReducedMotion();
   if (reduceMotion) return null;
@@ -277,13 +302,13 @@ function PulseRings() {
   return (
     <div
       aria-hidden="true"
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
       style={{ width: "min(92vh, 92vw)", height: "min(92vh, 92vw)" }}
     >
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="animate-pulse-ring absolute inset-0 rounded-full border border-ink/15 motion-reduce:hidden"
+          className="absolute inset-0 animate-pulse-ring rounded-full border border-ink/20 motion-reduce:hidden"
           style={{ animationDelay: `${i * 2}s` }}
         />
       ))}
@@ -291,17 +316,21 @@ function PulseRings() {
   );
 }
 
-// A sparse neural-network glyph tucked in the bottom-right corner — faint
-// nodes and synapses that pulse at random, an ambient nod to "AI thinking"
-// that never competes with the globe for attention. Fixed coordinates (not
-// randomized like Starfield) so the cluster reads as a deliberate shape, not
-// noise. The top-left corner runs MissionControlHUD instead (below).
 const SYNAPSE_NODES = [
-  { x: 93, y: 70 }, { x: 84, y: 64 }, { x: 95, y: 84 }, { x: 79, y: 88 }, { x: 88, y: 92 },
+  { x: 93, y: 70 },
+  { x: 84, y: 64 },
+  { x: 95, y: 84 },
+  { x: 79, y: 88 },
+  { x: 88, y: 92 },
 ];
 
 const SYNAPSE_EDGES: [number, number][] = [
-  [0, 1], [1, 2], [2, 0], [0, 3], [3, 4], [4, 2],
+  [0, 1],
+  [1, 2],
+  [2, 0],
+  [0, 3],
+  [3, 4],
+  [4, 2],
 ];
 
 function SynapseField() {
@@ -334,12 +363,8 @@ function SynapseField() {
   if (reduceMotion) return null;
 
   return (
-    <div ref={rootRef} aria-hidden="true" className="absolute inset-0 pointer-events-none">
-      {/* Lines only — safe to stretch to the viewport's aspect ratio. Node
-          dots are separate HTML elements below so they stay circular
-          (an SVG viewBox stretched with preserveAspectRatio="none" would
-          squash <circle> elements into ellipses on any non-square screen). */}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <div ref={rootRef} aria-hidden="true" className="pointer-events-none absolute inset-0">
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
         {SYNAPSE_EDGES.map(([a, b], i) => {
           const from = SYNAPSE_NODES[a];
           const to = SYNAPSE_NODES[b];
@@ -361,7 +386,7 @@ function SynapseField() {
         <span
           key={i}
           data-synapse-node
-          className="absolute w-1 h-1 rounded-full bg-ink/45"
+          className="absolute h-1 w-1 rounded-full bg-ink/45"
           style={{ top: `${n.y}%`, left: `${n.x}%`, marginTop: -2, marginLeft: -2 }}
         />
       ))}
@@ -369,20 +394,41 @@ function SynapseField() {
   );
 }
 
-// Top-left corner instrument — a gyroscope-style attitude ring inside a
-// viewfinder reticle, the way Endurance's docking display or Cooper Station's
-// control-room readouts are staged in Interstellar: monochrome, wireframe,
-// quietly technical. No literal recreation, just the same visual grammar.
-// Three tick tiers (major/mid/minor), a counter-rotating dashed ring, and a
-// radar-style sweep read as a real instrument rather than a static glyph —
-// the degree readout is the one bit of text, and it's live: driven by a rAF
-// loop reading the same clock the CSS rotation runs on, not a fake number.
+function StatusPanel() {
+  const reduceMotion = useReducedMotion();
+  if (reduceMotion) return null;
+
+  return (
+    <aside
+      aria-hidden="true"
+      className="pointer-events-none absolute bottom-[7.5rem] right-4 z-10 hidden w-44 border border-white/15 bg-black/55 p-3 font-mono text-[9px] uppercase tracking-wide text-muted backdrop-blur-md sm:block md:right-6"
+    >
+      <p className="mb-2 font-bold text-ink/80">System · Live</p>
+      <ul className="space-y-1.5">
+        <li className="flex justify-between gap-2">
+          <span>Globe</span>
+          <span className="text-ink">online</span>
+        </li>
+        <li className="flex justify-between gap-2">
+          <span>Agents</span>
+          <span className="text-ink">{AGENTS.length}/6</span>
+        </li>
+        <li className="flex justify-between gap-2">
+          <span>Org roles</span>
+          <span className="text-ink">{ORG_ROLE_COUNT}</span>
+        </li>
+        <li className="flex justify-between gap-2">
+          <span>Palette</span>
+          <span className="text-ink">graphite</span>
+        </li>
+      </ul>
+    </aside>
+  );
+}
+
 const HUD_TICKS = Array.from({ length: 36 }, (_, i) => i * 10);
 const HUD_OUTER_DURATION = 46;
 
-// Mutates a ref'd span's textContent every frame instead of touching React
-// state, so a 60fps readout never triggers a re-render (same pattern as
-// useCountUp in lib/animations.ts).
 function useDegreeReadout(durationSeconds: number) {
   const ref = useRef<HTMLSpanElement>(null);
   const reduceMotion = useReducedMotion();
@@ -412,33 +458,28 @@ function MissionControlHUD() {
   return (
     <div
       aria-hidden="true"
-      className="absolute pointer-events-none opacity-60"
-      style={{ top: "13%", left: "6%" }}
+      className="pointer-events-none absolute opacity-70"
+        style={{ top: "22%", left: "5%" }}
     >
-      <div className="relative w-16 h-16 sm:w-20 sm:h-20">
-        {/* viewfinder corner brackets */}
-        <span className="absolute -top-2 -left-2 w-3 h-3 border-t border-l border-ink/30" />
-        <span className="absolute -top-2 -right-2 w-3 h-3 border-t border-r border-ink/30" />
-        <span className="absolute -bottom-2 -left-2 w-3 h-3 border-b border-l border-ink/30" />
-        <span className="absolute -bottom-2 -right-2 w-3 h-3 border-b border-r border-ink/30" />
+      <div className="relative h-16 w-16 sm:h-20 sm:w-20">
+        <span className="absolute -left-2 -top-2 h-3 w-3 border-l border-t border-ink/35" />
+        <span className="absolute -right-2 -top-2 h-3 w-3 border-r border-t border-ink/35" />
+        <span className="absolute -bottom-2 -left-2 h-3 w-3 border-b border-l border-ink/35" />
+        <span className="absolute -bottom-2 -right-2 h-3 w-3 border-b border-r border-ink/35" />
 
-        {/* radar sweep — clipped to the outer ring's circle so the wedge
-            never spills into the box corners */}
-        <div className="absolute inset-[4%] rounded-full overflow-hidden">
+        <div className="absolute inset-[4%] overflow-hidden rounded-full">
           <div
             className="absolute inset-0 animate-orbit-spin motion-reduce:hidden"
             style={{
               animationDuration: "3.6s",
-              background: "conic-gradient(from 0deg, hsl(28 85% 55% / 0.4), transparent 42deg)",
+              background: "conic-gradient(from 0deg, hsl(0 0% 85% / 0.35), transparent 42deg)",
             }}
           />
         </div>
 
-        {/* outer tick ring — three tiers (major/mid/minor), like a real
-            degree gauge, rotating slowly as one dial */}
         <svg
           viewBox="0 0 100 100"
-          className="absolute inset-0 w-full h-full animate-orbit-spin motion-reduce:animate-none"
+          className="absolute inset-0 h-full w-full animate-orbit-spin motion-reduce:animate-none"
           style={{ animationDuration: `${HUD_OUTER_DURATION}s` }}
         >
           <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(0 0% 96% / 0.16)" strokeWidth="0.6" />
@@ -464,25 +505,31 @@ function MissionControlHUD() {
           })}
         </svg>
 
-        {/* counter-rotating dashed ring — compound gyroscope motion, the way
-            a real attitude indicator layers rings moving independently */}
         <svg
           viewBox="0 0 100 100"
-          className="absolute inset-0 w-full h-full animate-orbit-spin motion-reduce:animate-none"
+          className="absolute inset-0 h-full w-full animate-orbit-spin motion-reduce:animate-none"
           style={{ animationDuration: "30s", animationDirection: "reverse" }}
         >
-          <circle cx="50" cy="50" r="36" fill="none" stroke="hsl(0 0% 96% / 0.14)" strokeWidth="0.5" strokeDasharray="2 3" />
+          <circle
+            cx="50"
+            cy="50"
+            r="36"
+            fill="none"
+            stroke="hsl(0 0% 96% / 0.14)"
+            strokeWidth="0.5"
+            strokeDasharray="2 3"
+          />
         </svg>
 
-        {/* static crosshair, and the one point of color */}
-        <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
+        <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
           <line x1="50" y1="40" x2="50" y2="60" stroke="hsl(0 0% 96% / 0.28)" strokeWidth="0.6" />
           <line x1="40" y1="50" x2="60" y2="50" stroke="hsl(0 0% 96% / 0.28)" strokeWidth="0.6" />
         </svg>
-        <span className="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full bg-ember animate-tick" style={{ marginTop: -3, marginLeft: -3 }} />
+        <span
+          className="absolute left-1/2 top-1/2 h-1.5 w-1.5 animate-tick rounded-full bg-ink"
+          style={{ marginTop: -3, marginLeft: -3 }}
+        />
 
-        {/* live degree readout — the same clock driving the outer ring's
-            CSS rotation, read back out as text */}
         <span
           ref={degreeRef}
           className="absolute left-1/2 top-full mt-1.5 -translate-x-1/2 font-mono text-[8px] tabular-nums tracking-[0.1em] text-ink/45"
@@ -494,31 +541,34 @@ function MissionControlHUD() {
   );
 }
 
-// A sparse, static field of faint stars so the void around the globe reads
-// as space rather than empty page. Positions are randomized once per mount.
 function Starfield() {
   const stars = useMemo(
     () =>
-      Array.from({ length: 48 }, (_, i) => ({
+      Array.from({ length: 64 }, (_, i) => ({
         id: i,
         top: Math.random() * 100,
         left: Math.random() * 100,
         size: Math.random() < 0.2 ? 2 : 1,
-        opacity: 0.15 + Math.random() * 0.35,
+        opacity: 0.12 + Math.random() * 0.4,
       })),
     [],
   );
 
   return (
-    <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0">
       {stars.map((s) => (
         <span
           key={s.id}
           className="absolute rounded-full bg-ink"
-          style={{ top: `${s.top}%`, left: `${s.left}%`, width: s.size, height: s.size, opacity: s.opacity }}
+          style={{
+            top: `${s.top}%`,
+            left: `${s.left}%`,
+            width: s.size,
+            height: s.size,
+            opacity: s.opacity,
+          }}
         />
       ))}
     </div>
   );
 }
-

@@ -478,3 +478,33 @@ body {
 }
 
 .animate-pulse-ring { animation: pulse-ring 6s ease-out infinite; }
+
+/* Launch OS — grey maximal public boot */
+.launch-os-wash {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 45%, rgba(244, 244, 245, 0.06), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 15% 20%, rgba(161, 161, 170, 0.08), transparent 50%),
+    linear-gradient(180deg, rgba(9, 9, 11, 0.35), rgba(9, 9, 11, 0.72));
+}
+
+.launch-os-watermark {
+  font-size: clamp(5rem, 20vw, 13rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(244, 244, 245, 0.08);
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.launch-ticker-track {
+  width: max-content;
+  animation: os-marquee 32s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-ticker-track {
+    animation: none !important;
+  }
+}
