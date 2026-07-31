@@ -2,8 +2,6 @@
 // for real per-project screenshots until the backend has a thumbnail_url
 // (no image assets or network calls involved — pure CSS gradients).
 
-const HUE_STEP = 47; // arbitrary prime-ish step so adjacent seeds don't cluster in hue
-
 function hash(seed: string): number {
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
@@ -13,18 +11,18 @@ function hash(seed: string): number {
   return Math.abs(h);
 }
 
-/** Static "photo" gradient shown by default (rendered grayscale by the card). */
+/** Static greyscale cover gradient (deterministic per seed). */
 export function coverGradient(seed: string): string {
   const h = hash(seed);
-  const hue = (h * HUE_STEP) % 360;
-  const hue2 = (hue + 55) % 360;
+  const light = 42 + (h % 28);
+  const dark = 18 + (h % 16);
   const angle = h % 360;
-  return `linear-gradient(${angle}deg, hsl(${hue} 65% 52%), hsl(${hue2} 65% 38%))`;
+  return `linear-gradient(${angle}deg, hsl(240 4% ${light}%), hsl(240 3% ${dark}%))`;
 }
 
-/** Soft radial glow used for the hover "video" drift layer, revealed in color. */
+/** Soft greyscale glow for hover drift layer. */
 export function coverGlow(seed: string): string {
   const h = hash(`${seed}:glow`);
-  const hue = (h * HUE_STEP) % 360;
-  return `radial-gradient(circle, hsl(${hue} 75% 55%), transparent 70%)`;
+  const light = 55 + (h % 20);
+  return `radial-gradient(circle, hsl(240 4% ${light}%), transparent 70%)`;
 }

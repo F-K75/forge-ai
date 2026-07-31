@@ -164,7 +164,7 @@ export default function AppShell() {
               className="group flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-ember/15 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/50"
               aria-label="Forge home"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-ember to-ember-glow text-base shadow-[0_0_22px_-4px_rgba(232,130,60,1)]">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-ink to-muted text-base shadow-[0_0_22px_-4px_rgba(244,244,245,0.55)]">
                 <Zap size={12} className="text-base" aria-hidden="true" />
               </span>
               <span className="font-brand text-base font-bold tracking-tight text-ink uppercase">
@@ -203,7 +203,7 @@ export default function AppShell() {
             <button
               type="button"
               onClick={() => navigate("/settings")}
-              className="ml-0.5 flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm border-2 border-ember/50 bg-ember text-[11px] font-bold text-base transition-transform hover:scale-105 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/50"
+              className="ml-0.5 flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm border-2 border-ink/50 bg-ink text-[11px] font-bold text-base transition-transform hover:scale-105 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/50"
               aria-label={`Account: ${name || "Settings"}`}
             >
               {initial}
@@ -311,7 +311,7 @@ export default function AppShell() {
                     "os-dock-item group relative flex h-[3.35rem] w-full cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-2 transition-transform duration-200 ease-out motion-reduce:transition-none sm:h-14 sm:w-[4.5rem]",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50",
                     active
-                      ? "bg-ember text-base shadow-[0_0_28px_-8px_rgba(232,130,60,0.95)]"
+                      ? "bg-ink text-base shadow-[0_0_28px_-8px_rgba(244,244,245,0.55)]"
                       : "bg-white/[0.06] text-ink hover:bg-white/[0.12] hover:-translate-y-1 active:translate-y-0",
                   ].join(" ")}
                 >

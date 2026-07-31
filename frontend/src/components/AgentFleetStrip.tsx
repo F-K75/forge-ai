@@ -16,13 +16,13 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
     <section
       aria-label="Agent fleet"
       className={[
-        "os-fleet border-y border-ember/25 bg-gradient-to-r from-ember/[0.12] via-black/40 to-ember/[0.08]",
+        "os-fleet border-y border-white/15 bg-gradient-to-r from-white/[0.06] via-black/40 to-white/[0.03]",
         compact ? "px-3 py-2" : "px-4 py-3 md:px-6",
       ].join(" ")}
     >
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ember">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/80">
             Agent fleet · {stats.total} skill visuals catalogued
           </p>
           {!compact && (

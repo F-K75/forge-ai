@@ -32,30 +32,27 @@ export interface SkillVisual {
 
 /** Canonical skill/agent visual inventory for Forge OS maximal shell. */
 export const SKILL_VISUALS: SkillVisual[] = [
-  // Build pipeline — full icon/color/pipeline visuals
-  { id: "architect", label: "Architect", family: "build", icon: Compass, hue: "#F4A261", coverage: "full", surface: "Build pipeline + chat" },
-  { id: "business_improver", label: "Business Model", family: "build", icon: TrendingUp, hue: "#F0934D", coverage: "full", surface: "Build pipeline + chat" },
-  { id: "designer", label: "Designer", family: "build", icon: Palette, hue: "#E8823C", coverage: "full", surface: "Build pipeline + design doc" },
-  { id: "developer", label: "Developer", family: "build", icon: Code2, hue: "#D9722C", coverage: "full", surface: "Build pipeline + editor" },
-  { id: "integration", label: "Integration", family: "build", icon: Plug, hue: "#C2631F", coverage: "full", surface: "Build pipeline + manifest" },
-  { id: "pm", label: "PM / Validator", family: "build", icon: ShieldCheck, hue: "#A85423", coverage: "full", surface: "Build pipeline + QA" },
-  { id: "debugger", label: "Debugger", family: "build", icon: Bug, hue: "#9A4A1C", coverage: "minimal", surface: "Folded into Developer" },
+  { id: "architect", label: "Architect", family: "build", icon: Compass, hue: "#F4F4F5", coverage: "full", surface: "Build pipeline + chat" },
+  { id: "business_improver", label: "Business Model", family: "build", icon: TrendingUp, hue: "#E4E4E7", coverage: "full", surface: "Build pipeline + chat" },
+  { id: "designer", label: "Designer", family: "build", icon: Palette, hue: "#D4D4D8", coverage: "full", surface: "Build pipeline + design doc" },
+  { id: "developer", label: "Developer", family: "build", icon: Code2, hue: "#A1A1AA", coverage: "full", surface: "Build pipeline + editor" },
+  { id: "integration", label: "Integration", family: "build", icon: Plug, hue: "#71717A", coverage: "full", surface: "Build pipeline + manifest" },
+  { id: "pm", label: "PM / Validator", family: "build", icon: ShieldCheck, hue: "#52525B", coverage: "full", surface: "Build pipeline + QA" },
+  { id: "debugger", label: "Debugger", family: "build", icon: Bug, hue: "#3F3F46", coverage: "minimal", surface: "Folded into Developer" },
 
-  // Gateway / Initiatives — panes under agentRun/
-  { id: "business_analyst", label: "Business Analyst", family: "gateway", icon: FileStack, hue: "#F4A261", coverage: "full", surface: "AgentRuns · BA pane" },
-  { id: "decision_engine", label: "Decision Engine", family: "gateway", icon: Scale, hue: "#E8823C", coverage: "partial", surface: "AgentRuns · Decision pane" },
-  { id: "prd_writer", label: "PRD Writer", family: "gateway", icon: NotebookPen, hue: "#F0934D", coverage: "full", surface: "AgentRuns · PRD pane" },
-  { id: "gateway_designer", label: "Initiative Designer", family: "gateway", icon: Palette, hue: "#D9722C", coverage: "minimal", surface: "Pane exists, unwired" },
-  { id: "epic_generator", label: "Epic Generator", family: "gateway", icon: Layers, hue: "#C2631F", coverage: "full", surface: "AgentRuns · Epic pane" },
-  { id: "story_generator", label: "Story Generator", family: "gateway", icon: ListChecks, hue: "#A85423", coverage: "full", surface: "AgentRuns · Story pane" },
-  { id: "task_generator", label: "Task Generator", family: "gateway", icon: ListTodo, hue: "#F4A261", coverage: "full", surface: "AgentRuns · Task pane" },
-  { id: "sprint_planner", label: "Sprint Planner", family: "gateway", icon: CalendarRange, hue: "#E8823C", coverage: "partial", surface: "AgentRuns · Sprint pane" },
-  { id: "scrum_master", label: "Scrum Master", family: "gateway", icon: Users, hue: "#F0934D", coverage: "full", surface: "AgentRuns · Scrum pane" },
-  { id: "task_executor", label: "Task Executor", family: "gateway", icon: Terminal, hue: "#D9722C", coverage: "full", surface: "AgentRuns · Executor pane" },
-  { id: "gateway_integration", label: "Initiative Integration", family: "gateway", icon: Plug, hue: "#C2631F", coverage: "partial", surface: "AgentRuns · Integration pane" },
+  { id: "business_analyst", label: "Business Analyst", family: "gateway", icon: FileStack, hue: "#F4F4F5", coverage: "full", surface: "AgentRuns · BA pane" },
+  { id: "decision_engine", label: "Decision Engine", family: "gateway", icon: Scale, hue: "#E4E4E7", coverage: "partial", surface: "AgentRuns · Decision pane" },
+  { id: "prd_writer", label: "PRD Writer", family: "gateway", icon: NotebookPen, hue: "#D4D4D8", coverage: "full", surface: "AgentRuns · PRD pane" },
+  { id: "gateway_designer", label: "Initiative Designer", family: "gateway", icon: Palette, hue: "#C4C4C8", coverage: "minimal", surface: "Pane exists, unwired" },
+  { id: "epic_generator", label: "Epic Generator", family: "gateway", icon: Layers, hue: "#B4B4B8", coverage: "full", surface: "AgentRuns · Epic pane" },
+  { id: "story_generator", label: "Story Generator", family: "gateway", icon: ListChecks, hue: "#A1A1AA", coverage: "full", surface: "AgentRuns · Story pane" },
+  { id: "task_generator", label: "Task Generator", family: "gateway", icon: ListTodo, hue: "#909094", coverage: "full", surface: "AgentRuns · Task pane" },
+  { id: "sprint_planner", label: "Sprint Planner", family: "gateway", icon: CalendarRange, hue: "#818188", coverage: "partial", surface: "AgentRuns · Sprint pane" },
+  { id: "scrum_master", label: "Scrum Master", family: "gateway", icon: Users, hue: "#71717A", coverage: "full", surface: "AgentRuns · Scrum pane" },
+  { id: "task_executor", label: "Task Executor", family: "gateway", icon: Terminal, hue: "#62626A", coverage: "full", surface: "AgentRuns · Executor pane" },
+  { id: "gateway_integration", label: "Initiative Integration", family: "gateway", icon: Plug, hue: "#52525B", coverage: "partial", surface: "AgentRuns · Integration pane" },
 
-  // Review — generic Bot only
-  { id: "security_engineer", label: "Security Engineer", family: "review", icon: ShieldCheck, hue: "#E8823C", coverage: "minimal", surface: "Generic Bot node" },
+  { id: "security_engineer", label: "Security Engineer", family: "review", icon: ShieldCheck, hue: "#A1A1AA", coverage: "minimal", surface: "Generic Bot node" },
 ];
 
 export const ORG_ROLE_COUNT = 25;

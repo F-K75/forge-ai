@@ -1,29 +1,24 @@
-// Ordered categorical palette for series without an existing semantic token.
-// `ok`/`warn`/`error` (tailwind.config.ts) are reserved for pass/fail/status
-// encoding and intentionally excluded here so status and identity never share a hue.
+// Ordered categorical palette — greyscale series for charts.
 export const CATEGORICAL_PALETTE = [
-  "#7C5CFF", // accent
-  "#38BDF8",
-  "#F472B6",
-  "#FBBF24",
-  "#4ADE80",
-  "#A78BFA",
-  "#FB923C",
+  "#F4F4F5",
+  "#E4E4E7",
+  "#D4D4D8",
+  "#A1A1AA",
+  "#71717A",
+  "#52525B",
+  "#3F3F46",
 ] as const
 
 export const colorForIndex = (i: number): string =>
   CATEGORICAL_PALETTE[i % CATEGORICAL_PALETTE.length]
 
-// Mirrors the agent-* tokens in tailwind.config.ts, keyed by the backend's
-// AgentType enum values (backend/core/models.py) rather than the Tailwind
-// class suffix (which uses hyphens instead of underscores).
 export const AGENT_COLORS: Record<string, string> = {
-  architect: "#F4A261",
-  designer: "#E8823C",
-  developer: "#D9722C",
-  integration: "#C2631F",
-  pm: "#A85423",
-  business_improver: "#F0934D",
+  architect: "#F4F4F5",
+  designer: "#D4D4D8",
+  developer: "#A1A1AA",
+  integration: "#71717A",
+  pm: "#52525B",
+  business_improver: "#E4E4E7",
 }
 
 export const colorForAgent = (agent: string, fallbackIndex: number): string =>

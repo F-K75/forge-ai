@@ -81,9 +81,9 @@ export default function InitiativesListPage() {
           <label htmlFor="initiative-spotlight" className="sr-only">
             Describe an initiative
           </label>
-          <div className="os-spotlight flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 focus-within:border-ember/40 focus-within:shadow-[0_0_0_3px_rgba(232,130,60,0.12)] transition-[border-color,box-shadow] duration-200">
+          <div className="os-spotlight flex items-center gap-2 rounded-2xl border border-white/15 bg-black/25 px-3 py-2 focus-within:border-ink/50 focus-within:shadow-[0_0_0_3px_rgba(212,212,216,0.12)] transition-[border-color,box-shadow] duration-200">
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ember/25 to-ember-glow/10 text-ember"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ink/25 to-muted/10 text-ink"
               aria-hidden="true"
             >
               <Rocket size={14} />
@@ -102,7 +102,7 @@ export default function InitiativesListPage() {
               onClick={handleCreate}
               disabled={creating}
               {...presets.button}
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-ember px-4 text-sm font-medium text-base shadow-[0_8px_24px_-12px_rgba(232,130,60,0.9)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
+              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-ink px-4 text-sm font-medium text-base shadow-[0_8px_24px_-12px_rgba(244,244,245,0.45)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
             >
               {creating ? (
                 <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -164,7 +164,7 @@ export default function InitiativesListPage() {
                     className="group flex w-full cursor-pointer items-start gap-3 rounded-xl px-2 py-3.5 text-left transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
                   >
                     <span
-                      className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-ember/20 to-transparent text-ember"
+                      className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-ink/20 to-transparent text-ink"
                       aria-hidden="true"
                     >
                       <Rocket size={16} />

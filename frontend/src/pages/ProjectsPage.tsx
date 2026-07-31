@@ -177,7 +177,7 @@ export default function ProjectsPage() {
           <label htmlFor="forge-spotlight" className="sr-only">
             Describe what to build
           </label>
-          <div className="os-spotlight flex items-center gap-2 rounded-xl border-2 border-ember/35 bg-black/40 px-3 py-2 shadow-[0_0_40px_-18px_rgba(232,130,60,0.85)] focus-within:border-ember focus-within:shadow-[0_0_0_3px_rgba(232,130,60,0.2)] transition-[border-color,box-shadow] duration-200">
+          <div className="os-spotlight flex items-center gap-2 rounded-xl border-2 border-white/20 bg-black/40 px-3 py-2 shadow-[0_0_40px_-18px_rgba(244,244,245,0.35)] focus-within:border-ink focus-within:shadow-[0_0_0_3px_rgba(212,212,216,0.15)] transition-[border-color,box-shadow] duration-200">
             <ZapMark />
             <input
               id="forge-spotlight"
@@ -194,7 +194,7 @@ export default function ProjectsPage() {
               disabled={creating}
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-ember px-5 text-sm font-bold uppercase tracking-wide text-base shadow-[0_10px_28px_-10px_rgba(232,130,60,1)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
+              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-ink px-5 text-sm font-bold uppercase tracking-wide text-base shadow-[0_10px_28px_-10px_rgba(244,244,245,0.55)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
             >
               <Send size={14} aria-hidden="true" />
               {creating ? "Opening…" : "Build"}
@@ -361,7 +361,7 @@ export default function ProjectsPage() {
 function ZapMark() {
   return (
     <span
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ember/25 to-ember-glow/10 text-ember"
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ink/25 to-muted/10 text-ink"
       aria-hidden="true"
     >
       <Play size={14} className="ml-0.5" />
