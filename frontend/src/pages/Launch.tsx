@@ -202,7 +202,7 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
         </div>
       </div>
 
-      <div className="launch-fleet-track relative mb-5 h-[3px] w-full rounded-full bg-black/[0.06]" aria-hidden="true">
+      <div className="launch-fleet-track relative mb-5 h-[3px] w-full rounded-full bg-white/[0.08]" aria-hidden="true">
         <span
           className="launch-fleet-track-fill absolute inset-y-0 left-0 rounded-full bg-accent"
           style={{ width: `${progress}%` }}
@@ -286,7 +286,7 @@ function PromptBar() {
       </div>
       <motion.button
         type="submit"
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[15px] font-medium text-white transition hover:bg-[#0077ED] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[15px] font-medium text-white transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         {...presets.button}
       >
         Build <ArrowRight className="h-4 w-4" aria-hidden="true" />

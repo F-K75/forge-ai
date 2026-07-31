@@ -134,12 +134,12 @@ export default function AppShell() {
                 Forge
               </span>
             </button>
-            <span className="hidden h-4 w-px bg-black/10 sm:block" aria-hidden="true" />
+            <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden="true" />
             <p className="hidden truncate text-[15px] font-medium text-muted sm:block">{title}</p>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden rounded-full bg-black/[0.04] px-3 py-1 font-mono text-xs text-muted md:inline">
+            <span className="hidden rounded-full bg-white/[0.06] px-3 py-1 font-mono text-xs text-muted md:inline">
               {creditsRemaining} credits · {plan}
             </span>
             <NotificationsBell />
@@ -184,7 +184,7 @@ export default function AppShell() {
                   to={app.to}
                   className={[
                     "apple-dock-item flex min-w-[3.25rem] flex-col items-center gap-1 rounded-2xl px-2.5 py-2 text-muted sm:min-w-[4.25rem]",
-                    active ? "is-active" : "hover:bg-black/[0.04]",
+                    active ? "is-active" : "hover:bg-white/[0.06]",
                   ].join(" ")}
                   aria-current={active ? "page" : undefined}
                 >

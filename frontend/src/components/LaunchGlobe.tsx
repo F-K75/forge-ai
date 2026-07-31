@@ -74,17 +74,17 @@ export default function LaunchGlobe() {
       height: width * pixelRatio,
       phi: 0,
       theta: 0.22,
-      dark: 0,
-      diffuse: 1.4,
+      dark: 1,
+      diffuse: 1.2,
       mapSamples: lightweight ? 10000 : 22000,
-      mapBrightness: 2.8,
-      mapBaseBrightness: 0.12,
-      baseColor: [0.72, 0.74, 0.78],
-      markerColor: [0.0, 0.44, 0.89],
-      glowColor: [0.96, 0.96, 0.97],
-      arcColor: [0.3, 0.55, 0.95],
-      arcWidth: 0.45,
-      arcHeight: 0.2,
+      mapBrightness: 4.8,
+      mapBaseBrightness: 0.06,
+      baseColor: [0.28, 0.3, 0.34],
+      markerColor: [0.04, 0.52, 1.0],
+      glowColor: [0.05, 0.05, 0.06],
+      arcColor: [0.2, 0.5, 1.0],
+      arcWidth: 0.5,
+      arcHeight: 0.22,
       opacity: 0.92,
       markers: MARKERS,
       arcs: ARCS,
@@ -147,8 +147,8 @@ export default function LaunchGlobe() {
           }}
         />
         {/* Soft center dip so FORGE stays readable without hiding the globe. */}
-        <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(245,245,247,0.55)_0%,rgba(245,245,247,0.15)_40%,transparent_62%)]" />
-        <div className="pointer-events-none absolute inset-[6%] rounded-full border border-black/[0.04]" />
+        <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0.45)_0%,rgba(0,0,0,0.12)_40%,transparent_62%)]" />
+        <div className="pointer-events-none absolute inset-[6%] rounded-full border border-white/[0.06]" />
       </motion.div>
     </div>
   )

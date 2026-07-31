@@ -156,10 +156,10 @@ export default function ProjectsPage() {
               <span className="rounded-full bg-accent-soft px-3 py-1 text-accent">
                 {skillStats.full} visuals
               </span>
-              <span className="rounded-full bg-black/[0.04] px-3 py-1">
+              <span className="rounded-full bg-white/[0.06] px-3 py-1">
                 {ORG_ROLE_COUNT} roles
               </span>
-              <span className="rounded-full bg-black/[0.04] px-3 py-1">
+              <span className="rounded-full bg-white/[0.06] px-3 py-1">
                 {PLAYBOOK_COUNT} playbooks
               </span>
             </div>
@@ -185,7 +185,7 @@ export default function ProjectsPage() {
               disabled={creating}
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-[15px] font-medium text-white transition hover:bg-[#0077ED] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-[15px] font-medium text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             >
               <Send size={14} aria-hidden="true" />
               {creating ? "Opening…" : "Build"}
@@ -205,7 +205,7 @@ export default function ProjectsPage() {
                   type="button"
                   role="listitem"
                   onClick={() => handleBuild(starter.label, starter.label)}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[13px] font-medium text-muted transition hover:bg-accent-soft hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1.5 text-[13px] font-medium text-muted transition hover:bg-accent-soft hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                 >
                   <Icon size={13} aria-hidden="true" />
                   {starter.label}

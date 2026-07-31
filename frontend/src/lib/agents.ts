@@ -10,7 +10,7 @@ export interface Agent {
 
 // ids must match backend AgentType values (core/models.py) exactly.
 export const AGENTS: Agent[] = [
-  { id: "architect",         label: "Architect",      icon: Compass,     hue: "#0071E3", credits: 3 },
+  { id: "architect",         label: "Architect",      icon: Compass,     hue: "#0A84FF", credits: 3 },
   { id: "business_improver", label: "Business Model", icon: TrendingUp,  hue: "#5E5CE6", credits: 2 },
   { id: "designer",          label: "Designer",       icon: Palette,     hue: "#BF5AF2", credits: 2 },
   { id: "developer",         label: "Developer",      icon: Code2,       hue: "#30D158", credits: 5 },

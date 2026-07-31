@@ -67,7 +67,7 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
         <div className="flex items-center gap-1.5 text-[11px] font-medium">
           <span className="rounded-full bg-ok/15 px-2.5 py-0.5 text-ok">{stats.full} live</span>
           <span className="rounded-full bg-warn/15 px-2.5 py-0.5 text-warn">{stats.partial} partial</span>
-          <span className="rounded-full bg-black/[0.04] px-2.5 py-0.5 text-faint">{stats.minimal} thin</span>
+          <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-faint">{stats.minimal} thin</span>
         </div>
       </div>
 
@@ -88,7 +88,7 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
               onClick={() => setActive(i)}
               className={[
                 "group flex min-w-[4.5rem] flex-col items-center gap-1.5 rounded-2xl px-2 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/40",
-                isActive ? "bg-accent-soft" : "hover:bg-black/[0.03]",
+                isActive ? "bg-accent-soft" : "hover:bg-white/[0.05]",
               ].join(" ")}
             >
               <span
