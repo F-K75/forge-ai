@@ -141,7 +141,7 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
     if (reduceMotion) return;
     const id = window.setInterval(() => {
       setActive((i) => (i + 1) % AGENTS.length);
-    }, 2200);
+    }, 2400);
     return () => window.clearInterval(id);
   }, [reduceMotion]);
 
@@ -151,101 +151,122 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
     const ctx = gsap.context(() => {
       gsap.from(nodes, {
         opacity: 0,
-        y: 16,
-        scale: 0.88,
-        stagger: 0.07,
+        y: 22,
+        stagger: 0.06,
         duration: 0.5,
         ease: "power3.out",
-        delay: 0.35,
+        delay: 0.3,
       });
     }, railRef);
     return () => ctx.revert();
   }, [reduceMotion]);
 
   const live = AGENTS[active];
+  const progress = ((active + 1) / AGENTS.length) * 100;
 
   return (
     <motion.footer
-      className="launch-fleet relative z-10 border-t border-white/10 bg-black/55 px-3 py-3 backdrop-blur-md sm:px-5 sm:py-3.5"
-      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+      className="launch-fleet relative z-10 border-t border-white/12 bg-gradient-to-t from-black/80 via-black/55 to-black/35 px-3 pt-3 pb-3.5 backdrop-blur-md sm:px-6"
+      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay: 0.35, ease: "easeOut" }}
+      transition={{ duration: 0.55, delay: 0.3, ease: "easeOut" }}
     >
-      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="launch-fleet-live relative flex h-1.5 w-1.5 shrink-0 rounded-full bg-ink" aria-hidden="true" />
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-faint">
-            Pipeline · {live.label}
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="launch-fleet-live relative flex h-1.5 w-1.5 shrink-0 rounded-full bg-ink" aria-hidden="true" />
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.28em] text-faint">
+              Agents online
+            </p>
+          </div>
+          <p className="mt-1 font-display text-sm font-medium tracking-tight text-ink sm:text-base">
+            {live.label}
           </p>
-          <p className="hidden truncate font-mono text-[9px] uppercase tracking-wide text-muted sm:block">
+          <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
             {AGENT_TASK[live.id]}
           </p>
         </div>
-        <p className="font-mono text-[9px] uppercase tracking-wide text-faint">
-          {String(active + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")} · {fullVisuals} visuals
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-faint tabular-nums">
+          Step {String(active + 1).padStart(2, "0")} / {String(AGENTS.length).padStart(2, "0")}
+          <span className="mx-2 text-white/20">·</span>
+          {fullVisuals} visuals
         </p>
+      </div>
+
+      <div className="launch-fleet-track mb-3 h-px w-full overflow-hidden bg-white/10" aria-hidden="true">
+        <span
+          className="launch-fleet-track-fill block h-full bg-ink"
+          style={{ width: `${progress}%` }}
+        />
       </div>
 
       <ul
         ref={railRef}
         aria-label="Forge build agents"
-        className="launch-fleet-rail relative flex items-stretch justify-between gap-0 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="grid grid-cols-6 gap-1 sm:gap-2"
       >
         {AGENTS.map((agent, i) => {
           const Icon = agent.icon;
           const isActive = i === active;
-          const isDone = !reduceMotion && i < active;
+          const isDone = i < active;
           return (
-            <li key={agent.id} data-fleet-node className="relative flex min-w-0 flex-1 items-center">
+            <li key={agent.id} data-fleet-node className="min-w-0">
               <button
                 type="button"
                 aria-current={isActive ? "true" : undefined}
                 aria-label={`${agent.label}${isActive ? ", running" : isDone ? ", complete" : ", standby"}`}
                 onClick={() => setActive(i)}
                 className={[
-                  "launch-fleet-node group relative z-[1] flex w-full flex-col items-center gap-1.5 px-1 py-1 outline-none",
+                  "launch-fleet-pillar group relative flex w-full flex-col items-center gap-2 px-0.5 py-1 outline-none",
                   "focus-visible:ring-1 focus-visible:ring-ink/50",
-                  isActive ? "text-ink" : "text-muted",
+                  isActive ? "is-active" : "",
+                  isDone ? "is-done" : "",
                 ].join(" ")}
               >
-                <span
-                  className={[
-                    "launch-fleet-glyph relative flex h-11 w-11 items-center justify-center sm:h-12 sm:w-12",
-                    isActive ? "is-active" : "",
-                    isDone ? "is-done" : "",
-                  ].join(" ")}
-                  style={{ ["--fleet-hue" as string]: agent.hue }}
-                >
-                  {isActive && !reduceMotion && <span className="launch-fleet-ring" aria-hidden="true" />}
+                <span className="relative z-[1] flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9">
                   <Icon
-                    size={18}
-                    className="relative z-[1]"
-                    style={{ color: isActive ? "#09090B" : agent.hue }}
+                    size={16}
+                    className="transition-colors duration-300"
+                    style={{ color: isActive ? "#F4F4F5" : isDone ? "#A1A1AA" : "#52525B" }}
                     aria-hidden="true"
                   />
+                  {isActive && !reduceMotion && (
+                    <span className="launch-fleet-scan" aria-hidden="true" />
+                  )}
                 </span>
-                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em]">
-                  {AGENT_SHORT[agent.id]}
-                </span>
-                <span className="hidden max-w-full truncate text-[10px] font-medium sm:block">
-                  {agent.label}
-                </span>
-              </button>
 
-              {i < AGENTS.length - 1 && (
-                <span
-                  className="launch-fleet-link pointer-events-none absolute right-0 top-[1.375rem] z-0 h-px w-[calc(50%+0.25rem)] translate-x-1/2 sm:top-[1.5rem]"
-                  aria-hidden="true"
-                >
+                <span className="launch-fleet-meter relative w-full max-w-[2.75rem] sm:max-w-[3.25rem]" aria-hidden="true">
+                  <span className="launch-fleet-meter-fill" />
+                </span>
+
+                <span className="flex w-full flex-col items-center gap-0.5">
                   <span
                     className={[
-                      "launch-fleet-beam block h-full w-full",
-                      i < active ? "is-passed" : "",
-                      i === active ? "is-handoff" : "",
+                      "font-mono text-[9px] font-bold uppercase tracking-[0.2em]",
+                      isActive ? "text-ink" : "text-faint",
                     ].join(" ")}
-                  />
+                  >
+                    {AGENT_SHORT[agent.id]}
+                  </span>
+                  <span
+                    className={[
+                      "hidden w-full truncate text-center text-[10px] sm:block",
+                      isActive ? "text-muted" : "text-faint/80",
+                    ].join(" ")}
+                  >
+                    {agent.label}
+                  </span>
                 </span>
-              )}
+
+                <span
+                  className={[
+                    "font-mono text-[8px] tabular-nums tracking-wider",
+                    isActive ? "text-ink/70" : "text-faint/50",
+                  ].join(" ")}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+              </button>
             </li>
           );
         })}

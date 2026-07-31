@@ -72,19 +72,20 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
           )}
         </div>
         <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-faint">
-          <span className="rounded-sm border border-ok/40 bg-ok/10 px-1.5 py-0.5 text-ok">{stats.full} live</span>
-          <span className="rounded-sm border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-warn">{stats.partial} partial</span>
-          <span className="rounded-sm border border-white/15 bg-white/5 px-1.5 py-0.5">{stats.minimal} thin</span>
+          <span className="border border-ok/40 bg-ok/10 px-1.5 py-0.5 text-ok">{stats.full} live</span>
+          <span className="border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-warn">{stats.partial} partial</span>
+          <span className="border border-white/15 bg-white/5 px-1.5 py-0.5">{stats.minimal} thin</span>
         </div>
       </div>
 
       <div
         ref={railRef}
-        className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-1.5"
       >
         {build.map((agent, i) => {
           const Icon = agent.icon;
           const isActive = i === active;
+          const isDone = i < active;
           return (
             <button
               key={`build-${agent.id}`}
@@ -94,28 +95,27 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
               aria-current={isActive ? "true" : undefined}
               onClick={() => setActive(i)}
               className={[
-                "group relative flex min-w-[4.75rem] flex-col items-center gap-1 px-2 py-2 outline-none transition-transform focus-visible:ring-1 focus-visible:ring-ink/50",
-                isActive ? "-translate-y-0.5" : "hover:-translate-y-0.5",
+                "launch-fleet-pillar group relative flex min-w-[3.75rem] flex-col items-center gap-1.5 px-1.5 py-1.5 outline-none focus-visible:ring-1 focus-visible:ring-ink/50",
+                isActive ? "is-active" : "",
+                isDone ? "is-done" : "",
               ].join(" ")}
             >
-              <span
-                className={["launch-fleet-glyph relative flex h-10 w-10 items-center justify-center", isActive ? "is-active" : ""].join(" ")}
-                style={{ ["--fleet-hue" as string]: agent.hue }}
-              >
-                {isActive && !reduceMotion && <span className="launch-fleet-ring" aria-hidden="true" />}
-                <Icon
-                  size={15}
-                  className="relative z-[1]"
-                  style={{ color: isActive ? "#09090B" : agent.hue }}
-                  aria-hidden="true"
-                />
+              <Icon
+                size={14}
+                style={{ color: isActive ? "#F4F4F5" : isDone ? "#A1A1AA" : "#52525B" }}
+                aria-hidden="true"
+              />
+              <span className="launch-fleet-meter relative w-full max-w-[2.25rem]" style={{ height: compact ? "1.75rem" : "2.25rem" }} aria-hidden="true">
+                <span className="launch-fleet-meter-fill" />
               </span>
               <span className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-faint">
                 {BUILD_SHORT[agent.id]}
               </span>
-              <span className="max-w-[4.25rem] truncate text-center text-[10px] font-medium text-ink/90">
-                {agent.label}
-              </span>
+              {!compact && (
+                <span className="max-w-[4rem] truncate text-center text-[10px] font-medium text-ink/90">
+                  {agent.label}
+                </span>
+              )}
             </button>
           );
         })}
@@ -132,17 +132,12 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
               data-fleet-tile
               title={`${agent.label} · ${agent.stage}${thin ? ` · ${meta?.coverage}` : ""}`}
               className={[
-                "group relative flex min-w-[4.5rem] flex-col items-center gap-1 px-2 py-2 transition-transform hover:-translate-y-0.5",
-                thin ? "opacity-75" : "",
+                "group relative flex min-w-[3.5rem] flex-col items-center gap-1 px-1.5 py-1.5",
+                thin ? "opacity-70" : "",
               ].join(" ")}
             >
-              <span
-                className="launch-fleet-glyph relative flex h-9 w-9 items-center justify-center"
-                style={{ ["--fleet-hue" as string]: agent.hue }}
-              >
-                <Icon size={14} className="relative z-[1]" style={{ color: agent.hue }} aria-hidden="true" />
-              </span>
-              <span className="max-w-[4.25rem] truncate text-center text-[10px] font-medium text-ink/90">
+              <Icon size={13} style={{ color: agent.hue }} aria-hidden="true" />
+              <span className="max-w-[3.75rem] truncate text-center text-[10px] font-medium text-ink/90">
                 {agent.label}
               </span>
               <span className="font-mono text-[8px] uppercase tracking-wider text-faint">

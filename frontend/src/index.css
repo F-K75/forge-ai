@@ -522,7 +522,7 @@ body {
   }
 }
 
-/* Launch agent pipeline dock */
+/* Launch agent process pillars */
 .launch-fleet-live::after {
   content: "";
   position: absolute;
@@ -532,60 +532,70 @@ body {
   animation: launch-fleet-ping 1.8s ease-out infinite;
 }
 
-.launch-fleet-glyph {
-  border: 1px solid rgba(255, 255, 255, 0.16);
+.launch-fleet-track-fill {
+  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.launch-fleet-meter {
+  height: 2.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(9, 9, 11, 0.85);
-  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
-  transition: border-color 220ms ease, background 220ms ease, transform 220ms ease;
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 3px,
+      rgba(255, 255, 255, 0.04) 3px,
+      rgba(255, 255, 255, 0.04) 4px
+    ),
+    rgba(255, 255, 255, 0.02);
+  overflow: hidden;
 }
 
-.launch-fleet-glyph.is-done {
-  border-color: rgba(244, 244, 245, 0.35);
-  background: rgba(244, 244, 245, 0.08);
+@media (min-width: 640px) {
+  .launch-fleet-meter {
+    height: 3.5rem;
+  }
 }
 
-.launch-fleet-glyph.is-active {
-  border-color: transparent;
-  background: var(--fleet-hue, #f4f4f5);
-  transform: translateY(-2px);
-}
-
-.launch-fleet-ring {
+.launch-fleet-meter-fill {
   position: absolute;
-  inset: -5px;
-  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
-  border: 1px solid rgba(244, 244, 245, 0.55);
-  animation: launch-fleet-breathe 1.6s ease-in-out infinite;
+  inset-inline: 0;
+  bottom: 0;
+  height: 18%;
+  background: linear-gradient(180deg, rgba(244, 244, 245, 0.35), rgba(244, 244, 245, 0.12));
+  transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
+}
+
+.launch-fleet-pillar.is-done .launch-fleet-meter-fill {
+  height: 62%;
+  background: linear-gradient(180deg, rgba(161, 161, 170, 0.55), rgba(161, 161, 170, 0.15));
+}
+
+.launch-fleet-pillar.is-active .launch-fleet-meter {
+  border-color: rgba(244, 244, 245, 0.35);
+  background-color: rgba(244, 244, 245, 0.04);
+}
+
+.launch-fleet-pillar.is-active .launch-fleet-meter-fill {
+  height: 100%;
+  background: linear-gradient(180deg, #f4f4f5 0%, rgba(244, 244, 245, 0.45) 55%, rgba(244, 244, 245, 0.12) 100%);
+  animation: launch-fleet-pulse 1.4s ease-in-out infinite;
+}
+
+.launch-fleet-scan {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(244, 244, 245, 0.35);
+  animation: launch-fleet-breathe 1.5s ease-in-out infinite;
   pointer-events: none;
 }
 
-.launch-fleet-beam {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
-  opacity: 0.45;
+.launch-fleet-pillar:hover .launch-fleet-meter-fill {
+  height: max(28%, var(--hover-h, 28%));
 }
 
-.launch-fleet-beam.is-passed {
-  opacity: 0.9;
-  background: rgba(244, 244, 245, 0.55);
-}
-
-.launch-fleet-beam.is-handoff {
-  opacity: 1;
-  background: linear-gradient(
-    90deg,
-    rgba(244, 244, 245, 0.15) 0%,
-    rgba(244, 244, 245, 0.95) 45%,
-    rgba(244, 244, 245, 0.15) 100%
-  );
-  background-size: 220% 100%;
-  animation: launch-fleet-handoff 1.1s linear infinite;
-}
-
-.launch-fleet-node:hover .launch-fleet-glyph:not(.is-active) {
-  transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.32);
+.launch-fleet-pillar:hover:not(.is-active) .launch-fleet-meter-fill {
+  height: 36%;
 }
 
 @keyframes launch-fleet-ping {
@@ -594,19 +604,23 @@ body {
 }
 
 @keyframes launch-fleet-breathe {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.08); }
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.08); }
 }
 
-@keyframes launch-fleet-handoff {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+@keyframes launch-fleet-pulse {
+  0%, 100% { filter: brightness(1); opacity: 1; }
+  50% { filter: brightness(1.15); opacity: 0.88; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .launch-fleet-live::after,
-  .launch-fleet-ring,
-  .launch-fleet-beam.is-handoff {
+  .launch-fleet-scan,
+  .launch-fleet-pillar.is-active .launch-fleet-meter-fill {
     animation: none !important;
+  }
+
+  .launch-fleet-track-fill {
+    transition: none !important;
   }
 }
