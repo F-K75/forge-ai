@@ -77,15 +77,15 @@ export default function LaunchGlobe() {
       dark: 1,
       diffuse: 1.2,
       mapSamples: lightweight ? 10000 : 22000,
-      mapBrightness: 4.2,
-      mapBaseBrightness: 0.04,
-      baseColor: [0.36, 0.36, 0.39],
-      markerColor: [0.85, 0.85, 0.88],
-      glowColor: [0.13, 0.13, 0.15],
-      arcColor: [0.38, 0.38, 0.42],
-      arcWidth: 0.5,
-      arcHeight: 0.22,
-      opacity: 0.9,
+      mapBrightness: 5.2,
+      mapBaseBrightness: 0.08,
+      baseColor: [0.42, 0.42, 0.46],
+      markerColor: [0.92, 0.92, 0.94],
+      glowColor: [0.16, 0.16, 0.18],
+      arcColor: [0.48, 0.48, 0.52],
+      arcWidth: 0.55,
+      arcHeight: 0.24,
+      opacity: 0.95,
       markers: MARKERS,
       arcs: ARCS,
     })
@@ -116,35 +116,41 @@ export default function LaunchGlobe() {
   if (fallback) return <CssGlobe />
 
   return (
-    <motion.div
+    <div
       aria-hidden="true"
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-      style={{ width: "min(92vh, 92vw)", height: "min(92vh, 92vw)" }}
-      initial={reduceMotion ? false : presets.globe.initial}
-      animate={presets.globe.animate}
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+      style={{ width: "min(108vh, 108vw)", height: "min(108vh, 108vw)" }}
     >
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full opacity-0 cursor-grab active:cursor-grabbing"
-        style={{ contain: "layout paint size", touchAction: "pan-y" }}
-        onPointerDown={(e) => {
-          pointerStart.current = e.clientX
-          dragBase.current = dragOffset.current
-          e.currentTarget.setPointerCapture(e.pointerId)
-        }}
-        onPointerMove={(e) => {
-          if (pointerStart.current === null) return
-          dragOffset.current = dragBase.current + (e.clientX - pointerStart.current) / 180
-        }}
-        onPointerUp={() => {
-          pointerStart.current = null
-        }}
-        onPointerCancel={() => {
-          pointerStart.current = null
-        }}
-      />
-      <div className="absolute inset-0 rounded-full pointer-events-none bg-[radial-gradient(circle_at_50%_50%,hsl(0_0%_4%/0.72)_0%,hsl(0_0%_4%/0.4)_36%,transparent_55%)]" />
-    </motion.div>
+      <motion.div
+        className="h-full w-full"
+        initial={reduceMotion ? false : presets.globe.initial}
+        animate={presets.globe.animate}
+      >
+        <canvas
+          ref={canvasRef}
+          className="h-full w-full cursor-grab opacity-0 active:cursor-grabbing"
+          style={{ contain: "layout paint size", touchAction: "pan-y" }}
+          onPointerDown={(e) => {
+            pointerStart.current = e.clientX
+            dragBase.current = dragOffset.current
+            e.currentTarget.setPointerCapture(e.pointerId)
+          }}
+          onPointerMove={(e) => {
+            if (pointerStart.current === null) return
+            dragOffset.current = dragBase.current + (e.clientX - pointerStart.current) / 180
+          }}
+          onPointerUp={() => {
+            pointerStart.current = null
+          }}
+          onPointerCancel={() => {
+            pointerStart.current = null
+          }}
+        />
+        {/* Soft center dip so FORGE stays readable without hiding the globe. */}
+        <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,hsl(0_0%_4%/0.28)_0%,hsl(0_0%_4%/0.08)_40%,transparent_62%)]" />
+        <div className="pointer-events-none absolute inset-[6%] rounded-full border border-white/[0.06]" />
+      </motion.div>
+    </div>
   )
 }
 
@@ -156,7 +162,7 @@ function CssGlobe() {
     <div
       aria-hidden="true"
       className="absolute pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-      style={{ width: "min(92vh, 92vw)", height: "min(92vh, 92vw)" }}
+      style={{ width: "min(108vh, 108vw)", height: "min(108vh, 108vw)" }}
     >
       <div className="w-full h-full rounded-full bg-[radial-gradient(circle_at_32%_28%,hsl(0_0%_16%),hsl(0_0%_4%)_72%)] border border-muted/30" />
 

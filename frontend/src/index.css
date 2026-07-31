@@ -479,24 +479,36 @@ body {
 
 .animate-pulse-ring { animation: pulse-ring 6s ease-out infinite; }
 
-/* Launch OS — grey maximal public boot */
-.launch-os-wash {
+/* Launch — one composition: atmosphere + centered globe behind brand */
+.launch-atmosphere {
   background:
-    radial-gradient(ellipse 70% 50% at 50% 45%, rgba(244, 244, 245, 0.05), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 15% 20%, rgba(161, 161, 170, 0.07), transparent 50%),
-    linear-gradient(180deg, rgba(9, 9, 11, 0.2), rgba(9, 9, 11, 0.55));
+    radial-gradient(ellipse 58% 48% at 50% 42%, rgba(244, 244, 245, 0.07), transparent 62%),
+    radial-gradient(ellipse 40% 30% at 18% 78%, rgba(113, 113, 122, 0.12), transparent 55%),
+    radial-gradient(ellipse 35% 28% at 82% 18%, rgba(161, 161, 170, 0.08), transparent 50%),
+    linear-gradient(180deg, #0c0c0e 0%, #09090b 45%, #050506 100%);
 }
 
-/* Centered behind the brand mark — full-bleed OS backdrop. */
 .launch-globe-stage {
   transform: none;
 }
 
-/* Light center veil for type readability without hiding the globe. */
 .launch-name-veil {
   background:
-    radial-gradient(ellipse 46% 34% at 50% 46%, rgba(9, 9, 11, 0.45) 0%, rgba(9, 9, 11, 0.18) 55%, transparent 78%);
+    radial-gradient(ellipse 34% 22% at 50% 40%, rgba(9, 9, 11, 0.28) 0%, transparent 70%);
   pointer-events: none;
+}
+
+.launch-horizon {
+  background: linear-gradient(180deg, transparent, rgba(9, 9, 11, 0.72));
+  pointer-events: none;
+  height: 9rem;
+}
+
+.launch-brand {
+  text-shadow:
+    0 0 60px rgba(9, 9, 11, 0.95),
+    0 2px 28px rgba(9, 9, 11, 0.9),
+    0 1px 0 rgba(0, 0, 0, 0.85);
 }
 
 .launch-ticker-track {
