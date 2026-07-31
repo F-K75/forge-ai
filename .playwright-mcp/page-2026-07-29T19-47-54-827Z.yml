@@ -1,0 +1,71 @@
+- generic [ref=e79]:
+  - navigation "Main navigation" [ref=e80]:
+    - generic [ref=e81]:
+      - generic [ref=e82]: Forge
+      - generic [ref=e87]:
+        - button "Notifications" [ref=e89] [cursor=pointer]
+        - button "Collapse sidebar" [ref=e93] [cursor=pointer]
+    - generic [ref=e97]:
+      - generic [ref=e98]:
+        - generic [ref=e99]: Workspace
+        - link "Initiatives" [ref=e101] [cursor=pointer]:
+          - /url: /initiatives
+        - link "Projects" [ref=e109] [cursor=pointer]:
+          - /url: /projects
+      - generic [ref=e116]:
+        - generic [ref=e117]: Manage
+        - link "Marketplace" [ref=e119] [cursor=pointer]:
+          - /url: /marketplace
+        - link "Reviews" [ref=e127] [cursor=pointer]:
+          - /url: /reviews
+        - link "Billing" [ref=e133] [cursor=pointer]:
+          - /url: /billing
+        - link "Settings" [ref=e138] [cursor=pointer]:
+          - /url: /settings
+    - generic [ref=e143]:
+      - generic [ref=e144]:
+        - generic [ref=e145]: free
+        - paragraph [ref=e147]: 10 credits remaining
+      - generic [ref=e148]:
+        - generic [ref=e149]: T
+        - generic [ref=e150]:
+          - paragraph [ref=e151]: Test User
+          - paragraph [ref=e152]: test@example.com
+  - main [ref=e153]:
+    - generic [ref=e154]:
+      - generic [ref=e155]:
+        - generic [ref=e156]:
+          - generic [ref=e157]: Workspace
+          - heading "Projects" [level=1] [ref=e159]
+          - paragraph [ref=e160]: 0 apps built this month
+        - button "New project" [ref=e161] [cursor=pointer]
+      - region "Build a new app" [ref=e163]:
+        - heading "What do you want to build?" [level=2] [ref=e164]
+        - paragraph [ref=e165]: Describe your app and Forge builds it end-to-end.
+        - generic [ref=e166]:
+          - textbox "Describe your app" [ref=e167]:
+            - /placeholder: A SaaS app that tracks habits with streaks…
+          - button "Build" [ref=e168] [cursor=pointer]
+        - list "Starter templates" [ref=e172]:
+          - listitem [ref=e173] [cursor=pointer]: SaaS dashboard
+          - listitem [ref=e184] [cursor=pointer]: Marketplace
+          - listitem [ref=e190] [cursor=pointer]: Auth + billing
+          - listitem [ref=e194] [cursor=pointer]: AI chat app
+      - region "Recent projects" [ref=e197]:
+        - generic [ref=e198]: Recent
+        - generic [ref=e200]:
+          - searchbox "Search projects" [ref=e202]
+          - combobox "Filter by status" [ref=e203]:
+            - option "All statuses" [selected]
+            - option "Live"
+            - option "Idle"
+          - combobox "Sort projects" [ref=e204]:
+            - option "Recent" [selected]
+            - option "Name (A–Z)"
+            - option "Status (Live first)"
+          - group "View mode" [ref=e205]:
+            - button "Grid view" [pressed] [ref=e206] [cursor=pointer]
+            - button "List view" [ref=e212] [cursor=pointer]
+        - status [ref=e214]:
+          - heading "No projects yet" [level=3] [ref=e219]
+          - paragraph [ref=e220]: Describe what you want to build in the box above to create your first project.

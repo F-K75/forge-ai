@@ -12,13 +12,14 @@ from __future__ import annotations
 
 from typing import Any, AsyncGenerator, Dict, Optional
 import logging
-import time
 
 from core.config import get_settings
 from core.models import AgentType, PlanTier, WSEvent, WSEventType
 from core.ai_usage import check_budget
 from core.database import get_db
 from core.encryption import decrypt_field
+from core.llm.circuit_breaker import get_circuit_breaker
+from core.llm.provider import CircuitBreakerOpen
 from gateway import GatewayRequest, get_ai_gateway
 from prompt_builder import PromptContext, ProjectStateSlice, get_prompt_builder
 from prompt_builder.registry import get_template_registry
@@ -82,46 +83,20 @@ async def _resolve_byok(user_id: Optional[str]) -> Optional[Dict[str, Any]]:
     return {"provider": "anthropic", "api_key": key}
 
 
-class CircuitBreaker:
-    """Simple circuit breaker for LLM API calls."""
+async def _ensure_global_circuit_allows_call() -> None:
+    """Check-only gate for the fleet global breaker.
 
-    def __init__(self, failure_threshold: int = 5, recovery_timeout: int = 60):
-        self.failure_threshold = failure_threshold
-        self.recovery_timeout = recovery_timeout
-        self.failure_count = 0
-        self.last_failure_time: Optional[float] = None
-        self.state = "closed"  # closed, open, half_open
-
-    def can_call(self) -> bool:
-        if self.state == "closed":
-            return True
-        if self.state == "open":
-            if self.last_failure_time and (time.monotonic() - self.last_failure_time > self.recovery_timeout):
-                self.state = "half_open"
-                return True
-            return False
-        return True
-
-    def record_success(self):
-        self.failure_count = 0
-        self.state = "closed"
-
-    def record_failure(self):
-        self.failure_count += 1
-        self.last_failure_time = time.monotonic()
-        if self.failure_count >= self.failure_threshold:
-            self.state = "open"
-
-    def retry_after(self) -> int:
-        """Seconds until the circuit breaker may half-open."""
-        if self.state != "open" or self.last_failure_time is None:
-            return 0
-        elapsed = time.monotonic() - self.last_failure_time
-        remaining = self.recovery_timeout - int(elapsed)
-        return max(0, remaining)
-
-
-_llm_circuit_breaker = CircuitBreaker()
+    Recording success/failure is owned exclusively by ``LLMRouter`` so
+    BaseAgent → Gateway → Router does not double-count. BYOK isolation and
+    provider-scoped trips also live in the router.
+    """
+    cb = get_circuit_breaker()
+    if await cb.can_call("global"):
+        return
+    # Open but recovery may have elapsed — try an atomic half-open claim.
+    if await cb.try_half_open_claim("global"):
+        return
+    raise CircuitBreakerOpen(retry_after=await cb.retry_after("global"))
 
 
 # Shared service instances for the new engineering modules.

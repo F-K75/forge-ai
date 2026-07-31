@@ -1,0 +1,356 @@
+- generic [ref=e3]:
+  - generic [ref=e9]:
+    - generic: 006°
+    - generic:
+      - generic:
+        - paragraph: The AI engineering foundry
+        - heading "Forge" [level=1]
+        - paragraph: Six agents. One prompt. Production software.
+        - generic [ref=e10]:
+          - generic [ref=e11]: $
+          - generic [ref=e12]:
+            - textbox "Describe what you want to build" [ref=e13]
+            - generic:
+              - generic: forge build
+              - generic: a
+              - generic: ▋
+          - button "Build" [ref=e14] [cursor=pointer]
+        - link "or keep scrolling" [ref=e17] [cursor=pointer]:
+          - /url: "#problem"
+    - list "Forge build agents" [ref=e21]:
+      - listitem [ref=e22]: Architect
+      - listitem [ref=e24]: Business Model
+      - listitem [ref=e26]: Designer
+      - listitem [ref=e28]: Developer
+      - listitem [ref=e30]: Integration
+      - listitem [ref=e32]: PM
+  - banner [ref=e34]:
+    - navigation "Primary" [ref=e36]:
+      - link "Forge" [ref=e37] [cursor=pointer]:
+        - /url: "#top"
+      - generic [ref=e42]:
+        - link "Agents" [ref=e43] [cursor=pointer]:
+          - /url: "#agents"
+        - link "Workflow" [ref=e44] [cursor=pointer]:
+          - /url: "#workflow"
+        - link "Features" [ref=e45] [cursor=pointer]:
+          - /url: "#features"
+        - link "Pricing" [ref=e46] [cursor=pointer]:
+          - /url: "#pricing"
+      - generic [ref=e47]:
+        - link "Sign in" [ref=e48] [cursor=pointer]:
+          - /url: /login
+        - link "Start building" [ref=e50] [cursor=pointer]:
+          - /url: /signup
+  - generic [ref=e51]:
+    - main [ref=e52]:
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]: The problem
+          - heading "AI made it easy to start. It didn't make it easy to ship." [level=2] [ref=e58]: AI made it easy to start.It didn't make it easy to ship.
+          - paragraph [ref=e59]: "Prompt-to-app tools get you a demo in an afternoon. Then reality shows up: broken auth, no tests, a schema you can't explain, and code your team doesn't want to touch."
+        - generic [ref=e60]:
+          - generic [ref=e62]:
+            - heading "Chat tools generate code." [level=3] [ref=e63]
+            - paragraph [ref=e64]: They don't reason about your product.
+          - generic [ref=e66]:
+            - heading "Autocomplete speeds up typing." [level=3] [ref=e67]
+            - paragraph [ref=e68]: It doesn't decide what to build.
+          - generic [ref=e70]:
+            - heading "Single-agent tools do it all themselves." [level=3] [ref=e71]
+            - paragraph [ref=e72]: Architecture, UI, backend, tests — with nobody checking the work.
+        - paragraph [ref=e73]: You don't need faster typing. You need a team that knows what production means.
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic [ref=e77]: The solution
+          - heading "Forge runs the org. You run the vision." [level=2] [ref=e79]: Forge runs the org.You run the vision.
+          - paragraph [ref=e80]: Every build goes through the same discipline a real engineering team uses — product thinking, architecture, design, implementation, integration, and review — orchestrated automatically.
+        - paragraph [ref=e81]: You describe what you want. Forge assembles the right specialists, gives them shared context and a single source of truth for your project, and doesn't stop until the build passes its own quality bar. What ships is code you can read, deploy, and own.
+        - generic [ref=e82]:
+          - link "Start your first build" [ref=e84] [cursor=pointer]:
+            - /url: /signup
+          - paragraph [ref=e87]: "Average build: under 15 minutes."
+      - generic [ref=e89]:
+        - generic [ref=e90]:
+          - generic [ref=e91]: How it works
+          - heading "From prompt to production, one handoff at a time." [level=2] [ref=e93]
+        - generic [ref=e94]:
+          - generic [ref=e96]:
+            - generic [ref=e97]: "01"
+            - generic [ref=e98]: Describe
+            - generic [ref=e99]: Tell Forge what you want to build, in plain English.
+          - generic [ref=e101]:
+            - generic [ref=e102]: "02"
+            - generic [ref=e103]: Plan
+            - generic [ref=e104]: The architect drafts a typed blueprint and service graph.
+          - generic [ref=e106]:
+            - generic [ref=e107]: "03"
+            - generic [ref=e108]: Build
+            - generic [ref=e109]: Designer and developer ship the UI and backend in parallel.
+          - generic [ref=e111]:
+            - generic [ref=e112]: "04"
+            - generic [ref=e113]: Validate
+            - generic [ref=e114]: PM scores the build; a debug loop retries failures automatically.
+          - generic [ref=e116]:
+            - generic [ref=e117]: "05"
+            - generic [ref=e118]: Ship
+            - generic [ref=e119]: Every build syncs to GitHub and deploys as a container.
+      - generic [ref=e121]:
+        - generic [ref=e122]:
+          - generic [ref=e123]: Multi-agent architecture
+          - heading "Meet the team behind every build." [level=2] [ref=e125]
+          - paragraph [ref=e126]: Each agent reads the same project memory and hands off automatically — no prompting required between steps.
+        - generic [ref=e127]:
+          - generic [ref=e129]:
+            - heading "Architect" [level=3] [ref=e133]
+            - paragraph [ref=e134]: "Designs the system: data models, service boundaries, how everything talks to everything else."
+          - generic [ref=e136]:
+            - heading "Business Model" [level=3] [ref=e140]
+            - paragraph [ref=e141]: Pressure-tests the plan against real-world constraints and unit economics.
+          - generic [ref=e143]:
+            - heading "Designer" [level=3] [ref=e150]
+            - paragraph [ref=e151]: Builds a real design system and UI — not a wireframe, not a gray box.
+          - generic [ref=e153]:
+            - heading "Developer" [level=3] [ref=e158]
+            - paragraph [ref=e159]: Writes the full stack, streaming every file as it's created.
+          - generic [ref=e161]:
+            - heading "Integration" [level=3] [ref=e164]
+            - paragraph [ref=e165]: Wires up Stripe, auth, and the other services your app needs — automatically.
+          - generic [ref=e167]:
+            - heading "PM" [level=3] [ref=e171]
+            - paragraph [ref=e172]: Tests the build against the plan and scores it before it ships.
+      - generic [ref=e174]:
+        - generic [ref=e175]:
+          - generic [ref=e176]: Features
+          - heading "Built to be trusted with real work." [level=2] [ref=e178]
+        - generic [ref=e179]:
+          - generic [ref=e181]:
+            - heading "Self-correcting debug loop" [level=3] [ref=e187]
+            - paragraph [ref=e188]: Reruns the responsible agent automatically, up to three times, until the build passes validation.
+          - generic [ref=e190]:
+            - heading "Shared project memory" [level=3] [ref=e195]
+            - paragraph [ref=e196]: Every agent reads and writes to the same project state, so context never gets lost between handoffs.
+          - generic [ref=e198]:
+            - heading "QA score on every build" [level=3] [ref=e201]
+            - paragraph [ref=e202]: Every build ships with a quality score, so you know what you're deploying.
+          - generic [ref=e204]:
+            - heading "Real stack, Docker deploy" [level=3] [ref=e208]
+            - paragraph [ref=e209]: Production-grade code on a real stack, containerized and ready to deploy.
+          - generic [ref=e211]:
+            - heading "Playbook integrations" [level=3] [ref=e216]
+            - paragraph [ref=e217]: Stripe, Slack, and other services get wired in automatically when your app needs them.
+          - generic [ref=e219]:
+            - heading "GitHub sync" [level=3] [ref=e223]
+            - paragraph [ref=e224]: Every build pushes to a connected repo, so your code lives where your team already works.
+          - generic [ref=e226]:
+            - heading "Bring your own key" [level=3] [ref=e230]
+            - paragraph [ref=e231]: Use your own model key on the Pro plan for full control over usage and cost.
+          - generic [ref=e233]:
+            - heading "Provider-independent core" [level=3] [ref=e239]
+            - paragraph [ref=e240]: Forge runs on a model-agnostic gateway, so your build isn't tied to one AI provider.
+      - generic [ref=e242]:
+        - generic [ref=e243]:
+          - generic [ref=e244]: Why Forge
+          - heading "Because shipping is the point." [level=2] [ref=e246]
+        - list [ref=e247]:
+          - listitem [ref=e248]: Other tools generate code. Forge builds software.
+          - listitem [ref=e249]: Other tools show you a demo. Forge ships you a deploy.
+          - listitem [ref=e250]: Other tools guess what you meant. Forge's agents ask, plan, and validate.
+          - listitem [ref=e251]: Other tools lock you into their sandbox. Forge hands you the repo.
+          - listitem [ref=e252]: Other tools are one model pretending to be a team. Forge is a team.
+      - generic [ref=e254]:
+        - generic [ref=e255]:
+          - generic [ref=e256]: Comparison
+          - heading "Not another way to generate code." [level=2] [ref=e258]
+          - paragraph [ref=e259]: Here's what changes when a team plans, builds, and reviews your software — instead of one model guessing at all of it.
+        - table [ref=e261]:
+          - rowgroup [ref=e262]:
+            - row [ref=e263]:
+              - columnheader "Capability" [ref=e264]
+              - columnheader "Prompt-to-app tools" [ref=e265]
+              - columnheader "AI pair programmers" [ref=e266]
+              - columnheader "Autonomous single agents" [ref=e267]
+              - columnheader "Forge AI" [ref=e268]
+          - rowgroup [ref=e269]:
+            - row [ref=e270]:
+              - cell "Plans before building" [ref=e271]
+              - cell [ref=e272]:
+                - img "No" [ref=e273]
+              - cell [ref=e276]:
+                - img "No" [ref=e277]
+              - cell [ref=e280]:
+                - img "Partial" [ref=e281]
+              - cell [ref=e282]:
+                - img "Yes" [ref=e283]
+            - row [ref=e285]:
+              - cell "Specialist roles (PM, architect, QA…)" [ref=e286]
+              - cell [ref=e287]:
+                - img "No" [ref=e288]
+              - cell [ref=e291]:
+                - img "No" [ref=e292]
+              - cell [ref=e295]:
+                - img "No" [ref=e296]
+              - cell [ref=e299]:
+                - img "Yes" [ref=e300]
+            - row [ref=e302]:
+              - cell "Shared project memory across steps" [ref=e303]
+              - cell [ref=e304]:
+                - img "No" [ref=e305]
+              - cell [ref=e308]:
+                - img "Partial" [ref=e309]
+              - cell [ref=e310]:
+                - img "Partial" [ref=e311]
+              - cell [ref=e312]:
+                - img "Yes" [ref=e313]
+            - row [ref=e315]:
+              - cell "Automatic quality scoring" [ref=e316]
+              - cell [ref=e317]:
+                - img "No" [ref=e318]
+              - cell [ref=e321]:
+                - img "No" [ref=e322]
+              - cell [ref=e325]:
+                - img "No" [ref=e326]
+              - cell [ref=e329]:
+                - img "Yes" [ref=e330]
+            - row [ref=e332]:
+              - cell "Self-correcting debug loop" [ref=e333]
+              - cell [ref=e334]:
+                - img "No" [ref=e335]
+              - cell [ref=e338]:
+                - img "No" [ref=e339]
+              - cell [ref=e342]:
+                - img "Partial" [ref=e343]
+              - cell [ref=e344]:
+                - img "Yes" [ref=e345]
+            - row [ref=e347]:
+              - cell "Real stack + container deploy" [ref=e348]
+              - cell [ref=e349]:
+                - img "Partial" [ref=e350]
+              - cell [ref=e351]:
+                - img "No" [ref=e352]
+              - cell [ref=e355]:
+                - img "Partial" [ref=e356]
+              - cell [ref=e357]:
+                - img "Yes" [ref=e358]
+            - row [ref=e360]:
+              - cell "Own your code, no lock-in" [ref=e361]
+              - cell [ref=e362]:
+                - img "Partial" [ref=e363]
+              - cell [ref=e364]:
+                - img "Yes" [ref=e365]
+              - cell [ref=e367]:
+                - img "Partial" [ref=e368]
+              - cell [ref=e369]:
+                - img "Yes" [ref=e370]
+        - paragraph [ref=e372]: We built this table to be fair. Judge it yourself.
+      - generic [ref=e374]:
+        - generic [ref=e375]:
+          - generic [ref=e376]: Who it's for
+          - heading "Built for whoever has to ship." [level=2] [ref=e378]
+        - generic [ref=e379]:
+          - generic [ref=e381]:
+            - heading "Founders & indie hackers" [level=3] [ref=e387]
+            - paragraph [ref=e388]: Go from idea to a live product without hiring a technical co-founder.
+          - generic [ref=e390]:
+            - heading "Agencies" [level=3] [ref=e394]
+            - paragraph [ref=e395]: Deliver client work faster without lowering your quality bar — every build is production-grade, not a demo you rebuild later.
+          - generic [ref=e397]:
+            - heading "Product teams" [level=3] [ref=e403]
+            - paragraph [ref=e404]: Turn backlog items into working, tested features your engineers just have to review and merge.
+          - generic [ref=e406]:
+            - heading "Enterprises & CTOs" [level=3] [ref=e411]
+            - paragraph [ref=e412]: Give every team the output of a senior engineering org — reviewed, scored, and ready to merge.
+      - generic [ref=e414]:
+        - generic [ref=e415]:
+          - generic [ref=e416]: Pricing
+          - heading "Start free. Scale when it ships." [level=2] [ref=e418]
+          - paragraph [ref=e419]: Credits cover agent work. A typical build runs about 13.
+        - generic [ref=e420]:
+          - generic [ref=e421]:
+            - heading "Free" [level=3] [ref=e422]
+            - generic [ref=e423]:
+              - generic [ref=e424]: $0
+              - generic [ref=e425]: /mo
+            - paragraph [ref=e426]: 10 credits
+            - paragraph [ref=e427]: Enough to ship your first real build.
+            - link "Start free" [ref=e429] [cursor=pointer]:
+              - /url: /signup
+            - list [ref=e430]:
+              - listitem [ref=e431]:
+                - generic [ref=e434]: 1 project
+              - listitem [ref=e435]:
+                - generic [ref=e438]: Community templates
+              - listitem [ref=e439]:
+                - generic [ref=e442]: Public builds
+          - generic [ref=e443]:
+            - heading "Standard" [level=3] [ref=e444]
+            - generic [ref=e445]:
+              - generic [ref=e446]: $29
+              - generic [ref=e447]: /mo
+            - paragraph [ref=e448]: 100 credits / month
+            - paragraph [ref=e449]: For builders shipping regularly.
+            - link "Choose Standard" [ref=e451] [cursor=pointer]:
+              - /url: /signup
+            - list [ref=e452]:
+              - listitem [ref=e453]:
+                - generic [ref=e456]: Unlimited projects
+              - listitem [ref=e457]:
+                - generic [ref=e460]: Private builds
+              - listitem [ref=e461]:
+                - generic [ref=e464]: GitHub sync
+          - generic [ref=e465]:
+            - heading "Pro" [level=3] [ref=e467]
+            - generic [ref=e468]:
+              - generic [ref=e469]: $99
+              - generic [ref=e470]: /mo
+            - paragraph [ref=e471]: 750 credits / month
+            - paragraph [ref=e472]: Bring your own key, unlock the full team, publish to the marketplace.
+            - link "Start building" [ref=e474] [cursor=pointer]:
+              - /url: /signup
+            - list [ref=e475]:
+              - listitem [ref=e476]:
+                - generic [ref=e479]: 1M context window
+              - listitem [ref=e480]:
+                - generic [ref=e483]: Bring your own key
+              - listitem [ref=e484]:
+                - generic [ref=e487]: GitHub sync
+              - listitem [ref=e488]:
+                - generic [ref=e491]: Marketplace publishing
+              - listitem [ref=e492]:
+                - generic [ref=e495]: Usage overages available
+      - generic [ref=e498]:
+        - generic [ref=e499]:
+          - generic [ref=e500]: FAQ
+          - heading "Questions, answered." [level=2] [ref=e502]
+        - generic [ref=e503]:
+          - generic [ref=e504]:
+            - term [ref=e505]: How is Forge different from a code-completion tool?
+            - definition [ref=e506]: Autocomplete finishes a line. Forge's agents plan, build, and validate a full application from a single prompt.
+          - generic [ref=e507]:
+            - term [ref=e508]: Is this just a chatbot with extra steps?
+            - definition [ref=e509]: No. Forge doesn't wait for you to prompt each step. Specialist agents plan, hand off, and validate the build on their own — you step in to review and ship.
+          - generic [ref=e510]:
+            - term [ref=e511]: Do I own the code Forge writes?
+            - definition [ref=e512]: Yes. Every build can sync to a GitHub repository you control — no lock-in.
+          - generic [ref=e513]:
+            - term [ref=e514]: What happens if a build fails validation?
+            - definition [ref=e515]: The debug loop automatically reruns the responsible agent, up to three times, before a build is marked failed.
+          - generic [ref=e516]:
+            - term [ref=e517]: Can I use my own model key?
+            - definition [ref=e518]: Yes — on the Pro plan you can bring your own Anthropic key for full control over usage and cost.
+          - generic [ref=e519]:
+            - term [ref=e520]: Can Forge work with an existing codebase?
+            - definition [ref=e521]: Today, Forge builds new projects from a prompt. Support for extending existing codebases is on the roadmap.
+      - generic [ref=e524]:
+        - heading "Your next app is one prompt away." [level=2] [ref=e525]: Your next app isone prompt away.
+        - paragraph [ref=e526]: Free to start. No card. No setup.
+        - link "Start building free" [ref=e529] [cursor=pointer]:
+          - /url: /signup
+    - contentinfo [ref=e532]:
+      - generic [ref=e533]:
+        - generic [ref=e534]:
+          - generic [ref=e538]: Forge
+          - generic [ref=e539]: The AI engineering organization.
+        - navigation "Footer" [ref=e540]:
+          - generic [ref=e541]: GitHub coming soon
+        - paragraph [ref=e545]: © 2026 Forge
