@@ -81,19 +81,14 @@ export default function BillingPage() {
 
   return (
     <motion.div
-      className="px-6 md:px-10 py-10 md:py-14 max-w-4xl mx-auto"
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      className="px-4 py-5 md:px-8 md:py-6 max-w-4xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Header */}
-      <header className="mb-12">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
-          <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-          Billing
-        </div>
-        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Billing</h1>
-        <p className="text-sm text-muted mt-2">
+      <header className="mb-8">
+        <p className="text-sm text-muted">
           {LIVE_MODE
             ? subscription?.current_period_end
               ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()} · ${activeTier} plan`

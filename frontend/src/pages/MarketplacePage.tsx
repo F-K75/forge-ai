@@ -94,20 +94,14 @@ export default function MarketplacePage() {
 
   return (
     <motion.div
-      className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto"
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      className="px-4 py-5 md:px-8 md:py-6 max-w-5xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
-        <div>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
-            <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-            Marketplace
-          </div>
-          <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Templates</h1>
-        </div>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <p className="text-sm text-muted">Install a starter and open it as a project.</p>
         <div className="relative">
           <Search
             size={13}
@@ -120,7 +114,7 @@ export default function MarketplacePage() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Search templates…"
             aria-label="Search templates"
-            className="bg-transparent border border-border rounded-md h-10 pl-8 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition w-full sm:w-60"
+            className="bg-white/[0.04] border border-transparent rounded-lg h-9 pl-8 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40 transition w-full sm:w-60"
           />
         </div>
       </header>

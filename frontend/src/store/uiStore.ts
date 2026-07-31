@@ -2,18 +2,22 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 interface UiState {
+  /** @deprecated Kept for persisted localStorage compat; OS shell no longer uses a sidebar. */
   sidebarCollapsed: boolean
   toggleSidebar: () => void
+  windowMaximized: boolean
+  toggleWindowMaximized: () => void
 }
 
-// First use of zustand's persist middleware in this codebase -- small,
-// device-local UI preferences like this don't need to round-trip through
-// the backend, so localStorage is enough.
+// Device-local UI preferences — no backend round-trip needed.
 export const useUiStore = create<UiState>()(
   persist(
     (set) => ({
       sidebarCollapsed: false,
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      windowMaximized: false,
+      toggleWindowMaximized: () =>
+        set((state) => ({ windowMaximized: !state.windowMaximized })),
     }),
     { name: 'forge-ui' }
   )

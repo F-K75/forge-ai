@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Rocket } from "lucide-react";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
 import { formatRelativeTime } from "../../lib/format";
@@ -71,142 +71,129 @@ export default function InitiativesListPage() {
   };
 
   return (
-    <div className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto">
-      <motion.header className="mb-14" variants={motionVariants.fadeUp} initial="hidden" animate="visible">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
-          <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-          Engineering OS
-        </div>
-        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Initiatives</h1>
-        <p className="text-sm text-muted mt-2">
-          Describe an idea. AI generates the vision, PRD, epics, stories, tasks, and sprint plan.
-        </p>
-      </motion.header>
-
-      <motion.section aria-label="Start a new initiative" className="mb-16 pb-16 border-b border-border" variants={motionVariants.fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
-        <h2 className="font-display text-xl font-medium text-ink mb-1.5">What are you building?</h2>
-        <p className="text-sm text-muted mb-6">Forge plans the whole engineering lifecycle end-to-end.</p>
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleCreate()}
-            placeholder="An AI CRM for startups…"
-            className="flex-1 h-11 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition min-w-0"
-            aria-label="Describe what you want to build"
-          />
-          <motion.button
-            onClick={handleCreate}
-            disabled={creating}
-            {...presets.button}
-            className="flex items-center gap-2 h-11 px-5 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none shrink-0 disabled:opacity-50"
-          >
-            {creating ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Send size={13} aria-hidden="true" />}
-            {creating ? "Planning…" : "Generate plan"}
-          </motion.button>
-        </div>
-      </motion.section>
-
-      <section aria-label="Existing initiatives">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted">
-            <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-            Your initiatives
+    <div className="flex h-full min-h-0 flex-col">
+      <section
+        aria-label="Start a new initiative"
+        className="shrink-0 border-b border-white/[0.06] px-4 py-5 md:px-8 md:py-6"
+      >
+        <div className="mx-auto max-w-3xl">
+          <label htmlFor="initiative-spotlight" className="sr-only">
+            Describe an initiative
+          </label>
+          <div className="os-spotlight flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 focus-within:border-ember/40 focus-within:shadow-[0_0_0_3px_rgba(232,130,60,0.12)] transition-[border-color,box-shadow] duration-200">
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ember/25 to-ember-glow/10 text-ember"
+              aria-hidden="true"
+            >
+              <Rocket size={14} />
+            </span>
+            <input
+              id="initiative-spotlight"
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              placeholder="Describe a product to plan end-to-end…"
+              className="min-w-0 flex-1 bg-transparent py-2.5 text-[15px] text-ink placeholder:text-faint focus:outline-none"
+              aria-label="Describe what you want to build"
+            />
+            <motion.button
+              onClick={handleCreate}
+              disabled={creating}
+              {...presets.button}
+              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-ember px-4 text-sm font-medium text-base shadow-[0_8px_24px_-12px_rgba(232,130,60,0.9)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
+            >
+              {creating ? (
+                <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Send size={14} aria-hidden="true" />
+              )}
+              {creating ? "Planning…" : "Generate"}
+            </motion.button>
           </div>
+          <p className="mt-3 text-xs text-muted">
+            Forge generates vision, PRD, epics, stories, tasks, and sprint plan.
+          </p>
         </div>
+      </section>
 
+      <section aria-label="Existing initiatives" className="min-h-0 flex-1 overflow-auto px-4 py-5 md:px-8 md:py-6">
         {!LIVE_MODE ? (
-          <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn} initial="hidden" animate="visible">Connect a backend (set VITE_WS_URL) to load and create initiatives.</motion.p>
+          <motion.p
+            className="text-sm text-faint"
+            variants={motionVariants.fadeIn}
+            initial="hidden"
+            animate="visible"
+          >
+            Connect a backend (set VITE_WS_URL) to load and create initiatives.
+          </motion.p>
         ) : initiatives === null ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="mx-auto grid max-w-3xl grid-cols-1 gap-2 md:grid-cols-2">
             <SkeletonCard count={4} />
           </div>
         ) : initiatives.length === 0 ? (
           <EmptyState
-            icon={Send}
+            icon={Rocket}
             title="No initiatives yet"
             description="Describe an idea above to generate your first plan."
           />
         ) : (
-          <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+          <motion.ul
+            className="mx-auto max-w-3xl divide-y divide-white/[0.05]"
+            variants={motionVariants.staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
             {initiatives.map((initiative, i) => {
               const techStack = initiative.tech_stack ?? [];
-              const visibleStack = techStack.slice(0, 4);
-              const extraStack = techStack.length - visibleStack.length;
               const projectCount = initiative.project_ids?.length ?? 0;
-
               const metaParts: string[] = [];
               if (initiative.estimated_timeline) metaParts.push(initiative.estimated_timeline);
-              if (projectCount > 0) metaParts.push(`${projectCount} app${projectCount === 1 ? "" : "s"}`);
-
-              const goalsCount = initiative.business_goals?.length ?? 0;
-              const reqsCount =
-                (initiative.functional_requirements?.length ?? 0) + (initiative.non_functional_requirements?.length ?? 0);
-              const risksCount = initiative.risks?.length ?? 0;
-              const progressParts: string[] = [];
-              if (goalsCount) progressParts.push(`${goalsCount} goal${goalsCount === 1 ? "" : "s"}`);
-              if (reqsCount) progressParts.push(`${reqsCount} requirement${reqsCount === 1 ? "" : "s"}`);
-              if (risksCount) progressParts.push(`${risksCount} risk${risksCount === 1 ? "" : "s"}`);
+              if (projectCount > 0) {
+                metaParts.push(`${projectCount} app${projectCount === 1 ? "" : "s"}`);
+              }
 
               return (
-                <motion.article
-                  key={initiative.id}
-                  className="bg-base"
-                  variants={motionVariants.staggerItem}
-                  custom={i}
-                  whileHover={{ scale: 1.01, transition: { type: "spring", stiffness: 400, damping: 25 } }}
-                >
-                  <motion.button
+                <motion.li key={initiative.id} variants={motionVariants.staggerItem} custom={i}>
+                  <button
+                    type="button"
                     onClick={() => navigate(`/initiatives/${initiative.id}`)}
-                    className="w-full h-full text-left p-6 hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
-                    whileTap={{ scale: 0.99 }}
+                    className="group flex w-full cursor-pointer items-start gap-3 rounded-xl px-2 py-3.5 text-left transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="font-mono text-sm text-ink truncate">{initiative.name}</span>
-                      <span className="text-[11px] text-faint shrink-0">
-                        {formatRelativeTime(initiative.updated_at ?? initiative.created_at)}
+                    <span
+                      className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-ember/20 to-transparent text-ember"
+                      aria-hidden="true"
+                    >
+                      <Rocket size={16} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="truncate font-display text-sm font-medium text-ink">
+                          {initiative.name}
+                        </span>
+                        <StatusPill status={STATUS_MAP[initiative.status] ?? "pending"} />
                       </span>
-                    </div>
-                    <p className="text-xs text-muted mb-4 leading-relaxed line-clamp-2">
-                      {initiative.vision || initiative.prompt}
-                    </p>
-
-                    {visibleStack.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {visibleStack.map(tech => (
+                      <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-muted">
+                        {initiative.vision || initiative.prompt}
+                      </span>
+                      <span className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-faint">
+                        <span>{formatRelativeTime(initiative.updated_at ?? initiative.created_at)}</span>
+                        {metaParts.length > 0 && <span>· {metaParts.join(" · ")}</span>}
+                        {techStack.slice(0, 3).map((tech) => (
                           <span
                             key={tech}
-                            className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-border-soft bg-panel-alt text-muted"
+                            className="rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-muted"
                           >
                             {tech}
                           </span>
                         ))}
-                        {extraStack > 0 && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-border-soft bg-panel-alt text-faint">
-                            +{extraStack}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex items-end justify-between gap-2">
-                      <div className="min-w-0 space-y-0.5">
-                        {metaParts.length > 0 && (
-                          <p className="text-[11px] text-muted truncate">{metaParts.join(" · ")}</p>
-                        )}
-                        {progressParts.length > 0 && (
-                          <p className="text-[11px] text-faint truncate">{progressParts.join(" · ")}</p>
-                        )}
-                      </div>
-                      <StatusPill status={STATUS_MAP[initiative.status] ?? "pending"} />
-                    </div>
-                  </motion.button>
-                </motion.article>
+                      </span>
+                    </span>
+                  </button>
+                </motion.li>
               );
             })}
-          </motion.div>
+          </motion.ul>
         )}
       </section>
     </div>

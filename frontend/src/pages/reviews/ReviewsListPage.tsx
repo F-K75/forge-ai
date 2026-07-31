@@ -68,26 +68,18 @@ export default function ReviewsListPage() {
 
   return (
     <motion.div
-      className="px-6 md:px-10 py-10 md:py-14 max-w-5xl mx-auto"
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      className="px-4 py-5 md:px-8 md:py-6 max-w-5xl mx-auto"
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-4">
-        <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-        Review board
-      </div>
-      <div className="flex items-center gap-2.5 mb-1.5">
-        <ShieldCheck size={20} className="text-ink" aria-hidden="true" />
-        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">Review board</h1>
-      </div>
-      <p className="text-sm text-muted mb-10 max-w-2xl leading-relaxed">
+      <p className="text-sm text-muted mb-6 max-w-2xl leading-relaxed">
         Multi-agent code review — audits a repo snapshot and produces a prioritized backlog. Read-only: it never
         edits, commits, or deploys.
       </p>
 
       {/* New review form */}
-      <section className="glass-strong rounded-lg p-6 mb-12">
+      <section className="rounded-2xl border border-white/10 bg-black/20 p-5 mb-8">
         <h2 className="font-display text-base font-medium text-ink mb-5">New review</h2>
         <div className="grid gap-4 md:grid-cols-[1fr_auto] items-end">
           <div>
