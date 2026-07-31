@@ -1,6 +1,5 @@
 """Tests for BE-001 residual: Celery dead-letter queue and admin retry endpoint."""
 
-import datetime
 import uuid
 from unittest.mock import patch
 

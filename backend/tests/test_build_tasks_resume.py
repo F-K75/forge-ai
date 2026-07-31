@@ -10,7 +10,6 @@ through `run_build.run(...)`, to prove:
     task-argument `existing_files` (the separate cross-build amend case).
 """
 
-import datetime
 import json
 
 import pytest

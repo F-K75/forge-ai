@@ -63,7 +63,7 @@ async def cost_breakdown(days: int = 30, admin: User = Depends(admin_required)) 
     trailing `days`, plus cache/optimization savings for the same window.
     Complements /cache-stats and /metrics (cumulative, in-process) with a
     persisted, time-boxed view sourced from `ai_usage`."""
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     from core.database import get_db
 

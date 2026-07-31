@@ -118,6 +118,7 @@ export default function WorkspacePage() {
           const message = err?.response?.data?.detail || "Failed to start build";
           handleEvent({
             type: "build_failed",
+            version: 1,
             build_id: buildId ?? "unknown",
             data: { error: message },
           });

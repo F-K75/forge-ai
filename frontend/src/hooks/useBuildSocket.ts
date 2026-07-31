@@ -53,6 +53,11 @@ export function useBuildSocket(buildId: string | null) {
           return
         }
 
+        if (!wsToken) {
+          setConnectionStatus('error')
+          return
+        }
+
         // Auth is sent as a query parameter at connection time so the server
         // can reject unauthenticated upgrades before accepting the socket.
         const ws = new WebSocket(`${WS_URL}/builds/ws/${id}?token=${encodeURIComponent(wsToken)}`)

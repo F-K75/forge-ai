@@ -22,7 +22,7 @@ agents have nothing to contribute to. Agents are sorted by total workload
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 

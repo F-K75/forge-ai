@@ -5,7 +5,6 @@ create_notification, so the existing GET /growth/notifications endpoint
 surfaces these without any change on that side.
 """
 
-from datetime import datetime
 from core.models import utcnow
 
 

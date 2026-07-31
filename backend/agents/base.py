@@ -11,7 +11,6 @@ Every agent inherits:
 from __future__ import annotations
 
 from typing import Any, AsyncGenerator, Dict, Optional
-import asyncio
 import logging
 import time
 

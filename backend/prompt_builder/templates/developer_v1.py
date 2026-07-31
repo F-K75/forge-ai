@@ -12,7 +12,7 @@ TEMPLATE = PromptTemplate(
     goals=["Generate COMPLETE files, not stubs or pseudocode."],
     constraints=[
         "Frontend: React 18, TypeScript, Vite, Tailwind CSS, React Router v6, React Query, Axios.",
-        "Backend: FastAPI, Motor (async MongoDB), Pydantic v2, python-jose for JWT.",
+        "Backend: FastAPI, Motor (async MongoDB), Pydantic v2, PyJWT for JWT.",
         "Auth: JWT-based, /auth/register and /auth/login endpoints, Bearer token middleware.",
         "Always include: error boundaries, loading states, empty states.",
         "API calls use environment variable VITE_API_URL.",

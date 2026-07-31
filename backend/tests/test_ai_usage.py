@@ -1,6 +1,6 @@
 """Tests for LLM usage tracking and budget enforcement (P0-002)."""
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from core.models import utcnow
 
 import pytest

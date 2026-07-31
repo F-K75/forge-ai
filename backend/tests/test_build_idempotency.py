@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 import api.auth as auth_module
 import api.builds as builds_module
-from core.models import User, utcnow, utcnow
+from core.models import User, utcnow
 
 
 # --------------------------------------------------------------------------- #
