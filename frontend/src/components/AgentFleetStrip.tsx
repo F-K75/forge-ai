@@ -16,10 +16,6 @@ const BUILD_SHORT: Record<(typeof AGENTS)[number]["id"], string> = {
   pm: "PM",
 };
 
-/**
- * Maximalist agent fleet strip — densifies the OS desktop with every
- * build + gateway skill tile and a coverage readout.
- */
 export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
@@ -29,9 +25,7 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
 
   useEffect(() => {
     if (reduceMotion) return;
-    const id = window.setInterval(() => {
-      setActive((i) => (i + 1) % build.length);
-    }, 2400);
+    const id = window.setInterval(() => setActive((i) => (i + 1) % build.length), 2600);
     return () => window.clearInterval(id);
   }, [reduceMotion, build.length]);
 
@@ -41,9 +35,9 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
     const ctx = gsap.context(() => {
       gsap.from(nodes, {
         opacity: 0,
-        y: 10,
-        stagger: 0.04,
-        duration: 0.4,
+        y: 8,
+        stagger: 0.03,
+        duration: 0.35,
         ease: "power2.out",
       });
     }, railRef);
@@ -54,40 +48,36 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
     <section
       aria-label="Agent fleet"
       className={[
-        "os-fleet border-y border-white/15 bg-gradient-to-r from-white/[0.06] via-black/40 to-white/[0.03]",
-        compact ? "px-3 py-2" : "px-4 py-3 md:px-6",
+        "rounded-apple-xl border border-outline bg-panel shadow-m3",
+        compact ? "px-3 py-3" : "px-4 py-4 md:px-5",
       ].join(" ")}
     >
-      <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink/80">
-            <span className="launch-fleet-live-icon relative flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true">
-              <span className="launch-fleet-live-ping" />
-            </span>
-            Agent fleet · {build[active].label} live
+          <p className="text-[12px] font-medium text-muted">
+            Agent fleet · <span className="text-ink">{build[active].label}</span> live
           </p>
           {!compact && (
-            <p className="mt-0.5 text-xs text-muted">
-              {stats.full} full · {stats.partial} partial · {stats.minimal} minimal · +{ORG_ROLE_COUNT} org roles · +
+            <p className="mt-0.5 text-[13px] text-faint">
+              {stats.full} full · {stats.partial} partial · {stats.minimal} minimal · +{ORG_ROLE_COUNT} roles · +
               {PLAYBOOK_COUNT} playbooks
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-faint">
-          <span className="border border-ok/40 bg-ok/10 px-1.5 py-0.5 text-ok">{stats.full} live</span>
-          <span className="border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-warn">{stats.partial} partial</span>
-          <span className="border border-white/15 bg-white/5 px-1.5 py-0.5">{stats.minimal} thin</span>
+        <div className="flex items-center gap-1.5 text-[11px] font-medium">
+          <span className="bb-chip !bg-[rgb(var(--success)/0.15)] !text-ok">{stats.full} live</span>
+          <span className="bb-chip !bg-[rgb(var(--warning)/0.15)] !text-warn">{stats.partial} partial</span>
+          <span className="bb-chip">{stats.minimal} thin</span>
         </div>
       </div>
 
       <div
         ref={railRef}
-        className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-1.5"
+        className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {build.map((agent, i) => {
           const Icon = agent.icon;
           const isActive = i === active;
-          const isDone = i < active;
           return (
             <button
               key={`build-${agent.id}`}
@@ -97,24 +87,21 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
               aria-current={isActive ? "true" : undefined}
               onClick={() => setActive(i)}
               className={[
-                "launch-fleet-pillar group relative flex min-w-[3.75rem] flex-col items-center gap-1.5 px-1.5 py-1.5 outline-none focus-visible:ring-1 focus-visible:ring-ink/50",
-                isActive ? "is-active" : "",
-                isDone ? "is-done" : "",
+                "group flex min-w-[4.5rem] flex-col items-center gap-1.5 rounded-2xl px-2 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/40",
+                isActive ? "bg-accent-soft" : "hover:bg-white/[0.05]",
               ].join(" ")}
             >
-              <Icon
-                size={14}
-                style={{ color: isActive ? "#F4F4F5" : isDone ? "#A1A1AA" : "#52525B" }}
-                aria-hidden="true"
-              />
-              <span className="launch-fleet-meter relative w-full max-w-[2.25rem]" style={{ height: compact ? "1.75rem" : "2.25rem" }} aria-hidden="true">
-                <span className="launch-fleet-meter-fill" />
+              <span
+                className="flex h-9 w-9 items-center justify-center rounded-2xl"
+                style={{ background: `${agent.hue}18`, color: agent.hue }}
+              >
+                <Icon size={15} aria-hidden="true" />
               </span>
-              <span className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-faint">
+              <span className="text-[10px] font-semibold tracking-wide text-faint">
                 {BUILD_SHORT[agent.id]}
               </span>
               {!compact && (
-                <span className="max-w-[4rem] truncate text-center text-[10px] font-medium text-ink/90">
+                <span className="max-w-[4.25rem] truncate text-center text-[12px] font-medium text-ink">
                   {agent.label}
                 </span>
               )}
@@ -122,7 +109,7 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
           );
         })}
 
-        <div className="mx-1 w-px shrink-0 self-stretch bg-white/10" aria-hidden="true" />
+        <div className="mx-1 w-px shrink-0 self-stretch bg-border" aria-hidden="true" />
 
         {gateway.map((agent) => {
           const Icon = agent.icon;
@@ -133,18 +120,18 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
               key={`gw-${agent.id}`}
               data-fleet-tile
               title={`${agent.label} · ${agent.stage}${thin ? ` · ${meta?.coverage}` : ""}`}
-              className={[
-                "group relative flex min-w-[3.5rem] flex-col items-center gap-1 px-1.5 py-1.5",
-                thin ? "opacity-70" : "",
-              ].join(" ")}
+              className={["flex min-w-[4rem] flex-col items-center gap-1 rounded-2xl px-2 py-2", thin ? "opacity-70" : ""].join(" ")}
             >
-              <Icon size={13} style={{ color: agent.hue }} aria-hidden="true" />
-              <span className="max-w-[3.75rem] truncate text-center text-[10px] font-medium text-ink/90">
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-xl"
+                style={{ background: `${agent.hue}14`, color: agent.hue }}
+              >
+                <Icon size={13} aria-hidden="true" />
+              </span>
+              <span className="max-w-[3.75rem] truncate text-center text-[11px] font-medium text-ink">
                 {agent.label}
               </span>
-              <span className="font-mono text-[8px] uppercase tracking-wider text-faint">
-                {agent.stage.slice(0, 4)}
-              </span>
+              <span className="text-[10px] text-faint">{agent.stage.slice(0, 4)}</span>
             </div>
           );
         })}

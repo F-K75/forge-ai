@@ -311,7 +311,7 @@ export default function AuthPage() {
                     autoFocus
                     whileFocus={{ scale: 1.01 }}
                     transition={{ duration: 0.15, ease: easeOut }}
-                    className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition tracking-widest"
+                    className="bb-input h-11"
                   />
                 </div>
                 <motion.button
@@ -319,7 +319,7 @@ export default function AuthPage() {
                   disabled={loading || !mfaCode.trim()}
                   whileHover={{ scale: loading ? 1 : 1.01 }}
                   whileTap={{ scale: loading ? 1 : 0.98 }}
-                  className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+                  className="bb-btn bb-btn-primary w-full group"
                 >
                   {loading ? (
                     <>
@@ -394,8 +394,8 @@ export default function AuthPage() {
                   aria-describedby={errors.email ? "email-error" : undefined}
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.15, ease: easeOut }}
-                  className={`w-full h-11 px-3 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
-                    errors.email ? "border-land-destructive/60" : "border-land-border"
+                  className={`bb-input h-11 ${
+                    errors.email ? "!border-[rgb(var(--error))]" : ""
                   }`}
                 />
                 <AnimatePresence>
@@ -442,8 +442,8 @@ export default function AuthPage() {
                     aria-describedby={errors.password ? "password-error" : undefined}
                     whileFocus={{ scale: 1.01 }}
                     transition={{ duration: 0.15, ease: easeOut }}
-                    className={`w-full h-11 pl-3 pr-10 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
-                      errors.password ? "border-land-destructive/60" : "border-land-border"
+                    className={`bb-input h-11 pr-10 ${
+                      errors.password ? "!border-[rgb(var(--error))]" : ""
                     }`}
                   />
                   <button
@@ -518,7 +518,7 @@ export default function AuthPage() {
                 disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.01 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+                className="bb-btn bb-btn-primary w-full group"
               >
                 {loading ? (
                   <>

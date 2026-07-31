@@ -136,40 +136,31 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* Maximal command deck */}
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      {/* Command deck */}
       <section
         aria-label="Launch a build"
-        className="relative shrink-0 overflow-hidden border-b-2 border-ember/25 px-4 py-5 md:px-8 md:py-7"
+        className="relative shrink-0 overflow-hidden rounded-apple-xl border border-outline bg-panel p-5 shadow-m3 md:p-7"
       >
-        <div
-          className="pointer-events-none absolute -right-8 -top-10 font-brand text-[7rem] font-extrabold uppercase leading-none tracking-tighter text-ember/[0.07] md:text-[9rem]"
-          aria-hidden="true"
-        >
-          BUILD
-        </div>
-        <div className="relative mx-auto max-w-4xl">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="relative mx-auto max-w-3xl">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-ember">
-                Command deck
+              <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-accent">
+                New build
               </p>
-              <h2 className="mt-1 font-display text-2xl font-bold uppercase tracking-tight text-ink md:text-3xl">
-                What do you want forged?
+              <h2 className="mt-1 font-display text-[28px] font-semibold tracking-tight text-ink md:text-[32px]">
+                What do you want to forge?
               </h2>
             </div>
-            <div className="flex flex-wrap gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wide">
-              <span className="border border-ember/40 bg-ember/15 px-2 py-1 text-ember">
-                {skillStats.full} full visuals
+            <div className="flex flex-wrap gap-2">
+              <span className="bb-chip bb-chip-selected">
+                {skillStats.full} visuals
               </span>
-              <span className="border border-white/15 bg-black/30 px-2 py-1 text-muted">
-                {ORG_ROLE_COUNT} org roles
+              <span className="bb-chip">
+                {ORG_ROLE_COUNT} roles
               </span>
-              <span className="border border-white/15 bg-black/30 px-2 py-1 text-muted">
+              <span className="bb-chip">
                 {PLAYBOOK_COUNT} playbooks
-              </span>
-              <span className="border border-white/15 bg-black/30 px-2 py-1 text-muted">
-                {PROMPT_TEMPLATE_COUNT} prompts
               </span>
             </div>
           </div>
@@ -177,7 +168,7 @@ export default function ProjectsPage() {
           <label htmlFor="forge-spotlight" className="sr-only">
             Describe what to build
           </label>
-          <div className="os-spotlight flex items-center gap-2 rounded-xl border-2 border-white/20 bg-black/40 px-3 py-2 shadow-[0_0_40px_-18px_rgba(244,244,245,0.35)] focus-within:border-ink focus-within:shadow-[0_0_0_3px_rgba(212,212,216,0.15)] transition-[border-color,box-shadow] duration-200">
+          <div className="flex items-center gap-2 rounded-full border border-outline bg-panel-alt px-3 py-2 shadow-m3 transition focus-within:border-accent/40 focus-within:shadow-[0_0_0_4px_var(--state-focus)]">
             <ZapMark />
             <input
               id="forge-spotlight"
@@ -186,7 +177,7 @@ export default function ProjectsPage() {
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleBuild()}
               placeholder="Tell Forge what to build…"
-              className="min-w-0 flex-1 bg-transparent py-2.5 text-base font-medium text-ink placeholder:text-faint focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent py-2.5 text-[17px] font-medium text-ink placeholder:text-faint focus:outline-none"
             />
             <motion.button
               type="button"
@@ -194,7 +185,7 @@ export default function ProjectsPage() {
               disabled={creating}
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-ink px-5 text-sm font-bold uppercase tracking-wide text-base shadow-[0_10px_28px_-10px_rgba(244,244,245,0.55)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
+              className="bb-btn bb-btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Send size={14} aria-hidden="true" />
               {creating ? "Opening…" : "Build"}
@@ -202,7 +193,7 @@ export default function ProjectsPage() {
           </div>
 
           <div
-            className="mt-3 flex flex-wrap items-center gap-1.5"
+            className="mt-4 flex flex-wrap items-center gap-2"
             role="list"
             aria-label="Starter templates"
           >
@@ -214,9 +205,9 @@ export default function ProjectsPage() {
                   type="button"
                   role="listitem"
                   onClick={() => handleBuild(starter.label, starter.label)}
-                  className="inline-flex cursor-pointer items-center gap-1.5 border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:border-ember/40 hover:bg-ember/10 hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+                  className="bb-chip cursor-pointer"
                 >
-                  <Icon size={12} aria-hidden="true" />
+                  <Icon size={13} aria-hidden="true" />
                   {starter.label}
                 </button>
               );
@@ -225,9 +216,9 @@ export default function ProjectsPage() {
               type="button"
               onClick={() => handleBuild("")}
               disabled={creating}
-              className="ml-auto inline-flex cursor-pointer items-center gap-1.5 border border-ember/40 bg-ember/10 px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide text-ember transition-colors hover:bg-ember/20 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40 disabled:opacity-50"
+              className="bb-chip bb-chip-selected ml-auto cursor-pointer disabled:opacity-50"
             >
-              <Plus size={12} aria-hidden="true" />
+              <Plus size={13} aria-hidden="true" />
               Blank project
             </button>
           </div>
@@ -236,10 +227,10 @@ export default function ProjectsPage() {
 
       <AgentFleetStrip />
 
-      {/* Finder-style project library */}
+      {/* Project library */}
       <section aria-label="Project library" className="flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b border-ember/15 px-4 py-3 md:px-8">
-          <p className="mr-2 hidden font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ember sm:block">
+        <div className="flex flex-wrap items-center gap-2 border-b border-outline px-4 py-3 md:px-8">
+          <p className="mr-2 hidden text-caption font-medium uppercase tracking-[0.12em] text-accent sm:block">
             Library
           </p>
           <div className="relative min-w-[160px] flex-1">
@@ -254,14 +245,14 @@ export default function ProjectsPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search library…"
               aria-label="Search projects"
-              className="h-9 w-full rounded-lg border border-transparent bg-white/[0.04] pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-white/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+              className="h-9 w-full rounded-full border border-transparent bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
             aria-label="Filter by status"
-            className="h-9 cursor-pointer rounded-lg border border-transparent bg-white/[0.04] px-2 text-xs text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+            className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <option value="all">All</option>
             <option value="live">Live</option>
@@ -271,13 +262,13 @@ export default function ProjectsPage() {
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             aria-label="Sort projects"
-            className="h-9 cursor-pointer rounded-lg border border-transparent bg-white/[0.04] px-2 text-xs text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+            className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <option value="recent">Recent</option>
             <option value="name">Name</option>
             <option value="status">Status</option>
           </select>
-          <div className="flex shrink-0 gap-0.5 rounded-lg bg-white/[0.04] p-0.5" role="group" aria-label="View mode">
+          <div className="flex shrink-0 gap-0.5 rounded-full bg-panel-alt p-0.5" role="group" aria-label="View mode">
             {(
               [
                 { key: "icons" as const, icon: LayoutGrid, label: "Icon view" },
@@ -291,8 +282,8 @@ export default function ProjectsPage() {
                 aria-label={label}
                 aria-pressed={viewMode === key}
                 className={[
-                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40",
-                  viewMode === key ? "bg-white/10 text-ink" : "text-muted hover:text-ink",
+                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+                  viewMode === key ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
                 ].join(" ")}
               >
                 <Icon size={14} aria-hidden="true" />
@@ -361,7 +352,7 @@ export default function ProjectsPage() {
 function ZapMark() {
   return (
     <span
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ink/25 to-muted/10 text-ink"
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white"
       aria-hidden="true"
     >
       <Play size={14} className="ml-0.5" />

@@ -1,26 +1,25 @@
-// Single source of truth for color values that need to be used as raw JS
-// strings (inline styles, non-Tailwind-class contexts) rather than Tailwind
-// utility classes. Values must stay in sync with tailwind.config.ts's
-// `theme.extend.colors` -- do not hand-retype these hex codes elsewhere.
+import { THEME_STORAGE_KEY, type ThemeMode } from './designTokens'
 
+export type { ThemeMode }
+
+// Single source of truth for color values used as raw JS strings.
+// Keep in sync with index.css dark-first tokens.
 export const COLORS = {
-  base: "#09090B",
-  ink: "#F4F4F5",
-  muted: "#A1A1AA",
-  accent: "#D4D4D8",
-  ok: "#A1A1AA",
-  warn: "#D4D4D8",
-  error: "#A1A1AA",
-  agentArchitect: "#F4F4F5",
-  agentBusinessImprover: "#E4E4E7",
-  agentDesigner: "#D4D4D8",
-  agentDeveloper: "#A1A1AA",
-  agentIntegration: "#71717A",
-  agentPm: "#52525B",
+  base: "#000000",
+  ink: "#F5F5F7",
+  muted: "#A1A1A6",
+  accent: "#0A84FF",
+  ok: "#30D158",
+  warn: "#FF9F0A",
+  error: "#FF453A",
+  agentArchitect: "#0A84FF",
+  agentBusinessImprover: "#5E5CE6",
+  agentDesigner: "#BF5AF2",
+  agentDeveloper: "#30D158",
+  agentIntegration: "#64D2FF",
+  agentPm: "#FF9F0A",
 } as const
 
-// Stable per-item accent for cards with no backend-provided color field
-// (e.g. marketplace listings) -- order matches the agent-* palette above.
 export const HUE_CYCLE = [
   COLORS.agentArchitect,
   COLORS.agentDesigner,
@@ -29,3 +28,48 @@ export const HUE_CYCLE = [
   COLORS.agentPm,
   COLORS.agentBusinessImprover,
 ] as const
+
+const ROOT_CLASSES = ['dark', 'light', 'hc', 'high-contrast'] as const
+
+function clearThemeClasses(root: HTMLElement) {
+  root.classList.remove(...ROOT_CLASSES)
+}
+
+/** Apply theme to <html>. Dark is the product default. */
+export function applyTheme(mode: ThemeMode) {
+  const root = document.documentElement
+  clearThemeClasses(root)
+  if (mode === 'light') {
+    root.classList.add('light')
+  } else if (mode === 'high-contrast') {
+    root.classList.add('dark', 'hc', 'high-contrast')
+  } else {
+    root.classList.add('dark')
+  }
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, mode)
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getStoredTheme(): ThemeMode {
+  try {
+    const v = localStorage.getItem(THEME_STORAGE_KEY)
+    if (v === 'light' || v === 'high-contrast' || v === 'dark') return v
+  } catch {
+    /* ignore */
+  }
+  return 'dark'
+}
+
+export function initTheme() {
+  applyTheme(getStoredTheme())
+}
+
+export function cycleTheme(current: ThemeMode): ThemeMode {
+  const order: ThemeMode[] = ['dark', 'light', 'high-contrast']
+  const next = order[(order.indexOf(current) + 1) % order.length]!
+  applyTheme(next)
+  return next
+}

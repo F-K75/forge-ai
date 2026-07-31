@@ -124,7 +124,7 @@ export default function MarketplacePage() {
         <div
           role="tablist"
           aria-label="Filter templates"
-          className="flex gap-6 mb-10 border-b border-border"
+          className="mb-10 flex flex-wrap gap-2"
         >
           {TABS.map(tab => (
             <button
@@ -133,11 +133,8 @@ export default function MarketplacePage() {
               aria-selected={filter === tab.value}
               onClick={() => setFilter(tab.value)}
               className={[
-                "pb-3 -mb-px text-sm font-medium border-b transition-colors motion-reduce:transition-none",
-                "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
-                filter === tab.value
-                  ? "border-ink text-ink"
-                  : "border-transparent text-muted hover:text-ink",
+                "bb-chip",
+                filter === tab.value ? "bb-chip-selected" : "",
               ].join(" ")}
             >
               {tab.label}
@@ -148,10 +145,10 @@ export default function MarketplacePage() {
 
       {/* Grid */}
       {LIVE_MODE && liveTemplates === null ? (
-        <p className="text-center text-muted text-sm py-20">Loading templates…</p>
+        <p className="py-20 text-center text-sm text-muted">Loading templates…</p>
       ) : visible.length > 0 ? (
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border"
+          className="grid grid-cols-1 gap-4 md:grid-cols-2"
           role="list"
           variants={reduceMotion ? undefined : motionVariants.staggerContainer}
           initial={reduceMotion ? false : "hidden"}
@@ -174,26 +171,26 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
   return (
     <motion.article
       role="listitem"
-      className="flex flex-col gap-4 p-6 glass-strong"
+      className="bb-card flex flex-col gap-4 p-6"
       {...presets.card}
       variants={motionVariants.staggerItem}
     >
       {/* Header */}
       <div className="flex items-start gap-3">
         <div
-          className="w-9 h-9 border border-border shrink-0 flex items-center justify-center text-sm font-medium text-ink select-none"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-sm font-semibold text-accent select-none"
           aria-hidden="true"
         >
           {template.name[0]}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="font-display text-sm font-medium text-ink truncate">{template.name}</h2>
-            <span className="text-[10px] text-faint shrink-0">
+            <h2 className="truncate font-display text-sm font-medium text-ink">{template.name}</h2>
+            <span className="bb-chip shrink-0 !px-2 !py-0.5 text-[10px]">
               {template.source === "official" ? "Official" : `by ${template.author}`}
             </span>
           </div>
-          <p className="text-xs text-muted mt-1 leading-relaxed line-clamp-2">{template.description}</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{template.description}</p>
         </div>
       </div>
 
@@ -202,7 +199,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
         {template.tags.map(tag => (
           <span
             key={tag}
-            className="text-[10px] px-2 py-0.5 rounded-full text-faint border border-border-soft"
+            className="bb-chip !px-2 !py-0.5 text-[10px]"
           >
             {tag}
           </span>
@@ -218,7 +215,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
         <motion.button
           onClick={onInstall}
           {...presets.button}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink font-medium hover:bg-panel-alt focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none"
+          className="bb-btn bb-btn-tonal h-8 !px-3 text-xs"
           aria-label={`Install ${template.name} — ${template.installs} installs`}
         >
           <Download size={11} aria-hidden="true" />
