@@ -188,7 +188,7 @@ class Settings(BaseSettings):
     ]
     
 
-    allowed_hosts: str = "localhost,127.0.0.1,testserver"
+    allowed_hosts: str = "localhost,127.0.0.1,testserver,*.trycloudflare.com"
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
