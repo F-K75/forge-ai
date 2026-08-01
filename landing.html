@@ -30,8 +30,8 @@
             display: flex; justify-content: space-between; align-items: center;
             padding: 24px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .logo { font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
-        .logo span { color: #f59e0b; }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+        .logo img { height: 32px; width: 32px; }
         .nav-links { display: flex; gap: 24px; align-items: center; }
         .nav-links a { color: #a1a1aa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
         .nav-links a:hover { color: #fff; }
@@ -42,8 +42,8 @@
         }
         .hero-badge {
             display: inline-block; padding: 6px 16px; border-radius: 100px;
-            background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);
-            color: #f59e0b; font-size: 13px; font-weight: 500; margin-bottom: 24px;
+            background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.2);
+            color: #14B8A6; font-size: 13px; font-weight: 500; margin-bottom: 24px;
         }
         .hero h1 {
             font-size: clamp(40px, 8vw, 72px); font-weight: 800;
@@ -51,7 +51,7 @@
             background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .hero h1 em { font-style: normal; background: linear-gradient(135deg, #f59e0b, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero h1 em { font-style: normal; background: linear-gradient(135deg, #14B8A6, #84CC16); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .hero p {
             font-size: 18px; color: #a1a1aa; max-width: 640px; margin: 0 auto 40px;
         }
@@ -66,10 +66,10 @@
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
             color: #fff; font-size: 16px; outline: none; transition: border 0.2s;
         }
-        .waitlist-form input:focus { border-color: #f59e0b; }
+        .waitlist-form input:focus { border-color: #14B8A6; }
         .waitlist-form input::placeholder { color: #52525b; }
         .waitlist-form button {
-            padding: 14px 32px; border-radius: 8px; background: #f59e0b;
+            padding: 14px 32px; border-radius: 8px; background: #14B8A6;
             color: #0a0a0f; font-size: 16px; font-weight: 600; border: none;
             cursor: pointer; transition: all 0.2s;
         }
@@ -118,8 +118,8 @@
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
             font-size: 14px; font-weight: 500;
         }
-        .pipeline-step .arrow { color: #f59e0b; margin-left: 8px; }
-        .pipeline-step.active { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+        .pipeline-step .arrow { color: #14B8A6; margin-left: 8px; }
+        .pipeline-step.active { border-color: #14B8A6; background: rgba(20,184,166,0.08); }
 
         /* Pricing */
         .pricing { padding: 80px 0; }
@@ -134,10 +134,10 @@
             text-align: center; transition: all 0.2s;
         }
         .pricing-card.featured {
-            border-color: #f59e0b; background: rgba(245,158,11,0.04);
+            border-color: #14B8A6; background: rgba(20,184,166,0.04);
             transform: scale(1.03);
         }
-        .pricing-card .tier { font-size: 14px; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px; }
+        .pricing-card .tier { font-size: 14px; font-weight: 600;             color: #14B8A6; text-transform: uppercase; letter-spacing: 1px; }
         .pricing-card .price { font-size: 42px; font-weight: 800; color: #fff; margin: 16px 0; }
         .pricing-card .price span { font-size: 16px; color: #71717a; font-weight: 400; }
         .pricing-card .perks { list-style: none; margin: 24px 0; }
@@ -168,7 +168,7 @@
 <div class="bg-grid"></div>
 
 <nav class="container">
-    <div class="logo">FORGE<span>.</span></div>
+    <div class="logo"><img src="/forge.svg" alt="Forge" /></div>
     <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
@@ -314,7 +314,7 @@
     <p>Join the waitlist. Be among the first to experience the future of AI software engineering.</p>
     <div class="waitlist-form" style="max-width: 480px; margin: 0 auto;">
         <input type="email" id="email2" placeholder="Enter your email" style="flex:1;min-width:240px;padding:14px 20px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;font-size:16px;outline:none;" />
-        <button onclick="document.getElementById('email').value = document.getElementById('email2').value; document.getElementById('waitlistForm').dispatchEvent(new Event('submit'));" style="padding:14px 32px;border-radius:8px;background:#f59e0b;color:#0a0a0f;font-size:16px;font-weight:600;border:none;cursor:pointer;">Join the Waitlist</button>
+        <button onclick="document.getElementById('email').value = document.getElementById('email2').value; document.getElementById('waitlistForm').dispatchEvent(new Event('submit'));" style="padding:14px 32px;border-radius:8px;background:#14B8A6;color:#0a0a0f;font-size:16px;font-weight:600;border:none;cursor:pointer;">Join the Waitlist</button>
     </div>
 </section>
 

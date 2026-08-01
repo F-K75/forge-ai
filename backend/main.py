@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI, Request
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -184,7 +185,12 @@ async def global_exception_handler(request: Request, exc: Exception):
     if settings.sentry_dsn:
         import sentry_sdk
         sentry_sdk.capture_exception(exc)
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    resp = JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    origin = request.headers.get("origin")
+    if origin:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
 
 
 # Add trusted host middleware to prevent host header attacks
@@ -195,7 +201,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
+    allow_origins=settings.allowed_origins + [o.strip() for o in os.environ.get("FRONTEND_TUNNEL_URL", "").split(",") if o.strip()],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],

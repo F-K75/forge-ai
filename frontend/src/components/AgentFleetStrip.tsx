@@ -16,7 +16,7 @@ const BUILD_SHORT: Record<(typeof AGENTS)[number]["id"], string> = {
   pm: "PM",
 };
 
-export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
+export function AgentFleetStrip({ compact = false, onOpenGraph }: { compact?: boolean; onOpenGraph?: () => void }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
   const railRef = useRef<HTMLDivElement>(null);
@@ -85,7 +85,10 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
               data-fleet-tile
               title={`${agent.label} · build pipeline`}
               aria-current={isActive ? "true" : undefined}
-              onClick={() => setActive(i)}
+              onClick={() => {
+                setActive(i);
+                onOpenGraph?.();
+              }}
               className={[
                 "group flex min-w-[4.5rem] flex-col items-center gap-1.5 rounded-2xl px-2 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/40",
                 isActive ? "bg-accent-soft" : "hover:bg-white/[0.05]",
@@ -120,7 +123,8 @@ export function AgentFleetStrip({ compact = false }: { compact?: boolean }) {
               key={`gw-${agent.id}`}
               data-fleet-tile
               title={`${agent.label} · ${agent.stage}${thin ? ` · ${meta?.coverage}` : ""}`}
-              className={["flex min-w-[4rem] flex-col items-center gap-1 rounded-2xl px-2 py-2", thin ? "opacity-70" : ""].join(" ")}
+              onClick={onOpenGraph}
+              className={["flex min-w-[4rem] cursor-pointer flex-col items-center gap-1 rounded-2xl px-2 py-2", thin ? "opacity-70" : ""].join(" ")}
             >
               <span
                 className="flex h-8 w-8 items-center justify-center rounded-xl"
