@@ -39,12 +39,28 @@ export default function Launch() {
   const reduceMotion = useReducedMotion();
   const stats = coverageStats();
   const [activeAgentId, setActiveAgentId] = useState<(typeof AGENTS)[number]["id"]>(AGENTS[0].id);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      const height = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = height > 0 ? Math.max(0, Math.min(1, scrollY / height)) : 0;
+      setScrollProgress(progress);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const globeScale = reduceMotion ? 1 : 1 + scrollProgress * 0.6;
+  const globeOpacity = 1 - scrollProgress * 0.4;
 
   return (
     <div className="launch-os w-full scroll-smooth bg-base text-ink">
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="launch-atmosphere absolute inset-0" />
-        <div className="launch-globe-stage absolute inset-0 opacity-80">
+        <div className="launch-globe-stage absolute inset-0 opacity-80" style={{ transform: `scale(${globeScale})`, opacity: globeOpacity }}>
           <LaunchGlobe activeAgentId={activeAgentId} />
         </div>
         <div className="launch-name-veil absolute inset-0" />

@@ -25,7 +25,6 @@ import { AGENTS, type Agent } from "../lib/agents";
 import gsap from "gsap";
 import { useStaggerIn, useSplitTextReveal } from "../lib/animations";
 import { presets } from "../lib/animationPresets";
-import LaunchGlobe from "../components/LaunchGlobe";
 
 // ─── Primitives (ported from the Lovable design) ───────────────────────────
 
@@ -265,9 +264,6 @@ export default function LandingPage() {
     <div className="launch-os w-full scroll-smooth bg-base text-ink">
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="launch-atmosphere absolute inset-0" />
-        <div className="launch-globe-stage absolute inset-0 opacity-80">
-          <LaunchGlobe />
-        </div>
         <div className="launch-name-veil absolute inset-0" />
       </div>
 
