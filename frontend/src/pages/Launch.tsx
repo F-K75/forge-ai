@@ -76,16 +76,7 @@ export default function Launch() {
         id="top"
         className="relative z-10 flex min-h-[100dvh] w-screen flex-col overflow-hidden"
       >
-        <div className="flex h-16 shrink-0 items-center justify-between md:h-[4.25rem] px-5 sm:px-8">
-          <div aria-hidden="true" />
-          <button
-            type="button"
-            onClick={() => setGlobeMode((mode) => (mode === "cobe" ? "three" : "cobe"))}
-            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/20"
-          >
-            Globe: {globeMode === "cobe" ? "Cobe" : "Three"}
-          </button>
-        </div>
+        <div className="h-16 shrink-0 md:h-[4.25rem]" aria-hidden="true" />
 
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pointer-events-none sm:px-8">
           <motion.div
@@ -144,7 +135,7 @@ export default function Launch() {
           </motion.div>
         </div>
 
-        <AgentPipelineDock fullVisuals={stats.full} activeAgentId={activeAgentId} onActiveAgentChange={setActiveAgentId} />
+        <AgentPipelineDock fullVisuals={stats.full} activeAgentId={activeAgentId} onActiveAgentChange={setActiveAgentId} globeMode={globeMode} onGlobeModeChange={setGlobeMode} />
       </section>
 
       <SiteNav />
@@ -158,7 +149,7 @@ export default function Launch() {
   );
 }
 
-function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange }: { fullVisuals: number; activeAgentId: (typeof AGENTS)[number]["id"]; onActiveAgentChange: (id: (typeof AGENTS)[number]["id"]) => void }) {
+function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, globeMode, onGlobeModeChange }: { fullVisuals: number; activeAgentId: (typeof AGENTS)[number]["id"]; onActiveAgentChange: (id: (typeof AGENTS)[number]["id"]) => void; globeMode: "cobe" | "three"; onGlobeModeChange: (mode: "cobe" | "three") => void }) {
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -296,6 +287,16 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange }: 
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       >
         <LiveIcon size={20} aria-hidden="true" />
+      </motion.button>
+      <motion.button
+        type="button"
+        aria-label={globeMode === "cobe" ? "Switch to Three globe" : "Switch to Cobe globe"}
+        onClick={() => onGlobeModeChange(globeMode === "cobe" ? "three" : "cobe")}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20"
+        animate={{ scale: scrolled ? 0.95 : 1 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <span className="text-[11px] font-semibold">{globeMode === "cobe" ? "C" : "3"}</span>
       </motion.button>
     </div>
   );
