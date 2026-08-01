@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router-dom";
 import {
-  Sparkles,
   ArrowRight,
   Play,
   Check,
@@ -21,6 +20,7 @@ import {
   Users,
   Building2,
 } from "lucide-react";
+import forgeLogo from "/forge.svg";
 import { AGENTS, type Agent } from "../lib/agents";
 import gsap from "gsap";
 import { useStaggerIn, useSplitTextReveal } from "../lib/animations";
@@ -352,9 +352,9 @@ export function Nav() {
             href="#top"
             className="flex items-center gap-2.5 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-accent text-white shadow-apple">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            </div>
+            <span className="flex h-8 w-8 items-center justify-center">
+              <img src={forgeLogo} alt="Forge" className="h-8 w-8" />
+            </span>
             <span className="font-brand text-[17px] font-semibold tracking-tight text-ink">
               Forge
             </span>
@@ -841,9 +841,9 @@ export function Footer() {
     <footer className="border-t border-land-border py-16">
       <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border border-land-ink flex items-center justify-center">
-            <Sparkles className="w-3 h-3" aria-hidden="true" />
-          </div>
+          <span className="flex h-6 w-6 items-center justify-center">
+            <img src={forgeLogo} alt="Forge" className="h-6 w-6" />
+          </span>
           <span className="font-display font-medium text-land-ink">Forge</span>
           <span className="hidden sm:inline text-xs text-land-muted">The AI engineering organization.</span>
         </div>
