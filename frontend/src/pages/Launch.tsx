@@ -168,12 +168,12 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
   return (
     <div
       className={[
-        "launch-chat fixed right-3 z-40 flex items-end gap-2 transition-all duration-300 sm:right-5",
-        scrolled ? "bottom-4" : "bottom-5",
+        "launch-chat fixed right-4 z-40 flex items-end gap-3 transition-all duration-300 sm:right-6",
+        scrolled ? "bottom-5" : "bottom-6",
       ].join(" ")}
     >
       <motion.div
-        className="flex max-w-xs flex-col items-end gap-2 overflow-hidden sm:max-w-sm"
+        className="flex max-w-sm flex-col items-end gap-2 overflow-hidden sm:max-w-md"
         initial={false}
         animate={
           reduceMotion
@@ -185,31 +185,31 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
               }
         }
       >
-        <div className="rounded-2xl apple-glass-strong p-2 shadow-apple">
-          <div className="flex items-center gap-2">
+        <div className="rounded-3xl apple-glass-strong p-3 shadow-apple">
+          <div className="flex items-center gap-3">
             <span
-              className="launch-fleet-live-icon relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              className="launch-fleet-live-icon relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
               style={{ background: `${live.hue}22`, color: live.hue }}
             >
-              <LiveIcon size={13} aria-hidden="true" />
+              <LiveIcon size={16} aria-hidden="true" />
               {!reduceMotion && <span className="launch-fleet-live-ping rounded-full" aria-hidden="true" />}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-semibold tracking-tight text-ink">{live.label}</p>
-              <p className="truncate text-[11px] text-muted">{AGENT_TASK[live.id]}</p>
+              <p className="truncate text-[15px] font-semibold tracking-tight text-ink">{live.label}</p>
+              <p className="truncate text-[12px] text-muted">{AGENT_TASK[live.id]}</p>
             </div>
           </div>
-          <div className="launch-fleet-track relative mt-2 h-[2px] rounded-full bg-white/[0.08]">
+          <div className="launch-fleet-track relative mt-3 h-[3px] rounded-full bg-white/[0.08]">
             <span
               className="launch-fleet-track-fill absolute inset-y-0 left-0 rounded-full bg-accent"
               style={{ width: `${progress}%` }}
             />
             <span
-              className="launch-fleet-track-head absolute top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
+              className="launch-fleet-track-head absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
               style={{ left: `${progress}%` }}
             />
           </div>
-          <ul ref={railRef} aria-label="Forge build agents" className="mt-2 flex shrink-0 items-center gap-1 overflow-x-auto">
+          <ul ref={railRef} aria-label="Forge build agents" className="mt-3 flex shrink-0 items-center gap-1.5 overflow-x-auto">
             {AGENTS.map((agent, i) => {
               const Icon = agent.icon;
               const isActive = i === active;
@@ -223,7 +223,7 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
                     aria-label={`${agent.label}`}
                     onClick={() => setActive(i)}
                     className={[
-                      "launch-fleet-pill flex h-8 w-8 items-center justify-center rounded-full outline-none transition-all",
+                      "launch-fleet-pill flex h-9 w-9 items-center justify-center rounded-full outline-none transition-all sm:h-10 sm:w-10",
                       "focus-visible:ring-2 focus-visible:ring-accent/40",
                       isActive ? "is-active scale-105" : "opacity-55 hover:opacity-90",
                       isDone ? "is-done" : "",
@@ -234,14 +234,14 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
                         : { color: isDone ? "#A1A1A6" : "#636366" }
                     }
                   >
-                    <Icon size={14} aria-hidden="true" />
+                    <Icon size={16} aria-hidden="true" />
                     <span className="sr-only">{AGENT_SHORT[agent.id]}</span>
                   </button>
                 </li>
               );
             })}
           </ul>
-          <p className="mt-1 text-right font-mono text-[11px] tabular-nums text-faint">
+          <p className="mt-1.5 text-right font-mono text-[12px] tabular-nums text-faint">
             {String(active + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")}
             <span className="mx-1.5 text-white/15">·</span>
             {fullVisuals}
@@ -253,11 +253,11 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
         type="button"
         aria-label={open ? "Hide agent pipeline" : "Open agent pipeline"}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full apple-glass-strong shadow-apple"
-        animate={{ scale: scrolled ? 0.9 : 1 }}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full apple-glass-strong shadow-apple"
+        animate={{ scale: scrolled ? 0.95 : 1 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       >
-        <LiveIcon size={18} aria-hidden="true" />
+        <LiveIcon size={20} aria-hidden="true" />
       </motion.button>
     </div>
   );
