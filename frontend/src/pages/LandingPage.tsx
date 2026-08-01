@@ -25,6 +25,7 @@ import { AGENTS, type Agent } from "../lib/agents";
 import gsap from "gsap";
 import { useStaggerIn, useSplitTextReveal } from "../lib/animations";
 import { presets } from "../lib/animationPresets";
+import LaunchGlobe from "../components/LaunchGlobe";
 
 // ─── Primitives (ported from the Lovable design) ───────────────────────────
 
@@ -261,19 +262,28 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-land-paper text-land-ink antialiased font-sans">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-land-ink focus:text-land-paper focus:text-sm focus:font-medium"
-      >
-        Skip to content
-      </a>
-      <Nav />
-      <main id="main-content">
-        <Hero activeIndex={activeIndex} />
-        <LandingPageBody />
-      </main>
-      <Footer />
+    <div className="launch-os w-full scroll-smooth bg-base text-ink">
+      <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="launch-atmosphere absolute inset-0" />
+        <div className="launch-globe-stage absolute inset-0 opacity-80">
+          <LaunchGlobe />
+        </div>
+        <div className="launch-name-veil absolute inset-0" />
+      </div>
+
+      <div className="relative z-10 bg-base">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-land-ink focus:text-land-paper focus:text-sm focus:font-medium"
+        >
+          Skip to content
+        </a>
+        <Nav />
+        <main id="main-content">
+          <LandingPageBody />
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }
