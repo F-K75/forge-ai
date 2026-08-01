@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion, AnimatePresence } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import gsap from "gsap";
 import { AGENTS } from "../lib/agents";
 import { coverageStats } from "../lib/skillVisuals";
@@ -38,13 +38,14 @@ const AGENT_TASK: Record<(typeof AGENTS)[number]["id"], string> = {
 export default function Launch() {
   const reduceMotion = useReducedMotion();
   const stats = coverageStats();
+  const [activeAgentId, setActiveAgentId] = useState<(typeof AGENTS)[number]["id"]>(AGENTS[0].id);
 
   return (
     <div className="launch-os w-full scroll-smooth bg-base text-ink">
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="launch-atmosphere absolute inset-0" />
         <div className="launch-globe-stage absolute inset-0 opacity-80">
-          <LaunchGlobe />
+          <LaunchGlobe activeAgentId={activeAgentId} />
         </div>
         <div className="launch-name-veil absolute inset-0" />
       </div>
@@ -112,7 +113,7 @@ export default function Launch() {
           </motion.div>
         </div>
 
-        <AgentPipelineDock fullVisuals={stats.full} />
+        <AgentPipelineDock fullVisuals={stats.full} activeAgentId={activeAgentId} onActiveAgentChange={setActiveAgentId} />
       </section>
 
       <SiteNav />
@@ -126,20 +127,26 @@ export default function Launch() {
   );
 }
 
-function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
+function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange }: { fullVisuals: number; activeAgentId: (typeof AGENTS)[number]["id"]; onActiveAgentChange: (id: (typeof AGENTS)[number]["id"]) => void }) {
   const reduceMotion = useReducedMotion();
-  const [active, setActive] = useState(0);
-  const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const railRef = useRef<HTMLUListElement>(null);
-  const LiveIcon = AGENTS[active].icon;
-  const live = AGENTS[active];
+  const activeIndex = AGENTS.findIndex((a) => a.id === activeAgentId);
+  const LiveIcon = AGENTS[activeIndex >= 0 ? activeIndex : 0].icon;
+  const live = AGENTS[activeIndex >= 0 ? activeIndex : 0];
+
+  const activeIndexRef = useRef(activeIndex)
+  activeIndexRef.current = activeIndex
 
   useEffect(() => {
     if (reduceMotion) return;
-    const id = window.setInterval(() => setActive((i) => (i + 1) % AGENTS.length), 2800);
+    const id = window.setInterval(() => {
+      const next = (activeIndexRef.current + 1) % AGENTS.length
+      onActiveAgentChange(AGENTS[next].id)
+    }, 2800);
     return () => window.clearInterval(id);
-  }, [reduceMotion]);
+  }, [reduceMotion, onActiveAgentChange]);
 
   useEffect(() => {
     if (reduceMotion || !railRef.current) return;
@@ -163,7 +170,7 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const progress = (active / Math.max(AGENTS.length - 1, 1)) * 100;
+  const progress = (activeIndex / Math.max(AGENTS.length - 1, 1)) * 100;
 
   return (
     <div
@@ -212,8 +219,8 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
           <ul ref={railRef} aria-label="Forge build agents" className="mt-3 flex shrink-0 items-center gap-1.5 overflow-x-auto">
             {AGENTS.map((agent, i) => {
               const Icon = agent.icon;
-              const isActive = i === active;
-              const isDone = i < active;
+              const isActive = i === activeIndex;
+              const isDone = i < activeIndex;
               return (
                 <li key={agent.id} data-fleet-node>
                   <button
@@ -221,7 +228,7 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
                     title={`${agent.label}`}
                     aria-current={isActive ? "true" : undefined}
                     aria-label={`${agent.label}`}
-                    onClick={() => setActive(i)}
+                    onClick={() => onActiveAgentChange(agent.id)}
                     className={[
                       "launch-fleet-pill flex h-9 w-9 items-center justify-center rounded-full outline-none transition-all sm:h-10 sm:w-10",
                       "focus-visible:ring-2 focus-visible:ring-accent/40",
@@ -242,7 +249,7 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
             })}
           </ul>
           <p className="mt-1.5 text-right font-mono text-[12px] tabular-nums text-faint">
-            {String(active + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")}
+            {String(activeIndex + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")}
             <span className="mx-1.5 text-white/15">·</span>
             {fullVisuals}
           </p>
