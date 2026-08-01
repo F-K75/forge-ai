@@ -7,6 +7,7 @@ import { AGENTS } from "../lib/agents";
 import { coverageStats } from "../lib/skillVisuals";
 import { presets } from "../lib/animationPresets";
 import LaunchGlobe from "../components/LaunchGlobe";
+import Globe3D from "../components/Globe3D";
 import { LandingPageBody, Nav as SiteNav, Footer as SiteFooter } from "./LandingPage";
 
 const EXAMPLE_PROMPTS = [
@@ -40,6 +41,7 @@ export default function Launch() {
   const stats = coverageStats();
   const [activeAgentId, setActiveAgentId] = useState<(typeof AGENTS)[number]["id"]>(AGENTS[0].id);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [globeMode, setGlobeMode] = useState<"cobe" | "three">("cobe");
 
   useEffect(() => {
     const onScroll = () => {
@@ -61,9 +63,23 @@ export default function Launch() {
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="launch-atmosphere absolute inset-0" />
         <div className="launch-globe-stage absolute inset-0 opacity-80" style={{ transform: `scale(${globeScale})`, opacity: globeOpacity }}>
-          <LaunchGlobe activeAgentId={activeAgentId} />
+          {globeMode === "cobe" ? (
+            <LaunchGlobe activeAgentId={activeAgentId} />
+          ) : (
+            <Globe3D activeAgentId={activeAgentId} />
+          )}
         </div>
         <div className="launch-name-veil absolute inset-0" />
+      </div>
+
+      <div className="fixed top-3 right-3 z-50">
+        <button
+          type="button"
+          onClick={() => setGlobeMode((mode) => (mode === "cobe" ? "three" : "cobe"))}
+          className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/20"
+        >
+          Globe: {globeMode === "cobe" ? "Cobe" : "Three"}
+        </button>
       </div>
 
       <section
