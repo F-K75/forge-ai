@@ -60,7 +60,7 @@ export default function Launch() {
 
   return (
     <div className="launch-os w-full scroll-smooth bg-base text-ink">
-      <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="launch-atmosphere absolute inset-0" />
         <div className="launch-globe-stage absolute inset-0 opacity-80" style={{ transform: `scale(${globeScale})`, opacity: globeOpacity }}>
           {globeMode === "cobe" ? (
@@ -72,7 +72,7 @@ export default function Launch() {
         <div className="launch-name-veil absolute inset-0" />
       </div>
 
-      <div className="fixed top-3 right-3 z-50">
+      <div className="fixed top-3 right-3 z-[60]">
         <button
           type="button"
           onClick={() => setGlobeMode((mode) => (mode === "cobe" ? "three" : "cobe"))}
