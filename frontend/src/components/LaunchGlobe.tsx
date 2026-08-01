@@ -95,13 +95,13 @@ export default function LaunchGlobe({ activeAgentId = "architect" }: LaunchGlobe
       mapBrightness: 4.8,
       mapBaseBrightness: 0.06,
       baseColor: [0.28, 0.3, 0.34],
-      markerColor: colors,
+      markerColor: [colors[0] * 0.35, colors[1] * 0.35, colors[2] * 0.35],
       glowColor: [0.05, 0.05, 0.06],
-      arcColor: colors,
-      arcWidth: 0.5,
-      arcHeight: 0.22,
+      arcColor: [colors[0] * 0.9, colors[1] * 0.9, colors[2] * 0.9],
+      arcWidth: 0.2,
+      arcHeight: 0.12,
       opacity: 0.92,
-      markers: MARKERS,
+      markers: MARKERS.map((m, i) => ({ ...m, size: i % 3 === 0 ? 0.025 : 0.015 })),
       arcs: ARCS,
     })
 
