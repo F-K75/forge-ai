@@ -1,0 +1,46 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - navigation [ref=e6]:
+      - link "Forge" [ref=e7] [cursor=pointer]:
+        - /url: /home
+      - generic [ref=e12]:
+        - text: New here?
+        - link "Create an account" [ref=e13] [cursor=pointer]:
+          - /url: /signup
+  - main [ref=e14]:
+    - complementary [ref=e15]:
+      - generic [ref=e16]: Forge · Console
+      - generic [ref=e18]:
+        - heading "An engineering team, one sign-in away." [level=1] [ref=e19]
+        - paragraph [ref=e20]: Sign in to pick up where your specialist agents left off — planning, building, and validating your applications end-to-end.
+        - list [ref=e21]:
+          - listitem [ref=e22]: Six specialized agents, one workspace
+          - listitem [ref=e26]: Self-correcting debug loop on every build
+          - listitem [ref=e30]: Ship in minutes, not sprints
+      - generic [ref=e34]: // forge.ai — build pipeline
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]: Sign in
+        - heading "Welcome back" [level=2] [ref=e40]
+        - paragraph [ref=e41]: Sign in to pick up where your team left off.
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: Email
+          - textbox "Email" [ref=e46]:
+            - /placeholder: you@company.com
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]: Password
+            - link "Forgot?" [ref=e50] [cursor=pointer]:
+              - /url: /forgot-password
+          - generic [ref=e51]:
+            - textbox "Password" [ref=e52]:
+              - /placeholder: ••••••••
+            - button "Show password" [ref=e53] [cursor=pointer]
+        - generic [ref=e62] [cursor=pointer]:
+          - checkbox "Keep me signed in for 30 days" [checked] [ref=e63]
+          - text: Keep me signed in for 30 days
+        - button "Sign in" [ref=e64] [cursor=pointer]
+        - generic [ref=e67]: Or continue with
+        - button "Google" [ref=e72] [cursor=pointer]
+        - paragraph [ref=e78]: By continuing you agree to Forge's Terms and Privacy Policy.

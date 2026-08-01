@@ -11,13 +11,24 @@ from core.ai_usage import calculate_cost, check_budget, estimate_tokens, track_u
 from core.metrics import llm_tokens_total
 from core.security import sanitize_prompt
 from core.llm.config import LLMConfigLoader
-from core.llm.provider import BaseProviderAdapter, CompletionResponse, ProviderError
+from core.llm.provider import BaseProviderAdapter, CircuitBreakerOpen, CompletionResponse, ProviderError
 from core.llm.registry import ProviderRegistry
 from core.llm.policy import PolicyEngine, get_policy_engine
 from core.llm.budget_manager import BudgetManager, get_budget_manager
 from core.llm.model_router import ModelRouter, TaskComplexity, get_model_router
 from core.llm.rate_limiter import DEFAULT_LIMITS, PLAN_MULTIPLIERS, RateLimiter
+from core.llm.circuit_breaker import get_circuit_breaker
+from core.llm.concurrency import (
+    CONCURRENT_LIMITS,
+    ConcurrencyLimitError,
+    get_concurrency_limiter,
+    get_concurrent_limit,
+)
 from optimizer.service import AIOptimizer, get_optimizer
+
+# Back-compat aliases for tests that imported the old router-local names.
+_get_concurrent_limit = get_concurrent_limit
+_CONCURRENT_LIMITS = CONCURRENT_LIMITS
 
 logger = logging.getLogger(__name__)
 
@@ -150,71 +161,10 @@ def _is_retryable_error(exc: Exception) -> bool:
     return not any(marker in message for marker in _NON_RETRYABLE_ERROR_SUBSTRINGS)
 
 
-# Per-user concurrent request semaphores (plan-based limits)
-_concurrent_requests: Dict[str, asyncio.Semaphore] = {}
-_CONCURRENT_LIMITS = {"free": 2, "standard": 5, "pro": 10, "enterprise": 25}
-_CONCURRENT_TIMEOUT = 30  # seconds
-
-
-def _get_concurrent_limit(plan: str) -> int:
-    return _CONCURRENT_LIMITS.get(plan, _CONCURRENT_LIMITS["free"])
-
-
-# Health-aware routing with a proper circuit breaker. A provider
-# that has failed repeatedly in the last _HEALTH_WINDOW_SECONDS
-# transitions from closed → open and is excluded from the fallback
-# chain entirely. After _HALF_OPEN_WINDOW seconds, the next request
-# is allowed through (half-open) to test recovery. If it succeeds,
-# the circuit closes again; if it fails, it reopens.
-_HEALTH_WINDOW_SECONDS = 60.0
-_HEALTH_FAILURE_THRESHOLD = 3
-_HALF_OPEN_WINDOW_SECONDS = 30.0
-
-
-class _ProviderHealthTracker:
-    def __init__(self) -> None:
-        self._failures: Dict[str, List[float]] = {}
-        self._opened_at: Dict[str, float] = {}
-
-    def record_failure(self, provider_name: str) -> None:
-        now = time.monotonic()
-        bucket = self._failures.setdefault(provider_name, [])
-        bucket.append(now)
-        cutoff = now - _HEALTH_WINDOW_SECONDS
-        self._failures[provider_name] = [t for t in bucket if t >= cutoff]
-        if len(self._failures[provider_name]) >= _HEALTH_FAILURE_THRESHOLD:
-            self._opened_at[provider_name] = now
-
-    def record_success(self, provider_name: str) -> None:
-        self._failures.pop(provider_name, None)
-        self._opened_at.pop(provider_name, None)
-
-    def is_degraded(self, provider_name: str) -> bool:
-        now = time.monotonic()
-        cutoff = now - _HEALTH_WINDOW_SECONDS
-        recent = [t for t in self._failures.get(provider_name, []) if t >= cutoff]
-        return len(recent) >= _HEALTH_FAILURE_THRESHOLD
-
-    def is_open(self, provider_name: str) -> bool:
-        """True when the circuit breaker has tripped and the provider
-        should be excluded from the fallback chain."""
-        if provider_name not in self._opened_at:
-            return False
-        now = time.monotonic()
-        opened = self._opened_at[provider_name]
-        # After the half-open window, allow one probe request through.
-        if now - opened > _HEALTH_WINDOW_SECONDS + _HALF_OPEN_WINDOW_SECONDS:
-            # Window expired — circuit is closed again.
-            self._opened_at.pop(provider_name, None)
-            return False
-        return True
-
-    def reorder(self, providers: List[str]) -> List[str]:
-        """Stable-partition `providers` into healthy-first, degraded-last,
-        and exclude open-circuit providers entirely."""
-        healthy = [p for p in providers if not self.is_degraded(p) and not self.is_open(p)]
-        degraded = [p for p in providers if self.is_degraded(p) and not self.is_open(p)]
-        return healthy + degraded
+# Renew long-lived stream leases this often so Redis TTLs don't expire
+# mid-stream (DEFAULT_LEASE_TTL is 300s; renew well before that).
+_STREAM_LEASE_RENEW_SECONDS = 60.0
+_STREAM_LEASE_RENEW_EVERY_N_CHUNKS = 50
 
 
 class LLMRouter:
@@ -238,42 +188,15 @@ class LLMRouter:
         self.budget_manager = budget_manager or get_budget_manager()
         self.model_router = model_router or get_model_router()
         # Not a module singleton like optimizer/policy_engine -- its
-        # in-memory fallback state is naturally per-router-instance, same as
-        # _concurrent_requests below.
+        # in-memory fallback state is naturally per-router-instance.
         self.rate_limiter = rate_limiter or RateLimiter()
         self._register_default_providers()
-        self._concurrent_requests: Dict[str, asyncio.Semaphore] = {}
-        self._concurrent_lock = asyncio.Lock()
-        self._health_tracker = _ProviderHealthTracker()
 
-    async def _acquire_concurrent_slot(self, user_id: str, plan: str) -> None:
-        """Acquire a per-user semaphore slot before making an LLM call.
-        Raises ProviderError if the slot cannot be acquired within the timeout."""
-        async with self._concurrent_lock:
-            if user_id not in self._concurrent_requests:
-                limit = _get_concurrent_limit(plan)
-                self._concurrent_requests[user_id] = asyncio.Semaphore(limit)
-
-        sem = self._concurrent_requests[user_id]
-        try:
-            await asyncio.wait_for(sem.acquire(), timeout=_CONCURRENT_TIMEOUT)
-        except asyncio.TimeoutError:
-            raise ProviderError(
-                f"Too many concurrent LLM requests. "
-                f"Your plan allows {_get_concurrent_limit(plan)} concurrent calls. "
-                f"Please wait for existing requests to complete."
-            )
-
-    def _release_concurrent_slot(self, user_id: str) -> None:
-        """Release a per-user semaphore slot after an LLM call completes."""
-        sem = self._concurrent_requests.get(user_id)
-        if sem:
-            sem.release()
-
-    async def _check_rate_limit(self, user_id: str, *, project_id: Optional[str], org_id: Optional[str]) -> None:
-        """Resolve the caller's plan tier and any org-level override, then
-        enforce via self.rate_limiter. Raises ProviderError if rejected."""
+    async def _resolve_plan(self, user_id: Optional[str]) -> str:
+        """Look up the caller's plan tier for concurrency / rate limits."""
         plan = "free"
+        if not user_id:
+            return plan
         try:
             from core.database import get_db
 
@@ -283,6 +206,80 @@ class LLMRouter:
                 plan = user_doc["plan"]
         except Exception:
             pass
+        return plan
+
+    async def _acquire_concurrent_lease(self, user_id: str, plan: str) -> Optional[str]:
+        """Acquire a Redis (or local-fallback) concurrency lease.
+
+        Returns the lease_id, or None if acquire failed for a non-limit
+        reason (best-effort degrade). Raises ConcurrencyLimitError when
+        the user is at their plan ceiling.
+        """
+        try:
+            return await get_concurrency_limiter().acquire(user_id, plan)
+        except ConcurrencyLimitError:
+            raise
+        except Exception:
+            return None
+
+    async def _release_concurrent_lease(self, user_id: Optional[str], lease_id: Optional[str]) -> None:
+        if user_id and lease_id:
+            try:
+                await get_concurrency_limiter().release(user_id, lease_id)
+            except Exception:
+                logger.warning("Failed to release concurrency lease %s for user %s", lease_id, user_id)
+
+    async def _renew_concurrent_lease(self, user_id: Optional[str], lease_id: Optional[str]) -> None:
+        if user_id and lease_id:
+            try:
+                await get_concurrency_limiter().renew(user_id, lease_id)
+            except Exception:
+                logger.warning("Failed to renew concurrency lease %s for user %s", lease_id, user_id)
+
+    async def _ensure_global_circuit_allows(self) -> None:
+        """Raise CircuitBreakerOpen if the fleet global breaker blocks calls."""
+        cb = get_circuit_breaker()
+        if await cb.is_open("global"):
+            if not await cb.try_half_open_claim("global"):
+                raise CircuitBreakerOpen(
+                    "All LLM providers are currently unavailable. "
+                    "Please try again shortly.",
+                    retry_after=await cb.retry_after("global"),
+                )
+            return
+        if await cb.can_call("global"):
+            return
+        if not await cb.try_half_open_claim("global"):
+            raise CircuitBreakerOpen(
+                "All LLM providers are currently unavailable. "
+                "Please try again shortly.",
+                retry_after=await cb.retry_after("global"),
+            )
+
+    async def _provider_circuit_allows(self, provider_name: str) -> bool:
+        """True if this provider may be tried (closed/half-open or claimed probe)."""
+        cb = get_circuit_breaker()
+        scope = f"provider:{provider_name}"
+        if await cb.is_open(scope):
+            return await cb.try_half_open_claim(scope)
+        if await cb.can_call(scope):
+            return True
+        return await cb.try_half_open_claim(scope)
+
+    async def _record_provider_success(self, provider_name: str) -> None:
+        cb = get_circuit_breaker()
+        await cb.record_success(f"provider:{provider_name}")
+        await cb.record_success("global")
+
+    async def _record_provider_failure(self, provider_name: str) -> None:
+        cb = get_circuit_breaker()
+        await cb.record_failure(f"provider:{provider_name}")
+        await cb.record_failure("global")
+
+    async def _check_rate_limit(self, user_id: str, *, project_id: Optional[str], org_id: Optional[str]) -> None:
+        """Resolve the caller's plan tier and any org-level override, then
+        enforce via self.rate_limiter. Raises ProviderError if rejected."""
+        plan = await self._resolve_plan(user_id)
 
         user_limit = int(DEFAULT_LIMITS["user"][0] * PLAN_MULTIPLIERS.get(plan, 1.0))
         if org_id:
@@ -310,6 +307,7 @@ class LLMRouter:
 
     async def health_check_all(self) -> List[Dict[str, Any]]:
         results = []
+        cb = get_circuit_breaker()
         for entry in self.registry.list_providers():
             name = entry["name"]
             provider = self.registry.get_provider(name)
@@ -318,10 +316,15 @@ class LLMRouter:
             except Exception as exc:  # pragma: no cover - defensive
                 logger.warning("Health check failed for %s: %s", name, exc)
                 healthy = False
+            try:
+                state = await cb._load(f"provider:{name}")
+                degraded = state.get("state", "closed") != "closed"
+            except Exception:
+                degraded = False
             results.append({
                 **entry,
                 "healthy": healthy,
-                "degraded": self._health_tracker.is_degraded(name),
+                "degraded": degraded,
             })
         return results
 
@@ -377,22 +380,30 @@ class LLMRouter:
             # identity so mixing BYOK responses into it could leak one user's
             # output to another. Usage is still tracked (informational cost)
             # but the daily budget check is skipped since it isn't Forge's
-            # spend.
-            return await self._generate_byok(
-                byok=byok,
-                agent_name=agent_name,
-                sanitized_messages=sanitized_messages,
-                model=model,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                tools=tools,
-                user_id=user_id,
-                build_id=build_id,
-                project_id=project_id,
-                org_id=org_id,
-                extra_system=extra_system,
-                usage_out=usage_out,
-            )
+            # spend. Fleet circuit-breaker counters are also skipped so BYOK
+            # traffic cannot trip (or heal) shared provider keys.
+            plan = await self._resolve_plan(user_id)
+            lease_id: Optional[str] = None
+            if user_id:
+                lease_id = await self._acquire_concurrent_lease(user_id, plan)
+            try:
+                return await self._generate_byok(
+                    byok=byok,
+                    agent_name=agent_name,
+                    sanitized_messages=sanitized_messages,
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    tools=tools,
+                    user_id=user_id,
+                    build_id=build_id,
+                    project_id=project_id,
+                    org_id=org_id,
+                    extra_system=extra_system,
+                    usage_out=usage_out,
+                )
+            finally:
+                await self._release_concurrent_lease(user_id, lease_id)
 
         config = await self.config_loader.load(agent_name=agent_name, org_id=org_id)
         providers_to_try = self._select_providers(config, provider_names)
@@ -496,74 +507,102 @@ class LLMRouter:
             return response
 
         # Resolve the user's plan for concurrent request limiting
-        plan = "free"
-        if user_id:
-            try:
-                from core.database import get_db
-                db = await get_db()
-                user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "plan": 1})
-                if user_doc and user_doc.get("plan"):
-                    plan = user_doc["plan"]
-            except Exception:
-                pass
+        plan = await self._resolve_plan(user_id)
 
         retry_cfg = config.get("retry", {}) or {}
         max_attempts = max(1, int(retry_cfg.get("max_attempts", 1)))
         backoff_seconds = float(retry_cfg.get("backoff_seconds", 0.0))
 
-        # Filter out providers whose circuit breaker is open.
-        providers_to_try = [
-            p for p in providers_to_try
-            if not self._health_tracker.is_open(p)
-        ]
-        if not providers_to_try:
-            from core.llm.provider import CircuitBreakerOpen
+        await self._ensure_global_circuit_allows()
 
+        # Filter/reorder by fleet circuit-breaker state (drop hard-open,
+        # prefer healthy, put half-open / claimable probes last).
+        cb = get_circuit_breaker()
+        providers_to_try = await cb.filter_providers(list(providers_to_try))
+        if not providers_to_try:
             raise CircuitBreakerOpen(
                 "All LLM providers are currently unavailable. "
                 "Please try again shortly.",
-                retry_after=int(_HEALTH_WINDOW_SECONDS),
+                retry_after=await cb.retry_after("global"),
             )
 
         last_error: Optional[Exception] = None
         for provider_name in providers_to_try:
+            if not await self._provider_circuit_allows(provider_name):
+                continue
             provider = self.registry.get_provider(provider_name)
             if provider is None:
                 continue
             for candidate_model in model_chain:
                 for attempt in range(1, max_attempts + 1):
-                    # Acquire a concurrent slot before making the API call
-                    acquired_slot = False
+                    lease_id: Optional[str] = None
                     if user_id:
                         try:
-                            await self._acquire_concurrent_slot(user_id, plan)
-                            acquired_slot = True
-                        except ProviderError:
+                            lease_id = await self._acquire_concurrent_lease(user_id, plan)
+                        except ConcurrencyLimitError:
                             raise
                         except Exception:
-                            pass
+                            lease_id = None
                     if attempt_info is not None:
                         attempt_info["attempts"] += 1
                     try:
-                        response = await provider.chat_completion(
-                            model=candidate_model,
-                            messages=self._with_system_prompt(sanitized_messages, extra_system),
-                            max_tokens=max_tokens,
-                            temperature=temperature,
-                            tools=tools,
-                            user_id=user_id,
-                            build_id=build_id,
-                            project_id=project_id,
-                            org_id=org_id,
-                        )
-                        if acquired_slot:
-                            self._release_concurrent_slot(user_id)
-                            acquired_slot = False
+                        try:
+                            response = await provider.chat_completion(
+                                model=candidate_model,
+                                messages=self._with_system_prompt(sanitized_messages, extra_system),
+                                max_tokens=max_tokens,
+                                temperature=temperature,
+                                tools=tools,
+                                user_id=user_id,
+                                build_id=build_id,
+                                project_id=project_id,
+                                org_id=org_id,
+                            )
+                        except Exception as exc:
+                            # Provider transport failure only — do not treat
+                            # later bookkeeping errors as CB failures.
+                            last_error = exc
+                            await self._record_provider_failure(provider_name)
+                            retryable = _is_retryable_error(exc)
+                            logger.warning(
+                                "Provider %s model %s attempt %s/%s failed (retryable=%s): %s",
+                                provider_name, candidate_model, attempt, max_attempts, retryable, exc,
+                            )
+                            if retryable and attempt < max_attempts:
+                                if backoff_seconds:
+                                    delay = min(backoff_seconds * (2 ** (attempt - 1)), _MAX_BACKOFF_SECONDS)
+                                    await asyncio.sleep(delay)
+                                continue
+                            if attempt_info is not None:
+                                attempt_info["failovers"] += 1
+                            break
+
                         if not response.text and provider_name not in {"fake", "primary", "secondary"}:
-                            raise ProviderError(f"provider {provider_name} returned empty response")
+                            # Empty completion is still a transport-level
+                            # failure for routing purposes.
+                            empty_exc = ProviderError(f"provider {provider_name} returned empty response")
+                            last_error = empty_exc
+                            await self._record_provider_failure(provider_name)
+                            logger.warning(
+                                "Provider %s model %s attempt %s/%s failed (retryable=%s): %s",
+                                provider_name, candidate_model, attempt, max_attempts, True, empty_exc,
+                            )
+                            if attempt < max_attempts:
+                                if backoff_seconds:
+                                    delay = min(backoff_seconds * (2 ** (attempt - 1)), _MAX_BACKOFF_SECONDS)
+                                    await asyncio.sleep(delay)
+                                continue
+                            if attempt_info is not None:
+                                attempt_info["failovers"] += 1
+                            break
+
+                        # Transport success — close/heal fleet CB keys.
+                        await self._record_provider_success(provider_name)
+
                         response.model = candidate_model or response.model
                         response.provider = provider_name
-                        self._health_tracker.record_success(provider_name)
+                        # Post-success bookkeeping: failures here must NOT
+                        # trip the circuit breaker.
                         self._normalize_usage(response)
                         await self._record_usage(
                             response=response,
@@ -604,27 +643,8 @@ class LLMRouter:
                             })
                         await self._validate_response(response)
                         return response
-                    except Exception as exc:  # pragma: no cover - exercised via fallback path
-                        if acquired_slot:
-                            self._release_concurrent_slot(user_id)
-                            acquired_slot = False
-                        last_error = exc
-                        retryable = _is_retryable_error(exc)
-                        self._health_tracker.record_failure(provider_name)
-                        logger.warning(
-                            "Provider %s model %s attempt %s/%s failed (retryable=%s): %s",
-                            provider_name, candidate_model, attempt, max_attempts, retryable, exc,
-                        )
-                        if retryable and attempt < max_attempts:
-                            if backoff_seconds:
-                                # Exponential backoff: backoff_seconds * 2^(attempt-1),
-                                # capped so retries can't stall a request indefinitely.
-                                delay = min(backoff_seconds * (2 ** (attempt - 1)), _MAX_BACKOFF_SECONDS)
-                                await asyncio.sleep(delay)
-                            continue
-                        if attempt_info is not None:
-                            attempt_info["failovers"] += 1
-                        break
+                    finally:
+                        await self._release_concurrent_lease(user_id, lease_id)
 
         if last_error is not None:
             raise ProviderError(str(last_error)) from last_error
@@ -769,37 +789,52 @@ class LLMRouter:
             await self._check_rate_limit(user_id, project_id=project_id, org_id=org_id)
 
         if byok:
-            provider, provider_name, resolved_model = await self._build_byok_provider(byok, model)
-            chunks: List[str] = []
-            async for chunk in self._iter_stream_completion(
-                provider,
-                model=resolved_model,
-                messages=self._with_system_prompt(sanitized_messages, extra_system),
-                max_tokens=max_tokens,
-                temperature=temperature,
-                tools=tools,
-                user_id=user_id,
-                build_id=build_id,
-                project_id=project_id,
-                org_id=org_id,
-            ):
-                chunks.append(chunk)
-                yield chunk
-            response = CompletionResponse(text="".join(chunks), provider=provider_name, model=resolved_model)
-            self._normalize_usage(response)
-            await self._record_usage(
-                response=response, user_id=user_id, build_id=build_id,
-                project_id=project_id, org_id=org_id, agent_name=agent_name,
-            )
-            if usage_out is not None:
-                usage_out.update({
-                    "model": response.model, "provider": response.provider,
-                    "prompt_tokens": response.usage.get("prompt_tokens", 0),
-                    "completion_tokens": response.usage.get("completion_tokens", 0),
-                    "total_tokens": response.usage.get("total_tokens", 0),
-                    "cost_usd": response.usage.get("cost_usd", 0.0),
-                })
-            return
+            # BYOK: no fleet CB recording; still enforce concurrency leases.
+            plan = await self._resolve_plan(user_id)
+            lease_id: Optional[str] = None
+            if user_id:
+                lease_id = await self._acquire_concurrent_lease(user_id, plan)
+            try:
+                provider, provider_name, resolved_model = await self._build_byok_provider(byok, model)
+                chunks: List[str] = []
+                last_renew = time.monotonic()
+                async for chunk in self._iter_stream_completion(
+                    provider,
+                    model=resolved_model,
+                    messages=self._with_system_prompt(sanitized_messages, extra_system),
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    tools=tools,
+                    user_id=user_id,
+                    build_id=build_id,
+                    project_id=project_id,
+                    org_id=org_id,
+                ):
+                    chunks.append(chunk)
+                    yield chunk
+                    if lease_id and (
+                        len(chunks) % _STREAM_LEASE_RENEW_EVERY_N_CHUNKS == 0
+                        or time.monotonic() - last_renew >= _STREAM_LEASE_RENEW_SECONDS
+                    ):
+                        await self._renew_concurrent_lease(user_id, lease_id)
+                        last_renew = time.monotonic()
+                response = CompletionResponse(text="".join(chunks), provider=provider_name, model=resolved_model)
+                self._normalize_usage(response)
+                await self._record_usage(
+                    response=response, user_id=user_id, build_id=build_id,
+                    project_id=project_id, org_id=org_id, agent_name=agent_name,
+                )
+                if usage_out is not None:
+                    usage_out.update({
+                        "model": response.model, "provider": response.provider,
+                        "prompt_tokens": response.usage.get("prompt_tokens", 0),
+                        "completion_tokens": response.usage.get("completion_tokens", 0),
+                        "total_tokens": response.usage.get("total_tokens", 0),
+                        "cost_usd": response.usage.get("cost_usd", 0.0),
+                    })
+                return
+            finally:
+                await self._release_concurrent_lease(user_id, lease_id)
 
         config = await self.config_loader.load(agent_name=agent_name, org_id=org_id)
         providers_to_try = self._select_providers(config, provider_names)
@@ -848,59 +883,90 @@ class LLMRouter:
         for warning in budget_check.warnings:
             logger.warning(warning)
 
-        plan = "free"
-        if user_id:
-            try:
-                from core.database import get_db
-                db = await get_db()
-                user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "plan": 1})
-                if user_doc and user_doc.get("plan"):
-                    plan = user_doc["plan"]
-            except Exception:
-                pass
+        plan = await self._resolve_plan(user_id)
+
+        await self._ensure_global_circuit_allows()
+
+        cb = get_circuit_breaker()
+        providers_to_try = await cb.filter_providers(list(providers_to_try))
+        if not providers_to_try:
+            raise CircuitBreakerOpen(
+                "All LLM providers are currently unavailable. "
+                "Please try again shortly.",
+                retry_after=await cb.retry_after("global"),
+            )
 
         last_error: Optional[Exception] = None
         for provider_name in providers_to_try:
+            if not await self._provider_circuit_allows(provider_name):
+                continue
             provider = self.registry.get_provider(provider_name)
             if provider is None:
                 continue
             for candidate_model in model_chain:
-                acquired_slot = False
+                lease_id: Optional[str] = None
                 if user_id:
                     try:
-                        await self._acquire_concurrent_slot(user_id, plan)
-                        acquired_slot = True
-                    except ProviderError:
+                        lease_id = await self._acquire_concurrent_lease(user_id, plan)
+                    except ConcurrencyLimitError:
                         raise
                     except Exception:
-                        pass
-                chunks = []
+                        lease_id = None
+                chunks: List[str] = []
                 try:
-                    async for chunk in self._iter_stream_completion(
-                        provider,
-                        model=candidate_model,
-                        messages=self._with_system_prompt(sanitized_messages, extra_system),
-                        max_tokens=max_tokens,
-                        temperature=temperature,
-                        tools=tools,
-                        user_id=user_id,
-                        build_id=build_id,
-                        project_id=project_id,
-                        org_id=org_id,
-                    ):
-                        chunks.append(chunk)
-                        yield chunk
-
-                    if acquired_slot:
-                        self._release_concurrent_slot(user_id)
-                        acquired_slot = False
+                    last_renew = time.monotonic()
+                    try:
+                        async for chunk in self._iter_stream_completion(
+                            provider,
+                            model=candidate_model,
+                            messages=self._with_system_prompt(sanitized_messages, extra_system),
+                            max_tokens=max_tokens,
+                            temperature=temperature,
+                            tools=tools,
+                            user_id=user_id,
+                            build_id=build_id,
+                            project_id=project_id,
+                            org_id=org_id,
+                        ):
+                            chunks.append(chunk)
+                            yield chunk
+                            if lease_id and (
+                                len(chunks) % _STREAM_LEASE_RENEW_EVERY_N_CHUNKS == 0
+                                or time.monotonic() - last_renew >= _STREAM_LEASE_RENEW_SECONDS
+                            ):
+                                await self._renew_concurrent_lease(user_id, lease_id)
+                                last_renew = time.monotonic()
+                    except Exception as exc:
+                        if chunks:
+                            # Already yielded partial output — don't failover
+                            # (would duplicate) and don't record CB failure on
+                            # a mid-stream abort the caller already saw.
+                            raise ProviderError(str(exc)) from exc
+                        # Transport failure before any output.
+                        last_error = exc
+                        await self._record_provider_failure(provider_name)
+                        logger.warning(
+                            "Provider %s model %s stream attempt failed before any output: %s",
+                            provider_name, candidate_model, exc,
+                        )
+                        continue
 
                     text = "".join(chunks)
                     if not text and provider_name not in {"fake", "primary", "secondary"}:
-                        raise ProviderError(f"provider {provider_name} returned empty response")
+                        empty_exc = ProviderError(f"provider {provider_name} returned empty response")
+                        last_error = empty_exc
+                        await self._record_provider_failure(provider_name)
+                        logger.warning(
+                            "Provider %s model %s stream attempt failed before any output: %s",
+                            provider_name, candidate_model, empty_exc,
+                        )
+                        continue
+
+                    # Transport success — heal fleet CB keys.
+                    await self._record_provider_success(provider_name)
 
                     response = CompletionResponse(text=text, provider=provider_name, model=candidate_model)
-                    self._health_tracker.record_success(provider_name)
+                    # Post-success bookkeeping must not trip the CB.
                     self._normalize_usage(response)
                     await self._record_usage(
                         response=response, user_id=user_id, build_id=build_id,
@@ -930,21 +996,8 @@ class LLMRouter:
                             "cost_usd": response.usage.get("cost_usd", 0.0),
                         })
                     return
-                except Exception as exc:
-                    if acquired_slot:
-                        self._release_concurrent_slot(user_id)
-                    if chunks:
-                        # Already yielded partial output to the caller for this
-                        # attempt -- falling back would duplicate/garble the
-                        # stream, so surface the failure instead of retrying.
-                        raise ProviderError(str(exc)) from exc
-                    last_error = exc
-                    self._health_tracker.record_failure(provider_name)
-                    logger.warning(
-                        "Provider %s model %s stream attempt failed before any output: %s",
-                        provider_name, candidate_model, exc,
-                    )
-                    continue
+                finally:
+                    await self._release_concurrent_lease(user_id, lease_id)
 
         if last_error is not None:
             raise ProviderError(str(last_error)) from last_error
@@ -968,12 +1021,10 @@ class LLMRouter:
                 selected.append(provider)
         if not selected:
             selected.append(config.get("default_provider", "anthropic"))
-        # Caller-pinned providers (`provider_names`) are an explicit ad-hoc
-        # override -- respect the caller's exact ordering rather than
-        # reshuffling by recent health.
-        if provider_names:
-            return selected
-        return self._health_tracker.reorder(selected)
+        # Caller-pinned providers keep their exact order. Fleet circuit-breaker
+        # filtering/reordering happens in generate()/stream() via
+        # ``cb.filter_providers`` so both paths share one source of truth.
+        return selected
 
     def _default_model_for_provider(self, provider_name: str) -> str:
         provider = self.registry.get_provider(provider_name)

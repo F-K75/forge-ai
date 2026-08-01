@@ -1,0 +1,46 @@
+- generic [ref=e546]:
+  - banner [ref=e547]:
+    - navigation [ref=e549]:
+      - link "Forge" [ref=e550] [cursor=pointer]:
+        - /url: /home
+      - generic [ref=e555]:
+        - text: New here?
+        - link "Create an account" [ref=e556] [cursor=pointer]:
+          - /url: /signup
+  - main [ref=e557]:
+    - complementary [ref=e558]:
+      - generic [ref=e559]: Forge · Console
+      - generic [ref=e561]:
+        - heading "An engineering team, one sign-in away." [level=1] [ref=e562]
+        - paragraph [ref=e563]: Sign in to pick up where your specialist agents left off — planning, building, and validating your applications end-to-end.
+        - list [ref=e564]:
+          - listitem [ref=e565]: Six specialized agents, one workspace
+          - listitem [ref=e569]: Self-correcting debug loop on every build
+          - listitem [ref=e573]: Ship in minutes, not sprints
+      - generic [ref=e577]: // forge.ai — build pipeline
+    - generic [ref=e579]:
+      - generic [ref=e580]:
+        - generic [ref=e581]: Sign in
+        - heading "Welcome back" [level=2] [ref=e583]
+        - paragraph [ref=e584]: Sign in to pick up where your team left off.
+      - generic [ref=e586]:
+        - generic [ref=e587]:
+          - generic [ref=e588]: Email
+          - textbox "Email" [ref=e589]:
+            - /placeholder: you@company.com
+        - generic [ref=e590]:
+          - generic [ref=e591]:
+            - generic [ref=e592]: Password
+            - link "Forgot?" [ref=e593] [cursor=pointer]:
+              - /url: /forgot-password
+          - generic [ref=e594]:
+            - textbox "Password" [ref=e595]:
+              - /placeholder: ••••••••
+            - button "Show password" [ref=e596] [cursor=pointer]
+        - generic [ref=e605] [cursor=pointer]:
+          - checkbox "Keep me signed in for 30 days" [checked] [ref=e606]
+          - text: Keep me signed in for 30 days
+        - button "Sign in" [ref=e607] [cursor=pointer]
+        - generic [ref=e610]: Or continue with
+        - button "Google" [ref=e615] [cursor=pointer]
+        - paragraph [ref=e621]: By continuing you agree to Forge's Terms and Privacy Policy.
