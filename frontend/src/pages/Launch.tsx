@@ -53,8 +53,8 @@ export default function Launch() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const globeScale = reduceMotion ? 1 : 1 + scrollProgress * 0.6;
-  const globeOpacity = 1 - scrollProgress * 0.4;
+  const globeScale = reduceMotion ? 1 : 1 + scrollProgress * 1.2;
+  const globeOpacity = 1 - scrollProgress * 0.5;
 
   return (
     <div className="launch-os w-full scroll-smooth bg-base text-ink">
