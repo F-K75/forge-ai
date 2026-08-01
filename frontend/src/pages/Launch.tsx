@@ -129,8 +129,11 @@ export default function Launch() {
 function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
   const railRef = useRef<HTMLUListElement>(null);
   const LiveIcon = AGENTS[active].icon;
+  const live = AGENTS[active];
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -152,98 +155,111 @@ function AgentPipelineDock({ fullVisuals }: { fullVisuals: number }) {
       });
     }, railRef);
     return () => ctx.revert();
-  }, [reduceMotion]);
+  }, [reduceMotion, open]);
 
-  const live = AGENTS[active];
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const progress = (active / Math.max(AGENTS.length - 1, 1)) * 100;
 
   return (
-    <motion.footer
-      className="launch-fleet relative z-10 mx-3 mb-3 max-h-[8vh] rounded-full apple-glass-strong px-3 py-1.5 sm:mx-6 sm:px-4"
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }}
+    <div
+      className={[
+        "launch-chat fixed right-3 z-40 flex items-end gap-2 transition-all duration-300 sm:right-5",
+        scrolled ? "bottom-4" : "bottom-5",
+      ].join(" ")}
     >
-      <div className="flex h-full min-h-[2.75rem] items-center gap-3 sm:gap-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            className="launch-fleet-live-icon relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-            style={{ background: `${live.hue}22`, color: live.hue }}
-          >
-            <LiveIcon size={13} aria-hidden="true" />
-            {!reduceMotion && <span className="launch-fleet-live-ping rounded-full" aria-hidden="true" />}
-          </span>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={live.id}
-              className="min-w-0"
-              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
-              transition={{ duration: 0.22 }}
+      <motion.div
+        className="flex max-w-xs flex-col items-end gap-2 overflow-hidden sm:max-w-sm"
+        initial={false}
+        animate={
+          reduceMotion
+            ? { height: open ? "auto" : 0, opacity: open ? 1 : 0 }
+            : {
+                height: open ? "auto" : 0,
+                opacity: open ? 1 : 0,
+                transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+              }
+        }
+      >
+        <div className="rounded-2xl apple-glass-strong p-2 shadow-apple">
+          <div className="flex items-center gap-2">
+            <span
+              className="launch-fleet-live-icon relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              style={{ background: `${live.hue}22`, color: live.hue }}
             >
+              <LiveIcon size={13} aria-hidden="true" />
+              {!reduceMotion && <span className="launch-fleet-live-ping rounded-full" aria-hidden="true" />}
+            </span>
+            <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold tracking-tight text-ink">{live.label}</p>
-              <p className="hidden truncate text-[11px] text-muted sm:block">{AGENT_TASK[live.id]}</p>
-            </motion.div>
-          </AnimatePresence>
+              <p className="truncate text-[11px] text-muted">{AGENT_TASK[live.id]}</p>
+            </div>
+          </div>
+          <div className="launch-fleet-track relative mt-2 h-[2px] rounded-full bg-white/[0.08]">
+            <span
+              className="launch-fleet-track-fill absolute inset-y-0 left-0 rounded-full bg-accent"
+              style={{ width: `${progress}%` }}
+            />
+            <span
+              className="launch-fleet-track-head absolute top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
+              style={{ left: `${progress}%` }}
+            />
+          </div>
+          <ul ref={railRef} aria-label="Forge build agents" className="mt-2 flex shrink-0 items-center gap-1 overflow-x-auto">
+            {AGENTS.map((agent, i) => {
+              const Icon = agent.icon;
+              const isActive = i === active;
+              const isDone = i < active;
+              return (
+                <li key={agent.id} data-fleet-node>
+                  <button
+                    type="button"
+                    title={`${agent.label}`}
+                    aria-current={isActive ? "true" : undefined}
+                    aria-label={`${agent.label}`}
+                    onClick={() => setActive(i)}
+                    className={[
+                      "launch-fleet-pill flex h-8 w-8 items-center justify-center rounded-full outline-none transition-all",
+                      "focus-visible:ring-2 focus-visible:ring-accent/40",
+                      isActive ? "is-active scale-105" : "opacity-55 hover:opacity-90",
+                      isDone ? "is-done" : "",
+                    ].join(" ")}
+                    style={
+                      isActive
+                        ? { background: `${agent.hue}28`, color: agent.hue, boxShadow: `0 0 0 1px ${agent.hue}55` }
+                        : { color: isDone ? "#A1A1A6" : "#636366" }
+                    }
+                  >
+                    <Icon size={14} aria-hidden="true" />
+                    <span className="sr-only">{AGENT_SHORT[agent.id]}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-1 text-right font-mono text-[11px] tabular-nums text-faint">
+            {String(active + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")}
+            <span className="mx-1.5 text-white/15">·</span>
+            {fullVisuals}
+          </p>
         </div>
+      </motion.div>
 
-        <div className="launch-fleet-track relative hidden h-[2px] min-w-[2.5rem] flex-1 rounded-full bg-white/[0.08] md:block" aria-hidden="true">
-          <span
-            className="launch-fleet-track-fill absolute inset-y-0 left-0 rounded-full bg-accent"
-            style={{ width: `${progress}%` }}
-          />
-          <span
-            className="launch-fleet-track-head absolute top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
-            style={{ left: `${progress}%` }}
-          />
-        </div>
-
-        <ul
-          ref={railRef}
-          aria-label="Forge build agents"
-          className="flex shrink-0 items-center gap-0.5 sm:gap-1"
-        >
-          {AGENTS.map((agent, i) => {
-            const Icon = agent.icon;
-            const isActive = i === active;
-            const isDone = i < active;
-            const state = isActive ? "run" : isDone ? "done" : "wait";
-            return (
-              <li key={agent.id} data-fleet-node>
-                <button
-                  type="button"
-                  title={`${agent.label} · ${state}`}
-                  aria-current={isActive ? "true" : undefined}
-                  aria-label={`${agent.label}, ${state}`}
-                  onClick={() => setActive(i)}
-                  className={[
-                    "launch-fleet-pill flex h-8 w-8 items-center justify-center rounded-full outline-none transition-all sm:h-9 sm:w-9",
-                    "focus-visible:ring-2 focus-visible:ring-accent/40",
-                    isActive ? "is-active scale-105" : "opacity-55 hover:opacity-90",
-                    isDone ? "is-done" : "",
-                  ].join(" ")}
-                  style={
-                    isActive
-                      ? { background: `${agent.hue}28`, color: agent.hue, boxShadow: `0 0 0 1px ${agent.hue}55` }
-                      : { color: isDone ? "#A1A1A6" : "#636366" }
-                  }
-                >
-                  <Icon size={14} aria-hidden="true" />
-                  <span className="sr-only">{AGENT_SHORT[agent.id]}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-
-        <p className="hidden shrink-0 font-mono text-[11px] tabular-nums text-faint sm:block">
-          {String(active + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")}
-          <span className="mx-1.5 text-white/15">·</span>
-          {fullVisuals}
-        </p>
-      </div>
-    </motion.footer>
+      <motion.button
+        type="button"
+        aria-label={open ? "Hide agent pipeline" : "Open agent pipeline"}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full apple-glass-strong shadow-apple"
+        animate={{ scale: scrolled ? 0.9 : 1 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <LiveIcon size={18} aria-hidden="true" />
+      </motion.button>
+    </div>
   );
 }
 
