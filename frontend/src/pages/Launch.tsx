@@ -72,21 +72,20 @@ export default function Launch() {
         <div className="launch-name-veil absolute inset-0" />
       </div>
 
-      <div className="fixed top-3 right-3 z-[60]">
-        <button
-          type="button"
-          onClick={() => setGlobeMode((mode) => (mode === "cobe" ? "three" : "cobe"))}
-          className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/20"
-        >
-          Globe: {globeMode === "cobe" ? "Cobe" : "Three"}
-        </button>
-      </div>
-
       <section
         id="top"
         className="relative z-10 flex min-h-[100dvh] w-screen flex-col overflow-hidden"
       >
-        <div className="h-16 shrink-0 md:h-[4.25rem]" aria-hidden="true" />
+        <div className="flex h-16 shrink-0 items-center justify-between md:h-[4.25rem] px-5 sm:px-8">
+          <div aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => setGlobeMode((mode) => (mode === "cobe" ? "three" : "cobe"))}
+            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/20"
+          >
+            Globe: {globeMode === "cobe" ? "Cobe" : "Three"}
+          </button>
+        </div>
 
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pointer-events-none sm:px-8">
           <motion.div
