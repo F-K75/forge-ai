@@ -79,3 +79,54 @@ Key routing rules:
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
 - Author a backlog-ready spec/issue → invoke /spec
+
+## Cursor Cloud specific instructions
+
+Forge is a full-stack app (FastAPI backend + Vite/React frontend + MongoDB + Redis). Cloud VMs do not have Docker pre-installed; use the local (no-Docker) workflow below. See also `.claude/skills/run-forge-locally/SKILL.md` for the portable MongoDB/Redis approach.
+
+### One-time system packages (not in the update script)
+
+```bash
+sudo apt-get install -y python3.12-venv redis-server build-essential
+```
+
+MongoDB is not available via apt on Ubuntu 24.04 — download the portable binary once into `/tmp/forge-scratch` (edition `targeted`, target `ubuntu2404`, arch `x86_64` from `https://downloads.mongodb.org/current.json`).
+
+### Environment files
+
+Copy templates and generate secrets (never commit `.env`):
+
+```bash
+cp .env.example .env
+cp .env backend/.env
+cp frontend/.env.example frontend/.env.local
+# Set JWT_SECRET, FIELD_ENCRYPTION_KEY (openssl rand -hex 32), MONGODB_URL=mongodb://localhost:27017/forge_dev, REDIS_URL=redis://localhost:6379
+# frontend/.env.local: VITE_API_URL=http://localhost:8000 and VITE_WS_URL=ws://localhost:8000
+```
+
+Do **not** set `CORS_ORIGINS` in `.env` — it is not a `Settings` field and will crash startup.
+
+### Starting services (each in a tmux session)
+
+1. **Redis:** `redis-server --daemonize yes --port 6379 --bind 127.0.0.1`
+2. **MongoDB:** `/tmp/forge-scratch/mongo-install/bin/mongod --dbpath /tmp/forge-scratch/mongo-data --port 27017 --bind_ip 127.0.0.1 --logpath /tmp/forge-scratch/mongod.log`
+3. **Backend:** `cd backend && set -a && source .env && set +a && ./venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000`
+4. **Frontend:** `cd frontend && npm run dev -- --port 5173`
+
+Health check: `curl http://localhost:8000/health` → `{"status":"ok"}`.
+
+**Vite dev binds IPv6-only** (`localhost:5173`, not `127.0.0.1:5173`). Use `http://localhost:5173` in browsers and Playwright.
+
+Celery worker (`celery -A celery_app worker --queues=build,deployment`) is required for AI builds but not for login/projects CRUD.
+
+### Lint / test / build
+
+| Target | Command |
+|--------|---------|
+| Backend lint | `cd backend && source venv/bin/activate && ruff check . --select F,E9 --exclude venv` |
+| Backend tests | `cd backend && CI_TEST_MODE=true TESTING=true pytest tests/ -v --timeout=30` |
+| Frontend lint | `cd frontend && npm run lint` |
+| Frontend tests | `cd frontend && npm test` |
+| Frontend build | `cd frontend && npm run build` (needs `pydantic` + `fastapi` on PATH for prebuild hook) |
+
+Standard dev commands are also documented in `README.md` and `CONTRIBUTING.md`.
