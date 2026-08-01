@@ -6,6 +6,9 @@ high-tier "CTO" model, and persists a prioritized improvement **backlog**.
 
 > **This system never edits files, opens PRs, or deploys.** It only reads a repo
 > snapshot and emits findings. A human acts on the backlog.
+>
+> **Note:** the `agents/` directory must exist at the repo root and contain at
+> least one valid `*.json` agent definition for the service to start.
 
 ```
 agents/*.json ─▶ loader ─▶ trigger scoping ─▶ runner (parallel) ─▶ consolidator ─▶ MongoDB

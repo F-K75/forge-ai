@@ -114,6 +114,14 @@ Confirm `https://$DOMAIN/api/health` returns OK.
 | Frontend built with empty API URL | Set repo variable `PUBLIC_DOMAIN` before building images |
 | Pull from GHCR denied | `docker login ghcr.io` on the VPS; ensure package visibility allows the account |
 
+## Staging environment
+
+Staging is documented in `docs/GSTACK_RELEASE_PIPELINE.md`. In brief: pushes to
+`develop` trigger `.github/workflows/deploy-staging.yml`, which deploys an
+isolated stack to `/opt/forge-staging` on the same VPS using
+`docker-compose.staging.yml`. It has its own domain, MongoDB database, Redis DB,
+volumes, and Stripe test keys.
+
 ## Local development
 
 ```bash

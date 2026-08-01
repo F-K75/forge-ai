@@ -141,6 +141,84 @@ context search) back the AI Gateway runtime above.
 | `GET /metrics` | Prometheus exposition |
 | `GET /integrations/playbooks` | Available integration playbooks |
 
+## Agent Registry / Engineering Org — `/projects/{project_id}/org`
+
+Per-project engineering org chart, task routing, code ownership, team chat,
+knowledge graph, change requests, and monitoring findings.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/projects/{project_id}/org` | Org chart + agent list |
+| GET | `/projects/{project_id}/org/agents/{agent_id}` | Get agent |
+| POST | `/projects/{project_id}/org/agents` | Create dynamic specialist |
+| POST | `/projects/{project_id}/org/agents/{agent_id}/tasks` | Record task result |
+| POST | `/projects/{project_id}/org/agents/{agent_id}/promote` | Promote agent |
+| POST | `/projects/{project_id}/org/agents/{agent_id}/retire` | Retire agent |
+| POST | `/projects/{project_id}/org/route` | Intelligent task router |
+| GET | `/projects/{project_id}/org/ownership` | Code ownership summary |
+| POST | `/projects/{project_id}/org/ownership/check` | Check ownership for paths |
+| GET | `/projects/{project_id}/org/chat` | List team chat messages |
+| POST | `/projects/{project_id}/org/chat` | Post agent message |
+| GET | `/projects/{project_id}/org/graph` | Full knowledge graph |
+| GET | `/projects/{project_id}/org/graph/neighbors` | Graph neighbors |
+| GET | `/projects/{project_id}/org/graph/search` | Search graph |
+| POST | `/projects/{project_id}/org/changes` | Open change request |
+| GET | `/projects/{project_id}/org/changes` | List change requests |
+| GET | `/projects/{project_id}/org/changes/{cr_id}` | Get change request |
+| POST | `/projects/{project_id}/org/changes/{cr_id}/advance` | Advance stage |
+| POST | `/projects/{project_id}/org/changes/{cr_id}/request-review` | Request review |
+| POST | `/projects/{project_id}/org/changes/{cr_id}/review` | Submit review |
+| POST | `/projects/{project_id}/org/changes/{cr_id}/merge` | Merge change request |
+| POST | `/projects/{project_id}/org/monitoring/findings` | Record finding |
+| GET | `/projects/{project_id}/org/monitoring/findings` | List findings |
+| POST | `/projects/{project_id}/org/monitoring/findings/{finding_id}/resolve` | Resolve finding |
+| WS | `/projects/{project_id}/org/ws` | Org progress events |
+
+## Activity — `/projects/{project_id}/activity`
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/projects/{project_id}/activity` | Activity timeline (agent events, CR transitions, chat) |
+
+## Planning — `/projects/{project_id}/planning`
+
+Pre-coding planning phase: decompose objectives into tasks, assess risk, and
+require explicit approve/reject before coding begins.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/projects/{project_id}/planning/plans` | Create plan |
+| GET | `/projects/{project_id}/planning/plans` | List plans |
+| GET | `/projects/{project_id}/planning/plans/{plan_id}` | Get plan |
+| POST | `/projects/{project_id}/planning/plans/{plan_id}/approve` | Approve plan |
+| POST | `/projects/{project_id}/planning/plans/{plan_id}/reject` | Reject plan |
+
+## Repository Memory — `/projects/{project_id}/memory`
+
+Structured per-project memory document (architecture summary, tech stack, API
+map, schema notes, known issues, roadmap).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/projects/{project_id}/memory` | Get repository memory |
+| PUT | `/projects/{project_id}/memory` | Update repository memory |
+
+## Workload — `/projects/{project_id}/workload`
+
+Read-only agent workload view assembled from open change requests and tasks.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/projects/{project_id}/workload` | Get agent workload |
+
+## Monitoring webhook (machine-to-Forge) — `/projects/{project_id}/monitoring/webhook`
+
+External CI/monitoring intake authenticated via `X-API-Key`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/projects/{project_id}/monitoring/webhook/findings` | Record finding from external system |
+
 ## Review Board orchestrator (separate service, port 8100)
 
 | Method | Path | Purpose |

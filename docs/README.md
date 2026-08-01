@@ -12,6 +12,7 @@ else is historical or component-local.
 | [`API_REFERENCE.md`](API_REFERENCE.md) | Every backend endpoint, WebSocket events, `/v1/` versioning rules |
 | [`CONFIGURATION.md`](CONFIGURATION.md) | Every environment variable and the startup validation rules |
 | [`DEPLOYMENT_AND_OPERATIONS.md`](DEPLOYMENT_AND_OPERATIONS.md) | How prod actually deploys (VPS + compose, **not** k8s), **first-time go-live checklist**, CI, health checks, backups, runbook notes |
+| [`GSTACK_RELEASE_PIPELINE.md`](GSTACK_RELEASE_PIPELINE.md) | Staging branch strategy, gstack quality gates, environment isolation |
 
 ## Operational runbooks
 
@@ -20,6 +21,8 @@ else is historical or component-local.
 | [`disaster_recovery.md`](disaster_recovery.md) | DR procedure for MongoDB |
 | [`secrets.md`](secrets.md) | Secrets management policy |
 | [`FIELD_ENCRYPTION_KEY_ROTATION.md`](FIELD_ENCRYPTION_KEY_ROTATION.md) | Rotating the field-encryption key safely |
+| [`integrations/monitoring_webhook.md`](integrations/monitoring_webhook.md) | Feed external CI/monitoring signals into Repository Monitoring |
+| [`integrations/github-actions-ci-monitor.yml`](integrations/github-actions-ci-monitor.yml) | Ready-to-use GitHub Actions workflow for CI failure reporting |
 
 ## Component docs
 

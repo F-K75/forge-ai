@@ -253,7 +253,7 @@ Each agent action costs credits:
 **Total per build: ~15–17 credits** (more with integrations/debug)
 
 Plan tiers (configure in `core/config.py`):
-- Free: 10 credits
+- Free: 5 credits
 - Standard: 100/month  
 - Pro: 750/month + 1M context + BYOK
 

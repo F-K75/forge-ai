@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-08-01 — Apple UI shell, global LLM circuit breaker, staging pipeline, free-tier correction
+
+### Features Added
+
+- **Forge OS desktop shell** — reworked the authenticated UI into a brand-first, Apple-inspired composition with a dark theme, agent fleet skill map, slim process-pillar dock, and live status/VU meters. The Launch page now renders as a maximal OS boot sequence with motion.
+- **Staging environment** — added `docker-compose.staging.yml` and `.github/workflows/deploy-staging.yml` so `develop` pushes deploy to an isolated staging stack (`/opt/forge-staging`, separate network/volumes/DB) with its own health check and rollback path.
+- **Global circuit breaker** — `core/llm/circuit_breaker.py` wraps outbound LLM provider calls. A provider that fails repeatedly is opened; half-open probes restore it automatically. This prevents a single flaky model from stalling builds.
+
+### Fixed
+
+- **Frontend lockfile drift** — synced `package-lock.json` so CI image builds no longer fail on `npm ci`.
+- **Free tier credit correction** — reduced `free_credits` from 10 to 5 to limit abuse; docs and config now agree.
+
+### Documentation
+
+- **`docs/GSTACK_RELEASE_PIPELINE.md`** — documents the new staging branch strategy, gstack quality gates, and environment isolation table.
+- **`docs/DEPLOYMENT_AND_OPERATIONS.md`** — cross-references staging bootstrap and the new `deploy-staging.yml` workflow.
+
 ## 2026-07-27 — Following the setup docs now produces a backend that boots (P2)
 
 ### Fixed

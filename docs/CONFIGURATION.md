@@ -51,7 +51,7 @@ configured:**
 |---|---|---|
 | `APP_ENV` | `development` | Gates all production validators |
 | `APP_URL` / `API_URL` | `http://localhost:3000` / `:8000` | Public endpoints |
-| `ALLOWED_ORIGINS` | localhost:3000, localhost:5173 | CORS (JSON array or comma-separated) |
+| `ALLOWED_ORIGINS` | `http://localhost:3000`, `http://localhost:3001`, `http://localhost:5173`, `http://127.0.0.1:3000`, `http://127.0.0.1:3001`, `http://127.0.0.1:5173` | CORS (JSON array or comma-separated) |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1,testserver` | TrustedHost middleware |
 | `TRUSTED_PROXIES` | `127.0.0.1,::1` | Real-IP resolution for rate limiting |
 | `MAX_REQUEST_SIZE` | 10 MiB | Request-size limit middleware |
@@ -68,7 +68,7 @@ configured:**
 
 ## Builds & credits
 
-`SANDBOX_HOST`, `SANDBOX_TIMEOUT` (120s), `BUILD_TIMEOUT` (600s), and
+`SANDBOX_HOST`, `SANDBOX_TIMEOUT` (120s), `BUILD_TIMEOUT` (600s), `REQUEST_TIMEOUT` (120s), `GATE_TIMEOUT` (180s), `GATE_POLL_INTERVAL` (2.0s), and
 per-agent credit costs: `CREDITS_ARCHITECT=3`, `CREDITS_DESIGNER=2`,
 `CREDITS_DEVELOPER=5`, `CREDITS_INTEGRATION=2`, `CREDITS_PM=1`,
 `CREDITS_BUSINESS_MODEL=2`, `CREDITS_DEBUG=2`.
