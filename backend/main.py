@@ -185,7 +185,12 @@ async def global_exception_handler(request: Request, exc: Exception):
     if settings.sentry_dsn:
         import sentry_sdk
         sentry_sdk.capture_exception(exc)
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    resp = JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    origin = request.headers.get("origin")
+    if origin:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
 
 
 # Add trusted host middleware to prevent host header attacks
