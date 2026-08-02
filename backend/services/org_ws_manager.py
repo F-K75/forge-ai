@@ -146,7 +146,7 @@ async def authenticate_org_websocket(websocket: WebSocket, project_id: str) -> O
         return None
 
     payload = decode_token(msg["token"])
-    if not payload or payload.get("type") not in ("access", "ws"):
+    if not payload or payload.get("type") != "ws":
         await websocket.close(code=4001, reason="Invalid token")
         return None
 
@@ -172,7 +172,7 @@ async def authenticate_org_websocket_token(token: Optional[str], project_id: Opt
     if not token:
         return None
     payload = decode_token(token)
-    if not payload or payload.get("type") not in ("access", "ws"):
+    if not payload or payload.get("type") != "ws":
         return None
     user_id = payload.get("sub")
     db = await get_db()

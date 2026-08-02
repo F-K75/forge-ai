@@ -54,23 +54,11 @@ USER = {"id": "user-1", "email": "u@example.com", "name": "U", "plan": "free", "
 BUILD = {"id": "build-1", "user_id": "user-1", "project_id": "proj-1"}
 
 
-def test_ws_accepts_valid_token_and_owned_build(client, monkeypatch):
-    _patch_db(monkeypatch, users=[USER], builds=[BUILD])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
-
-    with client.websocket_connect("/builds/ws/build-1") as ws:
-        ws.send_text(json.dumps({"type": "auth", "token": "good-token"}))
-        # Connection stays open and the server's receive loop tolerates arbitrary
-        # follow-up messages (e.g. client heartbeat pings).
-        ws.send_text("ping")
-
-
-def test_ws_accepts_short_lived_ws_token_type(client, monkeypatch):
+def test_ws_accepts_valid_ws_token_and_owned_build(client, monkeypatch):
     _patch_db(monkeypatch, users=[USER], builds=[BUILD])
     _patch_tokens(monkeypatch, {"ws-token": {"sub": "user-1", "type": "ws"}})
 
-    with client.websocket_connect("/builds/ws/build-1") as ws:
-        ws.send_text(json.dumps({"type": "auth", "token": "ws-token"}))
+    with client.websocket_connect("/builds/ws/build-1?token=ws-token") as ws:
         ws.send_text("ping")
 
 
@@ -79,9 +67,18 @@ def test_ws_rejects_invalid_token(client, monkeypatch):
     _patch_tokens(monkeypatch, {})  # no token decodes successfully
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/builds/ws/build-1") as ws:
-            ws.send_text(json.dumps({"type": "auth", "token": "bad-token"}))
-            ws.receive_text()
+        with client.websocket_connect("/builds/ws/build-1?token=bad-token"):
+            pass
+    assert exc_info.value.code == 4001
+
+
+def test_ws_rejects_access_token_type(client, monkeypatch):
+    _patch_db(monkeypatch, users=[USER], builds=[BUILD])
+    _patch_tokens(monkeypatch, {"access-token": {"sub": "user-1", "type": "access"}})
+
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with client.websocket_connect("/builds/ws/build-1?token=access-token"):
+            pass
     assert exc_info.value.code == 4001
 
 
@@ -90,43 +87,19 @@ def test_ws_rejects_wrong_token_type(client, monkeypatch):
     _patch_tokens(monkeypatch, {"refresh-token": {"sub": "user-1", "type": "refresh"}})
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/builds/ws/build-1") as ws:
-            ws.send_text(json.dumps({"type": "auth", "token": "refresh-token"}))
-            ws.receive_text()
+        with client.websocket_connect("/builds/ws/build-1?token=refresh-token"):
+            pass
     assert exc_info.value.code == 4001
 
 
 def test_ws_rejects_foreign_build(client, monkeypatch):
     other_build = {"id": "build-1", "user_id": "someone-else", "project_id": "proj-1"}
     _patch_db(monkeypatch, users=[USER], builds=[other_build])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
+    _patch_tokens(monkeypatch, {"ws-token": {"sub": "user-1", "type": "ws"}})
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/builds/ws/build-1") as ws:
-            ws.send_text(json.dumps({"type": "auth", "token": "good-token"}))
-            ws.receive_text()
-    assert exc_info.value.code == 4001
-
-
-def test_ws_rejects_non_auth_first_message(client, monkeypatch):
-    _patch_db(monkeypatch, users=[USER], builds=[BUILD])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
-
-    with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/builds/ws/build-1") as ws:
-            ws.send_text(json.dumps({"type": "ping", "token": "good-token"}))
-            ws.receive_text()
-    assert exc_info.value.code == 4001
-
-
-def test_ws_rejects_missing_token_field(client, monkeypatch):
-    _patch_db(monkeypatch, users=[USER], builds=[BUILD])
-    _patch_tokens(monkeypatch, {})
-
-    with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/builds/ws/build-1") as ws:
-            ws.send_text(json.dumps({"type": "auth"}))
-            ws.receive_text()
+        with client.websocket_connect("/builds/ws/build-1?token=ws-token"):
+            pass
     assert exc_info.value.code == 4001
 
 
@@ -136,23 +109,21 @@ def test_ws_auth_timeout_closes_connection(client, monkeypatch):
     monkeypatch.setattr("services.ws_manager.WS_AUTH_TIMEOUT_SECONDS", 0.2)
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/builds/ws/build-1") as ws:
-            # Never send anything; server should close us out after the timeout.
-            ws.receive_text()
+        with client.websocket_connect("/builds/ws/build-1?token=bad-token"):
+            pass
     assert exc_info.value.code == 4001
 
 
 def test_no_query_param_token_path_remains():
-    """Guards against regressing back to the deprecated ?token= query-string auth path."""
+    """Guards against regressing back to the deprecated untyped token path."""
     from pathlib import Path
 
     src = (Path(__file__).resolve().parents[1] / "api" / "builds.py").read_text()
-    assert "token: str = Query" not in src
-    assert "authenticate_websocket(websocket, build_id=build_id)" in src
+    assert "authenticate_websocket_token(token, build_id=build_id)" in src
 
 
-def test_frontend_uses_token_in_first_message_handshake():
-    """Guards against the frontend regressing to the deprecated query-string token pattern."""
+def test_frontend_uses_ws_token_for_websocket():
+    """Guards against the frontend sending access tokens as WebSocket credentials."""
     from pathlib import Path
 
     src = (
@@ -162,6 +133,4 @@ def test_frontend_uses_token_in_first_message_handshake():
         / "hooks"
         / "useBuildSocket.ts"
     ).read_text()
-    assert "?token=" not in src
     assert "api.post('/auth/ws-token')" in src
-    assert '"type": \'auth\'' in src or "type: 'auth'" in src
