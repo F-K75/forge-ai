@@ -431,6 +431,13 @@ export default function SettingsPage() {
                       role="radio"
                       aria-checked={byokProvider === p}
                       onClick={() => setByokProvider(p)}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                          e.preventDefault();
+                          const next = p === "anthropic" ? "openai_compatible" : "anthropic";
+                          setByokProvider(next);
+                        }
+                      }}
                       className={[
                         "h-8 px-3 rounded-md text-xs font-medium border transition-colors motion-reduce:transition-none",
                         byokProvider === p ? "border-ink text-ink" : "border-border text-muted hover:text-ink",
