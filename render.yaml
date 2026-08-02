@@ -9,9 +9,7 @@ services:
       - key: APP_ENV
         value: production
       - key: MONGODB_URL
-        sync: false
-      - key: REDIS_URL
-        sync: false
+        value: mongodb+srv://frendiakeshav75_db_user:FORGE%4012345@cluster0.etndecw.mongodb.net/forge?retryWrites=true&w=majority
       - key: JWT_SECRET
         generateValue: true
       - key: FIELD_ENCRYPTION_KEY
