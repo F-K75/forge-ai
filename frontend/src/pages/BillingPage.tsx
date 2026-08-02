@@ -210,6 +210,12 @@ export default function BillingPage() {
                 role="radio"
                 aria-checked={billingInterval === "monthly"}
                 onClick={() => setBillingInterval("monthly")}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    setBillingInterval(billingInterval === "monthly" ? "annual" : "monthly");
+                  }
+                }}
                 className={[
                   "pb-1 border-b transition-colors motion-reduce:transition-none",
                   billingInterval === "monthly" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
@@ -222,6 +228,12 @@ export default function BillingPage() {
                 role="radio"
                 aria-checked={billingInterval === "annual"}
                 onClick={() => setBillingInterval("annual")}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    setBillingInterval(billingInterval === "annual" ? "monthly" : "annual");
+                  }
+                }}
                 className={[
                   "pb-1 border-b transition-colors motion-reduce:transition-none",
                   billingInterval === "annual" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
