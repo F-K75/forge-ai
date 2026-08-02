@@ -189,7 +189,7 @@ export default function AuthPage() {
   const mfaErrorId = mfaError ? "mfa-error" : undefined;
 
   return (
-    <div className="min-h-screen bg-land-paper text-land-ink">
+    <div className="min-h-screen text-land-ink">
       <motion.header
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}

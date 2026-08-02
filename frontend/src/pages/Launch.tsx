@@ -59,7 +59,7 @@ export default function Launch() {
   const globeOpacity = 1 - scrollProgress * 0.5;
 
   return (
-    <div className="launch-os w-full scroll-smooth bg-base text-ink">
+    <div className="launch-os w-full scroll-smooth text-ink">
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="launch-atmosphere absolute inset-0" />
         <div className="launch-globe-stage absolute inset-0 opacity-80" style={{ transform: `scale(${globeScale})`, opacity: globeOpacity }}>
