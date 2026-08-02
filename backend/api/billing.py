@@ -210,7 +210,7 @@ class PlanResponse(BaseModel):
     max_projects: int
 
 
-@router.post("/checkout", response_model=Dict[str, str])
+@router.post("/checkout", response_model=Dict[str, Any])
 async def create_checkout_session(req: CheckoutRequest, user: User = Depends(get_current_user)):
     db = await get_db()
 
@@ -529,7 +529,7 @@ async def list_invoices(
     )
 
 
-@router.post("/credits/purchase", response_model=Dict[str, str])
+@router.post("/credits/purchase", response_model=Dict[str, Any])
 async def create_credit_purchase(req: CreditPurchaseRequest, user: User = Depends(get_current_user)):
     db = await get_db()
 

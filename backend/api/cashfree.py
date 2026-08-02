@@ -123,25 +123,34 @@ async def create_order(req: CashfreeOrderRequest, current_user: User = Depends(g
     }
 
 
-async def create_cashfree_order(req: CashfreeOrderRequest, current_user: User) -> Dict[str, Any]:
+async def create_cashfree_order(req: Any, current_user: User) -> Dict[str, Any]:
     _require_cashfree()
     db = await get_db()
 
-    receipt = req.receipt or f"order_{current_user.id}"
+    receipt = f"order_{current_user.id}"
     user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0, "name": 1, "email": 1})
-    customer = req.customer or {
+    customer = {
         "id": current_user.id,
         "name": (user_doc or {}).get("name", current_user.name),
         "email": (user_doc or {}).get("email", current_user.email),
     }
 
+    if isinstance(req, dict):
+        amount = req.get("amount", 0)
+        currency = req.get("currency", "INR")
+        success_url = req.get("success_url")
+    else:
+        amount = getattr(req, "amount", 0)
+        currency = getattr(req, "currency", "INR")
+        success_url = getattr(req, "success_url", None)
+
     payload = {
         "order_id": receipt,
-        "order_amount": req.amount / 100 if req.currency.lower() == "inr" else req.amount,
-        "order_currency": req.currency,
+        "order_amount": amount,
+        "order_currency": currency,
         "customer_details": customer,
         "order_meta": {
-            "return_url": req.return_url or f"{settings.app_url}/billing?status=success",
+            "return_url": success_url or f"{settings.app_url}/billing?status=success",
             "notify_url": f"{settings.api_url}/billing/webhook/cashfree",
         },
     }
@@ -159,20 +168,28 @@ async def create_cashfree_order(req: CashfreeOrderRequest, current_user: User) -
         "cashfree_order_id": order.get("order_id") or receipt,
         "cashfree_order_token": order.get("order_token"),
         "credits": 0,
-        "amount": req.amount,
-        "currency": req.currency,
+        "amount": amount,
+        "currency": currency,
         "status": "pending",
         "provider": "cashfree",
         "receipt": receipt,
     }
     await db.credit_purchases.insert_one(purchase)
 
+    payment_session_id = order.get("payment_session_id")
+    redirect_url = (
+        f"https://payments.cashfree.com/checkout#paymentSessionId={payment_session_id}"
+        if payment_session_id
+        else None
+    )
+
     return {
         "order_id": order.get("order_id") or receipt,
         "order_token": order.get("order_token"),
         "amount": order.get("order_amount"),
         "currency": order.get("order_currency"),
-        "payment_session_id": order.get("payment_session_id"),
+        "payment_session_id": payment_session_id,
+        "url": redirect_url,
     }
 
 
