@@ -1,30 +1,19 @@
 import { useEffect, useRef } from "react";
 
 const DOT_RADIUS = 1;
-const DOT_SPACING = 16;
-const DOT_COLOR = "rgba(255, 255, 255, 0.16)";
+const DOT_SPACING = 20;
+const DOT_COLOR = "rgba(255, 255, 255, 0.14)";
 const DOT_COLOR_LIGHT = "rgba(20, 184, 166, 0.55)";
 const GLOW_RADIUS = 420;
-const BG_COLOR = "rgb(var(--bg))";
 
 export default function GlobalBackground() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const mouseRef = useRef<{ x: number; y: number } | null>(null);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
+    const container = containerRef.current;
+    if (!container) return;
 
     const handleMouseMove = (event: MouseEvent) => {
       mouseRef.current = { x: event.clientX, y: event.clientY };
@@ -38,12 +27,17 @@ export default function GlobalBackground() {
     window.addEventListener("mouseleave", handleMouseLeave);
 
     const draw = () => {
-      const width = canvas.width;
-      const height = canvas.height;
+      const { left, top, width, height } = container.getBoundingClientRect();
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
 
       ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = BG_COLOR;
-      ctx.fillRect(0, 0, width, height);
 
       const cols = Math.ceil(width / DOT_SPACING) + 1;
       const rows = Math.ceil(height / DOT_SPACING) + 1;
@@ -80,25 +74,24 @@ export default function GlobalBackground() {
         }
       }
 
+      const existing = container.querySelector("canvas.global-bg-canvas");
+      if (existing) existing.remove();
+      canvas.className = "global-bg-canvas pointer-events-none absolute inset-0 h-full w-full";
+      container.appendChild(canvas);
+
       rafRef.current = requestAnimationFrame(draw);
     };
 
     rafRef.current = requestAnimationFrame(draw);
 
     return () => {
-      window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseleave", handleMouseLeave);
       cancelAnimationFrame(rafRef.current);
+      const canvas = container.querySelector("canvas.global-bg-canvas");
+      if (canvas) canvas.remove();
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 h-full w-full"
-      style={{ zIndex: 0 }}
-    />
-  );
+  return <div ref={containerRef} aria-hidden="true" className="absolute inset-0 h-full w-full overflow-hidden" />;
 }
