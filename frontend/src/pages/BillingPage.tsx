@@ -141,6 +141,24 @@ export default function BillingPage() {
         </motion.div>
       </section>
 
+      {LIVE_MODE && usage && usage.credits_remaining < 10 && (
+        <div className="mb-8 flex items-start gap-3 rounded-lg border border-warn/40 bg-warn/10 p-4">
+          <p className="text-sm text-warn">
+            You have {usage.credits_remaining} credits remaining. Upgrade your plan to avoid interruptions.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const upgrade = rawPlans?.find(p => p.tier === "standard");
+              if (upgrade) handleSelectPlan(upgrade.tier);
+            }}
+            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-md bg-ink text-base hover:bg-ink/90 transition-colors"
+          >
+            Upgrade
+          </button>
+        </div>
+      )}
+
       {/* Credits/Builds by agent */}
       <section aria-label={LIVE_MODE ? "Builds by agent" : "Credits by agent"} className="mb-12 pb-12 border-b border-border">
         <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-4">
@@ -282,6 +300,9 @@ function RawPlanCard({
   onSelect: () => void;
 }) {
   const displayPrice = interval === "annual" ? Math.round(plan.price_annual / 12) : plan.price_monthly;
+  const monthlyTotal = plan.price_monthly * 12;
+  const savingsAmount = monthlyTotal - plan.price_annual;
+  const savingsPct = monthlyTotal > 0 ? Math.round((savingsAmount / monthlyTotal) * 100) : 0;
   return (
     <motion.div className="relative bg-base p-6 flex flex-col gap-4" {...presets.card} variants={motionVariants.staggerItem}>
       {active && <div className="absolute top-0 left-0 right-0 h-px bg-ink" aria-hidden="true" />}
@@ -294,7 +315,7 @@ function RawPlanCard({
           </p>
           {interval === "annual" && plan.price_monthly > 0 && (
             <p className="text-[11px] text-muted mt-0.5">
-              ${plan.price_annual}/yr — save ${plan.price_monthly * 12 - plan.price_annual}
+              ${plan.price_annual}/yr — save {savingsPct}% (${savingsAmount})
             </p>
           )}
           <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>

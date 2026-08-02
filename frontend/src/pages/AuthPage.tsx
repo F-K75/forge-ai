@@ -183,6 +183,11 @@ export default function AuthPage() {
 
   const passwordStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : /[A-Z]/.test(password) && /[0-9]/.test(password) ? 3 : 2;
 
+  const emailErrorId = errors.email ? "email-error" : undefined;
+  const passwordErrorId = errors.password ? "password-error" : undefined;
+  const formErrorId = errors.form ? "form-error" : undefined;
+  const mfaErrorId = mfaError ? "mfa-error" : undefined;
+
   return (
     <div className="min-h-screen bg-land-paper text-land-ink">
       <motion.header
@@ -279,11 +284,13 @@ export default function AuthPage() {
                 <AnimatePresence>
                 {mfaError && (
                   <motion.div
+                    id="mfa-error"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.2, ease: easeOut }}
                     role="alert"
+                    aria-live="assertive"
                     className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive overflow-hidden"
                   >
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
@@ -303,6 +310,9 @@ export default function AuthPage() {
                     placeholder="123456"
                     value={mfaCode}
                     onChange={(e) => setMfaCode(e.target.value)}
+                    onBlur={() => setTouched((t) => ({ ...t, mfaCode: true }))}
+                    aria-invalid={!!mfaError}
+                    aria-describedby={mfaErrorId}
                     autoFocus
                     whileFocus={{ scale: 1.01 }}
                     transition={{ duration: 0.15, ease: easeOut }}
@@ -354,11 +364,13 @@ export default function AuthPage() {
               <AnimatePresence>
               {errors.form && (
                 <motion.div
+                  id="form-error"
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2, ease: easeOut }}
                   role="alert"
+                  aria-live="assertive"
                   className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive overflow-hidden"
                 >
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
@@ -386,7 +398,7 @@ export default function AuthPage() {
                     setErrors((er) => ({ ...er, email: validateEmail(email) }));
                   }}
                   aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? "email-error" : undefined}
+                  aria-describedby={emailErrorId}
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.15, ease: easeOut }}
                   className={`bb-input h-11 ${
@@ -434,7 +446,7 @@ export default function AuthPage() {
                       setErrors((er) => ({ ...er, password: validatePassword(password) }));
                     }}
                     aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : undefined}
+                    aria-describedby={passwordErrorId}
                     whileFocus={{ scale: 1.01 }}
                     transition={{ duration: 0.15, ease: easeOut }}
                     className={`bb-input h-11 pr-10 ${

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
+import { MessageSquare, Code2, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, useReducedMotion } from "motion/react";
 import { presets } from "../lib/animationPresets";
@@ -20,21 +21,18 @@ interface WorkspaceProject {
   name: string;
 }
 
+type MobilePanel = "chat" | "editor" | "preview";
+
 export default function WorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>();
   const location = useLocation();
   const reduceMotion = useReducedMotion();
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("chat");
 
   const [project, setProject] = useState<WorkspaceProject | null>(
     LIVE_MODE ? null : PROJECTS.find((p) => p.id === projectId) ?? PROJECTS[0]
   );
-  // Distinct from `project === null` (still loading) -- lets the render
-  // below stop showing an infinite spinner when project creation/fetch
-  // fails, instead of silently spinning forever past a missed toast.
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  // Guards against creating a duplicate project if this effect re-runs
-  // (e.g. React StrictMode's double-invoke in dev) while projectId is "new".
   const creatingNewProject = useRef(false);
 
   useEffect(() => {
@@ -42,11 +40,6 @@ export default function WorkspacePage() {
     let cancelled = false;
 
     if (projectId === "new") {
-      // Arriving here (from Onboarding, or a starter chip in demo mode)
-      // means no real project exists yet -- this used to fall through to
-      // a fake {id: "new", ...} placeholder, and the build-creation call
-      // right after it would 404 against a project that was never actually
-      // created. Create the real project first (PROD-002).
       if (creatingNewProject.current) return;
       creatingNewProject.current = true;
 
@@ -75,9 +68,6 @@ export default function WorkspacePage() {
         if (!cancelled) setProject({ id: p.id, name: p.name });
       })
       .catch(() => {
-        // Previously silent (PROD-016) -- a failed fetch (network error,
-        // permissions, deleted project) rendered an "Unknown project"
-        // placeholder with no indication anything had gone wrong.
         if (!cancelled) {
           toast.error("Unable to load this project");
           setProject({ id: projectId, name: "Unknown project" });
@@ -98,8 +88,6 @@ export default function WorkspacePage() {
 
   useEffect(() => {
     if (!buildId || LIVE_MODE) return;
-    // Demo driver: dispatches real, typed events through the same
-    // handleEvent path the live socket uses — a drop-in for the real thing.
     const cancel = runMockBuild(buildId, handleEvent);
     return cancel;
   }, [buildId, handleEvent]);
@@ -126,7 +114,6 @@ export default function WorkspacePage() {
         return;
       }
 
-      // Mock POST /builds — returns a fake buildId until a backend exists.
       const newBuildId = `build-${Date.now().toString(36)}`;
       startBuild(newBuildId, prompt);
       setBuildId(newBuildId);
@@ -134,13 +121,6 @@ export default function WorkspacePage() {
     [sendMessage, startBuild, handleEvent, buildId, project]
   );
 
-  // A prompt typed on the Projects page (hero input or a starter chip)
-  // arrives via router state — kick the build off immediately instead of
-  // making the presenter retype it here. In live mode, `project` loads
-  // asynchronously (see the fetch effect above) and is still null on the
-  // first render, so this must wait for it -- firing unconditionally on
-  // mount raced handleSubmit's `if (!project) return` and silently dropped
-  // the auto-submit before the project ever loaded (PROD-041).
   const autoSubmitted = useRef(false);
   useEffect(() => {
     if (autoSubmitted.current || (LIVE_MODE && !project)) return;
@@ -185,6 +165,12 @@ export default function WorkspacePage() {
     );
   }
 
+  const panels = [
+    { key: "chat" as MobilePanel, label: "Chat", icon: MessageSquare },
+    { key: "editor" as MobilePanel, label: "Code", icon: Code2 },
+    { key: "preview" as MobilePanel, label: "Preview", icon: Eye },
+  ];
+
   return (
     <motion.div
       className="h-screen flex flex-col bg-base bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(232,130,60,0.08),transparent_60%)]"
@@ -193,11 +179,56 @@ export default function WorkspacePage() {
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       <TopBar projectName={project.name} projectId={project.id} />
-      <div className="flex-1 min-h-0 grid grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)_320px] gap-3 p-3">
-        <ChatPanel onSubmit={handleSubmit} />
-        <EditorPanel />
-        <PreviewPanel />
+
+      {/* Desktop: 3-column grid. Mobile/tablet: single panel with tab switcher */}
+      <div className="flex-1 min-h-0">
+        {/* Desktop panels */}
+        <div className="hidden lg:grid grid-cols-[340px_minmax(0,1fr)_320px] gap-3 p-3 h-full">
+          <ChatPanel onSubmit={handleSubmit} />
+          <EditorPanel />
+          <PreviewPanel />
+        </div>
+
+        {/* Tablet: 2-column with preview toggle */}
+        <div className="hidden md:grid lg:hidden grid-cols-[340px_minmax(0,1fr)] gap-3 p-3 h-full">
+          <ChatPanel onSubmit={handleSubmit} />
+          <div className="flex flex-col gap-3">
+            <EditorPanel />
+            <PreviewPanel />
+          </div>
+        </div>
+
+        {/* Mobile: tab-switched panels */}
+        <div className="flex flex-col md:hidden h-full">
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {mobilePanel === "chat" && <ChatPanel onSubmit={handleSubmit} />}
+            {mobilePanel === "editor" && <EditorPanel />}
+            {mobilePanel === "preview" && <PreviewPanel />}
+          </div>
+          <nav aria-label="Workspace panels" className="flex items-center justify-around border-t border-outline bg-panel px-2 py-1.5">
+            {panels.map(({ key, label, icon: Icon }) => {
+              const active = mobilePanel === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setMobilePanel(key)}
+                  aria-pressed={active}
+                  aria-label={label}
+                  className={[
+                    "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    active ? "text-accent" : "text-muted hover:text-ink",
+                  ].join(" ")}
+                >
+                  <Icon size={18} strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
+                  {label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
       </div>
+
       <StatusBar connectionStatus={connectionStatus} />
     </motion.div>
   );

@@ -182,7 +182,7 @@ export default function Signup() {
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Check your email</h1>
           <p className="text-sm text-land-muted leading-relaxed mb-8">
-            We've sent a verification link to <span className="text-land-ink">{submittedEmail}</span>. Click it to
+            We&apos;ve sent a verification link to <span className="text-land-ink">{submittedEmail}</span>. Click it to
             confirm your account — you can start setting up your workspace in the meantime.
           </p>
           <button
@@ -280,10 +280,12 @@ export default function Signup() {
               <motion.div variants={fadeUp} className="space-y-5">
                 {errors.form && (
                   <motion.div
+                    id="signup-form-error"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     transition={{ duration: 0.2, ease: easeOut }}
                     role="alert"
+                    aria-live="assertive"
                     className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive overflow-hidden"
                   >
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
@@ -310,12 +312,14 @@ export default function Signup() {
                       validate("name", name);
                     }}
                     aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? "signup-name-error" : undefined}
                     className={`w-full h-11 px-3 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
                       errors.name ? "border-land-destructive/60" : "border-land-border"
                     }`}
                   />
                   {errors.name && (
                     <motion.p
+                      id="signup-name-error"
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
@@ -346,12 +350,14 @@ export default function Signup() {
                       validate("email", email);
                     }}
                     aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? "signup-email-error" : undefined}
                     className={`w-full h-11 px-3 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
                       errors.email ? "border-land-destructive/60" : "border-land-border"
                     }`}
                   />
                   {errors.email && (
                     <motion.p
+                      id="signup-email-error"
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
@@ -386,6 +392,7 @@ export default function Signup() {
                         validate("password", password);
                       }}
                       aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? "signup-password-error" : undefined}
                       className={`w-full h-11 pl-3 pr-10 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
                         errors.password ? "border-land-destructive/60" : "border-land-border"
                       }`}
@@ -412,6 +419,7 @@ export default function Signup() {
                   </div>
                   {errors.password ? (
                     <motion.p
+                      id="signup-password-error"
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
@@ -462,12 +470,14 @@ export default function Signup() {
                       validate("confirmPassword", confirmPassword);
                     }}
                     aria-invalid={!!errors.confirmPassword}
+                    aria-describedby={errors.confirmPassword ? "signup-confirm-error" : undefined}
                     className={`w-full h-11 px-3 bg-transparent border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition ${
                       errors.confirmPassword ? "border-land-destructive/60" : "border-land-border"
                     }`}
                   />
                   {errors.confirmPassword && (
                     <motion.p
+                      id="signup-confirm-error"
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
