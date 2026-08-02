@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Chrome } from "lucide-react";
+import { AnimatePresence, motion, useAnimationControls } from "motion/react";
+import { Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Chrome } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { API_URL } from "../store/authStore";
+import BrandLogo from "../components/BrandLogo";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
@@ -193,13 +194,7 @@ export default function AuthPage() {
         <div className="max-w-6xl mx-auto px-6">
           <nav className="flex items-center justify-between h-16">
             <Link to="/home" className="flex items-center gap-2 group">
-              <motion.div
-                whileHover={{ rotate: 90 }}
-                transition={{ duration: 0.3, ease: easeOut }}
-                className="w-6 h-6 border border-land-ink flex items-center justify-center"
-              >
-                <Sparkles className="w-3 h-3" aria-hidden="true" />
-              </motion.div>
+              <BrandLogo size="sm" bordered />
               <span className="font-display font-medium tracking-tight">Forge</span>
             </Link>
             <div className="text-sm text-land-muted">

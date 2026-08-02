@@ -20,7 +20,7 @@ import {
   Users,
   Building2,
 } from "lucide-react";
-import forgeLogo from "/forge.svg";
+import BrandLogo from "../components/BrandLogo";
 import { AGENTS, type Agent } from "../lib/agents";
 import gsap from "gsap";
 import { useStaggerIn, useSplitTextReveal } from "../lib/animations";
@@ -358,9 +358,7 @@ export function Nav() {
             href="#top"
             className="flex items-center gap-2.5 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
-            <span className="flex h-8 w-8 items-center justify-center">
-              <img src={forgeLogo} alt="Forge" className="h-8 w-8" />
-            </span>
+            <BrandLogo size="md" />
             <span className="font-brand text-[17px] font-semibold tracking-tight text-ink">
               Forge
             </span>
@@ -847,9 +845,7 @@ export function Footer() {
     <footer className="border-t border-land-border py-16">
       <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-6 w-6 items-center justify-center">
-            <img src={forgeLogo} alt="Forge" className="h-6 w-6" />
-          </span>
+          <BrandLogo size="sm" />
           <span className="font-display font-medium text-land-ink">Forge</span>
           <span className="hidden sm:inline text-xs text-land-muted">The AI engineering organization.</span>
         </div>

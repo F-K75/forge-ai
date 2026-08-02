@@ -20,7 +20,7 @@ import { CURRENT_USER } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
 import { NotificationsBell } from "./NotificationsBell";
 import { ThemeToggle } from "./ThemeToggle";
-import forgeLogo from "/forge.svg";
+import BrandLogo from "./BrandLogo";
 
 interface DockApp {
   to: string;
@@ -166,9 +166,7 @@ export default function AppShell() {
               className="group flex items-center gap-2.5 rounded-full pr-2 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               aria-label="Home"
             >
-              <span className="flex h-8 w-8 items-center justify-center">
-                <img src={forgeLogo} alt="Forge" className="h-8 w-8" />
-              </span>
+              <BrandLogo size="md" />
               <span className="font-brand text-[17px] font-semibold tracking-tight text-ink">
                 Forge
               </span>
