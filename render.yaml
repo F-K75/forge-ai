@@ -16,10 +16,12 @@ services:
         value: 2ce1bf90649bfca35fff710bd6751650d4cf95a14f1234bc46c81747821ee3a8
       - key: ADMIN_EMAILS
         value: admin@forge.ai
-      - key: APP_URL
-        sync: false
+      - key: ALLOWED_HOSTS
+        value: localhost,127.0.0.1,testserver,*.trycloudflare.com,forge-ai-ioom.onrender.com,*.onrender.com
       - key: API_URL
-        sync: false
+        value: https://forge-ai-ioom.onrender.com
+      - key: APP_URL
+        value: https://forge-ai-ioom.onrender.com
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: OPENAI_API_KEY
