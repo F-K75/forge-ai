@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-const DOT_RADIUS = 1.1;
-const DOT_SPACING = 20;
-const DOT_COLOR = "rgba(255, 255, 255, 0.14)";
+const DOT_RADIUS = 1;
+const DOT_SPACING = 16;
+const DOT_COLOR = "rgba(255, 255, 255, 0.16)";
 const DOT_COLOR_LIGHT = "rgba(20, 184, 166, 0.55)";
 const GLOW_RADIUS = 420;
 const BG_COLOR = "rgb(var(--bg))";
