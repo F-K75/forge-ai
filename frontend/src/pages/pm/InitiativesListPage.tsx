@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Send, Loader2, Rocket, Sparkles, Clock, FolderOpen, Code2, type LucideIcon } from "lucide-react";
+import { Send, Loader2, Rocket, Sparkles, Clock, FolderOpen, Code2 } from "lucide-react";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
 import { formatRelativeTime } from "../../lib/format";
@@ -37,7 +37,7 @@ const STATUS_MAP: Record<string, "complete" | "running" | "failed" | "pending"> 
   failed: "failed",
 };
 
-// @ts-ignore
+// @ts-expect-error - Lucide icons are ForwardRefExoticComponent
 const STATUS_ICON: any = {
   draft: Clock,
   generating: Loader2,

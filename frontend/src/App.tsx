@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
 import { LIVE_MODE } from "./lib/env"
+import GlobalBackground from "./components/GlobalBackground"
 
 const AuthPage = lazy(() => import("./pages/AuthPage"))
 const Signup = lazy(() => import("./pages/Signup"))
@@ -56,7 +57,7 @@ const queryClient = new QueryClient({
 
 function LoadingSpinner() {
   return (
-    <div className="min-h-[100dvh] bg-[#07070b] flex items-center justify-center">
+    <div className="relative z-[1] min-h-[100dvh] bg-[#07070b] flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-ember border-t-transparent rounded-full animate-spin" />
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Booting Forge OS</p>
@@ -67,7 +68,7 @@ function LoadingSpinner() {
 
 function RouteSkeleton() {
   return (
-    <div className="min-h-full flex items-center justify-center py-20">
+    <div className="relative z-[1] min-h-full flex items-center justify-center py-20">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-ember border-t-transparent rounded-full animate-spin" />
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Opening…</p>
@@ -155,8 +156,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
+      <div className="relative min-h-screen bg-base">
+        <GlobalBackground />
+        <div className="relative z-[1]">
+          <BrowserRouter>
+            <Routes>
           {/* Step 5: public landing — independent theme, no shell, no auth gate */}
           <Route
             path="/home"
@@ -453,6 +457,8 @@ export default function App() {
           }}
         />
       </BrowserRouter>
+      </div>
+    </div>
     </QueryClientProvider>
   )
 }
