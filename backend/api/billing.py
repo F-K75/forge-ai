@@ -498,6 +498,11 @@ def _map_price_to_plan(price_id: str) -> PlanTier:
     return _PRICE_TO_PLAN.get(price_id, PlanTier.FREE)
 
 
+@router.get("/provider")
+async def get_billing_provider():
+    return {"provider": BILLING_PROVIDER}
+
+
 @router.get("/subscription", response_model=Optional[SubscriptionResponse])
 async def get_subscription(user: User = Depends(get_current_user)):
     db = await get_db()
