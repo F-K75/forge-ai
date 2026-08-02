@@ -238,7 +238,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
   );
 }
 
-export function AgentFleetGraph({ onClose }: { onClose: () => void }) {
+export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
   const [selectedAgent, setSelectedAgent] = useState<{ id: string; kind: "build" | "gateway" } | null>(null);
 
   const pipelineNodes = useMemo(() => {
@@ -292,6 +292,68 @@ export function AgentFleetGraph({ onClose }: { onClose: () => void }) {
         : GATEWAY_AGENTS.find((a) => a.id === selectedAgent.id))
     : null;
 
+  const graphContent = (
+    <div className={`flex flex-col ${embedded ? "h-[70vh] w-full" : "h-[85vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+      {!embedded && onClose && <MacWindowHeader onClose={onClose} />}
+
+      <div className="flex flex-1 min-h-0">
+        <div className="flex-1 min-w-0">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={handleNodeClick}
+            fitView
+            proOptions={{ hideAttribution: true }}
+            className="h-full w-full"
+            nodeTypes={nodeTypes}
+          >
+            <Background color="#22222E" gap={20} />
+            <Controls showInteractive={false} />
+          </ReactFlow>
+        </div>
+
+        <AnimatePresence mode="wait">
+          {selectedAgent && selectedAgentData && (
+            <AgentDetailPanel
+              key={`${selectedAgent.kind}-${selectedAgent.id}`}
+              agent={selectedAgentData}
+              kind={selectedAgent.kind}
+              onClose={() => setSelectedAgent(null)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-white/[0.08] px-4 py-2">
+        <div className="flex items-center gap-4 text-[11px] text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-ok" />
+            Build pipeline
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-accent" />
+            Gateway agents
+          </span>
+        </div>
+        <span className="text-[11px] text-faint">Click a node to inspect</span>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {graphContent}
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -300,53 +362,7 @@ export function AgentFleetGraph({ onClose }: { onClose: () => void }) {
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       className="absolute inset-0 z-40 flex items-center justify-center p-4 md:p-8"
     >
-      <div className="flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl">
-        <MacWindowHeader onClose={onClose} />
-
-        <div className="flex flex-1 min-h-0">
-          <div className="flex-1 min-w-0">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onNodeClick={handleNodeClick}
-              fitView
-              proOptions={{ hideAttribution: true }}
-              className="h-full w-full"
-              nodeTypes={nodeTypes}
-            >
-              <Background color="#22222E" gap={20} />
-              <Controls showInteractive={false} />
-            </ReactFlow>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {selectedAgent && selectedAgentData && (
-              <AgentDetailPanel
-                key={`${selectedAgent.kind}-${selectedAgent.id}`}
-                agent={selectedAgentData}
-                kind={selectedAgent.kind}
-                onClose={() => setSelectedAgent(null)}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-white/[0.08] px-4 py-2">
-          <div className="flex items-center gap-4 text-[11px] text-muted">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-ok" />
-              Build pipeline
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-accent" />
-              Gateway agents
-            </span>
-          </div>
-          <span className="text-[11px] text-faint">Click a node to inspect</span>
-        </div>
-      </div>
+      {graphContent}
     </motion.div>
   );
 }

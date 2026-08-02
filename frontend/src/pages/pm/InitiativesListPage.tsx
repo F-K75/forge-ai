@@ -7,7 +7,7 @@ import { initiativesApi } from "../../lib/pmApi";
 import { formatRelativeTime } from "../../lib/format";
 import { StatusPill } from "../../components/StatusPill";
 import { EmptyState, SkeletonCard } from "../../components/ui/EmptyState";
-import { AgentFleetStrip } from "../../components/AgentFleetStrip";
+import { AgentFleetGraph } from "../../components/AgentFleetGraph";
 import { motion, motionVariants } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
 
@@ -37,7 +37,6 @@ const STATUS_MAP: Record<string, "complete" | "running" | "failed" | "pending"> 
   failed: "failed",
 };
 
-// @ts-expect-error - Lucide icons are ForwardRefExoticComponent
 const STATUS_ICON: any = {
   draft: Clock,
   generating: Loader2,
@@ -145,7 +144,7 @@ export default function InitiativesListPage() {
         </div>
       </section>
 
-      <AgentFleetStrip compact />
+      <AgentFleetGraph embedded />
 
       <section aria-label="Existing initiatives" className="min-h-0 flex-1 overflow-auto px-4 py-6 md:px-8 md:py-8">
         {!LIVE_MODE ? (
