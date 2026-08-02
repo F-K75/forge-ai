@@ -15,6 +15,7 @@ from api.projects import router as projects_router
 from api.auth import get_current_user, router as auth_router
 from api.billing import router as billing_router
 from api.razorpay import router as razorpay_router
+from api.cashfree import router as cashfree_router
 from api.admin import router as admin_router
 from api.analytics import router as analytics_router
 from api.marketplace import router as marketplace_router
@@ -271,7 +272,11 @@ async def deprecation_middleware(request: Request, call_next):
         return response
     if path.startswith("/razorpay"):
         return response
+    if path.startswith("/cashfree"):
+        return response
     if path.startswith("/billing/webhook"):
+        return response
+    if path.startswith("/billing/webhook/cashfree"):
         return response
     if path.startswith("/auth/csrf-token"):
         return response
@@ -290,6 +295,7 @@ app.include_router(builds_router)
 app.include_router(projects_router)
 app.include_router(billing_router)
 app.include_router(razorpay_router)
+app.include_router(cashfree_router)
 app.include_router(admin_router)
 app.include_router(analytics_router)
 app.include_router(marketplace_router)

@@ -69,3 +69,7 @@ mongodb://admin:s3cr3tP@ssw0rd@host
 # k8s/backend.yaml uses env-var-substituted URLs for StatefulSet/Secret refs.
 mongodb://forge:\$(MONGO_PASSWORD)@mongodb-client:27017/forge
 redis://:\$(REDIS_PASSWORD)@redis:6379
+
+# Cashfree dummy/test values.
+cf_test1234567890abcdef
+cashfree_test1234567890abcdef

@@ -166,6 +166,21 @@ class Settings(BaseSettings):
     razorpay_credit_1000_price_id: str = ""
     razorpay_credit_5000_price_id: str = ""
 
+    cashfree_app_id: str = ""
+    cashfree_secret_key: str = ""
+    cashfree_webhook_secret: str = ""
+    cashfree_base_url: str = "https://api.cashfree.com/pg/v1"
+    cashfree_standard_monthly_plan_id: str = ""
+    cashfree_pro_monthly_plan_id: str = ""
+    cashfree_enterprise_monthly_plan_id: str = ""
+    cashfree_standard_annual_plan_id: str = ""
+    cashfree_pro_annual_plan_id: str = ""
+    cashfree_enterprise_annual_plan_id: str = ""
+    cashfree_credit_100_price_id: str = ""
+    cashfree_credit_500_price_id: str = ""
+    cashfree_credit_1000_price_id: str = ""
+    cashfree_credit_5000_price_id: str = ""
+
     # App
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
@@ -247,8 +262,13 @@ class Settings(BaseSettings):
                 raise ValueError("RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set in production")
             return self
 
+        if self.billing_provider == "cashfree":
+            if not self.cashfree_app_id or not self.cashfree_secret_key:
+                raise ValueError("CASHFREE_APP_ID and CASHFREE_SECRET_KEY must be set in production")
+            return self
+
         if self.billing_provider != "stripe":
-            raise ValueError("billing_provider must be either 'stripe' or 'razorpay'")
+            raise ValueError("billing_provider must be one of: stripe, razorpay, cashfree")
 
         credential_prefixes = {
             "STRIPE_SECRET_KEY": (self.stripe_secret_key, "sk_live_"),
