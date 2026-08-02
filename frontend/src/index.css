@@ -449,7 +449,7 @@ body {
 .apple-shell {
   background:
     radial-gradient(ellipse 80% 50% at 50% -10%, rgb(var(--primary) / 0.14), transparent 55%),
-    rgb(var(--bg));
+    transparent;
 }
 
 .apple-shell-nav {
