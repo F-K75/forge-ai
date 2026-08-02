@@ -30,7 +30,6 @@ export default function ForgotPassword() {
       await api.post('/auth/forgot-password', { email })
       setSubmitted(true)
     } catch (_err: unknown) {
-      // still return success to prevent email enumeration
       setSubmitted(true)
     } finally {
       setLoading(false)
@@ -50,7 +49,7 @@ export default function ForgotPassword() {
             <Mail className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Check your email</h1>
-          <p className="text-sm text-land-muted mb-8">If an account with that email exists, we've sent a reset link.</p>
+          <p className="text-sm text-land-muted mb-8">If an account with that email exists, we&apos;ve sent a reset link.</p>
           <Link to="/login" className="text-sm text-land-ink underline underline-offset-4 hover:text-land-muted transition">
             Back to sign in
           </Link>
@@ -70,12 +69,12 @@ export default function ForgotPassword() {
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
           </div>
           <h1 className="font-display text-3xl font-medium tracking-tight">Forgot your password?</h1>
-          <p className="text-sm text-land-muted mt-2">Enter your email and we'll send you a reset link.</p>
+          <p className="text-sm text-land-muted mt-2">Enter your email and we&apos;ll send you a reset link.</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {emailError && touched && (
-            <div role="alert" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
+            <div id="forgot-email-error" role="alert" aria-live="assertive" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
               <span>{emailError}</span>
             </div>
           )}
@@ -91,6 +90,8 @@ export default function ForgotPassword() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched(true)}
+              aria-invalid={!!(emailError && touched)}
+              aria-describedby={(emailError && touched) ? "forgot-email-error" : undefined}
               required
               autoComplete="email"
               autoFocus

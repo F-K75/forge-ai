@@ -118,6 +118,12 @@ export const authApi = {
     verify: (mfa_token: string, code: string) =>
       api.post("/auth/mfa/verify", { mfa_token, code }).then((r) => r.data),
   },
+  gdpr: {
+    export: () =>
+      api.get("/gdpr/export", { responseType: "blob" }).then((r) => r.data),
+    delete: (confirm: boolean) =>
+      api.delete("/gdpr/delete", { params: { confirm } }).then((r) => r.data),
+  },
 }
 
 // Projects

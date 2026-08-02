@@ -1,9 +1,16 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Hammer, Home, ArrowLeft } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
+import { useAuthStore } from '../store/authStore'
 
 export default function NotFoundPage() {
   const reduceMotion = useReducedMotion()
+  const { isAuthenticated } = useAuthStore()
+  const location = useLocation()
+  const isInApp = location.pathname.startsWith('/projects') || location.pathname.startsWith('/build') || location.pathname.startsWith('/settings') || location.pathname.startsWith('/billing') || location.pathname.startsWith('/initiatives') || location.pathname.startsWith('/reviews') || location.pathname.startsWith('/marketplace') || location.pathname.startsWith('/admin')
+  const dashboardHref = isAuthenticated ? '/projects' : '/home'
+  const dashboardLabel = isAuthenticated ? 'Dashboard' : 'Home'
+  const DashboardIcon = isAuthenticated ? Home : ArrowLeft
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-base p-6">
@@ -22,14 +29,16 @@ export default function NotFoundPage() {
           This page doesn&apos;t exist or was moved.
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link to="/home" className="bb-btn bb-btn-primary">
-            <Home size={14} aria-hidden="true" />
-            Go to home
+          <Link to={dashboardHref} className="bb-btn bb-btn-primary">
+            <DashboardIcon size={14} aria-hidden="true" />
+            {dashboardLabel}
           </Link>
-          <Link to="/" className="bb-btn bb-btn-outlined">
-            <ArrowLeft size={14} aria-hidden="true" />
-            Dashboard
-          </Link>
+          {isInApp && (
+            <button type="button" onClick={() => window.history.back()} className="bb-btn bb-btn-outlined">
+              <ArrowLeft size={14} aria-hidden="true" />
+              Go back
+            </button>
+          )}
         </div>
       </motion.main>
     </div>

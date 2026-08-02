@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, LifeBuoy, Palette } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, LifeBuoy, Palette, Lock, Download, Trash2 } from "lucide-react";
 import { ThemeSegmented } from "../components/ThemeToggle";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
@@ -66,7 +67,8 @@ function formatLastActive(iso: string): string {
 }
 
 export default function SettingsPage() {
-  const { user, fetchMe } = useAuthStore();
+  const { user, fetchMe, logout } = useAuthStore();
+  const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
 
   // Demo-mode-only local state (no backend to persist to).
@@ -279,6 +281,84 @@ export default function SettingsPage() {
       toast.error("Unable to submit ticket");
     } finally {
       setSupportSubmitting(false);
+    }
+  };
+
+  // Password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    if (!currentPassword.trim() || !newPassword.trim()) {
+      setPasswordError("Please fill in all password fields.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+    setPasswordSubmitting(true);
+    try {
+      await authApi.changePassword({ current_password: currentPassword, new_password: newPassword });
+      toast.success("Password updated");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (err: any) {
+      setPasswordError(err?.response?.data?.detail || "Unable to change password");
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
+  // Data export & account deletion
+  const [exportingData, setExportingData] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleExportData = async () => {
+    setExportingData(true);
+    try {
+      const blob = await authApi.gdpr.export();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `forge-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Data export downloaded");
+    } catch {
+      toast.error("Unable to export data");
+    } finally {
+      setExportingData(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast.error("Type DELETE to confirm");
+      return;
+    }
+    setDeleting(true);
+    try {
+      await authApi.gdpr.delete(true);
+      toast.success("Account deleted");
+      await logout();
+      navigate("/login", { replace: true });
+    } catch {
+      toast.error("Unable to delete account");
+      setDeleting(false);
     }
   };
 
@@ -868,6 +948,134 @@ export default function SettingsPage() {
             </motion.button>
           </div>
         </motion.section>
+
+        {/* Password */}
+        {LIVE_MODE && (
+          <motion.section aria-labelledby="section-password" variants={motionVariants.staggerItem}>
+            <div className="flex items-center gap-2 mb-3">
+              <Lock size={13} className="text-muted" aria-hidden="true" />
+              <h2 id="section-password" className="text-sm font-medium text-ink">Password</h2>
+            </div>
+            <div className="border border-border rounded-lg p-5 space-y-3">
+              <div>
+                <label htmlFor="current-password" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Current password</label>
+                <input
+                  id="current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full h-10 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+                />
+              </div>
+              <div>
+                <label htmlFor="new-password" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">New password</label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min. 8 characters"
+                  className="w-full h-10 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+                />
+              </div>
+              <div>
+                <label htmlFor="confirm-new-password" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Confirm new password</label>
+                <input
+                  id="confirm-new-password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Repeat new password"
+                  className="w-full h-10 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+                />
+              </div>
+              {passwordError && (
+                <p id="password-change-error" role="alert" aria-live="polite" className="text-xs text-error">{passwordError}</p>
+              )}
+              <motion.button
+                onClick={handleChangePassword}
+                disabled={passwordSubmitting || !currentPassword.trim() || !newPassword.trim()}
+                {...presets.button}
+                className="h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+              >
+                {passwordSubmitting ? "Updating…" : "Update password"}
+              </motion.button>
+            </div>
+          </motion.section>
+        )}
+
+        {/* Data & Privacy */}
+        {LIVE_MODE && (
+          <motion.section aria-labelledby="section-privacy" variants={motionVariants.staggerItem}>
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck size={13} className="text-muted" aria-hidden="true" />
+              <h2 id="section-privacy" className="text-sm font-medium text-ink">Data & privacy</h2>
+            </div>
+            <div className="border border-border rounded-lg p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-ink">Export your data</p>
+                  <p className="text-xs text-muted mt-0.5">Download a copy of all your Forge data (JSON).</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleExportData}
+                  disabled={exportingData}
+                  className="inline-flex items-center gap-2 h-9 px-3 rounded-md border border-border text-xs font-medium text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none disabled:opacity-50"
+                >
+                  <Download size={13} aria-hidden="true" />
+                  {exportingData ? "Exporting…" : "Export"}
+                </button>
+              </div>
+              <div className="border-t border-border-soft pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-error font-medium">Delete account</p>
+                    <p className="text-xs text-muted mt-0.5">Permanently delete your account and all data. This cannot be undone.</p>
+                  </div>
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="inline-flex items-center gap-2 h-9 px-3 rounded-md border border-error/40 text-xs font-medium text-error hover:bg-error/10 transition-colors motion-reduce:transition-none"
+                    >
+                      <Trash2 size={13} aria-hidden="true" />
+                      Delete
+                    </button>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder='Type "DELETE" to confirm'
+                        className="h-9 w-48 rounded-md border border-error/40 bg-transparent px-3 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleDeleteAccount}
+                          disabled={deleting || deleteConfirmText !== "DELETE"}
+                          className="h-9 px-3 rounded-md bg-error text-white text-xs font-medium hover:bg-error/90 transition-colors motion-reduce:transition-none disabled:opacity-50"
+                        >
+                          {deleting ? "Deleting…" : "Confirm delete"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                          className="h-9 px-3 rounded-md border border-border text-xs font-medium text-muted hover:text-ink transition-colors motion-reduce:transition-none"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.section>
+        )}
 
       </motion.div>
     </motion.div>

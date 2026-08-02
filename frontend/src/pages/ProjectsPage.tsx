@@ -14,13 +14,15 @@ import {
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { EmptyState } from "../components/ui/EmptyState";
 import { AgentFleetGraph } from "../components/AgentFleetGraph";
-import { PROJECTS, STARTERS, type Project as MockProject } from "../lib/mockData";
+import { PROJECTS, STARTERS, type Project as MockProject, CURRENT_USER } from "../lib/mockData";
 import { getIcon } from "../lib/iconMap";
 import { LIVE_MODE } from "../lib/env";
 import { projectsApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
 import { coverGradient } from "../lib/coverArt";
 import { coverageStats, ORG_ROLE_COUNT, PLAYBOOK_COUNT, PROMPT_TEMPLATE_COUNT } from "../lib/skillVisuals";
+import { useAuthStore } from "../store/authStore";
+import { useBuildStore } from "../store/buildStore";
 
 
 function toDisplayProject(raw: any): MockProject {
@@ -80,7 +82,16 @@ export default function ProjectsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("icons");
   const reduceMotion = useReducedMotion();
-  const skillStats = coverageStats();
+  const { user } = useAuthStore();
+  const name = LIVE_MODE ? user?.name ?? "" : CURRENT_USER.name;
+  const plan = LIVE_MODE ? user?.plan ?? "free" : CURRENT_USER.plan;
+  const creditsRemaining = LIVE_MODE
+    ? user?.credits ?? 0
+    : CURRENT_USER.creditsTotal - CURRENT_USER.creditsUsed;
+  const canBuild = creditsRemaining > 0 || plan === "enterprise";
+
+  const buildError = useBuildStore((s) => s.error);
+  const clearBuildError = useBuildStore((s) => s.reset);
 
   useEffect(() => {
     if (!LIVE_MODE) return;
@@ -153,9 +164,9 @@ export default function ProjectsPage() {
                </h2>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="bb-chip bb-chip-selected">
-                {skillStats.full} visuals
-              </span>
+               <span className="bb-chip bb-chip-selected">
+                 {coverageStats().full} visuals
+               </span>
               <span className="bb-chip">
                 {ORG_ROLE_COUNT} roles
               </span>
@@ -191,6 +202,24 @@ export default function ProjectsPage() {
               {creating ? "Opening" : "Build"}
             </motion.button>
           </div>
+
+          {!canBuild && (
+            <p className="mt-2 text-xs text-warn">No credits remaining. Upgrade your plan to continue building.</p>
+          )}
+
+          {buildError && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-error/40 bg-error/10 p-3 text-sm text-error">
+              <span className="mt-0.5 shrink-0">⚠</span>
+              <span className="flex-1">{buildError}</span>
+              <button
+                type="button"
+                onClick={() => { clearBuildError(); }}
+                className="shrink-0 text-xs underline underline-offset-2"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           <div
             className="mt-4 flex flex-wrap items-center gap-2"

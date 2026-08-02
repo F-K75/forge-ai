@@ -68,6 +68,15 @@ export default function Onboarding() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => navigate("/projects")}
+            className="text-xs text-muted hover:text-ink transition motion-reduce:transition-none"
+          >
+            Skip onboarding
+          </button>
+        </div>
         {/* Progress rail */}
         <nav aria-label="Onboarding steps" className="mb-8">
           <motion.ol

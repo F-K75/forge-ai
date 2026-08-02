@@ -19,6 +19,10 @@ import {
   Briefcase,
   Users,
   Building2,
+  Lock,
+  ShieldCheck,
+  Globe,
+  Zap,
 } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
 import { AGENTS, type Agent } from "../lib/agents";
@@ -261,7 +265,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="launch-os w-full scroll-smooth bg-base text-ink">
+    <div className="launch-os w-full scroll-smooth text-ink">
       <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="launch-atmosphere absolute inset-0" />
         <div className="launch-name-veil absolute inset-0" />
@@ -328,6 +332,7 @@ export function LandingPageBody() {
       <WhyForgeSection />
       <ComparisonSection />
       <CustomerBenefitsSection />
+      <TrustSection />
       <PricingSection />
       <FAQSection />
       <FinalCTA />
@@ -730,6 +735,29 @@ function CustomerBenefitsSection() {
   );
 }
 
+// ─── Trust ───────────────────────────────────────────────────────────────────
+
+function TrustSection() {
+  const items = [
+    { icon: Lock, label: "Encrypted data" },
+    { icon: ShieldCheck, label: "SOC 2 in progress" },
+    { icon: Globe, label: "GDPR compliant" },
+    { icon: Zap, label: "99.9% uptime SLA" },
+  ];
+  return (
+    <Section id="trust">
+      <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+        {items.map(({ icon: Icon, label }) => (
+          <div key={label} className="flex items-center gap-2 text-land-muted">
+            <Icon size={16} strokeWidth={1.5} aria-hidden="true" />
+            <span className="text-xs font-medium tracking-wide uppercase">{label}</span>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 // ─── Pricing ────────────────────────────────────────────────────────────────
 
 function PricingSection() {
@@ -851,9 +879,9 @@ export function Footer() {
         </div>
 
         <nav aria-label="Footer" className="flex items-center gap-6 text-sm text-land-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <Github size={13} aria-hidden="true" /> GitHub coming soon
-          </span>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-land-ink transition">
+            <Github size={13} aria-hidden="true" /> GitHub
+          </a>
         </nav>
 
         <p className="text-xs text-land-muted">© {new Date().getFullYear()} Forge</p>

@@ -1,0 +1,10 @@
+name = "forge-frontend"
+compatibility_date = "2026-08-02"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "cd frontend && npm ci && npm run build"
+watch_dirs = ["frontend/src"]
+
+[site]
+bucket = "frontend/dist"

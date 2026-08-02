@@ -23,6 +23,7 @@ import { NotificationsBell } from "./NotificationsBell";
 import { ThemeToggle } from "./ThemeToggle";
 import BrandLogo from "./BrandLogo";
 import { AgentFleetGraph } from "./AgentFleetGraph";
+import { CommandPalette } from "./CommandPalette";
 
 interface DockApp {
   to: string;
@@ -269,6 +270,7 @@ export default function AppShell() {
       {showAgentFleet && (
         <AgentFleetGraph onClose={() => setShowAgentFleet(false)} />
       )}
+      <CommandPalette />
     </div>
   );
 }
