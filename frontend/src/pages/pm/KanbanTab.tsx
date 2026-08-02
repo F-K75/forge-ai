@@ -1,21 +1,21 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { DndContext, useDraggable, useDroppable, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { Play, Loader2, GitBranch } from "lucide-react";
+import { Play, Loader2, GitBranch, Search, Filter } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { tasksApi } from "../../lib/pmApi";
 import { motion, motionVariants } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
 
-const COLUMNS: { id: string; label: string }[] = [
-  { id: "backlog", label: "Backlog" },
-  { id: "ready", label: "Ready" },
-  { id: "in_progress", label: "In Progress" },
-  { id: "code_review", label: "Code Review" },
-  { id: "testing", label: "Testing" },
-  { id: "blocked", label: "Blocked" },
-  { id: "done", label: "Done" },
-  { id: "support", label: "Support" },
+const COLUMNS: { id: string; label: string; color: string }[] = [
+  { id: "backlog", label: "Backlog", color: "rgb(var(--muted))" },
+  { id: "ready", label: "Ready", color: "rgb(var(--primary))" },
+  { id: "in_progress", label: "In Progress", color: "rgb(var(--accent))" },
+  { id: "code_review", label: "Code Review", color: "rgb(var(--secondary))" },
+  { id: "testing", label: "Testing", color: "rgb(var(--warning))" },
+  { id: "blocked", label: "Blocked", color: "rgb(var(--error))" },
+  { id: "done", label: "Done", color: "rgb(var(--success))" },
+  { id: "support", label: "Support", color: "rgb(var(--info))" },
 ];
 
 function TaskCard({ task, index }: { task: Record<string, any>; index: number }) {
@@ -50,16 +50,18 @@ function TaskCard({ task, index }: { task: Record<string, any>; index: number })
       variants={motionVariants.staggerItem}
       custom={index}
       {...presets.kanbanCard}
-      className={`glass rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing ${isDragging ? "opacity-60" : ""}`}
+      className={`group rounded-xl border border-white/[0.08] bg-white/[0.03] p-3.5 mb-2 cursor-grab active:cursor-grabbing transition-all duration-200 hover:border-white/15 hover:bg-white/[0.05] ${isDragging ? "opacity-60 scale-[1.02] shadow-lg shadow-black/30 border-accent/40" : ""}`}
     >
-      <p className="text-sm text-ink mb-2 leading-snug">{task.title}</p>
+      <p className="text-sm text-ink mb-2.5 leading-snug font-medium">{task.title}</p>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-[10px] font-mono text-faint truncate" title={task.assigned_agent}>
-            {task.assigned_agent?.replace("_agent", "")}
-          </span>
+          {task.assigned_agent && (
+            <span className="text-[10px] font-mono text-faint truncate" title={task.assigned_agent}>
+              {task.assigned_agent?.replace("_agent", "")}
+            </span>
+          )}
           {task.github?.pr_url && (
-            <a href={task.github.pr_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-faint hover:text-ink">
+            <a href={task.github.pr_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-faint hover:text-ink transition-colors">
               <GitBranch size={10} aria-hidden="true" />
             </a>
           )}
@@ -69,7 +71,7 @@ function TaskCard({ task, index }: { task: Record<string, any>; index: number })
             onClick={handleExecute}
             disabled={running}
             aria-label="Run AI agent"
-            className="flex items-center justify-center w-5 h-5 rounded text-faint hover:text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
+            className="flex items-center justify-center w-7 h-7 rounded-lg border border-white/10 bg-white/[0.04] text-faint hover:text-ink hover:bg-white/[0.08] hover:border-white/20 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50"
           >
             {running ? <Loader2 size={11} className="animate-spin" aria-hidden="true" /> : <Play size={11} aria-hidden="true" />}
           </button>
@@ -79,22 +81,34 @@ function TaskCard({ task, index }: { task: Record<string, any>; index: number })
   );
 }
 
-function Column({ id, label, tasks }: { id: string; label: string; tasks: Record<string, any>[] }) {
+function Column({ id, label, tasks, color }: { id: string; label: string; tasks: Record<string, any>[]; color: string }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <motion.div
       ref={setNodeRef}
       variants={motionVariants.scaleIn}
-      className={`w-64 shrink-0 flex flex-col rounded-lg border ${isOver ? "border-ink/40 bg-panel-alt" : "border-border-soft"} p-2`}
+      className={`w-64 shrink-0 flex flex-col rounded-2xl border transition-all duration-200 ${isOver ? "border-accent/40 bg-accent/5 shadow-lg shadow-accent/10" : "border-white/[0.08] bg-white/[0.02]"}`}
     >
-      <div className="flex items-center justify-between px-1.5 py-1.5 mb-1">
-        <span className="text-xs font-medium text-muted uppercase tracking-[0.08em]">{label}</span>
-        <span className="text-[10px] font-mono text-faint">{tasks.length}</span>
+      <div className="flex items-center justify-between px-4 py-3 mb-1">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+          <span className="text-xs font-semibold text-ink uppercase tracking-wider">{label}</span>
+        </div>
+        <span className="text-[11px] font-mono text-muted bg-white/5 px-2 py-0.5 rounded-full">{tasks.length}</span>
       </div>
-      <motion.div className="overflow-y-auto flex-1 min-h-8" variants={motionVariants.staggerContainer}>
+      <motion.div className="overflow-y-auto flex-1 min-h-8 px-2 pb-2" variants={motionVariants.staggerContainer}>
         {tasks.map((t, i) => (
           <TaskCard key={t.id} task={t} index={i} />
         ))}
+        {tasks.length === 0 && (
+          <motion.div
+            className="flex items-center justify-center py-6 text-[11px] text-faint border border-dashed border-white/10 rounded-xl mx-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            Drop tasks here
+          </motion.div>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -136,40 +150,48 @@ export default function KanbanTab() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <motion.div className="flex items-center gap-2 px-6 md:px-8 py-3 border-b border-border-soft shrink-0 flex-wrap" variants={motionVariants.fadeIn}>
-        <select
-          value={sprintFilter}
-          onChange={e => setSprintFilter(e.target.value)}
-          className="h-8 bg-transparent border border-border rounded-md px-2 text-xs text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
-        >
-          <option value="all">All sprints</option>
-          {sprints.map(s => (
-            <option key={s.id} value={s.id}>{s.name || `Sprint ${s.sprint_number}`}</option>
-          ))}
-        </select>
-        <select
-          value={agentFilter}
-          onChange={e => setAgentFilter(e.target.value)}
-          className="h-8 bg-transparent border border-border rounded-md px-2 text-xs text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
-        >
-          <option value="all">All agents</option>
-          {agents.map(a => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search tasks…"
-          className="h-8 bg-transparent border border-border rounded-md px-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 min-w-[160px]"
-        />
+      <motion.div className="flex items-center gap-2 px-6 md:px-8 py-3 border-b border-white/[0.06] shrink-0 flex-wrap" variants={motionVariants.fadeIn}>
+        <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5">
+          <Filter size={12} className="text-muted" />
+          <select
+            value={sprintFilter}
+            onChange={e => setSprintFilter(e.target.value)}
+            className="h-7 bg-transparent text-xs text-ink focus:outline-none focus-visible:ring-0 cursor-pointer"
+          >
+            <option value="all">All sprints</option>
+            {sprints.map(s => (
+              <option key={s.id} value={s.id}>{s.name || `Sprint ${s.sprint_number}`}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5">
+          <select
+            value={agentFilter}
+            onChange={e => setAgentFilter(e.target.value)}
+            className="h-7 bg-transparent text-xs text-ink focus:outline-none focus-visible:ring-0 cursor-pointer"
+          >
+            <option value="all">All agents</option>
+            {agents.map(a => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 flex-1 max-w-[240px]">
+          <Search size={12} className="text-muted" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search tasks…"
+            className="h-7 bg-transparent text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-0 flex-1 min-w-0"
+          />
+        </div>
       </motion.div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <motion.div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
           <motion.div className="flex gap-3 h-full" variants={motionVariants.staggerContainer}>
             {COLUMNS.map(col => (
-              <Column key={col.id} id={col.id} label={col.label} tasks={filtered.filter(t => t.status === col.id)} />
+              <Column key={col.id} id={col.id} label={col.label} tasks={filtered.filter(t => t.status === col.id)} color={col.color} />
             ))}
           </motion.div>
         </motion.div>
