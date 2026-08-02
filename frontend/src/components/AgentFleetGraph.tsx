@@ -243,35 +243,30 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
 
   const pipelineNodes = useMemo(() => {
     const laneWidth = 220;
-    const laneY = 60;
+    const laneY = 80;
+    const startX = 40;
     return BUILD_ORDER.map((id, index) => {
       const agent = AGENTS.find((a) => a.id === id)!;
       return {
         id: agent.id,
         type: "agentNode",
-        position: { x: index * laneWidth, y: laneY },
+        position: { x: startX + index * laneWidth, y: laneY },
         data: { label: agent.label, hue: agent.hue, kind: "build" as const, status: "idle" as const },
       };
     });
   }, []);
 
   const gatewayNodes = useMemo(() => {
-    const stageYMap: Record<string, number> = {
-      Discovery: 40,
-      Definition: 160,
-      Planning: 280,
-      Execution: 400,
-    };
-    const stageX = 60;
+    const laneWidth = 150;
+    const laneY = 260;
+    const startX = 40;
 
-    return GATEWAY_AGENTS.map((agent) => {
-      const stageIndex = GATEWAY_STAGE_ORDER.indexOf(agent.stage as typeof GATEWAY_STAGE_ORDER[number]);
-      const x = stageX + stageIndex * 170;
-      const y = stageYMap[agent.stage] ?? 40;
+    return GATEWAY_AGENTS.map((agent, index) => {
+      const id = agent.id;
       return {
-        id: agent.id,
+        id,
         type: "agentNode",
-        position: { x, y },
+        position: { x: startX + index * laneWidth, y: laneY },
         data: { label: agent.label, hue: agent.hue, kind: "gateway" as const, status: "idle" as const },
       };
     });
