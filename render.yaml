@@ -9,7 +9,7 @@ services:
       - key: APP_ENV
         value: development
       - key: MONGODB_URL
-        value: mongodb+srv://frendiakeshav75_db_user:FORGE%4012345@cluster0.etndecw.mongodb.net/forge?retryWrites=true&w=majority&replicaSet=rs0
+        value: mongodb+srv://frendiakeshav75_db_user:FORGE%4012345@cluster0.etndecw.mongodb.net/forge?retryWrites=true&w=majority&replicaSet=rs0&tls=true&tlsAllowInvalidCertificates=true
       - key: JWT_SECRET
         value: 62d093f7ea6bf59aaf0bc4dd7931d568f58e7036fc4ccecd7852a6e9bcd51517
       - key: FIELD_ENCRYPTION_KEY
