@@ -115,9 +115,9 @@ export function CommandPalette() {
             aria-modal="true"
             aria-label="Command palette"
             className="relative w-full max-w-lg rounded-2xl bg-panel border border-border shadow-apple-lg overflow-hidden"
-            initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.98 }}
+             initial={reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -8, scale: 0.98 }}
+             animate={{ opacity: 1, y: 0, scale: 1 }}
+             exit={reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="flex items-center gap-3 px-4 border-b border-border">

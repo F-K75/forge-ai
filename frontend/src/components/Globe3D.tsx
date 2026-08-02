@@ -37,43 +37,45 @@ export default function Globe3D({ activeAgentId = "architect" }: Globe3DProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+     // @ts-ignore - three-globe v2 accepts (container, options) at runtime
     const globe = new Globe(containerRef.current, {
-      waitForGlobeReady: true,
-      animateIn: true,
-      autoRotate: true,
-      autoRotateSpeed: 0.6,
-      width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,
-    });
+       waitForGlobeReady: true,
+       animateIn: true,
+       autoRotate: true,
+       autoRotateSpeed: 0.6,
+     });
 
-    globe
-      .globeImageUrl("//unpkg.com/three-globe/example/img/earth-night.jpg")
-      .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
-      .pointsData(HUBS.map((location) => ({ lat: location[0], lng: location[1] })))
-      .pointColor(() => "#14B8A6")
-      .pointAltitude(0.02)
-      .pointRadius(0.4)
-      .arcsData([])
-      .arcColor(() => "#14B8A6")
-      .arcStroke(0.2)
-      .arcDashLength(0.4)
-      .arcDashGap(0.2)
-      .arcDashAnimateTime(1800);
+     globe
+       .globeImageUrl("//unpkg.com/three-globe/example/img/earth-night.jpg")
+       .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
+       .pointsData(HUBS.map((location) => ({ lat: location[0], lng: location[1] })))
+       .pointColor(() => "#14B8A6")
+       .pointAltitude(0.02)
+       .pointRadius(0.4)
+       .arcsData([])
+       .arcColor(() => "#14B8A6")
+       .arcStroke(0.2)
+       .arcDashLength(0.4)
+       .arcDashGap(0.2)
+       .arcDashAnimateTime(1800);
 
-    globeRef.current = globe;
+     globeRef.current = globe;
 
-    const onResize = () => {
-      if (!containerRef.current) return;
-      globe.width(containerRef.current.clientWidth);
-      globe.height(containerRef.current.clientHeight);
-    };
+     const onResize = () => {
+       if (!containerRef.current) return;
+       const { clientWidth, clientHeight } = containerRef.current;
+       if (clientWidth > 0 && clientHeight > 0) {
+         (globe as any).width(clientWidth);
+         (globe as any).height(clientHeight);
+       }
+     };
 
-    window.addEventListener("resize", onResize);
+     window.addEventListener("resize", onResize);
 
-    return () => {
-      window.removeEventListener("resize", onResize);
-      globeRef.current = null;
-    };
+     return () => {
+       window.removeEventListener("resize", onResize);
+       globeRef.current = null;
+     };
   }, []);
 
   useEffect(() => {

@@ -164,9 +164,9 @@ export default function ProjectsPage() {
                </h2>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="bb-chip bb-chip-selected">
-                {skillStats.full} visuals
-              </span>
+               <span className="bb-chip bb-chip-selected">
+                 {coverageStats().full} visuals
+               </span>
               <span className="bb-chip">
                 {ORG_ROLE_COUNT} roles
               </span>

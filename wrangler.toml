@@ -1,0 +1,9 @@
+name = "forge-frontend"
+main = "frontend/worker.ts"
+compatibility_date = "2026-08-02"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "forge_db"
+database_id = "local-db"

@@ -67,7 +67,8 @@ function formatLastActive(iso: string): string {
 }
 
 export default function SettingsPage() {
-  const { user, fetchMe } = useAuthStore();
+  const { user, fetchMe, logout } = useAuthStore();
+  const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
 
   // Demo-mode-only local state (no backend to persist to).
