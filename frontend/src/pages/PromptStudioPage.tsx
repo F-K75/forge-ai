@@ -44,7 +44,7 @@ const fromLines = (text: string) =>
 function ListField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs text-slate-400">{label} (one per line)</span>
+      <span className="text-xs text-slate-400">{label}</span>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -124,7 +124,7 @@ export default function PromptStudioPage() {
         quality_rules: toLines(t.quality_rules || []),
       })
     } catch {
-      setEditorStatus('Failed to load template')
+      setEditorStatus('Unable to load template')
     }
   }
 
@@ -157,10 +157,10 @@ export default function PromptStudioPage() {
   const saveTemplate = async () => {
     const payload = payloadFromForm()
     if (!payload.role || !payload.version) {
-      setEditorStatus('Role and version are required')
+       setEditorStatus('Please provide both role and version')
       return
     }
-    setEditorStatus('Saving…')
+    setEditorStatus('Saving')
     try {
       if (isNew) {
         await promptsApi.createTemplate(payload)
@@ -173,21 +173,21 @@ export default function PromptStudioPage() {
       loadTemplates()
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setEditorStatus(typeof detail === 'string' ? detail : 'Failed to save')
+        setEditorStatus(typeof detail === 'string' ? detail : "Unable to save")
     }
   }
 
   const deleteTemplate = async () => {
     if (!selected) return
     if (!window.confirm(`Delete template ${selected.role}/${selected.version}?`)) return
-    setEditorStatus('Deleting…')
+    setEditorStatus('Deleting')
     try {
       await promptsApi.deleteTemplate(selected.role, selected.version)
       setSelected(null)
       setEditorStatus(null)
       loadTemplates()
     } catch {
-      setEditorStatus('Failed to delete')
+      setEditorStatus('Unable to delete')
     }
   }
 
@@ -214,7 +214,7 @@ export default function PromptStudioPage() {
     } catch (err: unknown) {
       setPreview(null)
       const detail = (err as { response?: { data?: { detail?: { message?: string } | string } } })?.response?.data?.detail
-      setPgError(typeof detail === 'string' ? detail : detail?.message || 'Preview failed')
+       setPgError(typeof detail === 'string' ? detail : detail?.message || 'Preview unavailable')
     } finally {
       setPgBusy(false)
     }
@@ -229,7 +229,7 @@ export default function PromptStudioPage() {
     } catch (err: unknown) {
       setValidation(null)
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setPgError(typeof detail === 'string' ? detail : 'Validation request failed')
+       setPgError(typeof detail === 'string' ? detail : 'Validation failed')
     } finally {
       setPgBusy(false)
     }
@@ -247,11 +247,11 @@ export default function PromptStudioPage() {
     >
       <h1 className="text-2xl font-semibold">Prompt Studio</h1>
       <p className="mt-2 text-slate-400">
-        Prompt Builder templates and a preview playground — the first layer of the Prompt Builder → Optimizer → Gateway pipeline.
+        Design prompt templates and preview how agents see them.
       </p>
 
       {loading ? (
-        <p className="mt-6">Loading…</p>
+        <p className="mt-6">Loading</p>
       ) : (
         <div className="mt-6 grid gap-8 lg:grid-cols-2">
           {/* Templates column */}
@@ -284,7 +284,7 @@ export default function PromptStudioPage() {
                   {t.role} / {t.version}
                 </motion.button>
               ))}
-              {!templates.length && <p className="text-slate-400">No templates registered.</p>}
+              {!templates.length && <p className="text-slate-400">No templates yet — create one to get started.</p>}
             </motion.div>
 
             {(selected || isNew) && (
@@ -354,10 +354,10 @@ export default function PromptStudioPage() {
 
           {/* Playground column */}
           <section>
-            <h2 className="text-lg font-medium">Preview Playground</h2>
-            <p className="mt-1 text-xs text-slate-400">
-              Builds the exact prompt an agent would receive — a dry run, nothing is sent to a provider.
-            </p>
+            <h2 className="text-lg font-medium">Preview</h2>
+             <p className="mt-1 text-xs text-slate-400">
+               Preview the exact prompt an agent receives.
+             </p>
             <div className="mt-3 space-y-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4">
               <div className="flex gap-3">
                 <label className="flex flex-1 flex-col gap-1">
@@ -391,7 +391,7 @@ export default function PromptStudioPage() {
                   value={pgTask}
                   onChange={(e) => setPgTask(e.target.value)}
                   rows={2}
-                  placeholder="e.g. Implement the login endpoint"
+                   placeholder="For example, implement the login endpoint"
                   className="rounded bg-slate-800 px-2 py-1"
                 />
               </label>
@@ -429,7 +429,7 @@ export default function PromptStudioPage() {
                 <button onClick={runValidate} disabled={pgBusy || !pgRole} className="rounded bg-slate-800 px-3 py-1 hover:bg-slate-700 disabled:opacity-50">
                   Validate context
                 </button>
-                {pgBusy && <span className="text-xs text-slate-400">Working…</span>}
+                 {pgBusy && <span className="text-xs text-slate-400">Working</span>}
               </div>
               {pgError && <p className="text-xs text-rose-400">{pgError}</p>}
             </div>
@@ -441,9 +441,9 @@ export default function PromptStudioPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
-                <p className={validation.is_valid ? 'text-emerald-400' : 'text-rose-400'}>
-                  {validation.is_valid ? 'Context is valid for this template.' : 'Context has problems:'}
-                </p>
+                 <p className={validation.is_valid ? 'text-emerald-400' : 'text-rose-400'}>
+                   {validation.is_valid ? 'All good.' : 'Found some issues:'}
+                 </p>
                 {validation.errors.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs">
                     {validation.errors.map((e, i) => (

@@ -84,7 +84,7 @@ export function NotificationsBell() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                You're all caught up.
+                All caught up.
               </motion.p>
             ) : (
               <ul className="overflow-y-auto flex-1">

@@ -188,7 +188,7 @@ export default function AdminConsole() {
       link.click()
       URL.revokeObjectURL(url)
     } catch {
-      toast.error("Failed to export users")
+      toast.error("Unable to export users")
     } finally {
       setExporting(false)
     }
@@ -252,13 +252,13 @@ export default function AdminConsole() {
       <header className="flex items-center gap-3 mb-10">
         <Activity size={20} className="text-ink" aria-hidden="true" />
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">
-          Admin console
+          Admin
         </h1>
       </header>
 
       {!LIVE_MODE && (
         <div className="mb-9 bg-warn/10 border border-warn/30 text-warn px-4 py-3 rounded-lg text-sm">
-          Demo mode — connect a live backend to see real platform data.
+          Demo mode — connect a backend to view live data.
         </div>
       )}
 
@@ -270,10 +270,10 @@ export default function AdminConsole() {
           initial={reduceMotion ? false : "hidden"}
           animate="visible"
         >
-          <StatCard label="Total users" value={overview?.total_users ?? "—"} icon={Users} />
-          <StatCard label="Total builds" value={overview?.total_builds ?? "—"} icon={Activity} />
+          <StatCard label="Users" value={overview?.total_users ?? "—"} icon={Users} />
+          <StatCard label="Builds" value={overview?.total_builds ?? "—"} icon={Activity} />
           <StatCard
-            label="Total revenue"
+            label="Revenue"
             value={overview ? `$${overview.total_revenue.toLocaleString()}` : "—"}
             icon={CreditCard}
           />
@@ -377,7 +377,7 @@ export default function AdminConsole() {
                 {builds.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
-                      No builds yet
+                      No builds yet — start a project to see activity here.
                     </td>
                   </tr>
                 )}
@@ -450,7 +450,7 @@ export default function AdminConsole() {
                     Revenue
                   </th>
                   <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide text-right">
-                    Subs
+                    Subscriptions
                   </th>
                   <th className="px-4 py-2.5 text-[10px] font-medium text-faint uppercase tracking-wide text-right">
                     Credit purchases
@@ -473,7 +473,7 @@ export default function AdminConsole() {
                 {revenue.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
-                      No revenue data yet
+                      No revenue data yet — transactions will appear here as they occur.
                     </td>
                   </tr>
                 )}
@@ -571,7 +571,7 @@ export default function AdminConsole() {
                 {aiUsage.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
-                      No AI usage data yet
+                      No AI usage data yet — activity will appear here as models are used.
                     </td>
                   </tr>
                 )}
@@ -666,11 +666,11 @@ export default function AdminConsole() {
                 </tr>
               ))}
               {buildSuccessDaily.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
-                    No build data yet
-                  </td>
-                </tr>
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
+                      No build data yet — results will appear here as builds complete.
+                    </td>
+                  </tr>
               )}
             </tbody>
           </table>
@@ -756,11 +756,11 @@ export default function AdminConsole() {
                 </tr>
               ))}
               {securityEventsDaily.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
-                    No security events yet
-                  </td>
-                </tr>
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-faint">
+                      No security events in the last 30 days.
+                    </td>
+                  </tr>
               )}
             </tbody>
           </table>
@@ -788,7 +788,7 @@ export default function AdminConsole() {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or email…"
+                 placeholder="Search users…"
                 className="bg-transparent border border-border rounded-md h-9 pl-8 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 w-64 transition"
               />
             </div>
@@ -799,7 +799,7 @@ export default function AdminConsole() {
               {...presets.button}
             >
               <Download size={13} aria-hidden="true" />
-              {exporting ? "Exporting…" : "Export CSV"}
+              {exporting ? "Exporting" : "Export"}
             </motion.button>
           </div>
         </div>
@@ -857,7 +857,7 @@ export default function AdminConsole() {
               {users.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-sm text-faint">
-                    {search ? `No users match "${search}"` : "No users yet"}
+                    {search ? `No users match "${search}"` : "No users yet — invite someone to get started."}
                   </td>
                 </tr>
               )}
@@ -906,7 +906,7 @@ function ServiceRow({
       {status === undefined ? (
         <span className="font-mono text-xs text-faint">—</span>
       ) : ok ? (
-        <span className="font-mono text-xs text-ok">ok</span>
+        <span className="font-mono text-xs text-ok">Healthy</span>
       ) : (
         <span className="flex items-center gap-1 font-mono text-xs text-error">
           <AlertTriangle size={11} aria-hidden="true" /> {status}

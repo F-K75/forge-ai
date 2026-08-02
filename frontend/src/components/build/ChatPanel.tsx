@@ -159,7 +159,7 @@ function GateApprovalCard() {
             ) : (
               <Check size={12} aria-hidden="true" />
             )}
-            Approve
+             Continue
           </button>
         ) : (
           <>
@@ -174,7 +174,7 @@ function GateApprovalCard() {
               ) : (
                 <Check size={12} aria-hidden="true" />
               )}
-              Submit answers
+               Submit
             </button>
             <button
               type="button"
@@ -190,7 +190,7 @@ function GateApprovalCard() {
           type="button"
           onClick={handleAutoApprove}
           disabled={busy !== null}
-          title="Approve this and every future gate automatically"
+          title="Auto-approve all future gates"
           className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted hover:text-ink hover:border-border-soft transition-colors disabled:opacity-50"
         >
           {busy === "auto" ? (
@@ -262,7 +262,7 @@ function AgentFilesPanel({ agent, onClose }: { agent: Agent; onClose: () => void
         {state === "active" || state === "debugging" ? (
           <p className="flex items-center gap-1.5 text-xs text-faint">
             <Loader2 size={11} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-            Still working — its document and files will appear here once it's done.
+            Still working. Files will appear here once complete.
           </p>
         ) : (
           <>
@@ -280,7 +280,7 @@ function AgentFilesPanel({ agent, onClose }: { agent: Agent; onClose: () => void
                       )
                     }
                     aria-label={`Download ${agent.label} document`}
-                    title="Download as Markdown"
+                    title="Download Markdown"
                     className="flex items-center gap-1 text-[10px] text-faint hover:text-ink transition-colors"
                   >
                     <FileText size={10} aria-hidden="true" />
@@ -294,7 +294,7 @@ function AgentFilesPanel({ agent, onClose }: { agent: Agent; onClose: () => void
             {paths.length === 0 ? (
               !hasDocument && (
                 <p className="text-xs text-faint">
-                  {state === "done" ? "No files attributed to this agent." : "Hasn't started yet."}
+                  {state === "done" ? "No files changed." : "Not started yet."}
                 </p>
               )
             ) : (
@@ -345,7 +345,7 @@ function PipelineStrip() {
       <div className="px-4 py-3">
         <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-faint">
           <span>Pipeline</span>
-          <span>{doneCount}/{AGENTS.length} done</span>
+          <span>{doneCount} of {AGENTS.length}</span>
         </div>
         <ol className="grid grid-cols-6 gap-1.5">
           {AGENTS.map((agent) => {
@@ -417,12 +417,12 @@ function ChatTranscript({ scrollRef }: { scrollRef: React.MutableRefObject<HTMLD
       ref={scrollRef}
       role="log"
       aria-live="polite"
-      aria-label="Build conversation"
+      aria-label="Conversation"
       className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3"
     >
       {messages.length === 0 && (
         <p className="text-xs text-faint">
-          Describe what you want to build and the agents will take it from there.
+          Describe what you'd like to build, and we'll handle the rest.
         </p>
       )}
       <motion.div variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
@@ -466,7 +466,7 @@ function ChatTranscript({ scrollRef }: { scrollRef: React.MutableRefObject<HTMLD
       {(status === "running" || status === "debugging") && (
         <div className="flex items-center gap-2 pl-7 text-xs text-muted">
           <span className="w-1.5 h-1.5 rounded-full bg-ember animate-tick" aria-hidden="true" />
-          Agents are working…
+          Building…
         </div>
       )}
     </div>
@@ -534,7 +534,7 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
           className="mx-3 mb-2 px-3 py-2 rounded-lg bg-warn/10 border border-warn/30 text-warn text-xs flex items-center gap-2"
         >
           <WifiOff size={12} aria-hidden="true" />
-          You're offline — reconnect to keep building.
+          You're offline. Reconnect to continue.
         </motion.div>
       )}
 
@@ -556,7 +556,7 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
               }
             }}
             rows={2}
-            placeholder={isOffline ? "You're offline…" : busy ? "Agents are working — you can queue changes after this build." : "Describe your app…"}
+            placeholder={isOffline ? "You're offline…" : busy ? "Agents are working — queue changes once this finishes." : "Describe your app…"}
             disabled={busy || isOffline}
             aria-label="Build prompt"
             className="w-full resize-none rounded-lg bg-transparent px-3 py-2.5 pr-11 text-sm text-ink placeholder:text-faint focus:outline-none disabled:opacity-50"
@@ -573,7 +573,7 @@ export function ChatPanel({ onSubmit }: { onSubmit: (prompt: string) => void | P
           </motion.button>
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-faint">
-          <span>Shift + Enter for newline</span>
+          <span>Shift + Enter for new line</span>
           <span>{draft.length}/2000</span>
         </div>
       </form>

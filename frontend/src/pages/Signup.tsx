@@ -10,14 +10,14 @@ import { validateNewPassword } from "../lib/passwordPolicy";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateName(value: string): string | undefined {
-  if (!value) return "Name is required";
-  if (value.length < 2) return "Name must be at least 2 characters";
+  if (!value) return "Please enter your full name.";
+  if (value.length < 2) return "Name must be at least 2 characters.";
   return undefined;
 }
 
 function validateEmail(value: string): string | undefined {
-  if (!value) return "Email is required";
-  if (!EMAIL_RE.test(value)) return "Enter a valid email";
+  if (!value) return "Please enter your email.";
+  if (!EMAIL_RE.test(value)) return "Please enter a valid email address.";
   return undefined;
 }
 
@@ -42,8 +42,8 @@ export default function Signup() {
   const reduce = shouldReduceMotion();
 
   const validateConfirmPassword = (value: string, passwordValue: string): string | undefined => {
-    if (!value) return "Confirm your password";
-    if (value !== passwordValue) return "Passwords don't match";
+    if (!value) return "Please confirm your password.";
+    if (value !== passwordValue) return "The passwords you entered don't match.";
     return undefined;
   };
 
@@ -73,7 +73,7 @@ export default function Signup() {
       await register(email, name, password);
       setSubmittedEmail(email);
     } catch (err: any) {
-      setErrors({ form: err?.response?.data?.detail || "Registration failed. Please try again." });
+      setErrors({ form: err?.response?.data?.detail || "We couldn't create your account. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function Signup() {
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Check your email</h1>
           <p className="text-sm text-land-muted leading-relaxed mb-8">
-            We sent a verification link to <span className="text-land-ink">{submittedEmail}</span>. Click it to
+            We've sent a verification link to <span className="text-land-ink">{submittedEmail}</span>. Click it to
             confirm your account — you can start setting up your workspace in the meantime.
           </p>
           <button
@@ -141,10 +141,10 @@ export default function Signup() {
           </div>
           <div className="max-w-md space-y-8">
             <h1 className="font-display text-4xl xl:text-5xl font-medium leading-[1.05] tracking-tight">
-              Create your workspace. Ship on day one.
+              Create your workspace. Ship from day one.
             </h1>
             <p className="text-land-muted leading-relaxed">
-              Spin up your first build in seconds. Free to start, no card required.
+              Launch your first build in seconds. Free to start, no credit card required.
             </p>
             <ul className="space-y-3 text-sm">
               {["Free tier includes 10 credits", "Six specialist agents, one prompt", "Cancel or upgrade anytime"].map((t) => (
@@ -170,7 +170,7 @@ export default function Signup() {
                 <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Sign up
               </div>
               <h2 className="font-display text-3xl font-medium tracking-tight">Create your account</h2>
-              <p className="text-sm text-land-muted mt-2">Get started with Forge in under a minute.</p>
+              <p className="text-sm text-land-muted mt-2">Get started in under a minute.</p>
             </div>
 
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -246,7 +246,7 @@ export default function Signup() {
                   Password
                 </label>
                 <p className="text-xs text-land-muted -mt-1">
-                  12+ characters, with uppercase, lowercase, a number, and a symbol.
+                  12+ characters, including uppercase, lowercase, a number, and a symbol.
                 </p>
                 <div className="relative">
                   <input
@@ -309,7 +309,7 @@ export default function Signup() {
                   id="confirmPassword"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
-                  placeholder="Re-enter your password"
+                  placeholder="Confirm your password"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
@@ -349,7 +349,7 @@ export default function Signup() {
             </form>
 
             <p className="mt-8 text-xs text-land-muted text-center leading-relaxed">
-              By creating an account you agree to Forge's Terms and Privacy Policy.
+              By creating an account, you agree to Forge's Terms and Privacy Policy.
             </p>
           </div>
         </motion.section>

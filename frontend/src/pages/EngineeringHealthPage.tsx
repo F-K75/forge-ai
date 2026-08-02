@@ -120,18 +120,17 @@ export default function EngineeringHealthPage() {
 
       {!LIVE_MODE && (
         <div className="mb-9 bg-warn/10 border border-warn/30 text-warn px-4 py-3 rounded-lg text-sm">
-          Demo mode — connect a live backend to see real platform data.
+          Demo mode — connect a backend to view live data.
         </div>
       )}
 
-      {LIVE_MODE && isLoading && <p className="text-sm text-muted">Loading…</p>}
+      {LIVE_MODE && isLoading && <p className="text-sm text-muted">Loading</p>}
 
       {LIVE_MODE && !isLoading && data && !data.available && (
         <div className="border border-border rounded-lg p-6 text-sm text-muted">
-          Engineering health data isn't available in this environment — the{" "}
-          <code className="font-mono text-ink">orchestration/</code> directory isn't present next to
-          this backend process. It's excluded from the production image by design and only mounted
-          in local dev (see docker-compose.yml).
+          Engineering health data isn't available here. The{" "}
+          <code className="font-mono text-ink">orchestration/</code> directory is excluded from
+          production and only available in local development.
         </div>
       )}
 
@@ -204,9 +203,9 @@ export default function EngineeringHealthPage() {
                     </Bar>
                   </BarChart>
                 </ChartContainer>
-              ) : (
-                <p className="text-sm text-faint">No dimension scores yet</p>
-              )}
+               ) : (
+                 <p className="text-sm text-faint">No dimension scores yet.</p>
+               )}
             </motion.section>
 
             <motion.section
@@ -250,7 +249,7 @@ export default function EngineeringHealthPage() {
                   </BarChart>
                 </ChartContainer>
               ) : (
-                <p className="text-sm text-faint">No task-priority data yet</p>
+                <p className="text-sm text-faint">No task-priority data yet.</p>
               )}
             </motion.section>
           </div>
@@ -267,7 +266,7 @@ export default function EngineeringHealthPage() {
                 Alerts
               </h2>
               {data.dashboard.alerts.length === 0 ? (
-                <p className="text-sm text-faint">No alerts</p>
+                <p className="text-sm text-faint">No alerts.</p>
               ) : (
                 <motion.ul
                   className="space-y-2"
@@ -300,7 +299,7 @@ export default function EngineeringHealthPage() {
                 Recent activity
               </h2>
               {data.dashboard.recent_activity.length === 0 ? (
-                <p className="text-sm text-faint">No recent activity</p>
+                <p className="text-sm text-faint">No recent activity.</p>
               ) : (
                 <motion.ul
                   className="space-y-2"

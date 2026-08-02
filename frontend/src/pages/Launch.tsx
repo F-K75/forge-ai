@@ -11,16 +11,16 @@ import Globe3D from "../components/Globe3D";
 import { LandingPageBody, Nav as SiteNav, Footer as SiteFooter } from "./LandingPage";
 
 const EXAMPLE_PROMPTS = [
-  "a habit tracker with streaks and reminders",
-  "an invoicing app for freelancers",
-  "a booking site for my yoga studio",
-  "an internal tool to triage support tickets",
-  "a marketplace for vintage synthesizers",
+  "A habit tracker with streaks and reminders",
+  "An invoicing app for freelancers",
+  "A booking site for a yoga studio",
+  "An internal tool to triage support tickets",
+  "A marketplace for vintage synthesizers",
 ];
 
 const AGENT_SHORT: Record<(typeof AGENTS)[number]["id"], string> = {
   architect: "ARCH",
-  business_improver: "BIZ",
+  business_improver: "OPS",
   designer: "DES",
   developer: "DEV",
   integration: "INT",
@@ -28,12 +28,12 @@ const AGENT_SHORT: Record<(typeof AGENTS)[number]["id"], string> = {
 };
 
 const AGENT_TASK: Record<(typeof AGENTS)[number]["id"], string> = {
-  architect: "Mapping system topology",
-  business_improver: "Stress-testing the model",
-  designer: "Composing the surface",
-  developer: "Writing production paths",
-  integration: "Wiring external services",
-  pm: "Validating the ship gate",
+  architect: "Designing the architecture",
+  business_improver: "Optimizing the model",
+  designer: "Crafting the interface",
+  developer: "Building production code",
+  integration: "Connecting services",
+  pm: "Validating release readiness",
 };
 
 export default function Launch() {
@@ -95,7 +95,7 @@ export default function Launch() {
                 visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
               }}
             >
-              Multi-agent software engineering
+              Software engineering, reimagined
             </motion.p>
 
             <motion.h1
@@ -120,7 +120,7 @@ export default function Launch() {
                 visible: { opacity: 1, y: 0, transition: { duration: 0.55 } },
               }}
             >
-              Six agents. One prompt. Production software.
+              Turn ideas into production-ready software. Describe what you want to build, and let the system architect, design, and ship it.
             </motion.p>
 
             <motion.div
@@ -238,7 +238,7 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, gl
               style={{ left: `${progress}%` }}
             />
           </div>
-          <ul ref={railRef} aria-label="Forge build agents" className="mt-3 flex shrink-0 items-center gap-1.5 overflow-x-auto">
+          <ul ref={railRef} aria-label="Build pipeline" className="mt-3 flex shrink-0 items-center gap-1.5 overflow-x-auto">
             {AGENTS.map((agent, i) => {
               const Icon = agent.icon;
               const isActive = i === activeIndex;
@@ -280,7 +280,7 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, gl
 
       <motion.button
         type="button"
-        aria-label={open ? "Hide agent pipeline" : "Open agent pipeline"}
+        aria-label={open ? "Hide pipeline" : "Show pipeline"}
         onClick={() => setOpen((v) => !v)}
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full apple-glass-strong shadow-apple"
         animate={{ scale: scrolled ? 0.95 : 1 }}
@@ -290,7 +290,7 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, gl
       </motion.button>
       <motion.button
         type="button"
-        aria-label={globeMode === "cobe" ? "Switch to Three globe" : "Switch to Cobe globe"}
+        aria-label={globeMode === "cobe" ? "Switch to 3D globe" : "Switch to globe view"}
         onClick={() => onGlobeModeChange(globeMode === "cobe" ? "three" : "cobe")}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20"
         animate={{ scale: scrolled ? 0.95 : 1 }}
@@ -326,7 +326,7 @@ function PromptBar() {
             type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            aria-label="Describe what you want to build"
+            aria-label="Tell us what you want to build"
             className="w-full bg-transparent text-[15px] text-ink placeholder-transparent focus:outline-none sm:text-[17px]"
           />
           {value === "" && (
@@ -341,10 +341,10 @@ function PromptBar() {
           className="bb-btn bb-btn-primary shrink-0 px-5 py-2.5"
           {...presets.button}
         >
-          Build <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          Start building <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </motion.button>
       </form>
-      <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Example prompts">
+      <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Try an example">
         {EXAMPLE_PROMPTS.slice(0, 3).map((example) => (
           <button
             key={example}

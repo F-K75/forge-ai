@@ -90,7 +90,7 @@ function QAReport({ score, missing }: { score: number; missing: string[] }) {
             <span className="text-faint">/ 100</span>
             <span className="ml-1 text-[10px] uppercase tracking-wider text-ok">QA passed</span>
           </div>
-          {missing.length > 0 && <p className="text-[11px] text-muted">Flagged {missing.length} item{missing.length === 1 ? "" : "s"}.</p>}
+          {missing.length > 0 && <p className="text-[11px] text-muted">{missing.length} item flagged.</p>}
         </div>
       </div>
       {missing.length > 0 && (
@@ -159,7 +159,7 @@ export function PreviewPanel() {
           <h2 className="text-[10px] font-medium uppercase tracking-wider text-faint">Preview</h2>
           {status === "complete" && previewDoc && (
             <span className="inline-flex items-center gap-1 rounded-full bg-ok/15 px-1.5 py-0.5 text-[10px] text-ok">
-              <span className="h-1 w-1 rounded-full bg-ok" aria-hidden="true" /> live
+              <span className="h-1 w-1 rounded-full bg-ok" aria-hidden="true" /> Live
             </span>
           )}
         </div>
@@ -167,7 +167,7 @@ export function PreviewPanel() {
           <motion.button
             type="button"
             onClick={() => setReloadKey((k) => k + 1)}
-            aria-label="Reload preview"
+            aria-label="Refresh preview"
             whileHover={presets.button.whileHover}
             whileTap={presets.button.whileTap}
             className="text-faint hover:text-ink transition"
@@ -210,7 +210,7 @@ export function PreviewPanel() {
                   <span className="absolute inset-2 rounded-full border border-ember/30" />
                   <Sparkles size={18} className="text-ember" aria-hidden="true" />
                 </div>
-                <p className="text-xs text-muted">Agents are building your app…</p>
+                <p className="text-xs text-muted">Preparing your preview…</p>
               </>
             ) : status === "complete" ? (
               <>
@@ -229,13 +229,13 @@ export function PreviewPanel() {
                 )}
                 <FileCode size={16} className="text-faint" aria-hidden="true" />
                 <p className="text-xs text-faint">
-                  No browsable entry point in this build — sync to GitHub or deploy from the project page to run it.
+                  No preview available. Connect a repository or deploy to view.
                 </p>
               </>
             ) : (
               <>
                 <Monitor size={20} className="text-faint" aria-hidden="true" />
-                <p className="text-xs text-faint">The preview appears once a build completes.</p>
+                <p className="text-xs text-faint">Your preview will appear once ready.</p>
               </>
             )}
           </motion.div>

@@ -11,7 +11,7 @@ const STATUS_META: Record<
 > = {
   idle: { label: "Ready", dot: "bg-faint" },
   running: { label: "Building", dot: "bg-ember", pulse: true },
-  debugging: { label: "Debugging", dot: "bg-warn", pulse: true },
+  debugging: { label: "Refining", dot: "bg-warn", pulse: true },
   complete: { label: "Live", dot: "bg-ok" },
   failed: { label: "Failed", dot: "bg-error" },
 };

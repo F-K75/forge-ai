@@ -26,7 +26,7 @@ const GOALS: GoalOption[] = [
   { label: "Just exploring", iconName: "compass",       hue: "#8B5CF6" },
 ];
 
-const STEP_LABELS = ["Welcome", "Goal", "Connect", "Ready"] as const;
+const STEP_LABELS = ["Welcome", "Goal", "Connect", "Launch"] as const;
 
 // A short starter prompt per goal, handed off to the workspace so the first
 // build isn't a blank prompt box — mirrors how Marketplace's "Install" flow
@@ -190,12 +190,11 @@ function StepWelcome() {
         <Hammer size={22} className="text-white" aria-hidden="true" />
       </div>
       <div>
-        <h1 className="text-xl font-bold text-ink mb-2">Welcome to Forge</h1>
-        <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
-          Six specialized agents — architect, business model, designer, developer,
-          integrations, and PM — collaborate to ship your app in under a minute.
-          Setup takes two minutes.
-        </p>
+      <h1 className="text-xl font-bold text-ink mb-2">Welcome to Forge</h1>
+      <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
+        Six specialized agents collaborate to ship your app in under a minute.
+        Setup takes about two minutes.
+      </p>
       </div>
     </div>
   );
@@ -211,9 +210,9 @@ function StepGoal({
   const reduceMotion = useReducedMotion();
   return (
     <div>
-      <h2 className="text-lg font-bold text-ink mb-1">What are you building first?</h2>
+      <h2 className="text-lg font-bold text-ink mb-1">What will you build first?</h2>
       <p className="text-sm text-muted mb-5">
-        Pick a goal and we'll load the right starters.
+        Pick a starting point and we'll prepare the right template.
       </p>
       <motion.div
         className="grid grid-cols-2 gap-3"
@@ -282,7 +281,7 @@ function StepConnect({
     <div>
       <h2 className="text-lg font-bold text-ink mb-1">Connect your tools</h2>
       <p className="text-sm text-muted mb-5">
-        These open Settings in a new tab — come back here when you're done, or skip for now.
+        Connect your accounts to continue. These open in a new tab — come back when you're done, or skip for now.
       </p>
       <motion.div
         className="flex flex-col gap-3"
@@ -294,9 +293,9 @@ function StepConnect({
           <ConnectRow
             icon={<Github size={16} className="text-ink" aria-hidden="true" />}
             label="GitHub"
-            description="Push every build to a repo"
+            description="Push builds to a repository"
             done={githubDone}
-            actionLabel="Connect in Settings"
+            actionLabel="Open Settings"
             onAction={onGithub}
           />
         </motion.div>
@@ -304,9 +303,9 @@ function StepConnect({
           <ConnectRow
             icon={<Key size={16} className="text-ink" aria-hidden="true" />}
             label="Anthropic API key"
-            description="Bring your own key on Pro — skip credit costs"
+             description="Use your own key on Pro and skip credit costs"
             done={anthropicDone}
-            actionLabel="Add key in Settings"
+            actionLabel="Add key"
             onAction={onAnthropic}
           />
         </motion.div>
@@ -376,13 +375,13 @@ function StepReady({ goal }: { goal: Goal }) {
         <Check size={22} className="text-ok" aria-hidden="true" />
       </div>
       <div>
-        <h2 className="text-xl font-bold text-ink mb-2">You're ready</h2>
-        <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
-          {goal
-            ? `We've loaded ${goal} starters for you. `
-            : "Your workspace is set up. "}
-          10 free credits are on your account.
-        </p>
+      <h2 className="text-xl font-bold text-ink mb-2">You're ready</h2>
+      <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
+        {goal
+          ? `${goal} starters are ready. `
+          : "Your workspace is ready. "}
+        10 free credits are on your account.
+      </p>
       </div>
     </div>
   );

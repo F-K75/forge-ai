@@ -60,8 +60,8 @@ export default function WorkspacePage() {
         })
         .catch(() => {
           if (!cancelled) {
-            toast.error("Failed to create project");
-            setLoadError("Failed to create project");
+            toast.error("Unable to create project");
+            setLoadError("Unable to create project");
           }
         });
       return () => {
@@ -79,7 +79,7 @@ export default function WorkspacePage() {
         // permissions, deleted project) rendered an "Unknown project"
         // placeholder with no indication anything had gone wrong.
         if (!cancelled) {
-          toast.error("Couldn't load this project");
+          toast.error("Unable to load this project");
           setProject({ id: projectId, name: "Unknown project" });
         }
       });
@@ -115,7 +115,7 @@ export default function WorkspacePage() {
           startBuild(build_id, prompt);
           setBuildId(build_id);
         } catch (err: any) {
-          const message = err?.response?.data?.detail || "Failed to start build";
+          const message = err?.response?.data?.detail || "Unable to start build";
           handleEvent({
             type: "build_failed",
             version: 1,

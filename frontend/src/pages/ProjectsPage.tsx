@@ -90,9 +90,9 @@ export default function ProjectsPage() {
       .then((data: any[]) => {
         if (!cancelled) setLiveProjects(data.map(toDisplayProject));
       })
-      .catch(() => {
-        if (!cancelled) toast.error("Failed to load projects");
-      });
+         .catch(() => {
+           if (!cancelled)             toast.error("Unable to load projects");
+         });
     return () => {
       cancelled = true;
     };
@@ -128,9 +128,9 @@ export default function ProjectsPage() {
       const name = trimmed ? trimmed.slice(0, 60) : "Untitled project";
       const project = await projectsApi.create({ name, description: trimmed, template });
       navigate(`/build/${project.id}`, trimmed ? { state: { prompt: trimmed } } : undefined);
-    } catch {
-      toast.error("Failed to create project");
-    } finally {
+     } catch {
+        toast.error("Unable to create project");
+     } finally {
       setCreating(false);
     }
   };
@@ -148,9 +148,9 @@ export default function ProjectsPage() {
               <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-accent">
                 New build
               </p>
-              <h2 className="mt-1 font-display text-[28px] font-semibold tracking-tight text-ink md:text-[32px]">
-                What do you want to forge?
-              </h2>
+               <h2 className="mt-1 font-display text-[28px] font-semibold tracking-tight text-ink md:text-[32px]">
+                 What do you want to build?
+               </h2>
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="bb-chip bb-chip-selected">
@@ -188,7 +188,7 @@ export default function ProjectsPage() {
               className="bb-btn bb-btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Send size={14} aria-hidden="true" />
-              {creating ? "Opening…" : "Build"}
+              {creating ? "Opening" : "Build"}
             </motion.button>
           </div>
 
@@ -261,7 +261,7 @@ export default function ProjectsPage() {
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
-            aria-label="Sort projects"
+            aria-label="Sort by"
             className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <option value="recent">Recent</option>
@@ -296,13 +296,13 @@ export default function ProjectsPage() {
           {projects.length === 0 ? (
             <EmptyState
               icon={Folder}
-              title="Library is empty"
+              title="Your library is empty"
               description="Describe what you want to build above to create your first project."
             />
           ) : visibleProjects.length === 0 ? (
             <EmptyState
               icon={FolderSearch}
-              title="Nothing matches"
+              title="No matches"
               description={search ? `No results for “${search}”.` : "Try a different filter."}
               secondaryAction={{
                 label: "Clear filters",

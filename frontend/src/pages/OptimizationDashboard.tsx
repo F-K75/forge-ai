@@ -110,8 +110,8 @@ function BreakdownTable({
           >
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-2 text-slate-500">
-                  No data in this window.
+                 <td colSpan={5} className="p-2 text-slate-500">
+                  No data available for this window.
                 </td>
               </tr>
             )}
@@ -199,7 +199,7 @@ export default function OptimizationDashboard() {
         setLimits(limitsPayload.limits || [])
         setSpending(spendingPayload.users || [])
       })
-      .catch(() => setError("Failed to load optimization data"))
+      .catch(() => setError("Unable to load optimization data"))
       .finally(() => setLoading(false))
   }
 
@@ -213,7 +213,7 @@ export default function OptimizationDashboard() {
       setSaveStatus("Scope ID is required")
       return
     }
-    setSaveStatus("Saving…")
+    setSaveStatus("Saving")
     try {
       await budgetsApi.set(scope, scopeId.trim(), {
         soft_limit_usd: softLimit ? parseFloat(softLimit) : null,
@@ -222,7 +222,7 @@ export default function OptimizationDashboard() {
       setSaveStatus("Saved")
       load()
     } catch {
-      setSaveStatus("Failed to save")
+      setSaveStatus("Unable to save")
     }
   }
 
@@ -249,9 +249,9 @@ export default function OptimizationDashboard() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      <h1 className="text-2xl font-semibold">AI Optimization Dashboard</h1>
+      <h1 className="text-2xl font-semibold">AI optimization</h1>
       <p className="mt-2 text-slate-400">
-        Spend, cache effectiveness, and optimization savings across the AI Gateway.
+        Monitor spend, cache performance, and optimization across the AI Gateway.
       </p>
 
       <div className="mt-4 flex items-center gap-3">
@@ -270,7 +270,7 @@ export default function OptimizationDashboard() {
       </div>
 
       {loading ? (
-        <p className="mt-6">Loading…</p>
+         <p className="mt-6">Loading</p>
       ) : error ? (
         <p className="mt-6 text-rose-300">{error}</p>
       ) : (
@@ -283,12 +283,12 @@ export default function OptimizationDashboard() {
           >
             <StatCard label="Total spend" value={`$${totalCost.toFixed(4)}`} />
             <StatCard
-              label="Response cache hit ratio"
+              label="Response cache hit rate"
               value={`${(responseCacheHitRatio * 100).toFixed(1)}%`}
             />
             <StatCard label="Semantic cache share" value={`${(semanticShare * 100).toFixed(1)}%`} />
             <StatCard
-              label="Avg compression ratio"
+              label="Average compression ratio"
               value={
                 breakdown
                   ? breakdown.optimization_savings.average_compression_ratio.toFixed(3)
@@ -303,7 +303,7 @@ export default function OptimizationDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
           >
-            <h2 className="text-lg font-medium">Cost Breakdown</h2>
+            <h2 className="text-lg font-medium">Cost breakdown</h2>
             {breakdown && (
               <>
                 <BreakdownBarChart
@@ -312,7 +312,7 @@ export default function OptimizationDashboard() {
                   colorFor={(_, i) => colorForIndex(i)}
                 />
                 <BreakdownTable
-                  title="By Provider"
+                  title="By provider"
                   keyLabel="Provider"
                   keyField="provider"
                   rows={breakdown.by_provider}
@@ -323,13 +323,13 @@ export default function OptimizationDashboard() {
                   colorFor={(key, i) => colorForAgent(key, i)}
                 />
                 <BreakdownTable
-                  title="By Agent"
+                  title="By agent"
                   keyLabel="Agent"
                   keyField="agent"
                   rows={breakdown.by_agent}
                 />
                 <BreakdownTable
-                  title="By Project"
+                  title="By project"
                   keyLabel="Project"
                   keyField="project_id"
                   rows={breakdown.by_project}
@@ -344,7 +344,7 @@ export default function OptimizationDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
           >
-            <h2 className="text-lg font-medium">Per-User Spend</h2>
+            <h2 className="text-lg font-medium">Per-user spend</h2>
             <div className="mt-3 max-h-64 overflow-auto rounded border border-slate-800">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-900 text-slate-400">
@@ -379,7 +379,7 @@ export default function OptimizationDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
           >
-            <h2 className="text-lg font-medium">Budget Limits</h2>
+            <h2 className="text-lg font-medium">Budget limits</h2>
             <div className="mt-3 max-h-64 overflow-auto rounded border border-slate-800">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-900 text-slate-400">
@@ -399,8 +399,8 @@ export default function OptimizationDashboard() {
                 >
                   {limits.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="p-2 text-slate-500">
-                        No budget limits configured.
+                       <td colSpan={6} className="p-2 text-slate-500">
+                        No budget limits configured yet.
                       </td>
                     </tr>
                   )}

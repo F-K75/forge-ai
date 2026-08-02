@@ -61,12 +61,12 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
 // terminal's short status fragments since a grid card reads better with a
 // full sentence.
 const AGENT_DESCRIPTIONS: Record<Agent["id"], string> = {
-  architect: "Designs the system: data models, service boundaries, how everything talks to everything else.",
-  business_improver: "Pressure-tests the plan against real-world constraints and unit economics.",
-  designer: "Builds a real design system and UI — not a wireframe, not a gray box.",
-  developer: "Writes the full stack, streaming every file as it's created.",
-  integration: "Wires up Stripe, auth, and the other services your app needs — automatically.",
-  pm: "Tests the build against the plan and scores it before it ships.",
+  architect: "Defines the system: data models, service boundaries, and how services communicate.",
+  business_improver: "Validates the plan against real-world constraints and unit economics.",
+  designer: "Produces a complete design system and UI — not wireframes, not placeholders.",
+  developer: "Writes the full stack, streaming each file as it is created.",
+  integration: "Connects Stripe, auth, and other services your app needs — automatically.",
+  pm: "Evaluates the build against the plan and blocks anything below the quality bar.",
 };
 
 const AGENT_STATUS_LINES: Record<Agent["id"], string> = {
@@ -104,8 +104,8 @@ const FEATURES: Feature[] = [
     icon: Layers,
   },
   {
-    title: "QA score on every build",
-    description: "Every build ships with a quality score, so you know what you're deploying.",
+    title: "Quality score on every build",
+    description: "Every build ships with a quality score, so you know what you are deploying.",
     icon: BarChart3,
   },
   {
@@ -130,15 +130,15 @@ const FEATURES: Feature[] = [
   },
   {
     title: "Provider-independent core",
-    description: "Forge runs on a model-agnostic gateway, so your build isn't tied to one AI provider.",
+    description: "Forge runs on a model-agnostic gateway, so your build is not tied to one AI provider.",
     icon: Network,
   },
 ];
 
 const PROBLEM_POINTS = [
-  { title: "Chat tools generate code.", body: "They don't reason about your product." },
-  { title: "Autocomplete speeds up typing.", body: "It doesn't decide what to build." },
-  { title: "Single-agent tools do it all themselves.", body: "Architecture, UI, backend, tests — with nobody checking the work." },
+  { title: "Chat tools generate code.", body: "They do not reason about your product." },
+  { title: "Autocomplete speeds up typing.", body: "It does not decide what to build." },
+  { title: "Single-agent tools do it all alone.", body: "Architecture, UI, backend, tests — with nobody checking the work." },
 ];
 
 const WHY_FORGE_LINES = [
@@ -198,7 +198,7 @@ const PRICING_PLANS: PricingPlan[] = [
     credits: "10 credits",
     blurb: "Enough to ship your first real build.",
     features: ["1 project", "Community templates", "Public builds"],
-    cta: "Start free",
+    cta: "Get started",
   },
   {
     name: "Standard",
@@ -226,7 +226,7 @@ const FAQS = [
   },
   {
     q: "Is this just a chatbot with extra steps?",
-    a: "No. Forge doesn't wait for you to prompt each step. Specialist agents plan, hand off, and validate the build on their own — you step in to review and ship.",
+    a: "No. Forge does not wait for you to prompt each step. Specialist agents plan, hand off, and validate the build on their own — you step in to review and ship.",
   },
   {
     q: "Do I own the code Forge writes?",
@@ -515,8 +515,8 @@ function ProblemSection() {
     <Section id="problem">
       <SectionHead
         eyebrow="The problem"
-        title={<>AI made it easy to start.<br />It didn't make it easy to ship.</>}
-        subtitle="Prompt-to-app tools get you a demo in an afternoon. Then reality shows up: broken auth, no tests, a schema you can't explain, and code your team doesn't want to touch."
+        title={<>AI made it easy to start.<br />It did not make it easy to ship.</>}
+        subtitle="Prompt-to-app tools get you a demo in an afternoon. Then reality arrives: broken auth, no tests, a schema you cannot explain, and code your team does not want to touch."
       />
       <div className="grid md:grid-cols-3 gap-px bg-land-border">
         {PROBLEM_POINTS.map((p) => (
@@ -529,7 +529,7 @@ function ProblemSection() {
         ))}
       </div>
       <p className="mt-10 font-display text-xl md:text-2xl text-land-ink max-w-2xl" data-reveal>
-        You don't need faster typing. You need a team that knows what production means.
+        You do not need faster typing. You need a team that knows what production means.
       </p>
     </Section>
   );
@@ -547,7 +547,7 @@ function SolutionSection() {
       />
       <p className="max-w-2xl text-land-muted leading-relaxed" data-reveal>
         You describe what you want. Forge assembles the right specialists, gives them shared context and a
-        single source of truth for your project, and doesn't stop until the build passes its own quality bar.
+        single source of truth for your project, and does not stop until the build passes its own quality bar.
         What ships is code you can read, deploy, and own.
       </p>
       <div className="mt-10" data-reveal>
@@ -619,7 +619,7 @@ function WorkflowSection() {
 function FeaturesSection() {
   return (
     <Section id="features">
-      <SectionHead eyebrow="Features" title="Built to be trusted with real work." />
+      <SectionHead eyebrow="Features" title="Built for real work." />
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-land-border">
         {FEATURES.map((f) => {
           const Icon = f.icon;
@@ -675,7 +675,7 @@ function ComparisonSection() {
       <SectionHead
         eyebrow="Comparison"
         title="Not another way to generate code."
-        subtitle="Here's what changes when a team plans, builds, and reviews your software — instead of one model guessing at all of it."
+        subtitle="Here is what changes when a team plans, builds, and reviews your software — instead of one model guessing at all of it."
       />
       <div className="overflow-x-auto" data-reveal>
         <table className="w-full text-sm border-collapse min-w-[640px]">
@@ -695,7 +695,7 @@ function ComparisonSection() {
                 <td className="py-4 px-4 text-center"><CompareMark value={row.promptToApp} /></td>
                 <td className="py-4 px-4 text-center"><CompareMark value={row.pairProgrammer} /></td>
                 <td className="py-4 px-4 text-center"><CompareMark value={row.singleAgent} /></td>
-                <td className="py-4 pl-4 text-center bg-land-muted-bg/40">
+                <td className="py-3 pl-4 text-center bg-land-muted-bg/40">
                   <Check className="w-4 h-4 text-land-accent inline" strokeWidth={2} aria-label="Yes" />
                 </td>
               </tr>
@@ -713,7 +713,7 @@ function ComparisonSection() {
 function CustomerBenefitsSection() {
   return (
     <Section id="benefits">
-      <SectionHead eyebrow="Who it's for" title="Built for whoever has to ship." />
+      <SectionHead eyebrow="Who it is for" title="Built for whoever has to ship." />
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-land-border">
         {SEGMENTS.map((s) => {
           const Icon = s.icon;

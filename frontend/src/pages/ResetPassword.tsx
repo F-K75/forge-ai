@@ -20,7 +20,7 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!token) {
-      setError("Invalid or missing reset token")
+      setError("This reset link is invalid or has expired.")
     }
   }, [token])
 
@@ -36,7 +36,7 @@ export default function ResetPassword() {
       return
     }
     if (password !== confirm) {
-      setError("Passwords do not match")
+      setError("The passwords you entered don't match")
       return
     }
 
@@ -51,13 +51,13 @@ export default function ResetPassword() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.detail || "Failed to reset password")
+        throw new Error(data.detail || "We couldn't reset your password. Please try again.")
       }
 
       setSuccess(true)
       setTimeout(() => navigate("/login", { replace: true }), 2000)
     } catch (err: any) {
-      setError(err.message || "Something went wrong")
+      setError(err.message || "Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -72,10 +72,10 @@ export default function ResetPassword() {
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Invalid link</h1>
           <p className="text-sm text-land-muted mb-8">
-            This password reset link is invalid or has expired.
+            This password reset link is invalid or has expired. Please request a new one below.
           </p>
           <Link to="/forgot-password" className="text-sm text-land-ink underline underline-offset-4 hover:text-land-muted transition">
-            Request a new link
+            Request new link
           </Link>
         </motion.div>
       </div>
@@ -90,7 +90,7 @@ export default function ResetPassword() {
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Password updated</h1>
-          <p className="text-sm text-land-muted">Redirecting you to sign in…</p>
+          <p className="text-sm text-land-muted">Redirecting to sign in…</p>
         </motion.div>
       </div>
     )
@@ -104,7 +104,7 @@ export default function ResetPassword() {
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
           </div>
           <h1 className="font-display text-3xl font-medium tracking-tight">Set a new password</h1>
-          <p className="text-sm text-land-muted mt-2">Choose a strong password for your account.</p>
+          <p className="text-sm text-land-muted mt-2">Set a strong password to keep your account secure.</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -120,7 +120,7 @@ export default function ResetPassword() {
               New password
             </label>
             <p className="text-xs text-land-muted -mt-1">
-              12+ characters, with uppercase, lowercase, a number, and a symbol.
+              12+ characters, including uppercase, lowercase, a number, and a symbol.
             </p>
             <input
               id="password"
@@ -146,7 +146,7 @@ export default function ResetPassword() {
               onChange={(e) => setConfirm(e.target.value)}
               required
               minLength={12}
-              placeholder="Repeat your password"
+              placeholder="Confirm your password"
               className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition"
             />
           </div>
@@ -163,7 +163,7 @@ export default function ResetPassword() {
               </>
             ) : (
               <>
-                Update password <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                Save new password <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </>
             )}
           </motion.button>

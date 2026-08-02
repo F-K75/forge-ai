@@ -83,7 +83,7 @@ function OrgChart({ departments, agentsById }: { departments: { key: string; nam
               const agent = agentsById[id]
               return agent ? <AgentCard key={id} agent={agent} /> : null
             })}
-            {dept.agent_ids.length === 0 && <p className="text-xs text-faint">No agents yet</p>}
+             {dept.agent_ids.length === 0 && <p className="text-xs text-faint">No agents assigned yet</p>}
           </div>
         </div>
       ))}
@@ -105,7 +105,7 @@ function TaskRouterPanel({ projectId }: { projectId: string }) {
       const res = await agentOrgApi.route(projectId, request)
       setAssignments(res.assignments)
     } catch {
-      setError("Couldn't route this request — try again.")
+      setError("Unable to route this request. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -120,7 +120,7 @@ function TaskRouterPanel({ projectId }: { projectId: string }) {
           value={request}
           onChange={(e) => setRequest(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleRoute()}
-          placeholder='e.g. "Improve dashboard performance"'
+          placeholder='For example, "Improve dashboard performance"'
           className="flex-1 bg-base border border-border rounded-md px-3 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-accent"
         />
         <button
@@ -141,7 +141,7 @@ function TaskRouterPanel({ projectId }: { projectId: string }) {
               <span className="text-xs text-faint">{a.department} / {a.role}</span>
             </li>
           ))}
-          {assignments.length === 0 && <p className="text-xs text-faint">No assignments</p>}
+          {assignments.length === 0 && <p className="text-xs text-faint">No assignments yet</p>}
         </ul>
       )}
     </div>
@@ -160,9 +160,9 @@ function OwnershipTable({ projectId }: { projectId: string }) {
   return (
     <div className="border border-border rounded-lg p-4">
       <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">Code ownership</h2>
-      {isLoading && <p className="text-sm text-faint">Loading…</p>}
+       {isLoading && <p className="text-sm text-faint">Loading</p>}
       {!isLoading && rows.length === 0 && (
-        <p className="text-sm text-faint">No files owned yet — ownership accumulates as agents complete tasks.</p>
+        <p className="text-sm text-faint">No files owned yet. Ownership grows as agents complete work.</p>
       )}
       {rows.length > 0 && (
         <ul className="space-y-2">
@@ -246,11 +246,11 @@ function KnowledgeGraphPanel({ projectId }: { projectId: string }) {
   }, [nodes, edges, setFlowNodes, setFlowEdges])
 
   if (!data) {
-    return <div className="flex h-[360px] items-center justify-center text-sm text-faint">Loading graph…</div>
+    return <div className="flex h-[360px] items-center justify-center text-sm text-faint">Loading graph</div>
   }
-  if (data.nodes.length === 0) {
-    return <div className="flex h-[360px] items-center justify-center text-sm text-faint">Nothing to show yet.</div>
-  }
+    if (data.nodes.length === 0) {
+     return <div className="flex h-[360px] items-center justify-center text-sm text-faint">Nothing to show yet — start building to populate the graph.</div>
+   }
 
   return (
     <div className="h-[360px] w-full">
@@ -307,11 +307,11 @@ export default function EngineeringOrgPage() {
 
       {!LIVE_MODE && (
         <div className="mb-9 bg-warn/10 border border-warn/30 text-warn px-4 py-3 rounded-lg text-sm">
-          Demo mode — connect a live backend to see this project's real agent roster.
+          Demo mode — connect a backend to view live project data.
         </div>
       )}
 
-      {LIVE_MODE && isLoading && <p className="text-sm text-muted">Loading…</p>}
+      {LIVE_MODE && isLoading && <p className="text-sm text-muted">Loading</p>}
 
       {LIVE_MODE && data && (
         <>

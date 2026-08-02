@@ -126,7 +126,7 @@ export default function AppShell() {
               type="button"
               onClick={() => navigate("/projects")}
               className="group flex items-center gap-2.5 rounded-full pr-2 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              aria-label="Forge home"
+              aria-label="Home"
             >
               <span className="flex h-8 w-8 items-center justify-center">
                 <img src={forgeLogo} alt="Forge" className="h-8 w-8" />
@@ -149,7 +149,7 @@ export default function AppShell() {
               type="button"
               onClick={() => navigate("/settings")}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white shadow-m3 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              aria-label="Open settings"
+              aria-label="Settings"
             >
               {initial}
             </button>

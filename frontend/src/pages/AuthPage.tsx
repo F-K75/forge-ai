@@ -20,8 +20,8 @@ const fadeUp = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateEmail(value: string): string | undefined {
-  if (!value) return "Email is required";
-  if (!EMAIL_RE.test(value)) return "Enter a valid email";
+  if (!value) return "Please enter your email.";
+  if (!EMAIL_RE.test(value)) return "Please enter a valid email address.";
   return undefined;
 }
 
@@ -30,7 +30,7 @@ function validatePassword(value: string): string | undefined {
   // it must never enforce a minimum length here, or raising that minimum
   // (see Signup.tsx/ResetPassword.tsx) would lock out any real account
   // whose already-set password is shorter than the current requirement.
-  if (!value) return "Password is required";
+  if (!value) return "Please enter your password.";
   return undefined;
 }
 
@@ -159,7 +159,7 @@ export default function AuthPage() {
       }
       navigate("/projects", { replace: true });
     } catch (err: any) {
-      setErrors({ form: err?.response?.data?.detail || "That email and password don't match. Try again or reset your password." });
+      setErrors({ form: err?.response?.data?.detail || "The email or password you entered is incorrect. Please try again or reset your password." });
     } finally {
       setLoading(false);
     }
@@ -174,7 +174,7 @@ export default function AuthPage() {
       await verifyMfa(mfaToken, mfaCode.trim());
       navigate("/projects", { replace: true });
     } catch (err: any) {
-      setMfaError(err?.response?.data?.detail || "Invalid code. Please try again.");
+      setMfaError(err?.response?.data?.detail || "The code you entered is invalid. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -203,9 +203,9 @@ export default function AuthPage() {
               <span className="font-display font-medium tracking-tight">Forge</span>
             </Link>
             <div className="text-sm text-land-muted">
-              New here?{" "}
+              New to Forge?{" "}
               <Link to="/signup" className="text-land-ink hover:underline underline-offset-4">
-                Create an account
+                Create account
               </Link>
             </div>
           </nav>
@@ -227,14 +227,14 @@ export default function AuthPage() {
           </motion.div>
           <div className="relative z-10 max-w-md space-y-8">
             <motion.h1 variants={fadeUp} className="font-display text-4xl xl:text-5xl font-medium leading-[1.05] tracking-tight">
-              An engineering team, one sign-in away.
+              Your engineering team, one sign-in away.
             </motion.h1>
             <motion.p variants={fadeUp} className="text-land-muted leading-relaxed">
-              Sign in to pick up where your specialist agents left off — planning, building, and validating
-              your applications end-to-end.
+              Pick up where your specialist agents left off — plan, build, and ship
+              applications end-to-end.
             </motion.p>
             <ul className="space-y-3 text-sm">
-              {["Six specialized agents, one workspace", "Self-correcting debug loop on every build", "Ship in minutes, not sprints"].map((t) => (
+              {["Six specialist agents in one workspace", "Self-correcting debug loop on every build", "Ship in minutes, not sprints"].map((t) => (
                 <motion.li key={t} variants={fadeUp} className="flex items-center gap-3 text-land-muted">
                   <span className="w-5 h-5 rounded-full border border-land-border flex items-center justify-center">
                     <Check className="w-3 h-3 text-land-ink" aria-hidden="true" />
@@ -262,7 +262,7 @@ export default function AuthPage() {
                 <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Sign in
               </div>
               <h2 className="font-display text-3xl font-medium tracking-tight">Welcome back</h2>
-              <p className="text-sm text-land-muted mt-2">Sign in to pick up where your team left off.</p>
+              <p className="text-sm text-land-muted mt-2">Pick up where your team left off.</p>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>
@@ -279,7 +279,7 @@ export default function AuthPage() {
               >
               <motion.div animate={mfaShake} className="space-y-5">
                 <p className="text-sm text-land-muted">
-                  Enter the 6-digit code from your authenticator app, or one of your backup codes.
+                  Enter the 6-digit code from your authenticator app, or use one of your backup codes.
                 </p>
                 <AnimatePresence>
                 {mfaError && (
@@ -327,7 +327,7 @@ export default function AuthPage() {
                     </>
                   ) : (
                     <>
-                      Verify <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                      Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                     </>
                   )}
                 </motion.button>
@@ -420,7 +420,7 @@ export default function AuthPage() {
                     Password
                   </label>
                   <Link to="/forgot-password" className="text-xs text-land-muted hover:text-land-ink transition">
-                    Forgot?
+                    Forgot password?
                   </Link>
                 </div>
                 <div className="relative">
@@ -554,7 +554,7 @@ export default function AuthPage() {
               </motion.button>
 
               <p className="mt-2 text-xs text-land-muted text-center leading-relaxed">
-                By continuing you agree to Forge's Terms and Privacy Policy.
+                By continuing, you agree to Forge's Terms and Privacy Policy.
               </p>
               </motion.div>
               </motion.form>

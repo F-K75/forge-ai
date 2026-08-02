@@ -14,7 +14,7 @@ interface ClipboardCopyButtonProps {
 const DEFAULT_CLASSNAME =
   'flex items-center gap-1.5 px-3 py-1.5 text-xs bg-base border border-border rounded-lg hover:bg-panel focus:outline-none focus:ring-2 focus:ring-accent'
 
-export function ClipboardCopyButton({ text, successMessage = 'Copied to clipboard!', className, onSuccess, onError }: ClipboardCopyButtonProps) {
+  export function ClipboardCopyButton({ text, successMessage = 'Copied', className, onSuccess, onError }: ClipboardCopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(async () => {
@@ -47,7 +47,7 @@ export function ClipboardCopyButton({ text, successMessage = 'Copied to clipboar
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to copy')
-      toast.error('Copy failed. Please try manually.')
+      toast.error("Copy failed — please try again.")
       onError?.(error)
     }
   }, [text, successMessage, onSuccess, onError])
@@ -57,7 +57,7 @@ export function ClipboardCopyButton({ text, successMessage = 'Copied to clipboar
       type="button"
       onClick={handleCopy}
       className={className ?? DEFAULT_CLASSNAME}
-      aria-label="Copy to clipboard"
+      aria-label="Copy"
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 20 }}

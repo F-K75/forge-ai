@@ -20,13 +20,13 @@ export default function GoogleCallback() {
         } else {
           window.opener?.postMessage({
             type: 'google-oauth-error',
-            error: 'Not authenticated after OAuth',
+            error: 'Sign-in was not completed. Please try again.',
           }, window.location.origin)
         }
       } catch {
         window.opener?.postMessage({
           type: 'google-oauth-error',
-          error: 'Failed to complete sign-in',
+          error: 'We couldn\'t complete your sign-in. Please try again.',
         }, window.location.origin)
       }
       setTimeout(() => window.close(), 100)
@@ -43,7 +43,7 @@ export default function GoogleCallback() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-        Completing sign-in...
+        Completing sign-in…
       </motion.div>
     </div>
   )
