@@ -243,8 +243,8 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
 
   const pipelineNodes = useMemo(() => {
     const laneWidth = 220;
-    const laneY = 80;
-    const startX = 40;
+    const laneY = 50;
+    const startX = 30;
     return BUILD_ORDER.map((id, index) => {
       const agent = AGENTS.find((a) => a.id === id)!;
       return {
@@ -258,8 +258,8 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
 
   const gatewayNodes = useMemo(() => {
     const laneWidth = 150;
-    const laneY = 260;
-    const startX = 40;
+    const laneY = 190;
+    const startX = 30;
 
     return GATEWAY_AGENTS.map((agent, index) => {
       const id = agent.id;
@@ -288,7 +288,7 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[70vh] w-full" : "h-[85vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "max-h-[70vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
       {!embedded && onClose && <MacWindowHeader onClose={onClose} />}
 
       <div className="flex flex-1 min-h-0">
@@ -355,7 +355,7 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="absolute inset-0 z-40 flex items-center justify-center p-4 md:p-8"
+      className="absolute inset-0 z-40 flex items-start justify-center p-3 md:p-4"
     >
       {graphContent}
     </motion.div>
