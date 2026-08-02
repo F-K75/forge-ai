@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 
-const DOT_RADIUS = 1;
-const DOT_SPACING = 28;
-const DOT_COLOR = "rgba(255, 255, 255, 0.12)";
-const DOT_COLOR_LIGHT = "rgba(20, 184, 166, 0.35)";
-const GLOW_RADIUS = 320;
+const DOT_RADIUS = 1.4;
+const DOT_SPACING = 24;
+const DOT_COLOR = "rgba(255, 255, 255, 0.18)";
+const DOT_COLOR_LIGHT = "rgba(20, 184, 166, 0.55)";
+const GLOW_RADIUS = 420;
 const BG_COLOR = "rgb(var(--bg))";
 
 export default function GlobalBackground() {
@@ -62,11 +62,11 @@ export default function GlobalBackground() {
 
             if (distance < GLOW_RADIUS) {
               const intensity = 1 - distance / GLOW_RADIUS;
-              const radius = DOT_RADIUS + intensity * 1.5;
+              const radius = DOT_RADIUS + intensity * 2.8;
               ctx.beginPath();
               ctx.arc(x, y, radius, 0, Math.PI * 2);
               ctx.fillStyle = DOT_COLOR_LIGHT;
-              ctx.globalAlpha = 0.15 + intensity * 0.6;
+              ctx.globalAlpha = 0.25 + intensity * 0.75;
               ctx.fill();
               ctx.globalAlpha = 1;
               continue;
