@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Heart,
   Terminal,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -21,6 +22,7 @@ import { LIVE_MODE } from "../lib/env";
 import { NotificationsBell } from "./NotificationsBell";
 import { ThemeToggle } from "./ThemeToggle";
 import BrandLogo from "./BrandLogo";
+import { AgentFleetGraph } from "./AgentFleetGraph";
 
 interface DockApp {
   to: string;
@@ -126,6 +128,7 @@ export default function AppShell() {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
+  const [showAgentFleet, setShowAgentFleet] = useState(false);
 
   const name = LIVE_MODE ? user?.name ?? "" : CURRENT_USER.name;
   const plan = LIVE_MODE ? user?.plan ?? "free" : CURRENT_USER.plan;
@@ -181,6 +184,14 @@ export default function AppShell() {
             </span>
             <ThemeToggle compact />
             <NotificationsBell />
+            <button
+              type="button"
+              onClick={() => setShowAgentFleet(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-panel-alt text-xs font-semibold text-ink transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              aria-label="Agent fleet"
+            >
+              <Activity size={16} />
+            </button>
             <button
               type="button"
               onClick={() => navigate("/settings")}
@@ -254,6 +265,10 @@ export default function AppShell() {
             })}
         </ul>
       </nav>
+
+      {showAgentFleet && (
+        <AgentFleetGraph onClose={() => setShowAgentFleet(false)} />
+      )}
     </div>
   );
 }
