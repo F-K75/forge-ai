@@ -47,8 +47,8 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (!LIVE_MODE) return;
-    billingApi.plans().then(setRawPlans).catch(() => toast.error("Failed to load plans"));
-    billingApi.usage().then(setUsage).catch(() => toast.error("Failed to load usage"));
+    billingApi.plans().then(setRawPlans).catch(() => toast.error("Unable to load plans"));
+    billingApi.usage().then(setUsage).catch(() => toast.error("Unable to load usage"));
     billingApi.subscription().then(setSubscription).catch(() => setSubscription(null));
   }, []);
 
@@ -59,7 +59,7 @@ export default function BillingPage() {
     try {
       if (tier === "free") {
         await billingApi.downgrade(tier);
-        toast.success("Downgrade scheduled for the end of your billing period");
+        toast.success("Downgrade takes effect at the end of your billing period");
       } else {
         const res = await billingApi.checkout({
           plan: tier,
@@ -70,7 +70,7 @@ export default function BillingPage() {
         window.location.href = res.url;
       }
     } catch {
-      toast.error("Couldn't update your plan");
+      toast.error("Unable to update plan");
     } finally {
       setPending(null);
     }
@@ -100,7 +100,7 @@ export default function BillingPage() {
       {/* Usage stats */}
       <section aria-label="Usage this month" className="mb-12 pb-12 border-b border-outline">
         <h2 className="mb-4 text-caption font-medium uppercase tracking-wide text-faint">
-          Usage this month
+          Usage
         </h2>
         <motion.div
           className="grid grid-cols-1 gap-3 sm:grid-cols-3"
@@ -122,12 +122,12 @@ export default function BillingPage() {
                   <p className="text-2xl font-medium text-ink">{usage.credits_remaining}</p>
                 </motion.div>
                 <motion.div className="bb-panel rounded-m3 p-4" variants={motionVariants.staggerItem}>
-                  <p className="text-xs text-faint mb-1">Builds this month</p>
+                  <p className="text-xs text-faint mb-1">Builds</p>
                   <p className="text-2xl font-medium text-ink">{usage.builds_count}</p>
                 </motion.div>
               </>
             ) : (
-              <p className="text-sm text-faint">Loading…</p>
+              <p className="text-sm text-faint">Loading</p>
             )
           ) : (
             USAGE_STATS.map(stat => (
@@ -315,7 +315,7 @@ function RawPlanCard({
         ].join(" ")}
         aria-disabled={active || pending}
       >
-        {active ? "Current plan" : pending ? "Redirecting…" : plan.tier === "free" ? "Downgrade" : `Choose ${plan.name}`}
+        {active ? "Current plan" : pending ? "Redirecting" : plan.tier === "free" ? "Downgrade" : `Select ${plan.name}`}
       </motion.button>
     </motion.div>
   );

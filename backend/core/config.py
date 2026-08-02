@@ -188,7 +188,9 @@ class Settings(BaseSettings):
     ]
     
 
-    allowed_hosts: str = "localhost,127.0.0.1,testserver"
+    allowed_hosts: str = "localhost,127.0.0.1,testserver,*.trycloudflare.com"
+
+    frontend_tunnel_url: str = ""
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

@@ -60,8 +60,8 @@ export default function WorkspacePage() {
         })
         .catch(() => {
           if (!cancelled) {
-            toast.error("Failed to create project");
-            setLoadError("Failed to create project");
+            toast.error("Unable to create project");
+            setLoadError("Unable to create project");
           }
         });
       return () => {
@@ -79,7 +79,7 @@ export default function WorkspacePage() {
         // permissions, deleted project) rendered an "Unknown project"
         // placeholder with no indication anything had gone wrong.
         if (!cancelled) {
-          toast.error("Couldn't load this project");
+          toast.error("Unable to load this project");
           setProject({ id: projectId, name: "Unknown project" });
         }
       });
@@ -115,7 +115,7 @@ export default function WorkspacePage() {
           startBuild(build_id, prompt);
           setBuildId(build_id);
         } catch (err: any) {
-          const message = err?.response?.data?.detail || "Failed to start build";
+          const message = err?.response?.data?.detail || "Unable to start build";
           handleEvent({
             type: "build_failed",
             version: 1,
@@ -163,7 +163,7 @@ export default function WorkspacePage() {
         <p className="text-sm text-muted">{loadError}</p>
         <motion.button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors"
+          className="px-4 py-2 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors"
           {...presets.button}
         >
           Retry

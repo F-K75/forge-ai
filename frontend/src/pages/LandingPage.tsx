@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router-dom";
 import {
-  Sparkles,
   ArrowRight,
   Play,
   Check,
@@ -21,6 +20,7 @@ import {
   Users,
   Building2,
 } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 import { AGENTS, type Agent } from "../lib/agents";
 import gsap from "gsap";
 import { useStaggerIn, useSplitTextReveal } from "../lib/animations";
@@ -61,12 +61,12 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
 // terminal's short status fragments since a grid card reads better with a
 // full sentence.
 const AGENT_DESCRIPTIONS: Record<Agent["id"], string> = {
-  architect: "Designs the system: data models, service boundaries, how everything talks to everything else.",
-  business_improver: "Pressure-tests the plan against real-world constraints and unit economics.",
-  designer: "Builds a real design system and UI — not a wireframe, not a gray box.",
-  developer: "Writes the full stack, streaming every file as it's created.",
-  integration: "Wires up Stripe, auth, and the other services your app needs — automatically.",
-  pm: "Tests the build against the plan and scores it before it ships.",
+  architect: "Defines the system: data models, service boundaries, and how services communicate.",
+  business_improver: "Validates the plan against real-world constraints and unit economics.",
+  designer: "Produces a complete design system and UI — not wireframes, not placeholders.",
+  developer: "Writes the full stack, streaming each file as it is created.",
+  integration: "Connects Stripe, auth, and other services your app needs — automatically.",
+  pm: "Evaluates the build against the plan and blocks anything below the quality bar.",
 };
 
 const AGENT_STATUS_LINES: Record<Agent["id"], string> = {
@@ -104,8 +104,8 @@ const FEATURES: Feature[] = [
     icon: Layers,
   },
   {
-    title: "QA score on every build",
-    description: "Every build ships with a quality score, so you know what you're deploying.",
+    title: "Quality score on every build",
+    description: "Every build ships with a quality score, so you know what you are deploying.",
     icon: BarChart3,
   },
   {
@@ -130,15 +130,15 @@ const FEATURES: Feature[] = [
   },
   {
     title: "Provider-independent core",
-    description: "Forge runs on a model-agnostic gateway, so your build isn't tied to one AI provider.",
+    description: "Forge runs on a model-agnostic gateway, so your build is not tied to one AI provider.",
     icon: Network,
   },
 ];
 
 const PROBLEM_POINTS = [
-  { title: "Chat tools generate code.", body: "They don't reason about your product." },
-  { title: "Autocomplete speeds up typing.", body: "It doesn't decide what to build." },
-  { title: "Single-agent tools do it all themselves.", body: "Architecture, UI, backend, tests — with nobody checking the work." },
+  { title: "Chat tools generate code.", body: "They do not reason about your product." },
+  { title: "Autocomplete speeds up typing.", body: "It does not decide what to build." },
+  { title: "Single-agent tools do it all alone.", body: "Architecture, UI, backend, tests — with nobody checking the work." },
 ];
 
 const WHY_FORGE_LINES = [
@@ -198,7 +198,7 @@ const PRICING_PLANS: PricingPlan[] = [
     credits: "10 credits",
     blurb: "Enough to ship your first real build.",
     features: ["1 project", "Community templates", "Public builds"],
-    cta: "Start free",
+    cta: "Get started",
   },
   {
     name: "Standard",
@@ -226,7 +226,7 @@ const FAQS = [
   },
   {
     q: "Is this just a chatbot with extra steps?",
-    a: "No. Forge doesn't wait for you to prompt each step. Specialist agents plan, hand off, and validate the build on their own — you step in to review and ship.",
+    a: "No. Forge does not wait for you to prompt each step. Specialist agents plan, hand off, and validate the build on their own — you step in to review and ship.",
   },
   {
     q: "Do I own the code Forge writes?",
@@ -261,19 +261,25 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-land-paper text-land-ink antialiased font-sans">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-land-ink focus:text-land-paper focus:text-sm focus:font-medium"
-      >
-        Skip to content
-      </a>
-      <Nav />
-      <main id="main-content">
-        <Hero activeIndex={activeIndex} />
-        <LandingPageBody />
-      </main>
-      <Footer />
+    <div className="launch-os w-full scroll-smooth bg-base text-ink">
+      <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="launch-atmosphere absolute inset-0" />
+        <div className="launch-name-veil absolute inset-0" />
+      </div>
+
+      <div className="relative z-10 bg-base">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-land-ink focus:text-land-paper focus:text-sm focus:font-medium"
+        >
+          Skip to content
+        </a>
+        <Nav />
+        <main id="main-content">
+          <LandingPageBody />
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }
@@ -352,9 +358,7 @@ export function Nav() {
             href="#top"
             className="flex items-center gap-2.5 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-accent text-white shadow-apple">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            </div>
+            <BrandLogo size="md" />
             <span className="font-brand text-[17px] font-semibold tracking-tight text-ink">
               Forge
             </span>
@@ -405,7 +409,7 @@ function Hero({ activeIndex }: { activeIndex: number }) {
   useSplitTextReveal(headlineRef, { by: "words", stagger: 0.025, delay: 0.15 });
 
   return (
-    <section id="top" className="pt-24 pb-32">
+    <section id="top" className="pt-28 pb-36">
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           className="max-w-3xl"
@@ -467,7 +471,7 @@ function Hero({ activeIndex }: { activeIndex: number }) {
           initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-20 border border-land-border rounded-lg overflow-hidden max-w-4xl"
+          className="mt-24 border border-land-border rounded-lg overflow-hidden max-w-4xl"
         >
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-land-border bg-land-muted-bg/30">
             <div className="flex gap-1.5" aria-hidden="true">
@@ -509,8 +513,8 @@ function ProblemSection() {
     <Section id="problem">
       <SectionHead
         eyebrow="The problem"
-        title={<>AI made it easy to start.<br />It didn't make it easy to ship.</>}
-        subtitle="Prompt-to-app tools get you a demo in an afternoon. Then reality shows up: broken auth, no tests, a schema you can't explain, and code your team doesn't want to touch."
+        title={<>AI made it easy to start.<br />It did not make it easy to ship.</>}
+        subtitle="Prompt-to-app tools get you a demo in an afternoon. Then reality arrives: broken auth, no tests, a schema you cannot explain, and code your team does not want to touch."
       />
       <div className="grid md:grid-cols-3 gap-px bg-land-border">
         {PROBLEM_POINTS.map((p) => (
@@ -523,7 +527,7 @@ function ProblemSection() {
         ))}
       </div>
       <p className="mt-10 font-display text-xl md:text-2xl text-land-ink max-w-2xl" data-reveal>
-        You don't need faster typing. You need a team that knows what production means.
+        You do not need faster typing. You need a team that knows what production means.
       </p>
     </Section>
   );
@@ -541,20 +545,20 @@ function SolutionSection() {
       />
       <p className="max-w-2xl text-land-muted leading-relaxed" data-reveal>
         You describe what you want. Forge assembles the right specialists, gives them shared context and a
-        single source of truth for your project, and doesn't stop until the build passes its own quality bar.
+        single source of truth for your project, and does not stop until the build passes its own quality bar.
         What ships is code you can read, deploy, and own.
       </p>
-      <div className="mt-10" data-reveal>
-        <motion.div {...presets.button} className="inline-block">
-          <Link
-            to="/signup"
-            className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition"
-          >
-            Start your first build <ArrowRight className="w-4 h-4" aria-hidden="true" />
-          </Link>
-        </motion.div>
-        <p className="mt-3 text-xs text-land-muted">Average build: under 15 minutes.</p>
-      </div>
+          <div className="mt-10" data-reveal>
+            <motion.div {...presets.button} className="inline-block">
+              <Link
+                to="/signup"
+                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition"
+              >
+                Start your first build <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </Link>
+            </motion.div>
+            <p className="mt-3 text-xs text-land-muted">Average build: under 15 minutes.</p>
+          </div>
     </Section>
   );
 }
@@ -613,7 +617,7 @@ function WorkflowSection() {
 function FeaturesSection() {
   return (
     <Section id="features">
-      <SectionHead eyebrow="Features" title="Built to be trusted with real work." />
+      <SectionHead eyebrow="Features" title="Built for real work." />
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-land-border">
         {FEATURES.map((f) => {
           const Icon = f.icon;
@@ -669,7 +673,7 @@ function ComparisonSection() {
       <SectionHead
         eyebrow="Comparison"
         title="Not another way to generate code."
-        subtitle="Here's what changes when a team plans, builds, and reviews your software — instead of one model guessing at all of it."
+        subtitle="Here is what changes when a team plans, builds, and reviews your software — instead of one model guessing at all of it."
       />
       <div className="overflow-x-auto" data-reveal>
         <table className="w-full text-sm border-collapse min-w-[640px]">
@@ -689,7 +693,7 @@ function ComparisonSection() {
                 <td className="py-4 px-4 text-center"><CompareMark value={row.promptToApp} /></td>
                 <td className="py-4 px-4 text-center"><CompareMark value={row.pairProgrammer} /></td>
                 <td className="py-4 px-4 text-center"><CompareMark value={row.singleAgent} /></td>
-                <td className="py-4 pl-4 text-center bg-land-muted-bg/40">
+                <td className="py-3 pl-4 text-center bg-land-muted-bg/40">
                   <Check className="w-4 h-4 text-land-accent inline" strokeWidth={2} aria-label="Yes" />
                 </td>
               </tr>
@@ -707,7 +711,7 @@ function ComparisonSection() {
 function CustomerBenefitsSection() {
   return (
     <Section id="benefits">
-      <SectionHead eyebrow="Who it's for" title="Built for whoever has to ship." />
+      <SectionHead eyebrow="Who it is for" title="Built for whoever has to ship." />
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-land-border">
         {SEGMENTS.map((s) => {
           const Icon = s.icon;
@@ -841,9 +845,7 @@ export function Footer() {
     <footer className="border-t border-land-border py-16">
       <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border border-land-ink flex items-center justify-center">
-            <Sparkles className="w-3 h-3" aria-hidden="true" />
-          </div>
+          <BrandLogo size="sm" />
           <span className="font-display font-medium text-land-ink">Forge</span>
           <span className="hidden sm:inline text-xs text-land-muted">The AI engineering organization.</span>
         </div>

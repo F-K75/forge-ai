@@ -14,8 +14,8 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false)
 
   const validateEmail = (value: string) => {
-    if (!value) return 'Email is required'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Invalid email format'
+    if (!value) return 'Please enter your email.'
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address.'
     return ''
   }
 
@@ -50,7 +50,7 @@ export default function ForgotPassword() {
             <Mail className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Check your email</h1>
-          <p className="text-sm text-land-muted mb-8">If an account with that email exists, we sent a reset link.</p>
+          <p className="text-sm text-land-muted mb-8">If an account with that email exists, we've sent a reset link.</p>
           <Link to="/login" className="text-sm text-land-ink underline underline-offset-4 hover:text-land-muted transition">
             Back to sign in
           </Link>
@@ -70,7 +70,7 @@ export default function ForgotPassword() {
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
           </div>
           <h1 className="font-display text-3xl font-medium tracking-tight">Forgot your password?</h1>
-          <p className="text-sm text-land-muted mt-2">Enter your email to receive a reset link.</p>
+          <p className="text-sm text-land-muted mt-2">Enter your email and we'll send you a reset link.</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -104,7 +104,7 @@ export default function ForgotPassword() {
             type="submit"
             disabled={loading}
             {...(reduce ? {} : presets.button)}
-            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
           >
             {loading ? 'Sending…' : 'Send reset link'}
           </motion.button>

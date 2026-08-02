@@ -54,17 +54,17 @@ export default function LLMManagementPage() {
   }, [])
 
   const saveOverride = async () => {
-    setSaveStatus('Saving…')
+    setSaveStatus('Saving')
     try {
       await llmApi.setAgentOverride(agentName, { provider: overrideProvider || undefined, model: overrideModel || undefined })
-      setSaveStatus('Saved — applies immediately, no restart needed')
+      setSaveStatus('Saved — applies immediately')
     } catch {
-      setSaveStatus('Failed to save')
+      setSaveStatus('Unable to save')
     }
   }
 
   const testConnection = async (providerName: string) => {
-    setTestStatus(`Testing ${providerName}…`)
+    setTestStatus(`Testing ${providerName}`)
     try {
       const data = await llmApi.test({
         agent: 'developer',
@@ -73,7 +73,7 @@ export default function LLMManagementPage() {
       })
       setTestStatus(`${providerName}: ${data.text?.slice(0, 60) || 'ok'}`)
     } catch {
-      setTestStatus(`${providerName}: request failed`)
+      setTestStatus(`${providerName}: connection failed`)
     }
   }
 
@@ -86,11 +86,11 @@ export default function LLMManagementPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      <h1 className="text-2xl font-semibold">LLM Management</h1>
-      <p className="mt-2 text-slate-400">Provider status, model assignments, cost, and per-agent routing.</p>
+      <h1 className="text-2xl font-semibold">LLM management</h1>
+      <p className="mt-2 text-slate-400">Monitor providers, models, costs, and routing.</p>
 
       {loading ? (
-        <p className="mt-6">Loading…</p>
+        <p className="mt-6">Loading</p>
       ) : (
         <>
           <section className="mt-6">
@@ -121,7 +121,7 @@ export default function LLMManagementPage() {
                     className="mt-3 rounded bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700"
                     {...presets.button}
                   >
-                    Test connection
+                     Test connection
                   </motion.button>
                 </motion.div>
               ))}
@@ -150,16 +150,16 @@ export default function LLMManagementPage() {
           </section>
 
           <section className="mt-8">
-            <h2 className="text-lg font-medium">Cost & Usage</h2>
-            <p className="mt-2 text-slate-400">Total tracked spend: ${totalCost.toFixed(4)}</p>
+            <h2 className="text-lg font-medium">Cost and usage</h2>
+            <p className="mt-2 text-slate-400">Total spend: ${totalCost.toFixed(4)}</p>
             <div className="mt-3 max-h-64 overflow-auto rounded border border-slate-800">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-900 text-slate-400">
                   <tr>
-                    <th className="p-2">Model</th>
-                    <th className="p-2">Prompt tokens</th>
-                    <th className="p-2">Completion tokens</th>
-                    <th className="p-2">Cost (USD)</th>
+                   <th className="p-2">Model</th>
+                   <th className="p-2">Prompt tokens</th>
+                   <th className="p-2">Completion tokens</th>
+                   <th className="p-2">Cost</th>
                   </tr>
                 </thead>
                 <motion.tbody
@@ -181,7 +181,7 @@ export default function LLMManagementPage() {
           </section>
 
           <section className="mt-8">
-            <h2 className="text-lg font-medium">Per-Agent Model Assignment</h2>
+            <h2 className="text-lg font-medium">Model assignment</h2>
             <div className="mt-3 flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-slate-400">Agent</span>
@@ -210,7 +210,7 @@ export default function LLMManagementPage() {
                   value={overrideModel}
                   onChange={(e) => setOverrideModel(e.target.value)}
                   className="rounded bg-slate-800 px-2 py-1"
-                  placeholder="e.g. claude-sonnet-4-6"
+                 placeholder="For example, claude-sonnet-4-5"
                 />
               </label>
               <motion.button onClick={saveOverride} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500" {...presets.button}>

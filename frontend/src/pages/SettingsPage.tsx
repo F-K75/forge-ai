@@ -89,7 +89,7 @@ export default function SettingsPage() {
       await authApi.updateProfile({ preferences: { [key]: value } });
       await fetchMe();
     } catch {
-      toast.error("Failed to save setting");
+      toast.error("Unable to save setting");
     }
   };
 
@@ -119,7 +119,7 @@ export default function SettingsPage() {
       setShowGithubInput(false);
       toast.success("GitHub connected");
     } catch {
-      toast.error("Failed to connect GitHub");
+      toast.error("Unable to connect GitHub");
     } finally {
       setSavingGithub(false);
     }
@@ -132,7 +132,7 @@ export default function SettingsPage() {
       await fetchMe();
       toast.success("GitHub disconnected");
     } catch {
-      toast.error("Failed to disconnect GitHub");
+      toast.error("Unable to disconnect GitHub");
     } finally {
       setSavingGithub(false);
     }
@@ -173,7 +173,7 @@ export default function SettingsPage() {
       setShowByokInput(false);
       toast.success("Key connected");
     } catch {
-      toast.error("Failed to connect key");
+      toast.error("Unable to connect key");
     } finally {
       setSavingByok(false);
     }
@@ -190,7 +190,7 @@ export default function SettingsPage() {
       }
       toast.success("Key disconnected");
     } catch {
-      toast.error("Failed to disconnect key");
+      toast.error("Unable to disconnect key");
     } finally {
       setSavingByok(false);
     }
@@ -215,7 +215,7 @@ export default function SettingsPage() {
       setMfaOtpauthUri(otpauth_uri);
       setMfaStep("qr");
     } catch {
-      toast.error("Failed to start MFA setup");
+      toast.error("Unable to start MFA setup");
     } finally {
       setMfaBusy(false);
     }
@@ -232,7 +232,7 @@ export default function SettingsPage() {
       await fetchMe();
       toast.success("Two-factor authentication enabled");
     } catch {
-      toast.error("Invalid code. Please try again.");
+      toast.error("That code didn't match. Please try again.");
     } finally {
       setMfaBusy(false);
     }
@@ -249,7 +249,7 @@ export default function SettingsPage() {
       setMfaStep("idle");
       toast.success("Two-factor authentication disabled");
     } catch {
-      toast.error("Incorrect password");
+      toast.error("That password doesn't look right.");
     } finally {
       setMfaBusy(false);
     }
@@ -276,7 +276,7 @@ export default function SettingsPage() {
       setSupportSubject("");
       setSupportDescription("");
     } catch {
-      toast.error("Failed to submit ticket");
+      toast.error("Unable to submit ticket");
     } finally {
       setSupportSubmitting(false);
     }
@@ -295,7 +295,7 @@ export default function SettingsPage() {
       const data = await authApi.sessions.list();
       setSessions(data);
     } catch {
-      toast.error("Failed to load sessions");
+      toast.error("Unable to load sessions");
     } finally {
       setSessionsLoading(false);
     }
@@ -312,7 +312,7 @@ export default function SettingsPage() {
       setSessions(prev => prev.filter(s => s.id !== id));
       toast.success("Session revoked");
     } catch {
-      toast.error("Failed to revoke session");
+      toast.error("Unable to revoke session");
     } finally {
       setRevokingId(null);
     }
@@ -325,7 +325,7 @@ export default function SettingsPage() {
       setSessions(prev => prev.filter(s => s.is_current));
       toast.success("Logged out of all other devices");
     } catch {
-      toast.error("Failed to log out other devices");
+      toast.error("Unable to log out other devices");
     } finally {
       setRevokingAll(false);
     }
@@ -355,7 +355,7 @@ export default function SettingsPage() {
           </div>
           <div className="bb-panel space-y-3 p-4">
             <p className="text-caption text-muted">
-              Apple-inspired surfaces with Material 3 clarity. Choose dark, light, or high contrast.
+              Choose a theme.
             </p>
             <ThemeSegmented />
           </div>
@@ -372,16 +372,16 @@ export default function SettingsPage() {
               label="Bring your own key"
               description={
                 !canUseByok
-                  ? "Available on the Pro plan — skip credit costs on every build"
+                  ? "Available on Pro."
                   : byokConnected
                   ? !LIVE_MODE
                     ? settings.maskedKey
                     : user?.llm_provider === "openai_compatible"
                     ? `Connected — using ${user.llm_model} instead of credits`
-                    : "Connected — your builds use this key instead of credits"
+                    : "Active"
                   : showByokInput
-                  ? "Choose a provider and paste your API key below"
-                  : "Use your own Anthropic key, or any OpenAI-compatible provider (Groq, OpenRouter, etc.), instead of Forge credits"
+                  ? "Choose a provider and paste your API key."
+                  : "Use your own key to skip build credits."
               }
             >
               {!canUseByok ? (
@@ -479,9 +479,9 @@ export default function SettingsPage() {
                     (byokProvider === "openai_compatible" && (!byokBaseUrlInput.trim() || !byokModelInput.trim()))
                   }
                   {...presets.button}
-                  className="h-8 px-3 rounded-md bg-ink text-base text-xs font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+                  className="h-8 px-3 rounded-md bg-ink text-base text-xs font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
                 >
-                  {savingByok ? "Saving…" : "Save"}
+                  {savingByok ? "Saving" : "Save"}
                 </motion.button>
               </motion.div>
             )}
@@ -492,7 +492,7 @@ export default function SettingsPage() {
         <motion.section aria-labelledby="section-connections" variants={motionVariants.staggerItem}>
           <div className="flex items-center gap-2 mb-3">
             <Github size={13} className="text-muted" aria-hidden="true" />
-            <h2 id="section-connections" className="text-sm font-medium text-ink">Connections</h2>
+            <h2 id="section-connections" className="text-sm font-medium text-ink">Integrations</h2>
           </div>
           <div className="border border-border rounded-lg">
             <Row
@@ -505,7 +505,7 @@ export default function SettingsPage() {
                   : githubConnected
                   ? "Connected"
                   : showGithubInput
-                  ? "Paste a personal access token with repo scope"
+                  ? "Paste a personal access token."
                   : "Not connected"
               }
             >
@@ -519,7 +519,7 @@ export default function SettingsPage() {
                   disabled={savingGithub}
                   className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
                 >
-                  {savingGithub ? "…" : "Disconnect"}
+                   {savingGithub ? "Saving" : "Disconnect"}
                 </button>
               ) : showGithubInput ? (
                 <div className="flex items-center gap-2">
@@ -536,7 +536,7 @@ export default function SettingsPage() {
                     disabled={savingGithub || !githubTokenInput.trim()}
                     className="text-xs text-ink hover:opacity-70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-opacity motion-reduce:transition-none disabled:opacity-50"
                   >
-                    {savingGithub ? "Saving…" : "Save"}
+                    {savingGithub ? "Saving" : "Save"}
                   </button>
                 </div>
               ) : (
@@ -559,8 +559,8 @@ export default function SettingsPage() {
           </div>
           <div className="border border-border rounded-lg">
             <Row
-              label="Build complete"
-              description="Send an email when a build finishes"
+              label="Builds complete"
+              description="Email me when builds finish."
             >
               <Toggle
                 on={notifyOnBuild}
@@ -583,7 +583,7 @@ export default function SettingsPage() {
           <div className="border border-border rounded-lg">
             <Row
               label="Auto-deploy"
-              description="Push to a live container when QA score passes 85"
+              description="Deploy automatically when QA passes."
             >
               <Toggle
                 on={autoDeploy}
@@ -596,7 +596,7 @@ export default function SettingsPage() {
             </Row>
             <Row
               label="Debug iterations"
-              description="Maximum times an agent reruns on failure"
+              description="Max retries before giving up."
             >
               <div className="flex items-center gap-2">
                 <button
@@ -643,11 +643,11 @@ export default function SettingsPage() {
             <div className="border border-border rounded-lg">
               <Row
                 label="Two-factor authentication"
-                description={
-                  mfaEnabled
-                    ? "Enabled -- an authenticator code is required at sign in"
-                    : "Require a code from an authenticator app when signing in"
-                }
+              description={
+                mfaEnabled
+                  ? "Enabled"
+                  : "Require a code at sign-in."
+              }
               >
                 {mfaEnabled ? (
                   showDisablePrompt ? (
@@ -657,7 +657,7 @@ export default function SettingsPage() {
                         value={disablePassword}
                         onChange={e => setDisablePassword(e.target.value)}
                         placeholder="Password"
-                        aria-label="Confirm password to disable 2FA"
+                         aria-label="Confirm password to disable two-factor authentication"
                         className="h-8 px-2.5 w-32 rounded-md bg-transparent border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
                       />
                       <button
@@ -680,7 +680,7 @@ export default function SettingsPage() {
                 ) : mfaStep === "idle" ? (
                   <Toggle on={false} onChange={handleStartMfaSetup} label="Two-factor authentication" disabled={mfaBusy} />
                 ) : (
-                  <span className="text-xs text-muted">In progress below</span>
+                  <span className="text-xs text-muted">In progress</span>
                 )}
               </Row>
 
@@ -695,8 +695,7 @@ export default function SettingsPage() {
                     transition={{ duration: 0.25, ease: "easeOut" }}
                   >
                     <p className="text-xs text-muted leading-relaxed">
-                      Scan this QR code with an authenticator app (e.g. Google Authenticator, 1Password), then enter the
-                      6-digit code it generates.
+                      Scan the QR code, then enter the 6-digit code.
                     </p>
                     <div className="bg-white p-3 rounded-md inline-block">
                       <QRCodeSVG value={mfaOtpauthUri} size={160} />
@@ -738,10 +737,9 @@ export default function SettingsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
                 >
-                  <p className="text-xs text-ink font-medium">Save your backup codes</p>
+                  <p className="text-xs text-ink font-medium">Save these backup codes</p>
                   <p className="text-xs text-muted leading-relaxed">
-                    Each code can be used once to sign in if you lose access to your authenticator app. They will not
-                    be shown again -- store them somewhere safe.
+                    Each code works once. Save these before you leave this page.
                   </p>
                   <div className="grid grid-cols-2 gap-2 font-mono text-xs border border-border rounded-md p-3">
                     {backupCodes.map(code => (
@@ -781,15 +779,15 @@ export default function SettingsPage() {
                   disabled={revokingAll}
                   className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
                 >
-                  {revokingAll ? "Logging out…" : "Log out of all other devices"}
+                  {revokingAll ? "Logging out" : "Log out everywhere else"}
                 </button>
               )}
             </div>
             <div className="border border-border rounded-lg">
               {sessionsLoading ? (
-                <div className="px-4 py-3 text-xs text-muted">Loading…</div>
+                <div className="px-4 py-3 text-xs text-muted">Loading</div>
               ) : sessions.length === 0 ? (
-                <div className="px-4 py-3 text-xs text-muted">No active sessions</div>
+                <div className="px-4 py-3 text-xs text-muted">No active sessions yet</div>
               ) : (
                 sessions.map(session => (
                   <Row
@@ -799,7 +797,7 @@ export default function SettingsPage() {
                         {describeUserAgent(session.user_agent)}
                         {session.is_current && (
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full text-faint border border-border">
-                            This device
+                             This device
                           </span>
                         )}
                       </span>
@@ -812,7 +810,7 @@ export default function SettingsPage() {
                         disabled={revokingId === session.id}
                         className="text-xs text-error hover:text-error/80 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded transition-colors motion-reduce:transition-none disabled:opacity-50"
                       >
-                        {revokingId === session.id ? "…" : "Revoke"}
+                         {revokingId === session.id ? "Revoking" : "Revoke"}
                       </button>
                     )}
                   </Row>
@@ -830,24 +828,24 @@ export default function SettingsPage() {
           </div>
           <div className="border border-border rounded-lg p-5 space-y-4">
             <div>
-              <label htmlFor="support-subject" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Subject</label>
-              <input
-                id="support-subject"
-                type="text"
-                value={supportSubject}
-                onChange={(e) => setSupportSubject(e.target.value)}
-                placeholder="Briefly describe the issue"
-                maxLength={200}
-                className="w-full h-10 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
-              />
+                <label htmlFor="support-subject" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Subject</label>
+                <input
+                  id="support-subject"
+                  type="text"
+                  value={supportSubject}
+                  onChange={(e) => setSupportSubject(e.target.value)}
+                  placeholder="Short summary"
+                 maxLength={200}
+                 className="w-full h-10 bg-transparent border border-border rounded-md px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+               />
             </div>
             <div>
-              <label htmlFor="support-description" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Description</label>
+               <label htmlFor="support-description" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">Details</label>
               <textarea
                 id="support-description"
                 value={supportDescription}
                 onChange={(e) => setSupportDescription(e.target.value)}
-                placeholder="What happened, and what were you expecting?"
+                 placeholder="What happened, and what did you expect?"
                 rows={4}
                 maxLength={5000}
                 className="w-full resize-none bg-transparent border border-border rounded-md px-3 py-2.5 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
@@ -857,9 +855,9 @@ export default function SettingsPage() {
               onClick={handleSubmitSupportTicket}
               disabled={supportSubmitting || !supportSubject.trim() || !supportDescription.trim()}
               {...presets.button}
-              className="h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+              className="h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
             >
-              {supportSubmitting ? "Submitting…" : "Submit ticket"}
+              {supportSubmitting ? "Submitting" : "Submit"}
             </motion.button>
           </div>
         </motion.section>

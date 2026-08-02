@@ -54,7 +54,7 @@ export default function ReleasesTab() {
           onClick={handleGenerate}
           disabled={generating}
           {...presets.button}
-          className="flex items-center gap-1.5 h-9 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none disabled:opacity-50"
+          className="flex items-center gap-1.5 h-9 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none disabled:opacity-50"
         >
           {generating ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />}
           Generate release

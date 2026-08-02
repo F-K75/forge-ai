@@ -11,8 +11,8 @@ import { useGsapTo } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
 
 const BUSY_LABEL: Record<string, string> = {
-  pending: "Queued…",
-  building: "Building image…",
+  pending: "Preparing…",
+  building: "Building…",
   deploying: "Deploying…",
 };
 
@@ -58,7 +58,7 @@ export function DeployButton({ projectId }: { projectId: string }) {
         runMockDeployment(deploymentId, deployment.handleEvent);
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Failed to start deployment");
+      toast.error(err?.response?.data?.detail || "Unable to start deployment");
     } finally {
       setTriggering(false);
     }
@@ -74,7 +74,7 @@ export function DeployButton({ projectId }: { projectId: string }) {
       : deployment.status === "failed"
       ? "Deployment failed"
       : busy
-      ? BUSY_LABEL[deployment.status] ?? "Starting deployment"
+      ? BUSY_LABEL[deployment.status] ?? "Starting…"
       : null;
 
   const liveRegion = (

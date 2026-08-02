@@ -70,7 +70,7 @@ export default function VerifyEmail() {
         <motion.div {...pageMotion} className="w-full max-w-sm text-center">
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-6 text-land-muted" aria-hidden="true" />
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Verifying your email…</h1>
-          <p className="text-sm text-land-muted">This will only take a second.</p>
+          <p className="text-sm text-land-muted">Almost done.</p>
         </motion.div>
       </div>
     )
@@ -84,7 +84,7 @@ export default function VerifyEmail() {
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Email verified</h1>
-          <p className="text-sm text-land-muted">Redirecting you to Forge…</p>
+          <p className="text-sm text-land-muted">Redirecting to Forge…</p>
         </motion.div>
       </div>
     )
@@ -109,7 +109,7 @@ export default function VerifyEmail() {
 
         {resendSent ? (
           <p className="text-center text-sm text-land-muted" role="status" aria-live="polite">
-            If that email has an account, a new verification link is on its way.
+            If an account exists for that email, a new verification link is on its way.
           </p>
         ) : (
           <form onSubmit={handleResend} noValidate className="space-y-5">
@@ -133,7 +133,7 @@ export default function VerifyEmail() {
             type="submit"
             disabled={resending || !resendEmail}
             {...(reduce ? {} : presets.button)}
-            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
           >
               {resending ? (
                 <>

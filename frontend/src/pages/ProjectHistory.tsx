@@ -116,7 +116,7 @@ export default function ProjectHistory() {
         setRawBuilds(data);
         setSelectedId((current) => current ?? data[0]?.id ?? null);
       })
-      .catch(() => toast.error("Failed to load build history"));
+      .catch(() => toast.error("Unable to load build history"));
   };
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function ProjectHistory() {
       .catch(() => {
         // Previously silent (PROD-016) -- see the identical fix in
         // WorkspacePage.tsx.
-        toast.error("Couldn't load this project");
+        toast.error("Unable to load this project");
         setLiveProjectName("Unknown project");
       });
     refreshBuilds();
@@ -185,7 +185,7 @@ export default function ProjectHistory() {
       );
       setDiff({ added, modified, removed });
     } catch {
-      toast.error("Failed to load diff");
+      toast.error("Unable to load diff");
     } finally {
       setDiffLoading(false);
     }
@@ -194,7 +194,7 @@ export default function ProjectHistory() {
   if (LIVE_MODE && !selected) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-faint">
-        {rawBuilds === null ? "Loading build history…" : "No builds yet for this project."}
+        {rawBuilds === null ? "Loading build history" : "No builds yet for this project."}
       </div>
     );
   }
@@ -307,11 +307,11 @@ export default function ProjectHistory() {
                 type="button"
                 onClick={handleRollback}
                 disabled={rollingBack}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
                 {...presets.button}
               >
                 <RefreshCw size={12} aria-hidden="true" />
-                {rollingBack ? "Rolling back…" : "Roll back to this version"}
+                {rollingBack ? "Rolling back" : "Roll back to this version"}
               </motion.button>
             )}
             {LIVE_MODE && (
@@ -319,11 +319,11 @@ export default function ProjectHistory() {
                 type="button"
                 onClick={handleViewDiff}
                 disabled={diffLoading}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
                 {...presets.button}
               >
                 <GitBranch size={12} aria-hidden="true" />
-                {diffLoading ? "Loading…" : "View diff"}
+                {diffLoading ? "Loading" : "View diff"}
               </motion.button>
             )}
           </div>
@@ -346,9 +346,9 @@ export default function ProjectHistory() {
                   the whole region aria-live would read every filename aloud
                   the instant a large diff loads. */}
               <span role="status" aria-live="polite" className="sr-only">
-                {diff.added.length + diff.modified.length + diff.removed.length === 0
-                  ? "No file changes vs. the previous build"
-                  : `Diff loaded: ${diff.added.length + diff.modified.length + diff.removed.length} changed files`}
+                 {diff.added.length + diff.modified.length + diff.removed.length === 0
+                   ? "No file changes from the previous build"
+                   : `Diff loaded: ${diff.added.length + diff.modified.length + diff.removed.length} changed files`}
               </span>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs uppercase tracking-[0.14em] text-muted">Changed files</h3>
@@ -361,7 +361,7 @@ export default function ProjectHistory() {
                 </button>
               </div>
               {diff.added.length === 0 && diff.modified.length === 0 && diff.removed.length === 0 ? (
-                <p className="text-xs text-faint">No file changes vs. the previous build.</p>
+                 <p className="text-xs text-faint">No file changes from the previous build.</p>
               ) : (
                 <ul className="space-y-1 font-mono text-xs">
                   {diff.added.map((f) => (

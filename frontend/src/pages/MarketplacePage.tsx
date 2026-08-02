@@ -63,7 +63,7 @@ export default function MarketplacePage() {
     marketplaceApi
       .list({ search: search.trim() || undefined })
       .then((items: RawItem[]) => setLiveTemplates(items.map(toDisplayTemplate)))
-      .catch(() => toast.error("Failed to load marketplace"));
+      .catch(() => toast.error("Unable to load marketplace"));
   }, [search]);
 
   const source = LIVE_MODE ? liveTemplates ?? [] : TEMPLATES;
@@ -88,7 +88,7 @@ export default function MarketplacePage() {
       const { prompt } = await marketplaceApi.download(template.id);
       navigate("/build/new", { state: { prompt } });
     } catch {
-      toast.error("Failed to install template");
+       toast.error("Unable to install template");
     }
   };
 
@@ -101,7 +101,7 @@ export default function MarketplacePage() {
     >
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <p className="text-sm text-muted">Install a starter and open it as a project.</p>
+        <p className="text-sm text-muted">Install a starter to open it as a project.</p>
         <div className="relative">
           <Search
             size={13}
@@ -145,7 +145,7 @@ export default function MarketplacePage() {
 
       {/* Grid */}
       {LIVE_MODE && liveTemplates === null ? (
-        <p className="py-20 text-center text-sm text-muted">Loading templates…</p>
+        <p className="py-20 text-center text-sm text-muted">Loading templates</p>
       ) : visible.length > 0 ? (
         <motion.div
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
@@ -215,7 +215,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
         <motion.button
           onClick={onInstall}
           {...presets.button}
-          className="bb-btn bb-btn-tonal h-8 !px-3 text-xs"
+          className="bb-btn bb-btn-tonal h-8 !px-3 text-xs active:scale-[0.98]"
           aria-label={`Install ${template.name} — ${template.installs} installs`}
         >
           <Download size={11} aria-hidden="true" />

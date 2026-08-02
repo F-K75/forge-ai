@@ -7,6 +7,11 @@ import {
   Settings,
   ShieldCheck,
   Rocket,
+  Shield,
+  Brain,
+  TrendingUp,
+  Heart,
+  Terminal,
   type LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -15,7 +20,7 @@ import { CURRENT_USER } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
 import { NotificationsBell } from "./NotificationsBell";
 import { ThemeToggle } from "./ThemeToggle";
-import forgeLogo from "/forge.svg";
+import BrandLogo from "./BrandLogo";
 
 interface DockApp {
   to: string;
@@ -60,6 +65,39 @@ const DOCK_APPS: DockApp[] = [
     label: "Settings",
     icon: Settings,
     match: (p) => p.startsWith("/settings"),
+  },
+];
+
+const ADMIN_APPS: DockApp[] = [
+  {
+    to: "/admin-console",
+    label: "Admin",
+    icon: Shield,
+    match: (p) => p.startsWith("/admin-console"),
+  },
+  {
+    to: "/llm-management",
+    label: "LLM",
+    icon: Brain,
+    match: (p) => p.startsWith("/llm-management"),
+  },
+  {
+    to: "/optimization-dashboard",
+    label: "Optimization",
+    icon: TrendingUp,
+    match: (p) => p.startsWith("/optimization-dashboard"),
+  },
+  {
+    to: "/engineering-health",
+    label: "Health",
+    icon: Heart,
+    match: (p) => p.startsWith("/engineering-health"),
+  },
+  {
+    to: "/prompt-studio",
+    label: "Prompts",
+    icon: Terminal,
+    match: (p) => p.startsWith("/prompt-studio"),
   },
 ];
 
@@ -126,11 +164,9 @@ export default function AppShell() {
               type="button"
               onClick={() => navigate("/projects")}
               className="group flex items-center gap-2.5 rounded-full pr-2 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              aria-label="Forge home"
+              aria-label="Home"
             >
-              <span className="flex h-8 w-8 items-center justify-center">
-                <img src={forgeLogo} alt="Forge" className="h-8 w-8" />
-              </span>
+              <BrandLogo size="md" />
               <span className="font-brand text-[17px] font-semibold tracking-tight text-ink">
                 Forge
               </span>
@@ -149,7 +185,7 @@ export default function AppShell() {
               type="button"
               onClick={() => navigate("/settings")}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white shadow-m3 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              aria-label="Open settings"
+              aria-label="Settings"
             >
               {initial}
             </button>
@@ -196,6 +232,26 @@ export default function AppShell() {
               </li>
             );
           })}
+          {user?.is_admin &&
+            ADMIN_APPS.map((app) => {
+              const Icon = app.icon;
+              const active = app.match(location.pathname);
+              return (
+                <li key={app.to}>
+                  <NavLink
+                    to={app.to}
+                    className={[
+                      "apple-dock-item flex min-w-[3.25rem] flex-col items-center gap-1 rounded-2xl px-2.5 py-2 text-muted sm:min-w-[4.25rem]",
+                      active ? "is-active" : "",
+                    ].join(" ")}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                    <span className="text-[10px] font-medium tracking-wide">{app.label}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
         </ul>
       </nav>
     </div>

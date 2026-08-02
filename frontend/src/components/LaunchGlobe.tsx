@@ -3,6 +3,22 @@ import createGlobe from "cobe"
 import { motion } from "motion/react"
 import { useReducedMotion } from "motion/react"
 import { presets } from "../lib/animationPresets"
+import type { Agent } from "../lib/agents"
+
+const AGENT_COLORS: Record<Agent["id"], [number, number, number]> = {
+  architect: [0.039, 0.518, 1.0],
+  business_improver: [0.369, 0.361, 0.902],
+  designer: [0.749, 0.353, 0.949],
+  developer: [0.188, 0.820, 0.345],
+  integration: [0.392, 0.824, 1.0],
+  pm: [1.0, 0.624, 0.039],
+}
+
+type AgentColorId = keyof typeof AGENT_COLORS
+
+interface LaunchGlobeProps {
+  activeAgentId?: AgentColorId
+}
 
 const HUBS: [number, number][] = [
   [37.77, -122.41],
@@ -40,13 +56,15 @@ const supportsWebGL = () => {
   }
 }
 
-export default function LaunchGlobe() {
+export default function LaunchGlobe({ activeAgentId = "architect" }: LaunchGlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [fallback, setFallback] = useState(false)
   const pointerStart = useRef<number | null>(null)
   const dragOffset = useRef(0)
   const dragBase = useRef(0)
   const reduceMotion = useReducedMotion()
+  const globeRef = useRef<ReturnType<typeof createGlobe> | null>(null)
+  const colors = AGENT_COLORS[activeAgentId] ?? AGENT_COLORS.architect
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -57,18 +75,15 @@ export default function LaunchGlobe() {
     }
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    // Smaller screens render the globe at a smaller physical size and skew
-    // toward lower-end hardware — a lighter map/pixel-ratio budget avoids
-    // jank on exactly the devices most likely to struggle with it.
     const lightweight = window.innerWidth < 640 || (navigator.hardwareConcurrency ?? 8) <= 4
     const pixelRatio = lightweight ? 1.5 : 2
     let width = canvas.offsetWidth
     const onResize = () => {
       width = canvas.offsetWidth
-      globe.update({ width: width * pixelRatio, height: width * pixelRatio })
+      globeRef.current?.update({ width: width * pixelRatio, height: width * pixelRatio })
     }
 
-    const globe = createGlobe(canvas, {
+    globeRef.current = createGlobe(canvas, {
       devicePixelRatio: pixelRatio,
       width: width * pixelRatio,
       height: width * pixelRatio,
@@ -80,13 +95,13 @@ export default function LaunchGlobe() {
       mapBrightness: 4.8,
       mapBaseBrightness: 0.06,
       baseColor: [0.28, 0.3, 0.34],
-      markerColor: [0.04, 0.52, 1.0],
+      markerColor: [colors[0] * 0.35, colors[1] * 0.35, colors[2] * 0.35],
       glowColor: [0.05, 0.05, 0.06],
-      arcColor: [0.2, 0.5, 1.0],
-      arcWidth: 0.5,
-      arcHeight: 0.22,
+      arcColor: [colors[0] * 0.9, colors[1] * 0.9, colors[2] * 0.9],
+      arcWidth: 0.2,
+      arcHeight: 0.12,
       opacity: 0.92,
-      markers: MARKERS,
+      markers: MARKERS.map((m, i) => ({ ...m, size: i % 3 === 0 ? 0.025 : 0.015 })),
       arcs: ARCS,
     })
 
@@ -96,7 +111,7 @@ export default function LaunchGlobe() {
     let raf = 0
     const frame = () => {
       if (!reduced && pointerStart.current === null) phi += 0.0025
-      globe.update({ phi: phi + dragOffset.current })
+      globeRef.current?.update({ phi: phi + dragOffset.current })
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
@@ -109,9 +124,17 @@ export default function LaunchGlobe() {
       cancelAnimationFrame(raf)
       window.clearTimeout(fadeTimer)
       window.removeEventListener("resize", onResize)
-      globe.destroy()
+      globeRef.current?.destroy()
+      globeRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    globeRef.current?.update({
+      markerColor: colors,
+      arcColor: colors,
+    })
+  }, [activeAgentId, colors])
 
   if (fallback) return <CssGlobe />
 

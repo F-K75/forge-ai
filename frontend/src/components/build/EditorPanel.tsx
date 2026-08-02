@@ -16,7 +16,7 @@ function CodeLoadingState() {
         <span className="absolute inset-2 rounded-full border border-ember/30" aria-hidden="true" />
         <Sparkles size={16} className="text-ember" aria-hidden="true" />
       </div>
-      <p className="text-xs text-muted">Waiting for the first file…</p>
+      <p className="text-xs text-muted">Preparing your workspace…</p>
       <div className="w-full max-w-xs space-y-2" aria-hidden="true">
         {SKELETON_LINE_WIDTHS.map((w, i) => (
           <motion.div
@@ -86,7 +86,7 @@ export function EditorPanel() {
   // While tokens stream in, show them live; once a file lands, show the file.
   const isStreaming = openFile == null && streamBuffer.length > 0;
   const content = openFile != null ? files[openFile] ?? "" : streamBuffer;
-  const tabLabel = openFile ? openFile.split("/").pop() : isStreaming ? "Generating…" : null;
+  const tabLabel = openFile ? openFile.split("/").pop() : isStreaming ? "Writing…" : null;
 
   return (
     <motion.section
@@ -98,7 +98,7 @@ export function EditorPanel() {
     >
       <nav className="overflow-y-auto border-r border-border-soft py-2" aria-label="Files">
         <div className="flex items-center justify-between px-3 pb-2 pt-1 text-[10px] uppercase tracking-wider text-faint">
-          <span>Explorer</span>
+          <span>Files</span>
           <span>{paths.length} files</span>
         </div>
         {paths.length === 0 ? (
@@ -106,7 +106,7 @@ export function EditorPanel() {
             {(status === "running" || status === "debugging") && (
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ember animate-tick" aria-hidden="true" />
             )}
-            Files appear here as agents write code.
+            Files will appear here as they're generated.
           </p>
         ) : (
           <motion.div variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
@@ -151,7 +151,7 @@ export function EditorPanel() {
               <span className="font-mono">{tabLabel}</span>
               {isStreaming && (
                 <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-ember/15 px-1.5 py-0.5 text-[10px] text-ember">
-                  <span className="h-1 w-1 rounded-full bg-ember animate-tick" aria-hidden="true" /> writing
+                  <span className="h-1 w-1 rounded-full bg-ember animate-tick" aria-hidden="true" /> Writing
                 </span>
               )}
             </div>
@@ -188,7 +188,7 @@ export function EditorPanel() {
             <CodeLoadingState />
           ) : (
             <div className="h-full flex items-center justify-center">
-              <p className="text-sm text-faint">No file selected</p>
+              <p className="text-sm text-faint">Select a file to view</p>
             </div>
           )}
         </motion.div>
