@@ -189,7 +189,7 @@ class Settings(BaseSettings):
     ]
     
 
-    allowed_hosts: str = "localhost,127.0.0.1,testserver,*.trycloudflare.com"
+    allowed_hosts: str = "localhost,127.0.0.1,testserver,*.trycloudflare.com,api.forge.ai"
 
     frontend_tunnel_url: str = ""
 
