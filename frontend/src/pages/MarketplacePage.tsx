@@ -215,7 +215,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
         <motion.button
           onClick={onInstall}
           {...presets.button}
-          className="bb-btn bb-btn-tonal h-8 !px-3 text-xs"
+          className="bb-btn bb-btn-tonal h-8 !px-3 text-xs active:scale-[0.98]"
           aria-label={`Install ${template.name} — ${template.installs} installs`}
         >
           <Download size={11} aria-hidden="true" />

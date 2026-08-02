@@ -314,7 +314,7 @@ function PromptBar() {
   };
 
   return (
-    <div className="pointer-events-auto mt-10 w-full">
+    <div className="pointer-events-auto mt-8 w-full">
       <form
         onSubmit={onSubmit}
         className="flex w-full items-center gap-2 rounded-full apple-glass-strong px-2 py-2 pl-4 text-left shadow-apple-lg transition focus-within:shadow-[0_0_0_4px_var(--state-focus)] sm:gap-3 sm:pl-5"

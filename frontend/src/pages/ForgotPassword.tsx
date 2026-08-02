@@ -104,7 +104,7 @@ export default function ForgotPassword() {
             type="submit"
             disabled={loading}
             {...(reduce ? {} : presets.button)}
-            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
           >
             {loading ? 'Sending…' : 'Send reset link'}
           </motion.button>

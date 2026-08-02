@@ -163,7 +163,7 @@ export default function WorkspacePage() {
         <p className="text-sm text-muted">{loadError}</p>
         <motion.button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors"
+          className="px-4 py-2 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors"
           {...presets.button}
         >
           Retry

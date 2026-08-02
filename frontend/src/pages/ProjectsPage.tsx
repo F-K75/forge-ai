@@ -185,7 +185,7 @@ export default function ProjectsPage() {
               disabled={creating}
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              className="bb-btn bb-btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-50"
+              className="bb-btn bb-btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
             >
               <Send size={14} aria-hidden="true" />
               {creating ? "Opening" : "Build"}

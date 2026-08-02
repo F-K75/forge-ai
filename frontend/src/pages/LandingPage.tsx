@@ -411,7 +411,7 @@ function Hero({ activeIndex }: { activeIndex: number }) {
   useSplitTextReveal(headlineRef, { by: "words", stagger: 0.025, delay: 0.15 });
 
   return (
-    <section id="top" className="pt-24 pb-32">
+    <section id="top" className="pt-28 pb-36">
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           className="max-w-3xl"
@@ -473,7 +473,7 @@ function Hero({ activeIndex }: { activeIndex: number }) {
           initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-20 border border-land-border rounded-lg overflow-hidden max-w-4xl"
+          className="mt-24 border border-land-border rounded-lg overflow-hidden max-w-4xl"
         >
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-land-border bg-land-muted-bg/30">
             <div className="flex gap-1.5" aria-hidden="true">
@@ -550,17 +550,17 @@ function SolutionSection() {
         single source of truth for your project, and does not stop until the build passes its own quality bar.
         What ships is code you can read, deploy, and own.
       </p>
-      <div className="mt-10" data-reveal>
-        <motion.div {...presets.button} className="inline-block">
-          <Link
-            to="/signup"
-            className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition"
-          >
-            Start your first build <ArrowRight className="w-4 h-4" aria-hidden="true" />
-          </Link>
-        </motion.div>
-        <p className="mt-3 text-xs text-land-muted">Average build: under 15 minutes.</p>
-      </div>
+          <div className="mt-10" data-reveal>
+            <motion.div {...presets.button} className="inline-block">
+              <Link
+                to="/signup"
+                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition"
+              >
+                Start your first build <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </Link>
+            </motion.div>
+            <p className="mt-3 text-xs text-land-muted">Average build: under 15 minutes.</p>
+          </div>
     </Section>
   );
 }

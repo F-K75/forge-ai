@@ -547,7 +547,7 @@ export default function AuthPage() {
                 }}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full h-11 rounded-md border border-land-border bg-land-paper text-land-ink text-sm font-medium hover:bg-land-border/30 transition inline-flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-md border border-land-border bg-land-paper text-land-ink text-sm font-medium hover:bg-land-border/30 active:scale-[0.98] transition inline-flex items-center justify-center gap-2"
               >
                 <Chrome className="w-4 h-4" aria-hidden="true" />
                 Google

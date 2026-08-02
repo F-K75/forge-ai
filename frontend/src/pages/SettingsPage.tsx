@@ -479,7 +479,7 @@ export default function SettingsPage() {
                     (byokProvider === "openai_compatible" && (!byokBaseUrlInput.trim() || !byokModelInput.trim()))
                   }
                   {...presets.button}
-                  className="h-8 px-3 rounded-md bg-ink text-base text-xs font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+                  className="h-8 px-3 rounded-md bg-ink text-base text-xs font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
                 >
                   {savingByok ? "Saving" : "Save"}
                 </motion.button>
@@ -855,7 +855,7 @@ export default function SettingsPage() {
               onClick={handleSubmitSupportTicket}
               disabled={supportSubmitting || !supportSubject.trim() || !supportDescription.trim()}
               {...presets.button}
-              className="h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+              className="h-10 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
             >
               {supportSubmitting ? "Submitting" : "Submit"}
             </motion.button>

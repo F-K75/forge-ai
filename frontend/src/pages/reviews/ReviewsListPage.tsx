@@ -132,7 +132,7 @@ export default function ReviewsListPage() {
           type="button"
           onClick={handleCreate}
           disabled={creating}
-          className="mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors motion-reduce:transition-none disabled:opacity-50"
+          className="mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors motion-reduce:transition-none disabled:opacity-50"
           {...presets.button}
         >
           <Send size={14} aria-hidden="true" />
