@@ -21,6 +21,7 @@ import { projectsApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
 import { coverGradient } from "../lib/coverArt";
 import { coverageStats, ORG_ROLE_COUNT, PLAYBOOK_COUNT, PROMPT_TEMPLATE_COUNT } from "../lib/skillVisuals";
+import { AGENTS } from "../lib/agents";
 
 
 function toDisplayProject(raw: any): MockProject {
@@ -99,6 +100,20 @@ export default function ProjectsPage() {
   }, []);
 
   const projects = useMemo(() => (LIVE_MODE ? liveProjects ?? [] : PROJECTS), [liveProjects]);
+
+  const agentProjectCounts = useMemo(() => {
+    const counts: Record<(typeof AGENTS)[number]["id"], number> = {} as any;
+    for (const a of AGENTS) counts[a.id] = 0;
+    for (const p of projects) {
+      const seen = new Set<(typeof AGENTS)[number]["id"]>();
+      for (const id of p.agents ?? []) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [projects]);
 
   const visibleProjects = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -225,7 +240,7 @@ export default function ProjectsPage() {
         </div>
       </section>
 
-      <AgentFleetStrip />
+      <AgentFleetStrip agentProjectCounts={agentProjectCounts} />
 
       {/* Project library */}
       <section aria-label="Project library" className="flex min-h-0 flex-1 flex-col">

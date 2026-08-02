@@ -16,7 +16,7 @@ const BUILD_SHORT: Record<(typeof AGENTS)[number]["id"], string> = {
   pm: "PM",
 };
 
-export function AgentFleetStrip({ compact = false, onOpenGraph }: { compact?: boolean; onOpenGraph?: () => void }) {
+export function AgentFleetStrip({ compact = false, onOpenGraph, agentProjectCounts }: { compact?: boolean; onOpenGraph?: () => void; agentProjectCounts?: Record<string, number> }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
   const railRef = useRef<HTMLDivElement>(null);
@@ -78,12 +78,13 @@ export function AgentFleetStrip({ compact = false, onOpenGraph }: { compact?: bo
         {build.map((agent, i) => {
           const Icon = agent.icon;
           const isActive = i === active;
+          const projectCount = agentProjectCounts?.[agent.id];
           return (
             <button
               key={`build-${agent.id}`}
               type="button"
               data-fleet-tile
-              title={`${agent.label} · build pipeline`}
+              title={`${agent.label} · build pipeline${projectCount !== undefined ? ` · ${projectCount} project${projectCount !== 1 ? 's' : ''}` : ''}`}
               aria-current={isActive ? "true" : undefined}
               onClick={() => {
                 setActive(i);
@@ -106,6 +107,11 @@ export function AgentFleetStrip({ compact = false, onOpenGraph }: { compact?: bo
               {!compact && (
                 <span className="max-w-[4.25rem] truncate text-center text-[12px] font-medium text-ink">
                   {agent.label}
+                </span>
+              )}
+              {!compact && projectCount !== undefined && (
+                <span className="text-[10px] font-medium text-muted">
+                  {projectCount} {projectCount === 1 ? 'project' : 'projects'}
                 </span>
               )}
             </button>
