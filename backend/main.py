@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -181,6 +181,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     somewhere centralized rather than only ever reaching a server's stdout
     (BE-002).
     """
+    if isinstance(exc, HTTPException):
+        raise exc
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     if settings.sentry_dsn:
         import sentry_sdk
