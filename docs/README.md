@@ -13,6 +13,8 @@ else is historical or component-local.
 | [`CONFIGURATION.md`](CONFIGURATION.md) | Every environment variable and the startup validation rules |
 | [`DEPLOYMENT_AND_OPERATIONS.md`](DEPLOYMENT_AND_OPERATIONS.md) | How prod actually deploys (VPS + compose, **not** k8s), **first-time go-live checklist**, CI, health checks, backups, runbook notes |
 | [`GSTACK_RELEASE_PIPELINE.md`](GSTACK_RELEASE_PIPELINE.md) | Staging branch strategy, gstack quality gates, environment isolation |
+| [`../CLOUDFLARE_PAGES.md`](../CLOUDFLARE_PAGES.md) | Deploy the frontend to Cloudflare Pages (dashboard + wrangler CLI) |
+| [`../render.yaml`](../render.yaml) | Render blueprint for backend-only deployment (free plan, Python 3, uvicorn) |
 
 ## Operational runbooks
 

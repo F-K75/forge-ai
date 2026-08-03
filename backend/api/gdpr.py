@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Iterable, List
 import asyncio
 import hashlib
+import httpx
 import json
 import stripe
 
@@ -230,11 +231,11 @@ async def delete_user_data_cascade(db, user_id: str, email: str) -> Dict[str, in
             if not sub_id:
                 continue
             try:
-                from api.cashfree import _get_cashfree_client, _require_cashfree
+                from api.cashfree import _require_cashfree, _CASHFREE_BASE_URL, _CASHFREE_HEADERS
                 _require_cashfree()
-                client = _get_cashfree_client()
-                response = client.post(f"/subscriptions/{sub_id}/cancel")
-                response.raise_for_status()
+                async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+                    response = await client.post(f"/subscriptions/{sub_id}/cancel")
+                    response.raise_for_status()
             except Exception as exc:
                 raise HTTPException(
                     status_code=502,

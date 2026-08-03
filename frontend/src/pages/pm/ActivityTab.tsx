@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle2, XCircle, Clock, Zap, Lightbulb } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Clock, Zap, Lightbulb, Activity, Brain } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { SummaryChip } from "../../components/SummaryChip";
 import { motion, motionVariants } from "../../lib/animations";
@@ -22,50 +22,70 @@ export default function ActivityTab() {
   const totalTokens = executions.reduce((sum, e) => sum + (e.tokens_used ?? 0), 0);
 
   return (
-    <div className="px-6 md:px-8 py-6 max-w-4xl">
-      <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-border border border-border mb-8" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-        <motion.div variants={motionVariants.staggerItem} custom={0}><SummaryChip label="Running" value={String(running)} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={1}><SummaryChip label="Completed" value={String(completed)} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={2}><SummaryChip label="Failed" value={String(failed)} warn={failed > 0} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={3}><SummaryChip label="Tokens" value={totalTokens.toLocaleString()} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={4}><SummaryChip label="Cost" value={`$${totalCost.toFixed(3)}`} icon={<Zap size={11} className="text-faint" aria-hidden="true" />} /></motion.div>
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-8">
+      {/* Section: Summary stats */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <Activity size={12} aria-hidden="true" />
+        </span>
+        <h2 className="font-display text-sm font-semibold text-ink">Activity Overview</h2>
+      </div>
+      <motion.div className="mb-8 grid grid-cols-2 gap-2.5 md:grid-cols-5" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+        <motion.div variants={motionVariants.staggerItem} custom={0} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Running" value={String(running)} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={1} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Completed" value={String(completed)} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={2} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Failed" value={String(failed)} warn={failed > 0} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={3} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Tokens" value={totalTokens.toLocaleString()} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={4} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Cost" value={`$${totalCost.toFixed(3)}`} icon={<Zap size={11} className="text-faint" aria-hidden="true" />} /></motion.div>
       </motion.div>
 
+      {/* Section: Decision engine */}
       {decisionFeed.length > 0 && (
-        <motion.section className="mb-8" variants={motionVariants.fadeUp} initial="hidden" animate="visible">
-          <h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">Decision engine</h3>
-          <motion.ul className="space-y-3" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-            {decisionFeed.map((d, i) => (
-              <motion.li key={i} className="flex gap-2.5 text-sm" variants={motionVariants.staggerItem} custom={i} whileHover={{ x: 2, transition: { type: "spring", stiffness: 400, damping: 20 } }}>
-                <Lightbulb size={14} className="text-warn shrink-0 mt-0.5" aria-hidden="true" />
-                <div>
-                  <p className="text-ink">{d.summary}</p>
-                  {d.recommendedNextTasks.length > 0 && (
-                    <p className="text-xs text-muted mt-0.5">Next up: {d.recommendedNextTasks.join(", ")}</p>
-                  )}
-                  {d.bottlenecks.length > 0 && (
-                    <p className="text-xs text-warn mt-0.5">Bottleneck: {d.bottlenecks.join(", ")}</p>
-                  )}
-                </div>
-              </motion.li>
-            ))}
-          </motion.ul>
-        </motion.section>
+        <>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-warn/10 text-warn">
+              <Brain size={12} aria-hidden="true" />
+            </span>
+            <h2 className="font-display text-sm font-semibold text-ink">Decision Engine</h2>
+          </div>
+          <motion.section className="mb-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible">
+            <motion.ul className="space-y-3" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+              {decisionFeed.map((d, i) => (
+                <motion.li key={i} className="flex gap-2.5 rounded-xl p-3 text-sm transition-colors duration-150 hover:bg-white/[0.02]" variants={motionVariants.staggerItem} custom={i} whileHover={{ x: 2, transition: { type: "spring", stiffness: 400, damping: 20 } }}>
+                  <Lightbulb size={14} className="text-warn shrink-0 mt-0.5" aria-hidden="true" />
+                  <div>
+                    <p className="text-ink">{d.summary}</p>
+                    {d.recommendedNextTasks.length > 0 && (
+                      <p className="text-xs text-muted mt-0.5">Next up: {d.recommendedNextTasks.join(", ")}</p>
+                    )}
+                    {d.bottlenecks.length > 0 && (
+                      <p className="text-xs text-warn mt-0.5">Bottleneck: {d.bottlenecks.join(", ")}</p>
+                    )}
+                  </div>
+                </motion.li>
+              ))}
+            </motion.ul>
+          </motion.section>
+        </>
       )}
 
-      <motion.section variants={motionVariants.fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
-        <h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">Agent executions</h3>
+      {/* Section: Agent executions */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <Activity size={12} aria-hidden="true" />
+        </span>
+        <h2 className="font-display text-sm font-semibold text-ink">Agent Executions</h2>
+      </div>
+      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
         {executions.length === 0 ? (
-          <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>No agent runs yet — assign a task to an AI agent from the Board.</motion.p>
+          <motion.p className="text-sm text-faint py-4 text-center" variants={motionVariants.fadeIn}>No agent runs yet — assign a task to an AI agent from the Board.</motion.p>
         ) : (
-          <motion.ul className="divide-y divide-border-soft" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+          <motion.ul className="divide-y divide-white/[0.04]" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
             {executions.map((exec, i) => (
               <motion.li
                 key={exec.id}
-                className="py-3 flex items-start gap-3"
+                className="py-3 flex items-start gap-3 transition-colors duration-150 hover:bg-white/[0.01] rounded-lg px-2 -mx-2"
                 variants={motionVariants.staggerItem}
                 custom={i}
-                whileHover={{ backgroundColor: "rgba(255,255,255,0.01)", transition: { duration: 0.15 } }}
               >
                 {STATUS_ICON[exec.status] ?? STATUS_ICON.queued}
                 <div className="flex-1 min-w-0">

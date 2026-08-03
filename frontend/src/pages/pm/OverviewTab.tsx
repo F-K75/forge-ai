@@ -26,7 +26,7 @@ function EditableList({
   };
 
   return (
-    <motion.section className="py-5 border-b border-white/[0.06]" variants={motionVariants.fadeUp}>
+    <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl transition-all duration-200 hover:border-white/10" variants={motionVariants.fadeUp}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {Icon && <Icon size={14} className="text-accent" />}
@@ -96,7 +96,7 @@ function EditableText({
   };
 
   return (
-    <motion.section className="py-5 border-b border-white/[0.06]" variants={motionVariants.fadeUp}>
+    <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl transition-all duration-200 hover:border-white/10" variants={motionVariants.fadeUp}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {Icon && <Icon size={14} className="text-accent" />}
@@ -161,53 +161,75 @@ export default function OverviewTab() {
   };
 
   return (
-    <motion.div className="px-6 md:px-8 py-6 max-w-3xl" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableText label="Vision" value={initiative.vision ?? ""} onSave={v => saveField("vision", v)} icon={Target} />
-      </motion.div>
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableList label="Business goals" items={initiative.business_goals ?? []} onSave={v => saveField("business_goals", v)} icon={Target} />
-      </motion.div>
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableText label="Product scope" value={initiative.product_scope ?? ""} onSave={v => saveField("product_scope", v)} icon={Layers} />
-      </motion.div>
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableList
-          label="Functional requirements"
-          items={initiative.functional_requirements ?? []}
-          onSave={v => saveField("functional_requirements", v)}
-          icon={GitBranch}
-        />
-      </motion.div>
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableList
-          label="Non-functional requirements"
-          items={initiative.non_functional_requirements ?? []}
-          onSave={v => saveField("non_functional_requirements", v)}
-          icon={Shield}
-        />
-      </motion.div>
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableList label="Success metrics" items={initiative.success_metrics ?? []} onSave={v => saveField("success_metrics", v)} icon={Target} />
-      </motion.div>
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableList label="Tech stack" items={initiative.tech_stack ?? []} onSave={v => saveField("tech_stack", v)} icon={GitBranch} />
-      </motion.div>
-      <motion.div variants={motionVariants.staggerItem}>
-        <EditableText label="Estimated timeline" value={initiative.estimated_timeline ?? ""} onSave={v => saveField("estimated_timeline", v)} icon={CalendarDays} />
-      </motion.div>
+    <motion.div className="mx-auto max-w-5xl px-4 py-6 md:px-8" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+      {/* Section: Strategy */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <Target size={12} aria-hidden="true" />
+        </span>
+        <h2 className="font-display text-sm font-semibold text-ink">Strategy & Vision</h2>
+      </div>
+      <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableText label="Vision" value={initiative.vision ?? ""} onSave={v => saveField("vision", v)} icon={Target} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableList label="Business goals" items={initiative.business_goals ?? []} onSave={v => saveField("business_goals", v)} icon={Target} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableText label="Product scope" value={initiative.product_scope ?? ""} onSave={v => saveField("product_scope", v)} icon={Layers} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableText label="Estimated timeline" value={initiative.estimated_timeline ?? ""} onSave={v => saveField("estimated_timeline", v)} icon={CalendarDays} />
+        </motion.div>
+      </div>
 
-      <motion.section className="py-5 border-b border-white/[0.06]" variants={motionVariants.fadeUp}>
-        <div className="flex items-center gap-2 mb-4">
-          <Shield size={14} className="text-warn" />
-          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Risks</h3>
-        </div>
+      {/* Section: Requirements */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <GitBranch size={12} aria-hidden="true" />
+        </span>
+        <h2 className="font-display text-sm font-semibold text-ink">Requirements</h2>
+      </div>
+      <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableList
+            label="Functional requirements"
+            items={initiative.functional_requirements ?? []}
+            onSave={v => saveField("functional_requirements", v)}
+            icon={GitBranch}
+          />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableList
+            label="Non-functional requirements"
+            items={initiative.non_functional_requirements ?? []}
+            onSave={v => saveField("non_functional_requirements", v)}
+            icon={Shield}
+          />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableList label="Success metrics" items={initiative.success_metrics ?? []} onSave={v => saveField("success_metrics", v)} icon={Target} />
+        </motion.div>
+        <motion.div variants={motionVariants.staggerItem}>
+          <EditableList label="Tech stack" items={initiative.tech_stack ?? []} onSave={v => saveField("tech_stack", v)} icon={GitBranch} />
+        </motion.div>
+      </div>
+
+      {/* Section: Risks */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-warn/10 text-warn">
+          <Shield size={12} aria-hidden="true" />
+        </span>
+        <h2 className="font-display text-sm font-semibold text-ink">Risks</h2>
+      </div>
+      <motion.section className="mb-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp}>
         {(initiative.risks ?? []).length === 0 ? (
           <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>None identified.</motion.p>
         ) : (
           <motion.ul className="space-y-3" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
             {(initiative.risks as { description: string; severity: string; mitigation?: string }[]).map((r, i) => (
-              <motion.li key={i} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4" variants={motionVariants.staggerItem} custom={i}>
+              <motion.li key={i} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15" variants={motionVariants.staggerItem} custom={i}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span
                     className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${
@@ -229,44 +251,47 @@ export default function OverviewTab() {
         )}
       </motion.section>
 
-      <motion.section className="py-5" variants={motionVariants.fadeUp}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <FileText size={14} className="text-accent" />
-            <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Product Requirements Document</h3>
-          </div>
-          {prd && (
-            <motion.button
-              onClick={handleExportMarkdown}
-              {...presets.button}
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded px-2 py-1"
-            >
-              <Download size={12} aria-hidden="true" />
-              Export Markdown
-            </motion.button>
-          )}
+      {/* Section: PRD */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <FileText size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">Product Requirements Document</h2>
         </div>
+        {prd && (
+          <motion.button
+            onClick={handleExportMarkdown}
+            {...presets.button}
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded px-2 py-1"
+          >
+            <Download size={12} aria-hidden="true" />
+            Export Markdown
+          </motion.button>
+        )}
+      </div>
+      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp}>
         {!prd ? (
           <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Not generated yet.</motion.p>
         ) : (
-          <motion.div className="space-y-5" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <motion.div className="grid grid-cols-1 gap-3 md:grid-cols-2" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
               <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Executive summary</p>
               <p className="text-sm text-ink leading-relaxed">{prd.executive_summary}</p>
             </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
               <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Problem statement</p>
               <p className="text-sm text-ink leading-relaxed">{prd.problem_statement}</p>
             </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
               <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Solution</p>
               <p className="text-sm text-ink leading-relaxed">{prd.solution}</p>
             </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
               <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">API overview</p>
               <p className="text-sm text-ink leading-relaxed">{prd.api_overview}</p>
             </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15 md:col-span-2">
               <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Database overview</p>
               <p className="text-sm text-ink leading-relaxed">{prd.database_overview}</p>
             </motion.div>

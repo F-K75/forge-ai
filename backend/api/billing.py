@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import httpx
 import stripe
 
 from core.config import get_settings
@@ -882,19 +883,19 @@ async def _handle_payment_event(db: Any, event: Dict[str, Any]) -> None:
 
 
 async def _cashfree_update_subscription(db: Any, sub_id: str, payload: Dict[str, Any]) -> None:
-    from api.cashfree import _get_cashfree_client, _require_cashfree
+    from api.cashfree import _require_cashfree, _CASHFREE_BASE_URL, _CASHFREE_HEADERS
     _require_cashfree()
-    client = _get_cashfree_client()
-    response = client.post(f"/subscriptions/{sub_id}", json=payload)
-    response.raise_for_status()
+    async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+        response = await client.post(f"/subscriptions/{sub_id}", json=payload)
+        response.raise_for_status()
 
 
 async def _cashfree_cancel_subscription(db: Any, sub_id: str) -> None:
-    from api.cashfree import _get_cashfree_client, _require_cashfree
+    from api.cashfree import _require_cashfree, _CASHFREE_BASE_URL, _CASHFREE_HEADERS
     _require_cashfree()
-    client = _get_cashfree_client()
-    response = client.post(f"/subscriptions/{sub_id}/cancel")
-    response.raise_for_status()
+    async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+        response = await client.post(f"/subscriptions/{sub_id}/cancel")
+        response.raise_for_status()
 
 
 @router.post("/webhook/cashfree")

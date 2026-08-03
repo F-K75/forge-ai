@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Rocket } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { releasesApi } from "../../lib/pmApi";
 import { StatusPill } from "../../components/StatusPill";
@@ -42,35 +42,47 @@ export default function ReleasesTab() {
   };
 
   return (
-    <div className="px-6 md:px-8 py-6 max-w-3xl">
-      <motion.div className="flex items-center gap-2 mb-8" variants={motionVariants.fadeIn}>
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-8">
+      {/* Section header */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <Rocket size={12} aria-hidden="true" />
+        </span>
+        <h2 className="font-display text-sm font-semibold text-ink">Releases</h2>
+      </div>
+
+      {/* Generate bar */}
+      <motion.div className="mb-6 flex items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl" variants={motionVariants.fadeIn}>
         <input
           value={version}
           onChange={e => setVersion(e.target.value)}
           placeholder="v1.0.0"
-          className="h-9 w-32 bg-transparent border border-border rounded-md px-3 text-sm text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
+          className="h-9 w-32 bg-transparent border border-white/10 rounded-xl px-3 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
         />
         <motion.button
           onClick={handleGenerate}
           disabled={generating}
           {...presets.button}
-          className="flex items-center gap-1.5 h-9 px-4 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition-colors motion-reduce:transition-none disabled:opacity-50"
+          className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-accent text-white text-sm font-medium hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-opacity disabled:opacity-50"
         >
           {generating ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />}
           Generate release
         </motion.button>
       </motion.div>
 
+      {/* Release cards */}
       {releases === null ? (
         <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Loading…</motion.p>
       ) : releases.length === 0 ? (
-        <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>No releases yet.</motion.p>
+        <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
+          <p className="text-sm text-faint">No releases yet. Generate one above.</p>
+        </motion.div>
       ) : (
-        <motion.div className="space-y-4" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+        <motion.div className="grid grid-cols-1 gap-3 md:grid-cols-2" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
           {releases.map((release, i) => (
             <motion.article
               key={release.id}
-              className="border border-border rounded-lg p-5"
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:shadow-m3"
               custom={i}
               {...presets.card}
               variants={motionVariants.staggerItem}

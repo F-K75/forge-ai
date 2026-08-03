@@ -26,6 +26,7 @@ git clone https://github.com/F-K75/forge-ai.git
 cd forge-ai
 cp .env.example .env
 # Configure your .env with required keys
+./scripts/install-git-hooks.sh  # installs the pre-commit secret-scanning hook
 ```
 
 #### Development Setup
@@ -50,15 +51,20 @@ docker compose up
 3. Run tests:
    ```bash
    cd backend && pytest
+   cd frontend && npm test
    cd frontend && npm run build
    ```
-4. Ensure lint passes: `ruff check`
+4. Ensure lint passes:
+   ```bash
+   cd backend && ruff check . --select F,E9 --exclude venv
+   cd frontend && npm run lint
+   ```
 5. Commit with clear messages
 
 #### Pull Request Process
 1. Update documentation if needed
 2. Add tests for new functionality
-3. Ensure CI passes
+3. Ensure CI passes (backend tests, frontend tests, lint, build, secret-scanning)
 4. Request review from maintainers
 
 ## Development Guidelines
@@ -70,10 +76,17 @@ docker compose up
 - Write docstrings for public APIs
 
 ### Testing
-- Backend: pytest with coverage (minimum 60%)
-- Frontend: Vitest
+- Backend: pytest with coverage (minimum 60% via `--cov-fail-under=60`)
+- Frontend: Vitest (`npm test`)
 - New features require tests
 - Bug fixes require regression tests
+- CI runs both backend and frontend test suites as blocking gates
+
+### Deployment
+- **Docker Compose**: `docker compose up` (dev), `docker compose -f docker-compose.prod.yml up` (prod)
+- **Render**: `render.yaml` blueprint for backend-only deployment
+- **Cloudflare Pages**: see `CLOUDFLARE_PAGES.md` for frontend deployment
+- **Kubernetes**: reference manifests in `k8s/`
 
 ## Questions?
 

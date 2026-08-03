@@ -87,7 +87,7 @@ function Column({ id, label, tasks, color }: { id: string; label: string; tasks:
     <motion.div
       ref={setNodeRef}
       variants={motionVariants.scaleIn}
-      className={`w-64 shrink-0 flex flex-col rounded-2xl border transition-all duration-200 ${isOver ? "border-accent/40 bg-accent/5 shadow-lg shadow-accent/10" : "border-white/[0.08] bg-white/[0.02]"}`}
+      className={`w-64 shrink-0 flex flex-col rounded-2xl border transition-all duration-200 ${isOver ? "border-accent/40 bg-accent/5 shadow-lg shadow-accent/10" : "border-white/[0.08] bg-white/[0.02]"} backdrop-blur-xl`}
     >
       <div className="flex items-center justify-between px-4 py-3 mb-1">
         <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ function Column({ id, label, tasks, color }: { id: string; label: string; tasks:
         ))}
         {tasks.length === 0 && (
           <motion.div
-            className="flex items-center justify-center py-6 text-[11px] text-faint border border-dashed border-white/10 rounded-xl mx-1"
+            className="flex items-center justify-center py-6 text-[11px] text-faint border border-dashed border-white/[0.06] rounded-xl mx-1 backdrop-blur-xl"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -150,42 +150,50 @@ export default function KanbanTab() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <motion.div className="flex items-center gap-2 px-6 md:px-8 py-3 border-b border-white/[0.06] shrink-0 flex-wrap" variants={motionVariants.fadeIn}>
-        <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5">
-          <Filter size={12} className="text-muted" />
-          <select
-            value={sprintFilter}
-            onChange={e => setSprintFilter(e.target.value)}
-            className="h-7 bg-transparent text-xs text-ink focus:outline-none focus-visible:ring-0 cursor-pointer"
-          >
-            <option value="all">All sprints</option>
-            {sprints.map(s => (
-              <option key={s.id} value={s.id}>{s.name || `Sprint ${s.sprint_number}`}</option>
-            ))}
-          </select>
+      <div className="px-4 py-6 md:px-8 shrink-0">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <GitBranch size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">Kanban Board</h2>
         </div>
-        <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5">
-          <select
-            value={agentFilter}
-            onChange={e => setAgentFilter(e.target.value)}
-            className="h-7 bg-transparent text-xs text-ink focus:outline-none focus-visible:ring-0 cursor-pointer"
-          >
-            <option value="all">All agents</option>
-            {agents.map(a => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 flex-1 max-w-[240px]">
-          <Search size={12} className="text-muted" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search tasks…"
-            className="h-7 bg-transparent text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-0 flex-1 min-w-0"
-          />
-        </div>
-      </motion.div>
+        <motion.div className="flex items-center gap-2 flex-wrap" variants={motionVariants.fadeIn}>
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur-xl">
+            <Filter size={12} className="text-muted" />
+            <select
+              value={sprintFilter}
+              onChange={e => setSprintFilter(e.target.value)}
+              className="h-7 bg-transparent text-xs text-ink focus:outline-none focus-visible:ring-0 cursor-pointer"
+            >
+              <option value="all">All sprints</option>
+              {sprints.map(s => (
+                <option key={s.id} value={s.id}>{s.name || `Sprint ${s.sprint_number}`}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur-xl">
+            <select
+              value={agentFilter}
+              onChange={e => setAgentFilter(e.target.value)}
+              className="h-7 bg-transparent text-xs text-ink focus:outline-none focus-visible:ring-0 cursor-pointer"
+            >
+              <option value="all">All agents</option>
+              {agents.map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 flex-1 max-w-[240px] backdrop-blur-xl">
+            <Search size={12} className="text-muted" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search tasks…"
+              className="h-7 bg-transparent text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-0 flex-1 min-w-0"
+            />
+          </div>
+        </motion.div>
+      </div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <motion.div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">

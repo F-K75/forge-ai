@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react"
 import toast from "react-hot-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, Layers, BarChart2, Clipboard, FileText, CheckSquare, Shield, Wrench } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from "recharts"
 import { usePMStore } from "../../store/pmStore"
 import { sprintsApi } from "../../lib/pmApi"
@@ -86,18 +86,29 @@ export default function SprintsTab() {
 
   if (sprints.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-faint">
-        No sprints planned yet.
+      <div className="mx-auto max-w-5xl px-4 py-6 md:px-8">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <Layers size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">Sprints</h2>
+        </div>
+        <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
+          <p className="text-sm text-faint">No sprints planned yet.</p>
+        </motion.div>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <section className="shrink-0 border-b border-border p-4">
-        <motion.h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3" variants={motionVariants.fadeIn}>
-          Velocity &amp; capacity across sprints
-        </motion.h3>
+      <section className="shrink-0 border-b border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-xl">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <BarChart2 size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">Velocity &amp; Capacity</h2>
+        </div>
         <motion.div ref={chartRef} variants={motionVariants.fadeUp} initial="hidden" animate="visible">
           <ChartContainer height={160}>
             <BarChart data={sprintChartData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
@@ -133,7 +144,7 @@ export default function SprintsTab() {
       </section>
 
       <div className="flex flex-1 min-h-0">
-        <aside className="w-64 shrink-0 border-r border-border overflow-y-auto p-2">
+        <aside className="w-64 shrink-0 border-r border-white/[0.06] bg-white/[0.02] overflow-y-auto p-2 backdrop-blur-xl">
           <motion.div className="space-y-0.5" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
             {sprints.map((s, i) => (
               <motion.button
@@ -144,8 +155,8 @@ export default function SprintsTab() {
                 whileHover={{ x: 2, transition: { type: "spring", stiffness: 400, damping: 20 } }}
                 className={`w-full text-left px-3 py-3 border-l-2 mb-0.5 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 ${
                   s.id === selectedId
-                    ? "border-ink bg-panel-alt"
-                    : "border-transparent hover:bg-panel-alt"
+                    ? "border-accent bg-accent/5"
+                    : "border-transparent hover:bg-white/[0.03]"
                 }`}
               >
                 <p className="text-sm font-medium text-ink truncate mb-1">
@@ -165,18 +176,18 @@ export default function SprintsTab() {
               </motion.h2>
               <motion.p className="text-sm text-muted mb-6" variants={motionVariants.fadeIn}>{selected.goal}</motion.p>
 
-              <motion.div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border mb-8" variants={motionVariants.staggerContainer}>
-                <motion.div variants={motionVariants.staggerItem} custom={0}><SummaryChip label="Capacity" value={String(selected.capacity)} /></motion.div>
-                <motion.div variants={motionVariants.staggerItem} custom={1}><SummaryChip label="Velocity" value={String(selected.velocity)} /></motion.div>
-                <motion.div variants={motionVariants.staggerItem} custom={2}><SummaryChip label="Story points" value={String(selected.story_points_planned)} /></motion.div>
-                <motion.div variants={motionVariants.staggerItem} custom={3}>
-                  <SummaryChip
-                    label="Completion odds"
-                    value={`${Math.round((selected.completion_probability ?? 0) * 100)}%`}
-                    warn={(selected.completion_probability ?? 1) < 0.5}
-                  />
-                </motion.div>
+            <motion.div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 mb-8" variants={motionVariants.staggerContainer}>
+              <motion.div variants={motionVariants.staggerItem} custom={0} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Capacity" value={String(selected.capacity)} /></motion.div>
+              <motion.div variants={motionVariants.staggerItem} custom={1} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Velocity" value={String(selected.velocity)} /></motion.div>
+              <motion.div variants={motionVariants.staggerItem} custom={2} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Story points" value={String(selected.story_points_planned)} /></motion.div>
+              <motion.div variants={motionVariants.staggerItem} custom={3} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl">
+                <SummaryChip
+                  label="Completion odds"
+                  value={`${Math.round((selected.completion_probability ?? 0) * 100)}%`}
+                  warn={(selected.completion_probability ?? 1) < 0.5}
+                />
               </motion.div>
+            </motion.div>
 
               <motion.div className="flex flex-wrap gap-2 mb-8" variants={motionVariants.fadeIn}>
                 {CEREMONIES.map((c) => (
@@ -185,7 +196,7 @@ export default function SprintsTab() {
                     onClick={() => handleGenerate(c.key, c.action)}
                     disabled={generating === c.key}
                     {...presets.button}
-                    className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+                    className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm font-medium text-ink hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 backdrop-blur-xl transition-colors motion-reduce:transition-none disabled:opacity-50"
                   >
                     {generating === c.key && (
                       <Loader2 size={11} className="animate-spin" aria-hidden="true" />
@@ -197,105 +208,130 @@ export default function SprintsTab() {
 
               <motion.div className="space-y-8" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
                 {standups.length > 0 && (
-                  <motion.section variants={motionVariants.staggerItem}>
-                    <h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">
-                      Latest stand-up
-                    </h3>
-                    <div className="text-sm text-ink space-y-1.5">
-                      <p>
-                        <span className="text-muted">Yesterday:</span> {standups[0].yesterday}
-                      </p>
-                      <p>
-                        <span className="text-muted">Today:</span> {standups[0].today}
-                      </p>
-                      {standups[0].blockers?.length > 0 && (
-                        <p>
-                          <span className="text-muted">Blockers:</span>{" "}
-                          {standups[0].blockers.join(", ")}
-                        </p>
-                      )}
-                      <p>
-                        <span className="text-muted">Health:</span> {standups[0].sprint_health}
-                      </p>
-                    </div>
-                  </motion.section>
-                )}
+                   <motion.section variants={motionVariants.staggerItem}>
+                     <div className="mb-3 flex items-center gap-2">
+                       <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                         <Clipboard size={12} aria-hidden="true" />
+                       </span>
+                       <h3 className="font-display text-sm font-semibold text-ink">Latest Stand-up</h3>
+                     </div>
+                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                       <div className="text-sm text-ink space-y-1.5">
+                         <p>
+                           <span className="text-muted">Yesterday:</span> {standups[0].yesterday}
+                         </p>
+                         <p>
+                           <span className="text-muted">Today:</span> {standups[0].today}
+                         </p>
+                         {standups[0].blockers?.length > 0 && (
+                           <p>
+                             <span className="text-muted">Blockers:</span>{" "}
+                             {standups[0].blockers.join(", ")}
+                           </p>
+                         )}
+                         <p>
+                           <span className="text-muted">Health:</span> {standups[0].sprint_health}
+                         </p>
+                       </div>
+                     </motion.div>
+                   </motion.section>
+                 )}
 
                 {reports?.reviews?.[0] && (
-                  <motion.section variants={motionVariants.staggerItem}>
-                    <h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">
-                      Sprint review
-                    </h3>
-                    <p className="text-sm text-ink leading-relaxed">{reports.reviews[0].summary}</p>
-                  </motion.section>
-                )}
+                   <motion.section variants={motionVariants.staggerItem}>
+                     <div className="mb-3 flex items-center gap-2">
+                       <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                         <FileText size={12} aria-hidden="true" />
+                       </span>
+                       <h3 className="font-display text-sm font-semibold text-ink">Sprint Review</h3>
+                     </div>
+                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                       <p className="text-sm text-ink leading-relaxed">{reports.reviews[0].summary}</p>
+                     </motion.div>
+                   </motion.section>
+                 )}
 
                 {reports?.retros?.[0] && (
-                  <motion.section variants={motionVariants.staggerItem}>
-                    <h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">
-                      Retrospective
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-xs font-medium text-ok mb-1">Went well</p>
-                        <ul className="space-y-1 text-ink">
-                          {reports.retros[0].what_went_well?.map((s: string, i: number) => (
-                            <li key={i}>— {s}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-error mb-1">Went wrong</p>
-                        <ul className="space-y-1 text-ink">
-                          {reports.retros[0].what_went_wrong?.map((s: string, i: number) => (
-                            <li key={i}>— {s}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </motion.section>
-                )}
+                   <motion.section variants={motionVariants.staggerItem}>
+                     <div className="mb-3 flex items-center gap-2">
+                       <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                         <CheckSquare size={12} aria-hidden="true" />
+                       </span>
+                       <h3 className="font-display text-sm font-semibold text-ink">Retrospective</h3>
+                     </div>
+                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                         <div>
+                           <p className="text-xs font-medium text-ok mb-1">Went well</p>
+                           <ul className="space-y-1 text-ink">
+                             {reports.retros[0].what_went_well?.map((s: string, i: number) => (
+                               <li key={i}>— {s}</li>
+                             ))}
+                           </ul>
+                         </div>
+                         <div>
+                           <p className="text-xs font-medium text-error mb-1">Went wrong</p>
+                           <ul className="space-y-1 text-ink">
+                             {reports.retros[0].what_went_wrong?.map((s: string, i: number) => (
+                               <li key={i}>— {s}</li>
+                             ))}
+                           </ul>
+                         </div>
+                       </div>
+                     </motion.div>
+                   </motion.section>
+                 )}
 
                 {reports?.risk_reports?.[0] && (
-                  <motion.section variants={motionVariants.staggerItem}>
-                    <h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">
-                      Risk report
-                    </h3>
-                    <ul className="space-y-2 text-sm">
-                      {reports.risk_reports[0].risks?.map((r: any, i: number) => (
-                        <li key={i} className="text-ink">
-                          <span className="text-[10px] uppercase font-medium text-warn mr-2">
-                            {r.severity}
-                          </span>
-                          {r.description}
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.section>
-                )}
+                   <motion.section variants={motionVariants.staggerItem}>
+                     <div className="mb-3 flex items-center gap-2">
+                       <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-warn/10 text-warn">
+                         <Shield size={12} aria-hidden="true" />
+                       </span>
+                       <h3 className="font-display text-sm font-semibold text-ink">Risk Report</h3>
+                     </div>
+                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                       <ul className="space-y-2 text-sm">
+                         {reports.risk_reports[0].risks?.map((r: any, i: number) => (
+                           <li key={i} className="text-ink">
+                             <span className="text-[10px] uppercase font-medium text-warn mr-2">
+                               {r.severity}
+                             </span>
+                             {r.description}
+                           </li>
+                         ))}
+                       </ul>
+                     </motion.div>
+                   </motion.section>
+                 )}
 
                 {reports?.tech_debt?.[0] && (
-                  <motion.section variants={motionVariants.staggerItem}>
-                    <h3 className="text-xs uppercase tracking-[0.14em] text-muted mb-3">
-                      Technical debt
-                    </h3>
-                    <ul className="space-y-2 text-sm">
-                      {reports.tech_debt[0].items?.map((item: any, i: number) => (
-                        <li key={i} className="text-ink">
-                          <span className="text-[10px] uppercase font-medium text-muted mr-2">
-                            {item.severity}
-                          </span>
-                          {item.description}
-                          {item.location && <span className="text-faint"> — {item.location}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.section>
-                )}
+                   <motion.section variants={motionVariants.staggerItem}>
+                     <div className="mb-3 flex items-center gap-2">
+                       <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                         <Wrench size={12} aria-hidden="true" />
+                       </span>
+                       <h3 className="font-display text-sm font-semibold text-ink">Technical Debt</h3>
+                     </div>
+                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                       <ul className="space-y-2 text-sm">
+                         {reports.tech_debt[0].items?.map((item: any, i: number) => (
+                           <li key={i} className="text-ink">
+                             <span className="text-[10px] uppercase font-medium text-muted mr-2">
+                               {item.severity}
+                             </span>
+                             {item.description}
+                             {item.location && <span className="text-faint"> — {item.location}</span>}
+                           </li>
+                         ))}
+                       </ul>
+                     </motion.div>
+                   </motion.section>
+                 )}
               </motion.div>
 
-              <motion.div className="mt-8 pt-6 border-t border-border-soft" variants={motionVariants.fadeIn}>
-                <p className="text-xs text-muted mb-3">
+              <motion.div className="mt-8 pt-6 border-t border-white/[0.06]" variants={motionVariants.fadeIn}>
+                <p className="text-xs text-faint">
                   {tasks.filter((t) => t.sprint_id === selected.id).length} tasks in this sprint
                 </p>
               </motion.div>

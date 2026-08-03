@@ -47,9 +47,10 @@ Celery worker → GitHub sync + containerized deploy
 **Platform tech stack:**
 - Backend: FastAPI + Python + Motor + Redis + Celery
 - AI Gateway: Prompt Builder, Prompt/Context Engineer, Optimizer, Harness, Loop Engineer, multi-provider LLM router (Anthropic, OpenAI, OpenRouter, Gemini, Groq, Together, Mistral, Azure, Ollama)
-- Frontend: React + Vite + Zustand + Monaco Editor + React Router
+- Frontend: React + Vite + Zustand + Monaco Editor + React Router + React Flow (AgentFleetGraph) + Framer Motion + GSAP
 - DB: MongoDB (project/build/billing storage)
 - Realtime: WebSockets (build event streaming)
+- Deploy: Docker Compose, Kubernetes, Render, Cloudflare Pages
 
 ## Project structure
 
@@ -85,7 +86,8 @@ Celery worker → GitHub sync + containerized deploy
 │   │   ├── engineering.py      # Prompt/Context/Harness/Loop engineering API
 │   │   ├── optimizer.py / retrieval.py / llm.py
 │   │   ├── initiatives.py / epics.py / stories.py / tasks.py / sprints.py / releases.py
-│   │   └── agent_executions.py / org_llm_policy.py / budget.py / support.py
+│   │   ├── agent_executions.py / org_llm_policy.py / budget.py / support.py
+│   │   └── v1.py               # /v1/ versioned router (BE-004)
 │   ├── core/
 │   │   ├── config.py           # Settings from env
 │   │   ├── database.py         # MongoDB + Redis connections
@@ -94,7 +96,12 @@ Celery worker → GitHub sync + containerized deploy
 │   │   ├── encryption.py       # Field-level encryption
 │   │   ├── orchestrator.py     # Build pipeline coordination
 │   │   ├── pm_orchestrator.py  # Agile PM pipeline coordination
-│   │   ├── llm/                # LLM router + model registry
+│   │   ├── llm/                # LLM router + model registry + circuit breaker
+│   │   ├── metrics.py          # Prometheus metrics
+│   │   ├── migrations.py       # Versioned DB migrations
+│   │   ├── audit.py            # Audit logging
+│   │   ├── cache.py            # Cache-aside helper
+│   │   ├── shutdown.py         # Graceful shutdown / drain
 │   │   └── ...
 │   ├── prompt_builder/         # Provider-agnostic dynamic prompt assembly
 │   │   ├── builder.py / registry.py / context_selector.py / validator.py
@@ -118,17 +125,20 @@ Celery worker → GitHub sync + containerized deploy
 ├── frontend/
 │   └── src/
 │       ├── components/
+│       │   ├── AgentFleetGraph.tsx  # React Flow agent fleet visualization
+│       │   ├── GlobalBackground.tsx # Animated dot-matrix background
+│       │   ├── AppShell.tsx         # Apple-style desktop shell
 │       │   ├── chat/           # Prompt input + agent pipeline status
 │       │   ├── editor/         # Monaco + file tree
 │       │   ├── preview/        # iframe live preview + QA score
-│       │   ├── build/ / agentRun/ / ui/
+│       │   ├── build/ / agentRun/ / ui/ / charts/
 │       │   └── layout/         # Workspace layout
 │       ├── pages/              # Landing, Auth, Workspace, Projects, Marketplace,
 │       │   │                   #   Billing, Settings, Admin, LLM Mgmt, pm/, reviews/,
-│       │   │                   #   GoogleCallback
-│       ├── hooks/              # useBuildSocket, etc.
+│       │   │                   #   GoogleCallback, Launch, Onboarding, PromptStudio
+│       ├── hooks/              # useBuildSocket, useOrgSocket, usePMSocket, useReviewSocket
 │       ├── lib/                # api client, wsContract, agents, types, generated
-│       └── store/              # buildStore, authStore, selectors
+│       └── store/              # buildStore, authStore, pmStore, reviewStore, uiStore
 ├── orchestrator/               # Standalone Review Board service (port 8100)
 │   ├── main.py / api.py / service.py / runner.py / consolidator.py
 │   ├── loader.py / context.py / providers.py / models.py / store.py / events.py
@@ -138,6 +148,11 @@ Celery worker → GitHub sync + containerized deploy
 │   ├── agent_runtime.py / api.py / tool_gateway.py / knowledge_service.py
 │   └── README.md + audit/report JSON artifacts
 ├── docker-compose.yml
+├── docker-compose.prod.yml
+├── docker-compose.staging.yml
+├── render.yaml               # Render deployment blueprint
+├── wrangler.toml             # Cloudflare Pages/Wrangler config
+├── CLOUDFLARE_PAGES.md       # Cloudflare Pages deployment guide
 ├── .env.example
 └── README.md
 ```
@@ -167,6 +182,21 @@ docker compose up
 Frontend: http://localhost:3000  
 Backend API: http://localhost:8000  
 API docs: http://localhost:8000/docs
+
+### 3b. Deploy to Render (backend)
+```bash
+# Push to GitHub and connect the repo to Render, or use the blueprint:
+# render.yaml defines the backend service (free plan, Python 3, uvicorn).
+# Set ANTHROPIC_API_KEY and OPENAI_API_KEY as sync:false secrets in the Render dashboard.
+```
+
+### 3c. Deploy to Cloudflare Pages (frontend)
+```bash
+# See CLOUDFLARE_PAGES.md for full instructions.
+# Build command: cd frontend && npm ci && npm run build
+# Build output directory: frontend/dist
+# Env vars: VITE_API_URL, VITE_WS_URL, VITE_BASE=/
+```
 
 ### 4. Local dev (no Docker)
 
@@ -222,6 +252,10 @@ uvicorn main:app --reload --port 8100
 | `APP_URL` / `API_URL` | Public endpoints |
 | `ADMIN_EMAILS` | Admin allowlist |
 | `MONGO_PASSWORD` / `REDIS_PASSWORD` | Docker secrets |
+| `ALLOWED_HOSTS` | Trusted host allowlist (comma-separated) |
+| `ALLOWED_ORIGINS` | CORS allowlist (comma-separated or JSON array) |
+| `FRONTEND_TUNNEL_URL` | Additional CORS origin (e.g. Cloudflare tunnel) |
+| `DEPLOYMENTS_ENABLED` | Set `true` to enable Docker deployment API |
 
 ## WebSocket events
 
@@ -274,6 +308,13 @@ The Integration Agent picks it up automatically when users mention the service.
 
 - [x] GitHub OAuth + repo sync
 - [x] One-click deploy to cloud (GCP Cloud Run)
+- [x] Google OAuth login
+- [x] Cloudflare Pages deployment (frontend)
+- [x] Render deployment (backend)
+- [x] Agent fleet visualization (AgentFleetGraph)
+- [x] Apple-style desktop shell UI
+- [x] Global LLM circuit breaker
+- [x] Staging environment
 - [ ] Custom domain mapping
 - [ ] Voice mode (Web Speech API)
 - [ ] Context window forking (fork build when approaching token limit)

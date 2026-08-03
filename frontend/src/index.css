@@ -596,3 +596,123 @@ body {
 .glow-blue { box-shadow: 0 0 20px var(--electric-blue-glow); }
 .glow-teal { box-shadow: 0 0 20px var(--teal-glow); }
 .glow-orange { box-shadow: 0 0 20px var(--orange-glow); }
+
+/* —— Initiatives page enhancements —— */
+.forge-bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 75%);
+}
+
+.light .forge-bg-grid {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+}
+
+.forge-bg-glow {
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgb(var(--primary) / 0.08), transparent 60%),
+    radial-gradient(ellipse 30% 25% at 80% 20%, rgb(var(--primary-hover) / 0.04), transparent 50%);
+}
+
+.forge-bg-vignette {
+  background: radial-gradient(ellipse 100% 80% at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+.light .forge-bg-vignette {
+  background: radial-gradient(ellipse 100% 80% at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.08) 100%);
+}
+
+@keyframes forge-particle-drift {
+  0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+  25% { transform: translate(4px, -6px); opacity: 0.6; }
+  50% { transform: translate(-3px, -12px); opacity: 0.4; }
+  75% { transform: translate(2px, -4px); opacity: 0.7; }
+}
+
+.forge-particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgb(var(--primary) / 0.4);
+  animation: forge-particle-drift 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes forge-signal-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--success) / 0.4); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}
+
+.forge-signal-dot {
+  animation: forge-signal-pulse 2s ease-in-out infinite;
+}
+
+@keyframes forge-orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.forge-orbit {
+  position: absolute;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--primary) / 0.12);
+  animation: forge-orbit-spin 24s linear infinite;
+}
+
+.forge-orbit-dot {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgb(var(--primary));
+  box-shadow: 0 0 8px rgb(var(--primary) / 0.6);
+}
+
+@keyframes forge-pulse-ring {
+  0% { transform: scale(0.6); opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.forge-pulse-ring {
+  position: absolute;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--primary) / 0.3);
+  animation: forge-pulse-ring 3s ease-out infinite;
+}
+
+@keyframes forge-glow-breathe {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.forge-glow-breathe {
+  animation: forge-glow-breathe 4s ease-in-out infinite;
+}
+
+@keyframes forge-thinking-dots {
+  0%, 20% { content: ""; }
+  40% { content: "."; }
+  60% { content: ".."; }
+  80%, 100% { content: "..."; }
+}
+
+.forge-thinking::after {
+  content: "";
+  animation: forge-thinking-dots 1.5s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forge-particle,
+  .forge-signal-dot,
+  .forge-orbit,
+  .forge-pulse-ring,
+  .forge-glow-breathe {
+    animation: none !important;
+  }
+}
