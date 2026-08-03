@@ -26,7 +26,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import api.cashfree as cashfree_module
-from api.cashfree import CashfreeVerifyRequest, CashfreeOrderRequest, require_cashfree, _get_cashfree_client
+from api.cashfree import CashfreeVerifyRequest, CashfreeOrderRequest, require_cashfree
 
 
 def _signature(body: bytes, secret: str) -> str:
@@ -39,13 +39,44 @@ def _make_webhook(event: str, entity: dict, secret: str):
     return payload, sig
 
 
+class _FakeAsyncClient:
+    def __init__(self, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        pass
+
+    def post(self, path, json=None):
+        self._last_path = path
+        self._last_payload = json
+        return _FakeResponse()
+
+    def get(self, path):
+        self._last_path = path
+        return _FakeResponse()
+
+
+class _FakeResponse:
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {
+            "order_id": "order_FAKE",
+            "order_token": "token_FAKE",
+            "order_amount": 500,
+            "order_currency": "INR",
+            "payment_session_id": "session_FAKE",
+        }
+
+
 @pytest.fixture(autouse=True)
-def _reset_cashfree_client():
-    cashfree_module._CASHFREE_CLIENT = None
+def _mock_async_client(monkeypatch):
+    monkeypatch.setattr("api.cashfree.httpx.AsyncClient", _FakeAsyncClient)
     yield
-    if cashfree_module._CASHFREE_CLIENT is not None:
-        cashfree_module._CASHFREE_CLIENT.close()
-        cashfree_module._CASHFREE_CLIENT = None
 
 
 def test_require_cashfree_passes_when_configured():
@@ -60,26 +91,13 @@ def test_create_cashfree_order_returns_expected_fields(monkeypatch):
 
     captured: dict = {}
 
-    class _FakeResponse:
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return {
-                "order_id": "order_FAKE",
-                "order_token": "token_FAKE",
-                "order_amount": 500,
-                "order_currency": "INR",
-                "payment_session_id": "session_FAKE",
-            }
-
-    class _FakeClient:
+    class _CapturingFakeClient(_FakeAsyncClient):
         def post(self, path, json=None):
             captured["path"] = path
             captured["payload"] = json
             return _FakeResponse()
 
-    monkeypatch.setattr(cf, "_CASHFREE_CLIENT", _FakeClient())
+    monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _CapturingFakeClient})())
 
     class _User:
         id = "user-1"
@@ -97,14 +115,11 @@ def test_create_cashfree_order_returns_expected_fields(monkeypatch):
 def test_cashfree_verify_valid_response(monkeypatch):
     import api.cashfree as cf
 
-    class _FakeResponse:
-        def raise_for_status(self):
-            pass
+    class _FakeGetClient(_FakeAsyncClient):
+        def get(self, path):
+            return _FakeResponse()
 
-        def json(self):
-            return {"order_status": "PAID"}
-
-    monkeypatch.setattr(cf, "_CASHFREE_CLIENT", type("_C", (), {"get": lambda *a, **k: _FakeResponse()})())
+    monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeGetClient})())
 
     req = CashfreeVerifyRequest(order_id="order_123", order_token="token_123")
     result = cf.verify_payment(req)
@@ -114,14 +129,18 @@ def test_cashfree_verify_valid_response(monkeypatch):
 def test_cashfree_verify_invalid_response(monkeypatch):
     import api.cashfree as cf
 
-    class _FakeResponse:
+    class _FakeResponseBad:
         def raise_for_status(self):
             pass
 
         def json(self):
             return {"order_status": "FAILED"}
 
-    monkeypatch.setattr(cf, "_CASHFREE_CLIENT", type("_C", (), {"get": lambda *a, **k: _FakeResponse()})())
+    class _FakeGetClient(_FakeAsyncClient):
+        def get(self, path):
+            return _FakeResponseBad()
+
+    monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeGetClient})())
 
     req = CashfreeVerifyRequest(order_id="order_123", order_token="token_123")
     result = cf.verify_payment(req)
@@ -132,7 +151,7 @@ def test_cashfree_webhook_valid_payment_event(monkeypatch):
     import api.cashfree as cf
     from fastapi import FastAPI
 
-    monkeypatch.setattr(cf, "_CASHFREE_CLIENT", None)
+    monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeAsyncClient})())
 
     app = FastAPI()
     app.include_router(cf.router)
@@ -150,7 +169,7 @@ def test_cashfree_webhook_invalid_signature(monkeypatch):
     import api.cashfree as cf
     from fastapi import FastAPI
 
-    monkeypatch.setattr(cf, "_CASHFREE_CLIENT", None)
+    monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeAsyncClient})())
 
     app = FastAPI()
     app.include_router(cf.router)
@@ -167,7 +186,7 @@ def test_cashfree_webhook_skips_when_secret_missing(monkeypatch):
     import api.cashfree as cf
     from fastapi import FastAPI
 
-    monkeypatch.setattr(cf, "_CASHFREE_CLIENT", None)
+    monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeAsyncClient})())
     monkeypatch.setattr(cf.settings, "cashfree_webhook_secret", "")
 
     app = FastAPI()

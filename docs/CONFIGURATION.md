@@ -51,11 +51,13 @@ configured:**
 |---|---|---|
 | `APP_ENV` | `development` | Gates all production validators |
 | `APP_URL` / `API_URL` | `http://localhost:3000` / `:8000` | Public endpoints |
-| `ALLOWED_ORIGINS` | `http://localhost:3000`, `http://localhost:3001`, `http://localhost:5173`, `http://127.0.0.1:3000`, `http://127.0.0.1:3001`, `http://127.0.0.1:5173` | CORS (JSON array or comma-separated) |
-| `ALLOWED_HOSTS` | `localhost,127.0.0.1,testserver` | TrustedHost middleware |
+| `ALLOWED_ORIGINS` | `http://localhost:3000`, `http://localhost:3001`, `http://localhost:5173`, `http://127.0.0.1:3000`, `http://127.0.0.1:3001`, `http://127.0.0.1:5173` | CORS (JSON array or comma-separated). The middleware also allows **all HTTPS origins** via `allow_origin_regex=r"https://.*"` so Vercel/Cloudflare Pages/other HTTPS frontends work without per-domain config. |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1,testserver,*.trycloudflare.com` | TrustedHost middleware |
+| `FRONTEND_TUNNEL_URL` | *(empty)* | Additional CORS origin merged into the allowlist (e.g. a Cloudflare tunnel URL) |
 | `TRUSTED_PROXIES` | `127.0.0.1,::1` | Real-IP resolution for rate limiting |
 | `MAX_REQUEST_SIZE` | 10 MiB | Request-size limit middleware |
 | `DEPLOYMENT_HOST` | `localhost` | Public host for deployed-app preview containers |
+| `DEPLOYMENTS_ENABLED` | *(unset)* | Set `true` to enable the Docker deployment API (`POST /deployments/`, redeploy, container cancel). Read-only deployment endpoints remain available regardless. |
 
 ## Auth & integrations
 

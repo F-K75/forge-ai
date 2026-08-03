@@ -19,22 +19,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/cashfree", tags=["cashfree"])
 settings = get_settings()
 
-_CASHFREE_CLIENT: Optional[httpx.Client] = None
+_CASHFREE_BASE_URL = settings.cashfree_base_url or "https://api.cashfree.com/pg/v1"
 
-
-def _get_cashfree_client() -> httpx.Client:
-    global _CASHFREE_CLIENT
-    if _CASHFREE_CLIENT is None:
-        _CASHFREE_CLIENT = httpx.Client(
-            base_url=settings.cashfree_base_url or "https://api.cashfree.com/pg/v1",
-            headers={
-                "x-client-id": settings.cashfree_app_id,
-                "x-client-secret": settings.cashfree_secret_key,
-                "Content-Type": "application/json",
-            },
-            timeout=15.0,
-        )
-    return _CASHFREE_CLIENT
+_CASHFREE_HEADERS = {
+    "x-client-id": settings.cashfree_app_id,
+    "x-client-secret": settings.cashfree_secret_key,
+    "Content-Type": "application/json",
+}
 
 
 def _require_cashfree() -> None:
@@ -94,9 +85,10 @@ async def create_order(req: CashfreeOrderRequest, current_user: User = Depends(g
     }
 
     try:
-        response = _get_cashfree_client().post("/orders", json=payload)
-        response.raise_for_status()
-        order = response.json()
+        async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+            response = await client.post("/orders", json=payload)
+            response.raise_for_status()
+            order = response.json()
     except Exception as exc:
         logger.exception("Cashfree order creation failed for user %s", current_user.id)
         raise HTTPException(status_code=502, detail=f"Cashfree order creation failed: {exc}")
@@ -156,9 +148,10 @@ async def create_cashfree_order(req: Any, current_user: User) -> Dict[str, Any]:
     }
 
     try:
-        response = _get_cashfree_client().post("/orders", json=payload)
-        response.raise_for_status()
-        order = response.json()
+        async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+            response = await client.post("/orders", json=payload)
+            response.raise_for_status()
+            order = response.json()
     except Exception as exc:
         logger.exception("Cashfree order creation failed for user %s", current_user.id)
         raise HTTPException(status_code=502, detail=f"Cashfree order creation failed: {exc}")
@@ -221,9 +214,10 @@ async def create_subscription(req: CashfreeSubscriptionRequest, current_user: Us
     }
 
     try:
-        response = _get_cashfree_client().post("/subscriptions", json=payload)
-        response.raise_for_status()
-        sub = response.json()
+        async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+            response = await client.post("/subscriptions", json=payload)
+            response.raise_for_status()
+            sub = response.json()
     except Exception as exc:
         logger.exception("Cashfree subscription creation failed for user %s", current_user.id)
         raise HTTPException(status_code=502, detail=f"Cashfree subscription creation failed: {exc}")
@@ -261,9 +255,10 @@ async def verify_payment(req: CashfreeVerifyRequest):
     ).hexdigest()
 
     try:
-        response = _get_cashfree_client().get(f"/orders/{req.order_id}")
-        response.raise_for_status()
-        order = response.json()
+        async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+            response = await client.get(f"/orders/{req.order_id}")
+            response.raise_for_status()
+            order = response.json()
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Cashfree verification failed: {exc}")
 

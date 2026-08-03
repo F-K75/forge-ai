@@ -14,6 +14,7 @@ import { IntegrationPane } from "../../components/agentRun/panes/IntegrationPane
 import { usePMStore } from "../../store/pmStore";
 import { sprintsApi } from "../../lib/pmApi";
 import toast from "react-hot-toast";
+import { Bot } from "lucide-react";
 import { motion, motionVariants } from "../../lib/animations";
 
 const PRIORITY_LABEL: Record<string, "P0" | "P1" | "P2"> = { p0: "P0", p1: "P1", p2: "P2", p3: "P2" };
@@ -25,7 +26,11 @@ const AGENT_EXEC_STATUS: Record<string, "running" | "needs_review" | "done"> = {
 };
 
 function EmptyPane({ children }: { children: React.ReactNode }) {
-  return <p className="py-8 text-center text-[12.5px] text-faint">{children}</p>;
+  return (
+    <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
+      <p className="text-sm text-faint">{children}</p>
+    </motion.div>
+  );
 }
 
 function NotWiredCard({ id }: { id: "designer" }) {
@@ -33,7 +38,7 @@ function NotWiredCard({ id }: { id: "designer" }) {
   const Icon = agent.icon;
   return (
     <motion.div
-      className="bb-panel flex items-center gap-3 border-dashed p-5"
+      className="rounded-2xl border border-dashed border-white/[0.06] bg-white/[0.02] flex items-center gap-3 p-5 backdrop-blur-xl"
       variants={motionVariants.scaleIn}
       initial="hidden"
       animate="visible"
@@ -89,7 +94,7 @@ export default function AgentRunsTab() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-sm text-faint">Loading agent runs…</div>;
+    return <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 text-center text-sm text-faint">Loading agent runs…</div>;
   }
   if (!initiative) return null;
 
@@ -109,7 +114,14 @@ export default function AgentRunsTab() {
   const latestExecution = executions[0];
 
   return (
-    <motion.div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-8 md:px-8" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+    <motion.div className="mx-auto max-w-5xl px-4 py-6 md:px-8 flex flex-col gap-8" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+      {/* Section: Agent pipeline runs */}
+      <div className="flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <Bot size={12} aria-hidden="true" />
+        </span>
+        <h2 className="font-display text-sm font-semibold text-ink">Agent Pipeline</h2>
+      </div>
       <motion.div variants={motionVariants.staggerItem}>
         <AgentRunShell
           agent={ba}
@@ -294,7 +306,7 @@ export default function AgentRunsTab() {
                       type="button"
                       onClick={runStandup}
                       disabled={standupLoading}
-                      className="bb-btn bb-btn-subtle w-full"
+                      className="flex items-center justify-center h-9 w-full rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm font-medium text-ink hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 backdrop-blur-xl transition-colors motion-reduce:transition-none disabled:opacity-50"
                     >
                       {standupLoading ? "Running…" : "Run standup"}
                     </button>

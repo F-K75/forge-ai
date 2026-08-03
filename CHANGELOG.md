@@ -1,5 +1,56 @@
 # Changelog
 
+## 2026-08-02 — Cloudflare Pages + Render deployment, CORS broadening, AgentFleetGraph, UI polish
+
+### Features Added
+
+- **Cloudflare Pages deployment** — added `CLOUDFLARE_PAGES.md` documenting how to deploy the frontend to Cloudflare Pages (dashboard + wrangler CLI paths), plus `wrangler.toml` and `.wrangler/` support files. The frontend build now works with `VITE_BASE=/` and the Pages build pipeline (`cd frontend && npm ci && npm run build`).
+- **Render deployment config** — added `render.yaml` for deploying the backend to Render (free web service, Python 3 runtime, `uvicorn main:app`). Includes `ALLOWED_HOSTS` for `*.onrender.com` and `*.trycloudflare.com` so tunneled and hosted origins are accepted.
+- **AgentFleetGraph component** — new `frontend/src/components/AgentFleetGraph.tsx` — a React Flow-based visualization of the agent fleet (build agents + gateway agents) with animated edges, embedded mode, and keyboard navigation for radio button groups. Integrated into `AppShell`.
+- **GlobalBackground component** — new `frontend/src/components/GlobalBackground.tsx` — an animated dot-matrix background used across the app shell with configurable density, glow intensity, and z-index layering.
+- **Apple-shell UI polish** — updated the authenticated UI shell with a transparent background, refined dot radius/spacing/opacity, and improved layout positioning in `AgentFleetGraph`.
+- **Project management interface UX** — enhanced the project management interface design and UX (`ProjectsPage`, `WorkspacePage`).
+- **Accessibility & user settings** — enhanced accessibility (keyboard navigation for radio button groups), user settings, and the landing page.
+
+### Fixed
+
+- **CORS origin broadening** — the CORS middleware now allows all HTTPS origins via `allow_origin_regex=r"https://.*"` in addition to the explicit `allowed_origins` list. This unblocks Vercel, Cloudflare Pages, and other HTTPS-hosted frontends without per-domain config. The `frontend_tunnel_url` setting is also merged into the allowed origins list.
+- **Global exception handler** — fixed the global exception handler in `backend/main.py` so it no longer swallows `HTTPException` (FastAPI's built-in handler for those takes precedence via its more specific type match). The handler now re-raises `HTTPException` and only catches genuinely unexpected exceptions.
+- **ForgotPassword** — removed a redundant return statement in `ForgotPassword.tsx`.
+- **UI container styling** — removed redundant background color classes from main page containers.
+
+### Infrastructure
+
+- **`render.yaml`** — new Render blueprint for the backend service (free plan, Python 3, `uvicorn main:app --host 0.0.0.0 --port $PORT`). Includes `MONGODB_URL`, `JWT_SECRET`, `FIELD_ENCRYPTION_KEY`, `ADMIN_EMAILS`, `ALLOWED_HOSTS`, `API_URL`, `APP_URL`, Stripe test keys, and sync:false for `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`.
+- **`CLOUDFLARE_PAGES.md`** — new deployment guide for Cloudflare Pages.
+- **`wrangler.toml`** — Cloudflare Pages/Wrangler configuration.
+- **`.wrangler/`** — Cloudflare Wrangler runtime directory (temporary files removed from git tracking).
+
+### Files Changed
+
+- `backend/main.py` — CORS `allow_origin_regex`, `frontend_tunnel_url` merge, global exception handler fix.
+- `backend/core/config.py` — added `frontend_tunnel_url` setting.
+- `frontend/src/components/AgentFleetGraph.tsx` — new.
+- `frontend/src/components/GlobalBackground.tsx` — new.
+- `frontend/src/components/AppShell.tsx` — integrated AgentFleetGraph + GlobalBackground.
+- `frontend/src/pages/ForgotPassword.tsx` — removed redundant return.
+- `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/pages/WorkspacePage.tsx` — UX improvements.
+- `frontend/src/pages/LandingPage.tsx` — accessibility + landing page enhancements.
+- `render.yaml` — new.
+- `CLOUDFLARE_PAGES.md` — new.
+- `wrangler.toml` — new.
+
+### Validation
+
+- Backend test suite: **passed** (no regressions).
+- Frontend `npm run build` passes.
+- Frontend `npm run lint` passes.
+
+### Migration notes
+
+- No action required. The CORS change is additive (allows HTTPS origins); existing `allowed_origins` entries remain honored.
+- `render.yaml` contains test Stripe keys and a development `APP_ENV`; replace with production values before going live on Render.
+
 ## 2026-08-01 — Apple UI shell, global LLM circuit breaker, staging pipeline, free-tier correction
 
 ### Features Added

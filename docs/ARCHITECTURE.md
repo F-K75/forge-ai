@@ -6,7 +6,7 @@ design system, code, integrations, and QA validation, streamed live to the
 browser.
 
 This document describes the platform as it exists in the code (verified
-2026-07-17).
+2026-08-02).
 
 ## Services
 
@@ -19,6 +19,24 @@ This document describes the platform as it exists in the code (verified
 | Orchestration tooling | `orchestration/` | — | Meta-orchestration/workflow-engine artifacts (not a runtime service of the product) |
 | MongoDB | — | 27017 | Primary datastore (Motor, async) |
 | Redis | — | 6379 | Rate limiting, cache, Celery broker/result backend |
+
+## Deployment targets
+
+Forge supports multiple deployment targets:
+
+| Target | Config | Purpose |
+|--------|--------|---------|
+| Docker Compose (dev) | `docker-compose.yml` | Local development stack |
+| Docker Compose (prod) | `docker-compose.prod.yml` | Production VPS deployment |
+| Docker Compose (staging) | `docker-compose.staging.yml` | Isolated staging stack |
+| Kubernetes | `k8s/` | Production-grade orchestration (reference manifests) |
+| Render | `render.yaml` | Backend-only deployment (free plan, Python 3, uvicorn) |
+| Cloudflare Pages | `CLOUDFLARE_PAGES.md`, `wrangler.toml` | Frontend-only deployment |
+
+The CORS middleware allows all HTTPS origins (`allow_origin_regex=r"https://.*"`)
+in addition to the explicit `allowed_origins` list, so Vercel, Cloudflare Pages,
+and other HTTPS-hosted frontends work without per-domain config. The
+`FRONTEND_TUNNEL_URL` setting is also merged into the allowed origins list.
 
 ## Build pipeline (the core product flow)
 
@@ -144,11 +162,17 @@ MongoDB. It is read-only: it never edits files, opens PRs, or deploys. See
 - **Pages**: Landing, Auth (login/signup/forgot/reset/verify), Onboarding,
   Workspace (3-panel: chat + Monaco editor + live preview), Projects,
   Project History, Marketplace, Billing, Settings, Admin Console,
-  LLM Management, plus `pm/` (initiative/sprint views) and `reviews/`
-  (Review Board UI).
-- **State**: Zustand stores (`buildStore`, `authStore`); WebSocket events flow
-  through `hooks/useBuildSocket.ts` using the typed contract in
-  `lib/wsContract.ts`.
+  LLM Management, Launch (OS boot sequence), Prompt Studio, plus `pm/`
+  (initiative/sprint views) and `reviews/` (Review Board UI).
+- **Components**: `AgentFleetGraph` (React Flow-based agent fleet visualization
+  with animated edges and embedded mode), `GlobalBackground` (animated dot-matrix
+  background), `AppShell` (Apple-style desktop shell), plus `build/`, `agentRun/`,
+  `ui/`, and `charts/` component groups.
+- **State**: Zustand stores (`buildStore`, `authStore`, `pmStore`, `reviewStore`,
+  `uiStore`); WebSocket events flow through `hooks/useBuildSocket.ts`,
+  `useOrgSocket.ts`, `usePMSocket.ts`, and `useReviewSocket.ts` using typed
+  contracts in `lib/wsContract.ts`, `lib/orgWsContract.ts`, `lib/pmWsContract.ts`,
+  and `lib/reviewWsContract.ts`.
 - **Testing**: Vitest (`npm test`), TypeScript + ESLint + Prettier.
 
 ## Data flow summary
