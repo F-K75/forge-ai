@@ -13,7 +13,6 @@ import time
 
 from core.config import get_settings
 from core.models import DeploymentStatus, WSEventType
-from services.ws_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +109,7 @@ async def _rollback_deployment(
         except docker.errors.NotFound:
             logger.info("Container %s not found during rollback", container_name)
 
-        await manager.emit(
+        await emit(
             WSEvent(
                 type=WSEventType.BUILD_FAILED,
                 build_id=deployment_id,
