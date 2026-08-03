@@ -1,7 +1,7 @@
 {
   "name": "forge-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "predev": "python3 ../backend/scripts/export_ws_events.py 2>/dev/null || true",

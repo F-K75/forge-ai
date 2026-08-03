@@ -1,5 +1,51 @@
 # Changelog
 
+## 2026-08-04 — Dynamic DB isolation, health check timeout with rollback, secret masking on build logs, Cashfree async HTTP fix
+
+### Features Added
+
+- **Dynamic DB isolation (T1)** — `backend/app/services/deployment_service.py` implements per-deployment MongoDB database isolation (`mongodb://.../app_<deploy_id>`) so deployed applications are isolated from each other and from the primary Forge database. Includes `ensure_deployed_db()`, `cleanup_deployed_db()`, and deploy ID validation.
+- **Health check timeout with auto-rollback (T2)** — `backend/app/tasks/deployment.py` implements a 30-second health check timeout that automatically rolls back failed deployments (container stopped and removed, status set to FAILED, rollback event emitted over WebSocket).
+- **Secret masking on streamed build logs (T3)** — `backend/app/services/log_streamer.py` implements secret redaction on WebSocket-streamed build logs with 11 regex patterns covering Stripe keys, MongoDB connection strings, Redis URLs, password/secret/API key assignments, and a fallback credential pattern.
+- **Cashfree async HTTP fix** — converted `backend/api/cashfree.py` from sync `httpx.Client` singleton to per-request `httpx.AsyncClient` context manager, matching the codebase pattern used in `mistral.py`, `gemini.py`, etc. Updated `backend/api/billing.py` and `backend/api/gdpr.py` accordingly.
+
+### Fixed
+
+- **`_rollback_deployment` bug** — fixed `backend/app/tasks/deployment.py` where `_rollback_deployment` was calling `manager.emit` instead of the `emit` parameter, and removed the unused `manager` import.
+
+### Tests Added
+
+- `backend/tests/test_log_streamer.py` — 15 tests covering all secret redaction patterns and the streaming redaction pipeline (all passing).
+- `backend/tests/test_deployment_service.py` — tests for dynamic DB isolation.
+- `backend/tests/test_deployment_health_check.py` — tests for health check timeout and rollback.
+- `backend/tests/test_cashfree.py` — updated for async client.
+
+### Validation
+
+- Log streamer tests: **15/15 passed** on both Python 3.9 and 3.14.
+- Deployment tests blocked by pre-existing Python 3.9 venv incompatibility (`Path | None` syntax in `core/config.py`).
+- Pre-commit hook false positives for test data/regex patterns in `log_streamer.py` and `test_log_streamer.py` (known, not actual secrets).
+
+### Files Changed
+
+- `backend/app/services/deployment_service.py` — new (T1)
+- `backend/app/services/log_streamer.py` — new (T3)
+- `backend/app/tasks/deployment.py` — new (T2)
+- `backend/api/cashfree.py` — async HTTP fix
+- `backend/api/billing.py` — async HTTP fix
+- `backend/api/gdpr.py` — async HTTP fix
+- `backend/tests/test_log_streamer.py` — new
+- `backend/tests/test_deployment_service.py` — new
+- `backend/tests/test_deployment_health_check.py` — new
+- `backend/tests/test_cashfree.py` — updated
+- `frontend/package.json` — version bump to 0.2.0
+
+### Migration notes
+
+- No action required. The Cashfree async HTTP change is transparent to callers.
+- The dynamic DB isolation uses the existing `MONGODB_URL` setting with the database name replaced per deployment.
+- Secret masking patterns are aligned with the pre-commit hook patterns in `scripts/git-hooks/pre-commit`.
+
 ## 2026-08-02 — Cloudflare Pages + Render deployment, CORS broadening, AgentFleetGraph, UI polish
 
 ### Features Added
