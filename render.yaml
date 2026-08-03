@@ -7,40 +7,40 @@ services:
     startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: APP_ENV
-        value: development
+        value: production
       - key: MONGODB_URL
-        value: mongodb+srv://frendiakeshav75_db_user:i5LGFeNaq1Xw7J6O@cluster0.etndecw.mongodb.net/forge?appName=Cluster0
+        value: ${MONGODB_URL}
       - key: JWT_SECRET
-        value: 62d093f7ea6bf59aaf0bc4dd7931d568f58e7036fc4ccecd7852a6e9bcd51517
+        value: ${JWT_SECRET}
       - key: FIELD_ENCRYPTION_KEY
-        value: 2ce1bf90649bfca35fff710bd6751650d4cf95a14f1234bc46c81747821ee3a8
+        value: ${FIELD_ENCRYPTION_KEY}
       - key: ADMIN_EMAILS
-        value: admin@forge.ai
+        value: ${ADMIN_EMAILS}
       - key: ALLOWED_HOSTS
-        value: localhost,127.0.0.1,testserver,*.trycloudflare.com,forge-ai-ioom.onrender.com,*.onrender.com
+        value: ${ALLOWED_HOSTS}
       - key: API_URL
-        value: https://forge-ai-ioom.onrender.com
+        value: ${API_URL}
       - key: APP_URL
-        value: https://forge-ai-ioom.onrender.com
+        value: ${APP_URL}
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: STRIPE_SECRET_KEY
-        value: sk_test_51TpATKQPUINTjGtZZnUpEqmkjaH2B0LMZqsWBwymOpOdrV9PUWrST1Ml3fTjAVru4lytEd8f1xe3JlhjQId7FkwK003ClMlw6l
+        value: ${STRIPE_SECRET_KEY}
       - key: STRIPE_PUBLISHABLE_KEY
-        value: pk_test_51TpATKQPUINTjGtZE3Sw7Uf9p8chSBREdgROywx7pakWT6Y3JZUxHo8VKILn6jpDymKpiimRAhB3yiXD5yxIFBiC00H5wCckea
+        value: ${STRIPE_PUBLISHABLE_KEY}
       - key: STRIPE_WEBHOOK_SECRET
-        value: whsec_test
+        value: ${STRIPE_WEBHOOK_SECRET}
       - key: STRIPE_PRICE_STANDARD_MONTHLY
-        value: price_standard_monthly
+        value: ${STRIPE_PRICE_STANDARD_MONTHLY}
       - key: STRIPE_PRICE_PRO_MONTHLY
-        value: price_pro_monthly
+        value: ${STRIPE_PRICE_PRO_MONTHLY}
       - key: STRIPE_PRICE_ENTERPRISE_MONTHLY
-        value: price_enterprise_monthly
+        value: ${STRIPE_PRICE_ENTERPRISE_MONTHLY}
       - key: STRIPE_PRICE_STANDARD_ANNUAL
-        value: price_standard_annual
+        value: ${STRIPE_PRICE_STANDARD_ANNUAL}
       - key: STRIPE_PRICE_PRO_ANNUAL
-        value: price_pro_annual
+        value: ${STRIPE_PRICE_PRO_ANNUAL}
       - key: STRIPE_PRICE_ENTERPRISE_ANNUAL
-        value: price_enterprise_annual
+        value: ${STRIPE_PRICE_ENTERPRISE_ANNUAL}

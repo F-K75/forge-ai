@@ -220,6 +220,27 @@ async def delete_user_data_cascade(db, user_id: str, email: str) -> Dict[str, in
                 detail="Stripe customer deletion failed; account deletion was not started",
             ) from exc
 
+    if settings.billing_provider == "cashfree":
+        cashfree_subs = await db.subscriptions.find(
+            {"user_id": user_id, "provider": "cashfree", "status": {"$ne": "cancelled"}},
+            {"_id": 0, "cashfree_subscription_id": 1},
+        ).to_list(None)
+        for sub in cashfree_subs:
+            sub_id = sub.get("cashfree_subscription_id")
+            if not sub_id:
+                continue
+            try:
+                from api.cashfree import _get_cashfree_client, _require_cashfree
+                _require_cashfree()
+                client = _get_cashfree_client()
+                response = client.post(f"/subscriptions/{sub_id}/cancel")
+                response.raise_for_status()
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Cashfree subscription cancellation failed; account deletion was not started",
+                ) from exc
+
     projects = await db.projects.find(
         {"user_id": user_id}, {"_id": 0, "id": 1}
     ).to_list(None)

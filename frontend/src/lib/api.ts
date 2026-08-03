@@ -153,6 +153,7 @@ export const buildsApi = {
 
 // Billing
 export const billingApi = {
+  provider: () => api.get("/billing/provider").then((r) => r.data),
   checkout: (data: {
     plan: string
     success_url: string

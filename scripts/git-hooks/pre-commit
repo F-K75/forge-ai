@@ -27,6 +27,8 @@ SECRET_PATTERNS=(
     'sk-[a-zA-Z0-9]{20,}'
     'sk_test_[a-zA-Z0-9]{10,}'
     'sk_live_[a-zA-Z0-9]{10,}'
+    'pk_test_[a-zA-Z0-9]{10,}'
+    'pk_live_[a-zA-Z0-9]{10,}'
     'whsec_[a-zA-Z0-9]{10,}'
     '\bre_[a-zA-Z0-9]{10,}\b'
     'ghp_[a-zA-Z0-9]{30,}'
@@ -34,7 +36,10 @@ SECRET_PATTERNS=(
     'ghu_[a-zA-Z0-9]{30,}'
     'ghr_[a-zA-Z0-9]{30,}'
     'github_pat_[a-zA-Z0-9]{30,}'
+    'cf_[a-zA-Z0-9]{20,}'
+    'cashfree_[a-zA-Z0-9]{20,}'
     'mongodb://[^/[:space:]]+:[^@[:space:]]+@'
+    'mongodb\+srv://[^/[:space:]]+:[^@[:space:]]+@'
     'redis://:[^@[:space:]]+@'
     '[Pp]assword[[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
     '[Ss]ecret[[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
@@ -91,7 +96,7 @@ _ROUTE_NAME_REF='(ForgotPassword|ResetPassword)[[:space:]]*=[[:space:]]*lazy\('
 # and the narrower pattern flagged all of them.
 _SHELL_VAR_REF='\$\{[A-Z_][A-Z0-9_]*(:[-?+][^}]*)?\}|\$\([A-Z_][A-Z0-9_]*\)'
 
-ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}|${_SHELL_VAR_REF}"
+ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|pk_test_1234567890abcdef|pk_live_1234567890abcdef|cf_test1234567890abcdef|cashfree_test1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}|${_SHELL_VAR_REF}"
 
 # --- Check for .env file in staged changes ---
 if git diff --cached --name-only | grep -q '^.env$'; then

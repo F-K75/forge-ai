@@ -11,6 +11,13 @@ from core.cache import cached_read, PLANS_CACHE_KEY, PLANS_CACHE_TTL
 from api.auth import get_current_user
 from services.credit_alerts import reset_credit_alerts
 from api.razorpay import create_rzp_order, _require_razorpay, get_razorpay_client
+from api.cashfree import (
+    create_cashfree_order,
+    create_cashfree_subscription,
+    verify_cashfree_payment,
+    require_cashfree,
+    _cashfree_plan_id as _cf_plan_id,
+)
 
 settings = get_settings()
 stripe.api_key = settings.stripe_secret_key
@@ -203,12 +210,15 @@ class PlanResponse(BaseModel):
     max_projects: int
 
 
-@router.post("/checkout", response_model=Dict[str, str])
+@router.post("/checkout", response_model=Dict[str, Any])
 async def create_checkout_session(req: CheckoutRequest, user: User = Depends(get_current_user)):
     db = await get_db()
 
     if req.plan == PlanTier.FREE:
         raise HTTPException(status_code=400, detail="Cannot checkout for free plan")
+
+    if BILLING_PROVIDER == "cashfree":
+        return await create_cashfree_order(req, user)
 
     if BILLING_PROVIDER == "razorpay":
         return await _razorpay_checkout(req, user)
@@ -488,6 +498,11 @@ def _map_price_to_plan(price_id: str) -> PlanTier:
     return _PRICE_TO_PLAN.get(price_id, PlanTier.FREE)
 
 
+@router.get("/provider")
+async def get_billing_provider():
+    return {"provider": BILLING_PROVIDER}
+
+
 @router.get("/subscription", response_model=Optional[SubscriptionResponse])
 async def get_subscription(user: User = Depends(get_current_user)):
     db = await get_db()
@@ -519,13 +534,16 @@ async def list_invoices(
     )
 
 
-@router.post("/credits/purchase", response_model=Dict[str, str])
+@router.post("/credits/purchase", response_model=Dict[str, Any])
 async def create_credit_purchase(req: CreditPurchaseRequest, user: User = Depends(get_current_user)):
     db = await get_db()
 
     package = next((p for p in CREDIT_PACKAGES if p["id"] == req.package_id), None)
     if not package:
         raise HTTPException(status_code=400, detail="Invalid credit package")
+
+    if BILLING_PROVIDER == "cashfree":
+        return await _cashfree_credit_purchase(req, package, user)
 
     if BILLING_PROVIDER == "razorpay":
         return await _razorpay_credit_purchase(req, package, user)
@@ -584,6 +602,33 @@ async def _razorpay_credit_purchase(req: CreditPurchaseRequest, package: Dict[st
     return {"order_id": order["order_id"], "amount": order["amount"], "currency": order["currency"], "key_id": settings.razorpay_key_id}
 
 
+async def _cashfree_credit_purchase(req: CreditPurchaseRequest, package: Dict[str, Any], user: User):
+    require_cashfree()
+    db = await get_db()
+    order = await create_cashfree_order(
+        CashfreeOrderRequest(
+            amount=package["price_inr"] * 100,
+            currency="INR",
+            receipt=f"credits_{user.id}_{req.package_id}",
+            notes={"user_id": user.id, "credits": str(package["credits"]), "package_id": req.package_id},
+        ),
+        current_user=user,
+    )
+
+    purchase = CreditPurchase(
+        user_id=user.id,
+        cashfree_order_id=order["order_id"],
+        cashfree_order_token=order.get("order_token"),
+        credits=package["credits"],
+        amount=package["price_inr"] * 100,
+        currency="INR",
+        status="pending",
+        provider="cashfree",
+    )
+    await db.credit_purchases.insert_one(purchase.model_dump())
+    return order
+
+
 @router.get("/plans", response_model=List[PlanResponse])
 async def list_plans():
     # Plan table is config-driven and effectively static per deploy, so cache
@@ -614,6 +659,29 @@ async def cancel_subscription(req: CancelSubscriptionRequest, user: User = Depen
     if not sub:
         raise HTTPException(status_code=404, detail="No active subscription found")
 
+    if sub.get("provider") == "cashfree":
+        sub_id = sub.get("cashfree_subscription_id")
+        if not sub_id:
+            raise HTTPException(status_code=400, detail="Missing Cashfree subscription id")
+
+        if req.at_period_end:
+            await _cashfree_update_subscription(db, sub_id, {"status": "cancelled_at_end"})
+            await db.subscriptions.update_one(
+                {"cashfree_subscription_id": sub_id},
+                {"$set": {"cancel_at_period_end": True, "updated_at": utcnow()}},
+            )
+        else:
+            await _cashfree_cancel_subscription(db, sub_id)
+            await db.subscriptions.update_one(
+                {"cashfree_subscription_id": sub_id},
+                {"$set": {"status": SubscriptionStatus.CANCELED, "cancel_at_period_end": False, "updated_at": utcnow()}},
+            )
+            await db.users.update_one({"id": user.id}, {"$set": {"plan": PlanTier.FREE}})
+        return {"ok": True}
+
+    if not sub.get("stripe_subscription_id"):
+        raise HTTPException(status_code=400, detail="Unsupported subscription provider")
+
     if req.at_period_end:
         stripe.Subscription.modify(sub["stripe_subscription_id"], cancel_at_period_end=True)
         await db.subscriptions.update_one(
@@ -638,6 +706,20 @@ async def reactivate_subscription(user: User = Depends(get_current_user)):
     if not sub:
         raise HTTPException(status_code=404, detail="No canceled subscription found to reactivate")
 
+    if sub.get("provider") == "cashfree":
+        sub_id = sub.get("cashfree_subscription_id")
+        if not sub_id:
+            raise HTTPException(status_code=400, detail="Missing Cashfree subscription id")
+        await _cashfree_update_subscription(db, sub_id, {"status": "active"})
+        await db.subscriptions.update_one(
+            {"cashfree_subscription_id": sub_id},
+            {"$set": {"cancel_at_period_end": False, "updated_at": utcnow()}},
+        )
+        return {"ok": True}
+
+    if not sub.get("stripe_subscription_id"):
+        raise HTTPException(status_code=400, detail="Unsupported subscription provider")
+
     stripe.Subscription.modify(sub["stripe_subscription_id"], cancel_at_period_end=False)
     await db.subscriptions.update_one(
         {"stripe_subscription_id": sub["stripe_subscription_id"]},
@@ -658,7 +740,20 @@ async def downgrade_plan(req: DowngradeRequest, user: User = Depends(get_current
     if not plan_details:
         raise HTTPException(status_code=400, detail="Invalid plan")
 
-    # Schedule downgrade at period end
+    if sub.get("provider") == "cashfree":
+        sub_id = sub.get("cashfree_subscription_id")
+        if not sub_id:
+            raise HTTPException(status_code=400, detail="Missing Cashfree subscription id")
+        await _cashfree_update_subscription(db, sub_id, {"plan_id": _cf_plan_id(req.plan.value or req.plan)})
+        await db.users.update_one(
+            {"id": user.id},
+            {"$set": {"downgraded_to": req.plan}}
+        )
+        return {"ok": True, "message": f"Downgraded to {plan_details['name']} at period end"}
+
+    if not sub.get("stripe_subscription_id"):
+        raise HTTPException(status_code=400, detail="Unsupported subscription provider")
+
     stripe.Subscription.modify(
         sub["stripe_subscription_id"],
         cancel_at_period_end=True,
@@ -781,3 +876,28 @@ async def _handle_payment_event(db: Any, event: Dict[str, Any]) -> None:
         {"stripe_payment_intent_id": intent["id"], "credits_granted": credits},
     )
     await reset_credit_alerts(db, user_id)
+
+
+# --- Cashfree helpers ---
+
+
+async def _cashfree_update_subscription(db: Any, sub_id: str, payload: Dict[str, Any]) -> None:
+    from api.cashfree import _get_cashfree_client, _require_cashfree
+    _require_cashfree()
+    client = _get_cashfree_client()
+    response = client.post(f"/subscriptions/{sub_id}", json=payload)
+    response.raise_for_status()
+
+
+async def _cashfree_cancel_subscription(db: Any, sub_id: str) -> None:
+    from api.cashfree import _get_cashfree_client, _require_cashfree
+    _require_cashfree()
+    client = _get_cashfree_client()
+    response = client.post(f"/subscriptions/{sub_id}/cancel")
+    response.raise_for_status()
+
+
+@router.post("/webhook/cashfree")
+async def cashfree_webhook(request: Request, x_cashfree_signature: str = Header(..., alias="X-Cashfree-Signature")):
+    from api.cashfree import cashfree_webhook as _cf_webhook
+    return await _cf_webhook(request, x_cashfree_signature=x_cashfree_signature)

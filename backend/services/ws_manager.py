@@ -148,7 +148,7 @@ async def get_ws_user(token: Optional[str] = Query(None), build_id: Optional[str
     if not token:
         raise HTTPException(status_code=401, detail="Missing auth token")
     payload = decode_token(token)
-    if not payload or payload.get("type") not in ("access", "ws"):
+    if not payload or payload.get("type") != "ws":
         raise HTTPException(status_code=401, detail="Invalid token")
     user_id = payload.get("sub")
     db = await get_db()
@@ -186,7 +186,7 @@ async def authenticate_websocket(websocket: WebSocket, build_id: str) -> Optiona
         return None
 
     payload = decode_token(msg["token"])
-    if not payload or payload.get("type") not in ("access", "ws"):
+    if not payload or payload.get("type") != "ws":
         await websocket.close(code=4001, reason="Invalid token")
         return None
 
@@ -211,13 +211,14 @@ async def authenticate_websocket_token(token: Optional[str], build_id: Optional[
     connection. Returns the authenticated User, or None if the token is
     missing/invalid.
 
-    This allows the endpoint to reject unauthenticated connections at the
-    upgrade stage rather than after ``websocket.accept()``.
+    Only short-lived ``ws`` tokens (issued by POST /auth/ws-token) are
+    accepted here. Access tokens are rejected even if otherwise valid so a
+    leaked long-lived bearer token cannot be replayed as a WebSocket credential.
     """
     if not token:
         return None
     payload = decode_token(token)
-    if not payload or payload.get("type") not in ("access", "ws"):
+    if not payload or payload.get("type") != "ws":
         return None
     user_id = payload.get("sub")
     db = await get_db()

@@ -44,12 +44,14 @@ export default function BillingPage() {
   const [subscription, setSubscription] = useState<RawSubscription | null | undefined>(undefined);
   const [pending, setPending] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
+  const [billingProvider, setBillingProvider] = useState<string | null>(null);
 
   useEffect(() => {
     if (!LIVE_MODE) return;
     billingApi.plans().then(setRawPlans).catch(() => toast.error("Unable to load plans"));
     billingApi.usage().then(setUsage).catch(() => toast.error("Unable to load usage"));
     billingApi.subscription().then(setSubscription).catch(() => setSubscription(null));
+    billingApi.provider().then((r) => setBillingProvider(r.provider)).catch(() => {});
   }, []);
 
   const activeTier = subscription?.plan ?? "free";
@@ -88,13 +90,22 @@ export default function BillingPage() {
     >
       {/* Header */}
       <header className="mb-8">
-        <p className="text-sm text-muted">
-          {LIVE_MODE
-            ? subscription?.current_period_end
-              ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()} · ${activeTier} plan`
-              : `${activeTier} plan`
-            : "Renews Aug 1, 2026 · Pro plan"}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-muted">
+              {LIVE_MODE
+                ? subscription?.current_period_end
+                  ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()} · ${activeTier} plan`
+                  : `${activeTier} plan`
+                : "Renews Aug 1, 2026 · Pro plan"}
+            </p>
+          </div>
+          {LIVE_MODE && billingProvider && (
+            <span className="text-[11px] font-medium px-2 py-1 rounded-full border border-border text-muted">
+              {billingProvider}
+            </span>
+          )}
+        </div>
       </header>
 
       {/* Usage stats */}
