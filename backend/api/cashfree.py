@@ -55,6 +55,18 @@ class CashfreeVerifyRequest(BaseModel):
     order_token: str
 
 
+class PlanResponse(BaseModel):
+    tier: str
+    name: str
+    price_id: str
+    price_monthly: int
+    price_annual: int
+    credits: int
+    features: List[str]
+    max_projects: int
+    order_token: str
+
+
 class CashfreeWebhookResponse(BaseModel):
     status: str
     event: str
@@ -244,6 +256,9 @@ async def create_subscription(req: CashfreeSubscriptionRequest, current_user: Us
     }
 
 
+create_cashfree_subscription = create_subscription
+
+
 @router.post("/verify", response_model=Dict[str, bool])
 async def verify_payment(req: CashfreeVerifyRequest):
     _require_cashfree()
@@ -263,6 +278,10 @@ async def verify_payment(req: CashfreeVerifyRequest):
         raise HTTPException(status_code=502, detail=f"Cashfree verification failed: {exc}")
 
     return {"valid": order.get("order_status") == "PAID"}
+
+
+verify_cashfree_payment = verify_payment
+require_cashfree = _require_cashfree
 
 
 @router.post("/webhook", response_model=CashfreeWebhookResponse)
