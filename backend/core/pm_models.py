@@ -364,6 +364,26 @@ class PRDApproval(BaseModel):
     created_at: datetime = Field(default_factory=utcnow)
 
 
+class InitiativeComment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    initiative_id: str
+    user_id: str
+    section: str = ""
+    comment: str = ""
+    resolved: bool = False
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
+class InitiativeApproval(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    initiative_id: str
+    user_id: str
+    approved: bool
+    comment: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 # --- WebSocket events (separate channel from core.models.WSEvent, which is
 # build_id-scoped; this one is initiative_id-scoped) ---
 

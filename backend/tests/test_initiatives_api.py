@@ -347,3 +347,40 @@ def test_export_safe_fields(app_client):
     assert "generated_files" not in data["epics"][0]
     assert "generated_files" not in data["tasks"][0]
     assert "github" not in data["tasks"][0]
+
+
+def test_initiative_comments_do_not_require_prd(app_client):
+    client, db = app_client
+    db.users.insert_one({"id": "user-1", "credits": 10, "free_initiative_used": False, "plan": "free"})
+    db.initiatives.insert_one({"id": "init-1", "user_id": "user-1", "name": "Test", "status": "draft"})
+    resp = client.post("/v1/initiatives/init-1/initiative-comments", json={"comment": "Looks good"}, headers=_auth_headers())
+    assert resp.status_code == 200
+    assert resp.json()["comment"] == "Looks good"
+
+
+def test_initiative_approvals_do_not_require_prd(app_client):
+    client, db = app_client
+    db.users.insert_one({"id": "user-1", "credits": 10, "free_initiative_used": False, "plan": "free"})
+    db.initiatives.insert_one({"id": "init-1", "user_id": "user-1", "name": "Test", "status": "draft"})
+    resp = client.post("/v1/initiatives/init-1/initiative-approvals", json={"approved": True, "comment": "Approved"}, headers=_auth_headers())
+    assert resp.status_code == 200
+    assert resp.json()["approved"] is True
+    assert resp.json()["comment"] == "Approved"
+
+
+def test_credit_preview_returns_cost_and_free_flag(app_client):
+    client, db = app_client
+    db.users.insert_one({"id": "user-1", "credits": 10, "free_initiative_used": False, "plan": "free"})
+    resp = client.get("/v1/initiatives/credit-preview", headers=_auth_headers())
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["free_available"] is True
+    assert data["cost"] == 0
+    assert data["credits_remaining"] == 10
+
+    db.users.update_one({"id": "user-1"}, {"$set": {"free_initiative_used": True}})
+    resp = client.get("/v1/initiatives/credit-preview", headers=_auth_headers())
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["free_available"] is False
+    assert data["cost"] > 0

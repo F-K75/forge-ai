@@ -420,6 +420,7 @@ export default function InitiativesListPage() {
   const [prompt, setPrompt] = useState("");
   const [creating, setCreating] = useState(false);
   const [initiatives, setInitiatives] = useState<Initiative[] | null>(null);
+  const [creditPreview, setCreditPreview] = useState<{ cost: number; free_available: boolean; credits_remaining: number } | null>(null);
   const reduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -432,6 +433,13 @@ export default function InitiativesListPage() {
   };
 
   useEffect(load, []);
+
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    initiativesApi.creditPreview()
+      .then(setCreditPreview)
+      .catch(() => {});
+  }, []);
 
   const totalInitiatives = initiatives?.length ?? 0;
   const activeCount = useMemo(
@@ -609,6 +617,19 @@ export default function InitiativesListPage() {
                     {creating ? "Planning…" : "Generate"}
                   </motion.button>
                 </div>
+
+                {creditPreview && (
+                  <div className="mt-2 px-3 pb-1 flex items-center justify-between text-[11px] text-muted">
+                    <span>
+                      {creditPreview.free_available
+                        ? "Your first initiative is free"
+                        : `This initiative costs ${creditPreview.cost} credits`}
+                    </span>
+                    <span>
+                      {creditPreview.credits_remaining} credits remaining
+                    </span>
+                  </div>
+                )}
 
                 {/* Example chips */}
                 <div className="mt-1 flex flex-wrap items-center gap-2 px-3 pb-2.5">

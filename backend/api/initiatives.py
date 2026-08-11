@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from core.models import User, PaginationParams, Project, utcnow
 from core.database import get_db, paginated_query, get_redis
-from core.pm_models import Initiative, InitiativeStatus, PRD
+from core.pm_models import Initiative, InitiativeStatus, PRD, InitiativeComment, InitiativeApproval
 from core.permissions import has_initiative_access, has_initiative_write_access
 from core.config import get_settings
 from core.audit import record_audit_log
@@ -268,6 +268,20 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
     stored = await db.initiatives.find_one({"id": initiative.id}, {"_id": 0})
     safe = {k: _maybe_decrypt(v, k) for k, v in stored.items() if k in SAFE_INITIATIVE_FIELDS}
     return safe
+
+
+@router.get("/credit-preview")
+async def preview_initiative_credit_cost(current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    cost = settings.credits_initiative_generation
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    free_available = (user or {}).get("free_initiative_used") is False
+    effective_cost = 0 if free_available else cost
+    return {
+        "cost": effective_cost,
+        "free_available": free_available,
+        "credits_remaining": (user or {}).get("credits", 0),
+    }
 
 
 @router.get("/", response_model=PaginatedInitiatives)
@@ -655,6 +669,74 @@ async def create_prd_approval(initiative_id: str, req: PRDApprovalRequest, reque
         changes={"approved": req.approved, "comment": req.comment},
     )
     await _record_initiative_analytics(db, current_user.id, "prd_approval_created", initiative_id=initiative_id)
+    return approval.model_dump()
+
+
+class InitiativeCommentRequest(BaseModel):
+    section: Optional[str] = Field(None, max_length=200)
+    comment: str = Field(..., max_length=5000)
+
+
+class InitiativeApprovalRequest(BaseModel):
+    approved: bool
+    comment: Optional[str] = Field(None, max_length=5000)
+
+
+@router.get("/{initiative_id}/initiative-comments")
+async def list_initiative_comments(initiative_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    comments = await db.initiative_comments.find({"initiative_id": initiative_id}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    return {"comments": comments}
+
+
+@router.post("/{initiative_id}/initiative-comments")
+async def create_initiative_comment(initiative_id: str, req: InitiativeCommentRequest, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+
+    comment = InitiativeComment(
+        initiative_id=initiative_id,
+        user_id=current_user.id,
+        section=req.section or "",
+        comment=req.comment,
+    )
+    await db.initiative_comments.insert_one(comment.model_dump())
+    await record_audit_log(
+        db, request, current_user, "create_initiative_comment", "initiative",
+        resource_id=initiative_id,
+        changes={"section": req.section, "comment": req.comment},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_commented", initiative_id=initiative_id)
+    return comment.model_dump()
+
+
+@router.get("/{initiative_id}/initiative-approvals")
+async def list_initiative_approvals(initiative_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    approvals = await db.initiative_approvals.find({"initiative_id": initiative_id}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    return {"approvals": approvals}
+
+
+@router.post("/{initiative_id}/initiative-approvals")
+async def create_initiative_approval(initiative_id: str, req: InitiativeApprovalRequest, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+
+    approval = InitiativeApproval(
+        initiative_id=initiative_id,
+        user_id=current_user.id,
+        approved=req.approved,
+        comment=req.comment or "",
+    )
+    await db.initiative_approvals.insert_one(approval.model_dump())
+    await record_audit_log(
+        db, request, current_user, "create_initiative_approval", "initiative",
+        resource_id=initiative_id,
+        changes={"approved": req.approved, "comment": req.comment},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_approval_created", initiative_id=initiative_id)
     return approval.model_dump()
 
 

@@ -6,6 +6,7 @@ export const initiativesApi = {
   get: (id: string) => api.get(`/v1/initiatives/${id}`).then(r => r.data),
   create: (data: { prompt: string; name?: string }) =>
     api.post('/v1/initiatives/', data).then(r => r.data),
+  creditPreview: () => api.get('/v1/initiatives/credit-preview').then(r => r.data),
   update: (id: string, data: Record<string, unknown>) =>
     api.put(`/v1/initiatives/${id}`, data).then(r => r.data),
   regenerate: (id: string) => api.post(`/v1/initiatives/${id}/regenerate?confirm=true`).then(r => r.data),
@@ -35,10 +36,20 @@ export const initiativesApi = {
     create: (initiative_id: string, data: { section?: string; comment: string }) =>
       api.post(`/v1/initiatives/${initiative_id}/comments`, data).then(r => r.data),
   },
+  initiativeComments: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/initiative-comments`).then(r => r.data.comments),
+    create: (initiative_id: string, data: { section?: string; comment: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/initiative-comments`, data).then(r => r.data),
+  },
   approvals: {
     list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/approvals`).then(r => r.data.approvals),
     create: (initiative_id: string, data: { approved: boolean; comment?: string }) =>
       api.post(`/v1/initiatives/${initiative_id}/approvals`, data).then(r => r.data),
+  },
+  initiativeApprovals: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/initiative-approvals`).then(r => r.data.approvals),
+    create: (initiative_id: string, data: { approved: boolean; comment?: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/initiative-approvals`, data).then(r => r.data),
   },
 }
 

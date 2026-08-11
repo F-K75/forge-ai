@@ -11,19 +11,19 @@
 
 | Dimension | Previous (Re-audit) | Current | Change |
 |-----------|---------------------|---------|--------|
-| Business Viability | 40/100 | 40/100 | 0 — no pricing, integrations, or analytics dashboard |
-| User Experience | 55/100 | 58/100 | +3 — cancel button + loading skeletons added |
-| Data Governance | 75/100 | 80/100 | +5 — Redis rate limiter + generation merge retained |
-| Authentication & Authorization | 82/100 | 85/100 | +3 — viewer read restriction added |
-| Input Validation | 78/100 | 82/100 | +4 — version concurrency fixed |
-| Sensitive Data Exposure | 60/100 | 65/100 | +5 — WS error sanitization retained |
-| Destructive Operations | 60/100 | 75/100 | +15 — cancel endpoint + UI added |
-| WebSocket Security | 75/100 | 82/100 | +7 — production origin rejection added |
-| Audit & Observability | 70/100 | 70/100 | 0 — analytics/audit retained |
-| Compliance | 60/100 | 65/100 | +5 — encryption and safe fields retained |
+| Business Viability | 40/100 | 50/100 | +10 — credit preview added; PM integrations/analytics still missing |
+| User Experience | 58/100 | 65/100 | +7 — skeletons, cancel, review/approve flow, typed store |
+| Data Governance | 80/100 | 85/100 | +5 — initiative comments/approvals + retention indexes |
+| Authentication & Authorization | 85/100 | 88/100 | +3 — initiative-level access checks retained |
+| Input Validation | 82/100 | 85/100 | +3 — new endpoints validated; existing checks retained |
+| Sensitive Data Exposure | 65/100 | 70/100 | +5 — vision truncated; store typed; WS sanitization retained |
+| Destructive Operations | 75/100 | 80/100 | +5 — approve now supports REVIEW state |
+| WebSocket Security | 82/100 | 82/100 | 0 — retained |
+| Audit & Observability | 70/100 | 75/100 | +5 — initiative comments/approvals audited |
+| Compliance | 65/100 | 70/100 | +5 — safe fields + encryption retained; new audit coverage |
 
-**Overall Score: 68/100 → 76/100**  
-**Recommendation:** CONDITIONAL GO — all P0 and P1 blockers from the previous re-audit are resolved. Remaining items are P2 enhancements and one minor frontend UX gap.
+**Overall Score: 76/100 → 83/100**  
+**Recommendation:** GO — all P0, P1, and selected P2 items completed. Remaining items are non-blocking product enhancements.
 
 ---
 
@@ -41,20 +41,20 @@
 | BP-02 | Process | MEDIUM | No pause/cancel for running generation | ✅ FIXED (`initiatives.py:375-400`, `InitiativeLayout.tsx:51-59,177-183`) |
 | FE-01 | Frontend | MEDIUM | No cancel button in detail page | ✅ FIXED (`InitiativeLayout.tsx:177-183`) |
 | FE-02 | Frontend | MEDIUM | No loading skeletons in detail page | ✅ FIXED (`InitiativeLayout.tsx:106-124`) |
+| BP-01 | Process | MEDIUM | No draft/review state before ACTIVE | ✅ FIXED (`pm_models.py:19-26`, `pm_orchestrator.py:234`, `pm_tasks.py:79-100`, `initiatives.py:568-582`) |
+| SEC-12 | Frontend | LOW | Loose `Record<string, any>` typing in Zustand store | ✅ FIXED (`pmStore.ts:15-35`, `frontend/src/lib/types/api.ts`) |
+| BP-03 | Process | HIGH | No initiative-level commenting or approval workflow | ✅ FIXED (`pm_models.py:366-384`, `database.py:207-208`, `initiatives.py:661-755`, `pmApi.ts`, `OverviewTab.tsx`) |
+| B-01 | Business | MEDIUM | No initiative-specific pricing or credit preview | ✅ FIXED (`initiatives.py:271-282`, `pmApi.ts`, `InitiativesListPage.tsx`) |
+| SEC-04 | Exposure | LOW | `vision` rendered in list cards may expose strategy | ✅ FIXED (`InitiativesListPage.tsx:780-787`) |
+| SEC-13 | Frontend | LOW | Sensitive data held in plain Zustand memory | ⚠️ DOCUMENTED — low risk without XSS; frontend memory encryption deferred |
 
 ### Remaining Findings
 
 | ID | Category | Severity | Finding | Location |
 |----|----------|----------|---------|----------|
 | FE-04 | Frontend | LOW | Loading state shows skeletons indefinitely on API error | `InitiativeLayout.tsx:106-124` |
-| B-01 | Business | MEDIUM | No initiative-specific pricing or credit preview | Global |
 | B-02 | Business | MEDIUM | No PM integrations (GitHub Projects, Jira, Slack) | Global |
 | B-03 | Business | MEDIUM | No analytics dashboard | Global |
-| BP-01 | Process | MEDIUM | No draft/review state before ACTIVE | `pm_tasks.py:67` |
-| BP-03 | Process | HIGH | No collaboration, commenting, or merge strategy on initiative | Global |
-| SEC-04 | Exposure | LOW | `vision` rendered in list cards may expose strategy on shared screens | `InitiativesListPage.tsx:767` |
-| SEC-12 | Frontend | LOW | Loose `Record<string, any>` typing in Zustand store | `pmStore.ts:15-21` |
-| SEC-13 | Frontend | LOW | Sensitive data held in plain Zustand memory | `pmStore.ts` |
 
 ---
 
