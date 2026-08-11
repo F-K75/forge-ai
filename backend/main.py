@@ -204,7 +204,11 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins + [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()],
+    allow_origins=settings.allowed_origins + [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()] + [
+        "https://a2e6ef23.forge-frontend-8gr.pages.dev",
+        "https://e2cdabd1.forge-frontend-8gr.pages.dev",
+        "https://session-agent-a5b35e09-98a6.forge-frontend-8gr.pages.dev",
+    ],
     allow_origin_regex=None,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
