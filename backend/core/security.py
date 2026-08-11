@@ -316,6 +316,12 @@ _CSRF_EXCLUDED_PATHS = [
     "/v1/auth/reset-password",
     "/auth/csrf-token",  # Token generation endpoint
     "/v1/auth/csrf-token",
+    "/auth/verify-email",
+    "/v1/auth/verify-email",
+    "/auth/resend-verification",
+    "/v1/auth/resend-verification",
+    "/auth/google",
+    "/v1/auth/google",
     "/health",
     "/billing/webhook",  # Stripe webhook has its own signature verification
     "/billing/webhook/payment",  # Stripe payment webhook — signature-verified, no session cookie
