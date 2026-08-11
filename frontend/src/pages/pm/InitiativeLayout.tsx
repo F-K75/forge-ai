@@ -25,7 +25,7 @@ const TABS = [
 export default function InitiativeLayout() {
   const { initiativeId } = useParams<{ initiativeId: string }>();
   const navigate = useNavigate();
-  const { initiative, generationStatus, generationStage, generationError, hydrate, reset } = usePMStore();
+  const { initiative, generationStatus, generationStage, generationError, hydrate, reset, loading, error } = usePMStore();
   const { connectionStatus } = usePMSocket(LIVE_MODE ? initiativeId ?? null : null);
   const [confirming, setConfirming] = useState(false);
 
@@ -104,23 +104,30 @@ export default function InitiativeLayout() {
   }
 
   if (!initiative) {
+    if (loading) {
+      return (
+        <div className="flex h-full flex-col gap-4 p-6 md:p-8">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+          </div>
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="flex h-full flex-col gap-4 p-6 md:p-8">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-8 w-32" />
-          <Skeleton className="h-5 w-16 rounded-full" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-24" />
-        </div>
-        <div className="mt-4 space-y-3">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-5/6" />
-        </div>
+      <div className="flex h-full items-center justify-center text-sm text-faint p-8 text-center">
+        {error || "Failed to load initiative"}
       </div>
     );
   }
