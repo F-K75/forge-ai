@@ -717,3 +717,39 @@ async def _get_favorite_agents(db, user_id: str, start_date: datetime) -> Dict[s
         favorites[agent] = doc.get("count", 0)
     
     return favorites
+
+
+from api.initiatives import get_current_user as _get_current_user_for_initiatives
+
+
+@router.get("/initiatives/{initiative_id}")
+async def get_initiative_analytics(initiative_id: str, current_user: User = Depends(_get_current_user_for_initiatives)):
+    from core.database import get_db
+    db = await get_db()
+    from api.initiatives import _get_owned_initiative
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+
+    pipeline = [
+        {"$match": {"properties.initiative_id": initiative_id}},
+        {"$sort": {"created_at": -1}},
+        {"$group": {
+            "_id": "$event_name",
+            "count": {"$sum": 1},
+            "last_at": {"$first": "$created_at"},
+        }},
+        {"$sort": {"last_at": -1}},
+    ]
+
+    events = []
+    async for doc in db.analytics_events.aggregate(pipeline):
+        events.append({
+            "event_name": doc.get("_id"),
+            "count": doc.get("count", 0),
+            "last_at": doc.get("last_at"),
+        })
+
+    return {
+        "initiative_id": initiative_id,
+        "events": events,
+        "total_events": sum(e["count"] for e in events),
+    }

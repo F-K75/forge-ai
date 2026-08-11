@@ -28,8 +28,12 @@ import {
   Network,
   LineChart,
   Workflow,
-  FileText,
-  Calendar,
+  Store,
+  HeartPulse,
+  Building2,
+  Briefcase,
+  Code2,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
