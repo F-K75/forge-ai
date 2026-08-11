@@ -7,6 +7,7 @@ import { usePMSocket } from "../../hooks/usePMSocket";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
 import { captureEvent } from "../../lib/analytics";
+import { escapeHtml } from "../../lib/sanitize";
 import { motion, motionVariants } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
 import { EmptyState, Skeleton } from "../../components/ui/EmptyState";
@@ -258,7 +259,7 @@ export default function InitiativeLayout() {
                 <AlertTriangle size={16} className="mt-0.5 shrink-0 text-ember" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink">Plan generation failed</p>
-                  <p className="mt-1 text-xs text-muted line-clamp-3">{generationError}</p>
+                  <p className="mt-1 text-xs text-muted line-clamp-3">{escapeHtml(generationError)}</p>
                 </div>
                 <button
                   type="button"

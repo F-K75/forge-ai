@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { api, authApi } from '../lib/api'
 import { LIVE_MODE } from '../lib/env'
+import { usePMStore } from './pmStore'
+import { useBuildStore } from './buildStore'
+import { useDeploymentStore } from './deploymentStore'
+import { useReviewStore } from './reviewStore'
 
 export const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
 
@@ -101,6 +105,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     if (!LIVE_MODE) {
+      usePMStore.getState().reset()
+      useBuildStore.getState().reset()
+      useDeploymentStore.getState().reset()
+      useReviewStore.getState().reset()
       set({ user: null, isAuthenticated: false })
       return
     }
@@ -108,6 +116,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       await api.post('/v1/auth/logout')
     } catch {
       // ignore
+    } finally {
+      usePMStore.getState().reset()
+      useBuildStore.getState().reset()
+      useDeploymentStore.getState().reset()
+      useReviewStore.getState().reset()
     }
     set({ user: null, isAuthenticated: false })
   },
