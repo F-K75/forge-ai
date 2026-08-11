@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { RefreshCw, Loader2, Rocket, ArrowLeft } from "lucide-react";
+import { RefreshCw, Loader2, Rocket, ArrowLeft, AlertTriangle } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { usePMSocket } from "../../hooks/usePMSocket";
 import { LIVE_MODE } from "../../lib/env";
@@ -23,8 +23,9 @@ const TABS = [
 export default function InitiativeLayout() {
   const { initiativeId } = useParams<{ initiativeId: string }>();
   const navigate = useNavigate();
-  const { initiative, generationStatus, generationStage, hydrate, reset } = usePMStore();
+  const { initiative, generationStatus, generationStage, generationError, hydrate, reset } = usePMStore();
   const { connectionStatus } = usePMSocket(LIVE_MODE ? initiativeId ?? null : null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!LIVE_MODE || !initiativeId) return;
@@ -38,8 +39,20 @@ export default function InitiativeLayout() {
     try {
       await initiativesApi.regenerate(initiativeId);
       toast.success("Regenerating plan…");
+      setConfirming(false);
     } catch {
       toast.error("Failed to start regeneration");
+      setConfirming(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!initiativeId) return;
+    try {
+      await initiativesApi.regenerate(initiativeId);
+      toast.success("Retrying generation…");
+    } catch {
+      toast.error("Retry failed");
     }
   };
 
@@ -98,17 +111,64 @@ export default function InitiativeLayout() {
                     {generationStage ? `Generating ${generationStage}…` : "Generating…"}
                   </span>
                 ) : (
-                  <motion.button
-                    onClick={handleRegenerate}
-                    {...presets.button}
-                    className="flex items-center gap-2 h-9 px-4 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-medium text-ink hover:bg-white/[0.08] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                  >
-                    <RefreshCw size={14} aria-hidden="true" />
-                    Regenerate
-                  </motion.button>
+                  <div className="flex flex-col items-end gap-2">
+                    {confirming ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <span className="text-xs text-muted">This will delete the current plan.</span>
+                        <button
+                          type="button"
+                          onClick={handleRegenerate}
+                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirming(false)}
+                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                        >
+                          Cancel
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <motion.button
+                        onClick={() => setConfirming(true)}
+                        {...presets.button}
+                        className="flex items-center gap-2 h-9 px-4 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-medium text-ink hover:bg-white/[0.08] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                      >
+                        <RefreshCw size={14} aria-hidden="true" />
+                        Regenerate
+                      </motion.button>
+                    )}
+                  </div>
                 )}
               </div>
             </motion.div>
+
+            {generationStatus === "failed" && generationError && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 flex items-start gap-3 rounded-xl border border-ember/30 bg-ember/10 p-4"
+              >
+                <AlertTriangle size={16} className="mt-0.5 shrink-0 text-ember" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-ink">Plan generation failed</p>
+                  <p className="mt-1 text-xs text-muted line-clamp-3">{generationError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="shrink-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                >
+                  Retry
+                </button>
+              </motion.div>
+            )}
 
             <nav aria-label="Initiative sections" className="flex gap-0.5 -mb-px overflow-x-auto">
               {TABS.map((tab, i) => {

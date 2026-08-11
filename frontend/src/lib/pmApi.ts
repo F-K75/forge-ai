@@ -8,15 +8,24 @@ export const initiativesApi = {
     api.post('/v1/initiatives/', data).then(r => r.data),
   update: (id: string, data: Record<string, unknown>) =>
     api.put(`/v1/initiatives/${id}`, data).then(r => r.data),
-  regenerate: (id: string) => api.post(`/v1/initiatives/${id}/regenerate`).then(r => r.data),
+  regenerate: (id: string) => api.post(`/v1/initiatives/${id}/regenerate?confirm=true`).then(r => r.data),
   getPrd: (id: string, format?: 'markdown') =>
     api.get(`/v1/initiatives/${id}/prd`, { params: format ? { format } : undefined }).then(r => r.data),
   updatePrd: (id: string, data: Record<string, unknown>) =>
     api.put(`/v1/initiatives/${id}/prd`, data).then(r => r.data),
-  graph: (id: string) => api.get(`/v1/initiatives/${id}/graph`).then(r => r.data) as Promise<{
-    nodes: { id: string; type: string; label: string; data?: any }[]
-    edges: { source: string; target: string; kind?: string }[]
-  }>,
+  graph: (id: string, opts?: { nodeLimit?: number; edgeLimit?: number; includeFiles?: boolean; includeCommits?: boolean; includeExecutions?: boolean }) => {
+    const params: Record<string, any> = {}
+    if (opts?.nodeLimit) params.node_limit = opts.nodeLimit
+    if (opts?.edgeLimit) params.edge_limit = opts.edgeLimit
+    if (opts?.includeFiles) params.include_files = true
+    if (opts?.includeCommits) params.include_commits = true
+    if (opts?.includeExecutions) params.include_executions = true
+    return api.get(`/v1/initiatives/${id}/graph`, { params }).then(r => r.data) as Promise<{
+      nodes: { id: string; type: string; label: string; data?: any }[]
+      edges: { source: string; target: string; kind?: string }[]
+      truncated?: boolean
+    }>
+  },
   wsUrl: (id: string, base: string) => `${base}/v1/initiatives/ws/${id}`,
 }
 

@@ -121,9 +121,9 @@ class Initiative(BaseModel):
     tech_stack: List[str] = []
     risks: List[Dict[str, Any]] = []
     estimated_timeline: str = ""
-    # Forge app-build Projects (core.models.Project) spawned to execute this plan.
     project_ids: List[str] = []
     generation_error: Optional[str] = None
+    version: int = 0
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
