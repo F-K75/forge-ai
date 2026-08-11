@@ -14,6 +14,13 @@ import {
   Layers,
   LineChart,
   Workflow,
+  Network,
+  Store,
+  HeartPulse,
+  Building2,
+  Briefcase,
+  Code2,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
