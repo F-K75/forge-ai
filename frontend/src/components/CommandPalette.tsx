@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, User, LogOut, ArrowRight } from "lucide-react";
+import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, User, LogOut, ArrowRight, Workflow } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useAuthStore } from "../store/authStore";
 
