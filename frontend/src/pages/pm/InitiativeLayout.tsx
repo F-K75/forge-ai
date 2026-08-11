@@ -9,6 +9,7 @@ import { initiativesApi } from "../../lib/pmApi";
 import { captureEvent } from "../../lib/analytics";
 import { motion, motionVariants } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
+import { EmptyState, Skeleton } from "../../components/ui/EmptyState";
 
 const TABS = [
   { to: "", label: "Overview", end: true, icon: Rocket },
@@ -44,6 +45,16 @@ export default function InitiativeLayout() {
     } catch {
       toast.error("Failed to start regeneration");
       setConfirming(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!initiativeId) return;
+    try {
+      await initiativesApi.cancel(initiativeId);
+      toast.success("Generation cancelled");
+    } catch {
+      toast.error("Failed to cancel generation");
     }
   };
 
@@ -94,7 +105,23 @@ export default function InitiativeLayout() {
 
   if (!initiative) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-faint">Loading initiative…</div>
+      <div className="flex h-full flex-col gap-4 p-6 md:p-8">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <div className="mt-4 space-y-3">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+      </div>
     );
   }
 
@@ -142,10 +169,19 @@ export default function InitiativeLayout() {
                   Export
                 </button>
                 {generationStatus === "generating" ? (
-                  <span className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2 text-xs font-medium text-accent">
-                    <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                    {generationStage ? `Generating ${generationStage}…` : "Generating…"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2 text-xs font-medium text-accent">
+                      <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                      {generationStage ? `Generating ${generationStage}…` : "Generating…"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 ) : generationStatus === "failed" ? (
                   <div className="flex items-center gap-2">
                     <button

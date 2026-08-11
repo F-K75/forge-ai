@@ -124,10 +124,11 @@ def generate_initiative_plan(self, initiative_id: str) -> dict:
                 {"id": initiative_id},
                 {"$set": {"status": InitiativeStatus.FAILED.value, "generation_error": str(e)}},
             )
+            sanitized_error = "Generation failed. Please retry or contact support if the issue persists."
             await pm_manager.emit(PMWSEvent(
                 type=PMWSEventType.GENERATION_FAILED,
                 initiative_id=initiative_id,
-                data={"error": str(e)[:2000]},
+                data={"error": sanitized_error},
             ))
             await notify(db, initiative.user_id, "Plan generation failed", str(e)[:280], type="error")
             raise

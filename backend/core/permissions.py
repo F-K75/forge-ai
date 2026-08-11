@@ -34,7 +34,12 @@ async def has_initiative_access(db, user_id: str, initiative: dict) -> bool:
     if not org_id:
         return False
     membership = await db.team_members.find_one({"org_id": org_id, "user_id": user_id}, {"_id": 0})
-    return membership is not None
+    if not membership:
+        return False
+    role = membership.get("role")
+    if role in (Role.OWNER.value, Role.ADMIN.value, Role.MEMBER.value):
+        return True
+    return False
 
 
 async def has_initiative_write_access(db, user_id: str, initiative: dict) -> bool:

@@ -1,15 +1,13 @@
 import asyncio
 import json
 import logging
-import time
-from collections import OrderedDict
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, Request
 from pydantic import BaseModel, Field, field_validator
 
 from core.models import User, PaginationParams, Project, utcnow
-from core.database import get_db, paginated_query
+from core.database import get_db, paginated_query, get_redis
 from core.pm_models import Initiative, InitiativeStatus, PRD
 from core.permissions import has_initiative_access, has_initiative_write_access
 from core.config import get_settings
@@ -31,7 +29,6 @@ router = APIRouter(prefix="/initiatives", tags=["initiatives"])
 
 _INITIATIVE_RATE_LIMIT_WINDOW = 3600
 _INITIATIVE_RATE_LIMIT_MAX = 5
-_initiative_rate_timestamps: "OrderedDict[str, list[float]]" = OrderedDict()
 
 _ENCRYPTED_INITIATIVE_FIELDS = {"prompt", "business_goals", "risks"}
 _ENCRYPTED_PRD_FIELDS = {"executive_summary", "problem_statement", "solution", "security", "performance", "scalability", "api_overview", "database_overview", "release_plan"}
@@ -73,18 +70,19 @@ def _maybe_encrypt_prd(value: Any, field_name: str) -> Any:
     return value
 
 
-def _check_initiative_rate_limit(user_id: str) -> None:
-    now = time.time()
-    if user_id in _initiative_rate_timestamps:
-        _initiative_rate_timestamps.move_to_end(user_id)
-    timestamps = _initiative_rate_timestamps.get(user_id, [])
-    timestamps = [t for t in timestamps if now - t < _INITIATIVE_RATE_LIMIT_WINDOW]
-    if len(timestamps) >= _INITIATIVE_RATE_LIMIT_MAX:
-        raise HTTPException(status_code=429, detail="Too many initiatives created recently. Please wait before creating another.")
-    timestamps.append(now)
-    _initiative_rate_timestamps[user_id] = timestamps
-    if len(_initiative_rate_timestamps) > 10000:
-        _initiative_rate_timestamps.popitem(last=False)
+async def _check_initiative_rate_limit(user_id: str) -> None:
+    try:
+        redis = await get_redis()
+        key = f"rl:initiative_create:{user_id}"
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, _INITIATIVE_RATE_LIMIT_WINDOW)
+        if current > _INITIATIVE_RATE_LIMIT_MAX:
+            raise HTTPException(status_code=429, detail="Too many initiatives created recently. Please wait before creating another.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
 
 
 def _is_allowed_ws_origin(origin: Optional[str]) -> bool:
@@ -92,7 +90,10 @@ def _is_allowed_ws_origin(origin: Optional[str]) -> bool:
         return True
     allowed = {o.strip() for o in settings.allowed_origins if o.strip()}
     if not allowed:
-        return True
+        if settings.app_env == "development":
+            return True
+        logger.warning("Rejecting WebSocket connection because allowed_origins is unconfigured in %s", settings.app_env)
+        return False
     return origin in allowed
 
 
@@ -329,7 +330,9 @@ async def update_initiative(initiative_id: str, req: UpdateInitiativeRequest, re
         if result.matched_count == 0:
             raise HTTPException(status_code=409, detail="Initiative was modified by another session; please reload")
     else:
-        update["version"] = 1
+        current_doc = await db.initiatives.find_one({"id": initiative_id}, {"version": 1})
+        current_version = (current_doc or {}).get("version", 0)
+        update["version"] = current_version + 1
         await db.initiatives.update_one({"id": initiative_id}, {"$set": update})
 
     await record_audit_log(
@@ -367,6 +370,34 @@ async def regenerate_initiative(initiative_id: str, request: Request, confirm: b
 
     generate_initiative_plan.delay(initiative_id)
     return {"ok": True}
+
+
+@router.post("/{initiative_id}/cancel")
+async def cancel_initiative(initiative_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    if not await has_initiative_write_access(db, current_user.id, initiative):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    status = initiative.get("status")
+    if status != InitiativeStatus.GENERATING.value:
+        raise HTTPException(status_code=400, detail="Initiative is not currently generating")
+
+    await db.initiatives.update_one(
+        {"id": initiative_id},
+        {"$set": {"status": InitiativeStatus.FAILED.value, "generation_error": "Cancelled by user", "updated_at": utcnow()}},
+    )
+    await pm_manager.emit(PMWSEvent(
+        type=PMWSEventType.GENERATION_FAILED,
+        initiative_id=initiative_id,
+        data={"error": "Generation cancelled by user"},
+    ))
+    await record_audit_log(
+        db, request, current_user, "cancel_initiative", "initiative",
+        resource_id=initiative_id,
+        changes={"status": InitiativeStatus.FAILED.value},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_cancelled", initiative_id=initiative_id)
+    return {"ok": True, "status": InitiativeStatus.FAILED.value}
 
 
 @router.get("/{initiative_id}/prd")
