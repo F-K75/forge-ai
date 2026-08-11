@@ -2,22 +2,22 @@ import { api } from './api'
 
 // Initiatives (Module 1)
 export const initiativesApi = {
-  list: () => api.get('/initiatives/').then(r => r.data.initiatives),
-  get: (id: string) => api.get(`/initiatives/${id}`).then(r => r.data),
+  list: () => api.get('/v1/initiatives/').then(r => r.data.initiatives),
+  get: (id: string) => api.get(`/v1/initiatives/${id}`).then(r => r.data),
   create: (data: { prompt: string; name?: string }) =>
-    api.post('/initiatives/', data).then(r => r.data),
+    api.post('/v1/initiatives/', data).then(r => r.data),
   update: (id: string, data: Record<string, unknown>) =>
-    api.put(`/initiatives/${id}`, data).then(r => r.data),
-  regenerate: (id: string) => api.post(`/initiatives/${id}/regenerate`).then(r => r.data),
+    api.put(`/v1/initiatives/${id}`, data).then(r => r.data),
+  regenerate: (id: string) => api.post(`/v1/initiatives/${id}/regenerate`).then(r => r.data),
   getPrd: (id: string, format?: 'markdown') =>
-    api.get(`/initiatives/${id}/prd`, { params: format ? { format } : undefined }).then(r => r.data),
+    api.get(`/v1/initiatives/${id}/prd`, { params: format ? { format } : undefined }).then(r => r.data),
   updatePrd: (id: string, data: Record<string, unknown>) =>
-    api.put(`/initiatives/${id}/prd`, data).then(r => r.data),
-  graph: (id: string) => api.get(`/initiatives/${id}/graph`).then(r => r.data) as Promise<{
+    api.put(`/v1/initiatives/${id}/prd`, data).then(r => r.data),
+  graph: (id: string) => api.get(`/v1/initiatives/${id}/graph`).then(r => r.data) as Promise<{
     nodes: { id: string; type: string; label: string; data?: any }[]
     edges: { source: string; target: string; kind?: string }[]
   }>,
-  wsUrl: (id: string, base: string) => `${base}/initiatives/ws/${id}`,
+  wsUrl: (id: string, base: string) => `${base}/v1/initiatives/ws/${id}`,
 }
 
 // Epics (Module 3)
