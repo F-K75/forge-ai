@@ -7,16 +7,38 @@ from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisco
 from pydantic import BaseModel, Field
 
 from core.models import User, PaginationParams, Project, utcnow
-from core.database import get_db, paginated_query
+from core.database import get_db, paginated_query, get_redis
 from core.pm_models import Initiative, InitiativeStatus
 from core.permissions import has_initiative_access
 from api.auth import get_current_user
+from api.billing import get_max_projects_for_user
 from tasks.pm_tasks import generate_initiative_plan
 from services.pm_ws_manager import pm_manager, authenticate_pm_websocket_token
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/initiatives", tags=["initiatives"])
+
+PROJECT_CREATE_RATE_LIMIT = 10
+PROJECT_CREATE_RATE_WINDOW = 60
+
+
+async def _check_project_create_rate_limit(user_id: str) -> None:
+    try:
+        redis = await get_redis()
+        key = f"rl:project_create:{user_id}"
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, PROJECT_CREATE_RATE_WINDOW)
+        if current > PROJECT_CREATE_RATE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many project creations. Please wait before creating another.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
 
 
 class CreateInitiativeRequest(BaseModel):
@@ -58,11 +80,17 @@ async def create_initiative(req: CreateInitiativeRequest, current_user: User = D
         status=InitiativeStatus.DRAFT,
     )
 
-    # Every initiative gets one companion Project up front, in the same slot
-    # execute_task already reads from (initiative.project_ids[0], via
-    # tasks/pm_tasks.py) to reuse the latest successful build's files as
-    # codegen context for later tasks. Without this, that reuse path was
-    # silently a no-op because project_ids was never populated anywhere.
+    await _check_project_create_rate_limit(current_user.id)
+
+    max_projects = await get_max_projects_for_user(db, current_user.id)
+    if max_projects >= 0:
+        current_count = await db.projects.count_documents({"user_id": current_user.id, "deleted_at": {"$exists": False}})
+        if current_count >= max_projects:
+            raise HTTPException(
+                status_code=402,
+                detail="Project limit reached. Upgrade to create more.",
+            )
+
     project = Project(
         user_id=current_user.id,
         org_id=initiative.org_id,
