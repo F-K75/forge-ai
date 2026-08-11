@@ -143,6 +143,7 @@ class Settings(BaseSettings):
 
     # Billing
     billing_provider: str = "stripe"
+    slack_webhook_url: str = ""
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_publishable_key: str = ""

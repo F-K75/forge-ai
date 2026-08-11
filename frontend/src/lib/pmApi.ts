@@ -28,6 +28,17 @@ export const initiativesApi = {
     }>
   },
   wsUrl: (id: string, base: string) => `${base}/v1/initiatives/ws/${id}`,
+  exportJson: (id: string) => api.get(`/v1/initiatives/${id}/export`).then(r => r.data),
+  comments: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/comments`).then(r => r.data.comments),
+    create: (initiative_id: string, data: { section?: string; comment: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/comments`, data).then(r => r.data),
+  },
+  approvals: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/approvals`).then(r => r.data.approvals),
+    create: (initiative_id: string, data: { approved: boolean; comment?: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/approvals`, data).then(r => r.data),
+  },
 }
 
 // Epics (Module 3)

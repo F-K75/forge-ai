@@ -17,6 +17,7 @@ import {
 import { AnimatePresence } from "motion/react";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
+import { captureEvent } from "../../lib/analytics";
 import { formatRelativeTime } from "../../lib/format";
 import { StatusPill } from "../../components/StatusPill";
 import { EmptyState, SkeletonCard } from "../../components/ui/EmptyState";
@@ -450,6 +451,7 @@ export default function InitiativesListPage() {
     setCreating(true);
     try {
       const initiative = await initiativesApi.create({ prompt: trimmed });
+      captureEvent("initiative_created", { initiative_id: initiative.id });
       navigate(`/initiatives/${initiative.id}`);
     } catch {
       toast.error("Failed to create initiative — your prompt is preserved, please retry.");

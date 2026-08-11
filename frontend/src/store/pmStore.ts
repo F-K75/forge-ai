@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { AnyPMWSEvent } from '../lib/pmWsContract'
 import { initiativesApi, epicsApi, storiesApi, tasksApi, sprintsApi, agentExecutionsApi } from '../lib/pmApi'
+import { captureEvent } from '../lib/analytics'
 
 export interface DecisionFeedItem {
   taskId?: string
@@ -126,11 +127,13 @@ export const usePMStore = create<PMState>((set, get) => ({
       case 'generation_complete': {
         const { initiative } = get()
         set({ generationStatus: 'complete', generationStage: null })
+        captureEvent('initiative_generation_complete', { initiative_id: initiative?.id })
         if (initiative) get().hydrate(initiative.id)
         return
       }
       case 'generation_failed':
         set({ generationStatus: 'failed', generationError: (data as any).error ?? 'Generation failed' })
+        captureEvent('initiative_generation_failed', { error: (data as any).error ?? 'Generation failed' })
         return
       case 'task_status_changed': {
         const { task_id, status } = data as { task_id: string; status: string }

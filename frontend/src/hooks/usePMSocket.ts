@@ -60,7 +60,7 @@ export function usePMSocket(initiativeId: string | null) {
           return
         }
 
-        const ws = new WebSocket(`${WS_URL}/v1/initiatives/ws/${id}?token=${encodeURIComponent(wsToken)}`)
+        const ws = new WebSocket(`${WS_URL}/v1/initiatives/ws/${id}`, [wsToken])
         wsRef.current = ws
 
         ws.onopen = () => {
