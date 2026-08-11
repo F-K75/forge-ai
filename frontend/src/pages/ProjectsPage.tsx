@@ -82,8 +82,11 @@ const itemVariants = {
   },
 };
 
-const HERO_STATS_BASE = [
-  { icon: Layers, label: "Projects" },
+const HERO_STATS = [
+  { icon: Layers, value: 48, suffix: "", label: "Projects" },
+  { icon: Bot, value: 13, suffix: "", label: "AI Agents" },
+  { icon: Zap, value: 18, suffix: "s", label: "Build Speed" },
+  { icon: ShieldCheck, value: 99, suffix: "%", label: "Enterprise Ready" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -358,8 +361,8 @@ export default function ProjectsPage() {
 
                 {/* Stat cards */}
                 <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  {HERO_STATS_BASE.map((s) => (
-                    <StatCard key={s.label} icon={s.icon} value={projects.length} suffix={""} label={s.label} />
+                  {HERO_STATS.map((s) => (
+                    <StatCard key={s.label} icon={s.icon} value={s.value} suffix={s.suffix} label={s.label} />
                   ))}
                 </div>
               </motion.div>
