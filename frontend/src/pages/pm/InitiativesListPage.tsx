@@ -12,6 +12,8 @@ import {
   Activity,
   Plus,
   Layers,
+  LineChart,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";

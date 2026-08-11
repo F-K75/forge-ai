@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Plug, Plus, Trash2, ExternalLink, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { initiativesApi } from "../../lib/pmApi";
@@ -13,32 +14,44 @@ const PROVIDERS = [
 
 type ProviderId = typeof PROVIDERS[number]["id"];
 
+interface IntegrationRecord {
+  provider?: string
+  status?: string
+  external_project_id?: string
+  external_project_name?: string
+  external_repo_id?: string
+  external_repo_name?: string
+  channel_id?: string
+  channel_name?: string
+}
+
 export default function IntegrationsTab() {
-  const [integrations, setIntegrations] = useState<Array<Record<string, unknown>>>([]);
-  const [loading, setLoading] = useState(false);
-  const [linking, setLinking] = useState<ProviderId | null>(null);
-  const [form, setForm] = useState<Record<string, string>>({});
+  const { initiativeId } = useParams<{ initiativeId: string }>()
+  const [integrations, setIntegrations] = useState<IntegrationRecord[]>([])
+  const [loading, setLoading] = useState(false)
+  const [linking, setLinking] = useState<ProviderId | null>(null)
+  const [form, setForm] = useState<Record<string, string>>({})
 
   const load = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const items = await initiativesApi.integrations.list();
-      setIntegrations(items);
+      const items = await initiativesApi.integrations.list(initiativeId || "")
+      setIntegrations(items as IntegrationRecord[])
     } catch {
-      toast.error("Failed to load integrations");
+      toast.error("Failed to load integrations")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    load();
-  }, []);
+    load()
+  }, [initiativeId])
 
   const handleLink = async (provider: ProviderId) => {
     try {
-      setLinking(provider);
-      await initiativesApi.integrations.link({
+      setLinking(provider)
+      await initiativesApi.integrations.link(initiativeId || "", {
         provider,
         external_project_id: form.external_project_id || `${provider}-project`,
         external_project_name: form.external_project_name || `${provider} Project`,
@@ -46,28 +59,28 @@ export default function IntegrationsTab() {
         external_repo_name: form.external_repo_name || "",
         channel_id: form.channel_id || "",
         channel_name: form.channel_name || "",
-      });
-      toast.success(`Connected ${provider}`);
-      setForm({});
-      await load();
+      })
+      toast.success(`Connected ${provider}`)
+      setForm({})
+      await load()
     } catch {
-      toast.error("Failed to link integration");
+      toast.error("Failed to link integration")
     } finally {
-      setLinking(null);
+      setLinking(null)
     }
-  };
+  }
 
   const handleUnlink = async (provider: ProviderId) => {
     try {
-      await initiativesApi.integrations.unlink(provider);
-      toast.success(`Disconnected ${provider}`);
-      await load();
+      await initiativesApi.integrations.unlink(initiativeId || "", provider)
+      toast.success(`Disconnected ${provider}`)
+      await load()
     } catch {
-      toast.error("Failed to unlink integration");
+      toast.error("Failed to unlink integration")
     }
-  };
+  }
 
-  const linkedProviders = new Set((integrations as Array<{ provider?: string }>).map(i => (i.provider || "").toLowerCase()));
+  const linkedProviders = new Set((integrations as Array<{ provider?: string }>).map(i => (i.provider || "").toLowerCase()))
 
   return (
     <motion.div className="mx-auto max-w-5xl px-4 py-6 md:px-8 space-y-6" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
@@ -80,8 +93,8 @@ export default function IntegrationsTab() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {PROVIDERS.map(provider => {
-          const linked = linkedProviders.has(provider.id);
-          const integration = (integrations as Array<{ provider?: string; status?: string }>).find(i => (i.provider || "").toLowerCase() === provider.id);
+          const linked = linkedProviders.has(provider.id)
+          const integration = integrations.find(i => (i.provider || "").toLowerCase() === provider.id)
           return (
             <motion.div
               key={provider.id}
@@ -143,9 +156,9 @@ export default function IntegrationsTab() {
                 )}
               </div>
             </motion.div>
-          );
+          )
         })}
       </div>
     </motion.div>
-  );
+  )
 }

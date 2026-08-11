@@ -139,7 +139,7 @@ export default function KanbanTab() {
     const task = tasks.find(t => t.id === active.id);
     if (!task || task.status === over.id) return;
 
-    usePMStore.getState().setTaskLocal(task.id, { status: over.id });
+    usePMStore.getState().setTaskLocal(task.id, { status: String(over.id) });
     try {
       await tasksApi.updateStatus(task.id, String(over.id));
     } catch {

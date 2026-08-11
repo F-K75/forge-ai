@@ -60,12 +60,12 @@ export const usePMStore = create<PMState>((set, get) => ({
     try {
       const initiative = await initiativesApi.get(initiativeId) as PMInitiative
       const [epics, stories, tasks, sprints, executions, prd] = await Promise.all([
-        epicsApi.list(initiativeId).catch(() => []) as PMEpic[],
-        storiesApi.list({ initiative_id: initiativeId }).catch(() => []) as PMStory[],
-        tasksApi.list({ initiative_id: initiativeId }).catch(() => []) as PMTask[],
-        sprintsApi.list(initiativeId).catch(() => []) as PMSprint[],
-        agentExecutionsApi.list(initiativeId).catch(() => []) as PMExecution[],
-        initiativesApi.getPrd(initiativeId).catch(() => null) as PMPRD | null,
+        epicsApi.list(initiativeId).catch(() => []) as unknown as PMEpic[],
+        storiesApi.list({ initiative_id: initiativeId }).catch(() => []) as unknown as PMStory[],
+        tasksApi.list({ initiative_id: initiativeId }).catch(() => []) as unknown as PMTask[],
+        sprintsApi.list(initiativeId).catch(() => []) as unknown as PMSprint[],
+        agentExecutionsApi.list(initiativeId).catch(() => []) as unknown as PMExecution[],
+        initiativesApi.getPrd(initiativeId).catch(() => null) as unknown as PMPRD | null,
       ])
       set({
         initiative, prd, epics, stories, tasks, sprints, executions,

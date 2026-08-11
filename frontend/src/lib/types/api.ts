@@ -151,6 +151,7 @@ export interface PMSprint {
   velocity?: number
   story_points_planned?: number
   story_points_completed?: number
+  completion_probability?: number
   status?: string
   created_at?: string
   updated_at?: string
