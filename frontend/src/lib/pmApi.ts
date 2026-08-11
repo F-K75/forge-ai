@@ -51,6 +51,14 @@ export const initiativesApi = {
     create: (initiative_id: string, data: { approved: boolean; comment?: string }) =>
       api.post(`/v1/initiatives/${initiative_id}/initiative-approvals`, data).then(r => r.data),
   },
+  integrations: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/integrations`).then(r => r.data.integrations),
+    link: (initiative_id: string, data: { provider: string; external_project_id: string; external_project_name: string; external_repo_id?: string; external_repo_name?: string; channel_id?: string; channel_name?: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/integrations`, data).then(r => r.data),
+    unlink: (initiative_id: string, provider: string) =>
+      api.delete(`/v1/initiatives/${initiative_id}/integrations/${provider}`).then(r => r.data),
+  },
+  analytics: (initiative_id: string) => api.get(`/v1/analytics/initiatives/${initiative_id}`).then(r => r.data),
 }
 
 // Epics (Module 3)

@@ -43,6 +43,8 @@ const RoadmapTab = lazy(() => import("./pages/pm/RoadmapTab"))
 const GraphTab = lazy(() => import("./pages/pm/GraphTab"))
 const ReleasesTab = lazy(() => import("./pages/pm/ReleasesTab"))
 const ActivityTab = lazy(() => import("./pages/pm/ActivityTab"))
+const IntegrationsTab = lazy(() => import("./pages/pm/IntegrationsTab"))
+const AnalyticsTab = lazy(() => import("./pages/pm/AnalyticsTab"))
 // Review board — orchestrator UI (separate backend service, see lib/orchestratorApi.ts)
 const ReviewsListPage = lazy(() => import("./pages/reviews/ReviewsListPage"))
 const ReviewDetailPage = lazy(() => import("./pages/reviews/ReviewDetailPage"))
@@ -415,6 +417,8 @@ export default function App() {
               <Route path="graph" element={<GraphTab />} />
               <Route path="releases" element={<ReleasesTab />} />
               <Route path="activity" element={<ActivityTab />} />
+              <Route path="integrations" element={<IntegrationsTab />} />
+              <Route path="analytics" element={<AnalyticsTab />} />
             </Route>
           </Route>
 

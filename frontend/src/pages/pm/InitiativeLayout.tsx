@@ -20,6 +20,8 @@ const TABS = [
   { to: "graph", label: "Graph", icon: () => null },
   { to: "releases", label: "Releases", icon: () => null },
   { to: "activity", label: "Activity", icon: () => null },
+  { to: "integrations", label: "Integrations", icon: () => null },
+  { to: "analytics", label: "Analytics", icon: () => null },
 ];
 
 export default function InitiativeLayout() {

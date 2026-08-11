@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from core.models import User, PaginationParams, Project, utcnow
 from core.database import get_db, paginated_query, get_redis
-from core.pm_models import Initiative, InitiativeStatus, PRD, InitiativeComment, InitiativeApproval
+from core.pm_models import Initiative, InitiativeStatus, PRD, InitiativeComment, InitiativeApproval, InitiativeIntegration
 from core.permissions import has_initiative_access, has_initiative_write_access
 from core.config import get_settings
 from core.audit import record_audit_log
@@ -762,6 +762,73 @@ async def export_initiative(initiative_id: str, request: Request, current_user: 
     await record_audit_log(db, request, current_user, "export_initiative", "initiative", resource_id=initiative_id)
     await _record_initiative_analytics(db, current_user.id, "initiative_exported", initiative_id=initiative_id)
     return export_data
+
+
+class InitiativeIntegrationLinkRequest(BaseModel):
+    provider: str = Field(..., max_length=50)
+    external_project_id: str = Field(..., max_length=200)
+    external_project_name: str = Field(..., max_length=200)
+    external_repo_id: str = Field(default="", max_length=200)
+    external_repo_name: str = Field(default="", max_length=200)
+    channel_id: str = Field(default="", max_length=200)
+    channel_name: str = Field(default="", max_length=200)
+
+
+@router.get("/{initiative_id}/integrations")
+async def list_initiative_integrations(initiative_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    items = await db.initiative_integrations.find({"initiative_id": initiative_id}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    return {"integrations": items}
+
+
+@router.post("/{initiative_id}/integrations")
+async def link_initiative_integration(initiative_id: str, req: InitiativeIntegrationLinkRequest, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    provider = req.provider.lower()
+    now = utcnow()
+    integration = InitiativeIntegration(
+        initiative_id=initiative_id,
+        user_id=current_user.id,
+        provider=provider,
+        external_project_id=req.external_project_id,
+        external_project_name=req.external_project_name,
+        external_repo_id=req.external_repo_id,
+        external_repo_name=req.external_repo_name,
+        channel_id=req.channel_id,
+        channel_name=req.channel_name,
+        status="connected",
+        updated_at=now,
+    )
+    await db.initiative_integrations.update_one(
+        {"initiative_id": initiative_id, "provider": provider},
+        {"$set": integration.model_dump()},
+        upsert=True,
+    )
+    await record_audit_log(
+        db, request, current_user, "link_initiative_integration", "initiative",
+        resource_id=initiative_id,
+        changes={"provider": provider, "external_project_id": req.external_project_id},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_integration_linked", initiative_id=initiative_id, properties={"provider": provider})
+    stored = await db.initiative_integrations.find_one({"initiative_id": initiative_id, "provider": provider}, {"_id": 0})
+    return stored
+
+
+@router.delete("/{initiative_id}/integrations/{provider}")
+async def unlink_initiative_integration(initiative_id: str, provider: str, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    provider = provider.lower()
+    result = await db.initiative_integrations.delete_one({"initiative_id": initiative_id, "provider": provider})
+    await record_audit_log(
+        db, request, current_user, "unlink_initiative_integration", "initiative",
+        resource_id=initiative_id,
+        changes={"provider": provider},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_integration_unlinked", initiative_id=initiative_id, properties={"provider": provider})
+    return {"ok": True, "deleted": result.deleted_count > 0}
 
 
 @router.websocket("/ws/{initiative_id}")
