@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import time
+from collections import OrderedDict
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, Request
@@ -63,6 +65,14 @@ def _maybe_decrypt_prd(value: Any, field_name: str) -> Any:
     return value
 
 
+def _maybe_encrypt_prd(value: Any, field_name: str) -> Any:
+    if field_name not in _ENCRYPTED_PRD_FIELDS:
+        return value
+    if isinstance(value, str):
+        return encrypt_field(value)
+    return value
+
+
 def _check_initiative_rate_limit(user_id: str) -> None:
     now = time.time()
     if user_id in _initiative_rate_timestamps:
@@ -121,6 +131,11 @@ GRAPH_DEFAULT_NODE_LIMIT = 200
 GRAPH_DEFAULT_EDGE_LIMIT = 500
 GRAPH_SAFE_TASK_FIELDS = {"id", "story_id", "epic_id", "initiative_id", "title", "status", "assigned_agent", "kanban_order", "sprint_id", "created_at", "updated_at"}
 GRAPH_SAFE_EXECUTION_FIELDS = {"id", "task_id", "initiative_id", "agent", "status", "progress", "cost_usd", "tokens_used", "started_at", "completed_at", "duration_seconds", "created_at"}
+
+EXPORT_SAFE_EPIC_FIELDS = {"id", "initiative_id", "title", "description", "priority", "story_points", "estimated_duration", "owner", "status", "order", "created_at", "updated_at"}
+EXPORT_SAFE_STORY_FIELDS = {"id", "epic_id", "initiative_id", "title", "description", "acceptance_criteria", "definition_of_done", "priority", "story_points", "business_value", "risk", "status", "order", "created_at", "updated_at"}
+EXPORT_SAFE_TASK_FIELDS = {"id", "story_id", "epic_id", "initiative_id", "title", "description", "status", "assigned_agent", "estimated_hours", "priority", "category", "kanban_order", "sprint_id", "created_at", "updated_at", "started_at", "completed_at"}
+EXPORT_SAFE_SPRINT_FIELDS = {"id", "initiative_id", "sprint_number", "name", "goal", "start_date", "end_date", "task_ids", "capacity", "velocity", "story_points_planned", "story_points_completed", "status", "created_at", "updated_at"}
 
 
 class CreateInitiativeRequest(BaseModel):
@@ -625,10 +640,10 @@ async def export_initiative(initiative_id: str, request: Request, current_user: 
     export_data = {
         "initiative": initiative,
         "prd": {k: v for k, v in prd.items() if k in SAFE_PRD_FIELDS} if prd else None,
-        "epics": epics,
-        "stories": stories,
-        "tasks": tasks,
-        "sprints": sprints,
+        "epics": [{k: v for k, v in e.items() if k in EXPORT_SAFE_EPIC_FIELDS} for e in epics],
+        "stories": [{k: v for k, v in s.items() if k in EXPORT_SAFE_STORY_FIELDS} for s in stories],
+        "tasks": [{k: v for k, v in t.items() if k in EXPORT_SAFE_TASK_FIELDS} for t in tasks],
+        "sprints": [{k: v for k, v in sp.items() if k in EXPORT_SAFE_SPRINT_FIELDS} for sp in sprints],
         "exported_at": utcnow().isoformat(),
     }
     await record_audit_log(db, request, current_user, "export_initiative", "initiative", resource_id=initiative_id)
