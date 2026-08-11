@@ -7,7 +7,7 @@ export default function NotFoundPage() {
   const reduceMotion = useReducedMotion()
   const { isAuthenticated } = useAuthStore()
   const location = useLocation()
-  const isInApp = location.pathname.startsWith('/projects') || location.pathname.startsWith('/build') || location.pathname.startsWith('/settings') || location.pathname.startsWith('/billing') || location.pathname.startsWith('/initiatives') || location.pathname.startsWith('/reviews') || location.pathname.startsWith('/marketplace') || location.pathname.startsWith('/admin')
+  const isInApp = location.pathname.startsWith('/projects') || location.pathname.startsWith('/build') || location.pathname.startsWith('/settings') || location.pathname.startsWith('/billing') || location.pathname.startsWith('/initiatives') || location.pathname.startsWith('/reviews') || location.pathname.startsWith('/marketplace') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/flow')
   const dashboardHref = isAuthenticated ? '/projects' : '/home'
   const dashboardLabel = isAuthenticated ? 'Dashboard' : 'Home'
   const DashboardIcon = isAuthenticated ? Home : ArrowLeft

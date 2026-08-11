@@ -20,6 +20,7 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"))
 const AppShell = lazy(() => import("./components/AppShell"))
 const Launch = lazy(() => import("./pages/Launch"))
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"))
+const FlowPage = lazy(() => import("./pages/FlowPage"))
 const MarketplacePage = lazy(() => import("./pages/MarketplacePage"))
 const BillingPage = lazy(() => import("./pages/BillingPage"))
 const SettingsPage = lazy(() => import("./pages/SettingsPage"))
@@ -390,6 +391,14 @@ export default function App() {
               element={
                 <Suspense fallback={<RouteSkeleton />}>
                   <ReviewDetailPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/flow"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <FlowPage />
                 </Suspense>
               }
             />
