@@ -8,39 +8,22 @@ import {
   Sparkles,
   Clock,
   FolderOpen,
-  Code2,
   Bot,
   Activity,
-  Zap,
-  CheckCircle2,
-  CircleDashed,
-  Timer,
-  Gauge,
-  ShieldCheck,
   Plus,
   Layers,
-  Users,
-  Building2,
-  Store,
-  HeartPulse,
-  Briefcase,
-  KeyRound,
-  Network,
-  LineChart,
-  Workflow,
-  FileText,
-  Calendar,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
+import { captureEvent } from "../../lib/analytics";
 import { formatRelativeTime } from "../../lib/format";
 import { StatusPill } from "../../components/StatusPill";
 import { EmptyState, SkeletonCard } from "../../components/ui/EmptyState";
 import { AgentFleetGraph } from "../../components/AgentFleetGraph";
 import BrandLogo from "../../components/BrandLogo";
-import { motion, motionVariants, useReducedMotion, useCountUp } from "../../lib/animations";
+import { motion, motionVariants, useReducedMotion } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
 
 /* ------------------------------------------------------------------ */
@@ -158,101 +141,143 @@ const TEMPLATES: TemplateCard[] = [
   },
 ];
 
-const PIPELINE_STATUS_ITEMS = [
-  { label: "Architect", state: "Ready", status: "ok" as const },
-  { label: "Business Analyst", state: "Ready", status: "ok" as const },
-  { label: "PRD Writer", state: "Waiting", status: "warn" as const },
-  { label: "Developer", state: "Idle", status: "muted" as const },
-  { label: "Sprint Planner", state: "Ready", status: "ok" as const },
-];
-
-const PIPELINE_ACTIVITY = [
-  { text: "Architect initialized", time: "2s ago", active: true },
-  { text: "Business Model generated", time: "1m ago" },
-  { text: "Decision Engine completed", time: "3m ago" },
-  { text: "Waiting for user prompt", time: "now", muted: true },
-  { text: "No execution running", time: "idle", muted: true },
-];
-
-const QUICK_INSIGHTS = [
-  { icon: Activity, label: "Pipeline Health", value: "13", sublabel: "Active Agents", accent: "text-accent" },
-  { icon: Timer, label: "Estimated Completion", value: "2–5", sublabel: "Days", accent: "text-accent" },
-  { icon: Gauge, label: "Success Rate", value: "98%", sublabel: "Last 30 runs", accent: "text-ok" },
-  { icon: ShieldCheck, label: "Quality Score", value: "A+", sublabel: "Enterprise", accent: "text-ok" },
-];
-
-const HERO_STATS = [
-  { icon: Layers, value: 48, suffix: "", label: "Projects" },
-  { icon: Bot, value: 13, suffix: "", label: "AI Agents" },
-  { icon: Zap, value: 18, suffix: "s", label: "Planning Speed" },
-  { icon: ShieldCheck, value: 99, suffix: "%", label: "Enterprise Ready" },
-];
-
-const METRICS = [
-  { icon: Bot, value: 13, suffix: "", label: "AI Agents", description: "Specialized team on standby" },
-  { icon: Timer, value: 2, suffix: "–5", label: "Estimated Time", description: "Idea to production plan" },
-  { icon: Gauge, value: 98, suffix: "%", label: "Success Rate", description: "Across all initiatives" },
-  { icon: ShieldCheck, value: "A+", suffix: "", label: "Enterprise Quality", description: "Production-ready output", isString: true },
-];
-
 /* ------------------------------------------------------------------ */
 /* Small building blocks                                                */
 /* ------------------------------------------------------------------ */
 
-function NumericUp({ value, suffix, className = "" }: { value: number; suffix?: string; className?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  useCountUp(ref, value, 900);
+function PromptChip({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
   return (
-    <span className={className}>
-      <span ref={ref} />
-      {suffix}
-    </span>
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileHover={{ y: -2, scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      className="flex cursor-pointer items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-xs text-muted transition-colors duration-200 hover:border-accent/30 hover:bg-accent/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+    >
+      <Sparkles size={11} className="text-accent" aria-hidden="true" />
+      {label}
+    </motion.button>
   );
 }
 
-function CountUpValue({ value, suffix, className = "" }: { value: number | string; suffix?: string; className?: string }) {
-  if (typeof value === "number") {
-    return <NumericUp value={value} suffix={suffix} className={className} />;
-  }
+function TemplateCardComponent({ template, onSelect }: { template: TemplateCard; onSelect: (prompt: string) => void }) {
+  const Icon = template.icon;
   return (
-    <span className={className}>
-      {value}
-      {suffix}
-    </span>
+    <motion.button
+      type="button"
+      onClick={() => onSelect(template.prompt)}
+      variants={motionVariants.staggerItem}
+      whileHover={{ y: -4, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      className="group flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-left transition-all duration-200 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-m3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+    >
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 transition-transform duration-200 group-hover:scale-110"
+        style={{ background: `${template.hue}14`, color: template.hue }}
+      >
+        <Icon size={16} aria-hidden="true" />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-display text-sm font-semibold text-ink">{template.title}</span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-muted">{template.description}</span>
+      </span>
+    </motion.button>
   );
 }
 
-function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; value: number; suffix: string; label: string }) {
-  const [hovered, setHovered] = useState(false);
+function AgentRosterPanel() {
+  const agents = [
+    "Business Analyst",
+    "Product Manager",
+    "Architect",
+    "PRD Writer",
+    "Epic Generator",
+    "Story Generator",
+    "Task Generator",
+    "Sprint Planner",
+    "Scrum Master",
+    "Task Executor",
+    "Integration",
+    "Decision Engine",
+  ];
+  return (
+    <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-panel/60 backdrop-blur-xl">
+      <div className="border-b border-white/[0.06] px-4 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Agent Roster</p>
+      </div>
+      <ul className="flex-1 space-y-1 overflow-y-auto p-3">
+        {agents.map((agent, i) => (
+          <motion.li
+            key={agent}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.05 * i, duration: 0.2 }}
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-muted"
+          >
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-faint">
+              <Bot size={10} aria-hidden="true" />
+            </span>
+            <span className="truncate text-ink">{agent}</span>
+          </motion.li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RecentActivityPanel() {
+  return (
+    <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-panel/60 backdrop-blur-xl">
+      <div className="border-b border-white/[0.06] px-4 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Recent Activity</p>
+      </div>
+      <div className="flex-1 px-4 py-6 text-center text-xs text-faint">
+        No recent activity yet. Create an initiative to see updates here.
+      </div>
+    </div>
+  );
+}
+
+function CreationStatus({ creating }: { creating: boolean }) {
   return (
     <motion.div
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
-      variants={motionVariants.staggerItem}
-      custom={0}
-      className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-m3"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4, duration: 0.3 }}
+      className="rounded-2xl border border-white/[0.06] bg-panel/60 p-4 backdrop-blur-xl"
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
-        style={{
-          opacity: hovered ? 0.08 : 0,
-          background: "radial-gradient(ellipse 80% 80% at 50% 0%, rgb(var(--primary)), transparent 70%)",
-        }}
-      />
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-accent/10 text-accent">
-          <Icon size={13} aria-hidden="true" />
+      <div className="flex items-center gap-2 mb-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <Sparkles size={12} aria-hidden="true" />
         </span>
-        <div className="min-w-0">
-          <div className="font-display text-base font-semibold leading-none text-ink">
-            <CountUpValue value={value} suffix={suffix} />
-          </div>
-          <div className="mt-1 truncate text-[11px] leading-none text-muted">{label}</div>
-        </div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Forge Intelligence</p>
       </div>
+      {creating ? (
+        <div className="flex items-center gap-2 text-sm text-ink">
+          <Loader2 size={14} className="animate-spin text-accent" aria-hidden="true" />
+          <span>Analyzing your initiative…</span>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <p className="text-xs text-ink">Ready to plan.</p>
+          <p className="text-[11px] text-faint">Describe an idea above to activate the pipeline.</p>
+        </div>
+      )}
     </motion.div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Visual components                                                    */
+/* ------------------------------------------------------------------ */
 
 function AdditivePulse({ hue }: { hue: string }) {
   return (
@@ -269,18 +294,13 @@ function HeroVisual() {
 
   return (
     <div className="relative flex h-full min-h-[480px] items-center justify-center" aria-hidden="true">
-      {/* Soft radial glow */}
       <div
         className="forge-glow-breathe absolute h-[500px] w-[500px] rounded-full blur-3xl"
         style={{ background: `radial-gradient(circle, ${hue}22 0%, transparent 65%)` }}
       />
-
-      {/* Pulsing rings */}
       <div className="absolute flex items-center justify-center">
         <AdditivePulse hue={hue} />
       </div>
-
-      {/* Two orbit rings */}
       <div className="forge-orbit h-[400px] w-[400px]" style={{ animationDuration: "28s" }}>
         <div className="forge-orbit-dot" style={{ background: hue, boxShadow: `0 0 10px ${hue}80` }} />
       </div>
@@ -290,8 +310,6 @@ function HeroVisual() {
       >
         <div className="forge-orbit-dot" style={{ background: "#84CC16", boxShadow: "0 0 10px #84CC1680", top: "auto", bottom: -3 }} />
       </div>
-
-      {/* Core logo plate */}
       <motion.div
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -304,8 +322,6 @@ function HeroVisual() {
           <Activity size={13} className="text-accent" />
         </span>
       </motion.div>
-
-      {/* Drifting particles */}
       {[
         { left: "18%", top: "66%", size: 3, delay: "0s", duration: "5s" },
         { left: "78%", top: "58%", size: 2, delay: "0.8s", duration: "7s" },
@@ -329,8 +345,6 @@ function HeroVisual() {
           }}
         />
       ))}
-
-      {/* Footer badge */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -389,279 +403,6 @@ function ForgeSignal({ creating }: { creating: boolean }) {
   );
 }
 
-function PromptChip({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileHover={{ y: -2, scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-      className="flex cursor-pointer items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-xs text-muted transition-colors duration-200 hover:border-accent/30 hover:bg-accent/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-    >
-      <Sparkles size={11} className="text-accent" aria-hidden="true" />
-      {label}
-    </motion.button>
-  );
-}
-
-function TemplateCardComponent({ template, onSelect }: { template: TemplateCard; onSelect: (prompt: string) => void }) {
-  const Icon = template.icon;
-  return (
-    <motion.button
-      type="button"
-      onClick={() => onSelect(template.prompt)}
-      variants={motionVariants.staggerItem}
-      whileHover={{ y: -4, scale: 1.01 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      className="group flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-left transition-all duration-200 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-m3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-    >
-      <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 transition-transform duration-200 group-hover:scale-110"
-        style={{ background: `${template.hue}14`, color: template.hue }}
-      >
-        <Icon size={16} aria-hidden="true" />
-      </span>
-      <span className="min-w-0">
-        <span className="block font-display text-sm font-semibold text-ink">{template.title}</span>
-        <span className="mt-0.5 block text-xs leading-relaxed text-muted">{template.description}</span>
-      </span>
-    </motion.button>
-  );
-}
-
-function PipelineStatusPanel() {
-  return (
-    <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-panel/60 backdrop-blur-xl">
-      <div className="border-b border-white/[0.06] px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Pipeline Status</p>
-      </div>
-      <ul className="flex-1 space-y-1.5 overflow-y-auto p-3">
-        {PIPELINE_STATUS_ITEMS.map((item, i) => (
-          <motion.li
-            key={item.label}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15 + i * 0.05, duration: 0.25 }}
-            className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 transition-colors duration-150 hover:bg-white/[0.03]"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${
-                  item.status === "ok"
-                    ? "bg-ok/10 text-ok"
-                    : item.status === "warn"
-                      ? "bg-warn/10 text-warn"
-                      : "bg-white/[0.04] text-faint"
-                }`}
-              >
-                {item.status === "ok" ? (
-                  <CheckCircle2 size={12} aria-hidden="true" />
-                ) : item.status === "warn" ? (
-                  <CircleDashed size={12} aria-hidden="true" />
-                ) : (
-                  <Activity size={12} aria-hidden="true" />
-                )}
-              </span>
-              <span className="truncate text-xs text-ink">{item.label}</span>
-            </div>
-            <span
-              className={`shrink-0 text-[10px] font-medium ${
-                item.status === "ok"
-                  ? "text-ok"
-                  : item.status === "warn"
-                    ? "text-warn"
-                    : "text-faint"
-              }`}
-            >
-              {item.state}
-            </span>
-          </motion.li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function RecentActivityPanel() {
-  return (
-    <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-panel/60 backdrop-blur-xl">
-      <div className="border-b border-white/[0.06] px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Recent Activity</p>
-      </div>
-      <ul className="flex-1 space-y-0.5 overflow-y-auto p-3">
-        {PIPELINE_ACTIVITY.map((item, i) => (
-          <motion.li
-            key={`${item.text}-${i}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + i * 0.06, duration: 0.25 }}
-            className="flex items-start gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors duration-150 hover:bg-white/[0.03]"
-          >
-            <span
-              className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                item.active ? "bg-accent" : item.muted ? "bg-white/15" : "bg-ok/60"
-              }`}
-              aria-hidden="true"
-            />
-            <div className="min-w-0">
-              <p className={`truncate text-xs ${item.muted ? "text-faint" : "text-muted"}`}>{item.text}</p>
-              {(item.time && !item.muted) && (
-                <p className="text-[10px] text-faint/70">{item.time}</p>
-              )}
-            </div>
-          </motion.li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ForgeIntelligence({ creating }: { creating: boolean }) {
-  const [phase, setPhase] = useState(0);
-  const phases = useMemo(
-    () => [
-      { icon: Sparkles, text: "Thinking" },
-      { icon: Workflow, text: "Analyzing architecture" },
-      { icon: FileText, text: "Generating PRD" },
-      { icon: Calendar, text: "Planning sprint" },
-      { icon: Users, text: "Agents collaborating" },
-    ],
-    []
-  );
-
-  useEffect(() => {
-    if (!creating) return;
-    setPhase(0);
-    const interval = setInterval(() => {
-      setPhase((p) => Math.min(p + 1, phases.length - 1));
-    }, 800);
-    return () => clearInterval(interval);
-  }, [creating, phases.length]);
-
-  const ActivePhaseIcon = phases[phase]?.icon ?? Sparkles;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4, duration: 0.3 }}
-      className="rounded-2xl border border-white/[0.06] bg-panel/60 p-4 backdrop-blur-xl"
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
-          <Bot size={12} aria-hidden="true" />
-        </span>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Forge Intelligence</p>
-      </div>
-
-      {creating ? (
-        <div className="space-y-2">
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={phase}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-2 text-sm text-ink"
-            >
-              <ActivePhaseIcon size={13} className="text-accent" aria-hidden="true" />
-              <span className="forge-thinking">{phases[phase]?.text}</span>
-            </motion.p>
-          </AnimatePresence>
-          <div className="mt-2 flex gap-1">
-            {phases.map((_, i) => (
-              <span
-                key={i}
-                className={`h-0.5 flex-1 rounded-full transition-colors duration-300 ${
-                  i <= phase ? "bg-accent" : "bg-white/10"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div>
-            <p className="text-xs text-ink">No active initiative.</p>
-            <p className="mt-0.5 text-[11px] text-faint">Describe an idea to activate the full pipeline.</p>
-          </div>
-          <div className="space-y-2">
-            {["SaaS", "Internal Tool", "AI Product"].map((s) => (
-              <span
-                key={s}
-                className="inline-block rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-muted"
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2 border-t border-white/[0.06] pt-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-faint">Avg planning</p>
-              <p className="text-sm font-semibold text-ink">18 seconds</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-faint">Pipeline health</p>
-              <p className="text-sm font-semibold text-ok">Optimal</p>
-            </div>
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-function MetricCard({
-  icon: Icon,
-  value,
-  suffix,
-  label,
-  description,
-  isString,
-}: {
-  icon: LucideIcon;
-  value: number | string;
-  suffix?: string;
-  label: string;
-  description: string;
-  isString?: boolean;
-}) {
-  return (
-    <motion.div
-      variants={motionVariants.staggerItem}
-      whileHover={{ y: -3 }}
-      transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-m3"
-    >
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-accent/10 text-accent transition-transform duration-200 group-hover:scale-110">
-          <Icon size={15} aria-hidden="true" />
-        </span>
-        <div>
-          <div className="font-display text-lg font-semibold leading-none text-ink">
-            {isString ? (
-              <span>{value}</span>
-            ) : (
-              <CountUpValue value={value as number} suffix={suffix} />
-            )}
-          </div>
-          <div className="mt-1 text-[11px] font-medium text-muted">{label}</div>
-        </div>
-      </div>
-      <p className="mt-3 border-t border-white/[0.05] pt-2.5 text-[11px] text-faint">{description}</p>
-    </motion.div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* Page                                                                 */
 /* ------------------------------------------------------------------ */
@@ -684,6 +425,22 @@ export default function InitiativesListPage() {
 
   useEffect(load, []);
 
+  const totalInitiatives = initiatives?.length ?? 0;
+  const activeCount = useMemo(
+    () => (initiatives ?? []).filter((i) => i.status === "generating" || i.status === "active").length,
+    [initiatives]
+  );
+  const completedCount = useMemo(
+    () => (initiatives ?? []).filter((i) => i.status === "completed").length,
+    [initiatives]
+  );
+
+  const heroStats = useMemo(() => [
+    { icon: Layers, value: totalInitiatives, suffix: "", label: " Initiatives" },
+    { icon: Bot, value: activeCount, suffix: "", label: "Active" },
+    { icon: Clock, value: completedCount, suffix: "", label: "Completed" },
+  ], [totalInitiatives, activeCount, completedCount]);
+
   const handleCreate = async () => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
@@ -694,9 +451,10 @@ export default function InitiativesListPage() {
     setCreating(true);
     try {
       const initiative = await initiativesApi.create({ prompt: trimmed });
+      captureEvent("initiative_created", { initiative_id: initiative.id });
       navigate(`/initiatives/${initiative.id}`);
     } catch {
-      toast.error("Failed to create initiative");
+      toast.error("Failed to create initiative — your prompt is preserved, please retry.");
       setCreating(false);
     }
   };
@@ -705,11 +463,6 @@ export default function InitiativesListPage() {
     setPrompt(value);
     inputRef.current?.focus();
   }, []);
-
-  const activeCount = useMemo(
-    () => (initiatives ?? []).filter((i) => i.status === "generating" || i.status === "active").length,
-    [initiatives]
-  );
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
@@ -761,10 +514,29 @@ export default function InitiativesListPage() {
                 </motion.p>
 
                 {/* Stat cards */}
-                <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  {HERO_STATS.map((s) => (
-                    <StatCard key={s.label} icon={s.icon} value={s.value} suffix={s.suffix} label={s.label} />
-                  ))}
+                <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {heroStats.map((s) => {
+                    const Icon = s.icon;
+                    return (
+                      <motion.div
+                        key={s.label}
+                        variants={motionVariants.staggerItem}
+                        className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 backdrop-blur-xl"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-accent/10 text-accent">
+                            <Icon size={13} aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="font-display text-base font-semibold leading-none text-ink">
+                              {s.value}
+                            </div>
+                            <div className="mt-1 truncate text-[11px] leading-none text-muted">{s.label}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
 
@@ -846,42 +618,6 @@ export default function InitiativesListPage() {
             </motion.div>
           </section>
 
-          {/* ============ QUICK INSIGHTS ============ */}
-          <section aria-label="Quick insights" className="mt-8">
-            <motion.div
-              variants={motionVariants.staggerContainer}
-              initial={reduceMotion ? false : "hidden"}
-              animate="visible"
-              className="grid grid-cols-2 gap-2.5 md:grid-cols-4"
-            >
-              {QUICK_INSIGHTS.map((insight) => {
-                const Icon = insight.icon;
-                return (
-                  <motion.div
-                    key={insight.label}
-                    variants={motionVariants.staggerItem}
-                    whileHover={{ y: -3 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                    className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-m3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-faint">
-                        {insight.label}
-                      </p>
-                      <Icon size={12} className={insight.accent} aria-hidden="true" />
-                    </div>
-                    <div className="mt-1.5 flex items-baseline gap-1.5">
-                      <span className="font-display text-lg font-semibold leading-none text-ink">
-                        {insight.value}
-                      </span>
-                      <span className="text-[11px] text-faint">{insight.sublabel}</span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </section>
-
           {/* ============ PIPELINE WORKSPACE ============ */}
           <section aria-label="Agent pipeline workspace" className="mt-8">
             <div className="mb-3 flex items-center justify-between">
@@ -895,41 +631,20 @@ export default function InitiativesListPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-[220px_minmax(0,1fr)_220px]">
-              {/* Left panel — Pipeline Status */}
+              {/* Left panel — Agent Roster */}
               <div className="order-2 xl:order-1">
-                <PipelineStatusPanel />
+                <AgentRosterPanel />
               </div>
 
               {/* Center — existing graph */}
               <div className="order-1 xl:order-2 min-w-0">
-                <AgentFleetGraph embedded />
-                {/* Pipeline Metrics */}
-                <div className="mt-4">
-                  <motion.div
-                    variants={motionVariants.staggerContainer}
-                    initial={reduceMotion ? false : "hidden"}
-                    animate="visible"
-                    className="grid grid-cols-2 gap-2.5 lg:grid-cols-4"
-                  >
-                    {METRICS.map((m) => (
-                      <MetricCard
-                        key={m.label}
-                        icon={m.icon}
-                        value={m.value}
-                        suffix={m.suffix}
-                        label={m.label}
-                        description={m.description}
-                        isString={m.isString}
-                      />
-                    ))}
-                  </motion.div>
-                </div>
+                <AgentFleetGraph embedded={false} />
               </div>
 
-              {/* Right panel — Activity + Intelligence */}
+              {/* Right panel — Activity + Status */}
               <div className="order-3 space-y-4">
                 <RecentActivityPanel />
-                <ForgeIntelligence creating={creating} />
+                <CreationStatus creating={creating} />
               </div>
             </div>
           </section>
@@ -1050,7 +765,7 @@ export default function InitiativesListPage() {
                             )}
                           </span>
                           <span className="mt-1.5 block line-clamp-2 text-sm leading-relaxed text-muted">
-                            {initiative.vision || initiative.prompt}
+                            {initiative.vision ? initiative.vision : "No description provided"}
                           </span>
                           <span className="mt-3 flex flex-wrap items-center gap-2.5 text-[11px] text-faint">
                             <span className="flex items-center gap-1">

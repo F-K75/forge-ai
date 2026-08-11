@@ -121,9 +121,9 @@ class Initiative(BaseModel):
     tech_stack: List[str] = []
     risks: List[Dict[str, Any]] = []
     estimated_timeline: str = ""
-    # Forge app-build Projects (core.models.Project) spawned to execute this plan.
     project_ids: List[str] = []
     generation_error: Optional[str] = None
+    version: int = 0
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -338,6 +338,28 @@ class DecisionLogEntry(BaseModel):
     task_id: Optional[str] = None
     trigger: str = ""
     actions: List[str] = []
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class PRDComment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    initiative_id: str
+    prd_id: str
+    user_id: str
+    section: str = ""
+    comment: str = ""
+    resolved: bool = False
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
+class PRDApproval(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    initiative_id: str
+    prd_id: str
+    user_id: str
+    approved: bool
+    comment: str = ""
     created_at: datetime = Field(default_factory=utcnow)
 
 
