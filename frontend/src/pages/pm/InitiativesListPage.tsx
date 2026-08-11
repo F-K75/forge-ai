@@ -33,7 +33,6 @@ import { presets } from "../../lib/animationPresets";
 interface Initiative {
   id: string;
   name: string;
-  prompt: string;
   status: string;
   vision?: string;
   updated_at?: string;

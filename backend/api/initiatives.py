@@ -1,8 +1,6 @@
 import asyncio
 import json
 import logging
-import time
-from collections import OrderedDict
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, Request
@@ -14,7 +12,8 @@ from core.pm_models import Initiative, InitiativeStatus, PRD
 from core.permissions import has_initiative_access, has_initiative_write_access
 from core.config import get_settings
 from core.audit import record_audit_log
-from core.security import sanitize_prompt, _detect_prompt_injection
+from core.security import sanitize_prompt
+from core.llm.router import _detect_prompt_injection
 from core.encryption import encrypt_field, decrypt_field
 from services.credit_alerts import check_and_send_credit_alerts
 from services.pm_notifications import notify_slack
@@ -223,8 +222,10 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
     initiative.project_ids = [project.id]
 
     try:
+        initiative_dict = initiative.model_dump()
+        encrypted_initiative = {k: _maybe_encrypt(v, k) for k, v in initiative_dict.items()}
         await db.projects.insert_one(project.model_dump())
-        await db.initiatives.insert_one(initiative.model_dump())
+        await db.initiatives.insert_one(encrypted_initiative)
         await record_audit_log(
             db, request, current_user, "create_initiative", "initiative",
             resource_id=initiative.id,
@@ -237,6 +238,7 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
         )
         generate_initiative_plan.delay(initiative.id)
     except Exception:
+        await db.projects.delete_many({"id": project.id})
         if max_credits > 0:
             await db.users.update_one(
                 {"id": current_user.id}, {"$inc": {"credits": max_credits}}
@@ -246,7 +248,10 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
                 {"id": current_user.id}, {"$set": {"free_initiative_used": False}}
             )
         raise
-    return initiative
+
+    stored = await db.initiatives.find_one({"id": initiative.id}, {"_id": 0})
+    safe = {k: _maybe_decrypt(v, k) for k, v in stored.items() if k in SAFE_INITIATIVE_FIELDS}
+    return safe
 
 
 @router.get("/", response_model=PaginatedInitiatives)
@@ -261,9 +266,14 @@ async def list_initiatives(
         page=params.page,
         per_page=params.per_page,
         sort=[("updated_at", -1)],
+        projection={"_id": 0},
     )
+    safe_items = [
+        {k: _maybe_decrypt(v, k) for k, v in doc.items() if k in SAFE_INITIATIVE_FIELDS}
+        for doc in result.items
+    ]
     return PaginatedInitiatives(
-        initiatives=result.items,
+        initiatives=safe_items,
         total=result.total,
         page=result.page,
         per_page=result.per_page,
@@ -294,9 +304,9 @@ async def update_initiative(initiative_id: str, req: UpdateInitiativeRequest, re
         raise HTTPException(status_code=403, detail="Permission denied")
     update = {k: _maybe_encrypt(v, k) for k, v in req.model_dump().items() if k != "version" and v is not None}
     update["updated_at"] = utcnow()
-    update["version"] = 1
 
     if req.version is not None:
+        update["version"] = req.version + 1
         result = await db.initiatives.update_one(
             {"id": initiative_id, "version": req.version},
             {"$set": update},
@@ -304,6 +314,7 @@ async def update_initiative(initiative_id: str, req: UpdateInitiativeRequest, re
         if result.matched_count == 0:
             raise HTTPException(status_code=409, detail="Initiative was modified by another session; please reload")
     else:
+        update["version"] = 1
         await db.initiatives.update_one({"id": initiative_id}, {"$set": update})
 
     await record_audit_log(
@@ -390,15 +401,41 @@ async def update_prd(initiative_id: str, req: Dict[str, Any], request: Request, 
     allowed = {
         "executive_summary", "problem_statement", "solution", "personas", "user_journeys",
         "functional_requirements", "non_functional_requirements", "security", "performance",
-        "scalability", "api_overview", "database_overview", "release_plan",
+        "scalability", "api_overview", "database_overview", "release_plan", "version",
     }
-    update = {k: _maybe_decrypt_prd(v, k) for k, v in req.items() if k in allowed}
+    raw_version = req.get("version")
+    update = {k: _maybe_encrypt_prd(v, k) for k, v in req.items() if k in allowed and k != "version"}
     update["updated_at"] = utcnow()
-    update["version"] = 1
+    new_version = (raw_version + 1) if isinstance(raw_version, int) else 1
 
-    result = await db.prds.update_one({"initiative_id": initiative_id}, {"$set": update})
-    if result.matched_count == 0:
+    for field in ["executive_summary", "problem_statement", "solution", "security", "performance", "scalability", "api_overview", "database_overview", "release_plan"]:
+        value = req.get(field)
+        if value is not None:
+            if not isinstance(value, str):
+                raise HTTPException(status_code=422, detail=f"{field} must be a string")
+            if len(value) > 5000:
+                raise HTTPException(status_code=422, detail=f"{field} exceeds maximum length of 5000")
+
+    for field in ["personas", "user_journeys", "functional_requirements", "non_functional_requirements"]:
+        value = req.get(field)
+        if value is not None:
+            if not isinstance(value, list):
+                raise HTTPException(status_code=422, detail=f"{field} must be a list")
+            if len(value) > 100:
+                raise HTTPException(status_code=422, detail=f"{field} exceeds maximum length of 100")
+
+    existing = await db.prds.find_one({"initiative_id": initiative_id}, {"_id": 0})
+    if not existing:
         raise HTTPException(status_code=404, detail="PRD not generated yet")
+
+    update["version"] = new_version
+    if raw_version is not None and not isinstance(raw_version, int):
+        raise HTTPException(status_code=422, detail="version must be an integer")
+
+    if raw_version is not None and existing.get("version") != raw_version:
+        raise HTTPException(status_code=409, detail="PRD was modified by another session; please reload")
+
+    await db.prds.update_one({"initiative_id": initiative_id}, {"$set": update})
 
     await record_audit_log(
         db, request, current_user, "update_prd", "prd",
@@ -482,7 +519,7 @@ async def approve_initiative(initiative_id: str, request: Request, current_user:
     if not await has_initiative_write_access(db, current_user.id, initiative):
         raise HTTPException(status_code=403, detail="Permission denied")
     status = initiative.get("status")
-    if status not in (InitiativeStatus.GENERATING.value, InitiativeStatus.FAILED.value):
+    if status != InitiativeStatus.FAILED.value:
         raise HTTPException(status_code=400, detail="Initiative is not pending approval")
 
     await db.initiatives.update_one(
@@ -609,6 +646,8 @@ async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: 
 
     header_token = websocket.headers.get("sec-websocket-protocol")
     ws_token = token or header_token
+    if token and not header_token:
+        logger.warning("WebSocket token passed via query parameter; Sec-WebSocket-Protocol header is preferred")
     user = await authenticate_pm_websocket_token(ws_token, initiative_id=initiative_id)
     if not user:
         await websocket.accept()
