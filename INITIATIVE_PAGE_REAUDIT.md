@@ -47,12 +47,12 @@
 | B-01 | Business | MEDIUM | No initiative-specific pricing or credit preview | ✅ FIXED (`initiatives.py:271-282`, `pmApi.ts`, `InitiativesListPage.tsx`) |
 | SEC-04 | Exposure | LOW | `vision` rendered in list cards may expose strategy | ✅ FIXED (`InitiativesListPage.tsx:780-787`) |
 | SEC-13 | Frontend | LOW | Sensitive data held in plain Zustand memory | ⚠️ DOCUMENTED — low risk without XSS; frontend memory encryption deferred |
+| FE-04 | Frontend | LOW | Loading state shows skeletons indefinitely on API error | ✅ FIXED (`InitiativeLayout.tsx:106-132`) |
 
 ### Remaining Findings
 
 | ID | Category | Severity | Finding | Location |
 |----|----------|----------|---------|----------|
-| FE-04 | Frontend | LOW | Loading state shows skeletons indefinitely on API error | `InitiativeLayout.tsx:106-124` |
 | B-02 | Business | MEDIUM | No PM integrations (GitHub Projects, Jira, Slack) | Global |
 | B-03 | Business | MEDIUM | No analytics dashboard | Global |
 
