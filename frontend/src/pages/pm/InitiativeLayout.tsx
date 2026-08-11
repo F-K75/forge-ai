@@ -189,7 +189,7 @@ export default function InitiativeLayout() {
                       Cancel
                     </button>
                   </div>
-                ) : generationStatus === "failed" ? (
+                ) : generationStatus === "failed" || generationStatus === "review" ? (
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -198,13 +198,15 @@ export default function InitiativeLayout() {
                     >
                       Approve plan
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleRetry}
-                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                    >
-                      Retry generation
-                    </button>
+                    {generationStatus === "failed" ? (
+                      <button
+                        type="button"
+                        onClick={handleRetry}
+                        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                      >
+                        Retry generation
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="flex flex-col items-end gap-2">

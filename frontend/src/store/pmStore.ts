@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { AnyPMWSEvent } from '../lib/pmWsContract'
 import { initiativesApi, epicsApi, storiesApi, tasksApi, sprintsApi, agentExecutionsApi } from '../lib/pmApi'
 import { captureEvent } from '../lib/analytics'
+import type { PMInitiative, PMPRD, PMEpic, PMStory, PMTask, PMSprint, PMExecution } from '../lib/types/api'
 
 export interface DecisionFeedItem {
   taskId?: string
@@ -12,14 +13,14 @@ export interface DecisionFeedItem {
 }
 
 export interface PMState {
-  initiative: Record<string, any> | null
-  prd: Record<string, any> | null
-  epics: Record<string, any>[]
-  stories: Record<string, any>[]
-  tasks: Record<string, any>[]
-  sprints: Record<string, any>[]
-  executions: Record<string, any>[]
-  generationStatus: 'idle' | 'generating' | 'complete' | 'failed'
+  initiative: PMInitiative | null
+  prd: PMPRD | null
+  epics: PMEpic[]
+  stories: PMStory[]
+  tasks: PMTask[]
+  sprints: PMSprint[]
+  executions: PMExecution[]
+  generationStatus: 'idle' | 'generating' | 'complete' | 'failed' | 'review'
   generationStage: string | null
   generationError: string | null
   decisionFeed: DecisionFeedItem[]
@@ -31,7 +32,7 @@ export interface PMState {
   refreshTasks: () => Promise<void>
   refreshExecutions: () => Promise<void>
   handleEvent: (event: AnyPMWSEvent) => void
-  setTaskLocal: (taskId: string, patch: Record<string, unknown>) => void
+  setTaskLocal: (taskId: string, patch: Partial<Pick<PMTask, 'status'>>) => void
   reset: () => void
 }
 
@@ -57,20 +58,21 @@ export const usePMStore = create<PMState>((set, get) => ({
   hydrate: async (initiativeId: string) => {
     set({ loading: true, error: null })
     try {
-      const initiative = await initiativesApi.get(initiativeId)
+      const initiative = await initiativesApi.get(initiativeId) as PMInitiative
       const [epics, stories, tasks, sprints, executions, prd] = await Promise.all([
-        epicsApi.list(initiativeId).catch(() => []),
-        storiesApi.list({ initiative_id: initiativeId }).catch(() => []),
-        tasksApi.list({ initiative_id: initiativeId }).catch(() => []),
-        sprintsApi.list(initiativeId).catch(() => []),
-        agentExecutionsApi.list(initiativeId).catch(() => []),
-        initiativesApi.getPrd(initiativeId).catch(() => null),
+        epicsApi.list(initiativeId).catch(() => []) as PMEpic[],
+        storiesApi.list({ initiative_id: initiativeId }).catch(() => []) as PMStory[],
+        tasksApi.list({ initiative_id: initiativeId }).catch(() => []) as PMTask[],
+        sprintsApi.list(initiativeId).catch(() => []) as PMSprint[],
+        agentExecutionsApi.list(initiativeId).catch(() => []) as PMExecution[],
+        initiativesApi.getPrd(initiativeId).catch(() => null) as PMPRD | null,
       ])
       set({
         initiative, prd, epics, stories, tasks, sprints, executions,
         generationStatus:
           initiative.status === 'generating' ? 'generating' :
-          initiative.status === 'failed' ? 'failed' : 'complete',
+          initiative.status === 'failed' ? 'failed' :
+          initiative.status === 'review' ? 'review' : 'complete',
         generationError: initiative.generation_error ?? null,
         loading: false,
       })
@@ -83,7 +85,7 @@ export const usePMStore = create<PMState>((set, get) => ({
     const { initiative } = get()
     if (!initiative) return
     try {
-      const tasks = await tasksApi.list({ initiative_id: initiative.id })
+      const tasks = await tasksApi.list({ initiative_id: initiative.id }) as PMTask[]
       set({ tasks })
     } catch {
       // keep stale data on transient failure
@@ -94,7 +96,7 @@ export const usePMStore = create<PMState>((set, get) => ({
     const { initiative } = get()
     if (!initiative) return
     try {
-      const executions = await agentExecutionsApi.list(initiative.id)
+      const executions = await agentExecutionsApi.list(initiative.id) as PMExecution[]
       set({ executions })
     } catch {
       // keep stale data on transient failure

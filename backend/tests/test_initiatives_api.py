@@ -274,13 +274,23 @@ def test_cancel_generation(app_client):
     assert doc["generation_error"] == "Cancelled by user"
 
 
-def test_approve_only_failed(app_client):
+def test_approve_only_failed_or_review(app_client):
     client, db = app_client
     db.users.insert_one({"id": "user-1", "credits": 10, "free_initiative_used": False, "plan": "free"})
     db.initiatives.insert_one({"id": "init-1", "user_id": "user-1", "name": "Test", "status": "generating"})
     resp = client.post("/v1/initiatives/init-1/approve", headers=_auth_headers())
     assert resp.status_code == 400
     assert "not pending approval" in resp.json()["detail"].lower()
+
+    db.initiatives.update_one({"id": "init-1"}, {"$set": {"status": "review"}})
+    resp = client.post("/v1/initiatives/init-1/approve", headers=_auth_headers())
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "active"
+
+    db.initiatives.update_one({"id": "init-1"}, {"$set": {"status": "failed"}})
+    resp = client.post("/v1/initiatives/init-1/approve", headers=_auth_headers())
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "active"
 
 
 def test_prd_update_validation(app_client):

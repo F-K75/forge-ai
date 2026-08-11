@@ -565,7 +565,7 @@ async def approve_initiative(initiative_id: str, request: Request, current_user:
     if not await has_initiative_write_access(db, current_user.id, initiative):
         raise HTTPException(status_code=403, detail="Permission denied")
     status = initiative.get("status")
-    if status != InitiativeStatus.FAILED.value:
+    if status not in (InitiativeStatus.FAILED.value, InitiativeStatus.REVIEW.value):
         raise HTTPException(status_code=400, detail="Initiative is not pending approval")
 
     await db.initiatives.update_one(

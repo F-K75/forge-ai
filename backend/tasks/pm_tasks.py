@@ -80,6 +80,7 @@ def generate_initiative_plan(self, initiative_id: str) -> dict:
             if current:
                 merged = dict(current)
                 generated_fields = [
+                    "status",
                     "vision",
                     "business_goals",
                     "product_scope",

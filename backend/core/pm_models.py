@@ -19,6 +19,7 @@ import uuid
 class InitiativeStatus(str, Enum):
     DRAFT = "draft"
     GENERATING = "generating"
+    REVIEW = "review"
     ACTIVE = "active"
     COMPLETED = "completed"
     ARCHIVED = "archived"

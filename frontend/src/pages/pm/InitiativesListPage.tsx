@@ -73,6 +73,15 @@ const EXAMPLE_PROMPTS = [
   "Developer Platform",
 ];
 
+const MAX_VISION_LENGTH = 140;
+
+function truncateVision(vision: string | undefined): string {
+  if (!vision) return "No description provided"
+  const trimmed = vision.trim()
+  if (trimmed.length <= MAX_VISION_LENGTH) return trimmed
+  return `${trimmed.slice(0, MAX_VISION_LENGTH - 1)}…`
+}
+
 interface TemplateCard {
   icon: LucideIcon;
   title: string;
@@ -764,7 +773,7 @@ export default function InitiativesListPage() {
                             )}
                           </span>
                           <span className="mt-1.5 block line-clamp-2 text-sm leading-relaxed text-muted">
-                            {initiative.vision ? initiative.vision : "No description provided"}
+                            {truncateVision(initiative.vision)}
                           </span>
                           <span className="mt-3 flex flex-wrap items-center gap-2.5 text-[11px] text-faint">
                             <span className="flex items-center gap-1">
