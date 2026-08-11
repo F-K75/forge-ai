@@ -23,7 +23,7 @@ export default function VerifyEmail() {
     if (!token) return
     let cancelled = false
 
-    fetch(`/auth/verify-email?token=${encodeURIComponent(token)}`, {
+    fetch(`/v1/auth/verify-email?token=${encodeURIComponent(token)}`, {
       method: "GET",
       credentials: "include",
     })
@@ -50,7 +50,7 @@ export default function VerifyEmail() {
       if (!resendEmail) return
       setResending(true)
       try {
-        await fetch("/auth/resend-verification", {
+        await fetch("/v1/auth/resend-verification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

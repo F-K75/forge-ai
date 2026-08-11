@@ -550,7 +550,7 @@ export default function AuthPage() {
               <motion.button
                 type="button"
                 onClick={() => {
-                  window.location.href = `${API_URL}/auth/google`
+                  window.location.href = `${API_URL}/v1/auth/google`
                 }}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}

@@ -14,10 +14,10 @@ export const api = axios.create({
 // These paths are excluded server-side (no session yet, or have their own
 // signature verification) so there's no token to fetch for them.
 const CSRF_EXEMPT_PATHS = [
-  "/auth/login",
-  "/auth/register",
-  "/auth/forgot-password",
-  "/auth/reset-password",
+  "/v1/auth/login",
+  "/v1/auth/register",
+  "/v1/auth/forgot-password",
+  "/v1/auth/reset-password",
   "/billing/webhook",
 ]
 
@@ -25,7 +25,7 @@ let csrfTokenPromise: Promise<string> | null = null
 function getCsrfToken(): Promise<string> {
   if (!csrfTokenPromise) {
     csrfTokenPromise = api
-      .get("/auth/csrf-token")
+      .get("/v1/auth/csrf-token")
       .then((r) => r.data.csrf_token)
       .catch((err) => {
         csrfTokenPromise = null
@@ -67,13 +67,13 @@ api.interceptors.response.use(
 // Auth
 export const authApi = {
   register: (data: { email: string; name: string; password: string }) =>
-    api.post("/auth/register", data).then((r) => r.data),
+    api.post("/v1/auth/register", data).then((r) => r.data),
   login: (data: { email: string; password: string }) =>
-    api.post("/auth/login", data).then((r) => r.data),
+    api.post("/v1/auth/login", data).then((r) => r.data),
   refresh: (refresh_token: string) =>
-    api.post("/auth/refresh", { refresh_token }).then((r) => r.data),
-  logout: () => api.post("/auth/logout").then((r) => r.data),
-  me: () => api.get("/auth/me").then((r) => r.data),
+    api.post("/v1/auth/refresh", { refresh_token }).then((r) => r.data),
+  logout: () => api.post("/v1/auth/logout").then((r) => r.data),
+  me: () => api.get("/v1/auth/me").then((r) => r.data),
   updateProfile: (data: {
     name?: string
     avatar_url?: string
@@ -83,13 +83,13 @@ export const authApi = {
     llm_base_url?: string
     llm_model?: string
     preferences?: Record<string, unknown>
-  }) => api.put("/auth/me", data).then((r) => r.data),
+  }) => api.put("/v1/auth/me", data).then((r) => r.data),
   changePassword: (data: { current_password: string; new_password: string }) =>
-    api.post("/auth/me/password", data).then((r) => r.data),
+    api.post("/v1/auth/me/password", data).then((r) => r.data),
   organizations: {
     create: (data: { name: string; slug?: string }) =>
-      api.post("/auth/organizations", data).then((r) => r.data),
-    list: () => api.get("/auth/organizations").then((r) => r.data.organizations),
+      api.post("/v1/auth/organizations", data).then((r) => r.data),
+    list: () => api.get("/v1/auth/organizations").then((r) => r.data.organizations),
     get: (id: string) => api.get(`/auth/organizations/${id}`).then((r) => r.data),
     invite: (id: string, data: { email: string; role?: string }) =>
       api.post(`/auth/organizations/${id}/invite`, data).then((r) => r.data),
@@ -99,30 +99,30 @@ export const authApi = {
       api.post(`/auth/organizations/invitations/${token}/accept`).then((r) => r.data),
   },
   sessions: {
-    list: () => api.get("/auth/sessions").then((r) => r.data),
+    list: () => api.get("/v1/auth/sessions").then((r) => r.data),
     revoke: (id: string) => api.delete(`/auth/sessions/${id}`).then((r) => r.data),
-    revokeAll: () => api.delete("/auth/sessions").then((r) => r.data),
+    revokeAll: () => api.delete("/v1/auth/sessions").then((r) => r.data),
   },
   mfa: {
     setup: () =>
-      api.post("/auth/mfa/setup").then((r) => r.data) as Promise<{
+      api.post("/v1/auth/mfa/setup").then((r) => r.data) as Promise<{
         secret: string
         otpauth_uri: string
       }>,
     verifySetup: (code: string) =>
-      api.post("/auth/mfa/verify-setup", { code }).then((r) => r.data) as Promise<{
+      api.post("/v1/auth/mfa/verify-setup", { code }).then((r) => r.data) as Promise<{
         ok: boolean
         backup_codes: string[]
       }>,
-    disable: (password: string) => api.post("/auth/mfa/disable", { password }).then((r) => r.data),
+    disable: (password: string) => api.post("/v1/auth/mfa/disable", { password }).then((r) => r.data),
     verify: (mfa_token: string, code: string) =>
-      api.post("/auth/mfa/verify", { mfa_token, code }).then((r) => r.data),
+      api.post("/v1/auth/mfa/verify", { mfa_token, code }).then((r) => r.data),
   },
   gdpr: {
     export: () =>
-      api.get("/gdpr/export", { responseType: "blob" }).then((r) => r.data),
+      api.get("/v1/gdpr/export", { responseType: "blob" }).then((r) => r.data),
     delete: (confirm: boolean) =>
-      api.delete("/gdpr/delete", { params: { confirm } }).then((r) => r.data),
+      api.delete("/v1/gdpr/delete", { params: { confirm } }).then((r) => r.data),
   },
 }
 

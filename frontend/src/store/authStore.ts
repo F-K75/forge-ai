@@ -66,7 +66,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     set({ isLoading: true })
-    const res = await api.post('/auth/login', { email, password })
+    const res = await api.post('/v1/auth/login', { email, password })
     if (res.data?.mfa_required) {
       set({ isLoading: false })
       return { mfaRequired: true, mfaToken: res.data.mfa_token }
@@ -80,7 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     // Use full-page redirect instead of popup to avoid cross-origin issues.
-    window.location.href = `${API_URL}/auth/google`
+    window.location.href = `${API_URL}/v1/auth/google`
   },
 
   verifyMfa: async (mfaToken: string, code: string) => {
@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     set({ isLoading: true })
-    const res = await api.post('/auth/register', { email, name, password })
+    const res = await api.post('/v1/auth/register', { email, name, password })
     set({ user: res.data.user, isAuthenticated: true, isLoading: false })
   },
 
@@ -105,7 +105,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     try {
-      await api.post('/auth/logout')
+      await api.post('/v1/auth/logout')
     } catch {
       // ignore
     }
@@ -118,7 +118,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     try {
-      const res = await api.get('/auth/me')
+      const res = await api.get('/v1/auth/me')
       set({ user: res.data, isAuthenticated: true, isLoading: false })
     } catch (err) {
       set({ isLoading: false })
