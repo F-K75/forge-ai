@@ -499,6 +499,15 @@ def _map_price_to_plan(price_id: str) -> PlanTier:
     return _PRICE_TO_PLAN.get(price_id, PlanTier.FREE)
 
 
+async def get_max_projects_for_user(db, user_id: str) -> int:
+    user = await db.users.find_one({"id": user_id}, {"plan": 1})
+    if not user:
+        return 0
+    plan = user.get("plan", PlanTier.FREE)
+    plan_details = next((p for p in PLAN_DETAILS if p["tier"] == plan), None)
+    return plan_details.get("max_projects", 0) if plan_details else 0
+
+
 @router.get("/provider")
 async def get_billing_provider():
     return {"provider": BILLING_PROVIDER}

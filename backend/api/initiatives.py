@@ -11,6 +11,7 @@ from core.database import get_db, paginated_query
 from core.pm_models import Initiative, InitiativeStatus
 from core.permissions import has_initiative_access
 from api.auth import get_current_user
+from api.billing import get_max_projects_for_user
 from tasks.pm_tasks import generate_initiative_plan
 from services.pm_ws_manager import pm_manager, authenticate_pm_websocket_token
 
@@ -58,11 +59,15 @@ async def create_initiative(req: CreateInitiativeRequest, current_user: User = D
         status=InitiativeStatus.DRAFT,
     )
 
-    # Every initiative gets one companion Project up front, in the same slot
-    # execute_task already reads from (initiative.project_ids[0], via
-    # tasks/pm_tasks.py) to reuse the latest successful build's files as
-    # codegen context for later tasks. Without this, that reuse path was
-    # silently a no-op because project_ids was never populated anywhere.
+    max_projects = await get_max_projects_for_user(db, current_user.id)
+    if max_projects >= 0:
+        current_count = await db.projects.count_documents({"user_id": current_user.id})
+        if current_count >= max_projects:
+            raise HTTPException(
+                status_code=402,
+                detail="Project limit reached. Upgrade to create more.",
+            )
+
     project = Project(
         user_id=current_user.id,
         org_id=initiative.org_id,

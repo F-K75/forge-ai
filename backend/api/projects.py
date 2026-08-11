@@ -5,6 +5,7 @@ from core.models import Project, User, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.audit import record_audit_log
 from api.auth import get_current_user
+from api.billing import get_max_projects_for_user
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -41,6 +42,16 @@ class UpdateProjectRequest(BaseModel):
 @router.post("/")
 async def create_project(req: CreateProjectRequest, current_user: User = Depends(get_current_user)):
     db = await get_db()
+
+    max_projects = await get_max_projects_for_user(db, current_user.id)
+    if max_projects >= 0:
+        current_count = await db.projects.count_documents({"user_id": current_user.id})
+        if current_count >= max_projects:
+            raise HTTPException(
+                status_code=402,
+                detail="Project limit reached. Upgrade to create more.",
+            )
+
     project = Project(
         user_id=current_user.id,
         name=req.name,
