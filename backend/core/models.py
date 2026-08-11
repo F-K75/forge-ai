@@ -512,3 +512,14 @@ class WSEvent(BaseModel):
     data: Dict[str, Any] = {}
     timestamp: datetime = Field(default_factory=utcnow)
     version: int = 1
+
+
+class PlanResponse(BaseModel):
+    tier: str
+    name: str
+    price_id: str
+    price_monthly: int
+    price_annual: int
+    credits: int
+    features: List[str]
+    max_projects: int

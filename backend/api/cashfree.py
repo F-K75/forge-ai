@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from pydantic import BaseModel
 
 from core.config import get_settings
-from core.models import PlanTier, User
+from core.models import PlanTier, User, PlanResponse
 from core.database import get_db
 from core.cache import cached_read, PLANS_CACHE_KEY, PLANS_CACHE_TTL
 from api.auth import get_current_user
@@ -187,7 +187,7 @@ async def create_cashfree_order(req: Any, current_user: User) -> Dict[str, Any]:
 
 
 @router.post("/subscription", response_model=Dict[str, Any])
-async def create_subscription(req: CashfreeSubscriptionRequest, current_user: User = Depends(get_current_user)):
+async def create_cashfree_subscription(req: CashfreeSubscriptionRequest, current_user: User = Depends(get_current_user)):
     _require_cashfree()
     db = await get_db()
 
@@ -376,3 +376,7 @@ async def _build_plans():
         ).model_dump()
         for p in PLAN_DETAILS
     ]
+
+
+require_cashfree = _require_cashfree
+verify_cashfree_payment = verify_payment
