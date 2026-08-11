@@ -198,6 +198,8 @@ class UsageResponse(BaseModel):
     credits_remaining: int
     builds_count: int
     agents_runs: Dict[str, int]
+    projects_count: int = 0
+    max_projects: int = 0
 
 
 class PlanResponse(BaseModel):
@@ -497,6 +499,15 @@ _PRICE_TO_PLAN.update({pid: plan for plan, pid in ANNUAL_PLAN_PRICES.items()})
 
 def _map_price_to_plan(price_id: str) -> PlanTier:
     return _PRICE_TO_PLAN.get(price_id, PlanTier.FREE)
+
+
+async def get_max_projects_for_user(db, user_id: str) -> int:
+    user = await db.users.find_one({"id": user_id}, {"plan": 1})
+    if not user:
+        return 0
+    plan = user.get("plan", PlanTier.FREE)
+    plan_details = next((p for p in PLAN_DETAILS if p["tier"] == plan), None)
+    return plan_details.get("max_projects", 0) if plan_details else 0
 
 
 @router.get("/provider")
@@ -817,6 +828,11 @@ async def get_usage(user: User = Depends(get_current_user)):
         agent = doc.get("_id", "unknown")
         agents_runs[agent] = doc.get("count", 0)
 
+    projects_count = await db.projects.count_documents(
+        {"user_id": user.id, "deleted_at": {"$exists": False}}
+    )
+    max_projects = await get_max_projects_for_user(db, user.id)
+
     return UsageResponse(
         period_start=period_start,
         period_end=period_end,
@@ -824,6 +840,8 @@ async def get_usage(user: User = Depends(get_current_user)):
         credits_remaining=credits_remaining,
         builds_count=builds_count,
         agents_runs=agents_runs,
+        projects_count=projects_count,
+        max_projects=max_projects,
     )
 
 

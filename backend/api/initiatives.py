@@ -19,6 +19,7 @@ from core.encryption import encrypt_field, decrypt_field
 from services.credit_alerts import check_and_send_credit_alerts
 from services.pm_notifications import notify_slack
 from api.auth import get_current_user
+from api.billing import get_max_projects_for_user
 from tasks.pm_tasks import generate_initiative_plan
 from services.pm_ws_manager import pm_manager, authenticate_pm_websocket_token
 

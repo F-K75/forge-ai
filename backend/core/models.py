@@ -207,6 +207,7 @@ class Project(BaseModel):
     template_data: Dict[str, Any] = {}  # Template-specific configuration
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
+    deleted_at: Optional[datetime] = None
 
 
 # --- Build ---
