@@ -231,7 +231,7 @@ class PMOrchestrator:
             data={"count": len(sprints)},
         ))
 
-        initiative.status = InitiativeStatus.ACTIVE
+        initiative.status = InitiativeStatus.REVIEW
 
         await emit(PMWSEvent(
             type=PMWSEventType.GENERATION_COMPLETE,

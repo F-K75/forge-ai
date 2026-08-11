@@ -7,8 +7,8 @@ from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisco
 from pydantic import BaseModel, Field, field_validator
 
 from core.models import User, PaginationParams, Project, utcnow
-from core.database import get_db, paginated_query
-from core.pm_models import Initiative, InitiativeStatus, PRD
+from core.database import get_db, paginated_query, get_redis
+from core.pm_models import Initiative, InitiativeStatus, PRD, InitiativeComment, InitiativeApproval, InitiativeIntegration
 from core.permissions import has_initiative_access, has_initiative_write_access
 from core.config import get_settings
 from core.audit import record_audit_log
@@ -29,7 +29,6 @@ router = APIRouter(prefix="/initiatives", tags=["initiatives"])
 
 _INITIATIVE_RATE_LIMIT_WINDOW = 3600
 _INITIATIVE_RATE_LIMIT_MAX = 5
-_initiative_rate_timestamps: "OrderedDict[str, list[float]]" = OrderedDict()
 
 _ENCRYPTED_INITIATIVE_FIELDS = {"prompt", "business_goals", "risks"}
 _ENCRYPTED_PRD_FIELDS = {"executive_summary", "problem_statement", "solution", "security", "performance", "scalability", "api_overview", "database_overview", "release_plan"}
@@ -63,18 +62,27 @@ def _maybe_decrypt_prd(value: Any, field_name: str) -> Any:
     return value
 
 
-def _check_initiative_rate_limit(user_id: str) -> None:
-    now = time.time()
-    if user_id in _initiative_rate_timestamps:
-        _initiative_rate_timestamps.move_to_end(user_id)
-    timestamps = _initiative_rate_timestamps.get(user_id, [])
-    timestamps = [t for t in timestamps if now - t < _INITIATIVE_RATE_LIMIT_WINDOW]
-    if len(timestamps) >= _INITIATIVE_RATE_LIMIT_MAX:
-        raise HTTPException(status_code=429, detail="Too many initiatives created recently. Please wait before creating another.")
-    timestamps.append(now)
-    _initiative_rate_timestamps[user_id] = timestamps
-    if len(_initiative_rate_timestamps) > 10000:
-        _initiative_rate_timestamps.popitem(last=False)
+def _maybe_encrypt_prd(value: Any, field_name: str) -> Any:
+    if field_name not in _ENCRYPTED_PRD_FIELDS:
+        return value
+    if isinstance(value, str):
+        return encrypt_field(value)
+    return value
+
+
+async def _check_initiative_rate_limit(user_id: str) -> None:
+    try:
+        redis = await get_redis()
+        key = f"rl:initiative_create:{user_id}"
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, _INITIATIVE_RATE_LIMIT_WINDOW)
+        if current > _INITIATIVE_RATE_LIMIT_MAX:
+            raise HTTPException(status_code=429, detail="Too many initiatives created recently. Please wait before creating another.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
 
 
 def _is_allowed_ws_origin(origin: Optional[str]) -> bool:
@@ -82,7 +90,10 @@ def _is_allowed_ws_origin(origin: Optional[str]) -> bool:
         return True
     allowed = {o.strip() for o in settings.allowed_origins if o.strip()}
     if not allowed:
-        return True
+        if settings.app_env == "development":
+            return True
+        logger.warning("Rejecting WebSocket connection because allowed_origins is unconfigured in %s", settings.app_env)
+        return False
     return origin in allowed
 
 
@@ -121,6 +132,11 @@ GRAPH_DEFAULT_NODE_LIMIT = 200
 GRAPH_DEFAULT_EDGE_LIMIT = 500
 GRAPH_SAFE_TASK_FIELDS = {"id", "story_id", "epic_id", "initiative_id", "title", "status", "assigned_agent", "kanban_order", "sprint_id", "created_at", "updated_at"}
 GRAPH_SAFE_EXECUTION_FIELDS = {"id", "task_id", "initiative_id", "agent", "status", "progress", "cost_usd", "tokens_used", "started_at", "completed_at", "duration_seconds", "created_at"}
+
+EXPORT_SAFE_EPIC_FIELDS = {"id", "initiative_id", "title", "description", "priority", "story_points", "estimated_duration", "owner", "status", "order", "created_at", "updated_at"}
+EXPORT_SAFE_STORY_FIELDS = {"id", "epic_id", "initiative_id", "title", "description", "acceptance_criteria", "definition_of_done", "priority", "story_points", "business_value", "risk", "status", "order", "created_at", "updated_at"}
+EXPORT_SAFE_TASK_FIELDS = {"id", "story_id", "epic_id", "initiative_id", "title", "description", "status", "assigned_agent", "estimated_hours", "priority", "category", "kanban_order", "sprint_id", "created_at", "updated_at", "started_at", "completed_at"}
+EXPORT_SAFE_SPRINT_FIELDS = {"id", "initiative_id", "sprint_number", "name", "goal", "start_date", "end_date", "task_ids", "capacity", "velocity", "story_points_planned", "story_points_completed", "status", "created_at", "updated_at"}
 
 
 class CreateInitiativeRequest(BaseModel):
@@ -254,6 +270,20 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
     return safe
 
 
+@router.get("/credit-preview")
+async def preview_initiative_credit_cost(current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    cost = settings.credits_initiative_generation
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    free_available = (user or {}).get("free_initiative_used") is False
+    effective_cost = 0 if free_available else cost
+    return {
+        "cost": effective_cost,
+        "free_available": free_available,
+        "credits_remaining": (user or {}).get("credits", 0),
+    }
+
+
 @router.get("/", response_model=PaginatedInitiatives)
 async def list_initiatives(
     current_user: User = Depends(get_current_user),
@@ -314,7 +344,9 @@ async def update_initiative(initiative_id: str, req: UpdateInitiativeRequest, re
         if result.matched_count == 0:
             raise HTTPException(status_code=409, detail="Initiative was modified by another session; please reload")
     else:
-        update["version"] = 1
+        current_doc = await db.initiatives.find_one({"id": initiative_id}, {"version": 1})
+        current_version = (current_doc or {}).get("version", 0)
+        update["version"] = current_version + 1
         await db.initiatives.update_one({"id": initiative_id}, {"$set": update})
 
     await record_audit_log(
@@ -352,6 +384,34 @@ async def regenerate_initiative(initiative_id: str, request: Request, confirm: b
 
     generate_initiative_plan.delay(initiative_id)
     return {"ok": True}
+
+
+@router.post("/{initiative_id}/cancel")
+async def cancel_initiative(initiative_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    if not await has_initiative_write_access(db, current_user.id, initiative):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    status = initiative.get("status")
+    if status != InitiativeStatus.GENERATING.value:
+        raise HTTPException(status_code=400, detail="Initiative is not currently generating")
+
+    await db.initiatives.update_one(
+        {"id": initiative_id},
+        {"$set": {"status": InitiativeStatus.FAILED.value, "generation_error": "Cancelled by user", "updated_at": utcnow()}},
+    )
+    await pm_manager.emit(PMWSEvent(
+        type=PMWSEventType.GENERATION_FAILED,
+        initiative_id=initiative_id,
+        data={"error": "Generation cancelled by user"},
+    ))
+    await record_audit_log(
+        db, request, current_user, "cancel_initiative", "initiative",
+        resource_id=initiative_id,
+        changes={"status": InitiativeStatus.FAILED.value},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_cancelled", initiative_id=initiative_id)
+    return {"ok": True, "status": InitiativeStatus.FAILED.value}
 
 
 @router.get("/{initiative_id}/prd")
@@ -519,7 +579,7 @@ async def approve_initiative(initiative_id: str, request: Request, current_user:
     if not await has_initiative_write_access(db, current_user.id, initiative):
         raise HTTPException(status_code=403, detail="Permission denied")
     status = initiative.get("status")
-    if status != InitiativeStatus.FAILED.value:
+    if status not in (InitiativeStatus.FAILED.value, InitiativeStatus.REVIEW.value):
         raise HTTPException(status_code=400, detail="Initiative is not pending approval")
 
     await db.initiatives.update_one(
@@ -612,6 +672,74 @@ async def create_prd_approval(initiative_id: str, req: PRDApprovalRequest, reque
     return approval.model_dump()
 
 
+class InitiativeCommentRequest(BaseModel):
+    section: Optional[str] = Field(None, max_length=200)
+    comment: str = Field(..., max_length=5000)
+
+
+class InitiativeApprovalRequest(BaseModel):
+    approved: bool
+    comment: Optional[str] = Field(None, max_length=5000)
+
+
+@router.get("/{initiative_id}/initiative-comments")
+async def list_initiative_comments(initiative_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    comments = await db.initiative_comments.find({"initiative_id": initiative_id}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    return {"comments": comments}
+
+
+@router.post("/{initiative_id}/initiative-comments")
+async def create_initiative_comment(initiative_id: str, req: InitiativeCommentRequest, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+
+    comment = InitiativeComment(
+        initiative_id=initiative_id,
+        user_id=current_user.id,
+        section=req.section or "",
+        comment=req.comment,
+    )
+    await db.initiative_comments.insert_one(comment.model_dump())
+    await record_audit_log(
+        db, request, current_user, "create_initiative_comment", "initiative",
+        resource_id=initiative_id,
+        changes={"section": req.section, "comment": req.comment},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_commented", initiative_id=initiative_id)
+    return comment.model_dump()
+
+
+@router.get("/{initiative_id}/initiative-approvals")
+async def list_initiative_approvals(initiative_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    approvals = await db.initiative_approvals.find({"initiative_id": initiative_id}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    return {"approvals": approvals}
+
+
+@router.post("/{initiative_id}/initiative-approvals")
+async def create_initiative_approval(initiative_id: str, req: InitiativeApprovalRequest, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+
+    approval = InitiativeApproval(
+        initiative_id=initiative_id,
+        user_id=current_user.id,
+        approved=req.approved,
+        comment=req.comment or "",
+    )
+    await db.initiative_approvals.insert_one(approval.model_dump())
+    await record_audit_log(
+        db, request, current_user, "create_initiative_approval", "initiative",
+        resource_id=initiative_id,
+        changes={"approved": req.approved, "comment": req.comment},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_approval_created", initiative_id=initiative_id)
+    return approval.model_dump()
+
+
 @router.get("/{initiative_id}/export")
 async def export_initiative(initiative_id: str, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
@@ -625,15 +753,82 @@ async def export_initiative(initiative_id: str, request: Request, current_user: 
     export_data = {
         "initiative": initiative,
         "prd": {k: v for k, v in prd.items() if k in SAFE_PRD_FIELDS} if prd else None,
-        "epics": epics,
-        "stories": stories,
-        "tasks": tasks,
-        "sprints": sprints,
+        "epics": [{k: v for k, v in e.items() if k in EXPORT_SAFE_EPIC_FIELDS} for e in epics],
+        "stories": [{k: v for k, v in s.items() if k in EXPORT_SAFE_STORY_FIELDS} for s in stories],
+        "tasks": [{k: v for k, v in t.items() if k in EXPORT_SAFE_TASK_FIELDS} for t in tasks],
+        "sprints": [{k: v for k, v in sp.items() if k in EXPORT_SAFE_SPRINT_FIELDS} for sp in sprints],
         "exported_at": utcnow().isoformat(),
     }
     await record_audit_log(db, request, current_user, "export_initiative", "initiative", resource_id=initiative_id)
     await _record_initiative_analytics(db, current_user.id, "initiative_exported", initiative_id=initiative_id)
     return export_data
+
+
+class InitiativeIntegrationLinkRequest(BaseModel):
+    provider: str = Field(..., max_length=50)
+    external_project_id: str = Field(..., max_length=200)
+    external_project_name: str = Field(..., max_length=200)
+    external_repo_id: str = Field(default="", max_length=200)
+    external_repo_name: str = Field(default="", max_length=200)
+    channel_id: str = Field(default="", max_length=200)
+    channel_name: str = Field(default="", max_length=200)
+
+
+@router.get("/{initiative_id}/integrations")
+async def list_initiative_integrations(initiative_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    items = await db.initiative_integrations.find({"initiative_id": initiative_id}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    return {"integrations": items}
+
+
+@router.post("/{initiative_id}/integrations")
+async def link_initiative_integration(initiative_id: str, req: InitiativeIntegrationLinkRequest, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    provider = req.provider.lower()
+    now = utcnow()
+    integration = InitiativeIntegration(
+        initiative_id=initiative_id,
+        user_id=current_user.id,
+        provider=provider,
+        external_project_id=req.external_project_id,
+        external_project_name=req.external_project_name,
+        external_repo_id=req.external_repo_id,
+        external_repo_name=req.external_repo_name,
+        channel_id=req.channel_id,
+        channel_name=req.channel_name,
+        status="connected",
+        updated_at=now,
+    )
+    await db.initiative_integrations.update_one(
+        {"initiative_id": initiative_id, "provider": provider},
+        {"$set": integration.model_dump()},
+        upsert=True,
+    )
+    await record_audit_log(
+        db, request, current_user, "link_initiative_integration", "initiative",
+        resource_id=initiative_id,
+        changes={"provider": provider, "external_project_id": req.external_project_id},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_integration_linked", initiative_id=initiative_id, properties={"provider": provider})
+    stored = await db.initiative_integrations.find_one({"initiative_id": initiative_id, "provider": provider}, {"_id": 0})
+    return stored
+
+
+@router.delete("/{initiative_id}/integrations/{provider}")
+async def unlink_initiative_integration(initiative_id: str, provider: str, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    provider = provider.lower()
+    result = await db.initiative_integrations.delete_one({"initiative_id": initiative_id, "provider": provider})
+    await record_audit_log(
+        db, request, current_user, "unlink_initiative_integration", "initiative",
+        resource_id=initiative_id,
+        changes={"provider": provider},
+    )
+    await _record_initiative_analytics(db, current_user.id, "initiative_integration_unlinked", initiative_id=initiative_id, properties={"provider": provider})
+    return {"ok": True, "deleted": result.deleted_count > 0}
 
 
 @router.websocket("/ws/{initiative_id}")

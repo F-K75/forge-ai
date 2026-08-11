@@ -19,6 +19,7 @@ import uuid
 class InitiativeStatus(str, Enum):
     DRAFT = "draft"
     GENERATING = "generating"
+    REVIEW = "review"
     ACTIVE = "active"
     COMPLETED = "completed"
     ARCHIVED = "archived"
@@ -361,6 +362,43 @@ class PRDApproval(BaseModel):
     approved: bool
     comment: str = ""
     created_at: datetime = Field(default_factory=utcnow)
+
+
+class InitiativeComment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    initiative_id: str
+    user_id: str
+    section: str = ""
+    comment: str = ""
+    resolved: bool = False
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
+class InitiativeApproval(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    initiative_id: str
+    user_id: str
+    approved: bool
+    comment: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class InitiativeIntegration(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    initiative_id: str
+    user_id: str
+    provider: str
+    external_project_id: str = ""
+    external_project_name: str = ""
+    external_repo_id: str = ""
+    external_repo_name: str = ""
+    channel_id: str = ""
+    channel_name: str = ""
+    status: str = "connected"
+    last_synced_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- WebSocket events (separate channel from core.models.WSEvent, which is

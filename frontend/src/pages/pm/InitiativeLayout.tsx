@@ -7,8 +7,10 @@ import { usePMSocket } from "../../hooks/usePMSocket";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
 import { captureEvent } from "../../lib/analytics";
+import { escapeHtml } from "../../lib/sanitize";
 import { motion, motionVariants } from "../../lib/animations";
 import { presets } from "../../lib/animationPresets";
+import { EmptyState, Skeleton } from "../../components/ui/EmptyState";
 
 const TABS = [
   { to: "", label: "Overview", end: true, icon: Rocket },
@@ -19,12 +21,14 @@ const TABS = [
   { to: "graph", label: "Graph", icon: () => null },
   { to: "releases", label: "Releases", icon: () => null },
   { to: "activity", label: "Activity", icon: () => null },
+  { to: "integrations", label: "Integrations", icon: () => null },
+  { to: "analytics", label: "Analytics", icon: () => null },
 ];
 
 export default function InitiativeLayout() {
   const { initiativeId } = useParams<{ initiativeId: string }>();
   const navigate = useNavigate();
-  const { initiative, generationStatus, generationStage, generationError, hydrate, reset } = usePMStore();
+  const { initiative, generationStatus, generationStage, generationError, hydrate, reset, loading, error } = usePMStore();
   const { connectionStatus } = usePMSocket(LIVE_MODE ? initiativeId ?? null : null);
   const [confirming, setConfirming] = useState(false);
 
@@ -44,6 +48,16 @@ export default function InitiativeLayout() {
     } catch {
       toast.error("Failed to start regeneration");
       setConfirming(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!initiativeId) return;
+    try {
+      await initiativesApi.cancel(initiativeId);
+      toast.success("Generation cancelled");
+    } catch {
+      toast.error("Failed to cancel generation");
     }
   };
 
@@ -93,8 +107,31 @@ export default function InitiativeLayout() {
   }
 
   if (!initiative) {
+    if (loading) {
+      return (
+        <div className="flex h-full flex-col gap-4 p-6 md:p-8">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+          </div>
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="flex h-full items-center justify-center text-sm text-faint">Loading initiative…</div>
+      <div className="flex h-full items-center justify-center text-sm text-faint p-8 text-center">
+        {error || "Failed to load initiative"}
+      </div>
     );
   }
 
@@ -142,11 +179,20 @@ export default function InitiativeLayout() {
                   Export
                 </button>
                 {generationStatus === "generating" ? (
-                  <span className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2 text-xs font-medium text-accent">
-                    <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                    {generationStage ? `Generating ${generationStage}…` : "Generating…"}
-                  </span>
-                ) : generationStatus === "failed" ? (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2 text-xs font-medium text-accent">
+                      <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                      {generationStage ? `Generating ${generationStage}…` : "Generating…"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : generationStatus === "failed" || generationStatus === "review" ? (
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -155,13 +201,15 @@ export default function InitiativeLayout() {
                     >
                       Approve plan
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleRetry}
-                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                    >
-                      Retry generation
-                    </button>
+                    {generationStatus === "failed" ? (
+                      <button
+                        type="button"
+                        onClick={handleRetry}
+                        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                      >
+                        Retry generation
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="flex flex-col items-end gap-2">
@@ -211,7 +259,7 @@ export default function InitiativeLayout() {
                 <AlertTriangle size={16} className="mt-0.5 shrink-0 text-ember" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink">Plan generation failed</p>
-                  <p className="mt-1 text-xs text-muted line-clamp-3">{generationError}</p>
+                  <p className="mt-1 text-xs text-muted line-clamp-3">{escapeHtml(generationError)}</p>
                 </div>
                 <button
                   type="button"

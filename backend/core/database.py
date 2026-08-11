@@ -205,6 +205,10 @@ async def _ensure_indexes(db):
             db.agent_executions.create_index([("task_id", 1)]),
             db.releases.create_index([("initiative_id", 1), ("created_at", -1)]),
             db.decision_log.create_index([("initiative_id", 1), ("created_at", -1)]),
+            db.initiative_comments.create_index([("initiative_id", 1), ("created_at", -1)]),
+            db.initiative_approvals.create_index([("initiative_id", 1), ("created_at", -1)]),
+            db.initiative_integrations.create_index([("initiative_id", 1), ("provider", 1)], unique=True),
+            db.initiative_integrations.create_index([("user_id", 1), ("created_at", -1)]),
             # --- Agent Registry (persistent engineering org per project) ---
             db.engineering_orgs.create_index("project_id", unique=True),
             db.agent_profiles.create_index([("project_id", 1), ("role", 1)], unique=True),
