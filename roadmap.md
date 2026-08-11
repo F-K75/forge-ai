@@ -1,9 +1,72 @@
 # Forge AI — Product Roadmap
 
-> **Status:** Living document. Phases reflect what is already built in this repository
+> **Status:** Living document. Phases 0–7 reflect what is already built in this repository
 > (verified against `README.md`, `docs/ARCHITECTURE.md`, `PRODUCTION_READINESS_AUDIT.md`,
 > and the actual `backend/`, `frontend/`, `orchestrator/`, `orchestration/` trees).
-> Unchecked items are future work.
+> Phases 8+ are planned work, sequenced against the North Star below.
+
+---
+
+## North Star
+
+**"From idea to operating business, with AI doing the work."**
+
+Forge AI's vision is to become the autonomous software company that turns an idea into a
+production-ready *business*, not just a codebase. Today, building software means stitching
+together product managers, designers, engineers, DevOps, QA, and business judgment. Forge AI
+collapses that into an AI-native development organization: specialized agents that build,
+challenge assumptions, validate, ship, and continuously improve — without a human manually
+orchestrating every step.
+
+Forge is not positioned as:
+> ❌ "AI that writes code."
+
+Forge is positioned as:
+> ✅ "AI that builds and operates software businesses."
+
+That requires the system to reason about more than source code — Product, Business, Design,
+Engineering, Quality, Security, Infrastructure, Economics, Analytics, and Iteration all have
+to be first-class concerns, not afterthoughts bolted onto a code generator.
+
+### The three stages
+
+| Stage | Description | Forge AI status |
+|---|---|---|
+| **1. AI Coding Agent** | Writes software from a prompt | ✅ Complete (Phase 1) |
+| **2. AI Software Factory** | Coordinates specialized agents to build, test, review, and ship software | ✅ Mostly complete (Phases 1–7); hardening in Phase 8 |
+| **3. AI Business Builder** | Understands the business objective and autonomously executes toward measurable outcomes — validates demand, ships, watches real-world signal, and decides what to build next | 🔲 Not started — **this is the real destination** |
+
+The roadmap below is organized so that reaching Stage 3 is a visible, tracked destination
+(Phase 12) rather than an implicit hope. Phases 9–11 harden and commercialize the Stage 2
+factory; Phase 12 is where Forge starts becoming the thing described in the North Star.
+
+### The long-term picture
+
+A user should eventually be able to say:
+
+> "Build me a SaaS product for automating financial reporting for mid-sized companies."
+
+...and Forge, not the human, walks the full chain:
+
+1. Challenge the business idea
+2. Identify the target customer
+3. Define the narrowest viable wedge
+4. Create the product specification
+5. Design the UX
+6. Architect the system
+7. Build the application
+8. Integrate required services
+9. Test and validate it
+10. Run security and release checks
+11. Deploy it
+12. Monitor usage, errors, and costs
+13. Learn from real-world signals
+14. Decide what should be built next
+
+The human becomes the decision-maker and owner; Forge becomes the execution engine. Steps
+4–11 are largely built today (Phases 1–7). Steps 1–3 and 12–14 — validating *whether* and
+*what* to build, and closing the loop after launch — are the gap between where Forge is now
+and the North Star, and are the explicit focus of Phase 12.
 
 ---
 
@@ -26,7 +89,7 @@
 
 ---
 
-## Phase 1 — Core AI Build Pipeline
+## Phase 1 — Core AI Build Pipeline *(Stage 1: AI Coding Agent)*
 **Goal:** Turn a natural-language prompt into a generated full-stack app, streamed live.
 
 | # | Capability | Evidence in repo | Status |
@@ -40,9 +103,12 @@
 | 1.7 | Generated app tech stack: React 18 + Vite + TS + Tailwind + FastAPI + Motor + JWT + Docker | `backend/agents/developer.py` output templates | ✅ Done |
 | 1.8 | Build rollback to prior version | `POST /builds/{build_id}/rollback/{version}` | ✅ Done |
 
+*Covers North Star steps 7–8 (build, integrate). The Business Model agent (1.1) is an early*
+*signal toward Stage 3 but does not yet drive decisions — see Phase 12.*
+
 ---
 
-## Phase 2 — AI Gateway Runtime
+## Phase 2 — AI Gateway Runtime *(Stage 2: AI Software Factory)*
 **Goal:** Systematically improve prompt quality, context selection, and output reliability.
 
 | # | Capability | Evidence in repo | Status |
@@ -61,7 +127,7 @@
 
 ---
 
-## Phase 3 — LLM Provider Layer
+## Phase 3 — LLM Provider Layer *(Stage 2: AI Software Factory)*
 **Goal:** Run any agent on any LLM provider with resilience and cost control.
 
 | # | Capability | Evidence in repo | Status |
@@ -75,9 +141,13 @@
 | 3.7 | Org-level LLM policy controls | `backend/api/org_llm_policy.py` | ✅ Done |
 | 3.8 | BYOK (Bring Your Own Key) for Pro+ users | Billing + provider layer wiring | ✅ Done |
 
+*Note: 3.6 tracks what it costs Forge to run its own AI — the "Economics" pillar of the*
+*North Star, applied to a generated business's own unit economics, is a Phase 12 concern,*
+*not this layer.*
+
 ---
 
-## Phase 4 — Agile PM Layer
+## Phase 4 — Agile PM Layer *(Stage 2: AI Software Factory)*
 **Goal:** Turn an idea into a full delivery plan with AI-generated artifacts and sprint execution.
 
 | # | Capability | Evidence in repo | Status |
@@ -91,9 +161,12 @@
 | 4.7 | Agent execution records + registry | `/agent-executions`, `backend/api/agent_registry.py` | ✅ Done |
 | 4.8 | Frontend PM workspace (initiatives, sprints, kanban, roadmap, analytics, releases) | `frontend/src/pages/pm/` (12 pages) | ✅ Done |
 
+*The BA → PRD chain starts from an already-assumed idea. It does not yet challenge the idea*
+*or validate demand (North Star steps 1–3) — that entry point doesn't exist yet. See 12.1.*
+
 ---
 
-## Phase 5 — Platform Services & Growth
+## Phase 5 — Platform Services & Growth *(Stage 2: AI Software Factory)*
 **Goal:** Monetize, grow, and operate the platform at scale.
 
 | # | Capability | Evidence in repo | Status |
@@ -115,9 +188,13 @@
 | 5.15 | Review Board orchestrator (standalone multi-agent code-review service) | `orchestrator/` (port 8100, agent JSON schema, GO / NO_GO / GO_WITH_FIXES) | ✅ Done |
 | 5.16 | Review Board UI | `frontend/src/pages/reviews/` (`ReviewsListPage.tsx`, `ReviewDetailPage.tsx`) | ✅ Done |
 
+*5.4 and 5.9 give Forge monitoring/analytics on itself and on deployment mechanics — North*
+*Star step 12 ("monitor usage, errors, costs") applied to the *generated app*, feeding back*
+*into what to build next, is not yet wired. That closure is Phase 12.*
+
 ---
 
-## Phase 6 — Frontend Experience
+## Phase 6 — Frontend Experience *(Stage 2: AI Software Factory)*
 **Goal:** Make the platform feel like a polished, native-grade desktop app.
 
 | # | Capability | Evidence in repo | Status |
@@ -137,7 +214,7 @@
 
 ---
 
-## Phase 7 — Production Hardening & Reliability
+## Phase 7 — Production Hardening & Reliability *(Stage 2: AI Software Factory)*
 **Goal:** Pass a production readiness audit and operate safely at scale.
 
 | # | Capability | Evidence in repo | Status |
@@ -165,7 +242,7 @@
 
 ---
 
-## Phase 8 — Near-Term Hardening (Next 1–4 Weeks)
+## Phase 8 — Near-Term Hardening (Next 1–4 Weeks) *(Stage 2 → stabilize the factory)*
 **Goal:** Close the remaining P2/P3 gaps from the production audit and reliability review.
 
 | # | Capability | Owner / Area | Status |
@@ -182,7 +259,7 @@
 
 ---
 
-## Phase 9 — Product Experience (Next 1–3 Months)
+## Phase 9 — Product Experience (Next 1–3 Months) *(Stage 2 → factory polish)*
 **Goal:** Differentiate the UX and unblock viral / organic growth.
 
 | # | Capability | Evidence in repo | Status |
@@ -196,7 +273,7 @@
 
 ---
 
-## Phase 10 — Enterprise Readiness (Next 3–6 Months)
+## Phase 10 — Enterprise Readiness (Next 3–6 Months) *(Stage 2 → monetize the factory)*
 **Goal:** Pass enterprise security reviews and land first enterprise logos.
 
 | # | Capability | Evidence in repo | Status |
@@ -214,7 +291,7 @@
 
 ---
 
-## Phase 11 — GTM & Commercial Launch (Parallel Track)
+## Phase 11 — GTM & Commercial Launch (Parallel Track) *(Stage 2 → sell the factory)*
 **Goal:** Convert technical differentiation into revenue and users.
 
 | # | Capability | Evidence in repo | Status |
@@ -229,6 +306,33 @@
 | 11.8 | Enterprise sales playbook + demo environment + CRM | ❌ Not started | 🔲 Planned |
 | 11.9 | Customer success function (CSM, knowledge base, NPS tracking) | Support ticket code exists; live CS function pending | 🔲 Planned |
 | 11.10 | Referral program activation (code exists, no users yet) | `backend/api/growth.py` referral routes | 🔲 Pending users |
+| 11.11 | Positioning shift in messaging: "AI that builds businesses" not "AI that writes code" | Not started — landing page and content currently describe generation, not autonomous execution | 🔲 Planned |
+
+*11.11 is new: the vision explicitly rejects a code-generator narrative. Nothing in the*
+*current landing page, blog, or launch plan stakes out the "business builder" framing —*
+*without it, GTM sells Stage 1/2 even once Phase 12 work begins.*
+
+---
+
+## Phase 12 — Business Builder Foundations *(Stage 3: AI Business Builder — the North Star)*
+**Goal:** Begin closing the loop the vision describes — challenge ideas before building,
+and let real-world outcomes drive what gets built next. This is new work; nothing below
+exists in the repo today. Sequencing assumes Phases 8–9 (stability) land first.
+
+| # | Capability | What it does | Status |
+|---|-----------|--------------|--------|
+| 12.1 | Idea validation agent (pre-Architect) | Challenges the business idea, identifies target customer, proposes the narrowest viable wedge — runs *before* PRD/Architect, can push back or ask clarifying questions instead of building immediately | 🔲 Planned |
+| 12.2 | Demand-signal research step | Agent does lightweight market/competitor research to surface whether the idea has plausible demand before committing build resources | 🔲 Planned |
+| 12.3 | Post-launch monitoring hook for generated apps | Extends 5.9's deployment monitoring to actually watch the *generated app's* usage, errors, and cost-to-run — not just Forge's own metrics | 🔲 Planned |
+| 12.4 | Generated-app unit economics tracking | Surfaces what each generated business costs to operate (infra, API costs, etc.) — the "Economics" pillar applied to the output, not just to Forge's own AI spend | 🔲 Planned |
+| 12.5 | Iteration agent: "what should we build next" | Closes the loop — reads 12.3/12.4 signal plus user feedback and proposes the next increment, feeding back into the PM layer (Phase 4) as a new initiative | 🔲 Planned |
+| 12.6 | Outcome-based pricing pilot | Ties billing (or a tier of it) to verified outcomes — successful deploy, passing Review Board GO, sustained post-launch uptime — rather than credits alone; instruments 5.15's GO/NO_GO and 5.9's deploy-success signal as billing primitives | 🔲 Planned |
+| 12.7 | "Decision-maker, not operator" UX | Human-facing surface where the user approves/rejects Forge's proposals at each of the 14 North Star steps, rather than configuring each step manually | 🔲 Planned |
+
+**Exit criteria for Phase 12 (Stage 3 entry):** a user can submit a one-line business idea,
+have Forge challenge and scope it, build and ship it, watch it run, and receive an
+autonomous proposal for the next iteration — with the human only approving or rejecting
+decisions, not orchestrating steps.
 
 ---
 
@@ -246,8 +350,12 @@
 
 ## How to Read This Roadmap
 
-- **Phases 0–7** are **complete** and reflected in the current codebase.
-- **Phase 8** items are **engineered and planned** but not yet shipped.
-- **Phases 9–11** are **future commitments** derived from the existing roadmap bullets
-  in `README.md`, gaps identified in `PRODUCTION_READINESS_AUDIT.md`,
-  `FORGE_AI_BUSINESS_AUDIT.md`, and `TODOS.md`.
+- **Phases 0–7** are **complete** and reflected in the current codebase. Together they take
+  Forge from **Stage 1 (AI Coding Agent)** through most of **Stage 2 (AI Software Factory)**.
+- **Phase 8** items are **engineered and planned** but not yet shipped — closing out Stage 2
+  reliability gaps.
+- **Phases 9–11** are **commercialization work** — polish, enterprise readiness, and GTM for
+  the Stage 2 factory. Necessary, but they don't by themselves move Forge toward the vision.
+- **Phase 12** is the **first tracked step into Stage 3 (AI Business Builder)** — the actual
+  North Star. It's currently unstarted; its purpose in this document is to make sure the
+  destination stays visible and isn't crowded out by Stage 2 hardening and sales work.
