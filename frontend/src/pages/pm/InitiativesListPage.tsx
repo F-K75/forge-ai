@@ -781,7 +781,7 @@ export default function InitiativesListPage() {
           </section>
 
           {/* ============ INITIATIVE INPUT ============ */}
-          <section aria-label="Start a new initiative" className="mt-8">
+          <section aria-label="Start a new initiative" className="mt-24">
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
