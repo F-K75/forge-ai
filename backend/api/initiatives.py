@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
@@ -12,6 +13,8 @@ from core.permissions import has_initiative_access
 from api.auth import get_current_user
 from tasks.pm_tasks import generate_initiative_plan
 from services.pm_ws_manager import pm_manager, authenticate_pm_websocket_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/initiatives", tags=["initiatives"])
 
@@ -70,7 +73,10 @@ async def create_initiative(req: CreateInitiativeRequest, current_user: User = D
 
     await db.projects.insert_one(project.model_dump())
     await db.initiatives.insert_one(initiative.model_dump())
-    generate_initiative_plan.delay(initiative.id)
+    try:
+        generate_initiative_plan.delay(initiative.id)
+    except Exception:
+        logger.exception("Failed to queue initiative plan generation")
     return initiative
 
 

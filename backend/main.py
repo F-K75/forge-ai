@@ -209,6 +209,7 @@ app.add_middleware(
         "https://e2cdabd1.forge-frontend-8gr.pages.dev",
         "https://session-agent-a5b35e09-98a6.forge-frontend-8gr.pages.dev",
         "https://5030f5a5.forge-frontend-8gr.pages.dev",
+        "https://20e9fbb7.forge-frontend-8gr.pages.dev",
     ],
     allow_origin_regex=r"https://.*\.pages\.dev",
     allow_credentials=True,
