@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Any
 from core.models import Project, User, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.audit import record_audit_log
+from core.permissions import has_project_access
 from api.auth import get_current_user
 from api.billing import get_max_projects_for_user
 
@@ -45,7 +46,7 @@ async def create_project(req: CreateProjectRequest, current_user: User = Depends
 
     max_projects = await get_max_projects_for_user(db, current_user.id)
     if max_projects >= 0:
-        current_count = await db.projects.count_documents({"user_id": current_user.id})
+        current_count = await db.projects.count_documents({"user_id": current_user.id, "deleted_at": {"$exists": False}})
         if current_count >= max_projects:
             raise HTTPException(
                 status_code=402,
@@ -59,6 +60,10 @@ async def create_project(req: CreateProjectRequest, current_user: User = Depends
         template=req.template,
     )
     await db.projects.insert_one(project.model_dump())
+    await record_audit_log(
+        db, None, current_user, "create_project", "project",
+        resource_id=project.id, changes={"name": req.name},
+    )
     return project
 
 
@@ -70,7 +75,7 @@ async def list_projects(
     db = await get_db()
     result = await paginated_query(
         db.projects,
-        {"user_id": current_user.id},
+        {"user_id": current_user.id, "deleted_at": {"$exists": False}},
         page=params.page,
         per_page=params.per_page,
         sort=[("updated_at", -1)],
@@ -87,8 +92,8 @@ async def list_projects(
 @router.get("/{project_id}")
 async def get_project(project_id: str, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "user_id": current_user.id}, {"_id": 0})
-    if not project:
+    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
     return project
 
@@ -100,13 +105,13 @@ async def get_project_builds(
     params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "user_id": current_user.id}, {"_id": 0})
-    if not project:
+    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
 
     result = await paginated_query(
         db.builds,
-        {"project_id": project_id, "user_id": current_user.id},
+        {"project_id": project_id},
         page=params.page,
         per_page=params.per_page,
         sort=[("created_at", -1)],
@@ -124,25 +129,28 @@ async def get_project_builds(
 @router.put("/{project_id}")
 async def update_project(project_id: str, req: UpdateProjectRequest, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "user_id": current_user.id}, {"_id": 0})
-    if not project:
+    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
     
     update = {k: v for k, v in req.model_dump().items() if v is not None}
     update["updated_at"] = utcnow().isoformat()
-    await db.projects.update_one({"id": project_id, "user_id": current_user.id}, {"$set": update})
+    await db.projects.update_one({"id": project_id}, {"$set": update})
+    await record_audit_log(
+        db, None, current_user, "update_project", "project",
+        resource_id=project_id, changes=update,
+    )
     return {"ok": True}
 
 
 @router.delete("/{project_id}")
 async def delete_project(project_id: str, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "user_id": current_user.id}, {"_id": 0})
-    if not project:
+    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
     
-    await db.projects.delete_one({"id": project_id, "user_id": current_user.id})
-    await db.builds.delete_many({"project_id": project_id, "user_id": current_user.id})
+    await db.projects.update_one({"id": project_id}, {"$set": {"deleted_at": utcnow().isoformat()}})
     await record_audit_log(
         db, request, current_user, "delete_project", "project",
         resource_id=project_id, changes={"name": project.get("name")},
