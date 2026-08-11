@@ -1,15 +1,17 @@
 import asyncio
 import json
 import logging
+import time
+from collections import OrderedDict
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.models import User, PaginationParams, Project, utcnow
 from core.database import get_db, paginated_query
 from core.pm_models import Initiative, InitiativeStatus
-from core.permissions import has_initiative_access
+from core.permissions import has_initiative_access, has_initiative_write_access
 from core.config import get_settings
 from core.audit import record_audit_log
 from services.credit_alerts import check_and_send_credit_alerts
@@ -21,6 +23,33 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 router = APIRouter(prefix="/initiatives", tags=["initiatives"])
+
+_INITIATIVE_RATE_LIMIT_WINDOW = 3600
+_INITIATIVE_RATE_LIMIT_MAX = 5
+_initiative_rate_timestamps: "OrderedDict[str, list[float]]" = OrderedDict()
+
+
+def _check_initiative_rate_limit(user_id: str) -> None:
+    now = time.time()
+    if user_id in _initiative_rate_timestamps:
+        _initiative_rate_timestamps.move_to_end(user_id)
+    timestamps = _initiative_rate_timestamps.get(user_id, [])
+    timestamps = [t for t in timestamps if now - t < _INITIATIVE_RATE_LIMIT_WINDOW]
+    if len(timestamps) >= _INITIATIVE_RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Too many initiatives created recently. Please wait before creating another.")
+    timestamps.append(now)
+    _initiative_rate_timestamps[user_id] = timestamps
+    if len(_initiative_rate_timestamps) > 10000:
+        _initiative_rate_timestamps.popitem(last=False)
+
+
+def _is_allowed_ws_origin(origin: Optional[str]) -> bool:
+    if not origin:
+        return True
+    allowed = {o.strip() for o in settings.allowed_origins if o.strip()}
+    if not allowed:
+        return True
+    return origin in allowed
 
 SAFE_INITIATIVE_FIELDS = {
     "id", "user_id", "org_id", "name", "status", "vision", "business_goals",
@@ -62,6 +91,29 @@ class UpdateInitiativeRequest(BaseModel):
     project_ids: Optional[List[str]] = None
     version: Optional[int] = None
 
+    @field_validator("roadmap", "risks")
+    @classmethod
+    def validate_structured_items(cls, value: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
+        if value is None:
+            return None
+        if len(value) > 100:
+            raise ValueError("Item list exceeds maximum length of 100")
+        cleaned = []
+        for item in value:
+            if not isinstance(item, dict):
+                raise ValueError("Each item must be a dictionary")
+            cleaned.append({k: v for k, v in item.items() if isinstance(k, str)})
+        return cleaned
+
+    @field_validator("tech_stack", "business_goals", "functional_requirements", "non_functional_requirements", "success_metrics")
+    @classmethod
+    def validate_string_lists(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+        if value is None:
+            return None
+        if len(value) > 200:
+            raise ValueError("List exceeds maximum length of 200")
+        return [str(item) for item in value]
+
 
 class PaginatedInitiatives(BaseModel):
     initiatives: List[Dict[str, Any]]
@@ -74,6 +126,8 @@ class PaginatedInitiatives(BaseModel):
 @router.post("/")
 async def create_initiative(req: CreateInitiativeRequest, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
+    _check_initiative_rate_limit(current_user.id)
+
     name = req.name or req.prompt[:60]
 
     initiative_cost = settings.credits_initiative_generation
@@ -177,7 +231,9 @@ async def get_initiative(initiative_id: str, request: Request, current_user: Use
 @router.put("/{initiative_id}")
 async def update_initiative(initiative_id: str, req: UpdateInitiativeRequest, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    await _get_owned_initiative(db, initiative_id, current_user.id)
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    if not await has_initiative_write_access(db, current_user.id, initiative):
+        raise HTTPException(status_code=403, detail="Permission denied")
     update = {k: v for k, v in req.model_dump().items() if k != "version" and v is not None}
     update["updated_at"] = utcnow()
     update["version"] = 1
@@ -204,6 +260,8 @@ async def update_initiative(initiative_id: str, req: UpdateInitiativeRequest, re
 async def regenerate_initiative(initiative_id: str, request: Request, confirm: bool = Query(False), current_user: User = Depends(get_current_user)):
     db = await get_db()
     initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    if not await has_initiative_write_access(db, current_user.id, initiative):
+        raise HTTPException(status_code=403, detail="Permission denied")
     if initiative.get("status") == InitiativeStatus.GENERATING.value:
         raise HTTPException(status_code=429, detail="Generation already in progress")
 
@@ -266,7 +324,9 @@ def _prd_to_markdown(prd: dict) -> str:
 @router.put("/{initiative_id}/prd")
 async def update_prd(initiative_id: str, req: Dict[str, Any], request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    await _get_owned_initiative(db, initiative_id, current_user.id)
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    if not await has_initiative_write_access(db, current_user.id, initiative):
+        raise HTTPException(status_code=403, detail="Permission denied")
     allowed = {
         "executive_summary", "problem_statement", "solution", "personas", "user_journeys",
         "functional_requirements", "non_functional_requirements", "security", "performance",
@@ -355,8 +415,36 @@ async def get_dependency_graph(
     }
 
 
+@router.post("/{initiative_id}/approve")
+async def approve_initiative(initiative_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    if not await has_initiative_write_access(db, current_user.id, initiative):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    status = initiative.get("status")
+    if status not in (InitiativeStatus.GENERATING.value, InitiativeStatus.FAILED.value):
+        raise HTTPException(status_code=400, detail="Initiative is not pending approval")
+
+    await db.initiatives.update_one(
+        {"id": initiative_id},
+        {"$set": {"status": InitiativeStatus.ACTIVE.value, "updated_at": utcnow()}},
+    )
+    await record_audit_log(
+        db, request, current_user, "approve_initiative", "initiative",
+        resource_id=initiative_id,
+        changes={"status": InitiativeStatus.ACTIVE.value},
+    )
+    return {"ok": True, "status": InitiativeStatus.ACTIVE.value}
+
+
 @router.websocket("/ws/{initiative_id}")
 async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: Optional[str] = Query(None)):
+    origin = websocket.headers.get("origin")
+    if not _is_allowed_ws_origin(origin):
+        await websocket.accept()
+        await websocket.close(code=4001, reason="Invalid origin")
+        return
+
     user = await authenticate_pm_websocket_token(token, initiative_id=initiative_id)
     if not user:
         await websocket.accept()

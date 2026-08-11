@@ -37,6 +37,28 @@ async def has_initiative_access(db, user_id: str, initiative: dict) -> bool:
     return membership is not None
 
 
+async def has_initiative_write_access(db, user_id: str, initiative: dict) -> bool:
+    """True if the user can mutate the initiative.
+
+    Owners and admins always have write access. Members can write; viewers
+    can only read. Unrecognized roles are treated as read-only.
+    """
+    if not initiative:
+        return False
+    if initiative.get("user_id") == user_id:
+        return True
+    org_id = initiative.get("org_id")
+    if not org_id:
+        return False
+    membership = await db.team_members.find_one({"org_id": org_id, "user_id": user_id}, {"_id": 0})
+    if not membership:
+        return False
+    role = membership.get("role")
+    if role in (Role.OWNER.value, Role.ADMIN.value, Role.MEMBER.value):
+        return True
+    return False
+
+
 async def has_project_access(db, user_id: str, project: dict) -> bool:
     """Return True if user_id owns the project or shares its org."""
     if not project:

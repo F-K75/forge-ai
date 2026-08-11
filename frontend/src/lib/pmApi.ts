@@ -9,6 +9,7 @@ export const initiativesApi = {
   update: (id: string, data: Record<string, unknown>) =>
     api.put(`/v1/initiatives/${id}`, data).then(r => r.data),
   regenerate: (id: string) => api.post(`/v1/initiatives/${id}/regenerate?confirm=true`).then(r => r.data),
+  approve: (id: string) => api.post(`/v1/initiatives/${id}/approve`).then(r => r.data),
   getPrd: (id: string, format?: 'markdown') =>
     api.get(`/v1/initiatives/${id}/prd`, { params: format ? { format } : undefined }).then(r => r.data),
   updatePrd: (id: string, data: Record<string, unknown>) =>

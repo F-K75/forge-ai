@@ -763,7 +763,7 @@ export default function InitiativesListPage() {
                             )}
                           </span>
                           <span className="mt-1.5 block line-clamp-2 text-sm leading-relaxed text-muted">
-                            {initiative.vision || initiative.prompt}
+                            {initiative.vision ? initiative.vision : "No description provided"}
                           </span>
                           <span className="mt-3 flex flex-wrap items-center gap-2.5 text-[11px] text-faint">
                             <span className="flex items-center gap-1">

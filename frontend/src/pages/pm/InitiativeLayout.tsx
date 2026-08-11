@@ -46,6 +46,16 @@ export default function InitiativeLayout() {
     }
   };
 
+  const handleApprove = async () => {
+    if (!initiativeId) return;
+    try {
+      await initiativesApi.approve(initiativeId);
+      toast.success("Plan approved");
+    } catch {
+      toast.error("Failed to approve plan");
+    }
+  };
+
   const handleRetry = async () => {
     if (!initiativeId) return;
     try {
@@ -110,6 +120,23 @@ export default function InitiativeLayout() {
                     <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                     {generationStage ? `Generating ${generationStage}…` : "Generating…"}
                   </span>
+                ) : generationStatus === "failed" ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleApprove}
+                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                    >
+                      Approve plan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                    >
+                      Retry generation
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-end gap-2">
                     {confirming ? (
@@ -170,7 +197,7 @@ export default function InitiativeLayout() {
               </motion.div>
             )}
 
-            <nav aria-label="Initiative sections" className="flex gap-0.5 -mb-px overflow-x-auto">
+            <nav aria-label="Initiative sections" className="flex gap-0.5 -mb-px overflow-x-auto" role="tablist">
               {TABS.map((tab, i) => {
                 const Icon = tab.icon;
                 return (
@@ -184,6 +211,8 @@ export default function InitiativeLayout() {
                     <NavLink
                       to={tab.to}
                       end={tab.end}
+                      aria-controls={`tab-panel-${tab.to || "overview"}`}
+                      role="tab"
                       className={({ isActive }) =>
                         [
                           "flex items-center gap-1.5 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition-colors motion-reduce:transition-none",
