@@ -609,6 +609,8 @@ async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: 
 
     header_token = websocket.headers.get("sec-websocket-protocol")
     ws_token = token or header_token
+    if token and not header_token:
+        logger.warning("WebSocket token passed via query parameter; Sec-WebSocket-Protocol header is preferred")
     user = await authenticate_pm_websocket_token(ws_token, initiative_id=initiative_id)
     if not user:
         await websocket.accept()
