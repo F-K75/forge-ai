@@ -1,14 +1,68 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
+from urllib.parse import urlparse
 from core.models import Project, User, PaginationParams, utcnow
-from core.database import get_db, paginated_query
+from core.database import get_db, paginated_query, get_redis
 from core.audit import record_audit_log
 from core.permissions import has_project_access
 from api.auth import get_current_user
 from api.billing import get_max_projects_for_user
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+PROJECT_CREATE_RATE_LIMIT = 10
+PROJECT_CREATE_RATE_WINDOW = 60
+
+
+async def _check_project_create_rate_limit(user_id: str) -> None:
+    try:
+        redis = await get_redis()
+        key = f"rl:project_create:{user_id}"
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, PROJECT_CREATE_RATE_WINDOW)
+        if current > PROJECT_CREATE_RATE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many project creations. Please wait before creating another.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
+
+def _validate_github_repo(value: Optional[str]) -> Optional[str]:
+    if value is None or value == "":
+        return value
+    value = value.strip()
+    if not value:
+        return value
+    if value.startswith(("http://", "https://")):
+        parsed = urlparse(value)
+        if parsed.netloc not in {"github.com", "www.github.com"}:
+            raise ValueError("github_repo must be a github.com URL")
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 2:
+            raise ValueError("github_repo must be in the form https://github.com/owner/repo")
+        return value
+    parts = value.split("/")
+    if len(parts) != 2 or not all(parts):
+        raise ValueError("github_repo must be in the form owner/repo")
+    return value
+
+
+def _validate_url(value: Optional[str], field_name: str) -> Optional[str]:
+    if value is None or value == "":
+        return value
+    value = value.strip()
+    if not value:
+        return value
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError(f"{field_name} must be a valid URL")
+    return value
 
 
 class PaginatedProjects(BaseModel):
@@ -37,12 +91,25 @@ class UpdateProjectRequest(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = Field(None, max_length=5000)
     github_repo: Optional[str] = Field(None, max_length=500)
+    deployed_url: Optional[str] = Field(None, max_length=500)
     template: Optional[str] = Field(None, max_length=100)
+
+    @field_validator("github_repo")
+    @classmethod
+    def validate_github_repo(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_github_repo(value)
+
+    @field_validator("deployed_url")
+    @classmethod
+    def validate_deployed_url(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_url(value, "deployed_url")
 
 
 @router.post("/")
 async def create_project(req: CreateProjectRequest, current_user: User = Depends(get_current_user)):
     db = await get_db()
+
+    await _check_project_create_rate_limit(current_user.id)
 
     max_projects = await get_max_projects_for_user(db, current_user.id)
     if max_projects >= 0:

@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisco
 from pydantic import BaseModel, Field
 
 from core.models import User, PaginationParams, Project, utcnow
-from core.database import get_db, paginated_query
+from core.database import get_db, paginated_query, get_redis
 from core.pm_models import Initiative, InitiativeStatus
 from core.permissions import has_initiative_access
 from api.auth import get_current_user
@@ -18,6 +18,27 @@ from services.pm_ws_manager import pm_manager, authenticate_pm_websocket_token
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/initiatives", tags=["initiatives"])
+
+PROJECT_CREATE_RATE_LIMIT = 10
+PROJECT_CREATE_RATE_WINDOW = 60
+
+
+async def _check_project_create_rate_limit(user_id: str) -> None:
+    try:
+        redis = await get_redis()
+        key = f"rl:project_create:{user_id}"
+        current = await redis.incr(key)
+        if current == 1:
+            await redis.expire(key, PROJECT_CREATE_RATE_WINDOW)
+        if current > PROJECT_CREATE_RATE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many project creations. Please wait before creating another.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
 
 
 class CreateInitiativeRequest(BaseModel):
@@ -58,6 +79,8 @@ async def create_initiative(req: CreateInitiativeRequest, current_user: User = D
         prompt=req.prompt,
         status=InitiativeStatus.DRAFT,
     )
+
+    await _check_project_create_rate_limit(current_user.id)
 
     max_projects = await get_max_projects_for_user(db, current_user.id)
     if max_projects >= 0:
