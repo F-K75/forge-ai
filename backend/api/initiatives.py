@@ -415,7 +415,7 @@ async def cancel_initiative(initiative_id: str, request: Request, current_user: 
 
 
 @router.get("/{initiative_id}/prd")
-async def get_prd(initiative_id: str, format: Optional[str] = None, request: Optional[Request] = None, current_user: User = Depends(get_current_user)):
+async def get_prd(initiative_id: str, format: Optional[str] = None, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
     await _get_owned_initiative(db, initiative_id, current_user.id)
     prd = await db.prds.find_one({"initiative_id": initiative_id}, {"_id": 0})
