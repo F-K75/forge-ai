@@ -268,7 +268,7 @@ function HeroVisual() {
   const hue = "#14B8A6";
 
   return (
-    <div className="relative mx-auto flex h-full min-h-[280px] max-w-md items-center justify-center" aria-hidden="true">
+    <div className="relative flex h-full min-h-[280px] items-center justify-center" aria-hidden="true">
       {/* Soft radial glow */}
       <div
         className="forge-glow-breathe absolute h-64 w-64 rounded-full blur-3xl"
@@ -724,7 +724,7 @@ export default function InitiativesListPage() {
         <div className="mx-auto max-w-6xl px-4 pb-16 md:px-8">
           {/* ============ HERO SECTION ============ */}
           <section aria-label="Welcome" className="relative pt-8 md:pt-12">
-            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_380px]">
+            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_1fr]">
               {/* Left column */}
               <motion.div
                 variants={motionVariants.staggerContainer}
