@@ -306,10 +306,16 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 _CSRF_EXCLUDED_PATHS = [
     "/auth/login",
     "/auth/register",
+    "/v1/auth/login",
+    "/v1/auth/register",
     "/auth/mfa/verify",  # completes login before a session/CSRF token exists
+    "/v1/auth/mfa/verify",
     "/auth/forgot-password",
     "/auth/reset-password",
+    "/v1/auth/forgot-password",
+    "/v1/auth/reset-password",
     "/auth/csrf-token",  # Token generation endpoint
+    "/v1/auth/csrf-token",
     "/health",
     "/billing/webhook",  # Stripe webhook has its own signature verification
     "/billing/webhook/payment",  # Stripe payment webhook — signature-verified, no session cookie
