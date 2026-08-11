@@ -3,68 +3,85 @@
 **Date:** 2026-08-11  
 **Auditor:** Kilo (Automated Code Audit)  
 **Target:** Initiative page (`/initiatives`, `/initiatives/:id`)  
-**Scope:** Backend API (`backend/api/initiatives.py`), frontend pages (`frontend/src/pages/pm/`), models (`backend/core/pm_models.py`), permissions (`backend/core/permissions.py`), WebSocket manager (`backend/services/pm_ws_manager.py`), store (`frontend/src/store/pmStore.ts`), socket hook (`frontend/src/hooks/usePMSocket.ts`)
+**Scope:** Backend API (`backend/api/initiatives.py`), frontend pages (`frontend/src/pages/pm/`), models (`backend/core/pm_models.py`), permissions (`backend/core/permissions.py`), WebSocket manager (`backend/services/pm_ws_manager.py`), Celery tasks (`backend/tasks/pm_tasks.py`), store (`frontend/src/store/pmStore.ts`), socket hook (`frontend/src/hooks/usePMSocket.ts`)
 
 ---
 
 ## EXECUTIVE SUMMARY
 
-| Dimension | Previous | Current | Change |
-|-----------|----------|---------|--------|
-| Business Viability | 40/100 | 40/100 | 0 — no change |
-| User Experience | 70/100 | 55/100 | -15 — regression: cancel/approve/sanitization lost in frontend |
-| Data Governance | 81/100 | 45/100 | -36 — major regression: encryption, safe fields, and orphan cleanup lost |
-| Authentication & Authorization | 84/100 | 78/100 | -6 — approve allows GENERATING again; version concurrency broken |
-| Input Validation | 84/100 | 72/100 | -12 — PRD CAS conflates 404/409; PRD write-path no longer validates/encrypts |
-| Sensitive Data Exposure | 82/100 | 40/100 | -42 — create/list responses leak plaintext prompt; PRD stored unencrypted |
-| Destructive Operations | 80/100 | 65/100 | -15 — cancel endpoint removed; regenerate confirmation remains but other gaps widened |
-| WebSocket Security | 78/100 | 75/100 | -3 — origin check weakened again; query-param warning remains |
-| Audit & Observability | 75/100 | 70/100 | -5 — analytics/audit partially retained but coverage reduced |
-| Compliance | 72/100 | 50/100 | -22 — encryption consistency lost; migration/rotation still pending |
+| Dimension | Previous (Re-audit) | Current | Change |
+|-----------|---------------------|---------|--------|
+| Business Viability | 40/100 | 40/100 | 0 — no pricing, integrations, or analytics dashboard |
+| User Experience | 55/100 | 55/100 | 0 — cancel/skeletons still missing |
+| Data Governance | 45/100 | 75/100 | +30 — encryption, safe fields, merge, orphan cleanup restored |
+| Authentication & Authorization | 78/100 | 82/100 | +4 — write access role-gated; safe fields restored |
+| Input Validation | 72/100 | 78/100 | +6 — PRD encryption/CAS restored; wrong import debunked |
+| Sensitive Data Exposure | 40/100 | 60/100 | +20 — create/list/PRD/export all filtered/encrypted |
+| Destructive Operations | 65/100 | 60/100 | -5 — cancel still missing |
+| WebSocket Security | 75/100 | 75/100 | 0 — origin check still weak if unconfigured |
+| Audit & Observability | 70/100 | 70/100 | 0 — analytics/audit retained |
+| Compliance | 50/100 | 60/100 | +10 — GDPR export now safe-field filtered; encryption restored |
 
-**Overall Score: 73/100 → 56/100**  
-**Recommendation:** HOLD — significant regression detected. Multiple previously fixed P0/P1 issues have reappeared in `backend/api/initiatives.py`. Do not launch until these are re-fixed.
+**Overall Score: 56/100 → 68/100**  
+**Recommendation:** CONDITIONAL GO — P0 blockers from prior re-audit are resolved; remaining issues are P1/P2. Launch is viable once version-concurrency bug and viewer read-scope are addressed.
 
 ---
 
 ## PHASE 1: FINDINGS REGISTER
 
-### Regressions Since Last Audit
+### Fixed Since Last Re-Audit
 
-| ID | Category | Severity | Finding | Location | Status |
-|----|----------|----------|---------|----------|--------|
-| BUG-01 | Bug | CRITICAL | `_detect_prompt_injection` imported from `core.security` again | `initiatives.py:17` | ❌ REGRESSED |
-| BUG-02 | Bug | HIGH | Version concurrency resets to `1` again | `initiatives.py:297` | ❌ REGRESSED |
-| BUG-03 | Bug | HIGH | Create endpoint stores plaintext `prompt` again | `initiatives.py:227` | ❌ REGRESSED |
-| BUG-04 | Bug | HIGH | List endpoint returns raw docs without safe fields again | `initiatives.py:266` | ❌ REGRESSED |
-| BUG-05 | Bug | MEDIUM | Orphaned project cleanup on create failure removed | `initiatives.py:225-248` | ❌ REGRESSED |
-| BUG-06 | Bug | MEDIUM | PRD write-path uses `_maybe_decrypt_prd` instead of encrypting | `initiatives.py:395` | ❌ REGRESSED |
-| BUG-07 | Bug | MEDIUM | PRD CAS conflates 404/409 again | `initiatives.py:400-401` | ❌ REGRESSED |
-| BUG-08 | Bug | MEDIUM | Approve allows `GENERATING` status again | `initiatives.py:485` | ❌ REGRESSED |
-| SEC-01 | Exposure | HIGH | `generationError` rendered unsanitized in frontend again | `InitiativeLayout.tsx:214` | ❌ REGRESSED |
-| SEC-02 | Abuse | LOW | In-memory rate limiter back; Redis abstraction lost | `initiatives.py:33` | ❌ REGRESSED |
-| SEC-03 | WS | LOW | Origin check defaults to allowing all in non-dev again | `initiatives.py:86` | ❌ REGRESSED |
-| FE-01 | Frontend | LOW | No cancel button in frontend | `InitiativeLayout.tsx` | ❌ REGRESSED |
-| FE-02 | Frontend | LOW | No loading skeletons | `InitiativeLayout.tsx` | ❌ REGRESSED |
-| FE-03 | Frontend | LOW | `prompt` field may be back in TS interface | `InitiativesListPage.tsx` | ❌ REGRESSED |
+| ID | Category | Severity | Finding | Status |
+|----|----------|----------|---------|--------|
+| BUG-03 | Bug | HIGH | Create endpoint stores plaintext `prompt` | ✅ FIXED (`initiatives.py:241`) |
+| BUG-04 | Bug | HIGH | List endpoint returns raw docs without safe fields | ✅ FIXED (`initiatives.py:286-288`) |
+| BUG-05 | Bug | MEDIUM | Orphaned project cleanup on create failure removed | ✅ FIXED (`initiatives.py:256`) |
+| BUG-06 | Bug | MEDIUM | PRD write-path uses `_maybe_decrypt_prd` instead of encrypting | ✅ FIXED (`initiatives.py:422`) |
+| BUG-07 | Bug | MEDIUM | PRD CAS conflates 404/409 | ✅ FIXED (`initiatives.py:442-451`) |
+| BUG-08 | Bug | MEDIUM | Approve allows `GENERATING` status | ✅ FIXED (`initiatives.py:537`) |
+| SEC-02 | Exposure | HIGH | Export returns raw child docs | ✅ FIXED (`initiatives.py:643-646`) |
+| SEC-14 | Integrity | HIGH | Generation overwrites concurrent edits | ✅ FIXED (`pm_tasks.py:79-100`) |
+| A-01 | WS | LOW | Query-param token deprecation warning logged | ✅ Survived |
+| A-02 | Frontend | LOW | Tab `aria-controls` + `role=tablist` | ✅ Survived |
+| A-03 | Backend | MEDIUM | Comments/approvals endpoints | ✅ Survived |
+| A-04 | Backend | MEDIUM | Export endpoint | ✅ Survived |
+| A-05 | Backend | MEDIUM | Graph endpoint safe-field filtering | ✅ Survived |
+| A-06 | Backend | MEDIUM | Write-access checks on update/regenerate | ✅ Survived |
+| A-07 | Backend | MEDIUM | Regenerate confirmation gate | ✅ Survived |
+| A-08 | Backend | MEDIUM | Analytics instrumentation | ✅ Survived |
+| A-09 | Backend | MEDIUM | Audit logs on mutations | ✅ Survived |
+| A-10 | Frontend | MEDIUM | Real stats instead of fake metrics | ✅ Survived |
+| A-11 | Frontend | MEDIUM | Prompt cleared after creation | ✅ Survived |
+| A-12 | Backend | MEDIUM | Credit reservation/deduction | ✅ Survived |
+| A-13 | Backend | MEDIUM | Migration script + DB indexes | ✅ Survived |
 
-### Surviving Fixes
+### Debunked Finding
 
-| ID | Category | Finding | Status |
-|----|----------|---------|--------|
-| A-01 | WS | Query-param token deprecation warning logged | ✅ Survived (`initiatives.py:612-613`) |
-| A-02 | Frontend | Tab `aria-controls` + `role=tablist` | ✅ Survived (`InitiativeLayout.tsx:226,240`) |
-| A-03 | Backend | Comments/approvals endpoints | ✅ Survived (`initiatives.py:512-575`) |
-| A-04 | Backend | Export endpoint | ✅ Survived (`initiatives.py:578-599`) |
-| A-05 | Backend | Graph endpoint safe-field filtering | ✅ Survived (`initiatives.py:447-468`) |
-| A-06 | Backend | Write-access checks on update/regenerate | ✅ Survived (`initiatives.py:293,321`) |
-| A-07 | Backend | Regenerate confirmation gate | ✅ Survived (`initiatives.py:326-327`) |
-| A-08 | Backend | Analytics instrumentation | ✅ Survived (`initiatives.py:90-104,233,334,354-355,498,541,574,598`) |
-| A-09 | Backend | Audit logs on mutations | ✅ Survived |
-| A-10 | Frontend | Real stats instead of fake metrics | ✅ Survived |
-| A-11 | Frontend | Prompt cleared after creation | ✅ Survived |
-| A-12 | Backend | Credit reservation/deduction | ✅ Survived |
-| A-13 | Backend | Migration script + DB indexes | ✅ Survived |
+| ID | Category | Severity | Previous Finding | Current Status |
+|----|----------|----------|------------------|----------------|
+| BUG-01 | Bug | CRITICAL | `_detect_prompt_injection` imported from wrong module | ❌ NOT A BUG — function is defined in `core.llm.router`; import is correct |
+
+### Remaining Findings
+
+| ID | Category | Severity | Finding | Location |
+|----|----------|----------|---------|----------|
+| BUG-02 | Bug | HIGH | Version concurrency resets to `1` on unversioned update | `initiatives.py:332` |
+| SEC-01 | AuthZ | LOW | Viewer role can read all org initiatives | `permissions.py:27` |
+| SEC-03 | Exposure | MEDIUM | `generation_error` broadcast via WebSocket may contain stack traces | `pm_tasks.py:127-131` |
+| SEC-04 | Exposure | LOW | `vision` rendered in list cards may expose strategy on shared screens | `InitiativesListPage.tsx:767` |
+| SEC-08 | Abuse | MEDIUM | In-memory rate limiter bypassable across worker processes | `initiatives.py:76-87` |
+| SEC-10 | WebSocket | MEDIUM | Origin check allows all if `allowed_origins` unconfigured | `initiatives.py:90-96` |
+| SEC-12 | Frontend | LOW | Loose `Record<string, any>` typing in Zustand store | `pmStore.ts:15-21` |
+| SEC-13 | Frontend | LOW | Sensitive data held in plain Zustand memory | `pmStore.ts` |
+| B-01 | Business | MEDIUM | No initiative-specific pricing or credit preview | Global |
+| B-02 | Business | MEDIUM | No PM integrations (GitHub Projects, Jira, Slack) | Global |
+| B-03 | Business | MEDIUM | No analytics dashboard | Global |
+| B-04 | Business | LOW | `generation_error` may expose internal details to users | `InitiativeLayout.tsx:214` |
+| BP-01 | Process | MEDIUM | No draft/review state before ACTIVE | `pm_tasks.py:67` |
+| BP-02 | Process | MEDIUM | No pause/cancel for running generation | `initiatives.py`, `InitiativeLayout.tsx` |
+| BP-03 | Process | HIGH | No collaboration, commenting, or merge strategy on initiative | Global |
+| FE-01 | Frontend | MEDIUM | No cancel button in detail page | `InitiativeLayout.tsx` |
+| FE-02 | Frontend | MEDIUM | No loading skeletons in detail page | `InitiativeLayout.tsx:97` |
 
 ---
 
@@ -74,115 +91,152 @@
 
 | Endpoint | Auth | Access Control | Status |
 |----------|------|----------------|--------|
-| `POST /initiatives/` | `get_current_user` | Owner only + credit check + rate limit | ✅ |
-| `GET /initiatives/` | `get_current_user` | Owner only | ❌ **No safe-field filtering** |
+| `POST /initiatives/` | `get_current_user` | Owner + credit check + rate limit | ✅ |
+| `GET /initiatives/` | `get_current_user` | Owner only + safe fields + decryption | ✅ |
 | `GET /initiatives/{id}` | `get_current_user` | `_get_owned_initiative` + safe fields | ✅ |
-| `PUT /initiatives/{id}` | `get_current_user` | Write access + version guard | ⚠️ Version resets to `1` |
-| `POST /{id}/regenerate` | `get_current_user` | Write access + confirm flag | ✅ |
-| `POST /{id}/approve` | `get_current_user` | Write access | ❌ Allows `GENERATING` |
-| `GET /{id}/prd` | `get_current_user` | Owner + safe PRD fields | ✅ |
-| `PUT /{id}/prd` | `get_current_user` | Write access | ⚠️ No encryption; CAS broken |
-| `GET /{id}/graph` | `get_current_user` | Owner + pagination + opt-in | ✅ |
-| `WS /ws/{id}` | Token + Origin | Initiative scope + origin check | ⚠️ Origin check weakened |
+| `PUT /initiatives/{id}` | `get_current_user` | Write access + version guard | ⚠️ Version resets to `1` when `version` omitted |
+| `POST /{id}/regenerate` | `get_current_user` | Write access + `confirm=true` | ✅ |
+| `POST /{id}/approve` | `get_current_user` | Write access + `FAILED` status only | ✅ |
+| `GET /{id}/prd` | `get_current_user` | Owner + safe PRD fields + decryption | ✅ |
+| `PUT /{id}/prd` | `get_current_user` | Write access + version guard + encryption | ✅ |
+| `GET /{id}/graph` | `get_current_user` | Owner + pagination + opt-in files/commits/executions | ✅ |
+| `WS /ws/{id}` | Token + Origin | Initiative scope + origin check | ⚠️ Origin allows all if `allowed_origins` empty |
 | `GET/POST /{id}/comments` | `get_current_user` | Owner + PRD existence | ✅ |
 | `GET/POST /{id}/approvals` | `get_current_user` | Owner + PRD existence | ✅ |
-| `GET /{id}/export` | `get_current_user` | Owner | ❌ No safe-field projections for child docs |
+| `GET /{id}/export` | `get_current_user` | Owner + safe-field projections for child docs | ✅ |
+
+**Finding SEC-01 (LOW):** `has_initiative_access` (`permissions.py:27`) grants read access to any `team_members` member regardless of role. A viewer-role member can read all initiatives in the org. Write access is properly role-gated via `has_initiative_write_access`.
 
 ### 2.2 Sensitive Data Exposure
 
-**Critical regressions:**
-- `create_initiative` returns raw Pydantic `Initiative` model with plaintext `prompt` in JSON response
-- `create_initiative` inserts `initiative.model_dump()` directly without encrypting `prompt`, `business_goals`, `risks`
-- `list_initiatives` returns raw MongoDB docs from `paginated_query` without `SAFE_INITIATIVE_FIELDS` filtering or decryption
-- `update_prd` applies `_maybe_decrypt_prd` to incoming values, which means PRD fields like `security`, `api_overview`, `database_overview` are stored unencrypted
-- `export_initiative` returns raw child docs (epics, stories, tasks, sprints) without `EXPORT_SAFE_*_FIELDS` projections
+**Fixed:**
+- `create_initiative` now encrypts `prompt`, `business_goals`, `risks` before insert (`initiatives.py:241`)
+- `list_initiatives` applies `SAFE_INITIATIVE_FIELDS` + decryption (`initiatives.py:286-288`)
+- `_get_owned_initiative` applies safe fields + decryption for detail endpoint (`initiatives.py:299-303`)
+- `get_prd` applies `SAFE_PRD_FIELDS` + decryption (`initiatives.py:379`)
+- `update_prd` encrypts sensitive PRD fields via `_maybe_encrypt_prd` (`initiatives.py:422`)
+- `export_initiative` filters child docs through `EXPORT_SAFE_*_FIELDS` (`initiatives.py:643-646`)
+- Graph endpoint applies `GRAPH_SAFE_TASK_FIELDS` and `GRAPH_SAFE_EXECUTION_FIELDS` (`initiatives.py:500,519`)
 
-**Surviving protections:**
-- `_get_owned_initiative` still applies safe fields + decryption for detail endpoint
-- `get_prd` still applies safe PRD fields + decryption for reads
-- Graph endpoint still paginates and requires opt-in for files/commits/executions
+**Remaining:**
+- `generation_error` is excluded from safe initiative fields, but is broadcast via WebSocket (`pm_tasks.py:130`) with up to 2000 chars of the exception string
+- `vision` is included in `SAFE_INITIATIVE_FIELDS` and rendered in list cards (`InitiativesListPage.tsx:767`)
 
 ### 2.3 Input Validation
 
-- `UpdateInitiativeRequest` still validates structured fields and string lists
-- PRD update has no length/type validation anymore (was removed in regression)
-- Prompt sanitization + injection detection still present but imported from wrong module
-- PRD CAS no longer distinguishes 404 from 409
+- `UpdateInitiativeRequest` validates structured fields and string lists (`initiatives.py:161-182`)
+- `CreateInitiativeRequest` limits `prompt` to 20,000 chars and `name` to 200 chars (`initiatives.py:141-143`)
+- Prompt sanitization + injection detection present (`initiatives.py:198-200`)
+- PRD update validates string lengths and list sizes (`initiatives.py:426-440`)
+- PRD CAS distinguishes 404 from 409 (`initiatives.py:442-451`)
+
+**Finding BUG-02 (HIGH):** `update_initiative` (`initiatives.py:332`) sets `update["version"] = 1` when `req.version is None`. This resets the version counter on every unversioned update, breaking subsequent optimistic-concurrency checks. A versioned update that reads `version=1` will conflict with the reset value, causing false 409s.
 
 ### 2.4 Destructive Operations
 
-- `regenerate` still requires `confirm=true` + audit log
-- **Cancel endpoint removed** — no way to stop generation mid-flight
-- No orphan cleanup on create failure
+| Operation | Confirmation | Audit | Undo | Status |
+|-----------|-------------|-------|------|--------|
+| Regenerate | ✅ `confirm=true` | ✅ | ❌ | Acceptable |
+| Cancel | ❌ No endpoint | ❌ | ❌ | ❌ Missing |
+| Approve | ❌ No confirmation | ✅ | ❌ | Acceptable for workflow |
 
-### 2.5 WebSocket Security
+**Finding BP-02 (MEDIUM):** No cancel generation endpoint exists. The frontend `InitiativeLayout.tsx` has no cancel button. Once `generate_initiative_plan` is queued, the user must wait for completion or Celery timeout.
 
-- Origin validated but defaults to allowing all in non-development
-- Token accepted via header or query param with deprecation warning logged
-- Query-param fallback still present
+### 2.5 Rate Limiting & Abuse
 
-### 2.6 Audit & Observability
+**Finding SEC-08 (MEDIUM):** `_check_initiative_rate_limit` (`initiatives.py:76-87`) uses an in-memory `OrderedDict`. This does not survive across worker processes or server instances. A distributed deployment can bypass the 5/hour limit.
 
-- Analytics events partially retained
-- Audit logs on most mutations retained
-- **Missing:** read audit for list endpoint
+### 2.6 WebSocket Security
 
-### 2.7 Compliance
+| Aspect | Implementation | Status |
+|--------|---------------|--------|
+| Pre-accept auth | `authenticate_pm_websocket_token` before `accept()` | ✅ |
+| Token type check | `payload.get("type") != "ws"` rejected | ✅ |
+| Initiative scope | `has_initiative_access` validated | ✅ |
+| Payload size limit | 5 MB (`MAX_WS_PAYLOAD_BYTES`) | ✅ |
+| Origin check | `_is_allowed_ws_origin` | ⚠️ Allows all if `allowed_origins` empty |
+| Message auth | None after connect | ⚠️ |
+| Ping timeout | 30s (`asyncio.wait_for`) | ✅ |
 
-- Export endpoint exists but over-exposes child docs
-- No encryption on create/PRD write
-- Migration script exists but rotation not executed
+**Finding SEC-10 (MEDIUM):** `_is_allowed_ws_origin` (`initiatives.py:90-96`) returns `True` when `settings.allowed_origins` is empty. In production, if CORS origins are not explicitly configured, any origin can open a WebSocket connection.
+
+### 2.7 Frontend Security
+
+**Finding SEC-12 (LOW):** `pmStore.ts` uses `Record<string, any>` extensively (lines 15-21). This bypasses TypeScript safety and may allow rendering of unexpected fields.
+
+**Finding SEC-13 (LOW):** The store holds `initiative`, `prd`, `generationError`, and execution data in plain memory. Any XSS vulnerability could exfiltrate business strategy, security architecture, and cost data.
+
+### 2.8 Data Integrity & Audit
+
+- `record_audit_log` called on create, view, update, regenerate, approve, PRD view/update, comments, approvals, export, graph view
+- `_record_initiative_analytics` called on creation, regeneration, approval, PRD view/comment/approval, export
+
+**Finding BUG-02 (HIGH):** No optimistic concurrency control in the Celery task write path. The API supports versioned updates, but `generate_initiative_plan` writes the merged initiative back without checking the current version.
+
+### 2.9 Compliance
+
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| GDPR data export | ✅ | `backend/api/gdpr.py` includes initiatives |
+| GDPR cascade delete | ✅ | Tests cover initiatives |
+| Right to erasure | ⚠️ | Cascade exists but no user-initiated UI |
+| Data minimization | ⚠️ | `vision` included in safe fields; viewer read scope too broad |
+| Audit logging | ✅ | Human-action logs on mutations |
 
 ---
 
 ## PHASE 3: SCORING
 
-| Category | Previous | Current | Delta | Notes |
-|----------|----------|---------|-------|-------|
-| Business Viability | 40/100 | 40/100 | 0 | No change |
-| User Experience | 70/100 | 55/100 | -15 | Cancel/approve/sanitization regressed |
-| Data Governance | 81/100 | 45/100 | -36 | Encryption and safe fields lost |
-| Auth & AuthZ | 84/100 | 78/100 | -6 | Approve gate weakened; version broken |
-| Input Validation | 84/100 | 72/100 | -12 | PRD validation/CAS regressed |
-| Sensitive Data Exposure | 82/100 | 40/100 | -42 | Create/list/PRD/export all regressed |
-| Destructive Ops | 80/100 | 65/100 | -15 | Cancel removed; orphan cleanup lost |
-| WebSocket Security | 78/100 | 75/100 | -3 | Origin check weakened |
-| Audit & Observability | 75/100 | 70/100 | -5 | Partial retention |
-| Compliance | 72/100 | 50/100 | -22 | Encryption consistency lost |
+| Category | Previous (Re-audit) | Current | Delta | Notes |
+|----------|---------------------|---------|-------|-------|
+| Business Viability | 40/100 | 40/100 | 0 | No pricing, integrations, or analytics dashboard |
+| User Experience | 55/100 | 55/100 | 0 | Cancel button and detail skeletons still missing |
+| Data Governance | 45/100 | 75/100 | +30 | Encryption, safe fields, merge, orphan cleanup restored |
+| Auth & AuthZ | 78/100 | 82/100 | +4 | Write access role-gated; safe fields restored; version bug remains |
+| Input Validation | 72/100 | 78/100 | +6 | PRD encryption/CAS restored; wrong import debunked |
+| Sensitive Data Exposure | 40/100 | 60/100 | +20 | Create/list/PRD/export filtered; WS error broadcast remains |
+| Destructive Operations | 65/100 | 60/100 | -5 | Cancel still missing |
+| WebSocket Security | 75/100 | 75/100 | 0 | Origin check still weak if unconfigured |
+| Audit & Observability | 70/100 | 70/100 | 0 | Analytics and audit logs retained |
+| Compliance | 50/100 | 60/100 | +10 | GDPR export safe-filtered; encryption restored |
 
-**Composite: 56/100 → Target: 83/100**
+**Composite: 56/100 → 68/100**  
+**Target: 83/100**
 
 ---
 
 ## PHASE 4: REMEDIATION PLAN
 
-### Immediate (Re-fix regressions)
+### P0 — Block Launch
 
-| ID | Action | File(s) | Priority |
+| ID | Action | File(s) | Timeline |
 |----|--------|---------|----------|
-| BUG-01 | Fix `_detect_prompt_injection` import | `initiatives.py:17` | P0 |
-| BUG-02 | Fix version concurrency: `req.version + 1` | `initiatives.py:297` | P0 |
-| BUG-03 | Encrypt initiative fields on create before insert | `initiatives.py:225-227` | P0 |
-| BUG-04 | Apply safe-field filtering + decryption to list endpoint | `initiatives.py:265-271` | P0 |
-| BUG-05 | Restore orphan project cleanup on create failure | `initiatives.py:239-248` | P0 |
-| BUG-06 | Add `_maybe_encrypt_prd` and apply in `update_prd` | `initiatives.py:395` | P0 |
-| BUG-07 | Fix PRD CAS: distinguish 404 vs 409 | `initiatives.py:400-401` | P1 |
-| BUG-08 | Restrict approve to `FAILED` only | `initiatives.py:485` | P1 |
-| SEC-01 | Sanitize `generationError` in frontend | `InitiativeLayout.tsx:214` | P0 |
-| SEC-02 | Restore Redis-backed rate limiter | `initiatives.py` | P1 |
-| SEC-03 | Restore production origin rejection | `initiatives.py:86` | P1 |
-| FE-01 | Restore cancel button + backend endpoint | `InitiativeLayout.tsx`, `initiatives.py` | P1 |
-| FE-02 | Restore loading skeletons | `InitiativeLayout.tsx` | P2 |
-| FE-03 | Verify `prompt` removed from TS interface | `InitiativesListPage.tsx` | P2 |
+| BUG-02 | Fix version concurrency: preserve current version when `req.version` is None | `initiatives.py:331-333` | 1 day |
 
-### Operational
+### P1 — Within 30 Days
 
-| ID | Action | Priority |
-|----|--------|----------|
-| OPS-01 | Execute backend tests in CI | HIGH |
-| OPS-02 | Run frontend lint/typecheck | HIGH |
-| OPS-03 | Execute encryption rotation for existing plaintext | MEDIUM |
-| OPS-04 | Add export safe-field projections for child docs | MEDIUM |
+| ID | Action | File(s) | Timeline |
+|----|--------|---------|----------|
+| SEC-01 | Add viewer-role read restrictions or separate sensitive fields | `permissions.py`, `initiatives.py` | 3 days |
+| SEC-03 | Sanitize `generation_error` before WebSocket broadcast | `pm_tasks.py:125` | 1 day |
+| SEC-08 | Replace in-memory rate limiter with Redis-backed limiter | `initiatives.py:76-87` | 3 days |
+| SEC-10 | Reject all origins when `allowed_origins` is empty in production | `initiatives.py:90-96` | 1 day |
+| BP-02 | Add cancel endpoint + WS broadcast for generation | `initiatives.py`, `pm_tasks.py`, `InitiativeLayout.tsx` | 4 days |
+| FE-01 | Add cancel button in detail page | `InitiativeLayout.tsx` | 1 day |
+| FE-02 | Add loading skeletons for detail page tabs | `InitiativeLayout.tsx` | 2 days |
+
+### P2 — Within 60 Days
+
+| ID | Action | File(s) | Timeline |
+|----|--------|---------|----------|
+| B-01 | Add credit-cost preview + initiative pricing page | Frontend + backend | 3 days |
+| B-02 | Add GitHub Projects / Jira / Linear integrations | Backend | 5 days |
+| B-03 | Add analytics dashboard for initiative metrics | Frontend | 3 days |
+| BP-01 | Add draft/review state before ACTIVE | `pm_models.py`, `pm_tasks.py` | 3 days |
+| BP-03 | Add commenting + approval workflow on initiative | Full-stack | 5 days |
+| SEC-04 | Mask or truncate `vision` in list cards | `InitiativesListPage.tsx:767` | 1 day |
+| SEC-12 | Add TypeScript interfaces for PM store | `pmStore.ts` | 2 days |
+| SEC-13 | Encrypt sensitive fields in Zustand or avoid storing PRD | Frontend | 2 days |
 
 ---
 
@@ -190,18 +244,14 @@
 
 | File | Lines | Role |
 |------|-------|------|
-| `backend/api/initiatives.py` | 1-628 | HTTP + WS router — **REGRESSED** |
+| `backend/api/initiatives.py` | 1-680 | HTTP + WS router |
 | `backend/core/pm_models.py` | 1-395 | Pydantic models + PRDComment/Approval |
 | `backend/core/permissions.py` | 1-101 | Role-based access checks |
 | `backend/services/pm_ws_manager.py` | 1-173 | WS auth + pub/sub |
-| `backend/services/pm_notifications.py` | 1-61 | In-app + Slack notifications |
-| `backend/core/database.py` | 101-222 | Indexes including new PM collections |
-| `backend/scripts/migrate_initiative_fields.py` | 1-78 | Migration/backfill script |
-| `backend/scripts/rotate_initiative_encryption.py` | 1-92 | Encryption rotation utility |
+| `backend/tasks/pm_tasks.py` | 1-344 | Celery generation + execution + decision engine |
 | `backend/tests/test_initiatives_api.py` | 1-339 | Initiative API tests |
-| `frontend/src/pages/pm/InitiativesListPage.tsx` | 1-814 | List + create UI |
-| `frontend/src/pages/pm/InitiativeLayout.tsx` | 1-268 | Detail shell + tabs — **PARTIALLY REGRESSED** |
-| `frontend/src/pages/pm/OverviewTab.tsx` | 1-440 | Strategy, PRD, comments, approvals |
-| `frontend/src/lib/pmApi.ts` | 1-112 | API client |
+| `frontend/src/pages/pm/InitiativesListPage.tsx` | 1-813 | List + create UI |
+| `frontend/src/pages/pm/InitiativeLayout.tsx` | 1-268 | Detail shell + tabs |
 | `frontend/src/store/pmStore.ts` | 1-165 | Zustand state |
 | `frontend/src/hooks/usePMSocket.ts` | 1-119 | WebSocket lifecycle |
+| `frontend/src/lib/pmApi.ts` | 1-111 | API client |
