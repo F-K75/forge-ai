@@ -268,10 +268,10 @@ function HeroVisual() {
   const hue = "#14B8A6";
 
   return (
-    <div className="relative flex h-full min-h-[320px] items-center justify-center" aria-hidden="true">
+    <div className="relative flex h-full min-h-[480px] items-center justify-center" aria-hidden="true">
       {/* Soft radial glow */}
       <div
-        className="forge-glow-breathe absolute h-96 w-96 rounded-full blur-3xl"
+        className="forge-glow-breathe absolute h-[500px] w-[500px] rounded-full blur-3xl"
         style={{ background: `radial-gradient(circle, ${hue}22 0%, transparent 65%)` }}
       />
 
@@ -281,11 +281,11 @@ function HeroVisual() {
       </div>
 
       {/* Two orbit rings */}
-      <div className="forge-orbit h-72 w-72" style={{ animationDuration: "28s" }}>
+      <div className="forge-orbit h-[400px] w-[400px]" style={{ animationDuration: "28s" }}>
         <div className="forge-orbit-dot" style={{ background: hue, boxShadow: `0 0 10px ${hue}80` }} />
       </div>
       <div
-        className="forge-orbit h-96 w-96"
+        className="forge-orbit h-[500px] w-[500px]"
         style={{ animationDirection: "reverse", animationDuration: "38s", borderColor: `${hue}0D` }}
       >
         <div className="forge-orbit-dot" style={{ background: "#84CC16", boxShadow: "0 0 10px #84CC1680", top: "auto", bottom: -3 }} />
@@ -296,7 +296,7 @@ function HeroVisual() {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="relative z-10 flex h-32 w-32 items-center justify-center rounded-3xl border border-white/10 bg-panel/95 shadow-m3-2 backdrop-blur-xl"
+        className="relative z-10 flex h-40 w-40 items-center justify-center rounded-3xl border border-white/10 bg-panel/95 shadow-m3-2 backdrop-blur-xl"
       >
         <div className="absolute inset-0 rounded-3xl" style={{ background: `radial-gradient(circle at 50% 30%, ${hue}18, transparent 70%)` }} />
         <BrandLogo size="lg" />
@@ -723,8 +723,8 @@ export default function InitiativesListPage() {
       <div className="relative z-10 flex-1 overflow-y-auto">
         <div className="mx-auto px-4 pb-16 md:px-8">
           {/* ============ HERO SECTION ============ */}
-          <section aria-label="Welcome" className="relative pt-8 md:pt-12">
-            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_1fr]">
+          <section aria-label="Welcome" className="relative min-h-[85vh] pt-8 md:pt-12">
+            <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
               {/* Left column */}
               <motion.div
                 variants={motionVariants.staggerContainer}
@@ -753,7 +753,7 @@ export default function InitiativesListPage() {
 
                 <motion.p
                   variants={motionVariants.staggerItem}
-                  className="mt-4 max-w-md text-[15px] leading-relaxed text-muted"
+                  className="mt-4 text-[15px] leading-relaxed text-muted"
                 >
                   Forge orchestrates specialized AI agents that transform a simple product idea
                   into a complete production-ready execution plan — including architecture, PRD,
