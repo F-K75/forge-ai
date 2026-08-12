@@ -73,11 +73,36 @@ def generate_initiative_plan(self, initiative_id: str) -> dict:
         try:
             result = await pm_orchestrator.generate_plan(initiative, emit=emit)
 
-            initiative = result["initiative"]
-            initiative.updated_at = utcnow()
-            await db.initiatives.update_one(
-                {"id": initiative_id}, {"$set": initiative.model_dump()}
-            )
+            generated = result["initiative"]
+            generated.updated_at = utcnow()
+
+            current = await db.initiatives.find_one({"id": initiative_id}, {"_id": 0})
+            if current:
+                merged = dict(current)
+                generated_fields = [
+                    "status",
+                    "vision",
+                    "business_goals",
+                    "product_scope",
+                    "functional_requirements",
+                    "non_functional_requirements",
+                    "success_metrics",
+                    "roadmap",
+                    "tech_stack",
+                    "risks",
+                    "estimated_timeline",
+                ]
+                for field in generated_fields:
+                    if hasattr(generated, field):
+                        merged[field] = getattr(generated, field)
+                if generated.name != initiative.name:
+                    merged["name"] = generated.name
+                merged["updated_at"] = utcnow()
+                await db.initiatives.update_one({"id": initiative_id}, {"$set": merged})
+            else:
+                await db.initiatives.update_one(
+                    {"id": initiative_id}, {"$set": generated.model_dump()}
+                )
             await db.prds.insert_one(result["prd"].model_dump())
             if result["epics"]:
                 await db.epics.insert_many([e.model_dump() for e in result["epics"]])
@@ -100,10 +125,11 @@ def generate_initiative_plan(self, initiative_id: str) -> dict:
                 {"id": initiative_id},
                 {"$set": {"status": InitiativeStatus.FAILED.value, "generation_error": str(e)}},
             )
+            sanitized_error = "Generation failed. Please retry or contact support if the issue persists."
             await pm_manager.emit(PMWSEvent(
                 type=PMWSEventType.GENERATION_FAILED,
                 initiative_id=initiative_id,
-                data={"error": str(e)[:2000]},
+                data={"error": sanitized_error},
             ))
             await notify(db, initiative.user_id, "Plan generation failed", str(e)[:280], type="error")
             raise

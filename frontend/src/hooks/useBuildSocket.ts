@@ -46,7 +46,7 @@ export function useBuildSocket(buildId: string | null) {
 
         let wsToken: string | null = null
         try {
-          const { data } = await api.post('/auth/ws-token')
+          const { data } = await api.post('/v1/auth/ws-token')
           wsToken = data.token
         } catch {
           setConnectionStatus('error')

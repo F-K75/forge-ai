@@ -27,7 +27,7 @@ export default function ForgotPassword() {
     if (err) return
     setLoading(true)
     try {
-      await api.post('/auth/forgot-password', { email })
+      await api.post('/v1/auth/forgot-password', { email })
       setSubmitted(true)
     } catch (_err: unknown) {
       setSubmitted(true)

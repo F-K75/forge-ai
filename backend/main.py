@@ -145,6 +145,16 @@ async def lifespan(app: FastAPI):
     except Exception:
         logger.warning("Database migrations did not run; continuing", exc_info=True)
 
+    # 8.9: hydrate the Prompt TemplateRegistry overlay from MongoDB so runtime
+    # template edits survive restart and sync across workers. Best-effort.
+    try:
+        from prompt_builder.persistence import load_overlay
+        from prompt_builder.registry import get_template_registry
+
+        await load_overlay(get_template_registry())
+    except Exception:
+        logger.warning("Prompt template overlay load did not complete; continuing", exc_info=True)
+
     yield
 
     # Graceful shutdown: wait for in-flight requests to complete (BE-005)
@@ -204,8 +214,14 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins + [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()],
-    allow_origin_regex=None,
+    allow_origins=settings.allowed_origins + [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()] + [
+        "https://a2e6ef23.forge-frontend-8gr.pages.dev",
+        "https://e2cdabd1.forge-frontend-8gr.pages.dev",
+        "https://session-agent-a5b35e09-98a6.forge-frontend-8gr.pages.dev",
+        "https://5030f5a5.forge-frontend-8gr.pages.dev",
+        "https://20e9fbb7.forge-frontend-8gr.pages.dev",
+    ],
+    allow_origin_regex=r"https://.*\.pages\.dev",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
@@ -463,8 +479,9 @@ async def metrics():
     """Prometheus metrics endpoint."""
     if PROMETHEUS_ENABLED:
         from fastapi.responses import Response
-        from core.metrics import update_optimizer_gauges, update_build_queue_gauges
-        update_optimizer_gauges()
+        from core.metrics import update_build_queue_gauges
+        from core.fleet_metrics import aggregate_fleet_optimizer_gauges
+        await aggregate_fleet_optimizer_gauges()
         await update_build_queue_gauges()
         return Response(generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
 

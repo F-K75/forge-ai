@@ -109,6 +109,58 @@ class AIOptimizer:
                 optimization_time_ms=0.0,
             )
 
+        # Check the response cache on the ORIGINAL (pre-optimization) messages
+        # BEFORE running the expensive context optimize/truncate pass below
+        # (8.6 optimize-before-cache). The cache key is a pure content hash of
+        # the messages, so a re-run of an identical prompt only ever needs this
+        # lookup -- never the dedupe/trim/normalize pipeline. On a hit we skip
+        # optimize_context/optimize_prompt entirely and return a no-op context
+        # result so downstream token/cost estimation and budget checks still work.
+        response_cache_hit = False
+        cached_response = None
+        is_cacheable = self.config.response_cache_enabled and ResponseCache.is_cacheable(
+            streaming=streaming, has_tools=has_tools, temperature=temperature, cacheable=cacheable
+        )
+        if is_cacheable:
+            cached = await self.response_cache.get(
+                messages, model, provider, org_id=org_id, project_id=project_id
+            )
+            if cached is not None:
+                response_cache_hit = True
+                cached_response = cached.get("text")
+        else:
+            # Keep miss-side statistics meaningful without touching Redis for
+            # requests that could never be served from cache.
+            self.response_cache.misses += 1
+
+        if response_cache_hit:
+            token_estimate = estimate_request_tokens(
+                messages, provider=provider, model=model, max_output_tokens=max_output_tokens
+            )
+            cost_estimate = estimate_request_cost(token_estimate)
+            from optimizer.models import ContextOptimizationResult
+
+            no_op = ContextOptimizationResult(
+                original_tokens=token_estimate.input_tokens,
+                optimized_tokens=token_estimate.input_tokens,
+                tokens_saved=0,
+                compression_ratio=1.0,
+            )
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            logger.info(
+                "ai_optimizer: provider=%s model=%s response_cache_hit=%s overhead_ms=%.2f (skipped optimize)",
+                provider, model, response_cache_hit, elapsed_ms,
+            )
+            return OptimizeResult(
+                messages=messages,
+                context_optimization=no_op,
+                token_estimate=token_estimate,
+                cost_estimate=cost_estimate,
+                optimization_time_ms=round(elapsed_ms, 3),
+                response_cache_hit=True,
+                cached_response=cached_response,
+            )
+
         # Determine effective max_chars: check per-role override first, then fall back to global
         effective_max_chars = self.config.max_prompt_chars
         if role and role in self.config.role_max_prompt_chars:
@@ -127,23 +179,6 @@ class AIOptimizer:
                 content = message.get("content")
                 if isinstance(content, str):
                     message["content"] = optimize_prompt(content, compression_level=self.config.compression_level)
-
-        response_cache_hit = False
-        cached_response = None
-        is_cacheable = self.config.response_cache_enabled and ResponseCache.is_cacheable(
-            streaming=streaming, has_tools=has_tools, temperature=temperature, cacheable=cacheable
-        )
-        if is_cacheable:
-            cached = await self.response_cache.get(
-                optimized_messages, model, provider, org_id=org_id, project_id=project_id
-            )
-            if cached is not None:
-                response_cache_hit = True
-                cached_response = cached.get("text")
-        else:
-            # Keep miss-side statistics meaningful without touching Redis for
-            # requests that could never be served from cache.
-            self.response_cache.misses += 1
 
         token_estimate = estimate_request_tokens(
             optimized_messages, provider=provider, model=model, max_output_tokens=max_output_tokens

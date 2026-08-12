@@ -2,22 +2,63 @@ import { api } from './api'
 
 // Initiatives (Module 1)
 export const initiativesApi = {
-  list: () => api.get('/initiatives/').then(r => r.data.initiatives),
-  get: (id: string) => api.get(`/initiatives/${id}`).then(r => r.data),
+  list: () => api.get('/v1/initiatives/').then(r => r.data.initiatives),
+  get: (id: string) => api.get(`/v1/initiatives/${id}`).then(r => r.data),
   create: (data: { prompt: string; name?: string }) =>
-    api.post('/initiatives/', data).then(r => r.data),
+    api.post('/v1/initiatives/', data).then(r => r.data),
+  creditPreview: () => api.get('/v1/initiatives/credit-preview').then(r => r.data),
   update: (id: string, data: Record<string, unknown>) =>
-    api.put(`/initiatives/${id}`, data).then(r => r.data),
-  regenerate: (id: string) => api.post(`/initiatives/${id}/regenerate`).then(r => r.data),
+    api.put(`/v1/initiatives/${id}`, data).then(r => r.data),
+  regenerate: (id: string) => api.post(`/v1/initiatives/${id}/regenerate?confirm=true`).then(r => r.data),
+  cancel: (id: string) => api.post(`/v1/initiatives/${id}/cancel`).then(r => r.data),
+  approve: (id: string) => api.post(`/v1/initiatives/${id}/approve`).then(r => r.data),
   getPrd: (id: string, format?: 'markdown') =>
-    api.get(`/initiatives/${id}/prd`, { params: format ? { format } : undefined }).then(r => r.data),
+    api.get(`/v1/initiatives/${id}/prd`, { params: format ? { format } : undefined }).then(r => r.data),
   updatePrd: (id: string, data: Record<string, unknown>) =>
-    api.put(`/initiatives/${id}/prd`, data).then(r => r.data),
-  graph: (id: string) => api.get(`/initiatives/${id}/graph`).then(r => r.data) as Promise<{
-    nodes: { id: string; type: string; label: string; data?: any }[]
-    edges: { source: string; target: string; kind?: string }[]
-  }>,
-  wsUrl: (id: string, base: string) => `${base}/initiatives/ws/${id}`,
+    api.put(`/v1/initiatives/${id}/prd`, data).then(r => r.data),
+  graph: (id: string, opts?: { nodeLimit?: number; edgeLimit?: number; includeFiles?: boolean; includeCommits?: boolean; includeExecutions?: boolean }) => {
+    const params: Record<string, any> = {}
+    if (opts?.nodeLimit) params.node_limit = opts.nodeLimit
+    if (opts?.edgeLimit) params.edge_limit = opts.edgeLimit
+    if (opts?.includeFiles) params.include_files = true
+    if (opts?.includeCommits) params.include_commits = true
+    if (opts?.includeExecutions) params.include_executions = true
+    return api.get(`/v1/initiatives/${id}/graph`, { params }).then(r => r.data) as Promise<{
+      nodes: { id: string; type: string; label: string; data?: any }[]
+      edges: { source: string; target: string; kind?: string }[]
+      truncated?: boolean
+    }>
+  },
+  wsUrl: (id: string, base: string) => `${base}/v1/initiatives/ws/${id}`,
+  exportJson: (id: string) => api.get(`/v1/initiatives/${id}/export`).then(r => r.data),
+  comments: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/comments`).then(r => r.data.comments),
+    create: (initiative_id: string, data: { section?: string; comment: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/comments`, data).then(r => r.data),
+  },
+  initiativeComments: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/initiative-comments`).then(r => r.data.comments),
+    create: (initiative_id: string, data: { section?: string; comment: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/initiative-comments`, data).then(r => r.data),
+  },
+  approvals: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/approvals`).then(r => r.data.approvals),
+    create: (initiative_id: string, data: { approved: boolean; comment?: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/approvals`, data).then(r => r.data),
+  },
+  initiativeApprovals: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/initiative-approvals`).then(r => r.data.approvals),
+    create: (initiative_id: string, data: { approved: boolean; comment?: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/initiative-approvals`, data).then(r => r.data),
+  },
+  integrations: {
+    list: (initiative_id: string) => api.get(`/v1/initiatives/${initiative_id}/integrations`).then(r => r.data.integrations),
+    link: (initiative_id: string, data: { provider: string; external_project_id: string; external_project_name: string; external_repo_id?: string; external_repo_name?: string; channel_id?: string; channel_name?: string }) =>
+      api.post(`/v1/initiatives/${initiative_id}/integrations`, data).then(r => r.data),
+    unlink: (initiative_id: string, provider: string) =>
+      api.delete(`/v1/initiatives/${initiative_id}/integrations/${provider}`).then(r => r.data),
+  },
+  analytics: (initiative_id: string) => api.get(`/v1/analytics/initiatives/${initiative_id}`).then(r => r.data),
 }
 
 // Epics (Module 3)

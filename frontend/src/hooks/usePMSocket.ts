@@ -48,7 +48,7 @@ export function usePMSocket(initiativeId: string | null) {
 
         let wsToken: string | null = null
         try {
-          const { data } = await api.post('/auth/ws-token')
+          const { data } = await api.post('/v1/auth/ws-token')
           wsToken = data.token
         } catch {
           setConnectionStatus('error')
@@ -60,7 +60,7 @@ export function usePMSocket(initiativeId: string | null) {
           return
         }
 
-        const ws = new WebSocket(`${WS_URL}/initiatives/ws/${id}?token=${encodeURIComponent(wsToken)}`)
+        const ws = new WebSocket(`${WS_URL}/v1/initiatives/ws/${id}`, [wsToken])
         wsRef.current = ws
 
         ws.onopen = () => {

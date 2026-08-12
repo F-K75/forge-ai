@@ -437,6 +437,11 @@ class LLMRouter:
         # stale metadata, and excess whitespace. `optimized_messages` (not
         # `sanitized_messages`) is what actually gets sent downstream.
         request_start = time.perf_counter()
+        # Cache keys are computed over the ORIGINAL messages (see
+        # optimizer/service.py -- the cache is consulted before optimization).
+        # Keep a stable reference so the write path below caches under the same
+        # key the optimistic fast path reads (8.6 optimize-before-cache).
+        pre_opt_messages = sanitized_messages
         opt_result = await self.optimizer.optimize_request(
             messages=sanitized_messages,
             provider=providers_to_try[0],
@@ -613,7 +618,7 @@ class LLMRouter:
                             agent_name=agent_name,
                         )
                         await self.optimizer.cache_response(
-                            messages=sanitized_messages,
+                            messages=pre_opt_messages,
                             model=response.model,
                             provider=response.provider,
                             response_text=response.text,

@@ -1,10 +1,12 @@
 from agents.base import BaseAgent
+from agents.structured_schemas import BUSINESS_MODEL_SCHEMA
 from core.models import AgentType
 import json
 
 
 class BusinessModelAgent(BaseAgent):
     agent_type = AgentType.BUSINESS_IMPROVER
+    output_schema = BUSINESS_MODEL_SCHEMA
     system_prompt = """You are the Business Model Improver Agent.
 
 Given an app idea and (optionally) a technical blueprint, propose concrete, practical improvements to the business model.
@@ -121,21 +123,10 @@ Rules:
             }
         ]
 
-        full = await self.run(messages, max_tokens=3500, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
-        clean = full.strip()
-
-        if clean.startswith("```"):
-            # strip markdown fences if present
-            clean = clean.split("```", 2)[1]
-            if clean.startswith("json"):
-                clean = clean[4:]
-            clean = clean.strip()
-            if clean.endswith("```"):
-                clean = clean[:-3].strip()
-
-        clean = clean.strip().strip("```json").strip().strip("```").strip()
-        # strict=False: some models (esp. non-Claude ones via BYOK) emit
-        # literal control characters (raw newlines) inside JSON strings
-        # instead of the \n escape the system prompt asks for.
-        return json.loads(clean, strict=False)
+        # 8.8: schema-validated + gateway-repaired structured output instead of
+        # the hand-rolled fence-strip + json.loads(strict=False) below.
+        return await self._call_structured(
+            messages, max_tokens=3500, user_id=user_id, build_id=build_id,
+            project_id=project_id, org_id=org_id,
+        )
 

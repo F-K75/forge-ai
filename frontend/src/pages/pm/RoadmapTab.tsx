@@ -4,7 +4,7 @@ import { motion, motionVariants } from "../../lib/animations";
 
 export default function RoadmapTab() {
   const { initiative, epics } = usePMStore();
-  const roadmap: { phase: string; goal: string; duration: string }[] = initiative?.roadmap ?? [];
+  const roadmap: { phase: string; goal: string; duration: string }[] = (initiative?.roadmap as { phase: string; goal: string; duration: string }[] | undefined) ?? [];
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 md:px-8">
@@ -51,7 +51,7 @@ export default function RoadmapTab() {
         ) : (
           <motion.div className="space-y-1.5" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
             {[...epics]
-              .sort((a, b) => a.priority.localeCompare(b.priority))
+              .sort((a, b) => (a.priority ?? "").localeCompare(b.priority ?? ""))
               .map((epic, i) => (
                 <motion.div
                   key={epic.id}

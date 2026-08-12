@@ -4,7 +4,7 @@ import { useReducedMotion } from "motion/react"
 interface ToggleProps {
   on: boolean
   onChange: (v: boolean) => void
-  label?: string
+  label: string
   disabled?: boolean
 }
 

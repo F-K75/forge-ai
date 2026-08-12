@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, User, LogOut, ArrowRight } from "lucide-react";
+import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, User, LogOut, ArrowRight, Workflow } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useAuthStore } from "../store/authStore";
 
@@ -16,6 +16,7 @@ type Command = {
 const COMMANDS: Command[] = [
   { id: "projects", label: "Projects", icon: <LayoutGrid size={16} />, href: "/projects", section: "nav", keywords: ["dashboard", "library"] },
   { id: "initiatives", label: "Initiatives", icon: <Rocket size={16} />, href: "/initiatives", section: "nav", keywords: ["pm", "agile", "epics"] },
+  { id: "flow", label: "Flow", icon: <Workflow size={16} />, href: "/flow", section: "nav", keywords: ["agents", "pipeline", "graph", "nodes"] },
   { id: "reviews", label: "Reviews", icon: <ShieldCheck size={16} />, href: "/reviews", section: "nav", keywords: ["orchestrator", "qa"] },
   { id: "marketplace", label: "Marketplace", icon: <Store size={16} />, href: "/marketplace", section: "nav", keywords: ["templates", "playbooks"] },
   { id: "billing", label: "Billing", icon: <CreditCard size={16} />, href: "/billing", section: "nav", keywords: ["plans", "subscription", "upgrade"] },

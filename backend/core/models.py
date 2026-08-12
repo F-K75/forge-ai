@@ -117,6 +117,10 @@ class User(BaseModel):
     # without this a free account cannot complete a single build. Claimed
     # atomically in api/builds.py; see that call site for the abuse ceiling.
     free_build_used: bool = False
+    # One-shot grant: the first initiative generation on an account runs
+    # unmetered so a new user can try the PM layer before paying. Claimed
+    # atomically in api/initiatives.py.
+    free_initiative_used: bool = False
     stripe_customer_id: Optional[str] = None
     banned: bool = False
     trial_ends_at: Optional[datetime] = None
@@ -203,6 +207,7 @@ class Project(BaseModel):
     template_data: Dict[str, Any] = {}  # Template-specific configuration
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
+    deleted_at: Optional[datetime] = None
 
 
 # --- Build ---

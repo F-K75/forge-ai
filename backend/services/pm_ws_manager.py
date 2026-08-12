@@ -150,8 +150,9 @@ async def authenticate_pm_websocket(websocket: WebSocket, initiative_id: str):
 
 
 async def authenticate_pm_websocket_token(token: Optional[str], initiative_id: Optional[str] = None):
-    """Validate a WebSocket token from query parameters BEFORE accepting the
-    connection. Returns the authenticated user doc, or None if the token is
+    """Validate a WebSocket token from query parameters or the
+    Sec-WebSocket-Protocol header BEFORE accepting the connection.
+    Returns the authenticated user doc, or None if the token is
     missing/invalid."""
     if not token:
         return None

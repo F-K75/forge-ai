@@ -129,6 +129,7 @@ class Settings(BaseSettings):
     credits_pm: int = 1
     credits_debug: int = 2
     credits_business_model: int = 2
+    credits_initiative_generation: int = 5
 
     # Pricing Tiers ($USD)
     # Free: 0 credits, Standard: 100 credits/mo @ $20, Pro: 750 credits/mo @ $50
@@ -142,6 +143,7 @@ class Settings(BaseSettings):
 
     # Billing
     billing_provider: str = "stripe"
+    slack_webhook_url: str = ""
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_publishable_key: str = ""
@@ -203,7 +205,7 @@ class Settings(BaseSettings):
     ]
     
 
-    allowed_hosts: str = "localhost,127.0.0.1,testserver,*.trycloudflare.com"
+    allowed_hosts: str = "localhost,127.0.0.1,testserver,*.trycloudflare.com,*.onrender.com"
 
     frontend_tunnel_url: str = ""
 

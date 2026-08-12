@@ -13,6 +13,7 @@ import {
   Heart,
   Terminal,
   Activity,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -38,6 +39,12 @@ const DOCK_APPS: DockApp[] = [
     label: "Projects",
     icon: LayoutGrid,
     match: (p) => p === "/projects" || p.startsWith("/project/") || p.startsWith("/build/"),
+  },
+  {
+    to: "/flow",
+    label: "Flow",
+    icon: Workflow,
+    match: (p) => p === "/flow",
   },
   {
     to: "/initiatives",
@@ -105,6 +112,7 @@ const ADMIN_APPS: DockApp[] = [
 ];
 
 function windowTitle(pathname: string): string {
+  if (pathname.startsWith("/flow")) return "Flow";
   if (pathname.startsWith("/initiatives/")) return "Initiative";
   if (pathname.startsWith("/initiatives")) return "Initiatives";
   if (pathname.startsWith("/reviews/")) return "Review";

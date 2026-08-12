@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Pencil, Check, X, Download, FileText, Target, Layers, GitBranch, Shield, CalendarDays } from "lucide-react";
+import { Pencil, Check, X, Download, FileText, Target, Layers, GitBranch, Shield, CalendarDays, MessageSquare, ThumbsUp } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { initiativesApi } from "../../lib/pmApi";
 import { motion, motionVariants } from "../../lib/animations";
@@ -140,10 +140,97 @@ export default function OverviewTab() {
   const { initiative, prd, hydrate } = usePMStore();
   if (!initiative) return null;
 
+  const [comments, setComments] = useState<Array<{ id: string; comment: string; section: string; user_id: string }>>([])
+  const [approvals, setApprovals] = useState<Array<{ id: string; approved: boolean; comment: string; user_id: string }>>([])
+  const [initiativeComments, setInitiativeComments] = useState<Array<{ id: string; comment: string; section: string; user_id: string }>>([])
+  const [initiativeApprovals, setInitiativeApprovals] = useState<Array<{ id: string; approved: boolean; comment: string; user_id: string }>>([])
+  const [commentDraft, setCommentDraft] = useState("")
+  const [approveComment, setApproveComment] = useState("")
+  const [initiativeCommentDraft, setInitiativeCommentDraft] = useState("")
+  const [initiativeApproveComment, setInitiativeApproveComment] = useState("")
+
   const saveField = async (field: string, value: unknown) => {
     await initiativesApi.update(initiative.id, { [field]: value });
     await hydrate(initiative.id);
   };
+
+  const loadComments = async () => {
+    try {
+      const data = await initiativesApi.comments.list(initiative.id)
+      setComments(data)
+    } catch {
+      // ignore
+    }
+  }
+
+  const loadApprovals = async () => {
+    try {
+      const data = await initiativesApi.approvals.list(initiative.id)
+      setApprovals(data)
+    } catch {
+      // ignore
+    }
+  }
+
+  const loadInitiativeComments = async () => {
+    try {
+      const data = await initiativesApi.initiativeComments.list(initiative.id)
+      setInitiativeComments(data)
+    } catch {
+      // ignore
+    }
+  }
+
+  const loadInitiativeApprovals = async () => {
+    try {
+      const data = await initiativesApi.initiativeApprovals.list(initiative.id)
+      setInitiativeApprovals(data)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleAddComment = async () => {
+    if (!commentDraft.trim()) return
+    try {
+      await initiativesApi.comments.create(initiative.id, { comment: commentDraft.trim() })
+      setCommentDraft("")
+      loadComments()
+    } catch {
+      toast.error("Failed to add comment")
+    }
+  }
+
+  const handleApprove = async (approved: boolean) => {
+    try {
+      await initiativesApi.approvals.create(initiative.id, { approved, comment: approveComment })
+      setApproveComment("")
+      loadApprovals()
+    } catch {
+      toast.error("Failed to record approval")
+    }
+  }
+
+  const handleAddInitiativeComment = async () => {
+    if (!initiativeCommentDraft.trim()) return
+    try {
+      await initiativesApi.initiativeComments.create(initiative.id, { comment: initiativeCommentDraft.trim() })
+      setInitiativeCommentDraft("")
+      loadInitiativeComments()
+    } catch {
+      toast.error("Failed to add initiative comment")
+    }
+  }
+
+  const handleInitiativeApprove = async (approved: boolean) => {
+    try {
+      await initiativesApi.initiativeApprovals.create(initiative.id, { approved, comment: initiativeApproveComment })
+      setInitiativeApproveComment("")
+      loadInitiativeApprovals()
+    } catch {
+      toast.error("Failed to record initiative approval")
+    }
+  }
 
   const handleExportMarkdown = async () => {
     try {
@@ -159,6 +246,14 @@ export default function OverviewTab() {
       toast.error("PRD not generated yet");
     }
   };
+
+  useEffect(() => {
+    if (!initiative) return
+    loadComments()
+    loadApprovals()
+    loadInitiativeComments()
+    loadInitiativeApprovals()
+  }, [initiative])
 
   return (
     <motion.div className="mx-auto max-w-5xl px-4 py-6 md:px-8" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
@@ -297,6 +392,180 @@ export default function OverviewTab() {
             </motion.div>
           </motion.div>
         )}
+      </motion.section>
+
+      {/* Section: Initiative Comments */}
+      <div className="mb-3 flex items-center justify-between mt-8">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <MessageSquare size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">Initiative Comments</h2>
+        </div>
+      </div>
+      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl mb-8" variants={motionVariants.fadeUp}>
+        <div className="space-y-2 mb-3">
+          {initiativeComments.length === 0 && (
+            <p className="text-xs text-faint">No comments yet.</p>
+          )}
+          {initiativeComments.map(c => (
+            <div key={c.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+              <p className="text-xs font-medium text-ink">{c.section ? `Section: ${c.section}` : "General"}</p>
+              <p className="text-sm text-ink leading-relaxed">{c.comment}</p>
+              <p className="mt-1 text-[10px] text-faint">By {c.user_id}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={initiativeCommentDraft}
+            onChange={e => setInitiativeCommentDraft(e.target.value)}
+            placeholder="Add a comment..."
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          />
+          <button
+            type="button"
+            onClick={handleAddInitiativeComment}
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          >
+            Add
+          </button>
+        </div>
+      </motion.section>
+
+      {/* Section: PRD Comments */}
+      <div className="mb-3 flex items-center justify-between mt-8">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <MessageSquare size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">PRD Comments</h2>
+        </div>
+      </div>
+      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl mb-8" variants={motionVariants.fadeUp}>
+        <div className="space-y-2 mb-3">
+          {comments.length === 0 && (
+            <p className="text-xs text-faint">No comments yet.</p>
+          )}
+          {comments.map(c => (
+            <div key={c.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+              <p className="text-xs font-medium text-ink">{c.section ? `Section: ${c.section}` : "General"}</p>
+              <p className="text-sm text-ink leading-relaxed">{c.comment}</p>
+              <p className="mt-1 text-[10px] text-faint">By {c.user_id}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={commentDraft}
+            onChange={e => setCommentDraft(e.target.value)}
+            placeholder="Add a comment..."
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          />
+          <button
+            type="button"
+            onClick={handleAddComment}
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          >
+            Add
+          </button>
+        </div>
+      </motion.section>
+
+      {/* Section: Initiative Approvals */}
+      <div className="mb-3 flex items-center justify-between mt-8">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <ThumbsUp size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">Initiative Approvals</h2>
+        </div>
+      </div>
+      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl mb-8" variants={motionVariants.fadeUp}>
+        <div className="space-y-2 mb-3">
+          {initiativeApprovals.length === 0 && (
+            <p className="text-xs text-faint">No approvals yet.</p>
+          )}
+          {initiativeApprovals.map(a => (
+            <div key={a.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+              <p className="text-xs font-medium text-ink">{a.approved ? "Approved" : "Rejected"}</p>
+              {a.comment && <p className="text-sm text-ink leading-relaxed">{a.comment}</p>}
+              <p className="mt-1 text-[10px] text-faint">By {a.user_id}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={initiativeApproveComment}
+            onChange={e => setInitiativeApproveComment(e.target.value)}
+            placeholder="Approval comment (optional)"
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          />
+          <button
+            type="button"
+            onClick={() => handleInitiativeApprove(true)}
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-ok px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            onClick={() => handleInitiativeApprove(false)}
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
+            Reject
+          </button>
+        </div>
+      </motion.section>
+
+      {/* Section: Approvals */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <ThumbsUp size={12} aria-hidden="true" />
+          </span>
+          <h2 className="font-display text-sm font-semibold text-ink">Approvals</h2>
+        </div>
+      </div>
+      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp}>
+        <div className="space-y-2 mb-3">
+          {approvals.length === 0 && (
+            <p className="text-xs text-faint">No approvals yet.</p>
+          )}
+          {approvals.map(a => (
+            <div key={a.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+              <p className="text-xs font-medium text-ink">{a.approved ? "Approved" : "Rejected"}</p>
+              {a.comment && <p className="text-sm text-ink leading-relaxed">{a.comment}</p>}
+              <p className="mt-1 text-[10px] text-faint">By {a.user_id}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={approveComment}
+            onChange={e => setApproveComment(e.target.value)}
+            placeholder="Approval comment (optional)"
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          />
+          <button
+            type="button"
+            onClick={() => handleApprove(true)}
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-ok px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApprove(false)}
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
+            Reject
+          </button>
+        </div>
       </motion.section>
     </motion.div>
   );

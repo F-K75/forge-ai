@@ -20,6 +20,7 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"))
 const AppShell = lazy(() => import("./components/AppShell"))
 const Launch = lazy(() => import("./pages/Launch"))
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"))
+const FlowPage = lazy(() => import("./pages/FlowPage"))
 const MarketplacePage = lazy(() => import("./pages/MarketplacePage"))
 const BillingPage = lazy(() => import("./pages/BillingPage"))
 const SettingsPage = lazy(() => import("./pages/SettingsPage"))
@@ -43,6 +44,8 @@ const RoadmapTab = lazy(() => import("./pages/pm/RoadmapTab"))
 const GraphTab = lazy(() => import("./pages/pm/GraphTab"))
 const ReleasesTab = lazy(() => import("./pages/pm/ReleasesTab"))
 const ActivityTab = lazy(() => import("./pages/pm/ActivityTab"))
+const IntegrationsTab = lazy(() => import("./pages/pm/IntegrationsTab"))
+const AnalyticsTab = lazy(() => import("./pages/pm/AnalyticsTab"))
 // Review board — orchestrator UI (separate backend service, see lib/orchestratorApi.ts)
 const ReviewsListPage = lazy(() => import("./pages/reviews/ReviewsListPage"))
 const ReviewDetailPage = lazy(() => import("./pages/reviews/ReviewDetailPage"))
@@ -392,6 +395,14 @@ export default function App() {
               }
             />
             <Route
+              path="/flow"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <FlowPage />
+                </Suspense>
+              }
+            />
+            <Route
               path="/initiatives"
               element={
                 <Suspense fallback={<RouteSkeleton />}>
@@ -415,6 +426,8 @@ export default function App() {
               <Route path="graph" element={<GraphTab />} />
               <Route path="releases" element={<ReleasesTab />} />
               <Route path="activity" element={<ActivityTab />} />
+              <Route path="integrations" element={<IntegrationsTab />} />
+              <Route path="analytics" element={<AnalyticsTab />} />
             </Route>
           </Route>
 

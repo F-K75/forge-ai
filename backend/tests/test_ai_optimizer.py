@@ -327,13 +327,57 @@ async def test_optimize_request_serves_cached_response(fake_redis):
 
     first = await optimizer.optimize_request(messages=messages, provider="anthropic", model="claude-sonnet-4-6")
     assert first.response_cache_hit is False
+    # 8.6 optimize-before-cache: cache keys are the ORIGINAL (pre-optimization)
+    # messages, so a re-run of the same prompt hits without re-running the
+    # expensive context optimize/truncate pipeline.
     await optimizer.cache_response(
-        messages=first.messages, model="claude-sonnet-4-6", provider="anthropic", response_text="Paris"
+        messages=messages, model="claude-sonnet-4-6", provider="anthropic", response_text="Paris"
     )
 
     second = await optimizer.optimize_request(messages=messages, provider="anthropic", model="claude-sonnet-4-6")
     assert second.response_cache_hit is True
     assert second.cached_response == "Paris"
+
+
+async def test_optimize_request_cache_hit_skips_context_optimization(fake_redis, monkeypatch):
+    """8.6 optimize-before-cache: on a response-cache hit the expensive
+    optimize_context/optimize_prompt pass must NOT run -- only the cache
+    lookup does. The returned messages are the original input unchanged."""
+    optimizer = AIOptimizer(config=OptimizerConfig(enabled=True))
+    messages = [{"role": "user", "content": "what is the capital of France"}]
+
+    # Prime the cache under the original messages.
+    await optimizer.cache_response(
+        messages=messages, model="claude-sonnet-4-6", provider="anthropic", response_text="Paris"
+    )
+
+    from optimizer import context_optimizer, prompt_optimizer
+    from optimizer import service as optimizer_service
+
+    called_optimize_context = {"n": 0}
+    called_optimize_prompt = {"n": 0}
+    real_optimize_context = context_optimizer.optimize_context
+    real_optimize_prompt = prompt_optimizer.optimize_prompt
+
+    async def spy_optimize_context(*args, **kwargs):
+        called_optimize_context["n"] += 1
+        return real_optimize_context(*args, **kwargs)
+
+    def spy_optimize_prompt(*args, **kwargs):
+        called_optimize_prompt["n"] += 1
+        return real_optimize_prompt(*args, **kwargs)
+
+    monkeypatch.setattr(context_optimizer, "optimize_context", spy_optimize_context)
+    # service.py imports optimize_prompt at module scope; patch the reference
+    # it holds too.
+    monkeypatch.setattr(optimizer_service, "optimize_prompt", spy_optimize_prompt)
+
+    result = await optimizer.optimize_request(messages=messages, provider="anthropic", model="claude-sonnet-4-6")
+    assert result.response_cache_hit is True
+    assert result.cached_response == "Paris"
+    assert called_optimize_context["n"] == 0
+    assert called_optimize_prompt["n"] == 0
+    assert result.messages == messages
 
 
 async def test_optimize_request_skips_cache_for_streaming(fake_redis):
