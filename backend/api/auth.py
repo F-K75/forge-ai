@@ -362,6 +362,10 @@ async def register(req: RegisterRequest, request: Request, response: Response):
             raise HTTPException(status_code=400, detail="Email already registered")
         raise
 
+    admin_emails = [e.strip() for e in (settings.admin_emails or "").split(",") if e.strip()]
+    if admin_emails and req.email in admin_emails:
+        await db.users.update_one({"id": user.id}, {"$set": {"is_admin": True}})
+
     verification_token = uuid.uuid4().hex
     hashed_token = _hash_token(verification_token)
     expires = utcnow() + timedelta(hours=24)

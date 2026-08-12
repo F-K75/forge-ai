@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { api, authApi } from '../lib/api'
 import { LIVE_MODE } from '../lib/env'
+import { usePMStore } from './pmStore'
+import { useBuildStore } from './buildStore'
+import { useDeploymentStore } from './deploymentStore'
+import { useReviewStore } from './reviewStore'
 
 export const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
 
@@ -66,7 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     set({ isLoading: true })
-    const res = await api.post('/auth/login', { email, password })
+    const res = await api.post('/v1/auth/login', { email, password })
     if (res.data?.mfa_required) {
       set({ isLoading: false })
       return { mfaRequired: true, mfaToken: res.data.mfa_token }
@@ -80,7 +84,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     // Use full-page redirect instead of popup to avoid cross-origin issues.
-    window.location.href = `${API_URL}/auth/google`
+    window.location.href = `${API_URL}/v1/auth/google`
   },
 
   verifyMfa: async (mfaToken: string, code: string) => {
@@ -95,19 +99,28 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     set({ isLoading: true })
-    const res = await api.post('/auth/register', { email, name, password })
+    const res = await api.post('/v1/auth/register', { email, name, password })
     set({ user: res.data.user, isAuthenticated: true, isLoading: false })
   },
 
   logout: async () => {
     if (!LIVE_MODE) {
+      usePMStore.getState().reset()
+      useBuildStore.getState().reset()
+      useDeploymentStore.getState().reset()
+      useReviewStore.getState().reset()
       set({ user: null, isAuthenticated: false })
       return
     }
     try {
-      await api.post('/auth/logout')
+      await api.post('/v1/auth/logout')
     } catch {
       // ignore
+    } finally {
+      usePMStore.getState().reset()
+      useBuildStore.getState().reset()
+      useDeploymentStore.getState().reset()
+      useReviewStore.getState().reset()
     }
     set({ user: null, isAuthenticated: false })
   },
@@ -118,7 +131,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     try {
-      const res = await api.get('/auth/me')
+      const res = await api.get('/v1/auth/me')
       set({ user: res.data, isAuthenticated: true, isLoading: false })
     } catch (err) {
       set({ isLoading: false })
