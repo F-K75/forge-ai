@@ -247,15 +247,15 @@ and the North Star, and are the explicit focus of Phase 12.
 
 | # | Capability | Owner / Area | Status |
 |---|-----------|-------------|--------|
-| 8.1 | Load test: validate 1,000 concurrent users with <500ms p95 latency | Backend + SRE | 🔲 Planned |
-| 8.2 | Penetration test: independent security review with no critical findings | Security | 🔲 Planned |
-| 8.3 | Execute accessibility tests in CI and fix violations | Frontend | 🔲 Planned |
-| 8.4 | Enforce WebSocket auth at connection time (query param / subprotocol) | Backend | 🔲 Planned |
-| 8.5 | Expose Celery-worker Prometheus metrics (fleet-scrapeable optimizer ratios) | Backend / Observability | 🔲 Planned |
-| 8.6 | Optimize-before-cache: skip full context optimize/truncate on response-cache hit | Backend / Performance | 🔲 Planned |
-| 8.7 | Harness eval suite for JSON-repair prompt quality (architect / designer / developer) | AI Gateway | 🔲 Planned |
-| 8.8 | Wire Gateway structured-output schemas for PM / Integration / Business Model agents | AI Gateway | 🔲 Planned |
-| 8.9 | Persist Prompt TemplateRegistry overlay to MongoDB (survive restart, sync across workers) | AI Gateway | 🔲 Planned |
+| 8.1 | Load test: validate 1,000 concurrent users with <500ms p95 latency | Backend + SRE | 🔲 Tooling done, validation pending (`scripts/load_test.py` + `scripts/test_load_test.py`; run `python scripts/load_test.py --concurrency 1000 --base-url <deployed>` against a live deployment to confirm) |
+| 8.2 | Penetration test: independent security review with no critical findings | Security | 🔲 Not started — requires engaging an independent pentest vendor against a live staging deployment; internal surface covered by `PRODUCTION_READINESS_AUDIT.md` and `bandit`/`npm audit` in CI |
+| 8.3 | Execute accessibility tests in CI and fix violations | Frontend | ✅ Done (`vitest-axe` runtime aXe scans in `src/components/accessibility.axe.test.tsx`, runs in `npm test` in CI; fixed `Toggle` to require an accessible label) |
+| 8.4 | Enforce WebSocket auth at connection time (query param / subprotocol) | Backend | ✅ Done (`api/builds.py`, `api/initiatives.py`, `api/agent_registry.py` reject with 4001 before `accept()`) |
+| 8.5 | Expose Celery-worker Prometheus metrics (fleet-scrapeable optimizer ratios) | Backend / Observability | ✅ Done (`core/fleet_metrics.py` bridges worker-side build/LLM counters + `forge_worker_*` gauges + liveness onto `/metrics`; `tests/test_fleet_metrics.py`) |
+| 8.6 | Optimize-before-cache: skip full context optimize/truncate on response-cache hit | Backend / Performance | ✅ Done (`optimizer/service.py`, `test_ai_optimizer.py`) |
+| 8.7 | Harness eval suite for JSON-repair prompt quality (architect / designer / developer) | AI Gateway | ✅ Done (`harness/json_repair_suite.py`, `tests/test_json_repair_suite.py`) |
+| 8.8 | Wire Gateway structured-output schemas for PM / Integration / Business Model agents | AI Gateway | ✅ Done (`agents/pm.py`, `integration.py`, `business_model.py` via `BaseAgent._call_structured`; `tests/test_agent_structured_output.py`) |
+| 8.9 | Persist Prompt TemplateRegistry overlay to MongoDB (survive restart, sync across workers) | AI Gateway | ✅ Done (`prompt_builder/persistence.py`, `api/prompts.py`, `test_prompt_builder_persistence.py`) |
 
 ---
 
@@ -352,8 +352,10 @@ decisions, not orchestrating steps.
 
 - **Phases 0–7** are **complete** and reflected in the current codebase. Together they take
   Forge from **Stage 1 (AI Coding Agent)** through most of **Stage 2 (AI Software Factory)**.
-- **Phase 8** items are **engineered and planned** but not yet shipped — closing out Stage 2
-  reliability gaps.
+- **Phase 8** is **mostly complete** — 7 of 9 items done (8.3 aXe in CI, 8.4 WS auth,
+  8.5 fleet Celery metrics, 8.6, 8.7, 8.8, 8.9). Remaining: 8.1 (load-test tooling done;
+  needs a live deployment to confirm the p95 target) and 8.2 (independent pentest, requires
+  an external vendor against staging). These two are operational, not code work.
 - **Phases 9–11** are **commercialization work** — polish, enterprise readiness, and GTM for
   the Stage 2 factory. Necessary, but they don't by themselves move Forge toward the vision.
 - **Phase 12** is the **first tracked step into Stage 3 (AI Business Builder)** — the actual

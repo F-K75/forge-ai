@@ -1,4 +1,5 @@
 from agents.base import BaseAgent
+from agents.structured_schemas import INTEGRATION_SCHEMA
 from core.models import AgentType
 import json
 
@@ -60,6 +61,7 @@ PLAYBOOKS = {
 class IntegrationAgent(BaseAgent):
     agent_type = AgentType.INTEGRATION
     prompt_role = "integration"
+    output_schema = INTEGRATION_SCHEMA
 
     async def integrate(self, integrations: list, existing_files: dict, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
         if not integrations:
@@ -82,12 +84,11 @@ class IntegrationAgent(BaseAgent):
             }
         ]
 
-        full = await self.run(messages, max_tokens=6000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
-        clean = full.strip().strip("```json").strip("```").strip()
-        # strict=False: some models (esp. non-Claude ones via BYOK) emit
-        # literal control characters (raw newlines) inside JSON strings
-        # instead of the \n escape the system prompt asks for.
-        return json.loads(clean, strict=False)
+        # 8.8: schema-validated + gateway-repaired structured output.
+        return await self._call_structured(
+            messages, max_tokens=6000, user_id=user_id, build_id=build_id,
+            project_id=project_id, org_id=org_id,
+        )
 
     @staticmethod
     def get_available_playbooks() -> dict:

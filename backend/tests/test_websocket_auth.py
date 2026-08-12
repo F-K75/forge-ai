@@ -1,7 +1,5 @@
 """Integration tests for the token-in-first-message WebSocket auth handshake (P1-002)."""
 
-import json
-
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -133,4 +131,43 @@ def test_frontend_uses_ws_token_for_websocket():
         / "hooks"
         / "useBuildSocket.ts"
     ).read_text()
-    assert "api.post('/auth/ws-token')" in src
+    assert "api.post('/v1/auth/ws-token')" in src
+
+
+def test_org_websocket_rejects_before_accept(monkeypatch):
+    """8.4: the org (agent-registry) websocket must reject an invalid token by
+    closing BEFORE accepting so Starlette never upgrades the connection (F-024)."""
+    from api.agent_registry import router as org_router
+
+    async def _reject(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr("services.org_ws_manager.authenticate_org_websocket_token", _reject)
+
+    app = FastAPI()
+    app.include_router(org_router)
+    with TestClient(app) as client:
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client.websocket_connect("/projects/p/org/ws?token=bad"):
+                pass
+        assert exc_info.value.code == 4001
+
+
+def test_pm_websocket_rejects_before_accept(monkeypatch):
+    """8.4: the PM initiative websocket must reject an invalid token by closing
+    BEFORE accepting so Starlette never upgrades the connection (F-024)."""
+    from api.initiatives import router as pm_router
+
+    async def _reject(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr("services.pm_ws_manager.authenticate_pm_websocket_token", _reject)
+    monkeypatch.setattr("api.initiatives._is_allowed_ws_origin", lambda origin: True)
+
+    app = FastAPI()
+    app.include_router(pm_router)
+    with TestClient(app) as client:
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client.websocket_connect("/initiatives/ws/init-1?token=bad"):
+                pass
+        assert exc_info.value.code == 4001

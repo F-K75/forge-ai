@@ -1,4 +1,5 @@
 from agents.base import BaseAgent
+from agents.structured_schemas import PM_VALIDATION_SCHEMA
 from core.models import AgentType
 import json
 
@@ -6,6 +7,7 @@ import json
 class PMAgent(BaseAgent):
     agent_type = AgentType.PM
     prompt_role = "product_manager"
+    output_schema = PM_VALIDATION_SCHEMA
 
     async def validate(self, blueprint: dict, generated_files: dict, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> dict:
         file_list = list(generated_files.keys())
@@ -26,9 +28,9 @@ class PMAgent(BaseAgent):
             }
         ]
 
-        full = await self.run(messages, max_tokens=2000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
-        clean = full.strip().strip("```json").strip("```").strip()
-        # strict=False: some models (esp. non-Claude ones via BYOK) emit
-        # literal control characters (raw newlines) inside JSON strings
-        # instead of the \n escape the system prompt asks for.
-        return json.loads(clean, strict=False)
+        # 8.8: schema-validated + gateway-repaired structured output instead of
+        # the hand-rolled fence-strip + json.loads(strict=False) below.
+        return await self._call_structured(
+            messages, max_tokens=2000, user_id=user_id, build_id=build_id,
+            project_id=project_id, org_id=org_id,
+        )

@@ -112,6 +112,72 @@ try:
         "Share of response-cache hits served by semantic (near-duplicate) matching rather than exact match",
         registry=registry,
     )
+    forge_optimizer_workers_active = Gauge(
+        "forge_optimizer_workers_active",
+        "Number of live Celery workers publishing a recent optimizer snapshot",
+        registry=registry,
+    )
+
+    # Fleet-aggregated worker counters. Celery workers increment the Counter
+    # metrics above inside their own process, which Prometheus never scrapes
+    # directly; these gauges carry the fleet-wide sums as computed on the API
+    # /metrics scrape (see core/fleet_metrics.aggregate_fleet_optimizer_gauges).
+    # They mirror the worker-side counters but are gauges because they are
+    # summed across a variable-sized fleet rather than monotonic in one process.
+    forge_worker_build_outcomes_total = Gauge(
+        "forge_worker_build_outcomes_total",
+        "Fleet-wide builds completed, by outcome, aggregated from Celery workers",
+        ["status"],
+        registry=registry,
+    )
+    forge_worker_llm_requests_total = Gauge(
+        "forge_worker_llm_requests_total",
+        "Fleet-wide LLM requests, by provider/model/agent/status, aggregated from Celery workers",
+        ["provider", "model", "agent", "status"],
+        registry=registry,
+    )
+    forge_worker_llm_tokens_total = Gauge(
+        "forge_worker_llm_tokens_total",
+        "Fleet-wide LLM tokens, by provider/model/agent/direction, aggregated from Celery workers",
+        ["provider", "model", "agent", "direction"],
+        registry=registry,
+    )
+    forge_worker_llm_retry_attempts_total = Gauge(
+        "forge_worker_llm_retry_attempts_total",
+        "Fleet-wide provider call attempts (incl. retries), by agent, aggregated from Celery workers",
+        ["agent"],
+        registry=registry,
+    )
+    forge_worker_llm_failovers_total = Gauge(
+        "forge_worker_llm_failovers_total",
+        "Fleet-wide provider/model failovers, by agent, aggregated from Celery workers",
+        ["agent"],
+        registry=registry,
+    )
+    forge_worker_llm_guardrail_blocked_total = Gauge(
+        "forge_worker_llm_guardrail_blocked_total",
+        "Fleet-wide guardrail blocks, by category, aggregated from Celery workers",
+        ["category"],
+        registry=registry,
+    )
+    forge_worker_llm_budget_downgrades_total = Gauge(
+        "forge_worker_llm_budget_downgrades_total",
+        "Fleet-wide budget downgrades, by scope, aggregated from Celery workers",
+        ["scope"],
+        registry=registry,
+    )
+    forge_worker_llm_budget_rejections_total = Gauge(
+        "forge_worker_llm_budget_rejections_total",
+        "Fleet-wide budget rejections, by scope, aggregated from Celery workers",
+        ["scope"],
+        registry=registry,
+    )
+    forge_worker_uptime_seconds = Gauge(
+        "forge_worker_uptime_seconds",
+        "Seconds since each live Celery worker's last published snapshot",
+        ["worker_id"],
+        registry=registry,
+    )
 
     # Budget Manager metrics -- recorded in core/llm/budget_manager.py's
     # BudgetManager.enforce(), called from LLMRouter.generate()/stream().
@@ -166,6 +232,16 @@ except ImportError:
     llm_tokens_saved_total = _NoOpMetric()  # type: ignore[assignment]
     llm_cost_by_provider_usd = _NoOpMetric()  # type: ignore[assignment]
     llm_semantic_cache_hit_ratio = _NoOpMetric()  # type: ignore[assignment]
+    forge_optimizer_workers_active = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_build_outcomes_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_llm_requests_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_llm_tokens_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_llm_retry_attempts_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_llm_failovers_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_llm_guardrail_blocked_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_llm_budget_downgrades_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_llm_budget_rejections_total = _NoOpMetric()  # type: ignore[assignment]
+    forge_worker_uptime_seconds = _NoOpMetric()  # type: ignore[assignment]
     llm_budget_downgrades_total = _NoOpMetric()  # type: ignore[assignment]
     llm_budget_rejections_total = _NoOpMetric()  # type: ignore[assignment]
     llm_routing_decisions_total = _NoOpMetric()  # type: ignore[assignment]

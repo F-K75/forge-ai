@@ -147,6 +147,12 @@ class BaseAgent:
     prompt_role: Optional[str] = None
     prompt_template_version: str = "v1"
 
+    # Optional JSON Schema for structured output (8.8). When set and the
+    # agent calls `_call_structured`, the response is validated and (once)
+    # repaired against this schema by AIGateway.generate instead of the
+    # hand-rolled fence-strip + json.loads the agents historically used.
+    output_schema: Optional[Dict[str, Any]] = None
+
     # Context engineering: set to False to skip context assembly for roles
     # that don't need it (e.g. simple chat agents)
     use_context_engineering: bool = True
@@ -158,7 +164,7 @@ class BaseAgent:
         self.few_shot_manager = _get_few_shot_manager()
         self.context_assembler = _get_context_assembler()
 
-    def _resolve_system_prompt(
+    async def _resolve_system_prompt(
         self,
         messages: list,
         extra_system: str,
@@ -187,7 +193,7 @@ class BaseAgent:
         # --- Context Engineering ---
         if self.use_context_engineering:
             # Assemble a full context from multiple sources
-            ctx = self._assemble_context(task, extra_system, project_state, previous_outputs)
+            ctx = await self._assemble_context(task, extra_system, project_state, previous_outputs)
         else:
             # Minimal legacy path
             ctx = PromptContext(
@@ -267,10 +273,7 @@ class BaseAgent:
         project_state: Optional[ProjectStateSlice] = None,
         previous_outputs: Optional[Dict[str, str]] = None,
     ) -> str:
-        if not _llm_circuit_breaker.can_call():
-            retry_after = _llm_circuit_breaker.retry_after()
-            from core.llm.provider import CircuitBreakerOpen
-            raise CircuitBreakerOpen(retry_after=retry_after)
+        await _ensure_global_circuit_allows_call()
 
         byok = await _resolve_byok(user_id)
         if user_id and not byok:
@@ -286,7 +289,7 @@ class BaseAgent:
                 build_id=build_id,
                 project_id=project_id,
                 org_id=org_id,
-                system_prompt=self._resolve_system_prompt(
+                system_prompt=await self._resolve_system_prompt(
                     messages,
                     extra_system,
                     prompt_template_version,
@@ -295,12 +298,80 @@ class BaseAgent:
                 ),
                 byok=byok,
             )
+            # Success/failure recording is owned by LLMRouter (see the docstring
+            # on _ensure_global_circuit_allows_call) so the fleet breaker isn't
+            # double-counted here.
             response = await self.gateway.generate(request)
-            _llm_circuit_breaker.record_success()
             return response.content
         except Exception:
-            _llm_circuit_breaker.record_failure()
             raise
+
+    async def _call_structured(
+        self,
+        messages: list,
+        schema: Optional[Dict[str, Any]] = None,
+        extra_system: str = "",
+        max_tokens: int = 8192,
+        user_id: Optional[str] = None,
+        build_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        org_id: Optional[str] = None,
+        prompt_template_version: Optional[str] = None,
+        project_state: Optional[ProjectStateSlice] = None,
+        previous_outputs: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """Call the gateway's non-streaming path with a structured-output
+        schema (8.8) so the response is schema-validated and, on failure,
+        repaired once by AIGateway.generate -- instead of this agent
+        hand-rolling fence-stripping + json.loads. Returns the parsed JSON
+        object from ``GatewayResponse.structured_data``.
+
+        Uses the class-level ``output_schema`` unless an explicit ``schema``
+        is supplied. Raises ``ValueError`` when validation+repair both fail
+        (mirrors the pre-8.8 behaviour of json.loads raising on bad output,
+        but with a clearer message).
+        """
+        schema = schema or self.output_schema
+        if not schema:
+            raise ValueError(
+                f"{self.__class__.__name__}._call_structured requires output_schema"
+            )
+
+        await _ensure_global_circuit_allows_call()
+
+        byok = await _resolve_byok(user_id)
+        if user_id and not byok:
+            await check_budget(user_id, org_id=org_id)
+
+        request = GatewayRequest(
+            agent_name=self.__class__.__name__.lower(),
+            messages=messages,
+            model=None,
+            max_tokens=max_tokens,
+            user_id=user_id,
+            build_id=build_id,
+            project_id=project_id,
+            org_id=org_id,
+            system_prompt=await self._resolve_system_prompt(
+                messages,
+                extra_system,
+                prompt_template_version,
+                project_state=project_state,
+                previous_outputs=previous_outputs,
+            ),
+            byok=byok,
+            structured_output_schema=schema,
+        )
+        # Success/failure recording is owned by LLMRouter (see the docstring
+        # on _ensure_global_circuit_allows_call) so the fleet breaker isn't
+        # double-counted here.
+        response = await self.gateway.generate(request)
+        if response.structured_data is not None:
+            return response.structured_data
+        errors = response.structured_output_errors or ["unknown validation error"]
+        raise ValueError(
+            f"{self.__class__.__name__} structured output invalid after repair: {errors}"
+        )
 
     async def stream(
         self,
@@ -316,10 +387,7 @@ class BaseAgent:
         project_state: Optional[ProjectStateSlice] = None,
         previous_outputs: Optional[Dict[str, str]] = None,
     ) -> AsyncGenerator[str, None]:
-        if not _llm_circuit_breaker.can_call():
-            retry_after = _llm_circuit_breaker.retry_after()
-            from core.llm.provider import CircuitBreakerOpen
-            raise CircuitBreakerOpen(retry_after=retry_after)
+        await _ensure_global_circuit_allows_call()
 
         byok = await _resolve_byok(user_id)
         if user_id and not byok:
@@ -335,7 +403,7 @@ class BaseAgent:
                 build_id=build_id,
                 project_id=project_id,
                 org_id=org_id,
-                system_prompt=self._resolve_system_prompt(
+                system_prompt=await self._resolve_system_prompt(
                     messages,
                     extra_system,
                     prompt_template_version,
@@ -348,9 +416,7 @@ class BaseAgent:
             )
             async for chunk in self.gateway.stream(request):
                 yield chunk
-            _llm_circuit_breaker.record_success()
         except Exception:
-            _llm_circuit_breaker.record_failure()
             raise
 
     async def run(

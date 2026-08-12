@@ -117,6 +117,10 @@ async def create_template(payload: TemplatePayload, admin: User = Depends(admin_
         get_template_registry().create(payload.to_template())
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    # 8.9: persist the overlay so it survives restart and syncs across workers.
+    from prompt_builder.persistence import upsert_template
+
+    await upsert_template(payload.to_template())
     return {"status": "created", "role": payload.role, "version": payload.version}
 
 
@@ -126,6 +130,10 @@ async def update_template(role: str, version: str, payload: TemplatePayload, adm
         get_template_registry().update(role, version, payload.to_template())
     except TemplateNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+    # 8.9: persist the overlay.
+    from prompt_builder.persistence import upsert_template
+
+    await upsert_template(payload.to_template())
     return {"status": "updated", "role": role, "version": version}
 
 
@@ -135,4 +143,8 @@ async def delete_template(role: str, version: str, admin: User = Depends(admin_r
         get_template_registry().delete(role, version)
     except TemplateNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+    # 8.9: remove the persisted overlay so a restart doesn't resurrect it.
+    from prompt_builder.persistence import delete_template as delete_persisted
+
+    await delete_persisted(role, version)
     return {"status": "deleted", "role": role, "version": version}

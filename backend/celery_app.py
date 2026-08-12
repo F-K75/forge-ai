@@ -45,6 +45,18 @@ def _clear_correlation_id(sender=None, **kwargs):
     request_id_var.set("-")
 
 
+@task_postrun.connect
+def _publish_optimizer_fleet_snapshot(sender=None, **kwargs):
+    """Publish this worker process's optimizer/cache snapshot to Redis so the
+    API's /metrics scrape can aggregate fleet-wide optimizer ratios (8.5).
+
+    Fire-and-forget: telemetry must never delay or break task processing, so
+    any failure is swallowed inside publish_worker_snapshot_sync()."""
+    from core.fleet_metrics import publish_worker_snapshot_sync
+
+    publish_worker_snapshot_sync()
+
+
 @worker_shutting_down.connect
 def _graceful_shutdown(sig, how, exitcode, **kwargs):
     logger.info("Celery worker shutting down gracefully: how=%s exitcode=%s", how, exitcode)

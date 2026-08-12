@@ -835,7 +835,8 @@ async def unlink_initiative_integration(initiative_id: str, provider: str, reque
 async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: Optional[str] = Query(None)):
     origin = websocket.headers.get("origin")
     if not _is_allowed_ws_origin(origin):
-        await websocket.accept()
+        # Reject at the HTTP upgrade stage -- closing before accepting makes
+        # Starlette respond with HTTP 403 and never upgrade the connection.
         await websocket.close(code=4001, reason="Invalid origin")
         return
 
@@ -845,7 +846,8 @@ async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: 
         logger.warning("WebSocket token passed via query parameter; Sec-WebSocket-Protocol header is preferred")
     user = await authenticate_pm_websocket_token(ws_token, initiative_id=initiative_id)
     if not user:
-        await websocket.accept()
+        # Reject at the HTTP upgrade stage (F-024 / 8.4) -- never open an
+        # unauthenticated connection.
         await websocket.close(code=4001, reason="Unauthorized")
         return
 

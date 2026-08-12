@@ -548,7 +548,9 @@ async def resolve_finding(
 async def org_websocket(websocket: WebSocket, project_id: str, token: Optional[str] = Query(None)):
     user = await authenticate_org_websocket_token(token, project_id=project_id)
     if not user:
-        await websocket.accept()
+        # Reject at the HTTP upgrade stage -- closing before accepting makes
+        # Starlette respond with HTTP 403 and never upgrade the connection.
+        # Consistent with F-024 enforcement in api/builds.py (8.4).
         await websocket.close(code=4001, reason="Unauthorized")
         return
 

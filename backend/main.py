@@ -145,6 +145,16 @@ async def lifespan(app: FastAPI):
     except Exception:
         logger.warning("Database migrations did not run; continuing", exc_info=True)
 
+    # 8.9: hydrate the Prompt TemplateRegistry overlay from MongoDB so runtime
+    # template edits survive restart and sync across workers. Best-effort.
+    try:
+        from prompt_builder.persistence import load_overlay
+        from prompt_builder.registry import get_template_registry
+
+        await load_overlay(get_template_registry())
+    except Exception:
+        logger.warning("Prompt template overlay load did not complete; continuing", exc_info=True)
+
     yield
 
     # Graceful shutdown: wait for in-flight requests to complete (BE-005)
@@ -469,8 +479,9 @@ async def metrics():
     """Prometheus metrics endpoint."""
     if PROMETHEUS_ENABLED:
         from fastapi.responses import Response
-        from core.metrics import update_optimizer_gauges, update_build_queue_gauges
-        update_optimizer_gauges()
+        from core.metrics import update_build_queue_gauges
+        from core.fleet_metrics import aggregate_fleet_optimizer_gauges
+        await aggregate_fleet_optimizer_gauges()
         await update_build_queue_gauges()
         return Response(generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
 
