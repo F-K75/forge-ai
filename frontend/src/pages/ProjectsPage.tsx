@@ -53,15 +53,15 @@ type ViewMode = "icons" | "list";
 
 function StatusDot({ live }: { live: boolean }) {
   return (
-    <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
+    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
       {live && (
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok/50 motion-reduce:hidden" />
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok/60 motion-reduce:hidden" />
       )}
       <span
         className={
           live
-            ? "relative h-1.5 w-1.5 rounded-full bg-ok"
-            : "relative h-1.5 w-1.5 rounded-full border border-faint bg-transparent"
+            ? "relative h-2 w-2 rounded-full bg-ok shadow-[0_0_8px_rgba(52,199,89,0.35)]"
+            : "relative h-2 w-2 rounded-full border border-white/20 bg-white/10"
         }
       />
     </span>
@@ -564,7 +564,7 @@ export default function ProjectsPage() {
                   variants={gridVariants}
                   initial={reduceMotion ? false : "hidden"}
                   animate="show"
-                  className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                  className="mx-auto grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
                 >
                   {visibleProjects.map((project) => (
                     <ProjectIcon
@@ -611,18 +611,19 @@ function ProjectIcon({
         type="button"
         onClick={onOpen}
         onDoubleClick={onOpen}
-        className="group flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center transition-all hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:w-60"
+        className="group flex w-full cursor-pointer flex-col items-center gap-3 rounded-3xl border border-white/[0.08] bg-white/[0.02] p-4 text-center transition-all duration-300 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-m3-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:w-72"
       >
         <span
-          className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/10 shadow-[0_10px_28px_-16px_rgba(0,0,0,0.8)] transition-transform duration-200 group-hover:-translate-y-0.5 group-active:translate-y-0 motion-reduce:transition-none"
+          className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_40px_-16px_rgba(0,0,0,0.9)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_24px_48px_-16px_rgba(0,0,0,0.95)] group-active:translate-y-0 motion-reduce:transition-none"
           style={{ background: coverGradient(project.id) }}
         >
-          <Folder size={24} className="relative z-[1] text-ink/90 drop-shadow" aria-hidden="true" />
-          <span className="absolute right-1.5 top-1.5">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent" />
+          <Folder size={28} className="relative z-[1] text-ink/90 drop-shadow-lg" aria-hidden="true" />
+          <span className="absolute -right-1 -top-1">
             <StatusDot live={project.live} />
           </span>
         </span>
-        <span className="w-full truncate text-[12px] font-medium leading-tight text-ink/90 group-hover:text-ink">
+        <span className="w-full truncate text-[13px] font-semibold leading-tight text-ink/90 group-hover:text-ink">
           {project.name}
         </span>
       </button>
@@ -642,21 +643,21 @@ function ProjectListRow({
       <button
         type="button"
         onClick={onOpen}
-        className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-left transition-colors hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+        className="group flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left transition-all duration-200 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-m3 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
       >
         <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 shadow-[0_12px_28px_-12px_rgba(0,0,0,0.8)]"
           style={{ background: coverGradient(project.id) }}
           aria-hidden="true"
         >
-          <Folder size={18} className="text-ink/90" />
+          <Folder size={22} className="text-ink/90" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2.5">
             <StatusDot live={project.live} />
-            <span className="truncate text-sm font-medium text-ink">{project.name}</span>
+            <span className="truncate text-sm font-semibold text-ink">{project.name}</span>
           </span>
-          <span className="mt-0.5 block truncate text-xs text-muted">
+          <span className="mt-1 block truncate text-xs text-muted">
             {project.live ? "Live" : "Idle"} · {project.lastBuilt}
             {project.description ? ` · ${project.description}` : ""}
           </span>
