@@ -3,12 +3,12 @@
 // export dynamically through wrangler, or we can potentially let users directly
 // add them as a sort of "plugin" system.
 
-import ENTRY, { __INTERNAL_WRANGLER_MIDDLEWARE__ } from "/workspace/a722b1a4-b01c-4cf9-bbd7-776c84b1848b/sessions/agent_d867b605-e7da-426c-91db-5bfa2936164e/.wrangler/tmp/bundle-n70qiz/middleware-insertion-facade.js";
+import ENTRY, { __INTERNAL_WRANGLER_MIDDLEWARE__ } from "/workspace/a722b1a4-b01c-4cf9-bbd7-776c84b1848b/sessions/agent_d867b605-e7da-426c-91db-5bfa2936164e/.wrangler/tmp/bundle-mJqiTJ/middleware-insertion-facade.js";
 import { __facade_invoke__, __facade_register__, Dispatcher } from "/usr/local/lib/node_modules/wrangler/templates/middleware/common.ts";
-import type { WorkerEntrypointConstructor } from "/workspace/a722b1a4-b01c-4cf9-bbd7-776c84b1848b/sessions/agent_d867b605-e7da-426c-91db-5bfa2936164e/.wrangler/tmp/bundle-n70qiz/middleware-insertion-facade.js";
+import type { WorkerEntrypointConstructor } from "/workspace/a722b1a4-b01c-4cf9-bbd7-776c84b1848b/sessions/agent_d867b605-e7da-426c-91db-5bfa2936164e/.wrangler/tmp/bundle-mJqiTJ/middleware-insertion-facade.js";
 
 // Preserve all the exports from the worker
-export * from "/workspace/a722b1a4-b01c-4cf9-bbd7-776c84b1848b/sessions/agent_d867b605-e7da-426c-91db-5bfa2936164e/.wrangler/tmp/bundle-n70qiz/middleware-insertion-facade.js";
+export * from "/workspace/a722b1a4-b01c-4cf9-bbd7-776c84b1848b/sessions/agent_d867b605-e7da-426c-91db-5bfa2936164e/.wrangler/tmp/bundle-mJqiTJ/middleware-insertion-facade.js";
 
 class __Facade_ScheduledController__ implements ScheduledController {
 	readonly #noRetry: ScheduledController["noRetry"];
