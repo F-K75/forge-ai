@@ -213,42 +213,6 @@ export default function AuthPage() {
       </motion.header>
 
       <main className="grid lg:grid-cols-2 min-h-[calc(100vh-4rem)]">
-        {/* Editorial panel */}
-        <motion.aside
-          initial="hidden"
-          animate="show"
-          variants={panelStagger}
-          className="hidden lg:flex flex-col justify-between p-12 xl:p-16 border-r border-land-border/60 relative overflow-hidden"
-        >
-          <AgentNetworkArt />
-          <motion.div variants={fadeUp} className="relative z-10 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-land-muted">
-            <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" />
-            Forge · Console
-          </motion.div>
-          <div className="relative z-10 max-w-md space-y-8">
-            <motion.h1 variants={fadeUp} className="font-display text-4xl xl:text-5xl font-medium leading-[1.05] tracking-tight">
-              Your engineering team, one sign-in away.
-            </motion.h1>
-            <motion.p variants={fadeUp} className="text-land-muted leading-relaxed">
-              Pick up where your specialist agents left off — plan, build, and ship
-              applications end-to-end.
-            </motion.p>
-            <ul className="space-y-3 text-sm">
-              {["Six specialist agents in one workspace", "Self-correcting debug loop on every build", "Ship in minutes, not sprints"].map((t) => (
-                <motion.li key={t} variants={fadeUp} className="flex items-center gap-3 text-land-muted">
-                  <span className="w-5 h-5 rounded-full border border-land-border flex items-center justify-center">
-                    <Check className="w-3 h-3 text-land-ink" aria-hidden="true" />
-                  </span>
-                  {t}
-                </motion.li>
-              ))}
-            </ul>
-          </div>
-          <motion.div variants={fadeUp} className="relative z-10 text-xs text-land-muted/70 font-mono">
-            // forge.ai — build pipeline
-          </motion.div>
-        </motion.aside>
-
         {/* Form */}
         <section className="flex items-center justify-center p-6 sm:p-10">
           <motion.div
@@ -569,6 +533,16 @@ export default function AuthPage() {
             </AnimatePresence>
           </motion.div>
         </section>
+
+        {/* Right visual panel */}
+        <motion.aside
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, ease: easeOut }}
+          className="hidden lg:block relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/images/login-bg.jpg)' }} />
+        </motion.aside>
       </main>
     </div>
   );
