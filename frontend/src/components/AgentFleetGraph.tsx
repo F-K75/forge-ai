@@ -142,7 +142,7 @@ function AgentNode({ data, selected }: NodeProps) {
   return (
     <div
       className={[
-        "relative min-w-[160px] rounded-3xl border bg-white/[0.03] px-4 py-3 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
+        "relative min-w-[200px] rounded-3xl border bg-white/[0.03] px-5 py-4 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
         selected ? "border-white/20 shadow-[0_20px_48px_-16px_rgba(0,0,0,0.9)] scale-[1.03]" : "border-white/[0.08] hover:border-white/20",
       ].join(" ")}
       style={{ boxShadow: `inset 0 0 0 1px ${data.hue}26, 0 18px 40px -16px rgba(0,0,0,0.75)` }}
@@ -155,38 +155,38 @@ function AgentNode({ data, selected }: NodeProps) {
 
       <div className="relative flex items-center gap-3">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10"
           style={{ background: `linear-gradient(135deg, ${data.hue}28 0%, ${data.hue}12 100%)`, color: data.hue }}
         >
-          <Activity size={17} />
+          <Activity size={20} />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold text-ink">{data.label}</p>
-          <span className="flex items-center gap-1.5 text-[11px] text-muted">
-            <StatusIcon size={10} style={{ color: statusColor }} />
+          <p className="truncate text-base font-semibold text-ink">{data.label}</p>
+          <span className="flex items-center gap-1.5 text-sm text-muted">
+            <StatusIcon size={12} style={{ color: statusColor }} />
             <span style={{ color: statusColor }}>{statusInfo.label}</span>
           </span>
         </div>
       </div>
 
-      <div className="relative mt-3 flex items-center gap-3 text-[11px] text-faint">
+      <div className="relative mt-3 flex items-center gap-3 text-sm text-faint">
         {run && (
           <>
             {run.lastRun && (
               <span className="flex items-center gap-1">
-                <Clock size={10} />
+                <Clock size={12} />
                 {run.lastRun}
               </span>
             )}
             {run.duration && (
               <span className="flex items-center gap-1">
-                <Timer size={10} />
+                <Timer size={12} />
                 {run.duration}
               </span>
             )}
             {run.successRate != null && (
               <span className="flex items-center gap-1">
-                <CheckCircle2 size={10} />
+                <CheckCircle2 size={12} />
                 {run.successRate}%
               </span>
             )}
@@ -470,7 +470,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[65vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+    <div className={`flex flex-col ${embedded ? "h-[60vh] w-full" : "h-[75vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
       {!embedded && onClose && <MacWindowHeader onClose={onClose} />}
 
       <div className="flex flex-1 min-h-0">
@@ -482,15 +482,15 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             fitView
-            fitViewOptions={{ padding: 0.35 }}
+            fitViewOptions={{ padding: 0.18 }}
             proOptions={{ hideAttribution: true }}
             className="h-full w-full"
             nodeTypes={nodeTypes}
             panOnScroll
             zoomOnScroll
             zoomOnPinch
-            minZoom={0.4}
-            maxZoom={1.5}
+            minZoom={0.6}
+            maxZoom={2}
           >
             <Background color="#22222E" gap={20} />
             <Controls showInteractive={false} />
