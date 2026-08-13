@@ -388,7 +388,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, []);
 
   const pipelineNodes = useMemo(() => {
-    const laneWidth = 240;
+    const laneWidth = 220;
     const laneY = 50;
     const startX = 30;
     return BUILD_ORDER.map((id, index) => {
@@ -414,30 +414,47 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, [results, active, agentStats]);
 
   const gatewayNodes = useMemo(() => {
-    const laneWidth = 240;
-    const laneY = 220;
+    const laneWidth = 220;
+    const rowY = [200, 310, 420] as const;
     const startX = 30;
+    const stageRows: Record<string, number> = {
+      Discovery: 0,
+      Definition: 0,
+      Planning: 1,
+      Execution: 2,
+    };
 
-    return GATEWAY_AGENTS.map((agent, index) => {
-      const id = agent.id;
-      const run = agentStats?.[id] || MOCK_RUNS[id];
-      const simulatedStatus = results[id] || "idle";
-      return {
-        id,
-        type: "agentNode",
-        position: { x: startX + index * laneWidth, y: laneY },
-        data: {
-          label: agent.label,
-          hue: agent.hue,
-          kind: "gateway" as const,
-          status: active ? simulatedStatus : "idle",
-          lastRun: run?.lastRun,
-          duration: run?.duration,
-          successRate: run?.successRate,
-          runStats: run,
-        },
-      };
+    const grouped = GATEWAY_AGENTS.reduce<Record<string, typeof GATEWAY_AGENTS>>((acc, agent) => {
+      const row = stageRows[agent.stage] ?? 0;
+      if (!acc[row]) acc[row] = [];
+      acc[row].push(agent);
+      return acc;
+    }, {});
+
+    const nodes: any[] = [];
+    Object.entries(grouped).forEach(([rowIndex, agents]) => {
+      agents.forEach((agent, index) => {
+        const id = agent.id;
+        const run = agentStats?.[id] || MOCK_RUNS[id];
+        const simulatedStatus = results[id] || "idle";
+        nodes.push({
+          id,
+          type: "agentNode",
+          position: { x: startX + index * laneWidth, y: rowY[Number(rowIndex)] },
+          data: {
+            label: agent.label,
+            hue: agent.hue,
+            kind: "gateway" as const,
+            status: active ? simulatedStatus : "idle",
+            lastRun: run?.lastRun,
+            duration: run?.duration,
+            successRate: run?.successRate,
+            runStats: run,
+          },
+        });
+      });
     });
+    return nodes;
   }, [results, active, agentStats]);
 
   const allNodes = useMemo(() => {
@@ -450,7 +467,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     const laneSeparatorGateway = {
       id: "lane-gateway",
       type: "laneLabel" as const,
-      position: { x: 0, y: 195 },
+      position: { x: 0, y: 160 },
       data: { label: "Gateway Agents" },
     };
     return [...([laneSeparatorBuild, laneSeparatorGateway] as any), ...pipelineNodes, ...gatewayNodes];
@@ -470,31 +487,33 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[60vh] w-full" : "h-[75vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+    <div className={`flex flex-col ${embedded ? "h-[60vh] w-full" : "h-[85vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
       {!embedded && onClose && <MacWindowHeader onClose={onClose} />}
 
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 min-w-0 h-full relative">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={handleNodeClick}
-            fitView
-            fitViewOptions={{ padding: 0.18 }}
-            proOptions={{ hideAttribution: true }}
-            className="h-full w-full"
-            nodeTypes={nodeTypes}
-            panOnScroll
-            zoomOnScroll
-            zoomOnPinch
-            minZoom={0.6}
-            maxZoom={2}
-          >
+        <div className="flex-1 min-w-0 h-full relative overflow-x-auto">
+          <div className="min-w-[1200px] h-full">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeClick={handleNodeClick}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              proOptions={{ hideAttribution: true }}
+              className="h-full w-full"
+              nodeTypes={nodeTypes}
+              panOnScroll
+              zoomOnScroll
+              zoomOnPinch
+              minZoom={0.5}
+              maxZoom={1.8}
+            >
             <Background color="#22222E" gap={20} />
             <Controls showInteractive={false} />
           </ReactFlow>
+          </div>
 
           <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
             <button
