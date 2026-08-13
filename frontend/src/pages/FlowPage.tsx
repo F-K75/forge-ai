@@ -1,6 +1,6 @@
 import { AgentFleetGraph } from "../components/AgentFleetGraph";
 import { motion, motionVariants } from "../lib/animations";
-import { Activity, Zap, GitBranch, ArrowRight, Play, Timer, TrendingUp, ShieldCheck } from "lucide-react";
+import { Activity, Zap, GitBranch, ArrowRight, Play, Timer, TrendingUp, ShieldCheck, ChevronRight } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { analyticsApi, flowApi } from "../lib/api";
 
