@@ -9,7 +9,7 @@ import { formatRelativeTime } from "../../lib/format";
 import { StatusPill } from "../../components/StatusPill";
 import { EmptyState, SkeletonList } from "../../components/ui/EmptyState";
 import { Card, Button, Heading } from "../../components/ui";
-import { radius } from "../../lib/designTokens";
+import { layout } from "../../lib/designTokens";
 
 interface ReviewRunSummary {
   run_id: string;
@@ -99,7 +99,7 @@ export default function ReviewsListPage() {
               onChange={(e) => setRepoPath(e.target.value)}
               placeholder="/workspaces/forge-ai"
               className="h-10 w-full border border-border bg-transparent px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              style={{ borderRadius: radius.sm }}
+              style={{ borderRadius: layout.radiusSm }}
             />
           </div>
           <div className="flex gap-2">
@@ -130,7 +130,7 @@ export default function ReviewsListPage() {
               rows={6}
               placeholder="Paste a unified diff…"
               className="w-full border border-border bg-transparent px-3 py-3 font-mono text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              style={{ borderRadius: radius.sm }}
+              style={{ borderRadius: layout.radiusSm }}
             />
           </div>
         )}

@@ -139,10 +139,15 @@ export default function Launch() {
       </section>
 
       <SiteNav />
-      <div className="relative z-10 bg-base">
-        <main id="main-content">
-          <LandingPageBody />
-        </main>
+      <div className="relative z-10">
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/2 bg-cover bg-center md:block" style={{ backgroundImage: 'url(/images/home-bg.jpg)' }} aria-hidden="true" />
+          <div className="relative bg-base/80 md:bg-base/60">
+            <main id="main-content">
+              <LandingPageBody />
+            </main>
+          </div>
+        </div>
         <SiteFooter />
       </div>
     </div>

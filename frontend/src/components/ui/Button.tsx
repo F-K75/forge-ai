@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { radius } from '../../lib/designTokens'
+import { layout } from '../../lib/designTokens'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'chip'
 export type ButtonSize = 'sm' | 'md' | 'lg'
@@ -43,7 +43,7 @@ export function Button({
     <button
       type={type}
       className={twMerge(clsx(base, variants[variant], sizes[size], className))}
-      style={variant === 'chip' ? { borderRadius: 9999, ...style } : { borderRadius: radius.md, ...style }}
+      style={variant === 'chip' ? { borderRadius: 9999, ...style } : { borderRadius: layout.radiusMd, ...style }}
       {...rest}
     >
       {children}

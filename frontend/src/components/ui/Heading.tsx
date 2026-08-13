@@ -1,7 +1,7 @@
 import type { ElementType, ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { fontScale } from '../../lib/designTokens'
+import { typeScale } from '../../lib/designTokens'
 
 export type HeadingLevel = 'display' | 'h1' | 'h2' | 'h3' | 'bodyLg' | 'body' | 'label' | 'section'
 
@@ -39,7 +39,7 @@ const toneFor: Record<HeadingLevel, string> = {
  */
 export function Heading({ level = 'body', className, children }: HeadingProps) {
   const Tag = elementFor[level]
-  const t = fontScale[level]
+  const t = typeScale[level]
   return (
     <Tag
       className={twMerge(clsx(toneFor[level], className))}

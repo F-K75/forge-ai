@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { radius } from '../../lib/designTokens'
+import { layout } from '../../lib/designTokens'
 
 export type CardVariant = 'stat' | 'content' | 'panel' | 'empty-state'
 
@@ -29,7 +29,7 @@ export function Card({ variant = 'content', className, children, style, ...rest 
           className
         )
       )}
-      style={{ borderRadius: radius.md, ...style }}
+      style={{ borderRadius: layout.radiusMd, ...style }}
       {...rest}
     >
       {children}
