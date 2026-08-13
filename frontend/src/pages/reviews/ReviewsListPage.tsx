@@ -4,11 +4,12 @@ import toast from "react-hot-toast";
 import { Send, ShieldCheck } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { motionVariants } from "../../lib/animations";
-import { presets } from "../../lib/animationPresets";
 import { reviewsApi } from "../../lib/orchestratorApi";
 import { formatRelativeTime } from "../../lib/format";
 import { StatusPill } from "../../components/StatusPill";
 import { EmptyState, SkeletonList } from "../../components/ui/EmptyState";
+import { Card, Button, Heading } from "../../components/ui";
+import { radius } from "../../lib/designTokens";
 
 interface ReviewRunSummary {
   run_id: string;
@@ -68,22 +69,27 @@ export default function ReviewsListPage() {
 
   return (
     <motion.div
-      className="px-4 py-5 md:px-8 md:py-6 max-w-5xl mx-auto"
+      className="mx-auto max-w-5xl px-4 py-6 md:px-8"
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
-      <p className="text-sm text-muted mb-6 max-w-2xl leading-relaxed">
-        Multi-agent code review — audits a repo snapshot and produces a prioritized backlog. Read-only: it never
-        edits, commits, or deploys.
-      </p>
+      <header className="mb-6">
+        <Heading level="h2">Code Reviews</Heading>
+        <Heading level="body" className="mt-1 max-w-2xl">
+          Multi-agent code review — audits a repo snapshot and produces a prioritized backlog. Read-only: it never
+          edits, commits, or deploys.
+        </Heading>
+      </header>
 
       {/* New review form */}
-      <section className="rounded-2xl border border-white/10 bg-black/20 p-5 mb-8">
-        <h2 className="font-display text-base font-medium text-ink mb-5">New review</h2>
+      <Card variant="panel" className="mb-8">
+        <Heading level="h3" className="mb-4">
+          New review
+        </Heading>
         <div className="grid gap-4 md:grid-cols-[1fr_auto] items-end">
           <div>
-            <label htmlFor="repo_path" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">
+            <label htmlFor="repo_path" className="mb-2 block text-xs uppercase tracking-wide text-muted">
               Repo path
             </label>
             <input
@@ -92,29 +98,29 @@ export default function ReviewsListPage() {
               value={repoPath}
               onChange={(e) => setRepoPath(e.target.value)}
               placeholder="/workspaces/forge-ai"
-              className="w-full h-11 px-3 rounded-md bg-transparent border border-border text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+              className="h-10 w-full border border-border bg-transparent px-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              style={{ borderRadius: radius.sm }}
             />
           </div>
           <div className="flex gap-2">
             {(["full", "diff"] as const).map((m) => (
-              <button
+              <Button
                 key={m}
-                type="button"
+                variant="secondary"
+                size="md"
                 onClick={() => setMode(m)}
-                className={[
-                  "h-11 px-4 rounded-md text-sm font-medium capitalize border transition-colors motion-reduce:transition-none",
-                  mode === m ? "border-ink text-ink" : "border-border text-muted hover:text-ink",
-                ].join(" ")}
+                aria-pressed={mode === m}
+                className={mode === m ? "border-accent text-ink" : ""}
               >
                 {m}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
         {mode === "diff" && (
           <div className="mt-4">
-            <label htmlFor="diff" className="block text-xs uppercase tracking-[0.14em] text-muted mb-2">
+            <label htmlFor="diff" className="mb-2 block text-xs uppercase tracking-wide text-muted">
               Diff
             </label>
             <textarea
@@ -123,67 +129,71 @@ export default function ReviewsListPage() {
               onChange={(e) => setDiff(e.target.value)}
               rows={6}
               placeholder="Paste a unified diff…"
-              className="w-full px-3 py-2.5 rounded-md bg-transparent border border-border text-sm font-mono text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
+              className="w-full border border-border bg-transparent px-3 py-3 font-mono text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              style={{ borderRadius: radius.sm }}
             />
           </div>
         )}
 
-        <motion.button
-          type="button"
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
           onClick={handleCreate}
           disabled={creating}
-          className="mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition-colors motion-reduce:transition-none disabled:opacity-50"
-          {...presets.button}
+          className="mt-4"
         >
           <Send size={14} aria-hidden="true" />
           {creating ? "Starting…" : "Start review"}
-        </motion.button>
-      </section>
+        </Button>
+      </Card>
 
       {/* Run history */}
-      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-6">
-        <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-        Recent runs
+      <div className="mb-6 flex items-center gap-2">
+        <span className="h-px w-6 bg-muted/50" aria-hidden="true" />
+        <Heading level="label">Recent runs</Heading>
       </div>
       {runs === null ? (
         <SkeletonList count={4} />
       ) : runs.length === 0 ? (
-        <EmptyState
-          icon={ShieldCheck}
-          title="No review runs yet"
-          description="Start one above to review a PR or commit."
-          primaryAction={{ label: creating ? "Starting…" : "Start review", onClick: handleCreate }}
-        />
+        <Card variant="empty-state" className="p-0">
+          <EmptyState
+            icon={ShieldCheck}
+            title="No review runs yet"
+            description="Start one above to review a PR or commit."
+            primaryAction={{ label: creating ? "Starting…" : "Start review", onClick: handleCreate }}
+          />
+        </Card>
       ) : (
         <motion.ul
-          className="border-t border-border"
+          className="flex flex-col gap-2"
           variants={reduceMotion ? undefined : motionVariants.staggerContainer}
           initial={reduceMotion ? false : "hidden"}
           animate="visible"
         >
           {runs.map((run) => (
-            <motion.li key={run.run_id} className="border-b border-border" variants={motionVariants.staggerItem}>
-              <motion.button
-                type="button"
-                onClick={() => navigate(`/reviews/${run.run_id}`)}
-                className="w-full text-left flex items-center justify-between gap-4 px-4 py-4 hover:bg-panel-alt transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ink/40"
-                whileHover={reduceMotion ? {} : { x: 2 }}
-                transition={{ duration: 0.15 }}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-mono text-ink truncate">{run.repo_path}</p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {run.mode} · {formatRelativeTime(run.created_at)} · {run.triggered_agents.length} agent
-                    {run.triggered_agents.length === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  {run.consolidated && (
-                    <span className="font-mono text-xs text-muted">score {run.consolidated.overall_score}</span>
-                  )}
-                  <StatusPill status={run.status} />
-                </div>
-              </motion.button>
+            <motion.li key={run.run_id} variants={motionVariants.staggerItem}>
+              <Card variant="content" className="p-0">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/reviews/${run.run_id}`)}
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-panel-alt motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-sm text-ink">{run.repo_path}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      {run.mode} · {formatRelativeTime(run.created_at)} · {run.triggered_agents.length} agent
+                      {run.triggered_agents.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    {run.consolidated && (
+                      <span className="font-mono text-xs text-muted">score {run.consolidated.overall_score}</span>
+                    )}
+                    <StatusPill status={run.status} />
+                  </div>
+                </button>
+              </Card>
             </motion.li>
           ))}
         </motion.ul>

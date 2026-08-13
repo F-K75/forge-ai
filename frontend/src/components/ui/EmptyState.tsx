@@ -1,6 +1,7 @@
 import { type LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
+import { Button, Heading } from './index'
 
 interface EmptyStateProps {
   icon: LucideIcon
@@ -30,49 +31,44 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
         <Icon className="w-8 h-8 text-muted" aria-hidden="true" />
       </motion.div>
       <motion.h3
-        className="text-lg font-semibold text-ink mb-2"
+        className="mb-2"
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        {title}
+        <Heading level="h3">{title}</Heading>
       </motion.h3>
       {description && (
-        <motion.p
-          className="text-sm text-muted mb-4 max-w-sm"
+        <motion.div
+          className="mb-4 max-w-sm"
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
         >
-          {description}
-        </motion.p>
+          <Heading level="body">{description}</Heading>
+        </motion.div>
       )}
       {primaryAction && (
-        <motion.button
-          type="button"
-          onClick={primaryAction.onClick}
-          className="bb-btn bb-btn-primary"
+        <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          whileHover={reduceMotion ? {} : { scale: 1.04 }}
-          whileTap={reduceMotion ? {} : { scale: 0.97 }}
         >
-          {primaryAction.label}
-        </motion.button>
+          <Button variant="primary" onClick={primaryAction.onClick}>
+            {primaryAction.label}
+          </Button>
+        </motion.div>
       )}
       {secondaryAction && (
-        <motion.button
-          type="button"
-          onClick={secondaryAction.onClick}
-          className="bb-btn bb-btn-ghost mt-2 text-sm"
+        <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          whileHover={reduceMotion ? {} : { scale: 1.03 }}
         >
-          {secondaryAction.label}
-        </motion.button>
+          <Button variant="secondary" size="sm" className="mt-2" onClick={secondaryAction.onClick}>
+            {secondaryAction.label}
+          </Button>
+        </motion.div>
       )}
     </motion.div>
   )

@@ -4,7 +4,8 @@ import { Pencil, Check, X, Download, FileText, Target, Layers, GitBranch, Shield
 import { usePMStore } from "../../store/pmStore";
 import { initiativesApi } from "../../lib/pmApi";
 import { motion, motionVariants } from "../../lib/animations";
-import { presets } from "../../lib/animationPresets";
+import { Card, Button, Heading } from "../../components/ui";
+import { radius, fontSize } from "../../lib/designTokens";
 
 function EditableList({
   label, items, onSave, icon: Icon,
@@ -26,52 +27,56 @@ function EditableList({
   };
 
   return (
-    <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl transition-all duration-200 hover:border-white/10" variants={motionVariants.fadeUp}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon size={14} className="text-accent" />}
-          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{label}</h3>
-        </div>
-        {!editing ? (
-          <motion.button
-            onClick={() => { setDraft(items.join("\n")); setEditing(true); }}
-            {...presets.button}
-            className="text-faint hover:text-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded p-1"
-            aria-label={`Edit ${label}`}
-          >
-            <Pencil size={12} />
-          </motion.button>
-        ) : (
-          <div className="flex items-center gap-1">
-            <motion.button onClick={save} disabled={saving} className="text-ok hover:opacity-80 focus:outline-none p-1 rounded" aria-label="Save" whileTap={{ scale: 0.92 }}>
-              <Check size={14} />
-            </motion.button>
-            <motion.button onClick={() => setEditing(false)} className="text-faint hover:text-ink focus:outline-none p-1 rounded" aria-label="Cancel" whileTap={{ scale: 0.92 }}>
-              <X size={14} />
-            </motion.button>
+    <motion.section variants={motionVariants.fadeUp}>
+      <Card variant="content" className="transition-colors hover:border-accent/30">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {Icon && <Icon size={14} className="text-accent" aria-hidden="true" />}
+            <Heading level="label">{label}</Heading>
           </div>
+          {!editing ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setDraft(items.join("\n")); setEditing(true); }}
+              className="!px-1.5"
+              aria-label={`Edit ${label}`}
+            >
+              <Pencil size={12} aria-hidden="true" />
+            </Button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <Button variant="chip" size="sm" onClick={save} disabled={saving} className="text-ok" aria-label="Save">
+                <Check size={14} aria-hidden="true" />
+              </Button>
+              <Button variant="chip" size="sm" onClick={() => setEditing(false)} aria-label="Cancel">
+                <X size={14} aria-hidden="true" />
+              </Button>
+            </div>
+          )}
+        </div>
+        {editing ? (
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            rows={Math.max(3, items.length + 1)}
+            className="w-full border border-border bg-panel px-4 py-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            style={{ borderRadius: radius.sm }}
+            placeholder="One item per line"
+          />
+        ) : items.length === 0 ? (
+          <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Not set.</motion.p>
+        ) : (
+          <motion.ul className="space-y-2" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+            {items.map((item, i) => (
+              <motion.li key={i} className="flex items-start gap-3 text-sm text-ink" variants={motionVariants.staggerItem} custom={i}>
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent/60" aria-hidden="true" />
+                <span className="leading-relaxed">{item}</span>
+              </motion.li>
+            ))}
+          </motion.ul>
         )}
-      </div>
-      {editing ? (
-        <textarea
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          rows={Math.max(3, items.length + 1)}
-          className="w-full bg-panel border border-white/10 rounded-xl px-4 py-3 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 placeholder:text-faint"
-          placeholder="One item per line"
-        />
-      ) : items.length === 0 ? (
-        <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Not set.</motion.p>
-      ) : (
-        <motion.ul className="space-y-2" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-          {items.map((item, i) => (
-            <motion.li key={i} className="text-sm text-ink flex gap-3 items-start" variants={motionVariants.staggerItem} custom={i}>
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/60" aria-hidden="true" />
-              <span className="leading-relaxed">{item}</span>
-            </motion.li>
-          ))}
-        </motion.ul>
-      )}
+      </Card>
     </motion.section>
   );
 }
@@ -96,50 +101,52 @@ function EditableText({
   };
 
   return (
-    <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl transition-all duration-200 hover:border-white/10" variants={motionVariants.fadeUp}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon size={14} className="text-accent" />}
-          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{label}</h3>
-        </div>
-        {!editing ? (
-          <motion.button
-            onClick={() => { setDraft(value); setEditing(true); }}
-            {...presets.button}
-            className="text-faint hover:text-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded p-1"
-            aria-label={`Edit ${label}`}
-          >
-            <Pencil size={12} />
-          </motion.button>
-        ) : (
-          <div className="flex items-center gap-1">
-            <motion.button onClick={save} disabled={saving} className="text-ok hover:opacity-80 focus:outline-none p-1 rounded" aria-label="Save" whileTap={{ scale: 0.92 }}>
-              <Check size={14} />
-            </motion.button>
-            <motion.button onClick={() => setEditing(false)} className="text-faint hover:text-ink focus:outline-none p-1 rounded" aria-label="Cancel" whileTap={{ scale: 0.92 }}>
-              <X size={14} />
-            </motion.button>
+    <motion.section variants={motionVariants.fadeUp}>
+      <Card variant="content" className="transition-colors hover:border-accent/30">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {Icon && <Icon size={14} className="text-accent" aria-hidden="true" />}
+            <Heading level="label">{label}</Heading>
           </div>
+          {!editing ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setDraft(value); setEditing(true); }}
+              className="!px-1.5"
+              aria-label={`Edit ${label}`}
+            >
+              <Pencil size={12} aria-hidden="true" />
+            </Button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <Button variant="chip" size="sm" onClick={save} disabled={saving} className="text-ok" aria-label="Save">
+                <Check size={14} aria-hidden="true" />
+              </Button>
+              <Button variant="chip" size="sm" onClick={() => setEditing(false)} aria-label="Cancel">
+                <X size={14} aria-hidden="true" />
+              </Button>
+            </div>
+          )}
+        </div>
+        {editing ? (
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            rows={4}
+            className="w-full border border-border bg-panel px-4 py-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            style={{ borderRadius: radius.sm }}
+          />
+        ) : (
+          <motion.p className="whitespace-pre-wrap text-sm leading-relaxed text-ink" variants={motionVariants.fadeIn}>{value || "Not set."}</motion.p>
         )}
-      </div>
-      {editing ? (
-        <textarea
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          rows={4}
-          className="w-full bg-panel border border-white/10 rounded-xl px-4 py-3 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 placeholder:text-faint"
-        />
-      ) : (
-        <motion.p className="text-sm text-ink leading-relaxed whitespace-pre-wrap" variants={motionVariants.fadeIn}>{value || "Not set."}</motion.p>
-      )}
+      </Card>
     </motion.section>
   );
 }
 
 export default function OverviewTab() {
   const { initiative, prd, hydrate } = usePMStore();
-  if (!initiative) return null;
-
   const [comments, setComments] = useState<Array<{ id: string; comment: string; section: string; user_id: string }>>([])
   const [approvals, setApprovals] = useState<Array<{ id: string; approved: boolean; comment: string; user_id: string }>>([])
   const [initiativeComments, setInitiativeComments] = useState<Array<{ id: string; comment: string; section: string; user_id: string }>>([])
@@ -148,6 +155,16 @@ export default function OverviewTab() {
   const [approveComment, setApproveComment] = useState("")
   const [initiativeCommentDraft, setInitiativeCommentDraft] = useState("")
   const [initiativeApproveComment, setInitiativeApproveComment] = useState("")
+
+  useEffect(() => {
+    if (!initiative) return
+    loadComments()
+    loadApprovals()
+    loadInitiativeComments()
+    loadInitiativeApprovals()
+  }, [initiative])
+
+  if (!initiative) return null;
 
   const saveField = async (field: string, value: unknown) => {
     await initiativesApi.update(initiative.id, { [field]: value });
@@ -247,22 +264,14 @@ export default function OverviewTab() {
     }
   };
 
-  useEffect(() => {
-    if (!initiative) return
-    loadComments()
-    loadApprovals()
-    loadInitiativeComments()
-    loadInitiativeApprovals()
-  }, [initiative])
-
   return (
     <motion.div className="mx-auto max-w-5xl px-4 py-6 md:px-8" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
       {/* Section: Strategy */}
       <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
           <Target size={12} aria-hidden="true" />
         </span>
-        <h2 className="font-display text-sm font-semibold text-ink">Strategy & Vision</h2>
+        <Heading level="section">Strategy & Vision</Heading>
       </div>
       <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
         <motion.div variants={motionVariants.staggerItem}>
@@ -280,11 +289,11 @@ export default function OverviewTab() {
       </div>
 
       {/* Section: Requirements */}
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+      <div className="mb-3 flex items-center gap-2 mt-8">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
           <GitBranch size={12} aria-hidden="true" />
         </span>
-        <h2 className="font-display text-sm font-semibold text-ink">Requirements</h2>
+        <Heading level="section">Requirements</Heading>
       </div>
       <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
         <motion.div variants={motionVariants.staggerItem}>
@@ -312,260 +321,230 @@ export default function OverviewTab() {
       </div>
 
       {/* Section: Risks */}
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-warn/10 text-warn">
+      <div className="mb-3 flex items-center gap-2 mt-8">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-warn/10 text-warn">
           <Shield size={12} aria-hidden="true" />
         </span>
-        <h2 className="font-display text-sm font-semibold text-ink">Risks</h2>
+        <Heading level="section">Risks</Heading>
       </div>
-      <motion.section className="mb-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp}>
-        {(initiative.risks ?? []).length === 0 ? (
-          <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>None identified.</motion.p>
-        ) : (
-          <motion.ul className="space-y-3" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-            {(initiative.risks as { description: string; severity: string; mitigation?: string }[]).map((r, i) => (
-              <motion.li key={i} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15" variants={motionVariants.staggerItem} custom={i}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${
-                      r.severity === "high" ? "bg-error/10 text-error" : r.severity === "medium" ? "bg-warn/10 text-warn" : "bg-white/5 text-muted"
-                    }`}
-                  >
-                    {r.severity}
-                  </span>
-                </div>
-                <p className="text-sm text-ink leading-relaxed">{r.description}</p>
-                {r.mitigation && (
-                  <p className="mt-2 text-xs text-muted leading-relaxed">
-                    <span className="font-medium text-ink/80">Mitigation:</span> {r.mitigation}
-                  </p>
-                )}
-              </motion.li>
-            ))}
-          </motion.ul>
-        )}
+      <motion.section className="mb-8" variants={motionVariants.fadeUp}>
+        <Card variant="content">
+          {(initiative.risks ?? []).length === 0 ? (
+            <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>None identified.</motion.p>
+          ) : (
+            <motion.ul className="space-y-3" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+              {(initiative.risks as { description: string; severity: string; mitigation?: string }[]).map((r, i) => (
+                <motion.li key={i} className="rounded-md border border-border bg-panel-alt p-4" variants={motionVariants.staggerItem} custom={i}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${
+                        r.severity === "high" ? "bg-error/10 text-error" : r.severity === "medium" ? "bg-warn/10 text-warn" : "bg-panel-alt text-muted"
+                      }`}
+                    >
+                      {r.severity}
+                    </span>
+                  </div>
+                  <p className="text-sm text-ink leading-relaxed">{r.description}</p>
+                  {r.mitigation && (
+                    <p className="mt-2 text-xs text-muted leading-relaxed">
+                      <span className="font-medium text-ink/80">Mitigation:</span> {r.mitigation}
+                    </p>
+                  )}
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
+        </Card>
       </motion.section>
 
       {/* Section: PRD */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between mt-8">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
             <FileText size={12} aria-hidden="true" />
           </span>
-          <h2 className="font-display text-sm font-semibold text-ink">Product Requirements Document</h2>
+          <Heading level="section">Product Requirements Document</Heading>
         </div>
         {prd && (
-          <motion.button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleExportMarkdown}
-            {...presets.button}
-            className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded px-2 py-1"
+            className="text-muted hover:text-ink"
+            aria-label="Export markdown"
           >
             <Download size={12} aria-hidden="true" />
             Export Markdown
-          </motion.button>
+          </Button>
         )}
       </div>
-      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp}>
-        {!prd ? (
-          <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Not generated yet.</motion.p>
-        ) : (
-          <motion.div className="grid grid-cols-1 gap-3 md:grid-cols-2" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
-              <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Executive summary</p>
-              <p className="text-sm text-ink leading-relaxed">{prd.executive_summary}</p>
+      <motion.section variants={motionVariants.fadeUp}>
+        <Card variant="content">
+          {!prd ? (
+            <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Not generated yet.</motion.p>
+          ) : (
+            <motion.div className="grid grid-cols-1 gap-3 md:grid-cols-2" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
+              {[
+                { label: "Executive summary", value: prd.executive_summary },
+                { label: "Problem statement", value: prd.problem_statement },
+                { label: "Solution", value: prd.solution },
+                { label: "API overview", value: prd.api_overview },
+                { label: "Database overview", value: prd.database_overview, span: true },
+              ].map(field => (
+                <Card key={field.label} variant="stat" className={field.span ? "md:col-span-2" : undefined}>
+                  <Heading level="label">{field.label}</Heading>
+                  <p className="text-sm text-ink leading-relaxed">{field.value}</p>
+                </Card>
+              ))}
             </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
-              <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Problem statement</p>
-              <p className="text-sm text-ink leading-relaxed">{prd.problem_statement}</p>
-            </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
-              <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Solution</p>
-              <p className="text-sm text-ink leading-relaxed">{prd.solution}</p>
-            </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15">
-              <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">API overview</p>
-              <p className="text-sm text-ink leading-relaxed">{prd.api_overview}</p>
-            </motion.div>
-            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/15 md:col-span-2">
-              <p className="text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Database overview</p>
-              <p className="text-sm text-ink leading-relaxed">{prd.database_overview}</p>
-            </motion.div>
-          </motion.div>
-        )}
+          )}
+        </Card>
       </motion.section>
 
       {/* Section: Initiative Comments */}
       <div className="mb-3 flex items-center justify-between mt-8">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
             <MessageSquare size={12} aria-hidden="true" />
           </span>
-          <h2 className="font-display text-sm font-semibold text-ink">Initiative Comments</h2>
+          <Heading level="section">Initiative Comments</Heading>
         </div>
       </div>
-      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl mb-8" variants={motionVariants.fadeUp}>
-        <div className="space-y-2 mb-3">
-          {initiativeComments.length === 0 && (
-            <p className="text-xs text-faint">No comments yet.</p>
-          )}
-          {initiativeComments.map(c => (
-            <div key={c.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-              <p className="text-xs font-medium text-ink">{c.section ? `Section: ${c.section}` : "General"}</p>
-              <p className="text-sm text-ink leading-relaxed">{c.comment}</p>
-              <p className="mt-1 text-[10px] text-faint">By {c.user_id}</p>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={initiativeCommentDraft}
-            onChange={e => setInitiativeCommentDraft(e.target.value)}
-            placeholder="Add a comment..."
-            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          />
-          <button
-            type="button"
-            onClick={handleAddInitiativeComment}
-            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          >
-            Add
-          </button>
-        </div>
+      <motion.section className="mb-8" variants={motionVariants.fadeUp}>
+        <Card variant="content">
+          <div className="space-y-2 mb-3">
+            {initiativeComments.length === 0 && (
+              <p className="text-xs text-faint">No comments yet.</p>
+            )}
+            {initiativeComments.map(c => (
+              <div key={c.id} className="rounded-md border border-border bg-panel-alt p-3">
+                <p className="text-xs font-medium text-ink">{c.section ? `Section: ${c.section}` : "General"}</p>
+                <p className="text-sm text-ink leading-relaxed">{c.comment}</p>
+                <p className="mt-1 text-faint" style={{ fontSize: fontSize.label }}>By {c.user_id}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={initiativeCommentDraft}
+              onChange={e => setInitiativeCommentDraft(e.target.value)}
+              placeholder="Add a comment..."
+              className="min-w-0 flex-1 rounded-md border border-border bg-panel-alt px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            />
+            <Button type="button" onClick={handleAddInitiativeComment} variant="primary" size="sm">Add</Button>
+          </div>
+        </Card>
       </motion.section>
 
       {/* Section: PRD Comments */}
       <div className="mb-3 flex items-center justify-between mt-8">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
             <MessageSquare size={12} aria-hidden="true" />
           </span>
-          <h2 className="font-display text-sm font-semibold text-ink">PRD Comments</h2>
+          <Heading level="section">PRD Comments</Heading>
         </div>
       </div>
-      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl mb-8" variants={motionVariants.fadeUp}>
-        <div className="space-y-2 mb-3">
-          {comments.length === 0 && (
-            <p className="text-xs text-faint">No comments yet.</p>
-          )}
-          {comments.map(c => (
-            <div key={c.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-              <p className="text-xs font-medium text-ink">{c.section ? `Section: ${c.section}` : "General"}</p>
-              <p className="text-sm text-ink leading-relaxed">{c.comment}</p>
-              <p className="mt-1 text-[10px] text-faint">By {c.user_id}</p>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={commentDraft}
-            onChange={e => setCommentDraft(e.target.value)}
-            placeholder="Add a comment..."
-            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          />
-          <button
-            type="button"
-            onClick={handleAddComment}
-            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          >
-            Add
-          </button>
-        </div>
+      <motion.section className="mb-8" variants={motionVariants.fadeUp}>
+        <Card variant="content">
+          <div className="space-y-2 mb-3">
+            {comments.length === 0 && (
+              <p className="text-xs text-faint">No comments yet.</p>
+            )}
+            {comments.map(c => (
+              <div key={c.id} className="rounded-md border border-border bg-panel-alt p-3">
+                <p className="text-xs font-medium text-ink">{c.section ? `Section: ${c.section}` : "General"}</p>
+                <p className="text-sm text-ink leading-relaxed">{c.comment}</p>
+                <p className="mt-1 text-faint" style={{ fontSize: fontSize.label }}>By {c.user_id}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={commentDraft}
+              onChange={e => setCommentDraft(e.target.value)}
+              placeholder="Add a comment..."
+              className="min-w-0 flex-1 rounded-md border border-border bg-panel-alt px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            />
+            <Button type="button" onClick={handleAddComment} variant="primary" size="sm">Add</Button>
+          </div>
+        </Card>
       </motion.section>
 
       {/* Section: Initiative Approvals */}
       <div className="mb-3 flex items-center justify-between mt-8">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
             <ThumbsUp size={12} aria-hidden="true" />
           </span>
-          <h2 className="font-display text-sm font-semibold text-ink">Initiative Approvals</h2>
+          <Heading level="section">Initiative Approvals</Heading>
         </div>
       </div>
-      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl mb-8" variants={motionVariants.fadeUp}>
-        <div className="space-y-2 mb-3">
-          {initiativeApprovals.length === 0 && (
-            <p className="text-xs text-faint">No approvals yet.</p>
-          )}
-          {initiativeApprovals.map(a => (
-            <div key={a.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-              <p className="text-xs font-medium text-ink">{a.approved ? "Approved" : "Rejected"}</p>
-              {a.comment && <p className="text-sm text-ink leading-relaxed">{a.comment}</p>}
-              <p className="mt-1 text-[10px] text-faint">By {a.user_id}</p>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={initiativeApproveComment}
-            onChange={e => setInitiativeApproveComment(e.target.value)}
-            placeholder="Approval comment (optional)"
-            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          />
-          <button
-            type="button"
-            onClick={() => handleInitiativeApprove(true)}
-            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-ok px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          >
-            Approve
-          </button>
-          <button
-            type="button"
-            onClick={() => handleInitiativeApprove(false)}
-            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          >
-            Reject
-          </button>
-        </div>
+      <motion.section className="mb-8" variants={motionVariants.fadeUp}>
+        <Card variant="content">
+          <div className="space-y-2 mb-3">
+            {initiativeApprovals.length === 0 && (
+              <p className="text-xs text-faint">No approvals yet.</p>
+            )}
+            {initiativeApprovals.map(a => (
+              <div key={a.id} className="rounded-md border border-border bg-panel-alt p-3">
+                <p className="text-xs font-medium text-ink">{a.approved ? "Approved" : "Rejected"}</p>
+                {a.comment && <p className="text-sm text-ink leading-relaxed">{a.comment}</p>}
+                <p className="mt-1 text-faint" style={{ fontSize: fontSize.label }}>By {a.user_id}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={initiativeApproveComment}
+              onChange={e => setInitiativeApproveComment(e.target.value)}
+              placeholder="Approval comment (optional)"
+              className="min-w-0 flex-1 rounded-md border border-border bg-panel-alt px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            />
+            <Button type="button" onClick={() => handleInitiativeApprove(true)} variant="primary" size="sm" className="bg-ok">Approve</Button>
+            <Button type="button" onClick={() => handleInitiativeApprove(false)} variant="secondary" size="sm">Reject</Button>
+          </div>
+        </Card>
       </motion.section>
 
       {/* Section: Approvals */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between mt-8">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
             <ThumbsUp size={12} aria-hidden="true" />
           </span>
-          <h2 className="font-display text-sm font-semibold text-ink">Approvals</h2>
+          <Heading level="section">Approvals</Heading>
         </div>
       </div>
-      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp}>
-        <div className="space-y-2 mb-3">
-          {approvals.length === 0 && (
-            <p className="text-xs text-faint">No approvals yet.</p>
-          )}
-          {approvals.map(a => (
-            <div key={a.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-              <p className="text-xs font-medium text-ink">{a.approved ? "Approved" : "Rejected"}</p>
-              {a.comment && <p className="text-sm text-ink leading-relaxed">{a.comment}</p>}
-              <p className="mt-1 text-[10px] text-faint">By {a.user_id}</p>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={approveComment}
-            onChange={e => setApproveComment(e.target.value)}
-            placeholder="Approval comment (optional)"
-            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          />
-          <button
-            type="button"
-            onClick={() => handleApprove(true)}
-            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-ok px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          >
-            Approve
-          </button>
-          <button
-            type="button"
-            onClick={() => handleApprove(false)}
-            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          >
-            Reject
-          </button>
-        </div>
+      <motion.section variants={motionVariants.fadeUp}>
+        <Card variant="content">
+          <div className="space-y-2 mb-3">
+            {approvals.length === 0 && (
+              <p className="text-xs text-faint">No approvals yet.</p>
+            )}
+            {approvals.map(a => (
+              <div key={a.id} className="rounded-md border border-border bg-panel-alt p-3">
+                <p className="text-xs font-medium text-ink">{a.approved ? "Approved" : "Rejected"}</p>
+                {a.comment && <p className="text-sm text-ink leading-relaxed">{a.comment}</p>}
+                <p className="mt-1 text-faint" style={{ fontSize: fontSize.label }}>By {a.user_id}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={approveComment}
+              onChange={e => setApproveComment(e.target.value)}
+              placeholder="Approval comment (optional)"
+              className="min-w-0 flex-1 rounded-md border border-border bg-panel-alt px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            />
+            <Button type="button" onClick={() => handleApprove(true)} variant="primary" size="sm" className="bg-ok">Approve</Button>
+            <Button type="button" onClick={() => handleApprove(false)} variant="secondary" size="sm">Reject</Button>
+          </div>
+        </Card>
       </motion.section>
     </motion.div>
   );

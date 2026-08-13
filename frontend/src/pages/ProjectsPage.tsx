@@ -21,18 +21,18 @@ import {
   FolderSearch,
   type LucideIcon,
 } from "lucide-react";
-import { AnimatePresence } from "motion/react";
 import { LIVE_MODE } from "../lib/env";
 import { projectsApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
 import { coverGradient } from "../lib/coverArt";
 import { coverageStats, ORG_ROLE_COUNT, PLAYBOOK_COUNT, PROMPT_TEMPLATE_COUNT } from "../lib/skillVisuals";
 import { EmptyState } from "../components/ui/EmptyState";
+import { Card, Button, Heading } from "../components/ui";
 import { useAuthStore } from "../store/authStore";
 import { useBuildStore } from "../store/buildStore";
 import BrandLogo from "../components/BrandLogo";
 import { motion, motionVariants, useReducedMotion, useCountUp } from "../lib/animations";
-import { presets } from "../lib/animationPresets";
+import { radius, fontSize, colorTokens } from "../lib/designTokens";
 
 
 function toDisplayProject(raw: any): any {
@@ -53,15 +53,15 @@ type ViewMode = "icons" | "list";
 
 function StatusDot({ live }: { live: boolean }) {
   return (
-    <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
+    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
       {live && (
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok/50 motion-reduce:hidden" />
       )}
       <span
         className={
           live
-            ? "relative h-1.5 w-1.5 rounded-full bg-ok"
-            : "relative h-1.5 w-1.5 rounded-full border border-faint bg-transparent"
+            ? "relative h-2 w-2 rounded-full bg-ok"
+            : "relative h-2 w-2 rounded-full border border-faint bg-transparent"
         }
       />
     </span>
@@ -124,73 +124,95 @@ function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; valu
       onHoverEnd={() => setHovered(false)}
       variants={motionVariants.staggerItem}
       custom={0}
-      className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-m3"
+      className="relative h-full overflow-hidden transition-shadow hover:shadow-m3"
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
-        style={{
-          opacity: hovered ? 0.08 : 0,
-          background: "radial-gradient(ellipse 80% 80% at 50% 0%, rgb(var(--primary)), transparent 70%)",
-        }}
-      />
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-accent/10 text-accent">
-          <Icon size={13} aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <div className="font-display text-base font-semibold leading-none text-ink">
-            <CountUpValue value={value} suffix={suffix} />
+      <Card variant="stat" className="h-full">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
+          style={{
+            opacity: hovered ? 0.08 : 0,
+            background: "radial-gradient(ellipse 80% 80% at 50% 0%, rgb(var(--primary)), transparent 70%)",
+          }}
+        />
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-accent/10 text-accent">
+            <Icon size={13} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <div className="font-display font-semibold leading-none text-ink" style={{ fontSize: fontSize.bodyLg }}>
+              <CountUpValue value={value} suffix={suffix} />
+            </div>
+            <div className="mt-1 truncate leading-none text-muted" style={{ fontSize: fontSize.label }}>{label}</div>
           </div>
-          <div className="mt-1 truncate text-[11px] leading-none text-muted">{label}</div>
         </div>
-      </div>
+      </Card>
     </motion.div>
   );
 }
 
-function AdditivePulse({ hue }: { hue: string }) {
+function AdditivePulse() {
   return (
     <>
-      <div className="forge-pulse-ring" style={{ width: 80, height: 80, borderColor: `${hue}55`, animationDelay: "0s" }} />
-      <div className="forge-pulse-ring" style={{ width: 80, height: 80, borderColor: `${hue}44`, animationDelay: "1s" }} />
-      <div className="forge-pulse-ring" style={{ width: 80, height: 80, borderColor: `${hue}33`, animationDelay: "2s" }} />
+      <div
+        className="forge-pulse-ring"
+        style={{ width: 80, height: 80, borderColor: "rgba(var(--primary) / 0.33)", animationDelay: "0s" }}
+      />
+      <div
+        className="forge-pulse-ring"
+        style={{ width: 80, height: 80, borderColor: "rgba(var(--primary) / 0.27)", animationDelay: "1s" }}
+      />
+      <div
+        className="forge-pulse-ring"
+        style={{ width: 80, height: 80, borderColor: "rgba(var(--primary) / 0.2)", animationDelay: "2s" }}
+      />
     </>
   );
 }
 
 function ProjectVisual() {
-  const hue = "#14B8A6";
+  const accent = colorTokens.accent.default;
+  const accentHover = colorTokens.accent.hover;
 
   return (
     <div className="relative flex h-full min-h-[280px] items-center justify-center" aria-hidden="true">
       <div
         className="forge-glow-breathe absolute h-64 w-64 rounded-full blur-3xl"
-        style={{ background: `radial-gradient(circle, ${hue}22 0%, transparent 65%)` }}
+        style={{ background: "radial-gradient(circle, rgba(var(--primary) / 0.13) 0%, transparent 65%)" }}
       />
 
       <div className="absolute flex items-center justify-center">
-        <AdditivePulse hue={hue} />
+        <AdditivePulse />
       </div>
 
       <div className="forge-orbit h-48 w-48" style={{ animationDuration: "28s" }}>
-        <div className="forge-orbit-dot" style={{ background: hue, boxShadow: `0 0 10px ${hue}80` }} />
+        <div
+          className="forge-orbit-dot"
+          style={{ background: accent, boxShadow: "0 0 10px rgba(var(--primary) / 0.5)" }}
+        />
       </div>
       <div
         className="forge-orbit h-64 w-64"
-        style={{ animationDirection: "reverse", animationDuration: "38s", borderColor: `${hue}0D` }}
+        style={{ animationDirection: "reverse", animationDuration: "38s", borderColor: "rgba(var(--primary) / 0.05)" }}
       >
-        <div className="forge-orbit-dot" style={{ background: "#84CC16", boxShadow: "0 0 10px #84CC1680", top: "auto", bottom: -3 }} />
+        <div
+          className="forge-orbit-dot"
+          style={{ background: accentHover, boxShadow: "0 0 10px rgba(var(--primary-hover) / 0.5)", top: "auto", bottom: -3 }}
+        />
       </div>
 
       <motion.div
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="relative z-10 flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-panel/95 shadow-m3-2 backdrop-blur-xl"
+        className="relative z-10 flex h-20 w-20 items-center justify-center border border-border bg-panel shadow-m3-2 backdrop-blur-xl"
+        style={{ borderRadius: radius.lg }}
       >
-        <div className="absolute inset-0 rounded-3xl" style={{ background: `radial-gradient(circle at 50% 30%, ${hue}18, transparent 70%)` }} />
-        <FolderOpen size={28} className="text-accent" />
-        <span className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-panel shadow-m3">
+        <div
+          className="absolute inset-0"
+          style={{ background: "radial-gradient(circle at 50% 30%, rgba(var(--primary) / 0.09), transparent 70%)", borderRadius: radius.lg }}
+        />
+        <FolderOpen size={28} className="relative z-[1] text-accent" aria-hidden="true" />
+        <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-panel shadow-m3">
           <Activity size={13} className="text-accent" />
         </span>
       </motion.div>
@@ -213,7 +235,7 @@ function ProjectVisual() {
             height: p.size,
             animationDelay: p.delay,
             animationDuration: p.duration,
-            background: i % 2 === 0 ? hue : "#84CC16",
+            background: i % 2 === 0 ? accent : accentHover,
             opacity: 0.35,
           }}
         />
@@ -223,10 +245,10 @@ function ProjectVisual() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.4 }}
-        className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/[0.08] bg-panel/80 px-3.5 py-1.5 backdrop-blur-xl"
+        className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-2 backdrop-blur-xl"
       >
-        <span className="forge-signal-dot h-1.5 w-1.5 rounded-full bg-ok" />
-        <span className="whitespace-nowrap text-[11px] font-medium text-muted">
+        <span className="forge-signal-dot h-2 w-2 rounded-full bg-ok" />
+        <span className="whitespace-nowrap font-medium text-muted" style={{ fontSize: fontSize.label }}>
           Projects ready to build
         </span>
       </motion.div>
@@ -336,31 +358,29 @@ export default function ProjectsPage() {
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
                     <Sparkles size={13} aria-hidden="true" />
                   </span>
-                  <span className="text-xs font-medium tracking-wide text-muted">
+                  <Heading level="label" className="font-medium normal-case tracking-wide">
                     AI-Powered Product Building
-                  </span>
+                  </Heading>
                 </motion.div>
 
-                <motion.h1
-                  variants={motionVariants.staggerItem}
-                  className="mt-3 font-display text-4xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[2.75rem]"
-                >
-                  Build{" "}
-                  <span className="bg-gradient-to-r from-accent to-secondary bg-clip-text text-transparent">
-                    Production Software
-                  </span>
+                <motion.h1 variants={motionVariants.staggerItem} className="mt-3">
+                  <Heading level="display">
+                    Build{" "}
+                    <span className="bg-gradient-to-r from-accent to-secondary bg-clip-text text-transparent">
+                      Production Software
+                    </span>
+                  </Heading>
                 </motion.h1>
 
-                <motion.p
-                  variants={motionVariants.staggerItem}
-                  className="mt-4 text-[15px] leading-relaxed text-muted"
-                >
-                  Forge turns simple prompts into full project builds — architecture, code, QA, and deployment —
-                  orchestrated by specialized AI agents working in parallel.
-                </motion.p>
+                <motion.div variants={motionVariants.staggerItem} className="mt-4">
+                  <Heading level="body">
+                    Forge turns simple prompts into full project builds — architecture, code, QA, and deployment —
+                    orchestrated by specialized AI agents working in parallel.
+                  </Heading>
+                </motion.div>
 
                 {/* Stat cards */}
-                <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {HERO_STATS.map((s) => (
                     <StatCard key={s.label} icon={s.icon} value={s.value} suffix={s.suffix} label={s.label} />
                   ))}
@@ -394,7 +414,7 @@ export default function ProjectsPage() {
               />
 
               <div className="apple-glass-strong relative rounded-apple p-2 shadow-m3-2">
-                <div className="flex items-center gap-2.5 px-2.5 py-1.5">
+                <div className="flex items-center gap-2 px-2 py-2">
                   <span
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/25 to-accent/10 text-accent"
                     aria-hidden="true"
@@ -408,18 +428,19 @@ export default function ProjectsPage() {
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleBuild()}
                     placeholder="Describe what you want to build…"
-                    className="min-w-0 flex-1 bg-transparent py-3 text-[15px] text-ink placeholder:text-faint focus:outline-none"
+                    className="min-w-0 flex-1 bg-transparent py-3 text-ink placeholder:text-faint focus:outline-none"
+                    style={{ fontSize: fontSize.bodyLg }}
                     aria-label="Describe what you want to build"
                   />
-                  <motion.button
+                  <Button
+                    variant="primary"
+                    size="lg"
                     onClick={() => handleBuild()}
                     disabled={creating || !prompt.trim()}
-                    {...presets.button}
-                    className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-accent px-6 text-sm font-semibold text-white shadow-[0_8px_24px_-12px_rgba(20,184,166,0.45)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                   >
                     <Send size={14} aria-hidden="true" />
                     {creating ? "Opening" : "Build"}
-                  </motion.button>
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -428,9 +449,9 @@ export default function ProjectsPage() {
           {/* ============ PROJECT LIBRARY ============ */}
           <section aria-label="Project library" className="mt-10 flex min-h-0 flex-1 flex-col">
             <div className="flex flex-wrap items-center gap-2 border-b border-outline px-4 py-3 md:px-8">
-              <p className="mr-2 hidden text-caption font-medium uppercase tracking-[0.12em] text-accent sm:block">
+              <Heading level="label" className="mr-2 hidden text-accent sm:block">
                 Library
-              </p>
+              </Heading>
               <div className="relative min-w-[160px] flex-1">
                 <Search
                   size={13}
@@ -443,14 +464,14 @@ export default function ProjectsPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search library…"
                   aria-label="Search projects"
-                  className="h-9 w-full rounded-full border border-transparent bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  className="h-10 w-full rounded-full border border-border bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                 aria-label="Filter by status"
-                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="h-10 cursor-pointer rounded-full border border-border bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <option value="all">All</option>
                 <option value="live">Live</option>
@@ -460,13 +481,13 @@ export default function ProjectsPage() {
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as SortKey)}
                 aria-label="Sort by"
-                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="h-10 cursor-pointer rounded-full border border-border bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <option value="recent">Recent</option>
                 <option value="name">Name</option>
                 <option value="status">Status</option>
               </select>
-              <div className="flex shrink-0 gap-0.5 rounded-full bg-panel-alt p-0.5" role="group" aria-label="View mode">
+              <div className="flex shrink-0 gap-1 rounded-full bg-panel-alt p-1" role="group" aria-label="View mode">
                 {(
                   [
                     { key: "icons" as const, icon: LayoutGrid, label: "Icon view" },
@@ -492,24 +513,28 @@ export default function ProjectsPage() {
 
             <div className="min-h-0 flex-1 overflow-auto px-3 py-5 md:px-6 md:py-6">
               {projects.length === 0 ? (
-                <EmptyState
-                  icon={Folder}
-                  title="Your library is empty"
-                  description="Describe what you want to build above to create your first project."
-                />
+                <Card variant="empty-state" className="p-0">
+                  <EmptyState
+                    icon={Folder}
+                    title="Your library is empty"
+                    description="Describe what you want to build above to create your first project."
+                  />
+                </Card>
               ) : visibleProjects.length === 0 ? (
-                <EmptyState
-                  icon={FolderSearch}
-                  title="No matches"
-                  description={search ? `No results for “${search}”.` : "Try a different filter."}
-                  secondaryAction={{
-                    label: "Clear filters",
-                    onClick: () => {
-                      setSearch("");
-                      setStatusFilter("all");
-                    },
-                  }}
-                />
+                <Card variant="empty-state" className="p-0">
+                  <EmptyState
+                    icon={FolderSearch}
+                    title="No matches"
+                    description={search ? `No results for “${search}”.` : "Try a different filter."}
+                    secondaryAction={{
+                      label: "Clear filters",
+                      onClick: () => {
+                        setSearch("");
+                        setStatusFilter("all");
+                      },
+                    }}
+                  />
+                </Card>
               ) : viewMode === "icons" ? (
                 <motion.div
                   variants={gridVariants}
@@ -562,18 +587,18 @@ function ProjectIcon({
         type="button"
         onClick={onOpen}
         onDoubleClick={onOpen}
-        className="group flex w-[5.5rem] cursor-pointer flex-col items-center gap-2 rounded-xl p-2 text-center transition-colors hover:bg-white/[0.05] focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40 sm:w-24"
+        className="group flex w-24 cursor-pointer flex-col items-center gap-2 rounded-lg p-2 text-center transition-colors hover:bg-panel-alt focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         <span
-          className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/10 shadow-[0_10px_28px_-16px_rgba(0,0,0,0.8)] transition-transform duration-200 group-hover:-translate-y-0.5 group-active:translate-y-0 motion-reduce:transition-none"
-          style={{ background: coverGradient(project.id) }}
+          className="relative flex h-14 w-14 items-center justify-center overflow-hidden border border-border shadow-m3 transition-transform duration-200 group-hover:-translate-y-1 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+          style={{ background: coverGradient(project.id), borderRadius: radius.lg }}
         >
-          <Folder size={22} className="relative z-[1] text-ink/90 drop-shadow" aria-hidden="true" />
-          <span className="absolute right-1.5 top-1.5">
+          <Folder size={22} className="relative z-[1] text-ink drop-shadow" aria-hidden="true" />
+          <span className="absolute right-1 top-1">
             <StatusDot live={project.live} />
           </span>
         </span>
-        <span className="w-full truncate text-[11px] leading-tight text-ink/90 group-hover:text-ink">
+        <span className="w-full truncate leading-tight text-muted group-hover:text-ink" style={{ fontSize: fontSize.label }}>
           {project.name}
         </span>
       </button>
@@ -590,29 +615,31 @@ function ProjectListRow({
 }) {
   return (
     <motion.li variants={itemVariants}>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
-      >
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10"
-          style={{ background: coverGradient(project.id) }}
-          aria-hidden="true"
+      <Card variant="content" className="p-0">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="group flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-panel-alt focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
         >
-          <Folder size={15} className="text-ink/90" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <StatusDot live={project.live} />
-            <span className="truncate text-sm text-ink">{project.name}</span>
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border"
+            style={{ background: coverGradient(project.id) }}
+            aria-hidden="true"
+          >
+            <Folder size={15} className="text-ink" />
           </span>
-          <span className="mt-0.5 block truncate text-xs text-muted">
-            {project.live ? "Live" : "Idle"} · {project.lastBuilt}
-            {project.description ? ` · ${project.description}` : ""}
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <StatusDot live={project.live} />
+              <span className="truncate text-sm text-ink">{project.name}</span>
+            </span>
+            <span className="mt-1 block truncate text-xs text-muted">
+              {project.live ? "Live" : "Idle"} · {project.lastBuilt}
+              {project.description ? ` · ${project.description}` : ""}
+            </span>
           </span>
-        </span>
-      </button>
+        </button>
+      </Card>
     </motion.li>
   );
 }

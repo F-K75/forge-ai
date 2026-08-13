@@ -4,12 +4,13 @@ import { Star, Download, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, useReducedMotion } from "motion/react";
 import { motionVariants } from "../lib/animations";
-import { presets } from "../lib/animationPresets";
 import { TEMPLATES } from "../lib/mockData";
 import type { Template } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
 import { marketplaceApi } from "../lib/api";
 import { HUE_CYCLE } from "../lib/theme";
+import { Card, Button, Heading } from "../components/ui";
+import { radius } from "../lib/designTokens";
 
 type FilterTab = "all" | "official" | "community";
 
@@ -94,27 +95,33 @@ export default function MarketplacePage() {
 
   return (
     <motion.div
-      className="px-4 py-5 md:px-8 md:py-6 max-w-5xl mx-auto"
+      className="mx-auto max-w-5xl px-4 py-6 md:px-8"
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <p className="text-sm text-muted">Install a starter to open it as a project.</p>
+      <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <Heading level="h2">Marketplace</Heading>
+          <Heading level="body" className="mt-1">
+            Install a starter to open it as a project.
+          </Heading>
+        </div>
         <div className="relative">
           <Search
             size={13}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
             aria-hidden="true"
           />
           <input
             type="search"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search templates…"
             aria-label="Search templates"
-            className="bg-white/[0.04] border border-transparent rounded-lg h-9 pl-8 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40 transition w-full sm:w-60"
+            className="h-10 w-full border border-border bg-panel-alt pl-8 pr-4 text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:w-60"
+            style={{ borderRadius: radius.md }}
           />
         </div>
       </header>
@@ -124,28 +131,31 @@ export default function MarketplacePage() {
         <div
           role="tablist"
           aria-label="Filter templates"
-          className="mb-10 flex flex-wrap gap-2"
+          className="mb-8 flex flex-wrap gap-2"
         >
           {TABS.map(tab => (
-            <button
+            <Button
               key={tab.value}
+              variant="chip"
+              size="sm"
               role="tab"
               aria-selected={filter === tab.value}
               onClick={() => setFilter(tab.value)}
-              className={[
-                "bb-chip",
-                filter === tab.value ? "bb-chip-selected" : "",
-              ].join(" ")}
+              className={filter === tab.value ? "border-accent/40 bg-accent/10 text-ink" : ""}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}
 
       {/* Grid */}
       {LIVE_MODE && liveTemplates === null ? (
-        <p className="py-20 text-center text-sm text-muted">Loading templates</p>
+        <Card variant="empty-state" className="p-0">
+          <Heading level="body" className="py-12 text-center">
+            Loading templates…
+          </Heading>
+        </Card>
       ) : visible.length > 0 ? (
         <motion.div
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
@@ -159,9 +169,11 @@ export default function MarketplacePage() {
           ))}
         </motion.div>
       ) : (
-        <p className="text-center text-muted text-sm py-20">
-          No templates match your search.
-        </p>
+        <Card variant="empty-state" className="p-0">
+          <Heading level="body" className="py-12 text-center">
+            No templates match your search.
+          </Heading>
+        </Card>
       )}
     </motion.div>
   );
@@ -169,59 +181,57 @@ export default function MarketplacePage() {
 
 function TemplateCard({ template, onInstall }: { template: Template; onInstall: () => void }) {
   return (
-    <motion.article
-      role="listitem"
-      className="bb-card flex flex-col gap-4 p-6"
-      {...presets.card}
-      variants={motionVariants.staggerItem}
-    >
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-sm font-semibold text-accent select-none"
-          aria-hidden="true"
-        >
-          {template.name[0]}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="truncate font-display text-sm font-medium text-ink">{template.name}</h2>
-            <span className="bb-chip shrink-0 !px-2 !py-0.5 text-[10px]">
-              {template.source === "official" ? "Official" : `by ${template.author}`}
-            </span>
-          </div>
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{template.description}</p>
-        </div>
-      </div>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1.5">
-        {template.tags.map(tag => (
-          <span
-            key={tag}
-            className="bb-chip !px-2 !py-0.5 text-[10px]"
+    <motion.div role="listitem" className="h-full" variants={motionVariants.staggerItem}>
+      <Card variant="content" className="flex h-full flex-col gap-4">
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center bg-accent-soft text-sm font-semibold text-accent select-none"
+            style={{ borderRadius: radius.md }}
+            aria-hidden="true"
           >
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-1 mt-auto">
-        <div className="flex items-center gap-1 text-xs text-muted" aria-label={`Rating: ${template.rating}`}>
-          <Star size={11} className="text-warn fill-warn" aria-hidden="true" />
-          <span>{template.rating}</span>
+            {template.name[0]}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="truncate font-display text-sm font-medium text-ink">{template.name}</h3>
+              <span className="shrink-0 rounded-full border border-border bg-panel px-2 py-1 text-xs text-muted">
+                {template.source === "official" ? "Official" : `by ${template.author}`}
+              </span>
+            </div>
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{template.description}</p>
+          </div>
         </div>
-        <motion.button
-          onClick={onInstall}
-          {...presets.button}
-          className="bb-btn bb-btn-tonal h-8 !px-3 text-xs active:scale-[0.98]"
-          aria-label={`Install ${template.name} — ${template.installs} installs`}
-        >
-          <Download size={11} aria-hidden="true" />
-          {template.installs}
-        </motion.button>
-      </div>
-    </motion.article>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2">
+          {template.tags.map(tag => (
+            <span
+              key={tag}
+              className="rounded-full border border-border bg-panel px-2 py-1 text-xs text-muted"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-auto flex items-center justify-between">
+          <div className="flex items-center gap-1 text-xs text-muted" aria-label={`Rating: ${template.rating}`}>
+            <Star size={11} className="fill-warn text-warn" aria-hidden="true" />
+            <span>{template.rating}</span>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onInstall}
+            aria-label={`Install ${template.name} — ${template.installs} installs`}
+          >
+            <Download size={11} aria-hidden="true" />
+            {template.installs}
+          </Button>
+        </div>
+      </Card>
+    </motion.div>
   );
 }

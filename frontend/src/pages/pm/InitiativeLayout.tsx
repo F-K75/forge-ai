@@ -9,8 +9,9 @@ import { initiativesApi } from "../../lib/pmApi";
 import { captureEvent } from "../../lib/analytics";
 import { escapeHtml } from "../../lib/sanitize";
 import { motion, motionVariants } from "../../lib/animations";
-import { presets } from "../../lib/animationPresets";
-import { EmptyState, Skeleton } from "../../components/ui/EmptyState";
+import { Skeleton } from "../../components/ui/EmptyState";
+import { Card, Button, Heading } from "../../components/ui";
+import { fontSize } from "../../lib/designTokens";
 
 const TABS = [
   { to: "", label: "Overview", end: true, icon: Rocket },
@@ -100,14 +101,16 @@ export default function InitiativeLayout() {
 
   if (!LIVE_MODE) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-faint p-8 text-center">
-        Connect a backend (set VITE_WS_URL) to use Initiatives.
-      </div>
-    );
-  }
+      <div className="flex h-full items-center justify-center p-8">
+              <Card variant="empty-state" className="w-full text-center">
+                <Heading level="body">Connect a backend (set VITE_WS_URL) to use Initiatives.</Heading>
+              </Card>
+            </div>
+          );
+        }
 
-  if (!initiative) {
-    if (loading) {
+        if (!initiative) {
+          if (loading) {
       return (
         <div className="flex h-full flex-col gap-4 p-6 md:p-8">
           <div className="flex items-center gap-3">
@@ -129,9 +132,11 @@ export default function InitiativeLayout() {
       );
     }
     return (
-      <div className="flex h-full items-center justify-center text-sm text-faint p-8 text-center">
-        {error || "Failed to load initiative"}
-      </div>
+      <div className="flex h-full items-center justify-center p-8">
+              <Card variant="empty-state" className="w-full text-center">
+                <Heading level="body">{error || "Failed to load initiative"}</Heading>
+              </Card>
+            </div>
     );
   }
 
@@ -144,71 +149,59 @@ export default function InitiativeLayout() {
       </div>
 
       <div className="relative z-10 flex flex-col h-full min-h-0">
-        <header className="shrink-0 border-b border-white/[0.06] backdrop-blur-xl">
+        <header className="shrink-0 border-b border-border backdrop-blur-xl">
           <div className="px-6 md:px-8 pt-6 pb-0">
             <motion.div className="flex items-start justify-between gap-4 mb-5" variants={motionVariants.fadeIn} initial="hidden" animate="visible">
               <div className="min-w-0">
-                <motion.button
+                <Button
+                  variant="chip"
+                  size="sm"
                   onClick={() => navigate("/initiatives")}
-                  {...presets.tab}
-                  className="text-xs text-muted hover:text-ink transition-colors motion-reduce:transition-none mb-2 flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded"
+                  className="mb-2"
                 >
-                  <ArrowLeft size={12} />
+                  <ArrowLeft size={12} aria-hidden="true" />
                   All initiatives
-                </motion.button>
+                </Button>
                 <div className="flex items-center gap-3">
-                  <h1 className="font-display text-xl md:text-2xl font-semibold tracking-tight text-ink truncate">
+                  <Heading level="h2" className="truncate">
                     {initiative.name}
-                  </h1>
-                  <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-muted">
+                  </Heading>
+                  <span
+                    className="flex items-center gap-2 rounded-full border border-border bg-panel px-2 py-1 text-muted"
+                    style={{ fontSize: fontSize.label }}
+                  >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${connectionStatus === "online" ? "bg-ok forge-signal-dot" : "bg-faint"}`}
+                      className={`h-2 w-2 rounded-full ${connectionStatus === "online" ? "bg-ok forge-signal-dot" : "bg-faint"}`}
                       aria-hidden="true"
                     />
                     {connectionStatus === "online" ? "Live" : "Offline"}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                >
+              <div className="flex shrink-0 items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={handleExport}>
                   <Download size={14} aria-hidden="true" />
                   Export
-                </button>
+                </Button>
                 {generationStatus === "generating" ? (
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2 text-xs font-medium text-accent">
+                    <span className="flex items-center gap-2 rounded-md border border-accent/20 bg-accent/10 px-3 py-2 text-xs font-medium text-accent">
                       <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                       {generationStage ? `Generating ${generationStage}…` : "Generating…"}
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                    >
+                    <Button variant="secondary" size="sm" onClick={handleCancel}>
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 ) : generationStatus === "failed" || generationStatus === "review" ? (
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleApprove}
-                      className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                    >
+                    <Button variant="secondary" size="sm" onClick={handleApprove}>
                       Approve plan
-                    </button>
+                    </Button>
                     {generationStatus === "failed" ? (
-                      <button
-                        type="button"
-                        onClick={handleRetry}
-                        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                      >
+                      <Button variant="primary" size="sm" onClick={handleRetry}>
                         Retry generation
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                 ) : (
@@ -220,30 +213,18 @@ export default function InitiativeLayout() {
                         className="flex items-center gap-2"
                       >
                         <span className="text-xs text-muted">This will delete the current plan.</span>
-                        <button
-                          type="button"
-                          onClick={handleRegenerate}
-                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                        >
+                        <Button variant="primary" size="sm" onClick={handleRegenerate}>
                           Confirm
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirming(false)}
-                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                        >
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => setConfirming(false)}>
                           Cancel
-                        </button>
+                        </Button>
                       </motion.div>
                     ) : (
-                      <motion.button
-                        onClick={() => setConfirming(true)}
-                        {...presets.button}
-                        className="flex items-center gap-2 h-9 px-4 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-medium text-ink hover:bg-white/[0.08] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => setConfirming(true)}>
                         <RefreshCw size={14} aria-hidden="true" />
                         Regenerate
-                      </motion.button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -254,24 +235,26 @@ export default function InitiativeLayout() {
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 flex items-start gap-3 rounded-xl border border-ember/30 bg-ember/10 p-4"
+                className="mb-4"
               >
-                <AlertTriangle size={16} className="mt-0.5 shrink-0 text-ember" aria-hidden="true" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-ink">Plan generation failed</p>
-                  <p className="mt-1 text-xs text-muted line-clamp-3">{escapeHtml(generationError)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRetry}
-                  className="shrink-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                >
-                  Retry
-                </button>
+                <Card variant="content" className="flex items-start gap-3 border-error/30 bg-error/10">
+                  <AlertTriangle size={16} className="mt-1 shrink-0 text-error" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <Heading level="body" className="font-medium text-ink">
+                      Plan generation failed
+                    </Heading>
+                    <p className="mt-1 line-clamp-3 text-muted" style={{ fontSize: fontSize.label }}>
+                      {escapeHtml(generationError)}
+                    </p>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={handleRetry}>
+                    Retry
+                  </Button>
+                </Card>
               </motion.div>
             )}
 
-            <nav aria-label="Initiative sections" className="flex gap-0.5 -mb-px overflow-x-auto" role="tablist">
+            <nav aria-label="Initiative sections" className="-mb-px flex gap-1 overflow-x-auto" role="tablist">
               {TABS.map((tab, i) => {
                 const Icon = tab.icon;
                 return (
@@ -289,8 +272,8 @@ export default function InitiativeLayout() {
                       role="tab"
                       className={({ isActive }) =>
                         [
-                          "flex items-center gap-1.5 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition-colors motion-reduce:transition-none",
-                          "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
+                          "flex items-center gap-2 px-3 py-3 text-sm whitespace-nowrap border-b-2 transition-colors motion-reduce:transition-none",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
                           isActive
                             ? "border-accent text-accent font-medium"
                             : "border-transparent text-muted hover:text-ink",

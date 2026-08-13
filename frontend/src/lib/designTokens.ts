@@ -84,3 +84,91 @@ export const zIndex = {
 export type ThemeMode = 'dark' | 'light' | 'high-contrast'
 
 export const THEME_STORAGE_KEY = 'forge-theme-mode'
+
+/* ------------------------------------------------------------------ */
+/* Canonical design scales                                             */
+/*                                                                     */
+/* These are the single source of truth for the shared UI primitives   */
+/* (Card / Button / Heading) and the Initiatives page. Use ONLY values */
+/* from these scales going forward — no arbitrary px/hex outside this  */
+/* file. The `spacing`/`typeScale`/`layout` exports above are kept for */
+/* backward-compatibility with older pages and map onto these.         */
+/* ------------------------------------------------------------------ */
+
+/** Spacing scale — 4/8/12/16/24/32/48px only. Keys are px values. */
+export const space = {
+  4: 4,
+  8: 8,
+  12: 12,
+  16: 16,
+  24: 24,
+  32: 32,
+  48: 48,
+} as const
+export type Space = (typeof space)[keyof typeof space]
+
+/** Radius scale — sm/md/lg (6/10/16px). */
+export const radius = {
+  sm: 6,
+  md: 10,
+  lg: 16,
+} as const
+
+/**
+ * Type scale — label/body/body-lg/h3/h2/h1(display).
+ * Weights are defined per level.
+ */
+export const fontScale = {
+  label: { size: 12, weight: 500, lineHeight: 1.4, tracking: 0.01 },
+  body: { size: 14, weight: 400, lineHeight: 1.5, tracking: 0 },
+  section: { size: 14, weight: 600, lineHeight: 1.4, tracking: 0 },
+  bodyLg: { size: 16, weight: 400, lineHeight: 1.5, tracking: -0.01 },
+  h3: { size: 20, weight: 600, lineHeight: 1.3, tracking: -0.02 },
+  h2: { size: 24, weight: 600, lineHeight: 1.25, tracking: -0.02 },
+  h1: { size: 40, weight: 700, lineHeight: 1.05, tracking: -0.03 },
+  display: { size: 40, weight: 700, lineHeight: 1.05, tracking: -0.03 },
+} as const
+
+/** Font size in px per scale key (convenience, e.g. inline styles). */
+export const fontSize = {
+  label: fontScale.label.size,
+  body: fontScale.body.size,
+  section: fontScale.section.size,
+  bodyLg: fontScale.bodyLg.size,
+  h3: fontScale.h3.size,
+  h2: fontScale.h2.size,
+  h1: fontScale.h1.size,
+  display: fontScale.display.size,
+} as const
+
+/**
+ * Semantic color roles. Hex values live as CSS variables in index.css
+ * (dark / light / high-contrast). These references are the JS source of
+ * truth for any color that must be applied imperatively.
+ */
+export const colorTokens = {
+  background: {
+    base: 'var(--bg)',
+    elevated: 'var(--surface)',
+    card: 'var(--surface-container)',
+  },
+  accent: {
+    default: 'rgb(var(--primary))',
+    hover: 'rgb(var(--primary-hover))',
+    soft: 'var(--primary-container)',
+  },
+  text: {
+    primary: 'var(--on-surface)',
+    secondary: 'var(--on-surface-variant)',
+    muted: 'var(--outline-muted)',
+  },
+  border: {
+    default: 'var(--outline)',
+    soft: 'var(--outline)',
+  },
+  status: {
+    success: 'rgb(var(--success))',
+    warning: 'rgb(var(--warning))',
+    error: 'rgb(var(--error))',
+  },
+} as const
