@@ -142,7 +142,7 @@ function AgentNode({ data, selected }: NodeProps) {
   return (
     <div
       className={[
-        "relative min-w-[200px] rounded-3xl border bg-white/[0.03] px-5 py-4 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
+        "relative min-w-[220px] rounded-3xl border bg-white/[0.03] px-5 py-4 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
         selected ? "border-white/20 shadow-[0_20px_48px_-16px_rgba(0,0,0,0.9)] scale-[1.03]" : "border-white/[0.08] hover:border-white/20",
       ].join(" ")}
       style={{ boxShadow: `inset 0 0 0 1px ${data.hue}26, 0 18px 40px -16px rgba(0,0,0,0.75)` }}
@@ -388,7 +388,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, []);
 
   const pipelineNodes = useMemo(() => {
-    const laneWidth = 220;
+    const laneWidth = 240;
     const laneY = 50;
     const startX = 30;
     return BUILD_ORDER.map((id, index) => {
@@ -414,8 +414,8 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, [results, active, agentStats]);
 
   const gatewayNodes = useMemo(() => {
-    const laneWidth = 220;
-    const laneY = 190;
+    const laneWidth = 240;
+    const laneY = 220;
     const startX = 30;
 
     return GATEWAY_AGENTS.map((agent, index) => {
@@ -450,7 +450,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     const laneSeparatorGateway = {
       id: "lane-gateway",
       type: "laneLabel" as const,
-      position: { x: 0, y: 165 },
+      position: { x: 0, y: 195 },
       data: { label: "Gateway Agents" },
     };
     return [...([laneSeparatorBuild, laneSeparatorGateway] as any), ...pipelineNodes, ...gatewayNodes];
