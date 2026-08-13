@@ -245,6 +245,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
   const statusInfo = STATUS_META.idle;
   const StatusIcon = statusInfo.icon;
   const credits = "credits" in agent ? agent.credits : undefined;
+  const run = MOCK_RUNS[agent.id];
 
   return (
     <motion.div
@@ -305,6 +306,24 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
           )}
 
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Business impact</p>
+            <div className="space-y-2 text-sm text-ink">
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Est. time saved</span>
+                <span className="font-medium">{run ? `${Math.floor(Math.random() * 4 + 1)}h` : "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Quality score</span>
+                <span className="font-medium">{run ? `${run.successRate}%` : "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Automation</span>
+                <span className="font-medium">{kind === "build" ? "Full pipeline" : "Focused workflow"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Actions</p>
             <div className="flex flex-col gap-2">
               <button className="bb-btn bb-btn-primary w-full">Run agent</button>
@@ -317,7 +336,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
   );
 }
 
-export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
+export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd }: { onClose?: () => void; embedded?: boolean; autoPlay?: boolean; onTourEnd?: () => void }) {
   const [selectedAgent, setSelectedAgent] = useState<{ id: string; kind: "build" | "gateway" } | null>(null);
   const [{ active, currentIndex, results }, dispatch] = useReducer(runReducer, {
     active: false,
@@ -330,6 +349,23 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
     const timer = setInterval(() => dispatch({ type: "tick" }), 900);
     return () => clearInterval(timer);
   }, [active, currentIndex]);
+
+  useEffect(() => {
+    if (autoPlay && !active) {
+      dispatch({ type: "tick" });
+    }
+  }, [autoPlay]);
+
+  useEffect(() => {
+    if (!autoPlay) return;
+    const allDone = PIPELINE_ORDER.every((id) => results[id] === "success");
+    if (allDone && results && Object.keys(results).length === PIPELINE_ORDER.length) {
+      const timer = setTimeout(() => {
+        onTourEnd?.();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [results, autoPlay, onTourEnd]);
 
   const startRun = useCallback(() => {
     dispatch({ type: "tick" });
