@@ -67,22 +67,26 @@ function AgentNode({ data, selected }: NodeProps) {
   return (
     <div
       className={[
-        "min-w-[160px] rounded-2xl border bg-panel/95 px-4 py-3 shadow-m3 backdrop-blur-xl transition-all duration-200",
-        selected ? "border-accent/60 shadow-m3-2 scale-[1.02]" : "border-white/[0.08] hover:border-white/20",
+        "relative min-w-[176px] rounded-3xl border bg-white/[0.03] px-4 py-3 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
+        selected ? "border-white/20 shadow-[0_20px_48px_-16px_rgba(0,0,0,0.9)] scale-[1.03]" : "border-white/[0.08] hover:border-white/20",
       ].join(" ")}
-      style={{ borderLeft: `3px solid ${data.hue}` }}
+      style={{ boxShadow: `inset 0 0 0 1px ${data.hue}26, 0 18px 40px -16px rgba(0,0,0,0.75)` }}
     >
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-white/20" />
+      <div
+        className="pointer-events-none absolute inset-0 rounded-3xl opacity-70"
+        style={{ background: `linear-gradient(135deg, ${data.hue}18 0%, transparent 55%)` }}
+      />
+      <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border-0" style={{ background: `${data.hue}99` }} />
 
-      <div className="flex items-center gap-2.5">
+      <div className="relative flex items-center gap-3">
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10"
-          style={{ background: `${data.hue}18`, color: data.hue }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10"
+          style={{ background: `linear-gradient(135deg, ${data.hue}28 0%, ${data.hue}12 100%)`, color: data.hue }}
         >
-          <Activity size={16} />
+          <Activity size={17} />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-ink">{data.label}</p>
+          <p className="truncate text-[13px] font-semibold text-ink">{data.label}</p>
           <span className="flex items-center gap-1.5 text-[11px] text-muted">
             <StatusIcon size={10} style={{ color: statusInfo.color }} />
             {statusInfo.label}
@@ -91,7 +95,7 @@ function AgentNode({ data, selected }: NodeProps) {
       </div>
 
       {(data.status === "running" || data.lastRun || data.credits) && (
-        <div className="mt-2.5 flex items-center gap-3 text-[11px] text-faint">
+        <div className="relative mt-3 flex items-center gap-3 text-[11px] text-faint">
           {data.status === "running" && (
             <span className="flex items-center gap-1 text-accent">
               <Loader2 size={10} className="animate-spin" />
@@ -113,7 +117,7 @@ function AgentNode({ data, selected }: NodeProps) {
         </div>
       )}
 
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/20" />
+      <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border-0" style={{ background: `${data.hue}99` }} />
     </div>
   );
 }
