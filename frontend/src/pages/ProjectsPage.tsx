@@ -195,13 +195,16 @@ function ProjectVisual() {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="relative z-10 flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-panel/95 shadow-m3-2 backdrop-blur-xl"
+        className="relative z-10 flex h-28 w-28 items-center justify-center rounded-3xl border border-white/10 shadow-m3-2 backdrop-blur-xl overflow-hidden"
       >
-        <div className="absolute inset-0 rounded-3xl" style={{ background: `radial-gradient(circle at 50% 30%, ${hue}18, transparent 70%)` }} />
-        <FolderOpen size={28} className="text-accent" />
-        <span className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-panel shadow-m3">
-          <Activity size={13} className="text-accent" />
-        </span>
+        <img
+          src="/images/project-ready.jpg"
+          alt="Projects ready to build"
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-transparent" />
+        <div className="absolute inset-0 rounded-3xl" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)" }} />
       </motion.div>
 
       {[
