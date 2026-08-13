@@ -142,7 +142,7 @@ function AgentNode({ data, selected }: NodeProps) {
   return (
     <div
       className={[
-        "relative min-w-[176px] rounded-3xl border bg-white/[0.03] px-4 py-3 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
+        "relative min-w-[160px] rounded-3xl border bg-white/[0.03] px-4 py-3 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
         selected ? "border-white/20 shadow-[0_20px_48px_-16px_rgba(0,0,0,0.9)] scale-[1.03]" : "border-white/[0.08] hover:border-white/20",
       ].join(" ")}
       style={{ boxShadow: `inset 0 0 0 1px ${data.hue}26, 0 18px 40px -16px rgba(0,0,0,0.75)` }}
@@ -414,7 +414,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, [results, active, agentStats]);
 
   const gatewayNodes = useMemo(() => {
-    const laneWidth = 150;
+    const laneWidth = 220;
     const laneY = 190;
     const startX = 30;
 
@@ -482,10 +482,15 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             fitView
-            fitViewOptions={{ padding: 0.25 }}
+            fitViewOptions={{ padding: 0.35 }}
             proOptions={{ hideAttribution: true }}
             className="h-full w-full"
             nodeTypes={nodeTypes}
+            panOnScroll
+            zoomOnScroll
+            zoomOnPinch
+            minZoom={0.4}
+            maxZoom={1.5}
           >
             <Background color="#22222E" gap={20} />
             <Controls showInteractive={false} />
