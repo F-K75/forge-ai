@@ -60,6 +60,12 @@ const MOCK_RUNS: Record<string, { lastRun: string; duration: string; successRate
   task_executor: { lastRun: "15m ago", duration: "2.1s", successRate: 82 },
 };
 
+type AgentRunStats = {
+  lastRun?: string;
+  duration?: string;
+  successRate?: number;
+};
+
 const AGENT_CONNECTIONS = [
   { id: "e-arch-biz", source: "architect", target: "business_improver", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.18)", strokeWidth: 1.5 } },
   { id: "e-biz-des", source: "business_improver", target: "designer", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.18)", strokeWidth: 1.5 } },
@@ -128,7 +134,7 @@ function runReducer(state: RunState, action: { type: "tick" }): RunState {
 function AgentNode({ data, selected }: NodeProps) {
   const statusInfo = STATUS_META[data.status as AgentStatus];
   const StatusIcon = statusInfo.icon;
-  const run = MOCK_RUNS[data.id];
+  const run = data.runStats || MOCK_RUNS[data.id];
 
   const statusColor = data.status === "success" ? "rgb(var(--success))" : data.status === "error" ? "rgb(var(--error))" : statusInfo.color;
   const statusBg = data.status === "success" ? "rgb(var(--success) / 0.15)" : data.status === "error" ? "rgb(var(--error) / 0.15)" : "transparent";
@@ -166,18 +172,24 @@ function AgentNode({ data, selected }: NodeProps) {
       <div className="relative mt-3 flex items-center gap-3 text-[11px] text-faint">
         {run && (
           <>
-            <span className="flex items-center gap-1">
-              <Clock size={10} />
-              {run.lastRun}
-            </span>
-            <span className="flex items-center gap-1">
-              <Timer size={10} />
-              {run.duration}
-            </span>
-            <span className="flex items-center gap-1">
-              <CheckCircle2 size={10} />
-              {run.successRate}%
-            </span>
+            {run.lastRun && (
+              <span className="flex items-center gap-1">
+                <Clock size={10} />
+                {run.lastRun}
+              </span>
+            )}
+            {run.duration && (
+              <span className="flex items-center gap-1">
+                <Timer size={10} />
+                {run.duration}
+              </span>
+            )}
+            {run.successRate != null && (
+              <span className="flex items-center gap-1">
+                <CheckCircle2 size={10} />
+                {run.successRate}%
+              </span>
+            )}
           </>
         )}
       </div>
@@ -336,7 +348,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
   );
 }
 
-export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd }: { onClose?: () => void; embedded?: boolean; autoPlay?: boolean; onTourEnd?: () => void }) {
+export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentStats }: { onClose?: () => void; embedded?: boolean; autoPlay?: boolean; onTourEnd?: () => void; agentStats?: Record<string, AgentRunStats> }) {
   const [selectedAgent, setSelectedAgent] = useState<{ id: string; kind: "build" | "gateway" } | null>(null);
   const [{ active, currentIndex, results }, dispatch] = useReducer(runReducer, {
     active: false,
@@ -381,7 +393,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd }: { on
     const startX = 30;
     return BUILD_ORDER.map((id, index) => {
       const agent = AGENTS.find((a) => a.id === id)!;
-      const run = MOCK_RUNS[agent.id];
+      const run = agentStats?.[agent.id] || MOCK_RUNS[agent.id];
       const simulatedStatus = results[agent.id] || "idle";
       return {
         id: agent.id,
@@ -395,10 +407,11 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd }: { on
           lastRun: run?.lastRun,
           duration: run?.duration,
           successRate: run?.successRate,
+          runStats: run,
         },
       };
     });
-  }, [results, active]);
+  }, [results, active, agentStats]);
 
   const gatewayNodes = useMemo(() => {
     const laneWidth = 150;
@@ -407,7 +420,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd }: { on
 
     return GATEWAY_AGENTS.map((agent, index) => {
       const id = agent.id;
-      const run = MOCK_RUNS[id];
+      const run = agentStats?.[id] || MOCK_RUNS[id];
       const simulatedStatus = results[id] || "idle";
       return {
         id,
@@ -421,10 +434,11 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd }: { on
           lastRun: run?.lastRun,
           duration: run?.duration,
           successRate: run?.successRate,
+          runStats: run,
         },
       };
     });
-  }, [results, active]);
+  }, [results, active, agentStats]);
 
   const allNodes = useMemo(() => {
     const laneSeparatorBuild = {

@@ -4,6 +4,7 @@ import { AGENTS } from "../lib/agents";
 import { GATEWAY_AGENTS } from "../lib/gatewayAgents";
 import { Activity, Zap, GitBranch, ArrowRight, Play, ChevronRight, Timer, TrendingUp, ShieldCheck } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
+import { analyticsApi, flowApi } from "../lib/api";
 
 const BUILD_STAGES = [
   { name: "Discovery", agents: GATEWAY_AGENTS.filter(a => a.stage === "Discovery").length, color: "#0071E3" },
@@ -12,7 +13,7 @@ const BUILD_STAGES = [
   { name: "Execution", agents: GATEWAY_AGENTS.filter(a => a.stage === "Execution").length, color: "#30D158" },
 ];
 
-const SOCIAL_PROOF = [
+const DEFAULT_SOCIAL_PROOF = [
   { icon: TrendingUp, value: "1,247+", label: "Builds completed" },
   { icon: ShieldCheck, value: "99.9%", label: "Uptime SLA" },
   { icon: Timer, value: "~4 min", label: "Avg pipeline run" },
@@ -21,6 +22,9 @@ const SOCIAL_PROOF = [
 export default function FlowPage() {
   const [tourActive, setTourActive] = useState(false);
   const [tourSkipped, setTourSkipped] = useState(false);
+  const [socialProof, setSocialProof] = useState(DEFAULT_SOCIAL_PROOF);
+  const [agentStats, setAgentStats] = useState<Record<string, { lastRun?: string; duration?: string; successRate?: number }>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const hasSeenTour = sessionStorage.getItem("forge-flow-tour");
@@ -28,6 +32,41 @@ export default function FlowPage() {
       setTourActive(true);
       sessionStorage.setItem("forge-flow-tour", "true");
     }
+
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      flowApi.personalAnalytics(30).catch(() => null),
+      flowApi.agentStats().catch(() => null),
+    ]).then(([personal, stats]) => {
+      if (cancelled) return;
+      setLoading(false);
+
+      if (personal) {
+        setSocialProof((prev) => [
+          { ...prev[0], value: `${personal.builds_total ?? prev[0].value}` },
+          { ...prev[1], value: `${((personal.success_rate ?? 0) * 100).toFixed(1)}%` },
+          { ...prev[2], value: personal.avg_build_time_minutes ? `${personal.avg_build_time_minutes.toFixed(1)} min` : prev[2].value },
+        ]);
+      }
+
+      if (stats?.agents) {
+        const mapped: Record<string, { lastRun?: string; duration?: string; successRate?: number }> = {};
+        for (const agent of stats.agents) {
+          const key = agent._id;
+          mapped[key] = {
+            lastRun: agent.last_active_at ? new Date(agent.last_active_at).toLocaleString() : undefined,
+            duration: undefined,
+            successRate: agent.avg_pass_rate ? Math.round(agent.avg_pass_rate * 100) : undefined,
+          };
+        }
+        setAgentStats(mapped);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const skipTour = useCallback(() => {
@@ -85,7 +124,7 @@ export default function FlowPage() {
           className="mt-8"
         >
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-            {SOCIAL_PROOF.map((item) => (
+            {socialProof.map((item) => (
               <div
                 key={item.label}
                 className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 backdrop-blur-xl"
@@ -95,7 +134,9 @@ export default function FlowPage() {
                     <item.icon size={13} aria-hidden="true" />
                   </span>
                   <div className="min-w-0">
-                    <div className="font-display text-base font-semibold leading-none text-ink">{item.value}</div>
+                    <div className="font-display text-base font-semibold leading-none text-ink">
+                      {loading ? "..." : item.value}
+                    </div>
                     <div className="mt-1 truncate text-[11px] leading-none text-muted">{item.label}</div>
                   </div>
                 </div>
@@ -136,7 +177,7 @@ export default function FlowPage() {
                 </button>
               </div>
             )}
-            <AgentFleetGraph embedded={false} autoPlay={tourActive} onTourEnd={skipTour} />
+            <AgentFleetGraph embedded={false} autoPlay={tourActive} onTourEnd={skipTour} agentStats={agentStats} />
           </div>
         </motion.div>
       </section>
