@@ -443,7 +443,7 @@ export default function ProjectsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.15 }}
-                      className="px-2.5 pb-2"
+                      className="relative z-50 px-2.5 pb-2"
                     >
                       <p className="mb-1.5 px-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
                         Suggestions
@@ -458,7 +458,7 @@ export default function ProjectsPage() {
                               setPrompt(suggestion);
                               setShowSuggestions(false);
                             }}
-                            className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-left text-xs text-muted transition-colors hover:border-white/15 hover:bg-white/[0.04] hover:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm text-ink transition-colors hover:border-accent/40 hover:bg-accent/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
                           >
                             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
                               <Sparkles size={12} aria-hidden="true" />
