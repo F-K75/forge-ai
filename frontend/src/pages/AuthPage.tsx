@@ -189,12 +189,15 @@ export default function AuthPage() {
   const mfaErrorId = mfaError ? "mfa-error" : undefined;
 
   return (
-    <div className="min-h-screen text-land-ink">
+    <div className="min-h-screen text-land-ink relative">
+      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/images/login-bg.jpg)' }} aria-hidden="true" />
+      <div className="absolute inset-0 bg-base/85" aria-hidden="true" />
+      
       <motion.header
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: easeOut }}
-        className="border-b border-land-border/60"
+        className="relative z-10 border-b border-land-border/60"
       >
         <div className="max-w-6xl mx-auto px-6">
           <nav className="flex items-center justify-between h-16">
@@ -204,7 +207,7 @@ export default function AuthPage() {
             </Link>
             <div className="text-sm text-land-muted">
               New to Forge?{" "}
-              <Link to="/signup" className="text-land-ink hover:underline underline-offset-4">
+              <Link to="/signup" className="text-land-ink hover:text-land-ink/80 transition">
                 Create account
               </Link>
             </div>
@@ -212,7 +215,7 @@ export default function AuthPage() {
         </div>
       </motion.header>
 
-      <main className="grid lg:grid-cols-2 min-h-[calc(100vh-4rem)]">
+      <main className="relative z-10 grid lg:grid-cols-2 min-h-[calc(100vh-4rem)]">
         {/* Form */}
         <section className="flex items-center justify-center p-6 sm:p-10">
           <motion.div
