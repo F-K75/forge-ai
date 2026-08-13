@@ -23,7 +23,6 @@ import {
   Play,
   RotateCcw,
   Timer,
-  ChevronRight,
 } from "lucide-react";
 
 const BUILD_ORDER = ["architect", "business_improver", "designer", "developer", "integration", "pm"] as const;
@@ -130,7 +129,6 @@ function AgentNode({ data, selected }: NodeProps) {
   const statusInfo = STATUS_META[data.status as AgentStatus];
   const StatusIcon = statusInfo.icon;
   const run = data.runStats || MOCK_RUNS[data.id];
-
   const statusColor = data.status === "success" ? "rgb(var(--success))" : data.status === "error" ? "rgb(var(--error))" : statusInfo.color;
 
   return (
@@ -349,9 +347,9 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, []);
 
   const pipelineNodes = useMemo(() => {
-    const laneWidth = 210;
-    const laneY = 40;
-    const startX = 24;
+    const laneX = 80;
+    const startY = 30;
+    const gap = 120;
     return BUILD_ORDER.map((id, index) => {
       const agent = AGENTS.find((a) => a.id === id)!;
       const run = agentStats?.[agent.id] || MOCK_RUNS[agent.id];
@@ -359,7 +357,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
       return {
         id: agent.id,
         type: "agentNode",
-        position: { x: startX + index * laneWidth, y: laneY },
+        position: { x: laneX, y: startY + index * gap },
         data: {
           label: agent.label,
           hue: agent.hue,
@@ -375,63 +373,45 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, [results, active, agentStats]);
 
   const gatewayNodes = useMemo(() => {
-    const laneWidth = 210;
-    const rowY = [190, 290, 390] as const;
-    const startX = 24;
-    const stageRows: Record<string, number> = {
-      Discovery: 0,
-      Definition: 0,
-      Planning: 1,
-      Execution: 2,
-    };
-
-    const grouped = GATEWAY_AGENTS.reduce<Record<string, typeof GATEWAY_AGENTS>>((acc, agent) => {
-      const row = stageRows[agent.stage] ?? 0;
-      if (!acc[row]) acc[row] = [];
-      acc[row].push(agent);
-      return acc;
-    }, {});
-
-    const nodes: any[] = [];
-    Object.entries(grouped).forEach(([rowIndex, agents]) => {
-      agents.forEach((agent, index) => {
-        const id = agent.id;
-        const run = agentStats?.[id] || MOCK_RUNS[id];
-        const simulatedStatus = results[id] || "idle";
-        nodes.push({
-          id,
-          type: "agentNode",
-          position: { x: startX + index * laneWidth, y: rowY[Number(rowIndex)] },
-          data: {
-            label: agent.label,
-            hue: agent.hue,
-            kind: "gateway" as const,
-            status: active ? simulatedStatus : "idle",
-            lastRun: run?.lastRun,
-            duration: run?.duration,
-            successRate: run?.successRate,
-            runStats: run,
-          },
-        });
-      });
+    const laneX = 360;
+    const startY = 30;
+    const gap = 120;
+    return GATEWAY_AGENTS.map((agent, index) => {
+      const id = agent.id;
+      const run = agentStats?.[id] || MOCK_RUNS[id];
+      const simulatedStatus = results[id] || "idle";
+      return {
+        id,
+        type: "agentNode",
+        position: { x: laneX, y: startY + index * gap },
+        data: {
+          label: agent.label,
+          hue: agent.hue,
+          kind: "gateway" as const,
+          status: active ? simulatedStatus : "idle",
+          lastRun: run?.lastRun,
+          duration: run?.duration,
+          successRate: run?.successRate,
+          runStats: run,
+        },
+      };
     });
-    return nodes;
   }, [results, active, agentStats]);
 
   const allNodes = useMemo(() => {
-    const laneSeparatorBuild = {
+    const buildLabel = {
       id: "lane-build",
       type: "laneLabel" as const,
-      position: { x: 0, y: 16 },
+      position: { x: 0, y: 6 },
       data: { label: "Build Pipeline" },
     };
-    const laneSeparatorGateway = {
+    const gatewayLabel = {
       id: "lane-gateway",
       type: "laneLabel" as const,
-      position: { x: 0, y: 155 },
+      position: { x: 280, y: 6 },
       data: { label: "Gateway Agents" },
     };
-    return [...([laneSeparatorBuild, laneSeparatorGateway] as any), ...pipelineNodes, ...gatewayNodes];
+    return [...([buildLabel, gatewayLabel] as any), ...pipelineNodes, ...gatewayNodes];
   }, [pipelineNodes, gatewayNodes]);
 
   const initialEdges = useMemo(() => [...AGENT_CONNECTIONS, ...GATEWAY_CONNECTIONS], []);
@@ -461,7 +441,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             fitView
-            fitViewOptions={{ padding: 0.22 }}
+            fitViewOptions={{ padding: 0.25 }}
             proOptions={{ hideAttribution: true }}
             className="h-full w-full"
             nodeTypes={nodeTypes}
@@ -542,7 +522,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="absolute inset-0 z-40 flex items-start justify-center p-3 md:p-4"
+      className="relative flex items-start justify-center p-3 md:p-4"
     >
       {graphContent}
     </motion.div>
