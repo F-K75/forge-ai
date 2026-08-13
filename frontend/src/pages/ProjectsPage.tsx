@@ -323,7 +323,7 @@ export default function ProjectsPage() {
       <div className="relative z-10 flex-1 overflow-y-auto">
         <div className="mx-auto px-4 pb-16 md:px-8">
           {/* ============ HERO SECTION ============ */}
-          <section aria-label="Welcome" className="relative min-h-[85vh] pt-8 md:pt-12">
+          <section aria-label="Welcome" className="relative pt-6 md:pt-10">
             <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
               {/* Left column */}
               <motion.div
@@ -343,7 +343,7 @@ export default function ProjectsPage() {
 
                 <motion.h1
                   variants={motionVariants.staggerItem}
-                  className="mt-3 font-display text-4xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[2.75rem]"
+                  className="mt-3 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[2.75rem]"
                 >
                   Build{" "}
                   <span className="bg-gradient-to-r from-accent to-secondary bg-clip-text text-transparent">
@@ -353,18 +353,18 @@ export default function ProjectsPage() {
 
                 <motion.p
                   variants={motionVariants.staggerItem}
-                  className="mt-4 text-[15px] leading-relaxed text-muted"
+                  className="mt-3 text-[15px] leading-relaxed text-muted"
                 >
                   Forge turns simple prompts into full project builds — architecture, code, QA, and deployment —
                   orchestrated by specialized AI agents working in parallel.
                 </motion.p>
 
                 {/* Stat cards */}
-                <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <motion.div variants={motionVariants.staggerItem} className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                   {HERO_STATS.map((s) => (
                     <StatCard key={s.label} icon={s.icon} value={s.value} suffix={s.suffix} label={s.label} />
                   ))}
-                </div>
+                </motion.div>
               </motion.div>
 
               {/* Right column — visual */}
@@ -380,7 +380,7 @@ export default function ProjectsPage() {
           </section>
 
           {/* ============ BUILD COMMAND ============ */}
-          <section aria-label="Start a new build" className="mt-24">
+          <section aria-label="Start a new build" className="mt-10">
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -393,7 +393,7 @@ export default function ProjectsPage() {
                 aria-hidden="true"
               />
 
-              <div className="apple-glass-strong relative rounded-apple p-2 shadow-m3-2">
+              <div className="apple-glass-strong relative rounded-2xl border border-white/[0.06] bg-white/[0.03] p-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]">
                 <div className="flex items-center gap-2.5 px-2.5 py-1.5">
                   <span
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/25 to-accent/10 text-accent"
@@ -427,8 +427,8 @@ export default function ProjectsPage() {
 
           {/* ============ PROJECT LIBRARY ============ */}
           <section aria-label="Project library" className="mt-6 flex min-h-0 flex-1 flex-col">
-            <div className="flex flex-wrap items-center gap-2 border-b border-outline px-4 py-3 md:px-8">
-              <p className="mr-2 hidden text-caption font-medium uppercase tracking-[0.12em] text-accent sm:block">
+            <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.06] px-4 py-2.5 md:px-8">
+              <p className="mr-2 hidden text-caption font-semibold uppercase tracking-[0.12em] text-accent sm:block">
                 Library
               </p>
               <div className="relative min-w-[160px] flex-1">
@@ -515,7 +515,7 @@ export default function ProjectsPage() {
                   variants={gridVariants}
                   initial={reduceMotion ? false : "hidden"}
                   animate="show"
-                  className="mx-auto grid max-w-5xl grid-cols-3 gap-x-2 gap-y-6 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6"
+                  className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                 >
                   {visibleProjects.map((project) => (
                     <ProjectIcon
@@ -562,18 +562,18 @@ function ProjectIcon({
         type="button"
         onClick={onOpen}
         onDoubleClick={onOpen}
-        className="group flex w-[5.5rem] cursor-pointer flex-col items-center gap-2 rounded-xl p-2 text-center transition-colors hover:bg-white/[0.05] focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40 sm:w-24"
+        className="group flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center transition-all hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:w-60"
       >
         <span
-          className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/10 shadow-[0_10px_28px_-16px_rgba(0,0,0,0.8)] transition-transform duration-200 group-hover:-translate-y-0.5 group-active:translate-y-0 motion-reduce:transition-none"
+          className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/10 shadow-[0_10px_28px_-16px_rgba(0,0,0,0.8)] transition-transform duration-200 group-hover:-translate-y-0.5 group-active:translate-y-0 motion-reduce:transition-none"
           style={{ background: coverGradient(project.id) }}
         >
-          <Folder size={22} className="relative z-[1] text-ink/90 drop-shadow" aria-hidden="true" />
+          <Folder size={24} className="relative z-[1] text-ink/90 drop-shadow" aria-hidden="true" />
           <span className="absolute right-1.5 top-1.5">
             <StatusDot live={project.live} />
           </span>
         </span>
-        <span className="w-full truncate text-[11px] leading-tight text-ink/90 group-hover:text-ink">
+        <span className="w-full truncate text-[12px] font-medium leading-tight text-ink/90 group-hover:text-ink">
           {project.name}
         </span>
       </button>
@@ -593,19 +593,19 @@ function ProjectListRow({
       <button
         type="button"
         onClick={onOpen}
-        className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-ember/40"
+        className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-left transition-colors hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
       >
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10"
           style={{ background: coverGradient(project.id) }}
           aria-hidden="true"
         >
-          <Folder size={15} className="text-ink/90" />
+          <Folder size={18} className="text-ink/90" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <StatusDot live={project.live} />
-            <span className="truncate text-sm text-ink">{project.name}</span>
+            <span className="truncate text-sm font-medium text-ink">{project.name}</span>
           </span>
           <span className="mt-0.5 block truncate text-xs text-muted">
             {project.live ? "Live" : "Idle"} · {project.lastBuilt}
