@@ -426,7 +426,7 @@ export default function ProjectsPage() {
           </section>
 
           {/* ============ PROJECT LIBRARY ============ */}
-          <section aria-label="Project library" className="mt-10 flex min-h-0 flex-1 flex-col">
+          <section aria-label="Project library" className="mt-6 flex min-h-0 flex-1 flex-col">
             <div className="flex flex-wrap items-center gap-2 border-b border-outline px-4 py-3 md:px-8">
               <p className="mr-2 hidden text-caption font-medium uppercase tracking-[0.12em] text-accent sm:block">
                 Library
