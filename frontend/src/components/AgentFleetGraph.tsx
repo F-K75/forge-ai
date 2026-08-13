@@ -288,11 +288,11 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "max-h-[70vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[65vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
       {!embedded && onClose && <MacWindowHeader onClose={onClose} />}
 
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 h-full">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -300,6 +300,7 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             fitView
+            fitViewOptions={{ padding: 0.25 }}
             proOptions={{ hideAttribution: true }}
             className="h-full w-full"
             nodeTypes={nodeTypes}
