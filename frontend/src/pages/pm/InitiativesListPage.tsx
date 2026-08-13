@@ -302,22 +302,22 @@ function HeroVisual() {
   const accentHover = colorTokens.accent.hover;
 
   return (
-    <div className="relative flex h-full min-h-[480px] items-center justify-center" aria-hidden="true">
+    <div className="relative flex h-full min-h-[360px] items-center justify-center" aria-hidden="true">
       <div
-        className="forge-glow-breathe absolute h-[500px] w-[500px] rounded-full blur-3xl"
+        className="forge-glow-breathe absolute h-[380px] w-[380px] rounded-full blur-3xl"
         style={{ background: "radial-gradient(circle, rgba(var(--primary) / 0.13) 0%, transparent 65%)" }}
       />
       <div className="absolute flex items-center justify-center">
         <AdditivePulse />
       </div>
-      <div className="forge-orbit h-[400px] w-[400px]" style={{ animationDuration: "28s" }}>
+      <div className="forge-orbit h-[300px] w-[300px]" style={{ animationDuration: "28s" }}>
         <div
           className="forge-orbit-dot"
           style={{ background: accent, boxShadow: "0 0 10px rgba(var(--primary) / 0.5)" }}
         />
       </div>
       <div
-        className="forge-orbit h-[500px] w-[500px]"
+        className="forge-orbit h-[380px] w-[380px]"
         style={{ animationDirection: "reverse", animationDuration: "38s", borderColor: "rgba(var(--primary) / 0.05)" }}
       >
         <div
@@ -329,7 +329,7 @@ function HeroVisual() {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="relative z-10 flex h-40 w-40 items-center justify-center border border-border bg-panel shadow-m3-2 backdrop-blur-xl"
+        className="relative z-10 flex h-32 w-32 items-center justify-center border border-border bg-panel shadow-m3-2 backdrop-blur-xl"
         style={{ borderRadius: radius.lg }}
       >
         <div
@@ -503,7 +503,7 @@ export default function InitiativesListPage() {
       <div className="relative z-10 flex-1 overflow-y-auto">
         <div className="mx-auto px-4 pb-16 md:px-8">
           {/* ============ HERO SECTION ============ */}
-          <section aria-label="Welcome" className="relative min-h-[85vh] pt-8 md:pt-12">
+          <section aria-label="Welcome" className="relative pt-6 md:pt-10">
             <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
               {/* Left column */}
               <motion.div
@@ -539,7 +539,7 @@ export default function InitiativesListPage() {
                 </motion.div>
 
                 {/* Stat cards */}
-                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {heroStats.map((s) => {
                     const Icon = s.icon;
                     return (
@@ -576,7 +576,7 @@ export default function InitiativesListPage() {
           </section>
 
           {/* ============ INITIATIVE INPUT ============ */}
-          <section aria-label="Start a new initiative" className="mt-24">
+          <section aria-label="Start a new initiative" className="mt-10">
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
