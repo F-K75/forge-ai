@@ -14,8 +14,6 @@ import { GATEWAY_AGENTS } from "../lib/gatewayAgents";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
-  Minus,
-  Square,
   Activity,
   Zap,
   Clock,
@@ -24,13 +22,11 @@ import {
   Loader2,
   Play,
   RotateCcw,
-  ChevronRight,
   Timer,
+  ChevronRight,
 } from "lucide-react";
 
 const BUILD_ORDER = ["architect", "business_improver", "designer", "developer", "integration", "pm"] as const;
-
-const GATEWAY_STAGE_ORDER = ["Discovery", "Definition", "Planning", "Execution"] as const;
 
 type AgentStatus = "idle" | "running" | "success" | "error";
 
@@ -51,7 +47,6 @@ const MOCK_RUNS: Record<string, { lastRun: string; duration: string; successRate
   business_analyst: { lastRun: "7m ago", duration: "0.9s", successRate: 96 },
   decision_engine: { lastRun: "8m ago", duration: "1.1s", successRate: 91 },
   prd_writer: { lastRun: "9m ago", duration: "1.3s", successRate: 90 },
-  designer_gateway: { lastRun: "4m ago", duration: "1.5s", successRate: 92 },
   epic_generator: { lastRun: "10m ago", duration: "0.7s", successRate: 88 },
   story_generator: { lastRun: "11m ago", duration: "0.5s", successRate: 87 },
   task_generator: { lastRun: "12m ago", duration: "0.6s", successRate: 85 },
@@ -67,26 +62,26 @@ type AgentRunStats = {
 };
 
 const AGENT_CONNECTIONS = [
-  { id: "e-arch-biz", source: "architect", target: "business_improver", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.18)", strokeWidth: 1.5 } },
-  { id: "e-biz-des", source: "business_improver", target: "designer", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.18)", strokeWidth: 1.5 } },
-  { id: "e-des-pm", source: "designer", target: "pm", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.18)", strokeWidth: 1.5 } },
-  { id: "e-pm-dev", source: "pm", target: "developer", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.18)", strokeWidth: 1.5 } },
-  { id: "e-dev-int", source: "developer", target: "integration", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.18)", strokeWidth: 1.5 } },
-  { id: "e-arch-pm", source: "architect", target: "pm", animated: false, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 } },
-  { id: "e-des-dev", source: "designer", target: "developer", animated: false, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 } },
+  { id: "e-arch-biz", source: "architect", target: "business_improver", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-biz-des", source: "business_improver", target: "designer", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-des-pm", source: "designer", target: "pm", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-pm-dev", source: "pm", target: "developer", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-dev-int", source: "developer", target: "integration", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-arch-pm", source: "architect", target: "pm", animated: false, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.06)", strokeWidth: 1 } },
+  { id: "e-des-dev", source: "designer", target: "developer", animated: false, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.06)", strokeWidth: 1 } },
 ];
 
 const GATEWAY_CONNECTIONS = [
-  { id: "e-ba-de", source: "business_analyst", target: "decision_engine", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-de-prd", source: "decision_engine", target: "prd_writer", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-prd-des", source: "prd_writer", target: "designer", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-des-eg", source: "designer", target: "epic_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-eg-sg", source: "epic_generator", target: "story_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-sg-tg", source: "story_generator", target: "task_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-tg-sp", source: "task_generator", target: "sprint_planner", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-sp-sm", source: "sprint_planner", target: "scrum_master", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-sm-te", source: "scrum_master", target: "task_executor", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
-  { id: "e-te-int", source: "task_executor", target: "integration", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.35)", strokeWidth: 1.5 } },
+  { id: "e-ba-de", source: "business_analyst", target: "decision_engine", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-de-prd", source: "decision_engine", target: "prd_writer", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-prd-des", source: "prd_writer", target: "designer", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-des-eg", source: "designer", target: "epic_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-eg-sg", source: "epic_generator", target: "story_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-sg-tg", source: "story_generator", target: "task_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-tg-sp", source: "task_generator", target: "sprint_planner", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-sp-sm", source: "sprint_planner", target: "scrum_master", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-sm-te", source: "scrum_master", target: "task_executor", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-te-int", source: "task_executor", target: "integration", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
 ];
 
 type RunState = {
@@ -137,56 +132,55 @@ function AgentNode({ data, selected }: NodeProps) {
   const run = data.runStats || MOCK_RUNS[data.id];
 
   const statusColor = data.status === "success" ? "rgb(var(--success))" : data.status === "error" ? "rgb(var(--error))" : statusInfo.color;
-  const statusBg = data.status === "success" ? "rgb(var(--success) / 0.15)" : data.status === "error" ? "rgb(var(--error) / 0.15)" : "transparent";
 
   return (
     <div
       className={[
-        "relative min-w-[220px] rounded-3xl border bg-white/[0.03] px-5 py-4 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.75)] transition-all duration-200 backdrop-blur-xl",
-        selected ? "border-white/20 shadow-[0_20px_48px_-16px_rgba(0,0,0,0.9)] scale-[1.03]" : "border-white/[0.08] hover:border-white/20",
+        "relative min-w-[180px] rounded-2xl border bg-white/[0.04] px-4 py-3 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] transition-all duration-200",
+        selected ? "border-white/20 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85)] scale-[1.02]" : "border-white/[0.08] hover:border-white/20",
       ].join(" ")}
-      style={{ boxShadow: `inset 0 0 0 1px ${data.hue}26, 0 18px 40px -16px rgba(0,0,0,0.75)` }}
+      style={{ boxShadow: `inset 0 0 0 1px ${data.hue}22, 0 12px 32px -12px rgba(0,0,0,0.7)` }}
     >
       <div
-        className="pointer-events-none absolute inset-0 rounded-3xl opacity-70"
-        style={{ background: `linear-gradient(135deg, ${data.hue}18 0%, transparent 55%)` }}
+        className="pointer-events-none absolute inset-0 rounded-2xl"
+        style={{ background: `linear-gradient(135deg, ${data.hue}14 0%, transparent 50%)` }}
       />
-      <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border-0" style={{ background: `${data.hue}99` }} />
+      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border-0" style={{ background: `${data.hue}88` }} />
 
       <div className="relative flex items-center gap-3">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10"
-          style={{ background: `linear-gradient(135deg, ${data.hue}28 0%, ${data.hue}12 100%)`, color: data.hue }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10"
+          style={{ background: `linear-gradient(135deg, ${data.hue}24 0%, ${data.hue}10 100%)`, color: data.hue }}
         >
-          <Activity size={20} />
+          <Activity size={18} />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-base font-semibold text-ink">{data.label}</p>
-          <span className="flex items-center gap-1.5 text-sm text-muted">
-            <StatusIcon size={12} style={{ color: statusColor }} />
+          <p className="truncate text-sm font-semibold text-ink">{data.label}</p>
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <StatusIcon size={10} style={{ color: statusColor }} />
             <span style={{ color: statusColor }}>{statusInfo.label}</span>
           </span>
         </div>
       </div>
 
-      <div className="relative mt-3 flex items-center gap-3 text-sm text-faint">
+      <div className="relative mt-2.5 flex items-center gap-2 text-[11px] text-faint">
         {run && (
           <>
             {run.lastRun && (
               <span className="flex items-center gap-1">
-                <Clock size={12} />
+                <Clock size={10} />
                 {run.lastRun}
               </span>
             )}
             {run.duration && (
               <span className="flex items-center gap-1">
-                <Timer size={12} />
+                <Timer size={10} />
                 {run.duration}
               </span>
             )}
             {run.successRate != null && (
               <span className="flex items-center gap-1">
-                <CheckCircle2 size={12} />
+                <CheckCircle2 size={10} />
                 {run.successRate}%
               </span>
             )}
@@ -194,54 +188,21 @@ function AgentNode({ data, selected }: NodeProps) {
         )}
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border-0" style={{ background: `${data.hue}99` }} />
+      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0" style={{ background: `${data.hue}88` }} />
     </div>
   );
 }
 
-const nodeTypes = { agentNode: AgentNode, laneLabel: LaneLabel };
+const nodeTypes = { agentNode: AgentNode };
 
-function LaneLabel({ data }: NodeProps) {
+function GraphHeader() {
   return (
-    <div className="pointer-events-none flex items-center gap-2 px-1">
-      <div className="h-px w-8 bg-white/10" />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{data.label}</span>
-      <div className="h-px flex-1 bg-white/10" />
-    </div>
-  );
-}
-
-function MacWindowHeader({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+    <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-[#FF5F57] transition hover:brightness-110 focus:outline-none"
-            aria-label="Close"
-          >
-            <X size={8} className="text-black/70" />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-[#FFBD2E] transition hover:brightness-110 focus:outline-none"
-            aria-label="Minimize"
-          >
-            <Minus size={8} className="text-black/70" />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-[#28C840] transition hover:brightness-110 focus:outline-none"
-            aria-label="Maximize"
-          >
-            <Square size={7} className="text-black/70" />
-          </button>
-        </div>
-        <span className="text-xs text-muted">Agent Fleet</span>
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
+          <Activity size={12} aria-hidden="true" />
+        </span>
+        <span className="text-sm font-medium text-ink">Agent Pipeline</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-muted">
@@ -388,9 +349,9 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, []);
 
   const pipelineNodes = useMemo(() => {
-    const laneWidth = 220;
-    const laneY = 50;
-    const startX = 30;
+    const laneWidth = 210;
+    const laneY = 40;
+    const startX = 24;
     return BUILD_ORDER.map((id, index) => {
       const agent = AGENTS.find((a) => a.id === id)!;
       const run = agentStats?.[agent.id] || MOCK_RUNS[agent.id];
@@ -414,9 +375,9 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
   }, [results, active, agentStats]);
 
   const gatewayNodes = useMemo(() => {
-    const laneWidth = 220;
-    const rowY = [200, 310, 420] as const;
-    const startX = 30;
+    const laneWidth = 210;
+    const rowY = [190, 290, 390] as const;
+    const startX = 24;
     const stageRows: Record<string, number> = {
       Discovery: 0,
       Definition: 0,
@@ -461,17 +422,18 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     const laneSeparatorBuild = {
       id: "lane-build",
       type: "laneLabel" as const,
-      position: { x: 0, y: 20 },
+      position: { x: 0, y: 16 },
       data: { label: "Build Pipeline" },
     };
     const laneSeparatorGateway = {
       id: "lane-gateway",
       type: "laneLabel" as const,
-      position: { x: 0, y: 160 },
+      position: { x: 0, y: 155 },
       data: { label: "Gateway Agents" },
     };
     return [...([laneSeparatorBuild, laneSeparatorGateway] as any), ...pipelineNodes, ...gatewayNodes];
   }, [pipelineNodes, gatewayNodes]);
+
   const initialEdges = useMemo(() => [...AGENT_CONNECTIONS, ...GATEWAY_CONNECTIONS], []);
   const [nodes, , onNodesChange] = useNodesState(allNodes as any);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
@@ -487,33 +449,31 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[60vh] w-full" : "h-[85vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
-      {!embedded && onClose && <MacWindowHeader onClose={onClose} />}
+    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+      {!embedded && <GraphHeader />}
 
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 min-w-0 h-full relative overflow-x-auto">
-          <div className="min-w-[1200px] h-full">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onNodeClick={handleNodeClick}
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-              proOptions={{ hideAttribution: true }}
-              className="h-full w-full"
-              nodeTypes={nodeTypes}
-              panOnScroll
-              zoomOnScroll
-              zoomOnPinch
-              minZoom={0.5}
-              maxZoom={1.8}
-            >
+        <div className="flex-1 min-w-0 h-full relative">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={handleNodeClick}
+            fitView
+            fitViewOptions={{ padding: 0.22 }}
+            proOptions={{ hideAttribution: true }}
+            className="h-full w-full"
+            nodeTypes={nodeTypes}
+            panOnScroll
+            zoomOnScroll
+            zoomOnPinch
+            minZoom={0.5}
+            maxZoom={1.6}
+          >
             <Background color="#22222E" gap={20} />
             <Controls showInteractive={false} />
           </ReactFlow>
-          </div>
 
           <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
             <button
