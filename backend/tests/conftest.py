@@ -36,3 +36,55 @@ os.environ.setdefault(
     "FIELD_ENCRYPTION_KEY",
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 )
+# Tests assert provider behavior directly, so responses must not be served from
+# a shared response cache. CI runs without Redis (cache always misses), but a
+# local dev box with Redis up would otherwise serve stale cached responses and
+# make tests pass/fail differently than CI.
+os.environ.setdefault("AI_OPTIMIZER_RESPONSE_CACHE_ENABLED", "false")
+os.environ.setdefault("AI_OPTIMIZER_SEMANTIC_CACHE_ENABLED", "false")
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_circuit_breaker(monkeypatch):
+    """Give every test a fresh, closed global LLM circuit breaker.
+
+    The module-level singleton in ``core.llm.circuit_breaker`` accumulates
+    failure state across tests (both in its process-local mirror and in Redis
+    when a local Redis is running). A test that trips the global breaker — e.g.
+    an error-path router test that records provider failures — would otherwise
+    make every later test in the process raise ``CircuitBreakerOpen``. Resetting
+    before each test keeps the suite hermetic and matches CI (no Redis service,
+    so state must not leak through process-local storage either).
+    """
+    import core.llm.circuit_breaker as cb_module
+
+    try:
+        import asyncio
+
+        from core.database import get_redis
+
+        async def _clear_redis_circuit_keys():
+            try:
+                redis = await get_redis()
+                keys = await redis.keys("llm:cb:*")
+                if keys:
+                    await redis.delete(*keys)
+            except Exception:
+                pass
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop and loop.is_running():
+            loop.create_task(_clear_redis_circuit_keys())
+        else:
+            asyncio.run(_clear_redis_circuit_keys())
+    except Exception:
+        pass
+
+    monkeypatch.setattr(cb_module, "_circuit_breaker", None)
+    yield
+    monkeypatch.setattr(cb_module, "_circuit_breaker", None)

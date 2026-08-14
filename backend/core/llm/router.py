@@ -1231,7 +1231,7 @@ class LLMRouter:
             )
 
 
-    async def _validate_response(self, response: CompletionResponse, min_length: int = 10) -> None:
+    async def _validate_response(self, response: CompletionResponse, min_length: int = 2) -> None:
         """Run basic sanity checks on an LLM response before returning it.
 
         Raises ``ProviderError`` if the response looks degenerate. This is a

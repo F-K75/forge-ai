@@ -29,14 +29,22 @@ async def test_circuit_breaker_open_after_failures():
 
 
 @pytest.mark.asyncio
-async def test_circuit_breaker_half_open_after_timeout():
+async def test_circuit_breaker_half_open_after_timeout(monkeypatch):
     cb = LLMCircuitBreaker(global_failure_threshold=1, recovery_timeout=1)
+
+    # Force the Redis-unavailable path: this test exercises the process-local
+    # fallback, which must behave identically whether or not a local Redis is
+    # running (CI has no Redis; dev boxes usually do).
+    async def _redis_down():
+        raise ConnectionError("redis unavailable")
+
+    monkeypatch.setattr(cb, "_get_redis", _redis_down)
+
     await cb.record_failure("global")
     assert await cb.is_open("global")
 
     # Simulate recovery elapsing on the process-local state, then confirm the
-    # breaker can be claimed half-open (the Redis claim falls back to
-    # process-local when Redis is unavailable, as in tests).
+    # breaker can be claimed half-open.
     state = cb._local_state("global")
     state["opened_at"] = time.time() - 5
     assert await cb.try_half_open_claim("global") is True

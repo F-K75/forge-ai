@@ -135,7 +135,7 @@ class TestDeliverWebhook:
 
         # Freeze utcnow so the timestamp is identical across two calls
         frozen = datetime(2026, 7, 9, 12, 0, 0)
-        monkeypatch.setattr("services.webhook.datetime", MagicMock(utcnow=MagicMock(return_value=frozen)))
+        monkeypatch.setattr("services.webhook.utcnow", lambda: frozen)
 
         monkeypatch.setattr("services.webhook.httpx.AsyncClient", lambda **kw: client_a)
         await deliver_webhook("https://hooks.example.com/a", {"x": 1}, "secret")

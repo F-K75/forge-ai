@@ -299,6 +299,8 @@ class Subscription(BaseModel):
     current_period_start: Optional[datetime] = None
     current_period_end: Optional[datetime] = None
     cancel_at_period_end: bool = False
+    byok_discounted: bool = False
+    effective_monthly_price: Optional[int] = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 

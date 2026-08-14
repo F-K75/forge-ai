@@ -64,6 +64,13 @@ const DOCK_APPS: DockApp[] = [
     icon: Store,
     match: (p) => p.startsWith("/marketplace"),
   },
+];
+
+interface AccountApp extends DockApp {
+  adminOnly?: boolean;
+}
+
+const ACCOUNT_APPS: AccountApp[] = [
   {
     to: "/billing",
     label: "Billing",
@@ -76,38 +83,40 @@ const DOCK_APPS: DockApp[] = [
     icon: Settings,
     match: (p) => p.startsWith("/settings"),
   },
-];
-
-const ADMIN_APPS: DockApp[] = [
   {
     to: "/admin-console",
     label: "Admin",
     icon: Shield,
     match: (p) => p.startsWith("/admin-console"),
+    adminOnly: true,
   },
   {
     to: "/llm-management",
     label: "LLM",
     icon: Brain,
     match: (p) => p.startsWith("/llm-management"),
+    adminOnly: true,
   },
   {
     to: "/optimization-dashboard",
     label: "Optimization",
     icon: TrendingUp,
     match: (p) => p.startsWith("/optimization-dashboard"),
+    adminOnly: true,
   },
   {
     to: "/engineering-health",
     label: "Health",
     icon: Heart,
     match: (p) => p.startsWith("/engineering-health"),
+    adminOnly: true,
   },
   {
     to: "/prompt-studio",
     label: "Prompts",
     icon: Terminal,
     match: (p) => p.startsWith("/prompt-studio"),
+    adminOnly: true,
   },
 ];
 
@@ -234,44 +243,48 @@ export default function AppShell() {
       >
         <ul className="apple-dock pointer-events-auto flex items-end gap-1 rounded-apple-xl px-2 py-2 sm:gap-1.5 sm:px-3">
           {DOCK_APPS.map((app) => {
-            const Icon = app.icon;
             const active = app.match(location.pathname);
             return (
-              <li key={app.to}>
-                <NavLink
-                  to={app.to}
-                  className={[
-                    "apple-dock-item flex min-w-[3.25rem] flex-col items-center gap-1 rounded-2xl px-2.5 py-2 text-muted sm:min-w-[4.25rem]",
-                    active ? "is-active" : "",
-                  ].join(" ")}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
-                  <span className="text-[10px] font-medium tracking-wide">{app.label}</span>
-                </NavLink>
-              </li>
+              <NavLink
+                key={app.to}
+                to={app.to}
+                className={[
+                  "apple-dock-item flex min-w-[3.25rem] flex-col items-center gap-1 rounded-2xl px-2.5 py-2 text-muted sm:min-w-[4.25rem]",
+                  active ? "is-active" : "",
+                ].join(" ")}
+                aria-current={active ? "page" : undefined}
+              >
+                <app.icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                <span className="text-[10px] font-medium tracking-wide">{app.label}</span>
+              </NavLink>
             );
           })}
-          {user?.is_admin &&
-            ADMIN_APPS.map((app) => {
-              const Icon = app.icon;
-              const active = app.match(location.pathname);
-              return (
-                <li key={app.to}>
-                  <NavLink
-                    to={app.to}
-                    className={[
-                      "apple-dock-item flex min-w-[3.25rem] flex-col items-center gap-1 rounded-2xl px-2.5 py-2 text-muted sm:min-w-[4.25rem]",
-                      active ? "is-active" : "",
-                    ].join(" ")}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
-                    <span className="text-[10px] font-medium tracking-wide">{app.label}</span>
-                  </NavLink>
-                </li>
-              );
-            })}
+
+          {/* Divider: core workspace vs. account / admin items */}
+          <li
+            role="separator"
+            aria-orientation="vertical"
+            aria-hidden="true"
+            className="mx-1 my-2 w-px self-stretch rounded bg-border-soft sm:mx-2"
+          />
+
+          {ACCOUNT_APPS.filter((app) => !app.adminOnly || user?.is_admin).map((app) => {
+            const active = app.match(location.pathname);
+            return (
+              <NavLink
+                key={app.to}
+                to={app.to}
+                className={[
+                  "apple-dock-item flex min-w-[3.25rem] flex-col items-center gap-1 rounded-2xl px-2.5 py-2 text-muted sm:min-w-[4.25rem]",
+                  active ? "is-active" : "",
+                ].join(" ")}
+                aria-current={active ? "page" : undefined}
+              >
+                <app.icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                <span className="text-[10px] font-medium tracking-wide">{app.label}</span>
+              </NavLink>
+            );
+          })}
         </ul>
       </nav>
 
