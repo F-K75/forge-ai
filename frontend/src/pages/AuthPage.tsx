@@ -541,7 +541,8 @@ export default function AuthPage() {
           transition={{ duration: 0.8, ease: easeOut }}
           className="hidden lg:block relative overflow-hidden"
         >
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/images/login-visual.gif)' }} />
+          <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: 'url(/images/login-visual.jpg)' }} />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent" />
         </motion.aside>
       </main>
     </div>

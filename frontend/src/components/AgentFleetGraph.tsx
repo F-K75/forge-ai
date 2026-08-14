@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useReducer, useEffect } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -14,42 +14,18 @@ import { GATEWAY_AGENTS } from "../lib/gatewayAgents";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
-  Minus,
-  Square,
   Activity,
   Zap,
   Clock,
   CheckCircle2,
   XCircle,
   Loader2,
+  Play,
+  RotateCcw,
+  Timer,
 } from "lucide-react";
 
 const BUILD_ORDER = ["architect", "business_improver", "designer", "developer", "integration", "pm"] as const;
-
-const GATEWAY_STAGE_ORDER = ["Discovery", "Definition", "Planning", "Execution"] as const;
-
-const AGENT_CONNECTIONS = [
-  { id: "e-arch-biz", source: "architect", target: "business_improver", animated: true },
-  { id: "e-biz-des", source: "business_improver", target: "designer", animated: true },
-  { id: "e-des-pm", source: "designer", target: "pm", animated: true },
-  { id: "e-pm-dev", source: "pm", target: "developer", animated: true },
-  { id: "e-dev-int", source: "developer", target: "integration", animated: true },
-  { id: "e-arch-pm", source: "architect", target: "pm", animated: false },
-  { id: "e-des-dev", source: "designer", target: "developer", animated: false },
-];
-
-const GATEWAY_CONNECTIONS = [
-  { id: "e-ba-de", source: "business_analyst", target: "decision_engine", animated: true },
-  { id: "e-de-prd", source: "decision_engine", target: "prd_writer", animated: true },
-  { id: "e-prd-des", source: "prd_writer", target: "designer", animated: true },
-  { id: "e-des-eg", source: "designer", target: "epic_generator", animated: true },
-  { id: "e-eg-sg", source: "epic_generator", target: "story_generator", animated: true },
-  { id: "e-sg-tg", source: "story_generator", target: "task_generator", animated: true },
-  { id: "e-tg-sp", source: "task_generator", target: "sprint_planner", animated: true },
-  { id: "e-sp-sm", source: "sprint_planner", target: "scrum_master", animated: true },
-  { id: "e-sm-te", source: "scrum_master", target: "task_executor", animated: true },
-  { id: "e-te-int", source: "task_executor", target: "integration", animated: true },
-];
 
 type AgentStatus = "idle" | "running" | "success" | "error";
 
@@ -60,97 +36,171 @@ const STATUS_META: Record<AgentStatus, { icon: typeof Activity; color: string; l
   error: { icon: XCircle, color: "rgb(var(--error))", label: "Error" },
 };
 
+const MOCK_RUNS: Record<string, { lastRun: string; duration: string; successRate: number }> = {
+  architect: { lastRun: "2m ago", duration: "1.2s", successRate: 98 },
+  business_improver: { lastRun: "5m ago", duration: "0.8s", successRate: 95 },
+  designer: { lastRun: "3m ago", duration: "1.5s", successRate: 92 },
+  developer: { lastRun: "1m ago", duration: "2.3s", successRate: 89 },
+  integration: { lastRun: "4m ago", duration: "0.6s", successRate: 97 },
+  pm: { lastRun: "6m ago", duration: "0.4s", successRate: 94 },
+  business_analyst: { lastRun: "7m ago", duration: "0.9s", successRate: 96 },
+  decision_engine: { lastRun: "8m ago", duration: "1.1s", successRate: 91 },
+  prd_writer: { lastRun: "9m ago", duration: "1.3s", successRate: 90 },
+  epic_generator: { lastRun: "10m ago", duration: "0.7s", successRate: 88 },
+  story_generator: { lastRun: "11m ago", duration: "0.5s", successRate: 87 },
+  task_generator: { lastRun: "12m ago", duration: "0.6s", successRate: 85 },
+  sprint_planner: { lastRun: "13m ago", duration: "0.4s", successRate: 93 },
+  scrum_master: { lastRun: "14m ago", duration: "0.3s", successRate: 95 },
+  task_executor: { lastRun: "15m ago", duration: "2.1s", successRate: 82 },
+};
+
+type AgentRunStats = {
+  lastRun?: string;
+  duration?: string;
+  successRate?: number;
+};
+
+const AGENT_CONNECTIONS = [
+  { id: "e-arch-biz", source: "architect", target: "business_improver", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-biz-des", source: "business_improver", target: "designer", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-des-pm", source: "designer", target: "pm", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-pm-dev", source: "pm", target: "developer", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-dev-int", source: "developer", target: "integration", animated: true, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 } },
+  { id: "e-arch-pm", source: "architect", target: "pm", animated: false, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.06)", strokeWidth: 1 } },
+  { id: "e-des-dev", source: "designer", target: "developer", animated: false, type: "smoothstep", style: { stroke: "rgba(255,255,255,0.06)", strokeWidth: 1 } },
+];
+
+const GATEWAY_CONNECTIONS = [
+  { id: "e-ba-de", source: "business_analyst", target: "decision_engine", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-de-prd", source: "decision_engine", target: "prd_writer", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-prd-des", source: "prd_writer", target: "designer", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-des-eg", source: "designer", target: "epic_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-eg-sg", source: "epic_generator", target: "story_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-sg-tg", source: "story_generator", target: "task_generator", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-tg-sp", source: "task_generator", target: "sprint_planner", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-sp-sm", source: "sprint_planner", target: "scrum_master", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-sm-te", source: "scrum_master", target: "task_executor", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+  { id: "e-te-int", source: "task_executor", target: "integration", animated: true, type: "smoothstep", style: { stroke: "rgba(20,184,166,0.3)", strokeWidth: 1.5 } },
+];
+
+type RunState = {
+  active: boolean;
+  currentIndex: number;
+  results: Record<string, "running" | "success" | "error">;
+};
+
+const PIPELINE_ORDER = [
+  "architect",
+  "business_improver",
+  "designer",
+  "pm",
+  "developer",
+  "integration",
+  "business_analyst",
+  "decision_engine",
+  "prd_writer",
+  "epic_generator",
+  "story_generator",
+  "task_generator",
+  "sprint_planner",
+  "scrum_master",
+  "task_executor",
+];
+
+function runReducer(state: RunState, action: { type: "tick" }): RunState {
+  if (!state.active) return state;
+
+  const current = PIPELINE_ORDER[state.currentIndex];
+  const nextIndex = state.currentIndex + 1;
+  const finished = { ...state.results, [current]: "success" as const };
+
+  if (nextIndex >= PIPELINE_ORDER.length) {
+    return { active: false, currentIndex: nextIndex, results: finished };
+  }
+
+  return {
+    active: true,
+    currentIndex: nextIndex,
+    results: { ...finished, [PIPELINE_ORDER[nextIndex]]: "running" },
+  };
+}
+
 function AgentNode({ data, selected }: NodeProps) {
   const statusInfo = STATUS_META[data.status as AgentStatus];
   const StatusIcon = statusInfo.icon;
+  const run = data.runStats || MOCK_RUNS[data.id];
+  const statusColor = data.status === "success" ? "rgb(var(--success))" : data.status === "error" ? "rgb(var(--error))" : statusInfo.color;
 
   return (
     <div
       className={[
-        "min-w-[160px] rounded-2xl border bg-panel/95 px-4 py-3 shadow-m3 backdrop-blur-xl transition-all duration-200",
-        selected ? "border-accent/60 shadow-m3-2 scale-[1.02]" : "border-white/[0.08] hover:border-white/20",
+        "relative min-w-[180px] rounded-2xl border bg-white/[0.04] px-4 py-3 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] transition-all duration-200",
+        selected ? "border-white/20 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85)] scale-[1.02]" : "border-white/[0.08] hover:border-white/20",
       ].join(" ")}
-      style={{ borderLeft: `3px solid ${data.hue}` }}
+      style={{ boxShadow: `inset 0 0 0 1px ${data.hue}22, 0 12px 32px -12px rgba(0,0,0,0.7)` }}
     >
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-white/20" />
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl"
+        style={{ background: `linear-gradient(135deg, ${data.hue}14 0%, transparent 50%)` }}
+      />
+      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border-0" style={{ background: `${data.hue}88` }} />
 
-      <div className="flex items-center gap-2.5">
+      <div className="relative flex items-center gap-3">
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10"
-          style={{ background: `${data.hue}18`, color: data.hue }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10"
+          style={{ background: `linear-gradient(135deg, ${data.hue}24 0%, ${data.hue}10 100%)`, color: data.hue }}
         >
-          <Activity size={16} />
+          <Activity size={18} />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{data.label}</p>
-          <span className="flex items-center gap-1.5 text-[11px] text-muted">
-            <StatusIcon size={10} style={{ color: statusInfo.color }} />
-            {statusInfo.label}
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <StatusIcon size={10} style={{ color: statusColor }} />
+            <span style={{ color: statusColor }}>{statusInfo.label}</span>
           </span>
         </div>
       </div>
 
-      {(data.status === "running" || data.lastRun || data.credits) && (
-        <div className="mt-2.5 flex items-center gap-3 text-[11px] text-faint">
-          {data.status === "running" && (
-            <span className="flex items-center gap-1 text-accent">
-              <Loader2 size={10} className="animate-spin" />
-              Processing
-            </span>
-          )}
-          {data.lastRun && (
-            <span className="flex items-center gap-1">
-              <Clock size={10} />
-              {data.lastRun}
-            </span>
-          )}
-          {data.credits && (
-            <span className="flex items-center gap-1">
-              <Zap size={10} />
-              {data.credits} credits
-            </span>
-          )}
-        </div>
-      )}
+      <div className="relative mt-2.5 flex items-center gap-2 text-[11px] text-faint">
+        {run && (
+          <>
+            {run.lastRun && (
+              <span className="flex items-center gap-1">
+                <Clock size={10} />
+                {run.lastRun}
+              </span>
+            )}
+            {run.duration && (
+              <span className="flex items-center gap-1">
+                <Timer size={10} />
+                {run.duration}
+              </span>
+            )}
+            {run.successRate != null && (
+              <span className="flex items-center gap-1">
+                <CheckCircle2 size={10} />
+                {run.successRate}%
+              </span>
+            )}
+          </>
+        )}
+      </div>
 
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/20" />
+      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0" style={{ background: `${data.hue}88` }} />
     </div>
   );
 }
 
 const nodeTypes = { agentNode: AgentNode };
 
-function MacWindowHeader({ onClose }: { onClose: () => void }) {
+function GraphHeader() {
   return (
-    <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+    <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-[#FF5F57] transition hover:brightness-110 focus:outline-none"
-            aria-label="Close"
-          >
-            <X size={8} className="text-black/70" />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-[#FFBD2E] transition hover:brightness-110 focus:outline-none"
-            aria-label="Minimize"
-          >
-            <Minus size={8} className="text-black/70" />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-[#28C840] transition hover:brightness-110 focus:outline-none"
-            aria-label="Maximize"
-          >
-            <Square size={7} className="text-black/70" />
-          </button>
-        </div>
-        <span className="text-xs text-muted">Agent Fleet</span>
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
+          <Activity size={12} aria-hidden="true" />
+        </span>
+        <span className="text-sm font-medium text-ink">Agent Pipeline</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-muted">
@@ -166,6 +216,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
   const statusInfo = STATUS_META.idle;
   const StatusIcon = statusInfo.icon;
   const credits = "credits" in agent ? agent.credits : undefined;
+  const run = MOCK_RUNS[agent.id];
 
   return (
     <motion.div
@@ -226,6 +277,24 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
           )}
 
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Business impact</p>
+            <div className="space-y-2 text-sm text-ink">
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Est. time saved</span>
+                <span className="font-medium">{run ? `${Math.floor(Math.random() * 4 + 1)}h` : "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Quality score</span>
+                <span className="font-medium">{run ? `${run.successRate}%` : "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Automation</span>
+                <span className="font-medium">{kind === "build" ? "Full pipeline" : "Focused workflow"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Actions</p>
             <div className="flex flex-col gap-2">
               <button className="bb-btn bb-btn-primary w-full">Run agent</button>
@@ -238,41 +307,113 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
   );
 }
 
-export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
+export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentStats }: { onClose?: () => void; embedded?: boolean; autoPlay?: boolean; onTourEnd?: () => void; agentStats?: Record<string, AgentRunStats> }) {
   const [selectedAgent, setSelectedAgent] = useState<{ id: string; kind: "build" | "gateway" } | null>(null);
+  const [{ active, currentIndex, results }, dispatch] = useReducer(runReducer, {
+    active: false,
+    currentIndex: 0,
+    results: {},
+  });
+
+  useEffect(() => {
+    if (!active) return;
+    const timer = setInterval(() => dispatch({ type: "tick" }), 900);
+    return () => clearInterval(timer);
+  }, [active, currentIndex]);
+
+  useEffect(() => {
+    if (autoPlay && !active) {
+      dispatch({ type: "tick" });
+    }
+  }, [autoPlay]);
+
+  useEffect(() => {
+    if (!autoPlay) return;
+    const allDone = PIPELINE_ORDER.every((id) => results[id] === "success");
+    if (allDone && results && Object.keys(results).length === PIPELINE_ORDER.length) {
+      const timer = setTimeout(() => {
+        onTourEnd?.();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [results, autoPlay, onTourEnd]);
+
+  const startRun = useCallback(() => {
+    dispatch({ type: "tick" });
+  }, []);
+
+  const resetRun = useCallback(() => {
+    setSelectedAgent(null);
+  }, []);
 
   const pipelineNodes = useMemo(() => {
-    const laneWidth = 220;
-    const laneY = 50;
-    const startX = 30;
+    const laneX = 80;
+    const startY = 30;
+    const gap = 120;
     return BUILD_ORDER.map((id, index) => {
       const agent = AGENTS.find((a) => a.id === id)!;
+      const run = agentStats?.[agent.id] || MOCK_RUNS[agent.id];
+      const simulatedStatus = results[agent.id] || "idle";
       return {
         id: agent.id,
         type: "agentNode",
-        position: { x: startX + index * laneWidth, y: laneY },
-        data: { label: agent.label, hue: agent.hue, kind: "build" as const, status: "idle" as const },
+        position: { x: laneX, y: startY + index * gap },
+        data: {
+          label: agent.label,
+          hue: agent.hue,
+          kind: "build" as const,
+          status: active ? simulatedStatus : "idle",
+          lastRun: run?.lastRun,
+          duration: run?.duration,
+          successRate: run?.successRate,
+          runStats: run,
+        },
       };
     });
-  }, []);
+  }, [results, active, agentStats]);
 
   const gatewayNodes = useMemo(() => {
-    const laneWidth = 150;
-    const laneY = 190;
-    const startX = 30;
-
+    const laneX = 360;
+    const startY = 30;
+    const gap = 120;
     return GATEWAY_AGENTS.map((agent, index) => {
       const id = agent.id;
+      const run = agentStats?.[id] || MOCK_RUNS[id];
+      const simulatedStatus = results[id] || "idle";
       return {
         id,
         type: "agentNode",
-        position: { x: startX + index * laneWidth, y: laneY },
-        data: { label: agent.label, hue: agent.hue, kind: "gateway" as const, status: "idle" as const },
+        position: { x: laneX, y: startY + index * gap },
+        data: {
+          label: agent.label,
+          hue: agent.hue,
+          kind: "gateway" as const,
+          status: active ? simulatedStatus : "idle",
+          lastRun: run?.lastRun,
+          duration: run?.duration,
+          successRate: run?.successRate,
+          runStats: run,
+        },
       };
     });
-  }, []);
+  }, [results, active, agentStats]);
 
-  const allNodes = useMemo(() => [...pipelineNodes, ...gatewayNodes], [pipelineNodes, gatewayNodes]);
+  const allNodes = useMemo(() => {
+    const buildLabel = {
+      id: "lane-build",
+      type: "laneLabel" as const,
+      position: { x: 0, y: 6 },
+      data: { label: "Build Pipeline" },
+    };
+    const gatewayLabel = {
+      id: "lane-gateway",
+      type: "laneLabel" as const,
+      position: { x: 280, y: 6 },
+      data: { label: "Gateway Agents" },
+    };
+    return [...([buildLabel, gatewayLabel] as any), ...pipelineNodes, ...gatewayNodes];
+  }, [pipelineNodes, gatewayNodes]);
+
   const initialEdges = useMemo(() => [...AGENT_CONNECTIONS, ...GATEWAY_CONNECTIONS], []);
   const [nodes, , onNodesChange] = useNodesState(allNodes as any);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
@@ -288,11 +429,11 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "max-h-[70vh] w-full max-w-6xl"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
-      {!embedded && onClose && <MacWindowHeader onClose={onClose} />}
+    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+      {!embedded && <GraphHeader />}
 
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 h-full relative">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -300,13 +441,39 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             fitView
+            fitViewOptions={{ padding: 0.25 }}
             proOptions={{ hideAttribution: true }}
             className="h-full w-full"
             nodeTypes={nodeTypes}
+            panOnScroll
+            zoomOnScroll
+            zoomOnPinch
+            minZoom={0.5}
+            maxZoom={1.6}
           >
             <Background color="#22222E" gap={20} />
             <Controls showInteractive={false} />
           </ReactFlow>
+
+          <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
+            <button
+              type="button"
+              onClick={startRun}
+              disabled={active}
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-accent px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Play size={12} />
+              {active ? "Running..." : "Simulate build"}
+            </button>
+            <button
+              type="button"
+              onClick={resetRun}
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-panel-alt px-4 py-2 text-xs font-semibold text-ink shadow-lg transition hover:brightness-110"
+            >
+              <RotateCcw size={12} />
+              Reset
+            </button>
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
@@ -355,7 +522,7 @@ export function AgentFleetGraph({ onClose, embedded }: { onClose?: () => void; e
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="absolute inset-0 z-40 flex items-start justify-center p-3 md:p-4"
+      className="relative flex items-start justify-center p-3 md:p-4"
     >
       {graphContent}
     </motion.div>

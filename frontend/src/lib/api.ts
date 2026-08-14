@@ -185,6 +185,12 @@ export const analyticsApi = {
   personal: (days?: number) => api.get("/analytics/me", { params: { days } }).then((r) => r.data),
 }
 
+// Flow / agent pipeline data
+export const flowApi = {
+  personalAnalytics: (days?: number) => analyticsApi.personal(days),
+  agentStats: () => api.get("/engineering/metrics/agent-stats").then((r) => r.data),
+}
+
 // Deployments
 export const deploymentsApi = {
   create: (data: { build_id: string; project_id: string }) =>

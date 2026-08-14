@@ -43,6 +43,11 @@ export const typeScale = {
   body: { size: 17, weight: 400, tracking: -0.01, lineHeight: 1.47 },
   label: { size: 14, weight: 500, tracking: -0.01, lineHeight: 1.35 },
   caption: { size: 12, weight: 500, tracking: 0.01, lineHeight: 1.35 },
+  h1: { size: 40, weight: 700, tracking: -0.03, lineHeight: 1.05 },
+  h2: { size: 24, weight: 600, tracking: -0.02, lineHeight: 1.25 },
+  h3: { size: 20, weight: 600, tracking: -0.02, lineHeight: 1.3 },
+  bodyLg: { size: 16, weight: 400, tracking: -0.01, lineHeight: 1.5 },
+  section: { size: 14, weight: 600, tracking: 0, lineHeight: 1.4 },
 } as const
 
 export const motion = {
