@@ -92,7 +92,7 @@ export const useCountUp = (ref: React.RefObject<HTMLSpanElement | null>, end: nu
     }
 
     return () => {
-      try { tween?.kill() } catch {}
+      if (tween) { try { tween.kill() } catch { /* tween already dead */ } }
       if (ref.current && ref.current.textContent !== String(safeEnd)) {
         ref.current.textContent = String(safeEnd)
       }

@@ -87,7 +87,7 @@ export default function ActivityTab() {
                 variants={motionVariants.staggerItem}
                 custom={i}
               >
-                {STATUS_ICON[exec.status] ?? STATUS_ICON.queued}
+                {STATUS_ICON[exec.status ?? "queued"] ?? STATUS_ICON.queued}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm text-ink truncate">{taskTitle(exec.task_id)}</p>
@@ -96,10 +96,10 @@ export default function ActivityTab() {
                   {exec.current_thought && <p className="text-xs text-muted mt-0.5">{exec.current_thought}</p>}
                   {exec.error && <p className="text-xs text-error mt-0.5">{exec.error}</p>}
                   <div className="flex items-center gap-3 mt-1 text-[10px] text-faint font-mono">
-                    {exec.tokens_used > 0 && <span>{exec.tokens_used} tok</span>}
-                    {exec.cost_usd > 0 && <span>${exec.cost_usd.toFixed(4)}</span>}
-                    {exec.duration_seconds > 0 && <span>{exec.duration_seconds.toFixed(1)}s</span>}
-                    {exec.generated_files?.length > 0 && <span>{exec.generated_files.length} files</span>}
+                    {(exec.tokens_used ?? 0) > 0 && <span>{exec.tokens_used} tok</span>}
+                    {(exec.cost_usd ?? 0) > 0 && <span>${exec.cost_usd?.toFixed(4)}</span>}
+                    {(exec.duration_seconds ?? 0) > 0 && <span>{exec.duration_seconds?.toFixed(1)}s</span>}
+                    {(exec.generated_files?.length ?? 0) > 0 && <span>{exec.generated_files?.length} files</span>}
                   </div>
                 </div>
               </motion.li>

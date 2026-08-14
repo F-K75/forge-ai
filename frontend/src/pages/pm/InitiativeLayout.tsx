@@ -101,7 +101,7 @@ export default function InitiativeLayout() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${initiative.name || "initiative"}-export.json`;
+      a.download = `${initiative?.name || "initiative"}-export.json`;
       a.click();
       URL.revokeObjectURL(url);
       captureEvent("initiative_exported", { initiative_id: initiativeId });

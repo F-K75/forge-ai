@@ -41,8 +41,8 @@ describe('AuthPage', () => {
     const forms = screen.getAllByRole('button', { name: /sign in/i })
     fireEvent.click(forms[0])
     await waitFor(() => {
-      expect(screen.getByText('Email is required')).toBeTruthy()
-      expect(screen.getByText('Password is required')).toBeTruthy()
+      expect(screen.getByText('Please enter your email.')).toBeTruthy()
+      expect(screen.getByText('Please enter your password.')).toBeTruthy()
     })
   })
 
@@ -54,7 +54,7 @@ describe('AuthPage', () => {
     fireEvent.blur(emailInput)
     fireEvent.click(forms[0])
     await waitFor(() => {
-      expect(screen.getByText('Enter a valid email')).toBeTruthy()
+      expect(screen.getByText('Please enter a valid email address.')).toBeTruthy()
     })
   })
 

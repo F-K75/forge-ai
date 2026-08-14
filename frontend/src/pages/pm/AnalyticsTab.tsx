@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { BarChart3, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 import { initiativesApi } from "../../lib/pmApi";
 import { motion, motionVariants } from "../../lib/animations";
 
@@ -10,13 +12,15 @@ type AnalyticsEvent = {
 };
 
 export default function AnalyticsTab() {
+  const { initiativeId } = useParams<{ initiativeId: string }>();
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
+    if (!initiativeId) return;
     setLoading(true);
     try {
-      const data = await initiativesApi.analytics();
+      const data = await initiativesApi.analytics(initiativeId);
       setEvents(data.events || []);
     } catch {
       toast.error("Failed to load analytics");

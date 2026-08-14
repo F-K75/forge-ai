@@ -338,15 +338,15 @@ export default function AgentRunsTab() {
           runId={latestExecution?.id ?? "—"}
           runTitle={`${execAgent.label} — ${latestExecution ? latestExecution.agent : "no run yet"}`}
           runMeta={latestExecution ? `task ${latestExecution.task_id.slice(0, 8)}` : "no execution yet"}
-          status={latestExecution ? AGENT_EXEC_STATUS[latestExecution.status] ?? "running" : "done"}
+          status={latestExecution ? AGENT_EXEC_STATUS[latestExecution.status ?? "queued"] ?? "running" : "done"}
           statusLabel={latestExecution?.current_thought || undefined}
           progressPct={latestExecution?.progress}
           sideMetrics={
             latestExecution
               ? [
                   { label: "Tokens", value: String(latestExecution.tokens_used) },
-                  { label: "Cost", value: `$${latestExecution.cost_usd.toFixed(2)}` },
-                  { label: "Duration", value: `${latestExecution.duration_seconds.toFixed(0)}s` },
+                  { label: "Cost", value: `$${(latestExecution.cost_usd ?? 0).toFixed(2)}` },
+                  { label: "Duration", value: `${(latestExecution.duration_seconds ?? 0).toFixed(0)}s` },
                 ]
               : []
           }

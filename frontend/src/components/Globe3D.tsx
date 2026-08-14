@@ -37,7 +37,7 @@ export default function Globe3D({ activeAgentId = "architect" }: Globe3DProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-     // @ts-ignore - three-globe v2 accepts (container, options) at runtime
+     // @ts-expect-error - three-globe v2 accepts (container, options) at runtime
     const globe = new Globe(containerRef.current, {
        waitForGlobeReady: true,
        animateIn: true,

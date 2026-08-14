@@ -25,7 +25,7 @@ describe('api client', () => {
     api.defaults.adapter = (async (config: any) => {
       captured = config
       return {
-        data: config.url === '/auth/csrf-token' ? { csrf_token: 'tok-abc' } : {},
+        data: config.url === '/v1/auth/csrf-token' ? { csrf_token: 'tok-abc' } : {},
         status: 200,
         statusText: 'OK',
         headers: {},

@@ -149,6 +149,7 @@ export interface PMSprint {
   task_ids?: string[]
   capacity?: number
   velocity?: number
+  team_load?: Record<string, number>
   story_points_planned?: number
   story_points_completed?: number
   completion_probability?: number
