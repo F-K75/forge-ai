@@ -14,6 +14,7 @@ from core.orchestrator import BuildCancelled, Orchestrator
 from core.database import get_db
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager
+from pymongo import ReturnDocument
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ def run_build(
                 await db.users.find_one_and_update(
                     {"id": user_id, "credits": {"$gte": reserved_credits - used}},
                     {"$inc": {"credits": refund}},
-                    return_document=True,
+                    return_document=ReturnDocument.AFTER,
                 )
 
             user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "credits": 1})

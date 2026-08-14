@@ -11,6 +11,7 @@ from fastapi import (
     Request,
 )
 from pydantic import BaseModel, Field
+from pymongo import ReturnDocument
 from typing import Optional
 from datetime import timedelta
 
@@ -141,7 +142,7 @@ async def create_build(
     free_build = await db.users.find_one_and_update(
         {"id": current_user.id, "free_build_used": {"$ne": True}},
         {"$set": {"free_build_used": True}},
-        return_document=True,
+        return_document=ReturnDocument.AFTER,
     )
 
     if free_build is not None:
@@ -154,7 +155,7 @@ async def create_build(
         reserved = await db.users.find_one_and_update(
             {"id": current_user.id, "credits": {"$gte": max_credits}},
             {"$inc": {"credits": -max_credits}},
-            return_document=True,
+            return_document=ReturnDocument.AFTER,
         )
         if not reserved:
             raise HTTPException(status_code=402, detail="Insufficient credits")

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, status, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from pymongo import ReturnDocument
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pathlib import Path
@@ -504,7 +505,7 @@ async def retry_dead_letter_build(
     reserved = await db.users.find_one_and_update(
         {"id": build_doc["user_id"], "credits": {"$gte": max_credits}},
         {"$inc": {"credits": -max_credits}},
-        return_document=True,
+        return_document=ReturnDocument.AFTER,
     )
     if not reserved:
         raise HTTPException(status_code=402, detail="Insufficient credits to retry build")
