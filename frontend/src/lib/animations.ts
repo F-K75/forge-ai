@@ -71,7 +71,7 @@ export const useCountUp = (ref: React.RefObject<HTMLSpanElement | null>, end: nu
       return
     }
     const obj = { val: 0 }
-    gsap.to(obj, {
+    const tween = gsap.to(obj, {
       val: end,
       duration: duration / 1000,
       ease: 'power2.out',
@@ -79,6 +79,7 @@ export const useCountUp = (ref: React.RefObject<HTMLSpanElement | null>, end: nu
         if (ref.current) ref.current.textContent = Math.round(obj.val).toLocaleString()
       },
     })
+    return () => tween.kill()
   }, [ref, end, duration, reduceMotion])
 }
 

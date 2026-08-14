@@ -32,9 +32,9 @@ spec:
           name: http
         env:
         - name: VITE_API_URL
-          value: "https://api.forge.ai"
+          value: "https://forge-ai-ioom.onrender.com"
         - name: VITE_APP_URL
-          value: "https://forge.ai"
+          value: "https://forge-ai-ioom.onrender.com"
         resources:
           requests:
             memory: "256Mi"

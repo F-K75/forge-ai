@@ -8,3 +8,9 @@ watch_dirs = ["frontend/src"]
 
 [site]
 bucket = "frontend/dist"
+
+# Production frontend URL: https://forge-frontend.pages.dev
+# Backend API URL: https://forge-ai-ioom.onrender.com
+# Set these environment variables in Cloudflare Pages dashboard:
+#   VITE_API_URL=https://forge-ai-ioom.onrender.com
+#   VITE_WS_URL=wss://forge-ai-ioom.onrender.com

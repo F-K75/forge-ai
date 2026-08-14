@@ -20,8 +20,8 @@ Deploy the Forge AI frontend to Cloudflare Pages.
 Build command: cd frontend && npm ci && npm run build
 Build output directory: frontend/dist
 Environment variables:
-  - VITE_API_URL=https://api.forge.ai
-  - VITE_WS_URL=wss://api.forge.ai
+  - VITE_API_URL=https://forge-ai-ioom.onrender.com
+  - VITE_WS_URL=wss://forge-ai-ioom.onrender.com
   - VITE_BASE=/
 ```
 

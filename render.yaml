@@ -44,3 +44,15 @@ services:
         value: ${STRIPE_PRICE_PRO_ANNUAL}
       - key: STRIPE_PRICE_ENTERPRISE_ANNUAL
         value: ${STRIPE_PRICE_ENTERPRISE_ANNUAL}
+  - type: web
+    name: forge-frontend
+    runtime: docker
+    plan: free
+    buildCommand: docker build -t forge-frontend ./frontend
+    envVars:
+      - key: VITE_API_URL
+        value: https://forge-ai-ioom.onrender.com
+      - key: VITE_WS_URL
+        value: wss://forge-ai-ioom.onrender.com
+      - key: VITE_ADMIN_EMAILS
+        value: ${ADMIN_EMAILS}
