@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, Request
 from pydantic import BaseModel, Field, field_validator
+from pymongo import ReturnDocument
 
 from core.models import User, PaginationParams, Project, utcnow
 from core.database import get_db, paginated_query, get_redis
@@ -206,7 +207,7 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
     free_first = await db.users.find_one_and_update(
         {"id": current_user.id, "free_initiative_used": {"$ne": True}},
         {"$set": {"free_initiative_used": True}},
-        return_document=True,
+        return_document=ReturnDocument.AFTER,
     )
 
     if free_first is not None:
@@ -216,7 +217,7 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
         reserved = await db.users.find_one_and_update(
             {"id": current_user.id, "credits": {"$gte": initiative_cost}},
             {"$inc": {"credits": -initiative_cost}},
-            return_document=True,
+            return_document=ReturnDocument.AFTER,
         )
         if not reserved:
             raise HTTPException(status_code=402, detail="Insufficient credits")
