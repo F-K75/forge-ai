@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   List,
   FolderSearch,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
@@ -37,6 +38,12 @@ interface Initiative {
   created_at?: string;
   status?: string;
   meta?: string[];
+}
+
+interface CreditPreview {
+  cost: number;
+  free_available: boolean;
+  credits_remaining: number;
 }
 
 type InitiativeStatusFilter = "all" | "active" | "complete" | "failed";
@@ -529,6 +536,7 @@ export default function InitiativesListPage() {
   const [statusFilter, setStatusFilter] = useState<InitiativeStatusFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("icons");
+  const [creditPreview, setCreditPreview] = useState<CreditPreview | null>(null);
   const reduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -540,7 +548,20 @@ export default function InitiativesListPage() {
       .catch(() => toast.error("Failed to load initiatives"));
   };
 
+  const loadCredits = useCallback(() => {
+    if (!LIVE_MODE) return;
+    initiativesApi
+      .creditPreview()
+      .then(setCreditPreview)
+      .catch(() => {
+        // Fail-open: credit status is informative, never a blocker.
+      });
+  }, []);
+
   useEffect(load, []);
+  useEffect(() => {
+    loadCredits();
+  }, [loadCredits]);
 
   const totalInitiatives = initiatives?.length ?? 0;
   const activeCount = useMemo(() => (initiatives ?? []).filter((i) => i.status === "generating" || i.status === "active").length, [initiatives]);
@@ -563,8 +584,16 @@ export default function InitiativesListPage() {
     try {
       const initiative = await initiativesApi.create({ prompt: trimmed });
       captureEvent("initiative_created", { initiative_id: initiative.id });
+      loadCredits();
       navigate(`/initiatives/${initiative.id}`);
-    } catch {
+    } catch (err: any) {
+      if (err?.response?.status === 402) {
+        loadCredits();
+        toast.error(err?.response?.data?.detail || "Insufficient credits — add credits to keep planning.");
+        setCreating(false);
+        navigate("/billing");
+        return;
+      }
       toast.error("Failed to create initiative — your prompt is preserved, please retry.");
       setCreating(false);
     }
@@ -675,6 +704,36 @@ export default function InitiativesListPage() {
               <div className="mt-2 flex justify-center">
                 <ForgeSignal creating={creating} />
               </div>
+              {creditPreview && (
+                <div className="mt-3 flex flex-col items-center gap-2.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-panel-alt px-3 py-1.5 text-xs text-muted">
+                    <Coins size={12} className="text-accent" aria-hidden="true" />
+                    {creditPreview.free_available
+                      ? "First generation free"
+                      : `${creditPreview.cost} credits per generation`}
+                    <span className="text-faint" aria-hidden="true">·</span>
+                    <span>{creditPreview.credits_remaining} credits remaining</span>
+                  </span>
+                  {!creditPreview.free_available &&
+                    creditPreview.credits_remaining < creditPreview.cost && (
+                      <div className="flex w-full max-w-xl flex-col items-center justify-between gap-2 rounded-xl border border-accent/25 bg-accent/[0.06] px-4 py-3 sm:flex-row">
+                        <p className="text-xs leading-relaxed text-muted">
+                          <span className="font-semibold text-ink">Out of credits.</span>{" "}
+                          Generations cost {creditPreview.cost} credits. Top up to keep planning.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => navigate("/billing")}
+                          {...presets.button}
+                          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_24px_-12px_rgba(20,184,166,0.45)] transition-opacity hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                        >
+                          <Coins size={12} aria-hidden="true" />
+                          Get credits
+                        </button>
+                      </div>
+                    )}
+                </div>
+              )}
             </motion.div>
           </section>
 

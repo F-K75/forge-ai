@@ -45,6 +45,16 @@ class FakeCollection:
                     d[field] = d.get(field, 0) + val
                 break
 
+    async def find_one_and_update(self, query, update, **kwargs):
+        for d in self.docs:
+            if self._matches(d, query):
+                for field, val in update.get("$set", {}).items():
+                    d[field] = val
+                for field, val in update.get("$inc", {}).items():
+                    d[field] = d.get(field, 0) + val
+                return dict(d)
+        return None
+
     async def find(self, query, projection=None):
         return FakeCursor([dict(d) for d in self.docs if self._matches(d, query)], projection)
 

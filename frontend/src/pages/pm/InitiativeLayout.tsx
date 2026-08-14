@@ -46,7 +46,13 @@ export default function InitiativeLayout() {
       await initiativesApi.regenerate(initiativeId);
       toast.success("Regenerating plan…");
       setConfirming(false);
-    } catch {
+    } catch (err: any) {
+      if (err?.response?.status === 402) {
+        toast.error(err?.response?.data?.detail || "Insufficient credits — add credits to keep planning.");
+        setConfirming(false);
+        navigate("/billing");
+        return;
+      }
       toast.error("Failed to start regeneration");
       setConfirming(false);
     }
@@ -77,7 +83,12 @@ export default function InitiativeLayout() {
     try {
       await initiativesApi.regenerate(initiativeId);
       toast.success("Retrying generation…");
-    } catch {
+    } catch (err: any) {
+      if (err?.response?.status === 402) {
+        toast.error(err?.response?.data?.detail || "Insufficient credits — add credits to keep planning.");
+        navigate("/billing");
+        return;
+      }
       toast.error("Retry failed");
     }
   };

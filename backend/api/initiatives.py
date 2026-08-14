@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from core.models import User, PaginationParams, Project, utcnow
 from core.database import get_db, paginated_query, get_redis
-from core.pm_models import Initiative, InitiativeStatus, PRD, InitiativeComment, InitiativeApproval, InitiativeIntegration
+from core.pm_models import Initiative, InitiativeStatus, InitiativeComment, InitiativeApproval, InitiativeIntegration, PMWSEvent, PMWSEventType, PRDComment, PRDApproval
 from core.permissions import has_initiative_access, has_initiative_write_access
 from core.config import get_settings
 from core.audit import record_audit_log
@@ -201,6 +201,15 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
         raise HTTPException(status_code=400, detail="Prompt contains disallowed content")
     name = req.name or sanitized_prompt[:60]
 
+    max_projects = await get_max_projects_for_user(db, current_user.id)
+    if max_projects >= 0:
+        current_count = await db.projects.count_documents({"user_id": current_user.id, "deleted_at": {"$exists": False}})
+        if current_count >= max_projects:
+            raise HTTPException(
+                status_code=402,
+                detail="Project limit reached. Upgrade to create more.",
+            )
+
     initiative_cost = settings.credits_initiative_generation
 
     free_first = await db.users.find_one_and_update(
@@ -369,20 +378,36 @@ async def regenerate_initiative(initiative_id: str, request: Request, confirm: b
     if not confirm:
         raise HTTPException(status_code=400, detail="Regeneration requires explicit confirmation")
 
-    await record_audit_log(
-        db, request, current_user, "regenerate_initiative", "initiative",
-        resource_id=initiative_id,
-        changes={"name": initiative.get("name")},
+    initiative_cost = settings.credits_initiative_generation
+    reserved = await db.users.find_one_and_update(
+        {"id": current_user.id, "credits": {"$gte": initiative_cost}},
+        {"$inc": {"credits": -initiative_cost}},
+        return_document=True,
     )
-    await _record_initiative_analytics(db, current_user.id, "initiative_regenerated", initiative_id=initiative_id)
+    if not reserved:
+        raise HTTPException(status_code=402, detail="Insufficient credits")
 
-    await db.prds.delete_many({"initiative_id": initiative_id})
-    await db.epics.delete_many({"initiative_id": initiative_id})
-    await db.stories.delete_many({"initiative_id": initiative_id})
-    await db.tasks.delete_many({"initiative_id": initiative_id})
-    await db.sprints.delete_many({"initiative_id": initiative_id})
+    try:
+        await record_audit_log(
+            db, request, current_user, "regenerate_initiative", "initiative",
+            resource_id=initiative_id,
+            changes={"name": initiative.get("name")},
+        )
+        await _record_initiative_analytics(db, current_user.id, "initiative_regenerated", initiative_id=initiative_id)
 
-    generate_initiative_plan.delay(initiative_id)
+        await db.prds.delete_many({"initiative_id": initiative_id})
+        await db.epics.delete_many({"initiative_id": initiative_id})
+        await db.stories.delete_many({"initiative_id": initiative_id})
+        await db.tasks.delete_many({"initiative_id": initiative_id})
+        await db.sprints.delete_many({"initiative_id": initiative_id})
+
+        generate_initiative_plan.delay(initiative_id)
+    except Exception:
+        await db.users.update_one(
+            {"id": current_user.id}, {"$inc": {"credits": initiative_cost}}
+        )
+        raise
+
     return {"ok": True}
 
 
@@ -617,7 +642,7 @@ async def list_prd_comments(initiative_id: str, current_user: User = Depends(get
 @router.post("/{initiative_id}/comments")
 async def create_prd_comment(initiative_id: str, req: PRDCommentRequest, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    await _get_owned_initiative(db, initiative_id, current_user.id)
     prd = await db.prds.find_one({"initiative_id": initiative_id}, {"_id": 0})
     if not prd:
         raise HTTPException(status_code=404, detail="PRD not generated yet")
@@ -650,7 +675,7 @@ async def list_prd_approvals(initiative_id: str, current_user: User = Depends(ge
 @router.post("/{initiative_id}/approvals")
 async def create_prd_approval(initiative_id: str, req: PRDApprovalRequest, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    await _get_owned_initiative(db, initiative_id, current_user.id)
     prd = await db.prds.find_one({"initiative_id": initiative_id}, {"_id": 0})
     if not prd:
         raise HTTPException(status_code=404, detail="PRD not generated yet")
@@ -693,7 +718,7 @@ async def list_initiative_comments(initiative_id: str, current_user: User = Depe
 @router.post("/{initiative_id}/initiative-comments")
 async def create_initiative_comment(initiative_id: str, req: InitiativeCommentRequest, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    await _get_owned_initiative(db, initiative_id, current_user.id)
 
     comment = InitiativeComment(
         initiative_id=initiative_id,
@@ -722,7 +747,7 @@ async def list_initiative_approvals(initiative_id: str, current_user: User = Dep
 @router.post("/{initiative_id}/initiative-approvals")
 async def create_initiative_approval(initiative_id: str, req: InitiativeApprovalRequest, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    initiative = await _get_owned_initiative(db, initiative_id, current_user.id)
+    await _get_owned_initiative(db, initiative_id, current_user.id)
 
     approval = InitiativeApproval(
         initiative_id=initiative_id,

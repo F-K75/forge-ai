@@ -54,3 +54,14 @@
 - **Depends on / blocked by:** None hard; schedule after reliability PR if capacity allows.
 - **Status:** open
 - **Added:** 2026-08-01
+
+## Regenerate: enqueue before deleting plan artifacts
+
+- **What:** Reorder `regenerate_initiative` so `generate_initiative_plan.delay(...)` is enqueued before (or owns) the `prds/epics/stories/tasks/sprints` deletes, or move deletes into the worker.
+- **Why:** Current order deletes-then-enqueues. If the enqueue raises (Redis down), the `except` refunds credits but the plan artifacts are already wiped — user loses the plan and no regeneration starts.
+- **Pros:** Closes the data-loss window; credits and artifacts stay consistent on enqueue failure.
+- **Cons:** Reordering creates new edge cases (stale artifacts visible between enqueue and delete) that need tests.
+- **Context:** Surfaced in `/plan-ceo-review` re-audit (2026-08-15). Code at `backend/api/initiatives.py:381-409`; refund already works, only the artifact delete timing is wrong.
+- **Depends on / blocked by:** None; independent of the credit-charging change that shipped.
+- **Status:** open
+- **Added:** 2026-08-15
