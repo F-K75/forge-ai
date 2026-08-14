@@ -12,7 +12,7 @@ import logging
 import time
 
 from core.config import get_settings
-from core.models import DeploymentStatus, WSEventType
+from core.models import DeploymentStatus, WSEvent, WSEventType
 
 logger = logging.getLogger(__name__)
 

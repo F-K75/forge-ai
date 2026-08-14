@@ -5,7 +5,6 @@ create_notification, so the existing GET /growth/notifications endpoint
 surfaces these without any change on that side.
 """
 
-import json
 import logging
 
 import httpx

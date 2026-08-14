@@ -239,7 +239,7 @@ async def delete_user_data_cascade(db, user_id: str, email: str) -> Dict[str, in
             except Exception as exc:
                 raise HTTPException(
                     status_code=502,
-                    detail=f"Cashfree subscription cancellation failed; account deletion was not started",
+                    detail="Cashfree subscription cancellation failed; account deletion was not started",
                 ) from exc
 
     projects = await db.projects.find(

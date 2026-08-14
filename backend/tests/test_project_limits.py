@@ -9,7 +9,6 @@ os.environ.setdefault("TESTING", "true")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-that-is-at-least-32-characters")
 os.environ.setdefault("FIELD_ENCRYPTION_KEY", "01" * 32)
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -292,7 +291,6 @@ class TestProjectAccessControl:
         owner.id = "user-1"
         member = _make_user(PlanTier.PRO)
         member.id = "user-2"
-        owner_client = _client_for(monkeypatch, projects_module, db, owner)
         member_client = _client_for(monkeypatch, projects_module, db, member)
 
         r = member_client.get("/projects/p1")

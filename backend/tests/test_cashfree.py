@@ -25,7 +25,6 @@ os.environ.setdefault("API_URL", "http://localhost:8000")
 import pytest
 from fastapi.testclient import TestClient
 
-import api.cashfree as cashfree_module
 from api.cashfree import CashfreeVerifyRequest, CashfreeOrderRequest, require_cashfree
 
 

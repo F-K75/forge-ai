@@ -73,3 +73,17 @@ redis://:\$(REDIS_PASSWORD)@redis:6379
 # Cashfree dummy/test values.
 cf_test1234567890abcdef
 cashfree_test1234567890abcdef
+
+# Redaction placeholders emitted by log_streamer.py / purge-secrets.sh /
+# scripts/git-hooks/pre-commit when scrubbing logs and history. The literal
+# `<REDACTED>` value is the output of the scrubber, never a credential, and
+# only ever appears in these tool definitions, tests, and docs.
+Password=<REDACTED>
+Secret=<REDACTED>
+API_KEY=<REDACTED>
+
+# Fixed dummy key literals used as redaction test input in
+# tests/test_log_streamer.py — always these exact fake values, never real.
+sk_live_abc123def456
+sk_test_abc123def456
+whsec_abc123def456

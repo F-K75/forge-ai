@@ -112,7 +112,7 @@ def _insert_test_data(uri: str) -> list[dict]:
     ]
     db.restore_test_collection.insert_many(docs)
     client.close()
-    return docs
+    return sorted(docs, key=lambda d: d["_id"])
 
 
 def _read_restored_data(uri: str) -> list[dict]:

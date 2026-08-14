@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -247,13 +246,6 @@ async def create_cashfree_subscription(req: CashfreeSubscriptionRequest, current
 @router.post("/verify", response_model=Dict[str, bool])
 async def verify_payment(req: CashfreeVerifyRequest):
     _require_cashfree()
-    payload = f"{req.order_id}{req.order_token}"
-    expected = hmac.new(
-        settings.cashfree_secret_key.encode(),
-        payload.encode(),
-        hashlib.sha256,
-    ).hexdigest()
-
     try:
         async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
             response = await client.get(f"/orders/{req.order_id}")
@@ -363,6 +355,8 @@ async def list_cashfree_plans():
 
 
 async def _build_plans():
+    from api.billing import PLAN_DETAILS  # local import: avoids a load-time cycle
+
     return [
         PlanResponse(
             tier=p["tier"],

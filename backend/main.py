@@ -1,5 +1,4 @@
 from fastapi import Depends, FastAPI, HTTPException, Request
-import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse

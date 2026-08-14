@@ -13,8 +13,6 @@ os.environ.setdefault("MONGODB_URL", "mongodb://localhost:27017/forge-test")
 from app.tasks.deployment import (
     run_health_check_with_rollback,
     _rollback_deployment,
-    HEALTH_CHECK_TIMEOUT,
-    HEALTH_CHECK_INTERVAL,
 )
 
 

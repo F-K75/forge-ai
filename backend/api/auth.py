@@ -127,7 +127,6 @@ class ResetPasswordRequest(BaseModel):
 
 
 def _get_cookie_kwargs(max_age: int) -> dict:
-    is_production = settings.app_url.startswith("https")
     return {
         "httponly": True,
         "secure": True,
