@@ -1,13 +1,13 @@
-databases:
-  - name: forge-redis
-    type: redis
-    plan: free
-    ipAllowList: []
-
 services:
+  - type: keyvalue
+    name: forge-redis
+    plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
   - type: web
     name: forge-backend
-    runtime: python3
+    runtime: python
     plan: free
     buildCommand: cd backend && pip install -r requirements.txt
     startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
@@ -17,8 +17,9 @@ services:
       - key: MONGODB_URL
         value: ${MONGODB_URL}
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
           name: forge-redis
+          type: keyvalue
           property: connectionString
       - key: JWT_SECRET
         value: ${JWT_SECRET}
@@ -40,49 +41,6 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-  - type: worker
-    name: forge-worker
-    runtime: python3
-    plan: free
-    buildCommand: cd backend && pip install -r requirements.txt
-    startCommand: cd backend && celery -A celery_app worker --queues=build,deployment --loglevel=info
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: MONGODB_URL
-        value: ${MONGODB_URL}
-      - key: REDIS_URL
-        fromDatabase:
-          name: forge-redis
-          property: connectionString
-      - key: JWT_SECRET
-        value: ${JWT_SECRET}
-      - key: FIELD_ENCRYPTION_KEY
-        value: ${FIELD_ENCRYPTION_KEY}
-      - key: ADMIN_EMAILS
-        value: ${ADMIN_EMAILS}
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: STRIPE_SECRET_KEY
-        value: ${STRIPE_SECRET_KEY}
-      - key: STRIPE_PUBLISHABLE_KEY
-        value: ${STRIPE_PUBLISHABLE_KEY}
-      - key: STRIPE_WEBHOOK_SECRET
-        value: ${STRIPE_WEBHOOK_SECRET}
-      - key: STRIPE_PRICE_STANDARD_MONTHLY
-        value: ${STRIPE_PRICE_STANDARD_MONTHLY}
-      - key: STRIPE_PRICE_PRO_MONTHLY
-        value: ${STRIPE_PRICE_PRO_MONTHLY}
-      - key: STRIPE_PRICE_ENTERPRISE_MONTHLY
-        value: ${STRIPE_PRICE_ENTERPRISE_MONTHLY}
-      - key: STRIPE_PRICE_STANDARD_ANNUAL
-        value: ${STRIPE_PRICE_STANDARD_ANNUAL}
-      - key: STRIPE_PRICE_PRO_ANNUAL
-        value: ${STRIPE_PRICE_PRO_ANNUAL}
-      - key: STRIPE_PRICE_ENTERPRISE_ANNUAL
-        value: ${STRIPE_PRICE_ENTERPRISE_ANNUAL}
   - type: web
     name: forge-frontend
     runtime: docker
