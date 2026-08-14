@@ -65,21 +65,38 @@ export const useStaggerIn = (selector: string, staggerDelay: number = 60) => {
 export const useCountUp = (ref: React.RefObject<HTMLSpanElement | null>, end: number, duration: number = 1200) => {
   const reduceMotion = useReducedMotion()
   useEffect(() => {
-    if (!ref.current) return
+    const node = ref.current
+    if (!node) return
+
+    const safeEnd = Number.isFinite(end) ? end : 0
+
     if (reduceMotion) {
-      ref.current.textContent = String(end)
+      node.textContent = String(safeEnd)
       return
     }
+
     const obj = { val: 0 }
-    const tween = gsap.to(obj, {
-      val: end,
-      duration: duration / 1000,
-      ease: 'power2.out',
-      onUpdate: () => {
-        if (ref.current) ref.current.textContent = Math.round(obj.val).toLocaleString()
-      },
-    })
-    return () => tween.kill()
+    let tween: ReturnType<typeof gsap.to> | undefined
+
+    try {
+      tween = gsap.to(obj, {
+        val: safeEnd,
+        duration: duration / 1000,
+        ease: 'power2.out',
+        onUpdate: () => {
+          if (ref.current) ref.current.textContent = Math.round(obj.val).toLocaleString()
+        },
+      })
+    } catch {
+      node.textContent = String(safeEnd)
+    }
+
+    return () => {
+      try { tween?.kill() } catch {}
+      if (ref.current && ref.current.textContent !== String(safeEnd)) {
+        ref.current.textContent = String(safeEnd)
+      }
+    }
   }, [ref, end, duration, reduceMotion])
 }
 

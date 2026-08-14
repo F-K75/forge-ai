@@ -109,14 +109,14 @@ function toDisplayInitiative(raw: any): Initiative {
 /* ------------------------------------------------------------------ */
 
 function NumericUp({ value, suffix, className = "" }: { value: number; suffix?: string; className?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  useCountUp(ref, value, 900);
+  const ref = useRef<HTMLSpanElement>(null)
+  useCountUp(ref, value, 900)
   return (
     <span className={className}>
       <span ref={ref} />
       {suffix}
     </span>
-  );
+  )
 }
 
 function CountUpValue({ value, suffix, className = "" }: { value: number | string; suffix?: string; className?: string }) {
