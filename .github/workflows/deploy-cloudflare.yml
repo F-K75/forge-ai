@@ -1,0 +1,52 @@
+name: Deploy frontend to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python (prebuild hook compatibility)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install prebuild script dependencies
+        run: pip install pydantic==2.13.4 fastapi==0.139.0
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        env:
+          VITE_API_URL: https://forge-ai-ioom.onrender.com
+          VITE_WS_URL: wss://forge-ai-ioom.onrender.com
+          VITE_ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+        run: cd frontend && npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: forge-frontend
+          directory: frontend/dist
