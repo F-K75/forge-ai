@@ -49,3 +49,26 @@ wrangler pages project upload forge-frontend ./dist
 ## Custom Domain
 
 Add a custom domain in **Cloudflare Dashboard → Pages → Custom domains**.
+
+## CI/CD via GitHub Actions
+
+Automate deployments on every push to `main` using the included workflow
+`.github/workflows/deploy-cloudflare.yml`.
+
+### Required repository secrets
+
+| Secret | Purpose |
+|--------|---------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Cloudflare Pages:Edit permission |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+| `ADMIN_EMAILS` | Comma-separated admin emails exposed to the frontend at build time |
+
+### Setup steps
+
+1. Create a Cloudflare Pages project named `forge-frontend` in the dashboard
+   (or run `wrangler pages project create forge-frontend --production-branch main`).
+2. Add the secrets above to **GitHub → Settings → Secrets and variables → Actions**.
+3. Ensure the backend allows the Pages domain in its CORS allowlist
+   (`ALLOWED_ORIGINS` on Render).
+4. Push to `main` to trigger the deployment, or run the workflow manually from the
+   **Actions** tab.
