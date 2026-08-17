@@ -116,7 +116,7 @@ export default function ProjectHistory() {
         setRawBuilds(data);
         setSelectedId((current) => current ?? data[0]?.id ?? null);
       })
-      .catch(() => toast.error("Unable to load build history"));
+      .catch(() => toast.error("Couldn't load build history."));
   };
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function ProjectHistory() {
       .catch(() => {
         // Previously silent (PROD-016) -- see the identical fix in
         // WorkspacePage.tsx.
-        toast.error("Unable to load this project");
+        toast.error("Couldn't load this project.");
         setLiveProjectName("Unknown project");
       });
     refreshBuilds();
@@ -159,7 +159,7 @@ export default function ProjectHistory() {
       toast.success("Rolled back — a new build was created from that version");
       refreshBuilds();
     } catch {
-      toast.error("Rollback failed");
+      toast.error("Rollback failed. Please try again.");
     } finally {
       setRollingBack(false);
     }
@@ -185,7 +185,7 @@ export default function ProjectHistory() {
       );
       setDiff({ added, modified, removed });
     } catch {
-      toast.error("Unable to load diff");
+      toast.error("Couldn't load the diff.");
     } finally {
       setDiffLoading(false);
     }

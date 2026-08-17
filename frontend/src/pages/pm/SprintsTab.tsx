@@ -76,7 +76,7 @@ export default function SprintsTab() {
       loadReports(selectedId)
       toast.success("Generated")
     } catch {
-      toast.error("Generation failed")
+      toast.error("Couldn't generate the sprint.")
     } finally {
       setGenerating(null)
     }

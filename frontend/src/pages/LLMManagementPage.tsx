@@ -110,7 +110,7 @@ export default function LLMManagementPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{provider.name}</span>
-                    <span className={`rounded-full px-2 py-1 text-xs ${provider.healthy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
+                    <span className={`px-2 py-1 text-xs ${provider.healthy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
                       {provider.healthy ? 'Healthy' : 'Unhealthy'}
                     </span>
                   </div>
@@ -140,7 +140,7 @@ export default function LLMManagementPage() {
               {models.map((model) => (
                 <motion.span
                   key={`${model.provider}-${model.name}`}
-                  className="rounded-full bg-slate-800 px-3 py-1 text-xs"
+                  className="bg-slate-800 px-3 py-1 text-xs"
                   variants={motionVariants.staggerItem}
                 >
                   {model.provider} / {model.name}

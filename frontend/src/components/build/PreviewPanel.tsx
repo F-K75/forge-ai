@@ -158,7 +158,7 @@ export function PreviewPanel() {
         <div className="flex items-center gap-2">
           <h2 className="text-[10px] font-medium uppercase tracking-wider text-faint">Preview</h2>
           {status === "complete" && previewDoc && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-ok/15 px-1.5 py-0.5 text-[10px] text-ok">
+            <span className="inline-flex items-center gap-1 bg-ok/15 px-1.5 py-0.5 text-[10px] text-ok">
               <span className="h-1 w-1 rounded-full bg-ok" aria-hidden="true" /> Live
             </span>
           )}

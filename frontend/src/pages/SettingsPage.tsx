@@ -91,7 +91,7 @@ export default function SettingsPage() {
       await authApi.updateProfile({ preferences: { [key]: value } });
       await fetchMe();
     } catch {
-      toast.error("Unable to save setting");
+      toast.error("Couldn't save that setting.");
     }
   };
 
@@ -121,7 +121,7 @@ export default function SettingsPage() {
       setShowGithubInput(false);
       toast.success("GitHub connected");
     } catch {
-      toast.error("Unable to connect GitHub");
+      toast.error("Couldn't connect GitHub.");
     } finally {
       setSavingGithub(false);
     }
@@ -134,7 +134,7 @@ export default function SettingsPage() {
       await fetchMe();
       toast.success("GitHub disconnected");
     } catch {
-      toast.error("Unable to disconnect GitHub");
+      toast.error("Couldn't disconnect GitHub.");
     } finally {
       setSavingGithub(false);
     }
@@ -175,7 +175,7 @@ export default function SettingsPage() {
       setShowByokInput(false);
       toast.success("Key connected");
     } catch {
-      toast.error("Unable to connect key");
+      toast.error("Couldn't connect that key.");
     } finally {
       setSavingByok(false);
     }
@@ -192,7 +192,7 @@ export default function SettingsPage() {
       }
       toast.success("Key disconnected");
     } catch {
-      toast.error("Unable to disconnect key");
+      toast.error("Couldn't disconnect that key.");
     } finally {
       setSavingByok(false);
     }
@@ -217,7 +217,7 @@ export default function SettingsPage() {
       setMfaOtpauthUri(otpauth_uri);
       setMfaStep("qr");
     } catch {
-      toast.error("Unable to start MFA setup");
+      toast.error("Couldn't start MFA setup.");
     } finally {
       setMfaBusy(false);
     }
@@ -278,7 +278,7 @@ export default function SettingsPage() {
       setSupportSubject("");
       setSupportDescription("");
     } catch {
-      toast.error("Unable to submit ticket");
+      toast.error("Couldn't submit your ticket.");
     } finally {
       setSupportSubmitting(false);
     }
@@ -339,7 +339,7 @@ export default function SettingsPage() {
       URL.revokeObjectURL(url);
       toast.success("Data export downloaded");
     } catch {
-      toast.error("Unable to export data");
+      toast.error("Couldn't export your data.");
     } finally {
       setExportingData(false);
     }
@@ -357,7 +357,7 @@ export default function SettingsPage() {
       await logout();
       navigate("/login", { replace: true });
     } catch {
-      toast.error("Unable to delete account");
+      toast.error("Couldn't delete your account.");
       setDeleting(false);
     }
   };
@@ -375,7 +375,7 @@ export default function SettingsPage() {
       const data = await authApi.sessions.list();
       setSessions(data);
     } catch {
-      toast.error("Unable to load sessions");
+      toast.error("Couldn't load active sessions.");
     } finally {
       setSessionsLoading(false);
     }
@@ -392,7 +392,7 @@ export default function SettingsPage() {
       setSessions(prev => prev.filter(s => s.id !== id));
       toast.success("Session revoked");
     } catch {
-      toast.error("Unable to revoke session");
+      toast.error("Couldn't revoke that session.");
     } finally {
       setRevokingId(null);
     }
@@ -405,7 +405,7 @@ export default function SettingsPage() {
       setSessions(prev => prev.filter(s => s.is_current));
       toast.success("Logged out of all other devices");
     } catch {
-      toast.error("Unable to log out other devices");
+      toast.error("Couldn't sign out other devices.");
     } finally {
       setRevokingAll(false);
     }
@@ -883,7 +883,7 @@ export default function SettingsPage() {
                       <span className="flex items-center gap-2">
                         {describeUserAgent(session.user_agent)}
                         {session.is_current && (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full text-faint border border-border">
+                          <span className="text-[10px] font-medium px-2 py-0.5 text-faint border border-border">
                              This device
                           </span>
                         )}

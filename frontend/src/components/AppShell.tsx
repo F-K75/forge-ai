@@ -168,7 +168,7 @@ export default function AppShell() {
     <div className="apple-shell relative flex h-[100dvh] flex-col overflow-hidden text-ink">
       <a
         href="#apple-main"
-        className="absolute left-4 top-4 z-[100] -translate-y-[200%] rounded-full bg-panel px-4 py-2 text-sm text-ink shadow-apple transition focus:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        className="absolute left-4 top-4 z-[100] -translate-y-[200%] bg-panel px-4 py-2 text-sm text-ink shadow-apple transition focus:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         Skip to main content
       </a>
@@ -184,7 +184,7 @@ export default function AppShell() {
             <button
               type="button"
               onClick={() => navigate("/projects")}
-              className="group flex items-center gap-2.5 rounded-full pr-2 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              className="group flex items-center gap-2.5 pr-2 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               aria-label="Home"
             >
               <BrandLogo size="md" />

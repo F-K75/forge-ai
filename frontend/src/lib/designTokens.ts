@@ -27,11 +27,11 @@ export const layout = {
   contentPadLg: 40,
   navHeight: 56,
   dockHeight: 64,
-  radiusXs: 8,
-  radiusSm: 12,
-  radiusMd: 16,
-  radiusLg: 20,
-  radiusXl: 28,
+  radiusXs: 0,
+  radiusSm: 0,
+  radiusMd: 0,
+  radiusLg: 0,
+  radiusXl: 0,
   radiusFull: 9999,
 } as const
 
@@ -112,11 +112,11 @@ export const space = {
 } as const
 export type Space = (typeof space)[keyof typeof space]
 
-/** Radius scale — sm/md/lg (6/10/16px). */
+/** Radius scale — all square (0). `full` reserved for circular dots. */
 export const radius = {
-  sm: 6,
-  md: 10,
-  lg: 16,
+  sm: 0,
+  md: 0,
+  lg: 0,
 } as const
 
 /**

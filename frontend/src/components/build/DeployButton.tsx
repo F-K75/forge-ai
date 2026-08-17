@@ -58,7 +58,7 @@ export function DeployButton({ projectId }: { projectId: string }) {
         runMockDeployment(deploymentId, deployment.handleEvent);
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Unable to start deployment");
+      toast.error(err?.response?.data?.detail || "Couldn't start the deployment.");
     } finally {
       setTriggering(false);
     }

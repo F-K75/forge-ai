@@ -44,7 +44,7 @@ export function RunStatusPill({ status, label }: { status: RunStatus; label?: st
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${STATUS_CLASS[status]}`}
+      className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-medium ${STATUS_CLASS[status]}`}
     >
       <span ref={dotRef} className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_CLASS[status]}`} aria-hidden="true" />
       {label ?? STATUS_LABEL[status]}
@@ -186,9 +186,9 @@ export function AgentRunShell({
                 ))}
               </dl>
               {typeof progressPct === "number" && (
-                <div className="mt-2.5 h-[3px] overflow-hidden rounded-full bg-panel-alt">
+                <div className="mt-2.5 h-[3px] overflow-hidden bg-panel-alt">
                   <motion.div
-                    className="h-full rounded-full bg-accent"
+                    className="h-full bg-accent"
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPct}%` }}
                     transition={{ duration: 0.8, ease: "easeOut" }}

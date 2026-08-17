@@ -113,7 +113,7 @@ export default function FlowPage() {
               className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-accent px-6 text-sm font-semibold text-white shadow-[0_8px_24px_-12px_rgba(20,184,166,0.45)] transition hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               <Play size={16} aria-hidden="true" />
-              Start your first build
+              Start a build
             </button>
             <span className="text-xs text-muted">No credit card required</span>
           </motion.div>
@@ -178,7 +178,7 @@ export default function FlowPage() {
               ))}
             </div>
 
-            <div className="flex shrink-0 gap-1 rounded-full bg-white/[0.02] p-0.5" role="group" aria-label="View mode">
+            <div className="flex shrink-0 gap-1 bg-white/[0.02] p-0.5" role="group" aria-label="View mode">
               {(
                 [
                   { key: "graph" as const, label: "Graph" },
@@ -191,7 +191,7 @@ export default function FlowPage() {
                   onClick={() => setViewMode(key)}
                   aria-pressed={viewMode === key}
                   className={[
-                    "h-8 cursor-pointer rounded-full px-3 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+                    "h-8 cursor-pointer px-3 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
                     viewMode === key ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
                   ].join(" ")}
                 >

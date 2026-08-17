@@ -233,9 +233,9 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, gl
               <p className="truncate text-[12px] text-muted">{AGENT_TASK[live.id]}</p>
             </div>
           </div>
-          <div className="launch-fleet-track relative mt-3 h-[3px] rounded-full bg-white/[0.08]">
+          <div className="launch-fleet-track relative mt-3 h-[3px] bg-white/[0.08]">
             <span
-              className="launch-fleet-track-fill absolute inset-y-0 left-0 rounded-full bg-accent"
+              className="launch-fleet-track-fill absolute inset-y-0 left-0 bg-accent"
               style={{ width: `${progress}%` }}
             />
             <span
@@ -322,7 +322,7 @@ function PromptBar() {
     <div className="pointer-events-auto mt-8 w-full">
       <form
         onSubmit={onSubmit}
-        className="flex w-full items-center gap-2 rounded-full apple-glass-strong px-2 py-2 pl-4 text-left shadow-apple-lg transition focus-within:shadow-[0_0_0_4px_var(--state-focus)] sm:gap-3 sm:pl-5"
+        className="flex w-full items-center gap-2 apple-glass-strong px-2 py-2 pl-4 text-left shadow-apple-lg transition focus-within:shadow-[0_0_0_4px_var(--state-focus)] sm:gap-3 sm:pl-5"
         onClick={() => inputRef.current?.focus()}
       >
         <div className="relative min-w-0 flex-1">

@@ -188,7 +188,7 @@ export default function AdminConsole() {
       link.click()
       URL.revokeObjectURL(url)
     } catch {
-      toast.error("Unable to export users")
+      toast.error("Couldn't export users.")
     } finally {
       setExporting(false)
     }

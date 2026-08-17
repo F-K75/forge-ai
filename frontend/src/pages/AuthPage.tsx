@@ -226,7 +226,7 @@ export default function AuthPage() {
                 <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Sign in
               </div>
               <h2 className="font-display text-3xl font-medium tracking-tight">Welcome back</h2>
-              <p className="text-sm text-land-muted mt-2">Pick up where your team left off.</p>
+              <p className="text-sm text-land-muted mt-2">Sign in to pick up where you left off.</p>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>
@@ -466,7 +466,7 @@ export default function AuthPage() {
                               : "hsl(0 0% 12%)",
                         }}
                         transition={{ duration: 0.25, ease: easeOut }}
-                        className="h-0.5 flex-1 rounded-full"
+                        className="h-0.5 flex-1"
                       />
                     ))}
                   </div>

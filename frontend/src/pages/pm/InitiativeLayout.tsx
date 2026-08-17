@@ -53,7 +53,7 @@ export default function InitiativeLayout() {
         navigate("/billing");
         return;
       }
-      toast.error("Failed to start regeneration");
+      toast.error("Couldn't start regeneration.");
       setConfirming(false);
     }
   };
@@ -64,7 +64,7 @@ export default function InitiativeLayout() {
       await initiativesApi.cancel(initiativeId);
       toast.success("Generation cancelled");
     } catch {
-      toast.error("Failed to cancel generation");
+      toast.error("Couldn't cancel generation.");
     }
   };
 
@@ -74,7 +74,7 @@ export default function InitiativeLayout() {
       await initiativesApi.approve(initiativeId);
       toast.success("Plan approved");
     } catch {
-      toast.error("Failed to approve plan");
+      toast.error("Couldn't approve the plan.");
     }
   };
 
@@ -89,7 +89,7 @@ export default function InitiativeLayout() {
         navigate("/billing");
         return;
       }
-      toast.error("Retry failed");
+      toast.error("Couldn't retry. Please try again.");
     }
   };
 
@@ -106,7 +106,7 @@ export default function InitiativeLayout() {
       URL.revokeObjectURL(url);
       captureEvent("initiative_exported", { initiative_id: initiativeId });
     } catch {
-      toast.error("Failed to export initiative");
+      toast.error("Couldn't export this initiative.");
     }
   };
 
@@ -126,7 +126,7 @@ export default function InitiativeLayout() {
         <div className="flex h-full flex-col gap-4 p-6 md:p-8">
           <div className="flex items-center gap-3">
             <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-16" />
           </div>
           <div className="flex items-center gap-2">
             <Skeleton className="h-9 w-24" />
@@ -178,7 +178,7 @@ export default function InitiativeLayout() {
                     {initiative.name}
                   </Heading>
                   <span
-                    className="flex items-center gap-2 rounded-full border border-border bg-panel px-2 py-1 text-muted"
+                    className="flex items-center gap-2 border border-border bg-panel px-2 py-1 text-muted"
                     style={{ fontSize: fontSize.label }}
                   >
                     <span

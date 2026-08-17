@@ -35,7 +35,7 @@ export default function ReleasesTab() {
       load();
       toast.success("Release plan generated");
     } catch {
-      toast.error("Failed to generate release");
+      toast.error("Couldn't generate the release plan.");
     } finally {
       setGenerating(false);
     }

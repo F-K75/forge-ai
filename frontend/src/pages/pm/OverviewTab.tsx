@@ -20,7 +20,7 @@ function EditableList({
       await onSave(draft.split("\n").map(s => s.trim()).filter(Boolean));
       setEditing(false);
     } catch {
-      toast.error("Failed to save");
+      toast.error("Couldn't save your changes.");
     } finally {
       setSaving(false);
     }
@@ -94,7 +94,7 @@ function EditableText({
       await onSave(draft);
       setEditing(false);
     } catch {
-      toast.error("Failed to save");
+      toast.error("Couldn't save your changes.");
     } finally {
       setSaving(false);
     }
@@ -214,7 +214,7 @@ export default function OverviewTab() {
       setCommentDraft("")
       loadComments()
     } catch {
-      toast.error("Failed to add comment")
+      toast.error("Couldn't add that comment.")
     }
   }
 
@@ -224,7 +224,7 @@ export default function OverviewTab() {
       setApproveComment("")
       loadApprovals()
     } catch {
-      toast.error("Failed to record approval")
+      toast.error("Couldn't record that approval.")
     }
   }
 
@@ -235,7 +235,7 @@ export default function OverviewTab() {
       setInitiativeCommentDraft("")
       loadInitiativeComments()
     } catch {
-      toast.error("Failed to add initiative comment")
+      toast.error("Couldn't add that comment.")
     }
   }
 
@@ -245,7 +245,7 @@ export default function OverviewTab() {
       setInitiativeApproveComment("")
       loadInitiativeApprovals()
     } catch {
-      toast.error("Failed to record initiative approval")
+      toast.error("Couldn't record that approval.")
     }
   }
 
@@ -260,7 +260,7 @@ export default function OverviewTab() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast.error("PRD not generated yet");
+      toast.error("The PRD hasn't been generated yet.");
     }
   };
 
@@ -337,7 +337,7 @@ export default function OverviewTab() {
                 <motion.li key={i} className="rounded-md border border-border bg-panel-alt p-4" variants={motionVariants.staggerItem} custom={i}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${
+                      className={`text-xs font-semibold px-2 py-0.5 uppercase ${
                         r.severity === "high" ? "bg-error/10 text-error" : r.severity === "medium" ? "bg-warn/10 text-warn" : "bg-panel-alt text-muted"
                       }`}
                     >

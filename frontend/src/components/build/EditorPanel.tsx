@@ -150,7 +150,7 @@ export function EditorPanel() {
               <FileCode2 size={12} className="text-agent-developer" aria-hidden="true" />
               <span className="font-mono">{tabLabel}</span>
               {isStreaming && (
-                <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-ember/15 px-1.5 py-0.5 text-[10px] text-ember">
+                <span className="ml-1 inline-flex items-center gap-1 bg-ember/15 px-1.5 py-0.5 text-[10px] text-ember">
                   <span className="h-1 w-1 rounded-full bg-ember animate-tick" aria-hidden="true" /> Writing
                 </span>
               )}

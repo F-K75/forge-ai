@@ -145,9 +145,9 @@
     @apply shadow-m3-2 -translate-y-0.5;
   }
 
-  /* Material 3 filled / tonal / text buttons (Apple rounded-full) */
+  /* Material 3 filled / tonal / text buttons (square corners) */
   .bb-btn {
-    @apply relative inline-flex select-none items-center justify-center gap-2 overflow-hidden rounded-full px-6 py-2.5 text-[15px] font-medium tracking-tight transition-all duration-fast ease-m3 bb-focus-ring;
+    @apply relative inline-flex select-none items-center justify-center gap-2 overflow-hidden px-6 py-2.5 text-[15px] font-medium tracking-tight transition-all duration-fast ease-m3 bb-focus-ring;
   }
 
   .bb-btn::after {
@@ -219,11 +219,11 @@
   }
 
   .bb-badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 text-caption font-medium;
   }
 
   .bb-chip {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-medium transition-colors duration-fast;
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium transition-colors duration-fast;
     background: var(--fill-subtle);
     color: rgb(var(--on-surface-variant));
   }
@@ -261,7 +261,7 @@
   }
 
   .bb-snackbar {
-    @apply apple-glass-strong rounded-full px-5 py-3 text-caption text-ink shadow-m3-2;
+    @apply apple-glass-strong px-5 py-3 text-caption text-ink shadow-m3-2;
   }
 
   .bb-dialog {
@@ -376,7 +376,7 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
+  border-radius: 0;
 }
 .light ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.18);
@@ -586,7 +586,7 @@ body {
 .os-window {
   background: rgb(var(--surface));
   border: 1px solid rgb(var(--outline) / var(--outline-alpha));
-  border-radius: 24px;
+  border-radius: 0;
   box-shadow: var(--elevation-2);
 }
 

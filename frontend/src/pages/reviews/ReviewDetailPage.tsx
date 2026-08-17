@@ -52,7 +52,7 @@ export default function ReviewDetailPage() {
         hydrateFromRun(run);
         setHydrated(true);
       })
-      .catch(() => toast.error("Failed to load review run"));
+      .catch(() => toast.error("Couldn't load this review. Please try again."));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId]);
 
@@ -67,7 +67,7 @@ export default function ReviewDetailPage() {
         setBacklog(data.items);
         setBacklogTotal(data.count);
       })
-      .catch(() => toast.error("Failed to load backlog"));
+      .catch(() => toast.error("Couldn't load the backlog."));
   }, [runId, status, sortBy]);
 
   if (!hydrated) {

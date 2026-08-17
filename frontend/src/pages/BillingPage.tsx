@@ -48,8 +48,8 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (!LIVE_MODE) return;
-    billingApi.plans().then(setRawPlans).catch(() => toast.error("Unable to load plans"));
-    billingApi.usage().then(setUsage).catch(() => toast.error("Unable to load usage"));
+    billingApi.plans().then(setRawPlans).catch(() => toast.error("Couldn't load plans. Please try again."));
+    billingApi.usage().then(setUsage).catch(() => toast.error("Couldn't load usage. Please try again."));
     billingApi.subscription().then(setSubscription).catch(() => setSubscription(null));
     billingApi.provider().then((r) => setBillingProvider(r.provider)).catch(() => {});
   }, []);
@@ -72,7 +72,7 @@ export default function BillingPage() {
         window.location.href = res.url;
       }
     } catch {
-      toast.error("Unable to update plan");
+      toast.error("Couldn't update your plan. Please try again.");
     } finally {
       setPending(null);
     }
@@ -101,7 +101,7 @@ export default function BillingPage() {
             </p>
           </div>
           {LIVE_MODE && billingProvider && (
-            <span className="text-[11px] font-medium px-2 py-1 rounded-full border border-border text-muted">
+            <span className="text-[11px] font-medium px-2 py-1 border border-border text-muted">
               {billingProvider}
             </span>
           )}
@@ -332,7 +332,7 @@ function RawPlanCard({
           <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
         </div>
         {active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
+          <span className="text-[10px] font-medium px-2 py-0.5 border border-border text-muted shrink-0">
             Active
           </span>
         )}
@@ -379,7 +379,7 @@ function PlanCard({ plan }: { plan: Plan }) {
           <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
         </div>
         {plan.active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
+          <span className="text-[10px] font-medium px-2 py-0.5 border border-border text-muted shrink-0">
             Active
           </span>
         )}

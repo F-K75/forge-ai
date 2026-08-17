@@ -64,7 +64,7 @@ export default function MarketplacePage() {
     marketplaceApi
       .list({ search: search.trim() || undefined })
       .then((items: RawItem[]) => setLiveTemplates(items.map(toDisplayTemplate)))
-      .catch(() => toast.error("Unable to load marketplace"));
+      .catch(() => toast.error("Couldn't load the marketplace. Please try again."));
   }, [search]);
 
   const source = LIVE_MODE ? liveTemplates ?? [] : TEMPLATES;
@@ -89,7 +89,7 @@ export default function MarketplacePage() {
       const { prompt } = await marketplaceApi.download(template.id);
       navigate("/build/new", { state: { prompt } });
     } catch {
-       toast.error("Unable to install template");
+       toast.error("Couldn't install that template. Please try again.");
     }
   };
 
@@ -105,7 +105,7 @@ export default function MarketplacePage() {
         <div>
           <Heading level="h2">Marketplace</Heading>
           <Heading level="body" className="mt-1">
-            Install a starter to open it as a project.
+            Pre-built starters from Forge and the community. Install one to open it as a project.
           </Heading>
         </div>
         <div className="relative">
@@ -171,7 +171,7 @@ export default function MarketplacePage() {
       ) : (
         <Card variant="empty-state" className="p-0">
           <Heading level="body" className="py-12 text-center">
-            No templates match your search.
+            No templates match your search. Try a different term.
           </Heading>
         </Card>
       )}
@@ -195,7 +195,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="truncate font-display text-sm font-medium text-ink">{template.name}</h3>
-              <span className="shrink-0 rounded-full border border-border bg-panel px-2 py-1 text-xs text-muted">
+              <span className="shrink-0 border border-border bg-panel px-2 py-1 text-xs text-muted">
                 {template.source === "official" ? "Official" : `by ${template.author}`}
               </span>
             </div>
@@ -208,7 +208,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
           {template.tags.map(tag => (
             <span
               key={tag}
-              className="rounded-full border border-border bg-panel px-2 py-1 text-xs text-muted"
+              className="border border-border bg-panel px-2 py-1 text-xs text-muted"
             >
               {tag}
             </span>

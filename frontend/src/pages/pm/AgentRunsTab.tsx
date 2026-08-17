@@ -87,7 +87,7 @@ export default function AgentRunsTab() {
       setStandup(s);
       toast.success("Standup posted");
     } catch {
-      toast.error("Failed to run standup");
+      toast.error("Couldn't run the standup.");
     } finally {
       setStandupLoading(false);
     }

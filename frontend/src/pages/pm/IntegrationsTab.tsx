@@ -38,7 +38,7 @@ export default function IntegrationsTab() {
       const items = await initiativesApi.integrations.list(initiativeId || "")
       setIntegrations(items as IntegrationRecord[])
     } catch {
-      toast.error("Failed to load integrations")
+      toast.error("Couldn't load integrations.")
     } finally {
       setLoading(false)
     }
@@ -64,7 +64,7 @@ export default function IntegrationsTab() {
       setForm({})
       await load()
     } catch {
-      toast.error("Failed to link integration")
+      toast.error("Couldn't link that integration.")
     } finally {
       setLinking(null)
     }
@@ -76,7 +76,7 @@ export default function IntegrationsTab() {
       toast.success(`Disconnected ${provider}`)
       await load()
     } catch {
-      toast.error("Failed to unlink integration")
+      toast.error("Couldn't unlink that integration.")
     }
   }
 
@@ -106,7 +106,7 @@ export default function IntegrationsTab() {
                   <p className="text-sm font-semibold text-ink">{provider.icon} {provider.label}</p>
                   <p className="text-xs text-faint">{provider.description}</p>
                 </div>
-                <span className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${linked ? "bg-ok/10 text-ok" : "bg-white/5 text-muted"}`}>
+                <span className={`flex items-center gap-1 px-2 py-1 text-[10px] font-medium ${linked ? "bg-ok/10 text-ok" : "bg-white/5 text-muted"}`}>
                   {linked ? <CheckCircle2 size={12} aria-hidden="true" /> : <XCircle size={12} aria-hidden="true" />}
                   {linked ? (integration?.status === "connected" ? "Connected" : "Pending") : "Not connected"}
                 </span>

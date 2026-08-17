@@ -23,7 +23,7 @@ export default function AnalyticsTab() {
       const data = await initiativesApi.analytics(initiativeId);
       setEvents(data.events || []);
     } catch {
-      toast.error("Failed to load analytics");
+      toast.error("Couldn't load analytics.");
     } finally {
       setLoading(false);
     }

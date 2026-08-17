@@ -94,7 +94,7 @@ export default function Onboarding() {
                     <div
                       aria-current={isCurrent ? "step" : undefined}
                       className={[
-                        "w-8 h-8 rounded-full flex items-center justify-center",
+                        "w-8 h-8 flex items-center justify-center",
                         "text-xs font-semibold shrink-0",
                         isDone
                           ? "bg-accent text-white"
@@ -201,7 +201,7 @@ function StepWelcome() {
       <div>
       <h1 className="text-xl font-bold text-ink mb-2">Welcome to Forge</h1>
       <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
-        Six specialized agents collaborate to ship your app in under a minute.
+        Six specialized agents collaborate to plan, build, and ship your app.
         Setup takes about two minutes.
       </p>
       </div>
@@ -389,7 +389,7 @@ function StepReady({ goal }: { goal: Goal }) {
         {goal
           ? `${goal} starters are ready. `
           : "Your workspace is ready. "}
-        10 free credits are on your account.
+        You have 10 free credits to start building.
       </p>
       </div>
     </div>

@@ -34,7 +34,7 @@ export default function ReviewsListPage() {
     reviewsApi
       .list()
       .then((data) => setRuns(data.items))
-      .catch(() => toast.error("Failed to load review runs"));
+      .catch(() => toast.error("Couldn't load reviews. Please try again."));
   };
 
   useEffect(() => {
@@ -44,11 +44,11 @@ export default function ReviewsListPage() {
   const handleCreate = async () => {
     const trimmedPath = repoPath.trim();
     if (!trimmedPath) {
-      toast.error("Repo path is required");
+      toast.error("Enter a repo path to start a review");
       return;
     }
     if (mode === "diff" && !diff.trim()) {
-      toast.error("Diff mode requires a non-empty diff");
+      toast.error("Diff mode needs a non-empty diff");
       return;
     }
 
@@ -61,7 +61,7 @@ export default function ReviewsListPage() {
       });
       navigate(`/reviews/${res.run_id}`);
     } catch {
-      toast.error("Failed to start review");
+      toast.error("Couldn't start the review. Please try again.");
     } finally {
       setCreating(false);
     }
@@ -112,7 +112,7 @@ export default function ReviewsListPage() {
                 aria-pressed={mode === m}
                 className={mode === m ? "border-accent text-ink" : ""}
               >
-                {m}
+                {m === "full" ? "Full review" : "Diff"}
               </Button>
             ))}
           </div>
