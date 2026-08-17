@@ -27,6 +27,17 @@ fi
 
 echo "Using cloudflared at: $CLOUDFLARED"
 
+# Preflight: the tunnels are only useful if the origins are up. Warn early
+# instead of handing out URLs that 502.
+for spec in "5173 frontend (vite)" "8000 backend"; do
+  port="${spec%% *}"
+  name="${spec#* }"
+  if ! curl -s -o /dev/null --max-time 3 "http://localhost:${port}/"; then
+    echo "WARNING: nothing is listening on :${port} (${name}). The tunnel for" >&2
+    echo "         this port will 502 until you start it. Continuing anyway…" >&2
+  fi
+done
+
 # Kill stale tunnels for our dev ports (never touches other tunnels).
 pkill -f 'cloudflared tunnel --url http://localhost:5173' 2>/dev/null || true
 pkill -f 'cloudflared tunnel --url http://localhost:8000' 2>/dev/null || true
