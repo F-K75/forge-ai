@@ -114,7 +114,7 @@ export default function InitiativeLayout() {
     return (
       <div className="flex h-full items-center justify-center p-8">
               <Card variant="empty-state" className="w-full text-center">
-                <Heading level="body">Connect a backend (set VITE_WS_URL) to use Initiatives.</Heading>
+                <Heading level="body">Demo mode — connect a backend (set VITE_WS_URL) to use Initiatives.</Heading>
               </Card>
             </div>
           );

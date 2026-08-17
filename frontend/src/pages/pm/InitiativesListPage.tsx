@@ -577,7 +577,7 @@ export default function InitiativesListPage() {
     const trimmed = prompt.trim();
     if (!trimmed) return;
     if (!LIVE_MODE) {
-      toast.error("Connect a backend (VITE_WS_URL) to use Initiatives");
+      toast.error("Demo mode — connect a backend to use Initiatives");
       return;
     }
     setCreating(true);
@@ -697,7 +697,7 @@ export default function InitiativesListPage() {
                 suggestions={SUGGESTIONS}
                 creating={creating}
                 onSubmit={handleCreate}
-                ctaLabel="Generate"
+                ctaLabel="Generate plan"
                 CtaIcon={Sparkles}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               />
@@ -805,7 +805,7 @@ export default function InitiativesListPage() {
 
             <div className="min-h-0 flex-1 overflow-auto px-3 py-5 md:px-6 md:py-6">
               {!LIVE_MODE ? (
-                <EmptyState icon={Rocket} title="Connect a backend" description="Set VITE_WS_URL to load and create initiatives." />
+                <EmptyState icon={Rocket} title="Demo mode" description="Connect a backend (set VITE_WS_URL) to load and create initiatives." />
               ) : initiatives === null ? (
                 <div className="mx-auto grid max-w-3xl grid-cols-1 gap-3 md:grid-cols-2">
                   <SkeletonCard count={4} />

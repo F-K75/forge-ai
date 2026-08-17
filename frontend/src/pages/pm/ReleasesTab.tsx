@@ -66,7 +66,7 @@ export default function ReleasesTab() {
           className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-accent text-white text-sm font-medium hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-opacity disabled:opacity-50"
         >
           {generating ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />}
-          Generate release
+          Create release
         </motion.button>
       </motion.div>
 
@@ -75,7 +75,7 @@ export default function ReleasesTab() {
         <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Loading…</motion.p>
       ) : releases.length === 0 ? (
         <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
-          <p className="text-sm text-faint">No releases yet. Generate one above.</p>
+          <p className="text-sm text-faint">No releases yet. Create your first release above.</p>
         </motion.div>
       ) : (
         <motion.div className="grid grid-cols-1 gap-3 md:grid-cols-2" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
