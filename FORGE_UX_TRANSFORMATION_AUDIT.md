@@ -9,9 +9,9 @@ features, business rules, or routes were modified.
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Corner radius | **0px everywhere** (square) | Owner's explicit preference ("i dont like curved corners") overrides the prompt's "rounded corners" line. Applied via `tailwind.config.ts` (all named radii → `0`) + removal of literal `rounded-full` on pills/chips/toggles/badges. `rounded-full` kept **only** for dots: status/signal lights, avatars, spinners, orbit rings, LaunchGlobe. |
+| Corner radius | **Rounded** (Apple × M3) — see §8 | History: an earlier pass squared all corners per the owner's then-preference ("i dont like curved corners"); later reverted to rounded per owner request ("make the corners back to round"). Restored from the pre-square git state: `apple` 20px / `apple-lg` 28px / `apple-xl` 32px / `m3` 16px / `m3-lg` 28px, `rounded-full` pills on buttons/chips/badges/toggles/snackbars, scrollbar pill, `.os-window` 24px, token scale sm 6 / md 10 / lg 16 (Xs 8 … Xl 28). |
 | Radius tokens | `layout.radiusXs..radiusXl`, `radius.sm/md/lg` → 0; `radiusFull` stays 9999 | Single source of truth in `designTokens.ts`. |
-| Component corners | Toggle tracks square, thumbs round; progress tracks square; segmented controls square; scrollbar square; `.os-window` square | Matches the square language while preserving affordance of circular thumb/dots. |
+| Component corners | Toggle tracks rounded-full, thumbs round; progress tracks rounded-full; segmented controls rounded-full; scrollbar pill; `.os-window` 24px | Apple-style pill controls over M3 surface cards. |
 | Typography | `font-display` headings, sentence case everywhere, no ALL-CAPS marketing | Apple-style editorial hierarchy. |
 | Color | Dark-first, teal `#14B8A6` + lime `#84CC16` accents, agent hues | Existing system preserved. |
 
@@ -26,6 +26,8 @@ features, business rules, or routes were modified.
 
 ## 3. Per-screen audit
 
+> Corner references below (squared/pill corners) describe the original square pass and were **superseded** by the round-corner reversal in §8 — the current app is rounded per §1.
+
 ### Landing page (`/home`, `LandingPage.tsx`)
 - **Audit**: Marketing copy already Apple/Stripe-grade (SectionHeads: "From prompt to production, one handoff at a time.", "Built for real work.", "Because shipping is the point."). Risk: over-editing would dilute voice.
 - **Applied**: surgical only — nav CTA + pill corners squared, punctuation/emphasis fixes, left comparison table intact.
@@ -37,7 +39,7 @@ features, business rules, or routes were modified.
 
 ### Auth (Signup / AuthPage / ForgotPassword / ResetPassword / VerifyEmail)
 - **Applied**: "Welcome back" + "Sign in to pick up where you left off."; signup benefit list ("Six specialist agents, one prompt", "Free tier includes 10 credits", "Cancel or upgrade anytime"); human error strings; "Check your email" states; icon tiles squared; password strength bars squared.
-- **Note**: three `Signup.tsx` class tweaks (tiles, strength bars) were reverted because the git-secrets pre-commit scanner false-positives on `validatePassword` function-name assignments; the tiles still render square via the radius config. Optionally add a scanner allowlist entry (mirroring the existing `_ROUTE_NAME_REF` allowance) to re-apply the literal class edits.
+- **Note**: three `Signup.tsx` class tweaks (tiles, strength bars) were reverted because the git-secrets pre-commit scanner false-positives on `validatePassword` function-name assignments; the tiles render rounded via the radius config, only the literal class tweaks were dropped. Optionally add a scanner allowlist entry (mirroring the existing `_ROUTE_NAME_REF` allowance) to re-apply the literal class edits.
 
 ### Onboarding (`/onboarding`)
 - **Applied**: "Six specialized agents collaborate to plan, build, and ship your app. Setup takes about two minutes."; "You have 10 free credits to start building."; welcome header, workspace-ready state, step circles squared.
@@ -113,9 +115,20 @@ Fixed with an adaptive inlay token system:
 - `npm run lint` — 0 errors (only pre-existing unused-import warnings).
 - `npm run build` — passes.
 - `npm test` — 45/45 pass **with** `VITE_WS_URL=` (a set `VITE_WS_URL` in `frontend/.env.local` flips `LIVE_MODE` and makes tests hit the real backend — plain `npm test` fails 6 environment-dependent tests, unrelated to this work).
-- Committed: `2bcc4a6d` (43 files, square corners + copy pass). Follow-up small fixes (demo-mode strings, ReleasesTab CTA, `Generate plan` CTA) land with this audit in the next commit.
+- Committed: `2bcc4a6d` (43 files, square corners + copy pass — later superseded by the round-corner reversal in §8). Follow-up small fixes (demo-mode strings, ReleasesTab CTA, `Generate plan` CTA) landed with this audit in `8cb26148`; theme/inlay pass `e9775408`; tunnel tooling `37057e43`, `0922955c`.
 
 ## 7. Known caveats
 
 - git-secrets pre-commit scanner (`[Pp]assword = <ident>` pattern) false-positives on `Signup.tsx` identifiers — do not touch that file without a scanner allowlist (`_ROUTE_NAME_REF`-style entry in `scripts/git-hooks/pre-commit` **and** `.github/workflows/secret-scanning.yml`).
 - Demo mode (`LIVE_MODE=false`) shows mock data; production behavior is identical except real backend/websocket wiring.
+
+## 8. Corner-radius revision (owner request)
+
+The square-corner pass (commit `2bcc4a6d`) was reverted on owner request ("make the corners back to round"). Exact original values were restored from git (`2bcc4a6d^`):
+
+- `tailwind.config.ts`: `apple` 20px, `apple-lg` 28px, `apple-xl` 32px, `m3` 16px, `m3-lg` 28px; named scales back to Tailwind defaults (sm 2 / DEFAULT 4 / md 6 / lg 8 / xl 12 / 2xl 16 / 3xl 24 / full 9999).
+- `designTokens.ts`: `radiusXs` 8 → `radiusXl` 28, `radiusFull` 9999; scale sm 6 / md 10 / lg 16.
+- `index.css`: `.bb-btn`, `.bb-badge`, `.bb-chip`, `.bb-snackbar` back to `rounded-full`; scrollbar thumb pill; `.os-window` 24px.
+- 60 component-level `rounded-full` removals re-applied (41 auto-restored from the original diff preserving current indentation, 19 hand-fixed where the inlay theme pass had since touched the lines).
+- Docs updated: `FORGE_UI_PROMPT.md` radii section now specifies the rounded language.
+- Verified: build passes, lint 0 errors, 45/45 tests pass.

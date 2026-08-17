@@ -94,7 +94,7 @@ function Column({ id, label, tasks, color }: { id: string; label: string; tasks:
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
           <span className="text-xs font-semibold text-ink uppercase tracking-wider">{label}</span>
         </div>
-        <span className="text-[11px] font-mono text-muted bg-inlay-hover px-2 py-0.5">{tasks.length}</span>
+        <span className="text-[11px] font-mono text-muted rounded-full bg-inlay-hover px-2 py-0.5">{tasks.length}</span>
       </div>
       <motion.div className="overflow-y-auto flex-1 min-h-8 px-2 pb-2" variants={motionVariants.staggerContainer}>
         {tasks.map((t, i) => (

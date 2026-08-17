@@ -203,7 +203,7 @@ function GraphHeader() {
         <span className="text-sm font-medium text-ink">Agent Pipeline</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 border border-inlay-strong bg-inlay px-2.5 py-1 text-[11px] text-muted">
+        <span className="flex items-center gap-1.5 rounded-full border border-inlay-strong bg-inlay px-2.5 py-1 text-[11px] text-muted">
           <Activity size={10} />
           {AGENTS.length + GATEWAY_AGENTS.length} agents
         </span>
@@ -460,7 +460,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
               type="button"
               onClick={startRun}
               disabled={active}
-              className="flex items-center gap-2 border border-inlay-strong bg-accent px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2 rounded-full border border-inlay-strong bg-accent px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Play size={12} />
               {active ? "Running..." : "Simulate build"}
@@ -468,7 +468,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
             <button
               type="button"
               onClick={resetRun}
-              className="flex items-center gap-2 border border-inlay-strong bg-panel-alt px-4 py-2 text-xs font-semibold text-ink shadow-lg transition hover:brightness-110"
+              className="flex items-center gap-2 rounded-full border border-inlay-strong bg-panel-alt px-4 py-2 text-xs font-semibold text-ink shadow-lg transition hover:brightness-110"
             >
               <RotateCcw size={12} />
               Reset

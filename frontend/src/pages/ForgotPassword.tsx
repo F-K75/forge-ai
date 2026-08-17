@@ -45,7 +45,7 @@ export default function ForgotPassword() {
           {...(reduce ? {} : presets.pageTransition)}
           className="w-full max-w-sm text-center"
         >
-          <div className="w-10 h-10 border border-land-border flex items-center justify-center mx-auto mb-6">
+          <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Mail className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Check your email</h1>

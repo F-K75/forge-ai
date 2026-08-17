@@ -337,7 +337,7 @@ export default function OverviewTab() {
                 <motion.li key={i} className="rounded-md border border-border bg-panel-alt p-4" variants={motionVariants.staggerItem} custom={i}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className={`text-xs font-semibold px-2 py-0.5 uppercase ${
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${
                         r.severity === "high" ? "bg-error/10 text-error" : r.severity === "medium" ? "bg-warn/10 text-warn" : "bg-panel-alt text-muted"
                       }`}
                     >

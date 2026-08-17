@@ -34,7 +34,7 @@ const GRAPH_TYPE_COLOR: Record<string, string> = {
 function LevelBadge({ level }: { level: string }) {
   return (
     <span
-      className="text-[10px] font-medium px-2 py-0.5 uppercase tracking-wide"
+      className="text-[10px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wide"
       style={{ background: `${LEVEL_COLOR[level] ?? "#8B8B9E"}1A`, color: LEVEL_COLOR[level] ?? "#8B8B9E" }}
     >
       {level}

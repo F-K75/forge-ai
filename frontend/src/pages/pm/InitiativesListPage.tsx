@@ -256,7 +256,7 @@ function InitiativeVisual() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.4 }}
-        className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2 border border-inlay bg-panel/80 px-3.5 py-1.5 backdrop-blur-xl"
+        className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-inlay bg-panel/80 px-3.5 py-1.5 backdrop-blur-xl"
       >
         <span className="forge-signal-dot h-1.5 w-1.5 rounded-full bg-ok" />
         <span className="whitespace-nowrap text-[11px] font-medium text-muted">
@@ -706,7 +706,7 @@ export default function InitiativesListPage() {
               </div>
               {creditPreview && (
                 <div className="mt-3 flex flex-col items-center gap-2.5">
-                  <span className="inline-flex items-center gap-1.5 border border-inlay bg-panel-alt px-3 py-1.5 text-xs text-muted">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-inlay bg-panel-alt px-3 py-1.5 text-xs text-muted">
                     <Coins size={12} className="text-accent" aria-hidden="true" />
                     {creditPreview.free_available
                       ? "First generation free"
@@ -755,14 +755,14 @@ export default function InitiativesListPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search library…"
                   aria-label="Search initiatives"
-                  className="h-9 w-full border border-transparent bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  className="h-9 w-full rounded-full border border-transparent bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as InitiativeStatusFilter)}
                 aria-label="Filter by status"
-                className="h-9 cursor-pointer border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <option value="all">All</option>
                 <option value="active">Active</option>
@@ -773,13 +773,13 @@ export default function InitiativesListPage() {
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as SortKey)}
                 aria-label="Sort by"
-                className="h-9 cursor-pointer border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <option value="recent">Recent</option>
                 <option value="name">Name</option>
                 <option value="status">Status</option>
               </select>
-              <div className="flex shrink-0 gap-0.5 bg-panel-alt p-0.5" role="group" aria-label="View mode">
+              <div className="flex shrink-0 gap-0.5 rounded-full bg-panel-alt p-0.5" role="group" aria-label="View mode">
                 {(
                   [
                     { key: "icons" as const, icon: LayoutGrid, label: "Icon view" },
@@ -793,7 +793,7 @@ export default function InitiativesListPage() {
                     aria-label={label}
                     aria-pressed={viewMode === key}
                     className={[
-                      "flex h-8 w-8 cursor-pointer items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+                      "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
                       viewMode === key ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
                     ].join(" ")}
                   >

@@ -178,7 +178,7 @@ export default function FlowPage() {
               ))}
             </div>
 
-            <div className="flex shrink-0 gap-1 bg-inlay-subtle p-0.5" role="group" aria-label="View mode">
+            <div className="flex shrink-0 gap-1 rounded-full bg-inlay-subtle p-0.5" role="group" aria-label="View mode">
               {(
                 [
                   { key: "graph" as const, label: "Graph" },
@@ -191,7 +191,7 @@ export default function FlowPage() {
                   onClick={() => setViewMode(key)}
                   aria-pressed={viewMode === key}
                   className={[
-                    "h-8 cursor-pointer px-3 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+                    "h-8 cursor-pointer rounded-full px-3 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
                     viewMode === key ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
                   ].join(" ")}
                 >

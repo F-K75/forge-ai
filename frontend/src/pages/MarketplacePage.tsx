@@ -195,7 +195,7 @@ function TemplateCard({ template, onInstall }: { template: Template; onInstall: 
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="truncate font-display text-sm font-medium text-ink">{template.name}</h3>
-              <span className="shrink-0 border border-border bg-panel px-2 py-1 text-xs text-muted">
+              <span className="shrink-0 rounded-full border border-border bg-panel px-2 py-1 text-xs text-muted">
                 {template.source === "official" ? "Official" : `by ${template.author}`}
               </span>
             </div>

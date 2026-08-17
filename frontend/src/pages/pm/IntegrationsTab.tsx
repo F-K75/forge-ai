@@ -106,7 +106,7 @@ export default function IntegrationsTab() {
                   <p className="text-sm font-semibold text-ink">{provider.icon} {provider.label}</p>
                   <p className="text-xs text-faint">{provider.description}</p>
                 </div>
-                <span className={`flex items-center gap-1 px-2 py-1 text-[10px] font-medium ${linked ? "bg-ok/10 text-ok" : "bg-inlay-hover text-muted"}`}>
+                <span className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${linked ? "bg-ok/10 text-ok" : "bg-inlay-hover text-muted"}`}>
                   {linked ? <CheckCircle2 size={12} aria-hidden="true" /> : <XCircle size={12} aria-hidden="true" />}
                   {linked ? (integration?.status === "connected" ? "Connected" : "Pending") : "Not connected"}
                 </span>

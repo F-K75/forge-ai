@@ -67,7 +67,7 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
         <motion.div {...pageMotion} className="w-full max-w-sm text-center">
-          <div className="w-10 h-10 border border-land-destructive/40 flex items-center justify-center mx-auto mb-6">
+          <div className="w-10 h-10 rounded-full border border-land-destructive/40 flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-4 h-4 text-land-destructive" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Invalid link</h1>
@@ -86,7 +86,7 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
         <motion.div {...pageMotion} className="w-full max-w-sm text-center" role="status" aria-live="polite">
-          <div className="w-10 h-10 border border-land-border flex items-center justify-center mx-auto mb-6">
+          <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Password updated</h1>

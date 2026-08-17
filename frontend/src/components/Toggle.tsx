@@ -20,7 +20,7 @@ export function Toggle({ on, onChange, label, disabled = false }: ToggleProps) {
       disabled={disabled}
       onClick={() => onChange(!on)}
       className={[
-        "relative inline-flex h-5 w-9 shrink-0 items-center p-0.5",
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5",
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
         "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base",
         on ? "bg-ink" : "bg-border",

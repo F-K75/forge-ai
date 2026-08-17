@@ -258,7 +258,7 @@ export default function PromptStudioPage() {
           <section>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium">Templates</h2>
-              <button onClick={startNew} className="rounded bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700">
+              <button onClick={startNew} className="rounded-full bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700">
                 New template
               </button>
             </div>
@@ -275,7 +275,7 @@ export default function PromptStudioPage() {
                   variants={motionVariants.staggerItem}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className={`px-3 py-1 text-xs ${
+                  className={`rounded-full px-3 py-1 text-xs ${
                     selected?.role === t.role && selected?.version === t.version
                       ? 'bg-emerald-600 text-white'
                       : 'bg-slate-800 hover:bg-slate-700'
@@ -426,7 +426,7 @@ export default function PromptStudioPage() {
                 <motion.button onClick={runPreview} disabled={pgBusy || !pgRole} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500 disabled:opacity-50" {...presets.button}>
                   Preview prompt
                 </motion.button>
-                <button onClick={runValidate} disabled={pgBusy || !pgRole} className="rounded bg-slate-800 px-3 py-1 hover:bg-slate-700 disabled:opacity-50">
+                <button onClick={runValidate} disabled={pgBusy || !pgRole} className="rounded-full bg-slate-800 px-3 py-1 hover:bg-slate-700 disabled:opacity-50">
                   Validate context
                 </button>
                  {pgBusy && <span className="text-xs text-slate-400">Working</span>}
@@ -464,11 +464,11 @@ export default function PromptStudioPage() {
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
                 <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                  <span className="bg-slate-800 px-2 py-1">~{preview.metadata.estimated_tokens} tokens</span>
-                  <span className="bg-slate-800 px-2 py-1">{preview.metadata.build_time_ms.toFixed(1)} ms build</span>
-                  <span className="bg-slate-800 px-2 py-1">hash {preview.metadata.prompt_hash}</span>
+                  <span className="rounded-full bg-slate-800 px-2 py-1">~{preview.metadata.estimated_tokens} tokens</span>
+                  <span className="rounded-full bg-slate-800 px-2 py-1">{preview.metadata.build_time_ms.toFixed(1)} ms build</span>
+                  <span className="rounded-full bg-slate-800 px-2 py-1">hash {preview.metadata.prompt_hash}</span>
                   {preview.metadata.context_sources.map((s) => (
-                    <span key={s} className="bg-indigo-500/20 px-2 py-1 text-indigo-300">{s}</span>
+                    <span key={s} className="rounded-full bg-indigo-500/20 px-2 py-1 text-indigo-300">{s}</span>
                   ))}
                 </div>
                 <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-slate-950 p-3 font-mono text-xs text-slate-300">

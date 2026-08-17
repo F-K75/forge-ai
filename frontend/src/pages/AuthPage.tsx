@@ -466,7 +466,7 @@ export default function AuthPage() {
                               : "hsl(0 0% 12%)",
                         }}
                         transition={{ duration: 0.25, ease: easeOut }}
-                        className="h-0.5 flex-1"
+                        className="h-0.5 flex-1 rounded-full"
                       />
                     ))}
                   </div>

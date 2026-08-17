@@ -126,7 +126,7 @@ export default function InitiativeLayout() {
         <div className="flex h-full flex-col gap-4 p-6 md:p-8">
           <div className="flex items-center gap-3">
             <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-16 rounded-full" />
           </div>
           <div className="flex items-center gap-2">
             <Skeleton className="h-9 w-24" />
@@ -178,7 +178,7 @@ export default function InitiativeLayout() {
                     {initiative.name}
                   </Heading>
                   <span
-                    className="flex items-center gap-2 border border-border bg-panel px-2 py-1 text-muted"
+                    className="flex items-center gap-2 rounded-full border border-border bg-panel px-2 py-1 text-muted"
                     style={{ fontSize: fontSize.label }}
                   >
                     <span

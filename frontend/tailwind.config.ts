@@ -98,22 +98,11 @@ export default {
         caption: ["0.8125rem", { lineHeight: "1.4", letterSpacing: "0", fontWeight: "400" }],
       },
       borderRadius: {
-        // Forge design language: ALL corners are square (radius 0).
-        // The only exception is `full`, reserved for pure circular dots
-        // (status dots, signal dots, traffic lights).
-        DEFAULT: "0",
-        none: "0",
-        sm: "0",
-        md: "0",
-        lg: "0",
-        xl: "0",
-        "2xl": "0",
-        "3xl": "0",
-        apple: "0",
-        "apple-lg": "0",
-        "apple-xl": "0",
-        m3: "0",
-        "m3-lg": "0",
+        apple: "20px",
+        "apple-lg": "28px",
+        "apple-xl": "32px",
+        m3: "16px",
+        "m3-lg": "28px",
       },
       boxShadow: {
         apple: "var(--elevation-1)",

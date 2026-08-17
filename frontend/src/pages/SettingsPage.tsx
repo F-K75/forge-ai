@@ -883,7 +883,7 @@ export default function SettingsPage() {
                       <span className="flex items-center gap-2">
                         {describeUserAgent(session.user_agent)}
                         {session.is_current && (
-                          <span className="text-[10px] font-medium px-2 py-0.5 text-faint border border-border">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full text-faint border border-border">
                              This device
                           </span>
                         )}

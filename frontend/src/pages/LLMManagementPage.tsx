@@ -110,7 +110,7 @@ export default function LLMManagementPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{provider.name}</span>
-                    <span className={`px-2 py-1 text-xs ${provider.healthy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
+                    <span className={`rounded-full px-2 py-1 text-xs ${provider.healthy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
                       {provider.healthy ? 'Healthy' : 'Unhealthy'}
                     </span>
                   </div>
@@ -118,7 +118,7 @@ export default function LLMManagementPage() {
                   <p className="text-slate-400">Default model: {provider.default_model || '—'}</p>
                   <motion.button
                     onClick={() => testConnection(provider.name)}
-                    className="mt-3 rounded bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700"
+                    className="mt-3 rounded-full bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700"
                     {...presets.button}
                   >
                      Test connection

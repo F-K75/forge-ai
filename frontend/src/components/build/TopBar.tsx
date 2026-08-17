@@ -60,7 +60,7 @@ export function TopBar({ projectName, projectId }: { projectName: string; projec
       </div>
 
       <div
-        className={`ml-2 inline-flex items-center gap-2 border border-border bg-panel/60 py-1 pl-2 pr-3 text-xs shrink-0 ${
+        className={`ml-2 inline-flex items-center gap-2 rounded-full border border-border bg-panel/60 py-1 pl-2 pr-3 text-xs shrink-0 ${
           meta.pulse ? "text-ember" : "text-muted"
         }`}
       >

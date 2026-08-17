@@ -45,9 +45,9 @@ export function SprintPlannerPane({
                   {r.used}h / {r.capacity}h
                 </span>
               </div>
-              <div className="h-[3px] overflow-hidden bg-panel-alt">
+              <div className="h-[3px] overflow-hidden rounded-full bg-panel-alt">
                 <motion.div
-                  className={`h-full ${over ? "bg-warn" : pct > 80 ? "bg-ok" : "bg-accent"}`}
+                  className={`h-full rounded-full ${over ? "bg-warn" : pct > 80 ? "bg-ok" : "bg-accent"}`}
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
                   transition={{ delay: 0.2 + idx * 0.08, duration: 0.6, ease: "easeOut" }}

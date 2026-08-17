@@ -33,7 +33,7 @@ export function StatusPill({ status }: { status: Status }) {
   return (
     <motion.span
       ref={pillRef}
-      className="text-[10px] font-medium px-2 py-0.5 text-center inline-block"
+      className="text-[10px] font-medium px-2 py-0.5 rounded-full text-center inline-block"
       style={{ background: `${s.color}1A`, color: s.color }}
       initial={reduceMotion ? false : { scale: 0.5, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}

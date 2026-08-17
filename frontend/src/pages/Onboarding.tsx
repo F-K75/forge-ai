@@ -94,7 +94,7 @@ export default function Onboarding() {
                     <div
                       aria-current={isCurrent ? "step" : undefined}
                       className={[
-                        "w-8 h-8 flex items-center justify-center",
+                        "w-8 h-8 rounded-full flex items-center justify-center",
                         "text-xs font-semibold shrink-0",
                         isDone
                           ? "bg-accent text-white"

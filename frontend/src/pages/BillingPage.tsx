@@ -101,7 +101,7 @@ export default function BillingPage() {
             </p>
           </div>
           {LIVE_MODE && billingProvider && (
-            <span className="text-[11px] font-medium px-2 py-1 border border-border text-muted">
+            <span className="text-[11px] font-medium px-2 py-1 rounded-full border border-border text-muted">
               {billingProvider}
             </span>
           )}
@@ -332,7 +332,7 @@ function RawPlanCard({
           <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
         </div>
         {active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 border border-border text-muted shrink-0">
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
             Active
           </span>
         )}
@@ -379,7 +379,7 @@ function PlanCard({ plan }: { plan: Plan }) {
           <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
         </div>
         {plan.active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 border border-border text-muted shrink-0">
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
             Active
           </span>
         )}
