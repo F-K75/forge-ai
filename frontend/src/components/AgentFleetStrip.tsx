@@ -92,7 +92,7 @@ export function AgentFleetStrip({ compact = false, onOpenGraph, agentProjectCoun
               }}
               className={[
                 "group flex min-w-[4.5rem] flex-col items-center gap-1.5 rounded-2xl px-2 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/40",
-                isActive ? "bg-accent-soft" : "hover:bg-white/[0.05]",
+                isActive ? "bg-accent-soft" : "hover:bg-inlay-hover",
               ].join(" ")}
             >
               <span

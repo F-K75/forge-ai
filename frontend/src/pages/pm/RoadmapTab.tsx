@@ -15,11 +15,11 @@ export default function RoadmapTab() {
         </span>
         <h2 className="font-display text-sm font-semibold text-ink">Roadmap</h2>
       </div>
-      <motion.section className="mb-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible">
+      <motion.section className="mb-8 rounded-2xl border border-inlay bg-inlay-subtle p-5 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible">
         {roadmap.length === 0 ? (
           <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Not generated yet.</motion.p>
         ) : (
-          <ol className="relative border-l border-white/10 pl-6 space-y-6">
+          <ol className="relative border-l border-inlay-strong pl-6 space-y-6">
             {roadmap.map((phase, i) => (
               <motion.li
                 key={i}
@@ -45,7 +45,7 @@ export default function RoadmapTab() {
         </span>
         <h2 className="font-display text-sm font-semibold text-ink">Epics by priority</h2>
       </div>
-      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.15 }}>
+      <motion.section className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.15 }}>
         {epics.length === 0 ? (
           <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Not generated yet.</motion.p>
         ) : (
@@ -55,7 +55,7 @@ export default function RoadmapTab() {
               .map((epic, i) => (
                 <motion.div
                   key={epic.id}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-white/[0.04] bg-white/[0.01] transition-all duration-200 hover:border-white/10 hover:bg-white/[0.03]"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-inlay bg-inlay-subtle transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-subtle"
                   variants={motionVariants.staggerItem}
                   custom={i}
                 >

@@ -28,6 +28,16 @@ export default {
         ember: "rgb(var(--primary) / <alpha-value>)",
         "ember-glow": "rgb(var(--primary-hover) / <alpha-value>)",
 
+        // Adaptive inlay surfaces (dark: white-alpha, light: black-alpha).
+        // Replaces hardcoded bg-white/[0.02-0.08] / border-white/[0.06-0.2]
+        // so cards, chips and borders stay visible in light + high-contrast.
+        inlay: {
+          subtle: "rgb(var(--inlay-subtle) / <alpha-value>)",
+          DEFAULT: "rgb(var(--inlay) / <alpha-value>)",
+          hover: "rgb(var(--inlay-hover) / <alpha-value>)",
+          strong: "rgb(var(--inlay-strong) / <alpha-value>)",
+        },
+
         "agent-architect": "#0A84FF",
         "agent-business-improver": "#5E5CE6",
         "agent-designer": "#BF5AF2",

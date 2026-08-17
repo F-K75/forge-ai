@@ -31,11 +31,11 @@ export default function ActivityTab() {
         <h2 className="font-display text-sm font-semibold text-ink">Activity Overview</h2>
       </div>
       <motion.div className="mb-8 grid grid-cols-2 gap-2.5 md:grid-cols-5" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
-        <motion.div variants={motionVariants.staggerItem} custom={0} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Running" value={String(running)} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={1} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Completed" value={String(completed)} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={2} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Failed" value={String(failed)} warn={failed > 0} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={3} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Tokens" value={totalTokens.toLocaleString()} /></motion.div>
-        <motion.div variants={motionVariants.staggerItem} custom={4} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Cost" value={`$${totalCost.toFixed(3)}`} icon={<Zap size={11} className="text-faint" aria-hidden="true" />} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={0} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Running" value={String(running)} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={1} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Completed" value={String(completed)} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={2} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Failed" value={String(failed)} warn={failed > 0} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={3} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Tokens" value={totalTokens.toLocaleString()} /></motion.div>
+        <motion.div variants={motionVariants.staggerItem} custom={4} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Cost" value={`$${totalCost.toFixed(3)}`} icon={<Zap size={11} className="text-faint" aria-hidden="true" />} /></motion.div>
       </motion.div>
 
       {/* Section: Decision engine */}
@@ -47,10 +47,10 @@ export default function ActivityTab() {
             </span>
             <h2 className="font-display text-sm font-semibold text-ink">Decision Engine</h2>
           </div>
-          <motion.section className="mb-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible">
+          <motion.section className="mb-8 rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible">
             <motion.ul className="space-y-3" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
               {decisionFeed.map((d, i) => (
-                <motion.li key={i} className="flex gap-2.5 rounded-xl p-3 text-sm transition-colors duration-150 hover:bg-white/[0.02]" variants={motionVariants.staggerItem} custom={i} whileHover={{ x: 2, transition: { type: "spring", stiffness: 400, damping: 20 } }}>
+                <motion.li key={i} className="flex gap-2.5 rounded-xl p-3 text-sm transition-colors duration-150 hover:bg-inlay-subtle" variants={motionVariants.staggerItem} custom={i} whileHover={{ x: 2, transition: { type: "spring", stiffness: 400, damping: 20 } }}>
                   <Lightbulb size={14} className="text-warn shrink-0 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="text-ink">{d.summary}</p>
@@ -75,7 +75,7 @@ export default function ActivityTab() {
         </span>
         <h2 className="font-display text-sm font-semibold text-ink">Agent Executions</h2>
       </div>
-      <motion.section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
+      <motion.section className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
         {executions.length === 0 ? (
           <motion.p className="text-sm text-faint py-4 text-center" variants={motionVariants.fadeIn}>No agent runs yet — assign a task to an AI agent from the Board.</motion.p>
         ) : (
@@ -83,7 +83,7 @@ export default function ActivityTab() {
             {executions.map((exec, i) => (
               <motion.li
                 key={exec.id}
-                className="py-3 flex items-start gap-3 transition-colors duration-150 hover:bg-white/[0.01] rounded-lg px-2 -mx-2"
+                className="py-3 flex items-start gap-3 transition-colors duration-150 hover:bg-inlay-subtle rounded-lg px-2 -mx-2"
                 variants={motionVariants.staggerItem}
                 custom={i}
               >

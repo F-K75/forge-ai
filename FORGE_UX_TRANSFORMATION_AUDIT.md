@@ -96,6 +96,18 @@ Present today: LaunchGlobe orbit, AgentFleetStrip animated fleet, agent pipeline
 
 Deferred (needs stable product visuals): in-product screenshots between Landing "How it works" → "Features"; docs/help illustrations. Not added — no new assets were generated and the app's live animated UI already carries the storytelling load.
 
+## 5b. Theme support pass (Apple × Google prompt)
+
+Audit found the app already shipped the full design system (8pt spacing scale, type scale, motion tokens, elevation, glass surfaces, M3 components, focus rings, reduced-motion, 1440px max width, three themes). One real gap: **light/high-contrast modes were user-reachable but broken** — ~180 hardcoded `bg-white/[0.02-0.08]` / `border-white/[0.06-0.2]` alpha surfaces across 16 app pages were invisible on light backgrounds.
+
+Fixed with an adaptive inlay token system:
+
+- `tailwind.config.ts`: new `inlay` color family (`subtle`/`DEFAULT`/`hover`/`strong`).
+- `index.css`: `--inlay-*` CSS vars — white-alpha in dark, black-alpha in light, stronger in both high-contrast variants.
+- Swept 16 files (Projects, Initiatives, Flow, all PM tabs, AgentFleetGraph/Strip, Launch, AppShell): `bg-white/x` → `bg-inlay*`, `border-white/x` → `border-inlay*`, launch globe toggle `text-white` → `text-ink`.
+- Intentional keeps: fake-browser URL pill (`PreviewPanel`), ember progress fill (`DeployButton`), accent/error button text, color swatches (`SettingsPage`).
+- Verified: build passes, lint 0 errors, 45/45 tests pass.
+
 ## 6. Verification
 
 - `npm run lint` — 0 errors (only pre-existing unused-import warnings).

@@ -192,7 +192,7 @@ export default function AppShell() {
                 Forge
               </span>
             </button>
-            <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden="true" />
+            <span className="hidden h-4 w-px bg-inlay-hover sm:block" aria-hidden="true" />
             <p className="hidden truncate text-[15px] font-medium text-muted sm:block">{title}</p>
           </div>
 

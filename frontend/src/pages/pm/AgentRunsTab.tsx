@@ -27,7 +27,7 @@ const AGENT_EXEC_STATUS: Record<string, "running" | "needs_review" | "done"> = {
 
 function EmptyPane({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
+    <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-6 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
       <p className="text-sm text-faint">{children}</p>
     </motion.div>
   );
@@ -38,7 +38,7 @@ function NotWiredCard({ id }: { id: "designer" }) {
   const Icon = agent.icon;
   return (
     <motion.div
-      className="rounded-2xl border border-dashed border-white/[0.06] bg-white/[0.02] flex items-center gap-3 p-5 backdrop-blur-xl"
+      className="rounded-2xl border border-dashed border-inlay bg-inlay-subtle flex items-center gap-3 p-5 backdrop-blur-xl"
       variants={motionVariants.scaleIn}
       initial="hidden"
       animate="visible"
@@ -306,7 +306,7 @@ export default function AgentRunsTab() {
                       type="button"
                       onClick={runStandup}
                       disabled={standupLoading}
-                      className="flex items-center justify-center h-9 w-full rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm font-medium text-ink hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 backdrop-blur-xl transition-colors motion-reduce:transition-none disabled:opacity-50"
+                      className="flex items-center justify-center h-9 w-full rounded-xl border border-inlay bg-inlay-subtle text-sm font-medium text-ink hover:bg-inlay-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 backdrop-blur-xl transition-colors motion-reduce:transition-none disabled:opacity-50"
                     >
                       {standupLoading ? "Running…" : "Run standup"}
                     </button>

@@ -52,7 +52,7 @@ export default function AnalyticsTab() {
           <Loader2 size={20} className="animate-spin text-muted" />
         </div>
       ) : events.length === 0 ? (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-center">
+        <div className="rounded-2xl border border-inlay bg-inlay-subtle p-8 text-center">
           <p className="text-sm text-faint">No analytics events yet.</p>
         </div>
       ) : (
@@ -60,7 +60,7 @@ export default function AnalyticsTab() {
           {events.map(event => (
             <motion.div
               key={event.event_name}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl"
+              className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl"
               variants={motionVariants.fadeUp}
             >
               <p className="text-xs font-semibold text-muted uppercase tracking-wider">{event.event_name}</p>

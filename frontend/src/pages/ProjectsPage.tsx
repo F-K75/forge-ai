@@ -61,7 +61,7 @@ function StatusDot({ live }: { live: boolean }) {
         className={
           live
             ? "relative h-2 w-2 rounded-full bg-ok shadow-[0_0_8px_rgba(52,199,89,0.35)]"
-            : "relative h-2 w-2 rounded-full border border-white/20 bg-white/10"
+            : "relative h-2 w-2 rounded-full border border-inlay-strong bg-inlay-hover"
         }
       />
     </span>
@@ -133,7 +133,7 @@ function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; valu
       onHoverEnd={() => setHovered(false)}
       variants={motionVariants.staggerItem}
       custom={0}
-      className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-m3"
+      className="relative overflow-hidden rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3"
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
@@ -143,7 +143,7 @@ function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; valu
         }}
       />
       <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-accent/10 text-accent">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-inlay-strong bg-accent/10 text-accent">
           <Icon size={13} aria-hidden="true" />
         </span>
         <div className="min-w-0">
@@ -195,7 +195,7 @@ function ProjectVisual() {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="relative z-10 flex h-28 w-28 items-center justify-center rounded-3xl border border-white/10 shadow-m3-2 backdrop-blur-xl overflow-hidden"
+        className="relative z-10 flex h-28 w-28 items-center justify-center rounded-3xl border border-inlay-strong shadow-m3-2 backdrop-blur-xl overflow-hidden"
       >
         <img
           src="/images/project-ready.jpg"
@@ -235,7 +235,7 @@ function ProjectVisual() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.4 }}
-        className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2 border border-white/[0.08] bg-panel/80 px-3.5 py-1.5 backdrop-blur-xl"
+        className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2 border border-inlay bg-panel/80 px-3.5 py-1.5 backdrop-blur-xl"
       >
         <span className="forge-signal-dot h-1.5 w-1.5 rounded-full bg-ok" />
         <span className="whitespace-nowrap text-[11px] font-medium text-muted">
@@ -406,7 +406,7 @@ export default function ProjectsPage() {
                 aria-hidden="true"
               />
 
-              <div className="apple-glass-strong relative rounded-2xl border border-white/[0.06] bg-white/[0.03] p-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]">
+              <div className="apple-glass-strong relative rounded-2xl border border-inlay bg-inlay-subtle p-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]">
                 <div className="flex items-center gap-2.5 px-2.5 py-1.5">
                   <span
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/25 to-accent/10 text-accent"
@@ -461,7 +461,7 @@ export default function ProjectsPage() {
                               setPrompt(suggestion);
                               setShowSuggestions(false);
                             }}
-                            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm text-ink transition-colors hover:border-accent/40 hover:bg-accent/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                            className="flex items-center gap-2 rounded-xl border border-inlay-strong bg-inlay px-3 py-2 text-left text-sm text-ink transition-colors hover:border-accent/40 hover:bg-accent/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
                           >
                             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
                               <Sparkles size={12} aria-hidden="true" />
@@ -479,7 +479,7 @@ export default function ProjectsPage() {
 
           {/* ============ PROJECT LIBRARY ============ */}
           <section aria-label="Project library" className="mt-6 flex min-h-0 flex-1 flex-col">
-            <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.06] px-4 py-2.5 md:px-8">
+            <div className="flex flex-wrap items-center gap-2 border-b border-inlay px-4 py-2.5 md:px-8">
               <p className="mr-2 hidden text-caption font-semibold uppercase tracking-[0.12em] text-accent sm:block">
                 Library
               </p>
@@ -614,10 +614,10 @@ function ProjectIcon({
         type="button"
         onClick={onOpen}
         onDoubleClick={onOpen}
-        className="group flex w-full cursor-pointer flex-col items-center gap-3 rounded-3xl border border-white/[0.08] bg-white/[0.02] p-4 text-center transition-all duration-300 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-m3-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:w-72"
+        className="group flex w-full cursor-pointer flex-col items-center gap-3 rounded-3xl border border-inlay bg-inlay-subtle p-4 text-center transition-all duration-300 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:w-72"
       >
         <span
-          className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_40px_-16px_rgba(0,0,0,0.9)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_24px_48px_-16px_rgba(0,0,0,0.95)] group-active:translate-y-0 motion-reduce:transition-none"
+          className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-inlay-strong shadow-[0_20px_40px_-16px_rgba(0,0,0,0.9)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_24px_48px_-16px_rgba(0,0,0,0.95)] group-active:translate-y-0 motion-reduce:transition-none"
           style={{ background: coverGradient(project.id) }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent" />
@@ -646,10 +646,10 @@ function ProjectListRow({
       <button
         type="button"
         onClick={onOpen}
-        className="group flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left transition-all duration-200 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-m3 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+        className="group flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 text-left transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
       >
         <span
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 shadow-[0_12px_28px_-12px_rgba(0,0,0,0.8)]"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-inlay-strong shadow-[0_12px_28px_-12px_rgba(0,0,0,0.8)]"
           style={{ background: coverGradient(project.id) }}
           aria-hidden="true"
         >

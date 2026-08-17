@@ -93,7 +93,7 @@ export default function SprintsTab() {
           </span>
           <h2 className="font-display text-sm font-semibold text-ink">Sprints</h2>
         </div>
-        <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
+        <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-8 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
           <p className="text-sm text-faint">No sprints planned yet.</p>
         </motion.div>
       </div>
@@ -102,7 +102,7 @@ export default function SprintsTab() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <section className="shrink-0 border-b border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-xl">
+      <section className="shrink-0 border-b border-inlay bg-inlay-subtle p-6 backdrop-blur-xl">
         <div className="mb-3 flex items-center gap-2">
           <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
             <BarChart2 size={12} aria-hidden="true" />
@@ -144,7 +144,7 @@ export default function SprintsTab() {
       </section>
 
       <div className="flex flex-1 min-h-0">
-        <aside className="w-64 shrink-0 border-r border-white/[0.06] bg-white/[0.02] overflow-y-auto p-2 backdrop-blur-xl">
+        <aside className="w-64 shrink-0 border-r border-inlay bg-inlay-subtle overflow-y-auto p-2 backdrop-blur-xl">
           <motion.div className="space-y-0.5" variants={motionVariants.staggerContainer} initial="hidden" animate="visible">
             {sprints.map((s, i) => (
               <motion.button
@@ -156,7 +156,7 @@ export default function SprintsTab() {
                 className={`w-full text-left px-3 py-3 border-l-2 mb-0.5 transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 ${
                   s.id === selectedId
                     ? "border-accent bg-accent/5"
-                    : "border-transparent hover:bg-white/[0.03]"
+                    : "border-transparent hover:bg-inlay-subtle"
                 }`}
               >
                 <p className="text-sm font-medium text-ink truncate mb-1">
@@ -177,10 +177,10 @@ export default function SprintsTab() {
               <motion.p className="text-sm text-muted mb-6" variants={motionVariants.fadeIn}>{selected.goal}</motion.p>
 
             <motion.div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 mb-8" variants={motionVariants.staggerContainer}>
-              <motion.div variants={motionVariants.staggerItem} custom={0} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Capacity" value={String(selected.capacity)} /></motion.div>
-              <motion.div variants={motionVariants.staggerItem} custom={1} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Velocity" value={String(selected.velocity)} /></motion.div>
-              <motion.div variants={motionVariants.staggerItem} custom={2} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl"><SummaryChip label="Story points" value={String(selected.story_points_planned)} /></motion.div>
-              <motion.div variants={motionVariants.staggerItem} custom={3} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl">
+              <motion.div variants={motionVariants.staggerItem} custom={0} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Capacity" value={String(selected.capacity)} /></motion.div>
+              <motion.div variants={motionVariants.staggerItem} custom={1} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Velocity" value={String(selected.velocity)} /></motion.div>
+              <motion.div variants={motionVariants.staggerItem} custom={2} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl"><SummaryChip label="Story points" value={String(selected.story_points_planned)} /></motion.div>
+              <motion.div variants={motionVariants.staggerItem} custom={3} className="rounded-xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl">
                 <SummaryChip
                   label="Completion odds"
                   value={`${Math.round((selected.completion_probability ?? 0) * 100)}%`}
@@ -196,7 +196,7 @@ export default function SprintsTab() {
                     onClick={() => handleGenerate(c.key, c.action)}
                     disabled={generating === c.key}
                     {...presets.button}
-                    className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm font-medium text-ink hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 backdrop-blur-xl transition-colors motion-reduce:transition-none disabled:opacity-50"
+                    className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-inlay bg-inlay-subtle text-sm font-medium text-ink hover:bg-inlay-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 backdrop-blur-xl transition-colors motion-reduce:transition-none disabled:opacity-50"
                   >
                     {generating === c.key && (
                       <Loader2 size={11} className="animate-spin" aria-hidden="true" />
@@ -215,7 +215,7 @@ export default function SprintsTab() {
                        </span>
                        <h3 className="font-display text-sm font-semibold text-ink">Latest Stand-up</h3>
                      </div>
-                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                     <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
                        <div className="text-sm text-ink space-y-1.5">
                          <p>
                            <span className="text-muted">Yesterday:</span> {standups[0].yesterday}
@@ -245,7 +245,7 @@ export default function SprintsTab() {
                        </span>
                        <h3 className="font-display text-sm font-semibold text-ink">Sprint Review</h3>
                      </div>
-                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                     <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
                        <p className="text-sm text-ink leading-relaxed">{reports.reviews[0].summary}</p>
                      </motion.div>
                    </motion.section>
@@ -259,7 +259,7 @@ export default function SprintsTab() {
                        </span>
                        <h3 className="font-display text-sm font-semibold text-ink">Retrospective</h3>
                      </div>
-                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                     <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                          <div>
                            <p className="text-xs font-medium text-ok mb-1">Went well</p>
@@ -290,7 +290,7 @@ export default function SprintsTab() {
                        </span>
                        <h3 className="font-display text-sm font-semibold text-ink">Risk Report</h3>
                      </div>
-                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                     <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
                        <ul className="space-y-2 text-sm">
                          {reports.risk_reports[0].risks?.map((r: any, i: number) => (
                            <li key={i} className="text-ink">
@@ -313,7 +313,7 @@ export default function SprintsTab() {
                        </span>
                        <h3 className="font-display text-sm font-semibold text-ink">Technical Debt</h3>
                      </div>
-                     <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+                     <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl" variants={motionVariants.fadeIn}>
                        <ul className="space-y-2 text-sm">
                          {reports.tech_debt[0].items?.map((item: any, i: number) => (
                            <li key={i} className="text-ink">
@@ -330,7 +330,7 @@ export default function SprintsTab() {
                  )}
               </motion.div>
 
-              <motion.div className="mt-8 pt-6 border-t border-white/[0.06]" variants={motionVariants.fadeIn}>
+              <motion.div className="mt-8 pt-6 border-t border-inlay" variants={motionVariants.fadeIn}>
                 <p className="text-xs text-faint">
                   {tasks.filter((t) => t.sprint_id === selected.id).length} tasks in this sprint
                 </p>

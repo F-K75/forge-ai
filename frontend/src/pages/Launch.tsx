@@ -233,7 +233,7 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, gl
               <p className="truncate text-[12px] text-muted">{AGENT_TASK[live.id]}</p>
             </div>
           </div>
-          <div className="launch-fleet-track relative mt-3 h-[3px] bg-white/[0.08]">
+          <div className="launch-fleet-track relative mt-3 h-[3px] bg-inlay-strong">
             <span
               className="launch-fleet-track-fill absolute inset-y-0 left-0 bg-accent"
               style={{ width: `${progress}%` }}
@@ -277,7 +277,7 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, gl
           </ul>
           <p className="mt-1.5 text-right font-mono text-[12px] tabular-nums text-faint">
             {String(activeIndex + 1).padStart(2, "0")}/{String(AGENTS.length).padStart(2, "0")}
-            <span className="mx-1.5 text-white/15">·</span>
+            <span className="mx-1.5 text-ink/15">·</span>
             {fullVisuals}
           </p>
         </div>
@@ -297,7 +297,7 @@ function AgentPipelineDock({ fullVisuals, activeAgentId, onActiveAgentChange, gl
         type="button"
         aria-label={globeMode === "cobe" ? "Switch to 3D globe" : "Switch to globe view"}
         onClick={() => onGlobeModeChange(globeMode === "cobe" ? "three" : "cobe")}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-inlay-hover text-ink backdrop-blur-md transition hover:bg-inlay-strong"
         animate={{ scale: scrolled ? 0.95 : 1 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       >

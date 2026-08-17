@@ -134,8 +134,8 @@ function AgentNode({ data, selected }: NodeProps) {
   return (
     <div
       className={[
-        "relative min-w-[180px] rounded-2xl border bg-white/[0.04] px-4 py-3 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] transition-all duration-200",
-        selected ? "border-white/20 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85)] scale-[1.02]" : "border-white/[0.08] hover:border-white/20",
+        "relative min-w-[180px] rounded-2xl border bg-inlay px-4 py-3 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] transition-all duration-200",
+        selected ? "border-inlay-strong shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85)] scale-[1.02]" : "border-inlay hover:border-inlay-strong",
       ].join(" ")}
       style={{ boxShadow: `inset 0 0 0 1px ${data.hue}22, 0 12px 32px -12px rgba(0,0,0,0.7)` }}
     >
@@ -147,7 +147,7 @@ function AgentNode({ data, selected }: NodeProps) {
 
       <div className="relative flex items-center gap-3">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-inlay-strong"
           style={{ background: `linear-gradient(135deg, ${data.hue}24 0%, ${data.hue}10 100%)`, color: data.hue }}
         >
           <Activity size={18} />
@@ -195,7 +195,7 @@ const nodeTypes = { agentNode: AgentNode };
 
 function GraphHeader() {
   return (
-    <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
+    <div className="flex items-center justify-between border-b border-inlay px-5 py-3">
       <div className="flex items-center gap-2">
         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/10 text-accent">
           <Activity size={12} aria-hidden="true" />
@@ -203,7 +203,7 @@ function GraphHeader() {
         <span className="text-sm font-medium text-ink">Agent Pipeline</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-muted">
+        <span className="flex items-center gap-1.5 border border-inlay-strong bg-inlay px-2.5 py-1 text-[11px] text-muted">
           <Activity size={10} />
           {AGENTS.length + GATEWAY_AGENTS.length} agents
         </span>
@@ -223,12 +223,12 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="flex h-full flex-col border-l border-white/[0.08] bg-panel/95 backdrop-blur-xl"
+      className="flex h-full flex-col border-l border-inlay bg-panel/95 backdrop-blur-xl"
     >
-      <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-inlay px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-inlay-strong"
             style={{ background: `${agent.hue}18`, color: agent.hue }}
           >
             <agent.icon size={20} />
@@ -251,7 +251,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
 
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <div className="rounded-xl border border-inlay bg-inlay-subtle p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Status</p>
             <div className="flex items-center gap-2">
               <StatusIcon size={14} style={{ color: statusInfo.color }} />
@@ -260,14 +260,14 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
           </div>
 
           {kind === "gateway" && (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="rounded-xl border border-inlay bg-inlay-subtle p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Purpose</p>
               <p className="text-sm text-ink leading-relaxed">{(agent as typeof GATEWAY_AGENTS[number]).purpose}</p>
             </div>
           )}
 
           {credits !== undefined && (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="rounded-xl border border-inlay bg-inlay-subtle p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Credits</p>
               <div className="flex items-center gap-2">
                 <Zap size={14} className="text-ember" />
@@ -276,7 +276,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
             </div>
           )}
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <div className="rounded-xl border border-inlay bg-inlay-subtle p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Business impact</p>
             <div className="space-y-2 text-sm text-ink">
               <div className="flex items-center justify-between">
@@ -294,7 +294,7 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <div className="rounded-xl border border-inlay bg-inlay-subtle p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Actions</p>
             <div className="flex flex-col gap-2">
               <button className="bb-btn bb-btn-primary w-full">Run agent</button>
@@ -429,7 +429,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden rounded-2xl border border-inlay bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
       {!embedded && <GraphHeader />}
 
       <div className="flex flex-1 min-h-0">
@@ -460,7 +460,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
               type="button"
               onClick={startRun}
               disabled={active}
-              className="flex items-center gap-2 border border-white/10 bg-accent px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2 border border-inlay-strong bg-accent px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Play size={12} />
               {active ? "Running..." : "Simulate build"}
@@ -468,7 +468,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
             <button
               type="button"
               onClick={resetRun}
-              className="flex items-center gap-2 border border-white/10 bg-panel-alt px-4 py-2 text-xs font-semibold text-ink shadow-lg transition hover:brightness-110"
+              className="flex items-center gap-2 border border-inlay-strong bg-panel-alt px-4 py-2 text-xs font-semibold text-ink shadow-lg transition hover:brightness-110"
             >
               <RotateCcw size={12} />
               Reset
@@ -488,7 +488,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/[0.08] px-4 py-2">
+      <div className="flex items-center justify-between border-t border-inlay px-4 py-2">
         <div className="flex items-center gap-4 text-[11px] text-muted">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-ok" />

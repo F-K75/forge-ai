@@ -52,12 +52,12 @@ export default function ReleasesTab() {
       </div>
 
       {/* Generate bar */}
-      <motion.div className="mb-6 flex items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 backdrop-blur-xl" variants={motionVariants.fadeIn}>
+      <motion.div className="mb-6 flex items-center gap-2 rounded-2xl border border-inlay bg-inlay-subtle p-3 backdrop-blur-xl" variants={motionVariants.fadeIn}>
         <input
           value={version}
           onChange={e => setVersion(e.target.value)}
           placeholder="v1.0.0"
-          className="h-9 w-32 bg-transparent border border-white/10 rounded-xl px-3 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          className="h-9 w-32 bg-transparent border border-inlay-strong rounded-xl px-3 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
         />
         <motion.button
           onClick={handleGenerate}
@@ -74,7 +74,7 @@ export default function ReleasesTab() {
       {releases === null ? (
         <motion.p className="text-sm text-faint" variants={motionVariants.fadeIn}>Loading…</motion.p>
       ) : releases.length === 0 ? (
-        <motion.div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
+        <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-8 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
           <p className="text-sm text-faint">No releases yet. Create your first release above.</p>
         </motion.div>
       ) : (
@@ -82,7 +82,7 @@ export default function ReleasesTab() {
           {releases.map((release, i) => (
             <motion.article
               key={release.id}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:shadow-m3"
+              className="rounded-2xl border border-inlay bg-inlay-subtle p-5 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:shadow-m3"
               custom={i}
               {...presets.card}
               variants={motionVariants.staggerItem}

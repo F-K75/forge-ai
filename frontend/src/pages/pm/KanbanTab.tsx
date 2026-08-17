@@ -50,7 +50,7 @@ function TaskCard({ task, index }: { task: Record<string, any>; index: number })
       variants={motionVariants.staggerItem}
       custom={index}
       {...presets.kanbanCard}
-      className={`group rounded-xl border border-white/[0.08] bg-white/[0.03] p-3.5 mb-2 cursor-grab active:cursor-grabbing transition-all duration-200 hover:border-white/15 hover:bg-white/[0.05] ${isDragging ? "opacity-60 scale-[1.02] shadow-lg shadow-black/30 border-accent/40" : ""}`}
+      className={`group rounded-xl border border-inlay bg-inlay-subtle p-3.5 mb-2 cursor-grab active:cursor-grabbing transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover ${isDragging ? "opacity-60 scale-[1.02] shadow-lg shadow-black/30 border-accent/40" : ""}`}
     >
       <p className="text-sm text-ink mb-2.5 leading-snug font-medium">{task.title}</p>
       <div className="flex items-center justify-between gap-2">
@@ -71,7 +71,7 @@ function TaskCard({ task, index }: { task: Record<string, any>; index: number })
             onClick={handleExecute}
             disabled={running}
             aria-label="Run AI agent"
-            className="flex items-center justify-center w-7 h-7 rounded-lg border border-white/10 bg-white/[0.04] text-faint hover:text-ink hover:bg-white/[0.08] hover:border-white/20 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50"
+            className="flex items-center justify-center w-7 h-7 rounded-lg border border-inlay-strong bg-inlay text-faint hover:text-ink hover:bg-inlay-strong hover:border-inlay-strong transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50"
           >
             {running ? <Loader2 size={11} className="animate-spin" aria-hidden="true" /> : <Play size={11} aria-hidden="true" />}
           </button>
@@ -87,14 +87,14 @@ function Column({ id, label, tasks, color }: { id: string; label: string; tasks:
     <motion.div
       ref={setNodeRef}
       variants={motionVariants.scaleIn}
-      className={`w-64 shrink-0 flex flex-col rounded-2xl border transition-all duration-200 ${isOver ? "border-accent/40 bg-accent/5 shadow-lg shadow-accent/10" : "border-white/[0.08] bg-white/[0.02]"} backdrop-blur-xl`}
+      className={`w-64 shrink-0 flex flex-col rounded-2xl border transition-all duration-200 ${isOver ? "border-accent/40 bg-accent/5 shadow-lg shadow-accent/10" : "border-inlay bg-inlay-subtle"} backdrop-blur-xl`}
     >
       <div className="flex items-center justify-between px-4 py-3 mb-1">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
           <span className="text-xs font-semibold text-ink uppercase tracking-wider">{label}</span>
         </div>
-        <span className="text-[11px] font-mono text-muted bg-white/5 px-2 py-0.5">{tasks.length}</span>
+        <span className="text-[11px] font-mono text-muted bg-inlay-hover px-2 py-0.5">{tasks.length}</span>
       </div>
       <motion.div className="overflow-y-auto flex-1 min-h-8 px-2 pb-2" variants={motionVariants.staggerContainer}>
         {tasks.map((t, i) => (
@@ -102,7 +102,7 @@ function Column({ id, label, tasks, color }: { id: string; label: string; tasks:
         ))}
         {tasks.length === 0 && (
           <motion.div
-            className="flex items-center justify-center py-6 text-[11px] text-faint border border-dashed border-white/[0.06] rounded-xl mx-1 backdrop-blur-xl"
+            className="flex items-center justify-center py-6 text-[11px] text-faint border border-dashed border-inlay rounded-xl mx-1 backdrop-blur-xl"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -158,7 +158,7 @@ export default function KanbanTab() {
           <h2 className="font-display text-sm font-semibold text-ink">Kanban Board</h2>
         </div>
         <motion.div className="flex items-center gap-2 flex-wrap" variants={motionVariants.fadeIn}>
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur-xl">
+          <div className="flex items-center gap-1.5 rounded-xl border border-inlay-strong bg-inlay px-3 py-1.5 backdrop-blur-xl">
             <Filter size={12} className="text-muted" />
             <select
               value={sprintFilter}
@@ -171,7 +171,7 @@ export default function KanbanTab() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur-xl">
+          <div className="flex items-center gap-1.5 rounded-xl border border-inlay-strong bg-inlay px-3 py-1.5 backdrop-blur-xl">
             <select
               value={agentFilter}
               onChange={e => setAgentFilter(e.target.value)}
@@ -183,7 +183,7 @@ export default function KanbanTab() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 flex-1 max-w-[240px] backdrop-blur-xl">
+          <div className="flex items-center gap-1.5 rounded-xl border border-inlay-strong bg-inlay px-3 py-1.5 flex-1 max-w-[240px] backdrop-blur-xl">
             <Search size={12} className="text-muted" />
             <input
               value={search}

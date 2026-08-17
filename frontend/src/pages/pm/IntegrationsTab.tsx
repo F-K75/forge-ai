@@ -98,7 +98,7 @@ export default function IntegrationsTab() {
           return (
             <motion.div
               key={provider.id}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-xl"
+              className="rounded-2xl border border-inlay bg-inlay-subtle p-4 backdrop-blur-xl"
               variants={motionVariants.fadeUp}
             >
               <div className="flex items-center justify-between mb-2">
@@ -106,7 +106,7 @@ export default function IntegrationsTab() {
                   <p className="text-sm font-semibold text-ink">{provider.icon} {provider.label}</p>
                   <p className="text-xs text-faint">{provider.description}</p>
                 </div>
-                <span className={`flex items-center gap-1 px-2 py-1 text-[10px] font-medium ${linked ? "bg-ok/10 text-ok" : "bg-white/5 text-muted"}`}>
+                <span className={`flex items-center gap-1 px-2 py-1 text-[10px] font-medium ${linked ? "bg-ok/10 text-ok" : "bg-inlay-hover text-muted"}`}>
                   {linked ? <CheckCircle2 size={12} aria-hidden="true" /> : <XCircle size={12} aria-hidden="true" />}
                   {linked ? (integration?.status === "connected" ? "Connected" : "Pending") : "Not connected"}
                 </span>
@@ -132,7 +132,7 @@ export default function IntegrationsTab() {
                       placeholder="Project ID"
                       value={form.external_project_id || ""}
                       onChange={e => setForm({ ...form, external_project_id: e.target.value })}
-                      className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                      className="min-w-0 flex-1 rounded-lg border border-inlay-strong bg-inlay px-3 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                     />
                     <button
                       type="button"
@@ -148,7 +148,7 @@ export default function IntegrationsTab() {
                   <button
                     type="button"
                     onClick={() => handleUnlink(provider.id)}
-                    className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                    className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-inlay-strong bg-inlay px-3 text-xs font-medium text-ink hover:bg-inlay-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                   >
                     <Trash2 size={14} aria-hidden="true" />
                     Disconnect

@@ -130,11 +130,11 @@ export default function FlowPage() {
             {socialProof.map((item) => (
               <div
                 key={item.label}
-                className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 backdrop-blur-xl"
+                className="relative overflow-hidden rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 backdrop-blur-xl"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-accent/10 text-accent">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-inlay-strong bg-accent/10 text-accent">
                       <item.icon size={13} aria-hidden="true" />
                     </span>
                     <div className="min-w-0">
@@ -164,7 +164,7 @@ export default function FlowPage() {
             <div className="flex flex-wrap items-center gap-2">
               {BUILD_STAGES.map((stage, index) => (
                 <div key={stage.name} className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-inlay bg-inlay-subtle px-3 py-2">
                     <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: stage.color }} />
                     <div className="min-w-0">
                       <span className="text-xs font-medium text-ink">{stage.name}</span>
@@ -178,7 +178,7 @@ export default function FlowPage() {
               ))}
             </div>
 
-            <div className="flex shrink-0 gap-1 bg-white/[0.02] p-0.5" role="group" aria-label="View mode">
+            <div className="flex shrink-0 gap-1 bg-inlay-subtle p-0.5" role="group" aria-label="View mode">
               {(
                 [
                   { key: "graph" as const, label: "Graph" },
@@ -209,9 +209,9 @@ export default function FlowPage() {
           transition={{ delay: 0.2, duration: 0.4 }}
           className="mt-4"
         >
-          <div className="rounded-2xl border border-white/[0.08] bg-panel/95 shadow-m3-2 backdrop-blur-xl">
+          <div className="rounded-2xl border border-inlay bg-panel/95 shadow-m3-2 backdrop-blur-xl">
             {tourActive && !tourSkipped && (
-              <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-2">
+              <div className="flex items-center justify-between border-b border-inlay px-4 py-2">
                 <span className="text-xs text-muted">Guided tour: watch how a build flows through agents</span>
                 <button
                   type="button"

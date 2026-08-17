@@ -41,6 +41,11 @@
   --orange: #ff9f0a;
   --orange-glow: rgba(255, 159, 10, 0.3);
   --radius-apple: 20px;
+  /* adaptive inlay surfaces (white-alpha on dark) */
+  --inlay-subtle: 255 255 255 / 0.02;
+  --inlay: 255 255 255 / 0.04;
+  --inlay-hover: 255 255 255 / 0.08;
+  --inlay-strong: 255 255 255 / 0.12;
   /* legacy aliases */
   --bg-elevated: var(--surface);
   --bg-subtle: var(--surface-container);
@@ -105,6 +110,11 @@
   --border-soft-alpha: var(--outline-soft-alpha);
   --shadow-apple: var(--elevation-1);
   --shadow-apple-lg: var(--elevation-2);
+  /* adaptive inlay surfaces (black-alpha on light) */
+  --inlay-subtle: 0 0 0 / 0.03;
+  --inlay: 0 0 0 / 0.05;
+  --inlay-hover: 0 0 0 / 0.08;
+  --inlay-strong: 0 0 0 / 0.12;
   color-scheme: light;
 }
 
@@ -115,6 +125,10 @@
   --primary-container: rgba(20, 184, 166, 0.32);
   --state-hover: rgba(255, 255, 255, 0.16);
   --state-pressed: rgba(255, 255, 255, 0.22);
+  --inlay-subtle: 255 255 255 / 0.05;
+  --inlay: 255 255 255 / 0.08;
+  --inlay-hover: 255 255 255 / 0.14;
+  --inlay-strong: 255 255 255 / 0.2;
 }
 
 .light.hc,
@@ -124,6 +138,10 @@
   --primary-container: rgba(20, 184, 166, 0.2);
   --state-hover: rgba(0, 0, 0, 0.08);
   --state-pressed: rgba(0, 0, 0, 0.14);
+  --inlay-subtle: 0 0 0 / 0.06;
+  --inlay: 0 0 0 / 0.1;
+  --inlay-hover: 0 0 0 / 0.16;
+  --inlay-strong: 0 0 0 / 0.24;
 }
 
 @layer components {
