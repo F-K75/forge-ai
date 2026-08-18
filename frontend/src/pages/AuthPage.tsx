@@ -207,7 +207,7 @@ export default function AuthPage() {
           transition={{ duration: 0.9, ease: easeOut }}
           className="hidden lg:block relative overflow-hidden bg-black"
         >
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/images/login-visual.jpg)' }} />
+          <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: 'url(/images/login-visual.jpg)' }} />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent" />
           <div className="relative z-10 flex h-full flex-col justify-between p-12 xl:p-16">
             <AgentNetworkArt />
