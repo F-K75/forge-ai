@@ -56,6 +56,7 @@ const demoUser = (overrides: Partial<User> = {}): User => ({
   plan: 'pro',
   credits: 612,
   created_at: new Date().toISOString(),
+  is_admin: true,
   ...overrides,
 })
 
