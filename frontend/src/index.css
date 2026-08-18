@@ -41,12 +41,16 @@
   --orange: #ff9f0a;
   --orange-glow: rgba(255, 159, 10, 0.3);
   --radius-apple: 20px;
-  /* adaptive inlay surfaces (white-alpha on dark) */
   --inlay-subtle: 255 255 255 / 0.02;
   --inlay: 255 255 255 / 0.04;
   --inlay-hover: 255 255 255 / 0.08;
   --inlay-strong: 255 255 255 / 0.12;
-  /* legacy aliases */
+  --glass: rgba(28, 28, 30, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-strong: rgba(28, 28, 30, 0.9);
+  --glass-strong-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: blur(24px) saturate(1.4);
+  --glass-strong-blur: blur(28px) saturate(1.5);
   --bg-elevated: var(--surface);
   --bg-subtle: var(--surface-container);
   --text: var(--on-surface);
@@ -59,6 +63,7 @@
   --border-soft-alpha: var(--outline-soft-alpha);
   --shadow-apple: var(--elevation-1);
   --shadow-apple-lg: var(--elevation-2);
+  --shadow-apple-float: var(--elevation-3);
   color-scheme: dark;
 }
 
@@ -98,6 +103,16 @@
   --teal-glow: rgba(132, 204, 22, 0.25);
   --orange: #ff9f0a;
   --orange-glow: rgba(255, 159, 10, 0.25);
+  --inlay-subtle: 0 0 0 / 0.03;
+  --inlay: 0 0 0 / 0.05;
+  --inlay-hover: 0 0 0 / 0.08;
+  --inlay-strong: 0 0 0 / 0.12;
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.88);
+  --glass-strong-border: rgba(0, 0, 0, 0.06);
+  --glass-blur: blur(24px) saturate(1.4);
+  --glass-strong-blur: blur(28px) saturate(1.5);
   --bg-elevated: var(--surface);
   --bg-subtle: var(--surface-container);
   --text: var(--on-surface);
@@ -110,11 +125,7 @@
   --border-soft-alpha: var(--outline-soft-alpha);
   --shadow-apple: var(--elevation-1);
   --shadow-apple-lg: var(--elevation-2);
-  /* adaptive inlay surfaces (black-alpha on light) */
-  --inlay-subtle: 0 0 0 / 0.03;
-  --inlay: 0 0 0 / 0.05;
-  --inlay-hover: 0 0 0 / 0.08;
-  --inlay-strong: 0 0 0 / 0.12;
+  --shadow-apple-float: var(--elevation-3);
   color-scheme: light;
 }
 
@@ -152,18 +163,17 @@
   }
 
   .bb-panel {
-    @apply rounded-m3-lg border border-outline bg-panel shadow-m3;
+    @apply rounded-m3 border border-outline bg-panel shadow-m3;
   }
 
   .bb-card {
-    @apply rounded-m3-lg border border-outline bg-panel shadow-m3 transition-all duration-med ease-m3;
+    @apply rounded-m3 border border-outline bg-panel shadow-m3 transition-all duration-med ease-m3;
   }
 
   .bb-card:hover {
     @apply shadow-m3-2 -translate-y-0.5;
   }
 
-  /* Material 3 filled / tonal / text buttons (Apple rounded-full) */
   .bb-btn {
     @apply relative inline-flex select-none items-center justify-center gap-2 overflow-hidden rounded-full px-6 py-2.5 text-[15px] font-medium tracking-tight transition-all duration-fast ease-m3 bb-focus-ring;
   }

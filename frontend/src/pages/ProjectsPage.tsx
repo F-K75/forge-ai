@@ -126,14 +126,14 @@ function CountUpValue({ value, suffix, className = "" }: { value: number | strin
 }
 
 function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; value: number; suffix: string; label: string }) {
-  const [hovered, setHovered] = useState(false);
+  const [hovered, setHovered] = useState(false)
   return (
     <motion.div
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
       variants={motionVariants.staggerItem}
       custom={0}
-      className="relative overflow-hidden rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3"
+      className="relative overflow-hidden rounded-2xl border border-outline bg-panel px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:bg-panel-alt hover:shadow-apple"
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
@@ -154,7 +154,7 @@ function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; valu
         </div>
       </div>
     </motion.div>
-  );
+  )
 }
 
 function AdditivePulse({ hue }: { hue: string }) {
@@ -385,9 +385,11 @@ export default function ProjectsPage() {
                 initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="hidden lg:block"
+                className="hidden lg:flex items-center justify-center"
               >
-                <ProjectVisual />
+                <div className="relative h-64 w-full max-w-sm">
+                  <ProjectVisual />
+                </div>
               </motion.div>
             </div>
           </section>
@@ -614,10 +616,10 @@ function ProjectIcon({
         type="button"
         onClick={onOpen}
         onDoubleClick={onOpen}
-        className="group flex w-full cursor-pointer flex-col items-center gap-3 rounded-3xl border border-inlay bg-inlay-subtle p-4 text-center transition-all duration-300 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:w-72"
+        className="group flex w-full cursor-pointer flex-col items-center gap-3 rounded-2xl border border-outline bg-panel p-5 text-center transition-all duration-300 hover:border-inlay-strong hover:bg-panel-alt hover:shadow-apple-lg hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:w-72"
       >
         <span
-          className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-inlay-strong shadow-[0_20px_40px_-16px_rgba(0,0,0,0.9)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_24px_48px_-16px_rgba(0,0,0,0.95)] group-active:translate-y-0 motion-reduce:transition-none"
+          className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-inlay-strong shadow-apple-lg transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-apple-float group-active:translate-y-0"
           style={{ background: coverGradient(project.id) }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent" />
@@ -631,7 +633,7 @@ function ProjectIcon({
         </span>
       </button>
     </motion.div>
-  );
+  )
 }
 
 function ProjectListRow({
@@ -646,10 +648,10 @@ function ProjectListRow({
       <button
         type="button"
         onClick={onOpen}
-        className="group flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 text-left transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+        className="group flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-outline bg-panel px-4 py-3 text-left transition-all duration-200 hover:border-inlay-strong hover:bg-panel-alt hover:shadow-apple focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         <span
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-inlay-strong shadow-[0_12px_28px_-12px_rgba(0,0,0,0.8)]"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-inlay-strong shadow-apple"
           style={{ background: coverGradient(project.id) }}
           aria-hidden="true"
         >
@@ -667,5 +669,5 @@ function ProjectListRow({
         </span>
       </button>
     </motion.li>
-  );
+  )
 }

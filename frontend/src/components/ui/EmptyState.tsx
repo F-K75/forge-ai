@@ -2,6 +2,7 @@ import { type LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import { Button, Heading } from './index'
+import { layout } from '../../lib/designTokens'
 
 interface EmptyStateProps {
   icon: LucideIcon
@@ -17,14 +18,14 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
 
   return (
     <motion.div
-      className={clsx('flex flex-col items-center justify-center py-12 text-center', className)}
+      className={clsx('flex flex-col items-center justify-center py-16 text-center', className)}
       role="status"
       aria-live="polite"
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       <motion.div
-        className="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-4"
+        className="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-5"
         whileHover={reduceMotion ? {} : { scale: 1.08, rotate: 5 }}
         transition={{ type: "spring", stiffness: 400, damping: 20 }}
       >
@@ -40,7 +41,7 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
       </motion.h3>
       {description && (
         <motion.div
-          className="mb-4 max-w-sm"
+          className="mb-6 max-w-sm"
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
@@ -48,26 +49,23 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
           <Heading level="body">{description}</Heading>
         </motion.div>
       )}
-      {primaryAction && (
+      {(primaryAction || secondaryAction) && (
         <motion.div
+          className="flex items-center gap-3"
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Button variant="primary" onClick={primaryAction.onClick}>
-            {primaryAction.label}
-          </Button>
-        </motion.div>
-      )}
-      {secondaryAction && (
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <Button variant="secondary" size="sm" className="mt-2" onClick={secondaryAction.onClick}>
-            {secondaryAction.label}
-          </Button>
+          {primaryAction && (
+            <Button variant="primary" onClick={primaryAction.onClick}>
+              {primaryAction.label}
+            </Button>
+          )}
+          {secondaryAction && (
+            <Button variant="secondary" size="sm" onClick={secondaryAction.onClick}>
+              {secondaryAction.label}
+            </Button>
+          )}
         </motion.div>
       )}
     </motion.div>
@@ -85,7 +83,7 @@ export function Skeleton({ className, variant = 'rect', animate = true }: Skelet
     <div
       className={clsx(
         'bg-panel rounded',
-        animate && 'animate-pulse',
+        animate && 'animate-shimmer',
         variant === 'text' && 'h-4',
         variant === 'circle' && 'rounded-full',
         variant === 'rect' && 'rounded-lg',

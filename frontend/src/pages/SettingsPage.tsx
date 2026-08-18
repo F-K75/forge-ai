@@ -419,21 +419,25 @@ export default function SettingsPage() {
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
     >
       <motion.div
-        className="max-w-2xl space-y-10"
+        className="mx-auto max-w-2xl space-y-8"
         variants={reduceMotion ? undefined : motionVariants.staggerContainer}
         initial={reduceMotion ? false : "hidden"}
         animate="visible"
       >
+        <motion.div variants={motionVariants.staggerItem}>
+          <h1 className="text-2xl font-semibold text-ink tracking-tight">Settings</h1>
+          <p className="mt-1 text-sm text-muted">Manage your account, preferences, and integrations.</p>
+        </motion.div>
 
         {/* Appearance */}
         <motion.section aria-labelledby="section-appearance" variants={motionVariants.staggerItem}>
           <div className="mb-3 flex items-center gap-2">
-            <Palette size={13} className="text-muted" aria-hidden="true" />
-            <h2 id="section-appearance" className="text-sm font-medium text-ink">
+            <Palette size={14} className="text-muted" aria-hidden="true" />
+            <h2 id="section-appearance" className="text-base font-semibold text-ink">
               Appearance
             </h2>
           </div>
-          <div className="bb-panel space-y-3 p-4">
+          <div className="bb-card space-y-3">
             <p className="text-caption text-muted">
               Choose a theme.
             </p>

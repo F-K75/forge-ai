@@ -1,7 +1,7 @@
 import type { ElementType, ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { typeScale } from '../../lib/designTokens'
+import { fontScale, typeScale } from '../../lib/designTokens'
 
 export type HeadingLevel = 'display' | 'h1' | 'h2' | 'h3' | 'bodyLg' | 'body' | 'label' | 'section'
 
@@ -9,6 +9,7 @@ interface HeadingProps {
   level?: HeadingLevel
   className?: string
   children: ReactNode
+  as?: ElementType
 }
 
 const elementFor: Record<HeadingLevel, ElementType> = {
@@ -33,13 +34,9 @@ const toneFor: Record<HeadingLevel, string> = {
   section: 'font-display text-ink',
 }
 
-/**
- * Heading mapped to the token type scale (font size/weight/tracking from
- * `fontScale`). Level also sets the semantic element.
- */
-export function Heading({ level = 'body', className, children }: HeadingProps) {
-  const Tag = elementFor[level]
-  const t = typeScale[level]
+export function Heading({ level = 'body', className, children, as }: HeadingProps) {
+  const Tag = as || elementFor[level]
+  const t = fontScale[level] || typeScale[level]
   return (
     <Tag
       className={twMerge(clsx(toneFor[level], className))}

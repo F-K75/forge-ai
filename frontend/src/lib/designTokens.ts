@@ -1,6 +1,6 @@
 /**
  * Apple × Google Material 3 design tokens for Forge AI.
- * Source of truth for spacing, type, elevation, and motion.
+ * Single source of truth for spacing, typography, elevation, motion, radius, and z-index.
  * Colors live as CSS variables in index.css (light / dark / high-contrast).
  */
 
@@ -21,6 +21,27 @@ export const spacing = {
   32: 128,
 } as const
 
+export const space = {
+  4: 4,
+  8: 8,
+  12: 12,
+  16: 16,
+  24: 24,
+  32: 32,
+  48: 48,
+} as const
+
+export type Space = (typeof space)[keyof typeof space]
+
+export const radius = {
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 28,
+  full: 9999,
+} as const
+
 export const layout = {
   maxContent: 1440,
   contentPad: 24,
@@ -33,6 +54,17 @@ export const layout = {
   radiusLg: 20,
   radiusXl: 28,
   radiusFull: 9999,
+} as const
+
+export const fontScale = {
+  label: { size: 12, weight: 500, lineHeight: 1.4, tracking: 0.01 },
+  body: { size: 14, weight: 400, lineHeight: 1.5, tracking: 0 },
+  section: { size: 14, weight: 600, lineHeight: 1.4, tracking: 0 },
+  bodyLg: { size: 16, weight: 400, lineHeight: 1.5, tracking: -0.01 },
+  h3: { size: 20, weight: 600, lineHeight: 1.3, tracking: -0.02 },
+  h2: { size: 24, weight: 600, lineHeight: 1.25, tracking: -0.02 },
+  h1: { size: 40, weight: 700, lineHeight: 1.05, tracking: -0.03 },
+  display: { size: 40, weight: 700, lineHeight: 1.05, tracking: -0.03 },
 } as const
 
 export const typeScale = {
@@ -50,6 +82,17 @@ export const typeScale = {
   section: { size: 14, weight: 600, tracking: 0, lineHeight: 1.4 },
 } as const
 
+export const fontSize = {
+  label: fontScale.label.size,
+  body: fontScale.body.size,
+  section: fontScale.section.size,
+  bodyLg: fontScale.bodyLg.size,
+  h3: fontScale.h3.size,
+  h2: fontScale.h2.size,
+  h1: fontScale.h1.size,
+  display: fontScale.display.size,
+} as const
+
 export const motion = {
   duration: {
     instant: 100,
@@ -63,6 +106,10 @@ export const motion = {
     emphasized: 'cubic-bezier(0.2, 0, 0, 1)',
     spring: { type: 'spring' as const, stiffness: 380, damping: 32 },
     softSpring: { type: 'spring' as const, stiffness: 260, damping: 28 },
+    apple: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+    material: 'cubic-bezier(0.2, 0, 0, 1)',
+    decelerate: 'cubic-bezier(0, 0, 0.2, 1)',
+    accelerate: 'cubic-bezier(0.4, 0, 1, 1)',
   },
 } as const
 
@@ -90,72 +137,14 @@ export type ThemeMode = 'dark' | 'light' | 'high-contrast'
 
 export const THEME_STORAGE_KEY = 'forge-theme-mode'
 
-/* ------------------------------------------------------------------ */
-/* Canonical design scales                                             */
-/*                                                                     */
-/* These are the single source of truth for the shared UI primitives   */
-/* (Card / Button / Heading) and the Initiatives page. Use ONLY values */
-/* from these scales going forward — no arbitrary px/hex outside this  */
-/* file. The `spacing`/`typeScale`/`layout` exports above are kept for */
-/* backward-compatibility with older pages and map onto these.         */
-/* ------------------------------------------------------------------ */
-
-/** Spacing scale — 4/8/12/16/24/32/48px only. Keys are px values. */
-export const space = {
-  4: 4,
-  8: 8,
-  12: 12,
-  16: 16,
-  24: 24,
-  32: 32,
-  48: 48,
-} as const
-export type Space = (typeof space)[keyof typeof space]
-
-/** Radius scale — sm/md/lg (6/10/16px). */
-export const radius = {
-  sm: 6,
-  md: 10,
-  lg: 16,
-} as const
-
-/**
- * Type scale — label/body/body-lg/h3/h2/h1(display).
- * Weights are defined per level.
- */
-export const fontScale = {
-  label: { size: 12, weight: 500, lineHeight: 1.4, tracking: 0.01 },
-  body: { size: 14, weight: 400, lineHeight: 1.5, tracking: 0 },
-  section: { size: 14, weight: 600, lineHeight: 1.4, tracking: 0 },
-  bodyLg: { size: 16, weight: 400, lineHeight: 1.5, tracking: -0.01 },
-  h3: { size: 20, weight: 600, lineHeight: 1.3, tracking: -0.02 },
-  h2: { size: 24, weight: 600, lineHeight: 1.25, tracking: -0.02 },
-  h1: { size: 40, weight: 700, lineHeight: 1.05, tracking: -0.03 },
-  display: { size: 40, weight: 700, lineHeight: 1.05, tracking: -0.03 },
-} as const
-
-/** Font size in px per scale key (convenience, e.g. inline styles). */
-export const fontSize = {
-  label: fontScale.label.size,
-  body: fontScale.body.size,
-  section: fontScale.section.size,
-  bodyLg: fontScale.bodyLg.size,
-  h3: fontScale.h3.size,
-  h2: fontScale.h2.size,
-  h1: fontScale.h1.size,
-  display: fontScale.display.size,
-} as const
-
-/**
- * Semantic color roles. Hex values live as CSS variables in index.css
- * (dark / light / high-contrast). These references are the JS source of
- * truth for any color that must be applied imperatively.
- */
 export const colorTokens = {
   background: {
     base: 'var(--bg)',
     elevated: 'var(--surface)',
     card: 'var(--surface-container)',
+    cardHigh: 'var(--surface-container-high)',
+    glass: 'var(--glass)',
+    glassStrong: 'var(--glass-strong)',
   },
   accent: {
     default: 'rgb(var(--primary))',
@@ -175,5 +164,11 @@ export const colorTokens = {
     success: 'rgb(var(--success))',
     warning: 'rgb(var(--warning))',
     error: 'rgb(var(--error))',
+    info: 'rgb(var(--info))',
+  },
+  state: {
+    hover: 'var(--state-hover)',
+    pressed: 'var(--state-pressed)',
+    focus: 'var(--state-focus)',
   },
 } as const

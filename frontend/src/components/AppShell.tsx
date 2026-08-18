@@ -25,6 +25,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import BrandLogo from "./BrandLogo";
 import { AgentFleetGraph } from "./AgentFleetGraph";
 import { CommandPalette } from "./CommandPalette";
+import { Badge } from "./ui";
 
 interface DockApp {
   to: string;
@@ -175,8 +176,8 @@ export default function AppShell() {
 
       <header
         className={[
-          "apple-shell-nav relative z-40 mx-3 mt-3 rounded-apple-lg px-4 py-3 sm:mx-5 sm:px-5",
-          scrolled ? "apple-glass-strong" : "apple-glass",
+          "apple-shell-nav relative z-40 mx-3 mt-3 rounded-apple-lg px-4 py-2.5 sm:mx-5 sm:px-5 transition-all duration-300",
+          scrolled ? "apple-glass-strong shadow-apple" : "apple-glass",
         ].join(" ")}
       >
         <div className="mx-auto flex max-w-content items-center justify-between gap-4">
@@ -197,9 +198,12 @@ export default function AppShell() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="bb-chip hidden font-mono text-xs md:inline">
-              {creditsRemaining} credits · {plan}
-            </span>
+            <Badge variant="outlined" size="sm" className="hidden font-mono md:inline-flex">
+              {creditsRemaining} credits
+            </Badge>
+            <Badge variant="default" size="sm" className="hidden md:inline-flex">
+              {plan}
+            </Badge>
             <ThemeToggle compact />
             <NotificationsBell />
             <button
@@ -260,7 +264,6 @@ export default function AppShell() {
             );
           })}
 
-          {/* Divider: core workspace vs. account / admin items */}
           <li
             role="separator"
             aria-orientation="vertical"

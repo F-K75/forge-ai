@@ -6,7 +6,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Apple × Material 3 semantic surfaces
         base: "rgb(var(--bg) / <alpha-value>)",
         panel: "rgb(var(--surface) / <alpha-value>)",
         "panel-alt": "rgb(var(--surface-container) / <alpha-value>)",
@@ -28,14 +27,18 @@ export default {
         ember: "rgb(var(--primary) / <alpha-value>)",
         "ember-glow": "rgb(var(--primary-hover) / <alpha-value>)",
 
-        // Adaptive inlay surfaces (dark: white-alpha, light: black-alpha).
-        // Replaces hardcoded bg-white/[0.02-0.08] / border-white/[0.06-0.2]
-        // so cards, chips and borders stay visible in light + high-contrast.
         inlay: {
-          subtle: "rgb(var(--inlay-subtle) / <alpha-value>)",
-          DEFAULT: "rgb(var(--inlay) / <alpha-value>)",
-          hover: "rgb(var(--inlay-hover) / <alpha-value>)",
-          strong: "rgb(var(--inlay-strong) / <alpha-value>)",
+          subtle: "rgb(var(--inlay-subtle))",
+          DEFAULT: "rgb(var(--inlay))",
+          hover: "rgb(var(--inlay-hover))",
+          strong: "rgb(var(--inlay-strong))",
+        },
+
+        glass: {
+          DEFAULT: "var(--glass)",
+          border: "var(--glass-border)",
+          strong: "var(--glass-strong)",
+          "strong-border": "var(--glass-strong-border)",
         },
 
         "agent-architect": "#0A84FF",
@@ -96,6 +99,8 @@ export default {
         title: ["1.25rem", { lineHeight: "1.35", letterSpacing: "-0.015em", fontWeight: "600" }],
         body: ["1.0625rem", { lineHeight: "1.47", letterSpacing: "-0.014em", fontWeight: "400" }],
         caption: ["0.8125rem", { lineHeight: "1.4", letterSpacing: "0", fontWeight: "400" }],
+        "2xs": ["0.6875rem", { lineHeight: "1.35", letterSpacing: "0.02em", fontWeight: "500" }],
+        xs: ["0.75rem", { lineHeight: "1.35", letterSpacing: "0.01em", fontWeight: "500" }],
       },
       borderRadius: {
         apple: "20px",
@@ -103,6 +108,11 @@ export default {
         "apple-xl": "32px",
         m3: "16px",
         "m3-lg": "28px",
+        xs: "8px",
+        sm: "12px",
+        md: "16px",
+        lg: "20px",
+        xl: "28px",
       },
       boxShadow: {
         apple: "var(--elevation-1)",
@@ -110,9 +120,12 @@ export default {
         "apple-float": "var(--elevation-3)",
         m3: "var(--elevation-1)",
         "m3-2": "var(--elevation-2)",
+        "m3-3": "var(--elevation-3)",
       },
       maxWidth: {
         content: "1440px",
+        "content-sm": "960px",
+        "content-xs": "640px",
       },
       spacing: {
         18: "4.5rem",
@@ -122,11 +135,36 @@ export default {
         apple: "cubic-bezier(0.25, 0.1, 0.25, 1)",
         spring: "cubic-bezier(0.22, 1, 0.36, 1)",
         m3: "cubic-bezier(0.2, 0, 0, 1)",
+        decelerate: "cubic-bezier(0, 0, 0.2, 1)",
+        accelerate: "cubic-bezier(0.4, 0, 1, 1)",
       },
       transitionDuration: {
         fast: "150ms",
         med: "250ms",
         slow: "400ms",
+      },
+      keyframes: {
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        pulse: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
+      },
+      animation: {
+        "fade-in-up": "fade-in-up 0.35s ease-out forwards",
+        "scale-in": "scale-in 0.25s ease-out forwards",
+        shimmer: "shimmer 2s linear infinite",
       },
     },
   },

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import clsx from "clsx";
+import { twMerge } from "tailwind-merge";
 import toast from "react-hot-toast";
 import { motion, useReducedMotion } from "motion/react";
 import { motionVariants } from "../lib/animations";
@@ -9,6 +11,7 @@ import type { UsageStat, Plan } from "../lib/mockData";
 import { agentById } from "../lib/agents";
 import { LIVE_MODE } from "../lib/env";
 import { billingApi } from "../lib/api";
+import { Badge } from "../components/ui";
 
 const TONE_CLASS: Record<UsageStat["tone"], string> = {
   accent: "text-accent",
@@ -315,33 +318,31 @@ function RawPlanCard({
   const savingsAmount = monthlyTotal - plan.price_annual;
   const savingsPct = monthlyTotal > 0 ? Math.round((savingsAmount / monthlyTotal) * 100) : 0;
   return (
-    <motion.div className="relative bg-base p-6 flex flex-col gap-4" {...presets.card} variants={motionVariants.staggerItem}>
-      {active && <div className="absolute top-0 left-0 right-0 h-px bg-ink" aria-hidden="true" />}
+    <motion.div className="relative bg-base p-6 flex flex-col gap-4 rounded-m3-lg border border-outline shadow-apple" {...presets.card} variants={motionVariants.staggerItem}>
+      {active && <div className="absolute top-0 left-0 right-0 h-0.5 bg-accent rounded-b-full" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs text-faint">{plan.credits} credits</p>
-          <p className="font-display text-3xl font-medium tracking-tight text-ink mt-1">
+          <p className="text-xs text-muted font-medium">{plan.credits} credits</p>
+          <p className="font-display text-3xl font-semibold tracking-tight text-ink mt-1.5">
             ${displayPrice}
-            <span className="text-sm font-normal text-muted">/mo</span>
+            <span className="text-base font-normal text-muted">/mo</span>
           </p>
           {interval === "annual" && plan.price_monthly > 0 && (
-            <p className="text-[11px] text-muted mt-0.5">
+            <p className="text-xs text-muted mt-1">
               ${plan.price_annual}/yr — save {savingsPct}% (${savingsAmount})
             </p>
           )}
-          <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
+          <p className="text-base font-semibold text-ink mt-2">{plan.name}</p>
         </div>
         {active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
-            Active
-          </span>
+          <Badge variant="success" size="sm">Active</Badge>
         )}
       </div>
 
-      <ul className="space-y-2 flex-1" aria-label={`${plan.name} plan features`}>
+      <ul className="space-y-2.5 flex-1" aria-label={`${plan.name} plan features`}>
         {plan.features.map(f => (
-          <li key={f} className="flex items-center gap-2 text-xs text-muted">
-            <Check size={11} className="text-faint shrink-0" aria-hidden="true" />
+          <li key={f} className="flex items-start gap-2 text-sm text-ink/80">
+            <Check size={14} className="text-accent shrink-0 mt-0.5" aria-hidden="true" />
             {f}
           </li>
         ))}
@@ -351,15 +352,17 @@ function RawPlanCard({
         disabled={active || pending}
         onClick={onSelect}
         {...presets.button}
-        className={[
-          "w-full h-10 rounded-md text-sm font-medium border",
-          "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
-          "transition-colors motion-reduce:transition-none disabled:opacity-60",
-          active ? "border-border text-muted cursor-default" : "border-ink text-ink hover:bg-ink hover:text-base",
-        ].join(" ")}
+        className={twMerge(clsx(
+          "w-full h-11 rounded-full text-sm font-semibold transition-all duration-fast",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          active
+            ? "bg-panel-alt text-muted border border-outline"
+            : "bg-ink text-white hover:bg-ink/90 active:scale-[0.98]"
+        ))}
         aria-disabled={active || pending}
       >
-        {active ? "Current plan" : pending ? "Redirecting" : plan.tier === "free" ? "Downgrade" : `Select ${plan.name}`}
+        {active ? "Current plan" : pending ? "Redirecting…" : plan.tier === "free" ? "Downgrade" : `Select ${plan.name}`}
       </motion.button>
     </motion.div>
   );
@@ -367,28 +370,26 @@ function RawPlanCard({
 
 function PlanCard({ plan }: { plan: Plan }) {
   return (
-    <motion.div className="relative bg-base p-6 flex flex-col gap-4" {...presets.card} variants={motionVariants.staggerItem}>
-      {plan.active && <div className="absolute top-0 left-0 right-0 h-px bg-ink" aria-hidden="true" />}
+    <motion.div className="relative bg-base p-6 flex flex-col gap-4 rounded-m3-lg border border-outline shadow-apple" {...presets.card} variants={motionVariants.staggerItem}>
+      {plan.active && <div className="absolute top-0 left-0 right-0 h-0.5 bg-accent rounded-b-full" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs text-faint">{plan.credits}</p>
-          <p className="font-display text-3xl font-medium tracking-tight text-ink mt-1">
+          <p className="text-xs text-muted font-medium">{plan.credits}</p>
+          <p className="font-display text-3xl font-semibold tracking-tight text-ink mt-1.5">
             {plan.price}
-            <span className="text-sm font-normal text-muted">/mo</span>
+            <span className="text-base font-normal text-muted">/mo</span>
           </p>
-          <p className="text-sm font-medium text-ink mt-1.5">{plan.name}</p>
+          <p className="text-base font-semibold text-ink mt-2">{plan.name}</p>
         </div>
         {plan.active && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-border text-muted shrink-0">
-            Active
-          </span>
+          <Badge variant="success" size="sm">Active</Badge>
         )}
       </div>
 
-      <ul className="space-y-2 flex-1" aria-label={`${plan.name} plan features`}>
+      <ul className="space-y-2.5 flex-1" aria-label={`${plan.name} plan features`}>
         {plan.features.map(f => (
-          <li key={f} className="flex items-center gap-2 text-xs text-muted">
-            <Check size={11} className="text-faint shrink-0" aria-hidden="true" />
+          <li key={f} className="flex items-start gap-2 text-sm text-ink/80">
+            <Check size={14} className="text-accent shrink-0 mt-0.5" aria-hidden="true" />
             {f}
           </li>
         ))}
@@ -398,14 +399,14 @@ function PlanCard({ plan }: { plan: Plan }) {
         disabled={plan.active}
         onClick={() => {/* subscription action — no-op until backend (demo mode) */}}
         {...presets.button}
-        className={[
-          "w-full h-10 rounded-md text-sm font-medium border",
-          "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
-          "transition-colors motion-reduce:transition-none",
+        className={twMerge(clsx(
+          "w-full h-11 rounded-full text-sm font-semibold transition-all duration-fast",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+          "disabled:cursor-not-allowed disabled:opacity-50",
           plan.active
-            ? "border-border text-muted cursor-default"
-            : "border-ink text-ink hover:bg-ink hover:text-base",
-        ].join(" ")}
+            ? "bg-panel-alt text-muted border border-outline"
+            : "bg-ink text-white hover:bg-ink/90 active:scale-[0.98]"
+        ))}
         aria-disabled={plan.active}
       >
         {plan.cta}
