@@ -210,7 +210,6 @@ export default function AuthPage() {
           <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: 'url(/images/login-visual.jpg)' }} />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent" />
           <div className="relative z-10 flex h-full flex-col justify-between p-12 xl:p-16">
-            <AgentNetworkArt />
             <motion.div variants={fadeUp} className="relative z-10 max-w-md space-y-6">
               <h1 className="font-display text-4xl xl:text-5xl font-semibold leading-[1.08] tracking-tight text-white">
                 Build with intent.
@@ -219,6 +218,7 @@ export default function AuthPage() {
                 Forge connects your team, agents, and delivery pipeline into one workspace.
               </p>
             </motion.div>
+            <AgentNetworkArt />
             <motion.div variants={fadeUp} className="relative z-10 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/50">
               <span className="w-6 h-px bg-white/30" aria-hidden="true" />
               Forge · Console
