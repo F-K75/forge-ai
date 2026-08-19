@@ -30,9 +30,10 @@ services:
       - key: ALLOWED_HOSTS
         value: ${ALLOWED_HOSTS}
       # Cloudflare quick-tunnel origin for the local dev server. Update this
-      # to the current `cloudflared tunnel --url` URL whenever it rotates.
+      # value to a fresh `cloudflared tunnel --url http://localhost:5173` URL
+      # whenever it rotates (tunnels are ephemeral).
       - key: FRONTEND_TUNNEL_URL
-        value: https://seminars-saved-cubic-oops.trycloudflare.com
+        value: https://jury-angela-payroll-hydraulic.trycloudflare.com
       - key: API_URL
         value: ${API_URL}
       - key: APP_URL
@@ -41,6 +42,15 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      # Google OAuth (see backend/api/auth.py /v1/auth/google + /google/callback).
+      # Fill CLIENT_ID/SECRET via the Render dashboard; REGISTER the redirect URI
+      # below as an authorized redirect URI in Google Cloud Console.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://forge-ai-ioom.onrender.com/v1/auth/google/callback
   - type: web
     name: forge-frontend
     runtime: docker
