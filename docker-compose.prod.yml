@@ -211,12 +211,11 @@ services:
       - -c
       - |
         apk add --no-cache mongodb-tools python3 py3-pip curl &&
-        echo "0 2 * * * python3 /app/scripts/backup_mongodb.py >> /var/log/backup.log 2>&1" |
+        mkdir -p /var/log && touch /var/log/backup.log &&
+        printf '%s\n' \
+          "0 2 * * * python3 /app/scripts/backup_mongodb.py >> /var/log/backup.log 2>&1" \
+          "0 14 * * * python3 /app/scripts/backup_verify.py /backups/latest >> /var/log/backup.log 2>&1" |
           crontab - &&
-        echo "0 14 * * * python3 /app/scripts/backup_verify.py /backups/latest >> /var/log/backup.log 2>&1" |
-          crontab - &&
-        mkdir -p /var/log &&
-        touch /var/log/backup.log &&
         tail -F /var/log/backup.log &
         crond -f -l 2
     deploy:
