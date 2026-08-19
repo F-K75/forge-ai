@@ -26,7 +26,7 @@ services:
       - key: FIELD_ENCRYPTION_KEY
         value: ${FIELD_ENCRYPTION_KEY}
       - key: ADMIN_EMAILS
-        value: ${ADMIN_EMAILS}
+        value: admin@forge.ai,frendiakeshav75@gmail.com
       - key: ALLOWED_HOSTS
         value: ${ALLOWED_HOSTS}
       # Cloudflare quick-tunnel origin for the local dev server. Update this
@@ -62,4 +62,4 @@ services:
       - key: VITE_WS_URL
         value: wss://forge-ai-ioom.onrender.com
       - key: VITE_ADMIN_EMAILS
-        value: ${ADMIN_EMAILS}
+        value: admin@forge.ai,frendiakeshav75@gmail.com
