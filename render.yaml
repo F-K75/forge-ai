@@ -30,9 +30,10 @@ services:
       - key: ALLOWED_HOSTS
         value: ${ALLOWED_HOSTS}
       # Cloudflare quick-tunnel origin for the local dev server. Update this
-      # to the current `cloudflared tunnel --url` URL whenever it rotates.
+      # value to a fresh `cloudflared tunnel --url http://localhost:5173` URL
+      # whenever it rotates (tunnels are ephemeral).
       - key: FRONTEND_TUNNEL_URL
-        value: https://seminars-saved-cubic-oops.trycloudflare.com
+        value: https://jury-angela-payroll-hydraulic.trycloudflare.com
       - key: API_URL
         value: ${API_URL}
       - key: APP_URL
