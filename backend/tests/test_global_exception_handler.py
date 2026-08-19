@@ -84,6 +84,7 @@ async def test_handler_logs_the_exception(monkeypatch):
     class FakeRequest:
         method = "GET"
         url = FakeURL()
+        headers = {}
 
     response = await global_exception_handler(FakeRequest(), RuntimeError("boom"))
 
@@ -103,6 +104,7 @@ async def test_handler_reports_to_sentry_when_configured(monkeypatch):
     class FakeRequest:
         method = "GET"
         url = FakeURL()
+        headers = {}
 
     exc = RuntimeError("boom")
     await global_exception_handler(FakeRequest(), exc)

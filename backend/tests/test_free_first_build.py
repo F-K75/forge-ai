@@ -95,7 +95,7 @@ def test_grant_is_restored_when_the_task_is_never_enqueued(monkeypatch):
     user = _seed(db, credits=5)
 
     class ExplodingRunBuild:
-        def delay(self, *args, **kwargs):
+        def apply_async(self, args=(), kwargs=None, **extra):
             raise RuntimeError("broker unavailable")
 
     client = _client(monkeypatch, db, user, ExplodingRunBuild())

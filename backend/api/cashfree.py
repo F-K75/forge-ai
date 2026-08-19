@@ -27,9 +27,26 @@ _CASHFREE_HEADERS = {
 }
 
 
-def _require_cashfree() -> None:
-    if not settings.cashfree_app_id or not settings.cashfree_secret_key:
+def _cashfree_headers(cf_settings) -> dict:
+    return {
+        "x-client-id": cf_settings.cashfree_app_id,
+        "x-client-secret": cf_settings.cashfree_secret_key,
+        "Content-Type": "application/json",
+    }
+
+
+def _require_cashfree():
+    """Validate Cashfree config against *current* settings.
+
+    Returns the Settings instance. The module-level ``settings`` singleton is
+    frozen at first import anywhere in the process (main.py/billing.py import
+    this module), so callers must use the returned instance -- not the module
+    global -- to get env-correct values in tests and long-lived processes.
+    """
+    cf_settings = get_settings()
+    if not cf_settings.cashfree_app_id or not cf_settings.cashfree_secret_key:
         raise HTTPException(status_code=503, detail="Cashfree is not configured")
+    return cf_settings
 
 
 class CashfreeOrderRequest(BaseModel):
@@ -115,7 +132,7 @@ async def create_order(req: CashfreeOrderRequest, current_user: User = Depends(g
 
 
 async def create_cashfree_order(req: Any, current_user: User) -> Dict[str, Any]:
-    _require_cashfree()
+    cf_settings = _require_cashfree()
     db = await get_db()
 
     receipt = f"order_{current_user.id}"
@@ -141,13 +158,17 @@ async def create_cashfree_order(req: Any, current_user: User) -> Dict[str, Any]:
         "order_currency": currency,
         "customer_details": customer,
         "order_meta": {
-            "return_url": success_url or f"{settings.app_url}/billing?status=success",
-            "notify_url": f"{settings.api_url}/billing/webhook/cashfree",
+            "return_url": success_url or f"{cf_settings.app_url}/billing?status=success",
+            "notify_url": f"{cf_settings.api_url}/billing/webhook/cashfree",
         },
     }
 
     try:
-        async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+        async with httpx.AsyncClient(
+            base_url=cf_settings.cashfree_base_url or "https://api.cashfree.com/pg/v1",
+            headers=_cashfree_headers(cf_settings),
+            timeout=15.0,
+        ) as client:
             response = await client.post("/orders", json=payload)
             response.raise_for_status()
             order = response.json()
@@ -187,7 +208,7 @@ async def create_cashfree_order(req: Any, current_user: User) -> Dict[str, Any]:
 
 @router.post("/subscription", response_model=Dict[str, Any])
 async def create_cashfree_subscription(req: CashfreeSubscriptionRequest, current_user: User = Depends(get_current_user)):
-    _require_cashfree()
+    cf_settings = _require_cashfree()
     db = await get_db()
 
     plan_id = _cashfree_plan_id(req.plan_id)
@@ -207,13 +228,17 @@ async def create_cashfree_subscription(req: CashfreeSubscriptionRequest, current
         "quantity": req.quantity,
         "customer_notify": req.customer_notify,
         "subscription_meta": {
-            "notify_url": f"{settings.api_url}/billing/webhook/cashfree",
-            "return_url": f"{settings.app_url}/billing?status=success",
+            "notify_url": f"{cf_settings.api_url}/billing/webhook/cashfree",
+            "return_url": f"{cf_settings.app_url}/billing?status=success",
         },
     }
 
     try:
-        async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+        async with httpx.AsyncClient(
+            base_url=cf_settings.cashfree_base_url or "https://api.cashfree.com/pg/v1",
+            headers=_cashfree_headers(cf_settings),
+            timeout=15.0,
+        ) as client:
             response = await client.post("/subscriptions", json=payload)
             response.raise_for_status()
             sub = response.json()
@@ -245,9 +270,13 @@ async def create_cashfree_subscription(req: CashfreeSubscriptionRequest, current
 
 @router.post("/verify", response_model=Dict[str, bool])
 async def verify_payment(req: CashfreeVerifyRequest):
-    _require_cashfree()
+    cf_settings = _require_cashfree()
     try:
-        async with httpx.AsyncClient(base_url=_CASHFREE_BASE_URL, headers=_CASHFREE_HEADERS, timeout=15.0) as client:
+        async with httpx.AsyncClient(
+            base_url=cf_settings.cashfree_base_url or "https://api.cashfree.com/pg/v1",
+            headers=_cashfree_headers(cf_settings),
+            timeout=15.0,
+        ) as client:
             response = await client.get(f"/orders/{req.order_id}")
             response.raise_for_status()
             order = response.json()
@@ -259,12 +288,13 @@ async def verify_payment(req: CashfreeVerifyRequest):
 
 @router.post("/webhook", response_model=CashfreeWebhookResponse)
 async def cashfree_webhook(request: Request, x_cashfree_signature: str = Header(..., alias="X-Cashfree-Signature")):
-    if not settings.cashfree_webhook_secret:
+    cf_settings = get_settings()
+    if not cf_settings.cashfree_webhook_secret:
         return CashfreeWebhookResponse(status="skipped", event="no_secret")
 
     body_bytes = await request.body()
     expected = hmac.new(
-        settings.cashfree_webhook_secret.encode(),
+        cf_settings.cashfree_webhook_secret.encode(),
         body_bytes,
         hashlib.sha256,
     ).hexdigest()

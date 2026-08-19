@@ -10,6 +10,7 @@ os.environ.setdefault("JWT_SECRET", "test-jwt-secret-that-is-at-least-32-charact
 os.environ.setdefault("FIELD_ENCRYPTION_KEY", "01" * 32)
 
 import pytest
+from collections import OrderedDict
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -66,7 +67,7 @@ class FakeDB:
 @pytest.fixture
 def app_client(monkeypatch):
     monkeypatch.setattr(security_module, "get_redis", _broken_redis)
-    monkeypatch.setattr(security_module, "_in_memory_rate_limits", {})
+    monkeypatch.setattr(security_module, "_in_memory_rate_limits", OrderedDict())
 
     fake_db = FakeDB()
 
@@ -252,7 +253,15 @@ def test_logout_blacklists_access_token(app_client):
             "credits": 10,
         }
     )
-    client.post("/auth/login", json={"email": "user@example.com", "password": STRONG_PASSWORD})
+    # Login cookies are Secure+SameSite=none, so httpx never resends them over
+    # plain http://testserver -- forward the tokens explicitly to exercise the
+    # cookie-based logout path (the jar honored Secure the same way a browser
+    # would on an http origin).
+    login = client.post(
+        "/auth/login", json={"email": "user@example.com", "password": STRONG_PASSWORD}
+    )
+    client.cookies.set("access_token", login.json()["access_token"])
+    client.cookies.set("refresh_token", login.json()["refresh_token"])
 
     logout_resp = client.post("/auth/logout")
     assert logout_resp.status_code == 200

@@ -719,11 +719,11 @@ async def _get_favorite_agents(db, user_id: str, start_date: datetime) -> Dict[s
     return favorites
 
 
-from api.initiatives import get_current_user as _get_current_user_for_initiatives
+from api.initiatives import get_current_user as get_initiatives_current_user
 
 
 @router.get("/initiatives/{initiative_id}")
-async def get_initiative_analytics(initiative_id: str, current_user: User = Depends(_get_current_user_for_initiatives)):
+async def get_initiative_analytics(initiative_id: str, current_user: User = Depends(get_initiatives_current_user)):
     from core.database import get_db
     db = await get_db()
     from api.initiatives import _get_owned_initiative

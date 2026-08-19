@@ -9,6 +9,7 @@ os.environ.setdefault("FIELD_ENCRYPTION_KEY", "01" * 32)
 os.environ.setdefault("APP_ENV", "development")
 os.environ.setdefault("MONGODB_URL", "mongodb://localhost:27017/forge-test")
 
+from app.services import deployment_service
 from app.services.deployment_service import (
     get_deployed_db_name,
     get_deployed_db_url,
@@ -54,14 +55,13 @@ class TestGetDeployedDbUrl:
         assert url.startswith("mongodb://")
         assert url.endswith("/app_abc123")
 
-    def test_replaces_db_name_in_mongodb_srv_url(self):
-        os.environ["MONGODB_URL"] = "mongodb+srv://host:27017/forge"
-        try:
-            url = get_deployed_db_url("abc123")
-            assert url.startswith("mongodb+srv://")
-            assert url.endswith("/app_abc123")
-        finally:
-            os.environ["MONGODB_URL"] = "mongodb://localhost:27017/forge-test"
+    def test_replaces_db_name_in_mongodb_srv_url(self, monkeypatch):
+        monkeypatch.setattr(
+            deployment_service._SETTINGS, "mongodb_url", "mongodb+srv://host:27017/forge"
+        )
+        url = get_deployed_db_url("abc123")
+        assert url.startswith("mongodb+srv://")
+        assert url.endswith("/app_abc123")
 
     def test_preserves_auth_in_url(self):
         url = get_deployed_db_url("abc123")

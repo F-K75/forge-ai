@@ -554,6 +554,7 @@ async def org_websocket(websocket: WebSocket, project_id: str, token: Optional[s
         await websocket.close(code=4001, reason="Unauthorized")
         return
 
+    await websocket.accept()
     await org_manager.connect(websocket, project_id)
     try:
         while True:

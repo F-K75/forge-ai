@@ -194,7 +194,7 @@ class PaginatedInitiatives(BaseModel):
 @router.post("/")
 async def create_initiative(req: CreateInitiativeRequest, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    _check_initiative_rate_limit(current_user.id)
+    await _check_initiative_rate_limit(current_user.id)
 
     sanitized_prompt = sanitize_prompt(req.prompt)
     if _detect_prompt_injection(sanitized_prompt):

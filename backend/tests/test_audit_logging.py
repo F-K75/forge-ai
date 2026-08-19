@@ -27,13 +27,34 @@ class FakeCollection:
 
     async def find_one(self, query, projection=None):
         for d in self.docs:
-            if all(d.get(k) == v for k, v in query.items()):
+            matches = True
+            for k, v in query.items():
+                if isinstance(v, dict) and "$exists" in v:
+                    if (k in d) != v["$exists"]:
+                        matches = False
+                        break
+                elif d.get(k) != v:
+                    matches = False
+                    break
+            if matches:
                 return dict(d)
         return None
 
     async def insert_one(self, doc):
         self.docs.append(dict(doc))
         self.inserted.append(dict(doc))
+
+    async def update_one(self, query, update, **kwargs):
+        for d in self.docs:
+            if all(d.get(k) == v for k, v in query.items()):
+                for op, fields in update.items():
+                    if op == "$set":
+                        d.update(fields)
+                    elif op == "$inc":
+                        for f, amount in fields.items():
+                            d[f] = d.get(f, 0) + amount
+                return True
+        return False
 
     async def delete_one(self, query):
         class _Result:

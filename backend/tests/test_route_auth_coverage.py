@@ -39,6 +39,7 @@ AUTH_DEPENDENCY_NAMES = {
     "admin_required",
     "get_current_user_ws",
     "verify_api_key",
+    "get_initiatives_current_user",
 }
 
 # (filename, route_path, http_method) -> reason. Every entry here is a
@@ -62,6 +63,11 @@ PUBLIC_ROUTES: dict[tuple[str, str, str], str] = {
     ("billing.py", "/plans", "get"): "public pricing page, no user-specific data",
     ("billing.py", "/webhook", "post"): "Stripe-signed server-to-server callback, verified by signature in-body",
     ("billing.py", "/webhook/payment", "post"): "Stripe-signed server-to-server callback, verified by signature in-body",
+    ("billing.py", "/webhook/cashfree", "post"): "Cashfree-signed server-to-server callback, verified by HMAC signature in header",
+    ("billing.py", "/provider", "get"): "public billing-provider config, no user-specific data",
+    ("cashfree.py", "/verify", "post"): "verifies payment status with the order token from the client-side flow, not a session",
+    ("cashfree.py", "/webhook", "post"): "Cashfree-signed server-to-server callback, verified by HMAC signature in header",
+    ("cashfree.py", "/plans", "get"): "public pricing page, no user-specific data",
     ("marketplace.py", "/", "get"): "lists only is_public=True marketplace items",
     ("marketplace.py", "/{item_id}", "get"): "reads only is_public=True marketplace items",
     ("tasks.py", "/github/webhook", "post"): "GitHub-signed inbound webhook, verified by HMAC signature",

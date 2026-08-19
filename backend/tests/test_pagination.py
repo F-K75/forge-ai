@@ -36,6 +36,10 @@ def _matches(doc: dict, query: dict) -> bool:
             if doc.get(key) not in val["$in"]:
                 return False
             continue
+        if isinstance(val, dict) and "$exists" in val:
+            if (key in doc) != val["$exists"]:
+                return False
+            continue
         if doc.get(key) != val:
             return False
     return True

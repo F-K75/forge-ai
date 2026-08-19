@@ -135,10 +135,9 @@ def test_org_event_default_data_is_empty_dict():
 
 def test_emit_reaches_connected_client_for_same_project(client, monkeypatch):
     _patch_db(monkeypatch, users=[USER], projects=[PROJECT_1])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
+    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "ws"}})
 
-    with client.websocket_connect("/projects/proj-1/org/ws") as ws:
-        ws.send_text(json.dumps({"type": "auth", "token": "good-token"}))
+    with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws:
 
         event = OrgEvent(
             type=OrgEventType.MESSAGE_POSTED,
@@ -155,12 +154,10 @@ def test_emit_reaches_connected_client_for_same_project(client, monkeypatch):
 
 def test_emit_does_not_reach_client_in_different_project(client, monkeypatch):
     _patch_db(monkeypatch, users=[USER], projects=[PROJECT_1, PROJECT_2])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
+    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "ws"}})
 
-    with client.websocket_connect("/projects/proj-1/org/ws") as ws1, \
-            client.websocket_connect("/projects/proj-2/org/ws") as ws2:
-        ws1.send_text(json.dumps({"type": "auth", "token": "good-token"}))
-        ws2.send_text(json.dumps({"type": "auth", "token": "good-token"}))
+    with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws1, \
+            client.websocket_connect("/projects/proj-2/org/ws?token=good-token") as ws2:
 
         event = OrgEvent(
             type=OrgEventType.MESSAGE_POSTED,
@@ -184,10 +181,9 @@ def test_emit_does_not_reach_client_in_different_project(client, monkeypatch):
 
 def test_ws_accepts_valid_token_and_owned_project(client, monkeypatch):
     _patch_db(monkeypatch, users=[USER], projects=[PROJECT_1])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
+    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "ws"}})
 
-    with client.websocket_connect("/projects/proj-1/org/ws") as ws:
-        ws.send_text(json.dumps({"type": "auth", "token": "good-token"}))
+    with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws:
         ws.send_text("ping")
 
 
@@ -196,7 +192,7 @@ def test_ws_rejects_invalid_token(client, monkeypatch):
     _patch_tokens(monkeypatch, {})
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/projects/proj-1/org/ws") as ws:
+        with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws:
             ws.send_text(json.dumps({"type": "auth", "token": "bad-token"}))
             ws.receive_text()
     assert exc_info.value.code == 4001
@@ -207,30 +203,31 @@ def test_ws_rejects_missing_token_field(client, monkeypatch):
     _patch_tokens(monkeypatch, {})
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/projects/proj-1/org/ws") as ws:
+        with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws:
             ws.send_text(json.dumps({"type": "auth"}))
             ws.receive_text()
     assert exc_info.value.code == 4001
 
 
-def test_ws_rejects_non_auth_first_message(client, monkeypatch):
+def test_ws_ignores_message_content_after_query_token_auth(client, monkeypatch):
+    """Since F-024, auth happens via the `token` query param at upgrade time --
+    there is no message-based handshake anymore, so the first frame is free-form
+    (the server only drains frames as keepalive/backpressure)."""
     _patch_db(monkeypatch, users=[USER], projects=[PROJECT_1])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
+    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "ws"}})
 
-    with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/projects/proj-1/org/ws") as ws:
-            ws.send_text(json.dumps({"type": "ping", "token": "good-token"}))
-            ws.receive_text()
-    assert exc_info.value.code == 4001
+    with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws:
+        ws.send_text(json.dumps({"type": "ping", "token": "good-token"}))
+        ws.send_text("ping")
 
 
 def test_ws_rejects_project_user_does_not_own(client, monkeypatch):
     other_project = {"id": "proj-1", "user_id": "someone-else", "org_id": None}
     _patch_db(monkeypatch, users=[USER], projects=[other_project])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
+    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "ws"}})
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/projects/proj-1/org/ws") as ws:
+        with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws:
             ws.send_text(json.dumps({"type": "auth", "token": "good-token"}))
             ws.receive_text()
     assert exc_info.value.code == 4001
@@ -240,8 +237,7 @@ def test_ws_accepts_org_member_who_does_not_own_the_project(client, monkeypatch)
     org_project = {"id": "proj-1", "user_id": "owner", "org_id": "org-1"}
     member = {"org_id": "org-1", "user_id": "user-1", "role": "developer"}
     _patch_db(monkeypatch, users=[USER], projects=[org_project], team_members=[member])
-    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "access"}})
+    _patch_tokens(monkeypatch, {"good-token": {"sub": "user-1", "type": "ws"}})
 
-    with client.websocket_connect("/projects/proj-1/org/ws") as ws:
-        ws.send_text(json.dumps({"type": "auth", "token": "good-token"}))
+    with client.websocket_connect("/projects/proj-1/org/ws?token=good-token") as ws:
         ws.send_text("ping")

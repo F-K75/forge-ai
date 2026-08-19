@@ -64,8 +64,9 @@ class TestBuildAPICelery:
         p = Path(__file__).resolve().parents[1] / "api" / "builds.py"
         content = p.read_text(encoding="utf-8")
 
-        # Should import and use Celery task
-        assert "run_build.delay" in content
+        # Should import and use Celery task (apply_async since the build
+        # endpoint dispatches with headers/correlation_id)
+        assert "run_build.apply_async" in content
         assert "tasks.build_tasks" in content
 
         # Should NOT use BackgroundTasks

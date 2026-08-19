@@ -88,7 +88,11 @@ class TestRollbackDeployment:
         mock_client = MagicMock()
         mock_client.containers.get = MagicMock(return_value=mock_container)
 
+        class _NotFound(Exception):
+            pass
+
         with patch("app.tasks.deployment.docker") as mock_docker:
+            mock_docker.errors.NotFound = _NotFound
             mock_docker.from_env.return_value = mock_client
 
             await _rollback_deployment("deploy-789", "http://localhost:8000", emit)
@@ -100,25 +104,33 @@ class TestRollbackDeployment:
     async def test_rollback_emits_failed_event(self):
         emit = AsyncMock()
 
+        class _NotFound(Exception):
+            pass
+
         with patch("app.tasks.deployment.docker") as mock_docker:
+            mock_docker.errors.NotFound = _NotFound
             mock_client = MagicMock()
-            mock_client.containers.get.side_effect = Exception("Docker error")
+            mock_client.containers.get.side_effect = _NotFound()
             mock_docker.from_env.return_value = mock_client
 
             await _rollback_deployment("deploy-789", "http://localhost:8000", emit)
 
             emit.assert_called()
             call_args = emit.call_args
-            assert call_args[0][0].type.value == "BUILD_FAILED"
+            assert call_args[0][0].type.value == "build_failed"
 
     @pytest.mark.asyncio
     async def test_rollback_handles_not_found(self):
         emit = AsyncMock()
 
+        class _NotFound(Exception):
+            pass
+
         mock_client = MagicMock()
-        mock_client.containers.get.side_effect = Exception("not found")
+        mock_client.containers.get.side_effect = _NotFound()
 
         with patch("app.tasks.deployment.docker") as mock_docker:
+            mock_docker.errors.NotFound = _NotFound
             mock_docker.from_env.return_value = mock_client
 
             await _rollback_deployment("deploy-789", "http://localhost:8000", emit)

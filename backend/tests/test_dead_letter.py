@@ -363,16 +363,16 @@ def test_retry_dead_letter_requeues_build(monkeypatch):
 
     called = {}
 
-    def fake_delay(*args, **kwargs):
+    def fake_apply_async(args=(), kwargs=None, **extra):
         called["args"] = args
-        called["kwargs"] = kwargs
+        called["kwargs"] = kwargs or {}
         return None
 
     monkeypatch.setattr("api.admin.get_db", fake_get_db)
     monkeypatch.setattr("api.auth.get_db", fake_get_db)
     monkeypatch.setattr("core.database.get_db", fake_get_db)
     monkeypatch.setattr("api.admin._get_prior_build_context", fake_prior_context)
-    monkeypatch.setattr("tasks.build_tasks.run_build.delay", fake_delay)
+    monkeypatch.setattr("tasks.build_tasks.run_build.apply_async", fake_apply_async)
 
     client = TestClient(app)
     cookies = _admin_cookies()

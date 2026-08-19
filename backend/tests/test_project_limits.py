@@ -9,6 +9,8 @@ os.environ.setdefault("TESTING", "true")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-that-is-at-least-32-characters")
 os.environ.setdefault("FIELD_ENCRYPTION_KEY", "01" * 32)
 
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -54,7 +56,9 @@ class FakeCollection:
                 return dict(d)
         return None
 
-    async def find(self, query, projection=None):
+    def find(self, query, projection=None):
+        # Motor semantics: find() is sync and returns a cursor; the cursor's
+        # to_list() is async. sort()/limit() are chained synchronously.
         return FakeCursor([dict(d) for d in self.docs if self._matches(d, query)], projection)
 
     async def delete_many(self, query):
@@ -111,23 +115,47 @@ class FakeCursor:
         self.docs = docs
         self.projection = projection
 
-    async def to_list(self, limit):
-        return [dict(d) for d in self.docs[:limit]]
+    def sort(self, key, direction=None):
+        if isinstance(key, list):
+            for field, dirn in key:
+                self.docs.sort(key=lambda d, f=field: d.get(f) or "", reverse=(dirn < 0))
+        else:
+            self.docs.sort(key=lambda d: d.get(key) or "", reverse=(direction is not None and direction < 0))
+        return self
+
+    def limit(self, n):
+        self.docs = self.docs[:n]
+        return self
+
+    def skip(self, n):
+        self.docs = self.docs[n:]
+        return self
+
+    async def to_list(self, length=None):
+        # Motor's AsyncIOMotorCursor.to_list(length=None)
+        if length is not None:
+            return [dict(d) for d in self.docs[:length]]
+        return [dict(d) for d in self.docs]
 
 
 class FakeDB:
-    def __init__(self, users=None, projects=None, initiatives=None):
+    def __init__(self, users=None, projects=None, initiatives=None, builds=None, team_members=None):
         self.users = FakeCollection()
         self.projects = FakeCollection()
         self.initiatives = FakeCollection()
         self.builds = FakeCollection()
+        self.team_members = FakeCollection()
         self.audit_logs = FakeCollection()
-        if users:
-            for u in users:
-                self.users.docs.append(u)
-        if projects:
-            for p in projects:
-                self.projects.docs.append(p)
+        for collection, seed in (
+            (self.users, users),
+            (self.projects, projects),
+            (self.initiatives, initiatives),
+            (self.builds, builds),
+            (self.team_members, team_members),
+        ):
+            if seed:
+                for doc in seed:
+                    collection.docs.append(doc)
 
 
 def _make_user(plan=PlanTier.FREE):
@@ -140,6 +168,22 @@ def _make_user(plan=PlanTier.FREE):
     )
 
 
+class FakeRedis:
+    """In-memory Redis stand-in so rate-limit counters never leak across
+    tests (the real client would persist rl:project_create:user-1 counters
+    in the dev Redis and trip the 429 after enough test runs)."""
+
+    def __init__(self):
+        self.counts = {}
+
+    async def incr(self, key):
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key]
+
+    async def expire(self, key, ttl):
+        return True
+
+
 def _client_for(monkeypatch, router_module, fake_db, user):
     async def _get_db():
         return fake_db
@@ -148,6 +192,7 @@ def _client_for(monkeypatch, router_module, fake_db, user):
         return user
 
     monkeypatch.setattr(router_module, "get_db", _get_db)
+    monkeypatch.setattr(router_module, "get_redis", lambda: FakeRedis())
 
     app = FastAPI()
     app.include_router(router_module.router)
@@ -162,9 +207,9 @@ class TestProjectLimitEnforcement:
         client = _client_for(monkeypatch, projects_module, db, user)
 
         for i in range(3):
-            r = client.post("/projects/", json={"name": f"Project {i+1}"})
+            r = client.post("/projects/", json={"name": f"Project {i+1}", "description": "audit fixture"})
             assert r.status_code == 200, r.text
-            assert db.projects.count_documents({"user_id": "user-1"}) == i + 1
+            assert asyncio.run(db.projects.count_documents({"user_id": "user-1"})) == i + 1
 
     def test_free_user_is_blocked_at_fourth_project(self, monkeypatch):
         db = FakeDB(
@@ -174,7 +219,7 @@ class TestProjectLimitEnforcement:
         user = _make_user(PlanTier.FREE)
         client = _client_for(monkeypatch, projects_module, db, user)
 
-        r = client.post("/projects/", json={"name": "Project 4"})
+        r = client.post("/projects/", json={"name": "Project 4", "description": "audit fixture"})
         assert r.status_code == 402
         assert "Project limit reached" in r.json()["detail"]
 
@@ -184,7 +229,7 @@ class TestProjectLimitEnforcement:
         client = _client_for(monkeypatch, projects_module, db, user)
 
         for i in range(5):
-            r = client.post("/projects/", json={"name": f"Project {i+1}"})
+            r = client.post("/projects/", json={"name": f"Project {i+1}", "description": "audit fixture"})
             assert r.status_code == 200, r.text
 
     def test_enterprise_user_can_create_unlimited_projects(self, monkeypatch):
@@ -193,7 +238,7 @@ class TestProjectLimitEnforcement:
         client = _client_for(monkeypatch, projects_module, db, user)
 
         for i in range(5):
-            r = client.post("/projects/", json={"name": f"Project {i+1}"})
+            r = client.post("/projects/", json={"name": f"Project {i+1}", "description": "audit fixture"})
             assert r.status_code == 200, r.text
 
 
@@ -220,7 +265,7 @@ class TestInitiativeProjectLimitEnforcement:
 
         r = client.post("/initiatives/", json={"prompt": "Build a SaaS"})
         assert r.status_code == 200, r.text
-        assert db.projects.count_documents({"user_id": "user-1"}) == 2
+        assert asyncio.run(db.projects.count_documents({"user_id": "user-1"})) == 2
 
 
 class TestProjectSoftDelete:
@@ -273,7 +318,7 @@ class TestProjectSoftDelete:
         user = _make_user(PlanTier.FREE)
         client = _client_for(monkeypatch, projects_module, db, user)
 
-        r = client.post("/projects/", json={"name": "Project 3"})
+        r = client.post("/projects/", json={"name": "Project 3", "description": "audit fixture"})
         assert r.status_code == 200, r.text
 
 
@@ -329,7 +374,7 @@ class TestProjectAuditLogging:
         user = _make_user(PlanTier.PRO)
         client = _client_for(monkeypatch, projects_module, db, user)
 
-        r = client.post("/projects/", json={"name": "Audited Project"})
+        r = client.post("/projects/", json={"name": "Audited Project", "description": "audit fixture"})
         assert r.status_code == 200
         assert len(db.audit_logs.docs) == 1
         log = db.audit_logs.docs[0]

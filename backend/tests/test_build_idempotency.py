@@ -55,6 +55,13 @@ def _matches(doc: dict, query: dict) -> bool:
                     if doc_val == opval:
                         matched = False
                         break
+                elif op == "$exists":
+                    if opval and key not in doc:
+                        matched = False
+                        break
+                    if not opval and key in doc:
+                        matched = False
+                        break
                 else:
                     if doc_val != val:
                         matched = False
@@ -151,6 +158,9 @@ class FakeDB:
 class FakeRunBuild:
     def __init__(self):
         self.calls = []
+
+    def apply_async(self, args=(), kwargs=None, **extra):
+        self.calls.append((args, kwargs or {}))
 
     def delay(self, *args, **kwargs):
         self.calls.append((args, kwargs))

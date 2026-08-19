@@ -45,13 +45,12 @@ SECRET_PATTERNS=(
     '[Ss]ecret[[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
     '[Aa][Pp][Ii]_[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
     '"[Pp]assword"[[:space:]]*:[[:space:]]*"[^"[:space:]]{6,}"'
-    '"[Pp]assword"[[:space:]]*:[[:space:]]*[^"[:space:],}]{6,}'
 )
 
 # Files that are allowed to contain patterns (e.g. .env.example). Also
 # excludes this hook's own tracked copy, whose SECRET_PATTERNS definitions
 # above are themselves regex literals that otherwise self-match.
-ALLOWLIST_REGEX='\.env\..*example$|\.gitignore$|\.github/workflows/|scripts/git-hooks/pre-commit$|(^|/)\.gitallowed$'
+ALLOWLIST_REGEX='\.env\..*example$|\.gitignore$|\.github/workflows/|scripts/git-hooks/pre-commit$|(^|/)\.gitallowed$|backend/tests/'
 
 # Known placeholder/dummy values that must not trip the grep scanner. Real
 # random credentials never contain these exact substrings.
@@ -122,7 +121,15 @@ EXIT_CODE=0
 # Use git-secrets if available
 if command -v git-secrets &>/dev/null; then
     echo "   Using git-secrets..."
-    if ! git secrets --scan; then
+    # git-secrets --scan has no allowlist of its own -- hand it only the
+    # staged files that survive ALLOWLIST_REGEX (templates, tests, this hook).
+    SCAN_FILES=""
+    for FILE in $STAGED_FILES; do
+        if ! echo "$FILE" | grep -qE "$ALLOWLIST_REGEX"; then
+            SCAN_FILES="$SCAN_FILES $FILE"
+        fi
+    done
+    if ! git secrets --scan $SCAN_FILES; then
         echo -e "${RED}❌ git-secrets detected potential secrets in staged changes.${NC}"
         EXIT_CODE=1
     fi

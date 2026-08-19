@@ -25,7 +25,48 @@ os.environ.setdefault("API_URL", "http://localhost:8000")
 import pytest
 from fastapi.testclient import TestClient
 
+from core.config import get_settings
+
+# get_settings() is lru_cached process-wide; an earlier test module (main.py /
+# billing.py imports) may have frozen Settings before the CASHFREE_* vars above
+# were set. Clear the cache so this module's Settings reads the real env.
+get_settings.cache_clear()
+
 from api.cashfree import CashfreeVerifyRequest, CashfreeOrderRequest, require_cashfree
+
+
+class _FakeCollection:
+    def __init__(self):
+        self.docs = []
+
+    async def find_one(self, query, projection=None):
+        for d in self.docs:
+            if all(d.get(k) == v for k, v in query.items()):
+                return dict(d)
+        return None
+
+    async def insert_one(self, doc):
+        self.docs.append(dict(doc))
+        return True
+
+    async def update_one(self, query, update, **kwargs):
+        for d in self.docs:
+            if all(d.get(k) == v for k, v in query.items()):
+                for op, fields in update.items():
+                    if op == "$inc":
+                        for f, amount in fields.items():
+                            d[f] = d.get(f, 0) + amount
+                    elif op == "$set":
+                        d.update(fields)
+                return True
+        return False
+
+
+class _FakeDB:
+    def __init__(self):
+        self.users = _FakeCollection()
+        self.credit_purchases = _FakeCollection()
+        self.subscriptions = _FakeCollection()
 
 
 def _signature(body: bytes, secret: str) -> str:
@@ -48,12 +89,12 @@ class _FakeAsyncClient:
     async def __aexit__(self, *args):
         pass
 
-    def post(self, path, json=None):
+    async def post(self, path, json=None):
         self._last_path = path
         self._last_payload = json
         return _FakeResponse()
 
-    def get(self, path):
+    async def get(self, path):
         self._last_path = path
         return _FakeResponse()
 
@@ -68,6 +109,7 @@ class _FakeResponse:
             "order_token": "token_FAKE",
             "order_amount": 500,
             "order_currency": "INR",
+            "order_status": "PAID",
             "payment_session_id": "session_FAKE",
         }
 
@@ -90,8 +132,13 @@ def test_create_cashfree_order_returns_expected_fields(monkeypatch):
 
     captured: dict = {}
 
+    async def _fake_db():
+        return _FakeDB()
+
+    monkeypatch.setattr(cf, "get_db", _fake_db)
+
     class _CapturingFakeClient(_FakeAsyncClient):
-        def post(self, path, json=None):
+        async def post(self, path, json=None):
             captured["path"] = path
             captured["payload"] = json
             return _FakeResponse()
@@ -104,24 +151,28 @@ def test_create_cashfree_order_returns_expected_fields(monkeypatch):
         name = "U"
 
     req = CashfreeOrderRequest(amount=50000, currency="INR", receipt="test")
-    result = cf.create_cashfree_order(req, current_user=_User())
+    import asyncio
+
+    result = asyncio.run(cf.create_cashfree_order(req, current_user=_User()))
 
     assert result["order_id"] == "order_FAKE"
     assert result["order_token"] == "token_FAKE"
-    assert captured["payload"]["order_id"] == "test"
+    assert captured["payload"]["order_id"] == "order_user-1"
 
 
 def test_cashfree_verify_valid_response(monkeypatch):
     import api.cashfree as cf
 
     class _FakeGetClient(_FakeAsyncClient):
-        def get(self, path):
+        async def get(self, path):
             return _FakeResponse()
 
     monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeGetClient})())
 
     req = CashfreeVerifyRequest(order_id="order_123", order_token="token_123")
-    result = cf.verify_payment(req)
+    import asyncio
+
+    result = asyncio.run(cf.verify_payment(req))
     assert result["valid"] is True
 
 
@@ -136,13 +187,15 @@ def test_cashfree_verify_invalid_response(monkeypatch):
             return {"order_status": "FAILED"}
 
     class _FakeGetClient(_FakeAsyncClient):
-        def get(self, path):
+        async def get(self, path):
             return _FakeResponseBad()
 
     monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeGetClient})())
 
     req = CashfreeVerifyRequest(order_id="order_123", order_token="token_123")
-    result = cf.verify_payment(req)
+    import asyncio
+
+    result = asyncio.run(cf.verify_payment(req))
     assert result["valid"] is False
 
 
@@ -151,6 +204,11 @@ def test_cashfree_webhook_valid_payment_event(monkeypatch):
     from fastapi import FastAPI
 
     monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeAsyncClient})())
+
+    async def _fake_db():
+        return _FakeDB()
+
+    monkeypatch.setattr(cf, "get_db", _fake_db)
 
     app = FastAPI()
     app.include_router(cf.router)
@@ -186,7 +244,9 @@ def test_cashfree_webhook_skips_when_secret_missing(monkeypatch):
     from fastapi import FastAPI
 
     monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _FakeAsyncClient})())
-    monkeypatch.setattr(cf.settings, "cashfree_webhook_secret", "")
+
+    cf_settings = cf.get_settings()
+    monkeypatch.setattr(cf_settings, "cashfree_webhook_secret", "")
 
     app = FastAPI()
     app.include_router(cf.router)

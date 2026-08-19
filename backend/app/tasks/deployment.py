@@ -11,6 +11,9 @@ import asyncio
 import logging
 import time
 
+import docker
+import httpx
+
 from core.config import get_settings
 from core.models import DeploymentStatus, WSEvent, WSEventType
 
@@ -52,8 +55,6 @@ async def run_health_check_with_rollback(
 
     while time.monotonic() - start < HEALTH_CHECK_TIMEOUT:
         try:
-            import httpx
-
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(health_url)
             if response.status_code == 200:
@@ -95,8 +96,6 @@ async def _rollback_deployment(
     emit,
 ) -> None:
     """Stop and remove the container, mark the deployment as FAILED."""
-    import docker
-
     try:
         client = _get_docker_client()
         container_name = f"forge-deploy-{deployment_id}"
@@ -125,6 +124,4 @@ async def _rollback_deployment(
 
 
 def _get_docker_client():
-    import docker
-
     return docker.from_env()
