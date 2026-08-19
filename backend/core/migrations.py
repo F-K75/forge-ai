@@ -155,6 +155,24 @@ async def _migration_backfill_is_admin(db) -> None:
         )
 
 
+@migration(4, "reapply_is_admin_from_env", "Re-apply is_admin for ADMIN_EMAILS allowlisted users.")
+async def _migration_reapply_is_admin_from_env(db) -> None:
+    admin_emails_raw = settings.admin_emails or ""
+    admin_emails = [e.strip() for e in admin_emails_raw.split(",") if e.strip()]
+    if not admin_emails:
+        return
+
+    result = await db.users.update_many(
+        {"email": {"$in": admin_emails}},
+        {"$set": {"is_admin": True}},
+    )
+    if result.matched_count:
+        logger.info(
+            "Migration v4 (reapply_is_admin_from_env) set is_admin=True for %d user(s)",
+            result.matched_count,
+        )
+
+
 async def run_downgrades(db, target_version: int = 0) -> List[dict]:
     """Roll back applied migrations down to *target_version* (exclusive).
 
