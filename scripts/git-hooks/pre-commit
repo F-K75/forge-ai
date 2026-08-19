@@ -44,6 +44,8 @@ SECRET_PATTERNS=(
     '[Pp]assword[[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
     '[Ss]ecret[[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
     '[Aa][Pp][Ii]_[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[^"[:space:]]{6,}'
+    '"[Pp]assword"[[:space:]]*:[[:space:]]*"[^"[:space:]]{6,}"'
+    '"[Pp]assword"[[:space:]]*:[[:space:]]*[^"[:space:],}]{6,}'
 )
 
 # Files that are allowed to contain patterns (e.g. .env.example). Also
