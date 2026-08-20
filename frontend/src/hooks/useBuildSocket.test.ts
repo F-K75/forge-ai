@@ -64,7 +64,7 @@ describe('useBuildSocket', () => {
     await act(async () => { await Promise.resolve() })
     expect(result.current.connectionStatus).toBe('connecting')
     expect(MockWebSocket.instances).toHaveLength(1)
-    expect(MockWebSocket.instances[0].url).toBe(`${WS_URL}/builds/ws/build-1`)
+    expect(MockWebSocket.instances[0].url).toBe(`${WS_URL}/v1/builds/ws/build-1`)
     expect(MockWebSocket.instances[0].protocols).toEqual(['tok'])
   })
 

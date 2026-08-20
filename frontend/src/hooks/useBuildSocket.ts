@@ -61,7 +61,7 @@ export function useBuildSocket(buildId: string | null) {
         // Auth travels in the Sec-WebSocket-Protocol subprotocol so it never
         // appears in URLs/access logs; the server rejects unauthenticated
         // upgrades before accepting the socket.
-        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}`, [wsToken])
+        const ws = new WebSocket(`${WS_URL}/v1/builds/ws/${id}`, [wsToken])
 
         wsRef.current = ws
 
