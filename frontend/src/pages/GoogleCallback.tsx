@@ -9,25 +9,26 @@ export default function GoogleCallback() {
 
   useEffect(() => {
     async function complete() {
+      const post = (type: string, extra: Record<string, unknown> = {}) => {
+        if (window.opener) {
+          window.opener.postMessage({ type, ...extra }, window.location.origin)
+          return true
+        }
+        return false
+      }
       try {
         await fetchMe()
         const currentUser = useAuthStore.getState().user
         if (currentUser) {
-          window.opener?.postMessage({
-            type: 'google-oauth-success',
-            user: currentUser,
-          }, window.location.origin)
+          const posted = post('google-oauth-success', { user: currentUser })
+          if (!posted) window.location.replace('/projects')
         } else {
-          window.opener?.postMessage({
-            type: 'google-oauth-error',
-            error: 'Sign-in was not completed. Please try again.',
-          }, window.location.origin)
+          const posted = post('google-oauth-error', { error: 'Sign-in was not completed. Please try again.' })
+          if (!posted) window.location.replace('/login')
         }
       } catch {
-        window.opener?.postMessage({
-          type: 'google-oauth-error',
-          error: 'We couldn\'t complete your sign-in. Please try again.',
-        }, window.location.origin)
+        const posted = post('google-oauth-error', { error: 'We couldn\'t complete your sign-in. Please try again.' })
+        if (!posted) window.location.replace('/login')
       }
       setTimeout(() => window.close(), 100)
     }

@@ -1,4 +1,5 @@
 from agents.base import BaseAgent
+from agents.structured_schemas import ARCHITECT_BLUEPRINT_SCHEMA
 from core.models import AgentType
 from typing import Optional
 import json
@@ -7,6 +8,7 @@ import json
 class ArchitectAgent(BaseAgent):
     agent_type = AgentType.ARCHITECT
     prompt_role = "architect"
+    output_schema = ARCHITECT_BLUEPRINT_SCHEMA
 
     async def clarify(self, prompt: str, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None, template: Optional[str] = None) -> list[str]:
         """Questions worth asking before committing to a blueprint. Best-effort:
@@ -44,11 +46,6 @@ class ArchitectAgent(BaseAgent):
             messages.extend(conversation_history)
         messages.append({"role": "user", "content": f"App idea: {prompt}"})
 
-        # The project's chosen starter/template (e.g. "SaaS dashboard") was
-        # previously stored on the project but never actually influenced
-        # generation anywhere in the pipeline (PROD-002). Passed as system
-        # context rather than folded into the stored prompt so it doesn't
-        # show up as text the user never actually typed.
         extra_system = (
             f"The user picked the '{template}' starter template for this project. "
             "Lean into the conventions and typical features of that kind of app "
@@ -57,19 +54,15 @@ class ArchitectAgent(BaseAgent):
             else ""
         )
 
-        response = await self.run(messages, extra_system=extra_system, max_tokens=4096, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
-
-        clean = response.strip()
-        if clean.startswith("```"):
-            clean = clean.split("```")[1]
-            if clean.startswith("json"):
-                clean = clean[4:]
-        clean = clean.strip().rstrip("```")
-
-        # strict=False: some models (esp. non-Claude ones via BYOK) emit
-        # literal control characters (raw newlines) inside JSON strings
-        # instead of the \n escape the system prompt asks for.
-        return json.loads(clean, strict=False)
+        return await self._call_structured(
+            messages,
+            extra_system=extra_system,
+            max_tokens=4096,
+            user_id=user_id,
+            build_id=build_id,
+            project_id=project_id,
+            org_id=org_id,
+        )
 
 
 def _strip_fences(response: str) -> str:

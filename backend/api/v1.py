@@ -33,6 +33,7 @@ from api.prompts import router as prompts_router
 from api.razorpay import router as razorpay_router
 from api.releases import router as releases_router
 from api.repo_memory import router as repo_memory_router
+from api.repos import router as repos_router
 from api.sprints import router as sprints_router
 from api.stories import router as stories_router
 from api.support import router as support_router
@@ -66,6 +67,7 @@ v1_router.include_router(prompts_router)
 v1_router.include_router(razorpay_router)
 v1_router.include_router(releases_router)
 v1_router.include_router(repo_memory_router)
+v1_router.include_router(repos_router)
 v1_router.include_router(sprints_router)
 v1_router.include_router(stories_router)
 v1_router.include_router(support_router)

@@ -15,12 +15,14 @@ class MockWebSocket extends EventTarget {
   static handlers: Map<any, Record<string, any>> = new Map()
 
   url: string
+  protocols: string[] = []
   _readyState: number = 0
 
-  constructor(url: string) {
+  constructor(url: string, protocols?: string[]) {
     super()
     MockWebSocket.instances.push(this)
     this.url = url
+    this.protocols = protocols ?? []
     this.readyState = 0
   }
 
@@ -62,7 +64,8 @@ describe('useBuildSocket', () => {
     await act(async () => { await Promise.resolve() })
     expect(result.current.connectionStatus).toBe('connecting')
     expect(MockWebSocket.instances).toHaveLength(1)
-    expect(MockWebSocket.instances[0].url).toBe(`${WS_URL}/builds/ws/build-1?token=tok`)
+    expect(MockWebSocket.instances[0].url).toBe(`${WS_URL}/builds/ws/build-1`)
+    expect(MockWebSocket.instances[0].protocols).toEqual(['tok'])
   })
 
   it('sets online status on ws open', async () => {

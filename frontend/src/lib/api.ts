@@ -90,17 +90,17 @@ export const authApi = {
     create: (data: { name: string; slug?: string }) =>
       api.post("/v1/auth/organizations", data).then((r) => r.data),
     list: () => api.get("/v1/auth/organizations").then((r) => r.data.organizations),
-    get: (id: string) => api.get(`/auth/organizations/${id}`).then((r) => r.data),
+    get: (id: string) => api.get(`/v1/auth/organizations/${id}`).then((r) => r.data),
     invite: (id: string, data: { email: string; role?: string }) =>
-      api.post(`/auth/organizations/${id}/invite`, data).then((r) => r.data),
+      api.post(`/v1/auth/organizations/${id}/invite`, data).then((r) => r.data),
     members: (id: string) =>
-      api.get(`/auth/organizations/${id}/members`).then((r) => r.data.members),
+      api.get(`/v1/auth/organizations/${id}/members`).then((r) => r.data.members),
     acceptInvite: (token: string) =>
-      api.post(`/auth/organizations/invitations/${token}/accept`).then((r) => r.data),
+      api.post(`/v1/auth/organizations/invitations/${token}/accept`).then((r) => r.data),
   },
   sessions: {
     list: () => api.get("/v1/auth/sessions").then((r) => r.data),
-    revoke: (id: string) => api.delete(`/auth/sessions/${id}`).then((r) => r.data),
+    revoke: (id: string) => api.delete(`/v1/auth/sessions/${id}`).then((r) => r.data),
     revokeAll: () => api.delete("/v1/auth/sessions").then((r) => r.data),
   },
   mfa: {
@@ -118,6 +118,7 @@ export const authApi = {
     verify: (mfa_token: string, code: string) =>
       api.post("/v1/auth/mfa/verify", { mfa_token, code }).then((r) => r.data),
   },
+  completeOnboarding: () => api.post("/v1/auth/onboarding/complete").then((r) => r.data),
   gdpr: {
     export: () =>
       api.get("/v1/gdpr/export", { responseType: "blob" }).then((r) => r.data),
@@ -135,6 +136,12 @@ export const projectsApi = {
   update: (id: string, data: any) => api.put(`/projects/${id}`, data).then((r) => r.data),
   delete: (id: string) => api.delete(`/projects/${id}`).then((r) => r.data),
   getBuilds: (id: string) => api.get(`/projects/${id}/builds`).then((r) => r.data.builds),
+}
+
+// Repos
+export const reposApi = {
+  import: (data: { repo_url: string; project_name?: string; branch?: string; github_token?: string }) =>
+    api.post("/repos/import", data).then((r) => r.data),
 }
 
 // Builds

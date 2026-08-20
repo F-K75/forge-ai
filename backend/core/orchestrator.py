@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 MAX_DEBUG_ITERATIONS = 3
 
 # Best-effort harness evaluation after each agent step.
-ENABLE_LOOP_ENGINEERING = settings.app_env == "development"
+ENABLE_LOOP_ENGINEERING = True
 
 _evaluator = PromptEvaluator()
 _metrics_collector = MetricsCollector()
@@ -49,6 +49,10 @@ _AGENT_TYPE_ROLE_DEPARTMENT = {
     AgentType.PM: ("build_validator", "qa"),
     AgentType.BUSINESS_IMPROVER: ("business_improver", "research"),
     AgentType.DEBUGGER: ("debugger", "qa"),
+    AgentType.DEVOPS: ("devops_engineer", "infrastructure"),
+    AgentType.QA: ("test_engineer", "qa"),
+    AgentType.SECURITY: ("security_engineer", "infrastructure"),
+    AgentType.RESEARCH: ("research_engineer", "research"),
 }
 
 
@@ -656,6 +660,10 @@ class Orchestrator:
                 AgentType.PM: settings.credits_pm,
                 AgentType.BUSINESS_IMPROVER: settings.credits_business_model,
                 AgentType.DEBUGGER: settings.credits_debug,
+                AgentType.DEVOPS: settings.credits_devops,
+                AgentType.QA: settings.credits_qa,
+                AgentType.SECURITY: settings.credits_security,
+                AgentType.RESEARCH: settings.credits_research,
             }
             build.credits_used += credit_map.get(agent_type, 1)
 

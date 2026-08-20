@@ -239,7 +239,7 @@ def test_cashfree_webhook_invalid_signature(monkeypatch):
     assert "signature" in r.json()["detail"].lower()
 
 
-def test_cashfree_webhook_skips_when_secret_missing(monkeypatch):
+def test_cashfree_webhook_fails_closed_when_secret_missing(monkeypatch):
     import api.cashfree as cf
     from fastapi import FastAPI
 
@@ -256,5 +256,4 @@ def test_cashfree_webhook_skips_when_secret_missing(monkeypatch):
     sig = _signature(payload.encode(), "anything")
 
     r = client.post("/cashfree/webhook", data=payload, headers={"X-Cashfree-Signature": sig})
-    assert r.status_code == 200
-    assert r.json()["status"] == "skipped"
+    assert r.status_code == 500

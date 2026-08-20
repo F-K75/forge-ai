@@ -118,7 +118,7 @@ export function useOrgSocket(projectId: string | null) {
           return
         }
 
-        const ws = new WebSocket(`${WS_URL}/v1/projects/${id}/org/ws?token=${encodeURIComponent(wsToken)}`)
+        const ws = new WebSocket(`${WS_URL}/v1/projects/${id}/org/ws`, [wsToken])
         wsRef.current = ws
 
         ws.onopen = () => {

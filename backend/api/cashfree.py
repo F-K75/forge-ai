@@ -290,7 +290,7 @@ async def verify_payment(req: CashfreeVerifyRequest):
 async def cashfree_webhook(request: Request, x_cashfree_signature: str = Header(..., alias="X-Cashfree-Signature")):
     cf_settings = get_settings()
     if not cf_settings.cashfree_webhook_secret:
-        return CashfreeWebhookResponse(status="skipped", event="no_secret")
+        raise HTTPException(status_code=500, detail="Cashfree webhook secret not configured")
 
     body_bytes = await request.body()
     expected = hmac.new(

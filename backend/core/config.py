@@ -121,7 +121,7 @@ class Settings(BaseSettings):
             raise ValueError("jwt_secret must be at least 32 characters long")
         return v
 
-    jwt_expire_minutes: int = 10080  # 7 days
+    jwt_expire_minutes: int = 60  # 1 hour
     github_client_id: str = ""
     github_client_secret: str = ""
     github_webhook_secret: str = ""
@@ -135,6 +135,10 @@ class Settings(BaseSettings):
     credits_debug: int = 2
     credits_business_model: int = 2
     credits_initiative_generation: int = 5
+    credits_devops: int = 2
+    credits_qa: int = 2
+    credits_security: int = 2
+    credits_research: int = 2
 
     # Pricing Tiers ($USD)
     # Free: 0 credits, Standard: 100 credits/mo @ $20, Pro: 750 credits/mo @ $50
@@ -213,6 +217,9 @@ class Settings(BaseSettings):
     allowed_hosts: str = "localhost,127.0.0.1,testserver,*.trycloudflare.com,*.onrender.com"
 
     frontend_tunnel_url: str = ""
+
+    # Bearer token required to scrape /metrics. Empty disables the endpoint.
+    metrics_token: str = ""
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

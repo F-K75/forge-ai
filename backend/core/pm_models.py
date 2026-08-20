@@ -122,6 +122,7 @@ class Initiative(BaseModel):
     tech_stack: List[str] = []
     risks: List[Dict[str, Any]] = []
     estimated_timeline: str = ""
+    design: Dict[str, Any] = Field(default_factory=dict)
     project_ids: List[str] = []
     generation_error: Optional[str] = None
     version: int = 0

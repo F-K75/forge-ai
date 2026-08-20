@@ -18,6 +18,8 @@ zero test files/tooling elsewhere in this audit), verified instead via a
 successful `tsc --noEmit` and production `vite build`.
 """
 
+import json
+
 import pytest
 
 from agents.architect import ArchitectAgent
@@ -25,13 +27,18 @@ from agents.architect import ArchitectAgent
 
 class _FakeAgent(ArchitectAgent):
     def __init__(self):
-        # Skip BaseAgent.__init__'s real anthropic.AsyncAnthropic() client.
         self.model = "claude-sonnet-4-6"
         self.captured_extra_system = None
 
     async def run(self, messages, extra_system="", **kwargs):
         self.captured_extra_system = extra_system
         return '{"app_name": "test", "pages": [], "data_models": [], "api_endpoints": [], "features": [], "integrations": [], "auth_required": true, "clarifications": []}'
+
+    async def _call_structured(self, messages, schema=None, **kwargs):
+        self.captured_extra_system = kwargs.get("extra_system", "")
+        return json.loads(
+            '{"app_name": "test", "pages": [], "data_models": [], "api_endpoints": [], "features": [], "integrations": [], "auth_required": true, "clarifications": []}'
+        )
 
 
 @pytest.mark.asyncio

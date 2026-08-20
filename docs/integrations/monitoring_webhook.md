@@ -96,3 +96,27 @@ Both the org dashboard's Monitoring Findings panel and the underlying
 authenticated, for humans/internal agents) work identically to this
 API-key-authenticated path -- they call the same
 `RepositoryMonitor.record_finding()` underneath.
+
+## Infrastructure alerts (backup failures)
+
+The compose `backup` service posts a JSON alert to `BACKUP_FAILURE_WEBHOOK_URL`
+(env, optional) whenever `scripts/backup_mongodb.py` fails:
+
+```json
+{"text": "MongoDB backup failed: <error>", "ok": false}
+```
+
+Point it at any standard inbound webhook (Slack, ntfy, a monitoring
+dashboard, or the API-key endpoint above with `category: security` and
+`severity: critical`). The POST is best-effort and never crashes the cron
+job.
+
+## Scraping /metrics
+
+`GET /metrics` (Prometheus format) requires `Authorization: Bearer $METRICS_TOKEN`.
+With no `METRICS_TOKEN` configured the endpoint returns 404, so it can never
+be anonymously reachable. Set the env var and scrape:
+
+```bash
+curl -H "Authorization: Bearer $METRICS_TOKEN" https://<backend>/metrics
+```

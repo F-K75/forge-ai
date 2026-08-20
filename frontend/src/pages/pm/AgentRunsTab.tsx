@@ -11,6 +11,7 @@ import { SprintPlannerPane } from "../../components/agentRun/panes/SprintPlanner
 import { ScrumMasterPane } from "../../components/agentRun/panes/ScrumMasterPane";
 import { TaskExecutorPane } from "../../components/agentRun/panes/TaskExecutorPane";
 import { IntegrationPane } from "../../components/agentRun/panes/IntegrationPane";
+import { DesignPane } from "../../components/agentRun/panes/DesignPane";
 import { usePMStore } from "../../store/pmStore";
 import { sprintsApi } from "../../lib/pmApi";
 import toast from "react-hot-toast";
@@ -29,34 +30,6 @@ function EmptyPane({ children }: { children: React.ReactNode }) {
   return (
     <motion.div className="rounded-2xl border border-inlay bg-inlay-subtle p-6 text-center backdrop-blur-xl" variants={motionVariants.fadeIn}>
       <p className="text-sm text-faint">{children}</p>
-    </motion.div>
-  );
-}
-
-function NotWiredCard({ id }: { id: "designer" }) {
-  const agent = gatewayAgentById(id)!;
-  const Icon = agent.icon;
-  return (
-    <motion.div
-      className="rounded-2xl border border-dashed border-inlay bg-inlay-subtle flex items-center gap-3 p-5 backdrop-blur-xl"
-      variants={motionVariants.scaleIn}
-      initial="hidden"
-      animate="visible"
-      whileHover={{ scale: 1.01, transition: { type: "spring", stiffness: 400, damping: 25 } }}
-    >
-      <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg opacity-60"
-        style={{ background: `${agent.hue}24`, color: agent.hue }}
-      >
-        <Icon size={16} aria-hidden="true" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-ink font-display">{agent.label}</p>
-        <p className="mt-0.5 text-xs text-faint">
-          {agent.label} doesn't have a backend data source in the initiative pipeline yet — the
-          initiative model has no field for layout options, so there's nothing to run this against.
-        </p>
-      </div>
     </motion.div>
   );
 }
@@ -108,6 +81,7 @@ export default function AgentRunsTab() {
   const scrumAgent = gatewayAgentById("scrum_master")!;
   const execAgent = gatewayAgentById("task_executor")!;
   const integrationAgent = gatewayAgentById("integration")!;
+  const designerAgent = gatewayAgentById("designer")!;
   const techStack: string[] = initiative.tech_stack ?? [];
 
   const latestDecision = decisionFeed[0];
@@ -365,7 +339,17 @@ export default function AgentRunsTab() {
         </AgentRunShell>
       </motion.div>
 
-      <NotWiredCard id="designer" />
+      <motion.div variants={motionVariants.staggerItem}>
+        <AgentRunShell
+          agent={designerAgent}
+          runId={initiative.id}
+          runTitle={`${designerAgent.label} — ${initiative.name}`}
+          runMeta={Object.keys(initiative.design || {}).length > 0 ? "design ready" : "no design yet"}
+          status={Object.keys(initiative.design || {}).length > 0 ? "done" : "running"}
+        >
+          <DesignPane design={initiative.design || {}} />
+        </AgentRunShell>
+      </motion.div>
 
       <motion.div variants={motionVariants.staggerItem}>
         <AgentRunShell

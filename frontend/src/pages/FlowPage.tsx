@@ -1,8 +1,9 @@
 import { AgentFleetGraph } from "../components/AgentFleetGraph";
 import { motion, motionVariants } from "../lib/animations";
-import { Activity, Zap, GitBranch, ArrowRight, Play, Timer, TrendingUp, ShieldCheck, ChevronRight } from "lucide-react";
+import { Activity, Zap, GitBranch, ArrowRight, Play, Timer, TrendingUp, ShieldCheck, ChevronRight, type LucideIcon } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { analyticsApi, flowApi } from "../lib/api";
+import { LIVE_MODE } from "../lib/env";
 
 const BUILD_STAGES = [
   { name: "Discovery", agents: 2, color: "#0071E3", description: "Research & analysis" },
@@ -11,7 +12,9 @@ const BUILD_STAGES = [
   { name: "Execution", agents: 3, color: "#30D158", description: "Build & ship" },
 ];
 
-const DEFAULT_SOCIAL_PROOF = [
+type SocialProofItem = { icon: LucideIcon; value: string; label: string; trend?: string };
+
+const DEFAULT_SOCIAL_PROOF: SocialProofItem[] = [
   { icon: TrendingUp, value: "1,247+", label: "Builds completed", trend: "+12%" },
   { icon: ShieldCheck, value: "99.9%", label: "Uptime SLA", trend: "99.9%" },
   { icon: Timer, value: "~4 min", label: "Avg pipeline run", trend: "-18%" },
@@ -20,7 +23,7 @@ const DEFAULT_SOCIAL_PROOF = [
 export default function FlowPage() {
   const [tourActive, setTourActive] = useState(false);
   const [tourSkipped, setTourSkipped] = useState(false);
-  const [socialProof, setSocialProof] = useState(DEFAULT_SOCIAL_PROOF);
+  const [socialProof, setSocialProof] = useState<SocialProofItem[] | null>(LIVE_MODE ? null : DEFAULT_SOCIAL_PROOF);
   const [agentStats, setAgentStats] = useState<Record<string, { lastRun?: string; duration?: string; successRate?: number }>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"graph" | "timeline">("graph");
@@ -42,10 +45,18 @@ export default function FlowPage() {
       setLoading(false);
 
       if (personal) {
-        setSocialProof((prev) => [
-          { ...prev[0], value: `${personal.builds_total ?? prev[0].value}` },
-          { ...prev[1], value: `${((personal.success_rate ?? 0) * 100).toFixed(1)}%` },
-          { ...prev[2], value: personal.avg_build_time_minutes ? `${personal.avg_build_time_minutes.toFixed(1)} min` : prev[2].value },
+        setSocialProof([
+          { icon: TrendingUp, value: `${personal.builds_total ?? 0}`, label: "Builds completed" },
+          {
+            icon: ShieldCheck,
+            value: `${((personal.success_rate ?? 0) * 100).toFixed(1)}%`,
+            label: "Build success rate",
+          },
+          {
+            icon: Timer,
+            value: personal.avg_build_time_minutes ? `${personal.avg_build_time_minutes.toFixed(1)} min` : "—",
+            label: "Avg pipeline run",
+          },
         ]);
       }
 
@@ -127,7 +138,7 @@ export default function FlowPage() {
           className="mt-8"
         >
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
-            {socialProof.map((item) => (
+            {socialProof && socialProof.map((item) => (
               <div
                 key={item.label}
                 className="relative overflow-hidden rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 backdrop-blur-xl"

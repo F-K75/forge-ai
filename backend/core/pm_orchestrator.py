@@ -3,6 +3,7 @@ import logging
 
 from agents.business_analyst import BusinessAnalystAgent
 from agents.prd_writer import PRDWriterAgent
+from agents.designer import DesignerAgent
 from agents.epic_generator import EpicGeneratorAgent
 from agents.story_generator import StoryGeneratorAgent
 from agents.task_generator import TaskGeneratorAgent
@@ -31,6 +32,7 @@ class PMOrchestrator:
     def __init__(self):
         self.business_analyst = BusinessAnalystAgent()
         self.prd_writer = PRDWriterAgent()
+        self.designer = DesignerAgent()
         self.epic_generator = EpicGeneratorAgent()
         self.story_generator = StoryGeneratorAgent()
         self.task_generator = TaskGeneratorAgent()
@@ -73,6 +75,25 @@ class PMOrchestrator:
         prd = PRD(initiative_id=initiative.id, **{
             k: v for k, v in prd_data.items() if k in PRD.model_fields
         })
+
+        await emit(PMWSEvent(
+            type=PMWSEventType.GENERATION_STAGE,
+            initiative_id=initiative.id,
+            data={"stage": "design"},
+        ))
+
+        # --- Design ---
+        try:
+            design_context = {
+                "initiative": initiative.model_dump(),
+                "prd": prd.model_dump(),
+            }
+            design = await self.designer.design(
+                design_context, user_id=uid, initiative_id=initiative.id, org_id=org_id
+            )
+            initiative.design = design
+        except Exception:
+            initiative.design = {}
 
         await emit(PMWSEvent(
             type=PMWSEventType.GENERATION_STAGE,

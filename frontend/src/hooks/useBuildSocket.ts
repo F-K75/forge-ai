@@ -58,9 +58,10 @@ export function useBuildSocket(buildId: string | null) {
           return
         }
 
-        // Auth is sent as a query parameter at connection time so the server
-        // can reject unauthenticated upgrades before accepting the socket.
-        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}?token=${encodeURIComponent(wsToken)}`)
+        // Auth travels in the Sec-WebSocket-Protocol subprotocol so it never
+        // appears in URLs/access logs; the server rejects unauthenticated
+        // upgrades before accepting the socket.
+        const ws = new WebSocket(`${WS_URL}/builds/ws/${id}`, [wsToken])
 
         wsRef.current = ws
 

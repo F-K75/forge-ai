@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import asyncio
 import logging
 import time
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -214,13 +215,8 @@ app.add_middleware(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins + [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()] + [
-        "https://a2e6ef23.forge-frontend-8gr.pages.dev",
-        "https://e2cdabd1.forge-frontend-8gr.pages.dev",
-        "https://session-agent-a5b35e09-98a6.forge-frontend-8gr.pages.dev",
-        "https://5030f5a5.forge-frontend-8gr.pages.dev",
-        "https://20e9fbb7.forge-frontend-8gr.pages.dev",
+        "https://forge-frontend-8gr.pages.dev",
     ],
-    allow_origin_regex=r"https://.*\.pages\.dev",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
@@ -474,8 +470,16 @@ async def list_playbooks(user: dict = Depends(get_current_user)):
 
 
 @app.get("/metrics")
-async def metrics():
-    """Prometheus metrics endpoint."""
+async def metrics(authorization: Optional[str] = Header(None)):
+    """Prometheus metrics endpoint, protected by a scrape token.
+
+    Returns 404 when no token is configured so the endpoint is never
+    anonymously reachable; scrapers must send ``Authorization: Bearer <token>``.
+    """
+    if not settings.metrics_token:
+        raise HTTPException(status_code=404, detail="Metrics not enabled")
+    if authorization != f"Bearer {settings.metrics_token}":
+        raise HTTPException(status_code=401, detail="Invalid metrics token")
     if PROMETHEUS_ENABLED:
         from fastapi.responses import Response
         from core.metrics import update_build_queue_gauges

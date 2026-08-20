@@ -19,11 +19,12 @@ import {
   LayoutGrid,
   List,
   FolderSearch,
+  Github,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { LIVE_MODE } from "../lib/env";
-import { projectsApi } from "../lib/api";
+import { projectsApi, flowApi, reposApi } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
 import { coverGradient } from "../lib/coverArt";
 import { coverageStats, ORG_ROLE_COUNT, PLAYBOOK_COUNT, PROMPT_TEMPLATE_COUNT } from "../lib/skillVisuals";
@@ -91,7 +92,7 @@ const SUGGESTIONS = [
   "Build a blog with markdown support",
 ];
 
-const HERO_STATS = [
+const DEMO_HERO_STATS = [
   { icon: Layers, value: 48, suffix: "", label: "Projects" },
   { icon: Bot, value: 13, suffix: "", label: "AI Agents" },
   { icon: Zap, value: 18, suffix: "s", label: "Build Speed" },
@@ -260,6 +261,9 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("icons");
+  const [showRepoImport, setShowRepoImport] = useState(false);
+  const [repoUrl, setRepoUrl] = useState("");
+  const [repoImporting, setRepoImporting] = useState(false);
   const reduceMotion = useReducedMotion();
   const { user } = useAuthStore();
   const name = LIVE_MODE ? user?.name ?? "" : "Builder";
@@ -281,6 +285,39 @@ export default function ProjectsPage() {
       .catch(() => {
         if (!cancelled) toast.error("Couldn't load your projects. Check your connection and try again.");
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const [heroStats, setHeroStats] = useState(LIVE_MODE ? null : DEMO_HERO_STATS);
+
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    let cancelled = false;
+    Promise.all([
+      flowApi.personalAnalytics(30).catch(() => null),
+      flowApi.agentStats().catch(() => null),
+    ]).then(([personal, stats]) => {
+      if (cancelled) return;
+      if (!personal && !stats) return;
+      setHeroStats([
+        { icon: Layers, value: personal?.builds_total ?? 0, suffix: "", label: "Builds Completed" },
+        { icon: Bot, value: stats?.agents?.length ?? 0, suffix: "", label: "AI Agents" },
+        {
+          icon: Zap,
+          value: personal?.avg_build_time_minutes ? Math.round(personal.avg_build_time_minutes * 60) : 0,
+          suffix: "s",
+          label: "Avg Build Time",
+        },
+        {
+          icon: ShieldCheck,
+          value: personal?.success_rate != null ? Math.round(personal.success_rate * 100) : 0,
+          suffix: "%",
+          label: "Success Rate",
+        },
+      ]);
+    });
     return () => {
       cancelled = true;
     };
@@ -321,6 +358,23 @@ export default function ProjectsPage() {
       toast.error("Couldn't start that build. Please try again.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleRepoImport = async () => {
+    const trimmed = repoUrl.trim();
+    if (!trimmed) return;
+    setRepoImporting(true);
+    try {
+      const data = await reposApi.import({ repo_url: trimmed });
+      toast.success("Repository imported");
+      setShowRepoImport(false);
+      setRepoUrl("");
+      navigate(`/build/${data.project.id}`);
+    } catch {
+      toast.error("Couldn't import that repository.");
+    } finally {
+      setRepoImporting(false);
     }
   };
 
@@ -373,11 +427,13 @@ export default function ProjectsPage() {
                 </motion.p>
 
                 {/* Stat cards */}
-                <motion.div variants={motionVariants.staggerItem} className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  {HERO_STATS.map((s) => (
-                    <StatCard key={s.label} icon={s.icon} value={s.value} suffix={s.suffix} label={s.label} />
-                  ))}
-                </motion.div>
+                {heroStats && (
+                  <motion.div variants={motionVariants.staggerItem} className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    {heroStats.map((s) => (
+                      <StatCard key={s.label} icon={s.icon} value={s.value} suffix={s.suffix} label={s.label} />
+                    ))}
+                  </motion.div>
+                )}
               </motion.div>
 
               {/* Right column — visual */}
@@ -439,6 +495,48 @@ export default function ProjectsPage() {
                     <Send size={14} aria-hidden="true" />
                     {creating ? "Opening" : "Build"}
                   </motion.button>
+                  <motion.button
+                    onClick={() => setShowRepoImport((v) => !v)}
+                    {...presets.button}
+                    className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-inlay bg-inlay-subtle px-4 text-sm font-medium text-ink transition-colors hover:bg-inlay-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                  >
+                    <Github size={14} aria-hidden="true" />
+                    Import repo
+                  </motion.button>
+                  {showRepoImport && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      className="absolute inset-x-0 top-full z-50 mt-2 rounded-2xl border border-inlay bg-panel/95 p-3 shadow-2xl backdrop-blur-xl"
+                    >
+                      <input
+                        type="text"
+                        value={repoUrl}
+                        onChange={(e) => setRepoUrl(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleRepoImport()}
+                        placeholder="https://github.com/owner/repo"
+                        className="h-10 w-full rounded-xl border border-border bg-base px-3 text-sm text-ink placeholder:text-faint focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowRepoImport(false)}
+                          className="h-9 rounded-xl px-4 text-xs font-medium text-muted hover:text-ink transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRepoImport}
+                          disabled={repoImporting || !repoUrl.trim()}
+                          className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {repoImporting ? "Importing…" : "Import"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
                 <AnimatePresence>
                   {showSuggestions && (

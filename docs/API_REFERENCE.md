@@ -54,6 +54,26 @@ WebSocket events: `agent_start`, `agent_complete`, `stream_token`,
 CRUD (`POST /`, `GET /`, `GET/PUT/DELETE /{project_id}`) plus
 `GET /{project_id}/builds` (paginated build history).
 
+## Repos — `/repos`
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/repos/import` | Import an existing git repo into a new project |
+
+Request body:
+
+```json
+{
+  "repo_url": "https://github.com/owner/repo",
+  "project_name": "My Imported Project",
+  "branch": "main",
+  "github_token": "ghp_..."
+}
+```
+
+`project_name` defaults to the repo slug. If `github_token` is omitted, the
+server falls back to the authenticated user's stored GitHub token.
+
 ## Agile PM layer
 
 | Router | Endpoints |
@@ -88,7 +108,7 @@ CRUD (`POST /`, `GET /`, `GET/PUT/DELETE /{project_id}`) plus
 | `/analytics` | Event ingestion + funnel, retention, build success-rate, conversion, churn, AI cost, revenue, onboarding, `GET /analytics/me` |
 | `/api-keys` | Create, list, delete API keys |
 | `/webhooks` | Register, list, delete outbound webhooks (SSRF-protected) |
-| `/deployments` | Create deployment, list/get, redeploy, delete, env vars, logs, custom domain, public URL, `POST /github/push` |
+| `/deployments` | Create deployment, list/get, redeploy, delete, env vars, logs, custom domain, public URL, `POST /github/push`. Supports `target_type` (`docker`/`kubernetes`) and `target_config` for deployment abstraction. |
 | `/gdpr` | `GET /export` (full data export), `DELETE /delete` (cascade deletion) |
 | `/support` | Create/list/get support tickets |
 

@@ -1,19 +1,24 @@
 """Tests for 8.8 -- agent structured output through the AI Gateway.
 
-Verifies that PM/Integration/BusinessModel agents now route their JSON output
-through ``BaseAgent._call_structured`` (which passes ``structured_output_schema``
-to ``AIGateway.generate``) instead of the legacy hand-rolled fence-strip +
-``json.loads(strict=False)``, and that schema-valid responses are returned
-unchanged while a repaired response surfaces as ``structured_data``.
+Verifies that PM/Integration/BusinessModel/Architect/Developer agents now route
+their JSON output through ``BaseAgent._call_structured`` (which passes
+``structured_output_schema`` to ``AIGateway.generate``) instead of the legacy
+hand-rolled fence-strip + ``json.loads(strict=False)``, and that schema-valid
+responses are returned unchanged while a repaired response surfaces as
+``structured_data``.
 """
 
 import pytest
 
+from agents.architect import ArchitectAgent
 from agents.business_model import BusinessModelAgent
+from agents.developer import DeveloperAgent
 from agents.integration import IntegrationAgent
 from agents.pm import PMAgent
 from agents.structured_schemas import (
+    ARCHITECT_BLUEPRINT_SCHEMA,
     BUSINESS_MODEL_SCHEMA,
+    DEVELOPER_FILES_SCHEMA,
     INTEGRATION_SCHEMA,
     PM_VALIDATION_SCHEMA,
 )
@@ -51,6 +56,8 @@ def test_agents_declare_structured_output_schemas():
     assert PMAgent.output_schema == PM_VALIDATION_SCHEMA
     assert IntegrationAgent.output_schema == INTEGRATION_SCHEMA
     assert BusinessModelAgent.output_schema == BUSINESS_MODEL_SCHEMA
+    assert ArchitectAgent.output_schema == ARCHITECT_BLUEPRINT_SCHEMA
+    assert DeveloperAgent.output_schema == DEVELOPER_FILES_SCHEMA
 
 
 @pytest.mark.asyncio
@@ -94,10 +101,11 @@ async def test_call_structured_raises_when_repair_fails():
 
 
 def test_agents_no_longer_hand_roll_json_in_llm_methods():
-    """Guard: validate/integrate/improve must route to _call_structured, not
-    the legacy `self.run(...)` + json.loads path."""
+    """Guard: validate/integrate/improve/blueprint/generate_files/patch_files
+    must route to _call_structured, not the legacy `self.run(...)` +
+    json.loads path."""
     from pathlib import Path
 
-    for name in ("pm", "integration", "business_model"):
+    for name in ("pm", "integration", "business_model", "architect", "developer"):
         src = (Path(__file__).resolve().parents[1] / "agents" / f"{name}.py").read_text()
         assert "_call_structured" in src

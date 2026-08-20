@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from typing import Any, Dict, List, Optional
 
 from core.database import get_db
@@ -75,7 +76,7 @@ class SemanticIndex:
         if project_id:
             query["project_id"] = project_id
         if keyword_filter:
-            query["text"] = {"$regex": keyword_filter, "$options": "i"}
+            query["text"] = {"$regex": re.escape(keyword_filter), "$options": "i"}
 
         candidates = []
         cursor = collection.find(query, {"_id": 0}).limit(_MAX_CANDIDATES)

@@ -386,7 +386,11 @@ async def websocket_endpoint(
     build_id: str,
     token: Optional[str] = Query(None),
 ):
-    user = await authenticate_websocket_token(token, build_id=build_id)
+    # Prefer the Sec-WebSocket-Protocol header so tokens never appear in
+    # logs/access lists; query param kept for legacy/backward compatibility.
+    header_token = websocket.headers.get("sec-websocket-protocol")
+    ws_token = token or header_token
+    user = await authenticate_websocket_token(ws_token, build_id=build_id)
     if not user:
         # Reject at the HTTP upgrade stage — closing before accepting makes
         # Starlette respond with HTTP 403 and never upgrade the connection.

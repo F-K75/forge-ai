@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Hammer, Check, Github, Key, ArrowUpRight } from "lucide-react";
+import toast from "react-hot-toast";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { motionVariants } from "../lib/animations";
 import { presets } from "../lib/animationPresets";
@@ -51,14 +52,19 @@ export default function Onboarding() {
   const primaryLabel =
     step === 2 ? "Skip for now" : step === 3 ? "Open workspace" : "Continue";
 
-  const handlePrimary = () => {
+  const handlePrimary = async () => {
     if (step === 3) {
-      const prompt = goal ? GOAL_STARTER_PROMPTS[goal] : undefined;
-      navigate("/build/new", prompt ? { state: { prompt, template: goal } } : undefined);
+      const prompt = goal ? GOAL_STARTER_PROMPTS[goal] : undefined
+      try {
+        await useAuthStore.getState().completeOnboarding()
+      } catch {
+        toast.error("Couldn't save onboarding progress.")
+      }
+      navigate("/build/new", prompt ? { state: { prompt, template: goal } } : undefined)
     } else {
-      setStep((s) => Math.min(s + 1, 3));
+      setStep((s) => Math.min(s + 1, 3))
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-4 py-12">

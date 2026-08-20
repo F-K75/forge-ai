@@ -75,7 +75,7 @@ PUBLIC_ROUTES: dict[tuple[str, str, str], str] = {
     ("main.py", "/health/mongo-ping", "get"): "k8s/ops dependency probe, no auth context available",
     ("main.py", "/health/detailed", "get"): "k8s readiness probe, no auth context available",
     ("main.py", "/health/pools", "get"): "ops connection-pool monitoring probe, no auth context available",
-    ("main.py", "/metrics", "get"): "Prometheus scrape endpoint, scraped without user session",
+    ("main.py", "/metrics", "get"): "Prometheus scrape endpoint, protected by METRICS_TOKEN bearer token",
 }
 
 

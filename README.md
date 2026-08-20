@@ -42,7 +42,7 @@ Celery worker → GitHub sync + containerized deploy
 - Backend: FastAPI + Motor (async MongoDB)
 - Database: MongoDB
 - Auth: JWT-based
-- Deploy: Docker containers
+- Deploy: Docker containers, Kubernetes targets supported via deployment abstraction
 
 **Platform tech stack:**
 - Backend: FastAPI + Python + Motor + Redis + Celery

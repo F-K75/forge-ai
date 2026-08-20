@@ -167,7 +167,7 @@ def test_razorpay_webhook_invalid_signature(monkeypatch):
     assert "signature" in r.json()["detail"].lower()
 
 
-def test_razorpay_webhook_skips_when_client_not_configured(monkeypatch):
+def test_razorpay_webhook_fails_closed_when_client_not_configured(monkeypatch):
     import api.razorpay as rzp
     from fastapi import FastAPI
 
@@ -181,5 +181,4 @@ def test_razorpay_webhook_skips_when_client_not_configured(monkeypatch):
     sig = _signature(payload, os.environ["RAZORPAY_WEBHOOK_SECRET"])
 
     r = client.post("/razorpay/webhook", data=payload, headers={"X-Razorpay-Signature": sig})
-    assert r.status_code == 200
-    assert r.json()["status"] == "skipped"
+    assert r.status_code == 500

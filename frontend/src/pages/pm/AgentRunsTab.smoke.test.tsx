@@ -140,7 +140,7 @@ describe("AgentRunsTab", () => {
     expect(screen.getByText(/Running tests/)).toBeTruthy();
     expect(screen.getByText(/Integration/)).toBeTruthy();
     expect(screen.getByText(/No tech stack defined for this initiative yet/)).toBeTruthy();
-    expect(screen.getByText(/doesn't have a backend data source in the initiative pipeline yet/)).toBeTruthy();
+    expect(screen.getByText(/No design output yet/)).toBeTruthy();
     await waitFor(() =>
       expect(screen.getByText(/Currency formatting per locale/)).toBeTruthy()
     );

@@ -24,6 +24,7 @@ export interface User {
   mfa_enabled?: boolean
   is_admin?: boolean
   preferences?: Record<string, unknown>
+  completed_onboarding?: boolean
 }
 
 // Returned by login() when the account has MFA enabled -- no session has
@@ -44,6 +45,7 @@ interface AuthState {
   logout: () => Promise<void>
   fetchMe: () => Promise<void>
   googleLogin: () => Promise<void>
+  completeOnboarding: () => Promise<void>
 }
 
 // Demo mode has no backend to authenticate against — this stands in for a
@@ -56,6 +58,7 @@ const demoUser = (overrides: Partial<User> = {}): User => ({
   plan: 'pro',
   credits: 612,
   created_at: new Date().toISOString(),
+  completed_onboarding: false,
   ...overrides,
 })
 
@@ -137,5 +140,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false })
       throw err
     }
+  },
+
+  completeOnboarding: async () => {
+    if (!LIVE_MODE) {
+      set({ user: demoUser({ completed_onboarding: true }), isAuthenticated: true, isLoading: false })
+      return
+    }
+    await authApi.completeOnboarding()
+    set((state) => ({
+      user: state.user ? { ...state.user, completed_onboarding: true } : null,
+    }))
   },
 }))

@@ -57,7 +57,7 @@ configured:**
 | `TRUSTED_PROXIES` | `127.0.0.1,::1` | Real-IP resolution for rate limiting |
 | `MAX_REQUEST_SIZE` | 10 MiB | Request-size limit middleware |
 | `DEPLOYMENT_HOST` | `localhost` | Public host for deployed-app preview containers |
-| `DEPLOYMENTS_ENABLED` | *(unset)* | Set `true` to enable the Docker deployment API (`POST /deployments/`, redeploy, container cancel). Read-only deployment endpoints remain available regardless. |
+| `DEPLOYMENTS_ENABLED` | *(unset)* | Set `true` to enable the deployment API (`POST /deployments/`, redeploy, container cancel). Supports `docker` (default) and `kubernetes` targets via `target_type`/`target_config`. Read-only deployment endpoints remain available regardless. |
 
 ## Auth & integrations
 

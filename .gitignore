@@ -52,3 +52,10 @@ orchestration/*.json
 
 # Tool-generated taste/profile data
 .commandcode/
+
+# Local Redis dumps and SDK installs (audit M0-8)
+dump.rdb
+google-cloud-sdk/
+
+# Local agent tooling/runtime data
+.qoder/

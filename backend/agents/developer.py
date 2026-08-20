@@ -1,4 +1,5 @@
 from agents.base import BaseAgent
+from agents.structured_schemas import DEVELOPER_FILES_SCHEMA
 from core.models import AgentType
 import json
 
@@ -6,6 +7,7 @@ import json
 class DeveloperAgent(BaseAgent):
     agent_type = AgentType.DEVELOPER
     prompt_role = "developer"
+    output_schema = DEVELOPER_FILES_SCHEMA
 
     async def generate_files(
         self,
@@ -39,33 +41,32 @@ class DeveloperAgent(BaseAgent):
             }
         ]
 
-        # 8000, not Claude's comfortable 16000: several free-tier BYOK
-        # providers (e.g. Groq's higher-TPM models) hard-cap max_tokens at
-        # 8192 regardless of remaining rate-limit budget, and larger app
-        # generations that need more than this will come back truncated
-        # (breaking JSON parsing) rather than erroring cleanly -- a real
-        # trade-off accepted for BYOK testing on free tiers.
         if stream_callback:
             full = ""
             async for chunk in self.stream(messages, max_tokens=8000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id):
                 full += chunk
                 await stream_callback(chunk)
+            clean = full.strip()
+            if "```json" in clean:
+                clean = clean.split("```json")[1].split("```")[0].strip()
+            elif clean.startswith("```"):
+                clean = clean[3:].strip()
+                if clean.endswith("```"):
+                    clean = clean[:-3].strip()
+            try:
+                parsed = json.loads(clean, strict=False)
+            except json.JSONDecodeError:
+                parsed = {"files": {}}
+            return parsed.get("files", parsed) if isinstance(parsed, dict) else {"files": {}}
         else:
-            full = await self.run(messages, max_tokens=8000, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
-
-        clean = full.strip()
-        # Strip markdown fences if present
-        if "```json" in clean:
-            clean = clean.split("```json")[1].split("```")[0].strip()
-        elif clean.startswith("```"):
-            clean = clean[3:].strip()
-            if clean.endswith("```"):
-                clean = clean[:-3].strip()
-
-        # strict=False: some models (esp. non-Claude ones via BYOK) emit
-        # literal control characters (raw newlines) inside JSON strings
-        # instead of the \n escape the system prompt asks for.
-        return json.loads(clean, strict=False)
+            return await self._call_structured(
+                messages,
+                max_tokens=8000,
+                user_id=user_id,
+                build_id=build_id,
+                project_id=project_id,
+                org_id=org_id,
+            )
 
     async def patch_files(
         self,
@@ -90,7 +91,12 @@ class DeveloperAgent(BaseAgent):
                 )
             }
         ]
-        full = await self.run(messages, max_tokens=8192, user_id=user_id, build_id=build_id, project_id=project_id, org_id=org_id)
-        clean = full.strip().strip("```json").strip("```").strip()
-        # strict=False: see generate_files above.
-        return json.loads(clean, strict=False)
+        result = await self._call_structured(
+            messages,
+            max_tokens=8192,
+            user_id=user_id,
+            build_id=build_id,
+            project_id=project_id,
+            org_id=org_id,
+        )
+        return result.get("files", result) if isinstance(result, dict) else {"files": {}}

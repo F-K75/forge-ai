@@ -8,14 +8,20 @@ environment, matching docker-compose.prod.yml / .staging.yml:
 
     MONGODB_URL           full mongodb connection string incl. credentials (see .env)
     BACKUP_RETENTION_DAYS number of days to keep backups (default: 7)
+    BACKUP_FAILURE_WEBHOOK_URL
+                          optional URL to notify on backup failure (e.g. the
+                          monitoring webhook). Receives a small JSON POST
+                          {"text": ..., "ok": false} (stdlib urllib only).
 
 On success the newest backup directory is symlinked to /backups/latest
 so the verification cron job can always verify the freshest backup.
 """
 import datetime
+import json
 import os
 import subprocess
 import sys
+import urllib.request
 
 BACKUP_ROOT = "/backups/mongodb"
 LATEST_LINK = "/backups/latest"
@@ -28,6 +34,23 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _notify_failure(message: str) -> None:
+    """Best-effort POST to BACKUP_FAILURE_WEBHOOK_URL. Never raises."""
+    url = os.environ.get("BACKUP_FAILURE_WEBHOOK_URL", "")
+    if not url:
+        return
+    payload = json.dumps(
+        {"text": f"MongoDB backup failed: {message}", "ok": False}
+    ).encode()
+    req = urllib.request.Request(
+        url, data=payload, headers={"Content-Type": "application/json"}, method="POST"
+    )
+    try:
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as exc:  # noqa: BLE001 - alerting must never crash the job
+        print(f"Warning: failed to notify backup webhook: {exc}", file=sys.stderr)
+
+
 def backup_mongodb() -> int:
     """Create a MongoDB backup using mongodump. Returns process exit code."""
     timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
@@ -35,7 +58,9 @@ def backup_mongodb() -> int:
 
     mongo_url = os.environ.get("MONGODB_URL", "")
     if not mongo_url:
-        print("Backup failed: MONGODB_URL is not set", file=sys.stderr)
+        message = "MONGODB_URL is not set"
+        print(f"Backup failed: {message}", file=sys.stderr)
+        _notify_failure(message)
         return 1
 
     os.makedirs(BACKUP_ROOT, exist_ok=True)
@@ -50,7 +75,9 @@ def backup_mongodb() -> int:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
     except FileNotFoundError:
-        print("Backup failed: mongodump is not installed", file=sys.stderr)
+        message = "mongodump is not installed"
+        print(f"Backup failed: {message}", file=sys.stderr)
+        _notify_failure(message)
         return 1
 
     if result.returncode == 0:
@@ -62,7 +89,9 @@ def backup_mongodb() -> int:
         except OSError as exc:
             print(f"Warning: could not update {LATEST_LINK} symlink: {exc}", file=sys.stderr)
     else:
-        print(f"Backup failed: {result.stderr}", file=sys.stderr)
+        message = result.stderr.strip() or f"mongodump exited {result.returncode}"
+        print(f"Backup failed: {message}", file=sys.stderr)
+        _notify_failure(message)
         return 1
 
     retention_days = _env_int("BACKUP_RETENTION_DAYS", 7)

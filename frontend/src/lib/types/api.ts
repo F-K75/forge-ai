@@ -7,6 +7,7 @@ export interface User {
   credits: number
   created_at: string
   is_admin?: boolean
+  completed_onboarding?: boolean
 }
 
 export interface Project {
@@ -53,6 +54,7 @@ export interface PMInitiative {
   tech_stack?: string[]
   risks?: Array<Record<string, unknown>>
   estimated_timeline?: string
+  design?: Record<string, any>
   project_ids?: string[]
   generation_error?: string | null
   version: number

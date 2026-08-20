@@ -45,6 +45,10 @@ class AgentType(str, Enum):
     PM = "pm"
     BUSINESS_IMPROVER = "business_improver"
     DEBUGGER = "debugger"
+    DEVOPS = "devops"
+    QA = "qa"
+    SECURITY = "security"
+    RESEARCH = "research"
 
 
 class BuildStatus(str, Enum):
@@ -146,6 +150,7 @@ class User(BaseModel):
     totp_secret: Optional[str] = None
     mfa_backup_codes: List[str] = Field(default_factory=list)
     mfa_enrolled_at: Optional[datetime] = None
+    completed_onboarding: bool = False
     created_at: datetime = Field(default_factory=utcnow)
 
 
@@ -342,6 +347,8 @@ class Deployment(BaseModel):
     build_id: Optional[str] = None
     status: DeploymentStatus = DeploymentStatus.PENDING
     provider: str = "docker"
+    target_type: str = "docker"
+    target_config: Dict[str, Any] = {}
     url: Optional[str] = None
     logs: str = ""
     env_vars: Dict[str, str] = {}

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, List, Any
 import asyncio
 import logging
@@ -24,6 +24,7 @@ from core.models import (
     User,
     utcnow,
 )
+from core.deploy_targets import get_deploy_target
 from core.security import safe_join_path
 from services.ws_manager import manager
 
@@ -66,6 +67,8 @@ def get_docker_client() -> docker.DockerClient:
 class CreateDeploymentRequest(BaseModel):
     build_id: str
     project_id: str
+    target_type: str = Field("docker", max_length=50)
+    target_config: Dict[str, Any] = Field(default_factory=dict)
 
 
 class CreateDeploymentResponse(BaseModel):
@@ -143,9 +146,10 @@ async def create_deployment(
         user_id=current_user.id,
         build_id=req.build_id,
         status=DeploymentStatus.PENDING,
-        provider="docker",
+        provider=req.target_type,
+        target_type=req.target_type,
+        target_config=req.target_config or {},
         env_vars={},
-        logs="",
     )
     await db.deployments.insert_one(deployment.model_dump())
 
@@ -315,17 +319,13 @@ async def cancel_deployment(
         },
     )
 
+    project = {}
     if status in (DeploymentStatus.BUILDING, DeploymentStatus.DEPLOYING):
         _require_deployments_enabled()
-        container_name = f"forge-deploy-{deployment_id}"
-        try:
-            client = get_docker_client()
-            containers = client.containers.list(filters={"name": container_name})
-            for c in containers:
-                c.kill()
-                c.remove()
-        except Exception:
-            pass
+        project = await db.projects.find_one({"id": deployment["project_id"]}, {"_id": 0}) or {}
+        dep_obj = Deployment(**deployment)
+        target = get_deploy_target(dep_obj.target_type, dep_obj.target_config or None)
+        await target.teardown(deployment_id=deployment_id, project=project)
 
     return GenericResponse(
         ok=True,
@@ -463,6 +463,8 @@ async def _run_deployment_background(
     def emit(event):
         asyncio.run(manager.emit(event))
 
+    target = get_deploy_target(deployment.target_type, deployment.target_config or None)
+    logs = ""
     try:
         await db.deployments.update_one(
             {"id": deployment.id},
@@ -517,7 +519,7 @@ async def _run_deployment_background(
                 {
                     "$set": {
                         "status": DeploymentStatus.DEPLOYING,
-                        "logs": "Building Docker image...",
+                        "logs": "Building and deploying...",
                     }
                 },
             )
@@ -532,45 +534,14 @@ async def _run_deployment_background(
                 )
             )
 
-            def build_and_run():
-                client = get_docker_client()
-                image_tag = f"forge-deploy-{deployment.id}:latest"
-
-                build_logs = []
-                for line in client.api.build(
-                    path=temp_dir,
-                    tag=image_tag,
-                    rm=True,
-                    forcerm=True,
-                ):
-                    if "stream" in line:
-                        build_logs.append(line["stream"].strip())
-
-                image = client.images.get(image_tag)
-
-                port = 8000 + (
-                    int(hashlib.sha256(deployment.id.encode()).hexdigest(), 16) % 1000
-                )
-                env_vars = deployment.env_vars or {}
-                env_vars.setdefault("PORT", str(port))
-                # Binds inside the deployed container, not this host — Docker's port
-                # mapping (ports={"8000/tcp": port} below) is what actually exposes it,
-                # and 127.0.0.1 here would make the app unreachable through that mapping.
-                env_vars.setdefault("HOST", "0.0.0.0")  # nosec B104
-
-                client.containers.run(
-                    image=image,
-                    name=f"forge-deploy-{deployment.id}",
-                    ports={"8000/tcp": port},
-                    environment=env_vars,
-                    detach=True,
-                    remove=False,
-                )
-
-                return port, "\n".join(build_logs)
-
-            port, build_logs = await asyncio.to_thread(build_and_run)
-            container_url = f"http://{settings.deployment_host}:{port}"
+            result = await target.deploy(
+                source_dir=temp_dir,
+                project=project,
+                build=build,
+                env_vars=deployment.env_vars or {},
+            )
+            logs = result.logs or ""
+            container_url = result.url or f"http://{settings.deployment_host}:8000"
 
             await db.deployments.update_one(
                 {"id": deployment.id},
@@ -578,7 +549,7 @@ async def _run_deployment_background(
                     "$set": {
                         "status": DeploymentStatus.LIVE,
                         "url": container_url,
-                        "logs": f"{deployment.logs}\nBuild complete.\n{build_logs}",
+                        "logs": f"{deployment.logs}\nBuild complete.\n{logs}",
                         "deployed_at": utcnow().isoformat(),
                     }
                 },
@@ -597,6 +568,10 @@ async def _run_deployment_background(
 
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
+            try:
+                await target.teardown(deployment_id=deployment.id, project=project)
+            except Exception:
+                logger.debug("Deploy target teardown failed", exc_info=True)
 
         await db.projects.update_one(
             {"id": deployment.project_id},
@@ -608,24 +583,6 @@ async def _run_deployment_background(
             },
         )
 
-    except docker.errors.BuildError as e:
-        error_msg = f"Docker build failed: {e}"
-        await db.deployments.update_one(
-            {"id": deployment.id},
-            {
-                "$set": {
-                    "status": DeploymentStatus.FAILED,
-                    "logs": f"{deployment.logs}\n{error_msg}",
-                }
-            },
-        )
-        await manager.emit(
-            WSEvent(
-                type=WSEventType.BUILD_FAILED,
-                build_id=build.get("id", ""),
-                data={"deployment_id": deployment.id, "error": error_msg},
-            )
-        )
     except Exception as e:
         error_msg = f"Deployment failed: {str(e)}"
         await db.deployments.update_one(
@@ -633,7 +590,7 @@ async def _run_deployment_background(
             {
                 "$set": {
                     "status": DeploymentStatus.FAILED,
-                    "logs": f"{deployment.logs}\n{error_msg}",
+                    "logs": f"{deployment.logs}\n{error_msg}\n{logs}",
                 }
             },
         )

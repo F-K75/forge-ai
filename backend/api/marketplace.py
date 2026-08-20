@@ -104,6 +104,10 @@ async def list_items(
         sort=[("downloads", -1)],
         projection={"_id": 0},
     )
+    for item in result.items:
+        rating_value = item.get("rating", 0)
+        rating_count = item.get("rating_count", 0)
+        item["rating"] = round(rating_value / rating_count, 1) if rating_count > 0 else 0.0
     paginated = PaginatedMarketplaceItems(
         items=result.items,
         total=result.total,
@@ -121,6 +125,9 @@ async def get_item(item_id: str):
     item = await db.marketplace_items.find_one({"id": item_id, "is_public": True}, {"_id": 0})
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
+    rating_value = item.get("rating", 0)
+    rating_count = item.get("rating_count", 0)
+    item["rating"] = round(rating_value / rating_count, 1) if rating_count > 0 else 0.0
     return item
 
 
@@ -146,6 +153,9 @@ async def rate_item(item_id: str, rating: int, user: User = Depends(get_current_
         {"id": item_id},
         {"$inc": {"rating": rating, "rating_count": 1}}
     )
-    
+
     item = await db.marketplace_items.find_one({"id": item_id}, {"_id": 0})
-    return {"rating": item.get("rating", 0), "rating_count": item.get("rating_count", 0)}
+    rating_value = item.get("rating", 0)
+    rating_count = item.get("rating_count", 0)
+    average = rating_value / rating_count if rating_count > 0 else 0.0
+    return {"rating": round(average, 1), "rating_count": rating_count}

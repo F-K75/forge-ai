@@ -112,12 +112,21 @@ def test_ws_auth_timeout_closes_connection(client, monkeypatch):
     assert exc_info.value.code == 4001
 
 
-def test_no_query_param_token_path_remains():
-    """Guards against regressing back to the deprecated untyped token path."""
+def test_build_ws_prefers_subprotocol_header():
+    """Guards the Sec-WebSocket-Protocol fallback path in builds.py."""
     from pathlib import Path
 
     src = (Path(__file__).resolve().parents[1] / "api" / "builds.py").read_text()
-    assert "authenticate_websocket_token(token, build_id=build_id)" in src
+    assert "ws_token = token or header_token" in src
+    assert "sec-websocket-protocol" in src
+
+
+def test_ws_accepts_valid_ws_token_via_subprotocol(client, monkeypatch):
+    _patch_db(monkeypatch, users=[USER], builds=[BUILD])
+    _patch_tokens(monkeypatch, {"ws-token": {"sub": "user-1", "type": "ws"}})
+
+    with client.websocket_connect("/builds/ws/build-1", subprotocols=["ws-token"]) as ws:
+        ws.send_text("ping")
 
 
 def test_frontend_uses_ws_token_for_websocket():

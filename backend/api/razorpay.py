@@ -146,7 +146,7 @@ async def verify_payment(req: RazorpayVerifyRequest):
 @router.post("/webhook", response_model=RazorpayWebhookResponse)
 async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(..., alias="X-Razorpay-Signature")):
     if not _razorpay_client:
-        return RazorpayWebhookResponse(status="skipped", event="no_client")
+        raise HTTPException(status_code=500, detail="Razorpay is not configured")
 
     body_bytes = await request.body()
     expected = hmac.new(

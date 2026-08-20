@@ -173,6 +173,19 @@ async def _migration_reapply_is_admin_from_env(db) -> None:
         )
 
 
+@migration(5, "backfill_completed_onboarding", "Ensure every user has an explicit completed_onboarding flag.")
+async def _migration_backfill_completed_onboarding(db) -> None:
+    result = await db.users.update_many(
+        {"completed_onboarding": {"$exists": False}},
+        {"$set": {"completed_onboarding": False}},
+    )
+    if result.matched_count:
+        logger.info(
+            "Migration v5 (backfill_completed_onboarding) set completed_onboarding=False for %d user(s)",
+            result.matched_count,
+        )
+
+
 async def run_downgrades(db, target_version: int = 0) -> List[dict]:
     """Roll back applied migrations down to *target_version* (exclusive).
 

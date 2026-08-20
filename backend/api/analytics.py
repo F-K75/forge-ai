@@ -579,7 +579,15 @@ async def get_onboarding_metrics(
     async for doc in db.users.aggregate(total_users_pipeline):
         total_users = doc.get("count", 0)
 
+    completed_onboarding_pipeline = [
+        {"$match": {"created_at": {"$gte": start_date}, "completed_onboarding": True}},
+        {"$count": "count"},
+    ]
+
     completed_onboarding = 0
+    async for doc in db.users.aggregate(completed_onboarding_pipeline):
+        completed_onboarding = doc.get("count", 0)
+
     completion_rate = round((completed_onboarding / total_users) * 100, 2) if total_users > 0 else 0.0
     
     step_pipeline = [

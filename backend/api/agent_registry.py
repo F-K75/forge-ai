@@ -546,7 +546,10 @@ async def resolve_finding(
 
 @router.websocket("/ws")
 async def org_websocket(websocket: WebSocket, project_id: str, token: Optional[str] = Query(None)):
-    user = await authenticate_org_websocket_token(token, project_id=project_id)
+    # Prefer the Sec-WebSocket-Protocol header so tokens never appear in
+    # logs/access lists; query param kept for legacy/backward compatibility.
+    header_token = websocket.headers.get("sec-websocket-protocol")
+    user = await authenticate_org_websocket_token(token or header_token, project_id=project_id)
     if not user:
         # Reject at the HTTP upgrade stage -- closing before accepting makes
         # Starlette respond with HTTP 403 and never upgrade the connection.

@@ -217,3 +217,83 @@ BUSINESS_MODEL_SCHEMA = {
         "mvp_validation_plan",
     ],
 }
+
+# --- Architect (`agents/architect.py`, template `architect_v1`) ----------------
+ARCHITECT_BLUEPRINT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "app_name": {"type": "string"},
+        "description": {"type": "string"},
+        "pages": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "name": {"type": "string"},
+                    "route": {"type": "string"},
+                    "description": {"type": "string"},
+                    "components": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["name", "route", "description", "components"],
+            },
+        },
+        "data_models": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "name": {"type": "string"},
+                    "fields": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "name": {"type": "string"},
+                                "type": {"type": "string"},
+                                "required": {"type": "boolean"},
+                            },
+                            "required": ["name", "type", "required"],
+                        },
+                    },
+                },
+                "required": ["name", "fields"],
+            },
+        },
+        "api_endpoints": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "method": {"type": "string"},
+                    "path": {"type": "string"},
+                    "description": {"type": "string"},
+                    "auth_required": {"type": "boolean"},
+                },
+                "required": ["method", "path", "description", "auth_required"],
+            },
+        },
+        "features": {"type": "array", "items": {"type": "string"}},
+        "integrations": {"type": "array", "items": {"type": "string"}},
+        "auth_required": {"type": "boolean"},
+        "clarifications": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["app_name", "pages", "data_models", "api_endpoints", "features", "integrations", "auth_required", "clarifications"],
+}
+
+# --- Developer (`agents/developer.py`, template `developer_v1`) ----------------
+DEVELOPER_FILES_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "files": {
+            "type": "object",
+            "additionalProperties": {"type": "string"},
+        }
+    },
+    "required": ["files"],
+}

@@ -938,6 +938,17 @@ async def change_password(
     return {"ok": True}
 
 
+@router.post("/onboarding/complete")
+async def complete_onboarding(user: User = Depends(get_current_user)):
+    db = await get_db()
+    await db.users.update_one(
+        {"id": user.id},
+        {"$set": {"completed_onboarding": True}},
+    )
+    await invalidate_cache(user_profile_cache_key(user.id))
+    return {"ok": True}
+
+
 @router.post("/forgot-password")
 async def forgot_password(req: ForgotPasswordRequest):
     db = await get_db()

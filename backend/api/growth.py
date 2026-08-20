@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import hashlib
+import uuid
 
 import resend
 
@@ -128,7 +129,7 @@ async def create_notification(req: NotificationCreate, user: User = Depends(get_
     db = await get_db()
     
     notification = {
-        "id": f"notif_{utcnow().timestamp()}",
+        "id": f"notif_{uuid.uuid4().hex}",
         "user_id": user.id,
         "title": req.title,
         "message": req.message,

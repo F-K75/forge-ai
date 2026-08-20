@@ -59,7 +59,8 @@ and other HTTPS-hosted frontends work without per-domain config. The
    (`/admin/builds/dead-letter`).
 
 Generated apps use: React 18 + Vite + TypeScript + Tailwind, FastAPI + Motor,
-MongoDB, JWT auth, Docker deploy.
+MongoDB, JWT auth, deploy targets (`docker` default, `kubernetes` optional via
+`core/deploy_targets.py`).
 
 ## Agile PM layer
 
