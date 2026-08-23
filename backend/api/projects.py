@@ -113,7 +113,7 @@ async def create_project(req: CreateProjectRequest, current_user: User = Depends
 
     max_projects = await get_max_projects_for_user(db, current_user.id)
     if max_projects >= 0:
-        current_count = await db.projects.count_documents({"user_id": current_user.id, "deleted_at": {"$exists": False}})
+        current_count = await db.projects.count_documents({"user_id": current_user.id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]})
         if current_count >= max_projects:
             raise HTTPException(
                 status_code=402,
@@ -142,7 +142,7 @@ async def list_projects(
     db = await get_db()
     result = await paginated_query(
         db.projects,
-        {"user_id": current_user.id, "deleted_at": {"$exists": False}},
+        {"user_id": current_user.id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]},
         page=params.page,
         per_page=params.per_page,
         sort=[("updated_at", -1)],
@@ -159,7 +159,7 @@ async def list_projects(
 @router.get("/{project_id}")
 async def get_project(project_id: str, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    project = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
     if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
     return project
@@ -172,7 +172,7 @@ async def get_project_builds(
     params: PaginationParams = Depends(),
 ):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    project = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
     if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -196,7 +196,7 @@ async def get_project_builds(
 @router.put("/{project_id}")
 async def update_project(project_id: str, req: UpdateProjectRequest, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    project = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
     if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -213,7 +213,7 @@ async def update_project(project_id: str, req: UpdateProjectRequest, current_use
 @router.delete("/{project_id}")
 async def delete_project(project_id: str, request: Request, current_user: User = Depends(get_current_user)):
     db = await get_db()
-    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    project = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
     if not project or not await has_project_access(db, current_user.id, project):
         raise HTTPException(status_code=404, detail="Project not found")
     

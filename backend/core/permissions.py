@@ -92,7 +92,7 @@ async def has_build_access(db, user_id: str, build: dict) -> bool:
     if not project_id:
         return False
 
-    project = await db.projects.find_one({"id": project_id, "deleted_at": {"$exists": False}}, {"_id": 0})
+    project = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
     if not project:
         return False
 
