@@ -338,10 +338,34 @@ async def _handle_cashfree_payment_success(db: Any, order: Dict[str, Any]) -> No
 
 async def _handle_cashfree_payment_failed(db: Any, order: Dict[str, Any]) -> None:
     order_id = order.get("order_id") or order.get("orderId")
-    await db.credit_purchases.update_one(
-        {"cashfree_order_id": order_id},
-        {"$set": {"status": "failed"}},
-    )
+    purchase = await db.credit_purchases.find_one({"cashfree_order_id": order_id}, {"_id": 0})
+    if purchase and purchase.get("status") != "failed":
+        await db.credit_purchases.update_one(
+            {"cashfree_order_id": order_id},
+            {"$set": {"status": "failed"}},
+        )
+    if purchase and purchase.get("user_id"):
+        user_doc = await db.users.find_one({"id": purchase["user_id"]}, {"_id": 0, "email": 1, "name": 1})
+        if user_doc and user_doc.get("email"):
+            try:
+                from core.config import get_settings
+                _settings = get_settings()
+                if _settings.resend_api_key:
+                    import resend
+                    resend.api_key = _settings.resend_api_key
+                    resend.Emails.send({
+                        "from": _settings.from_email,
+                        "to": user_doc["email"],
+                        "subject": "Forge: Payment failed — please retry",
+                        "text": (
+                            f"Hi {user_doc.get('name', 'there')},\n\n"
+                            "We weren't able to process your latest payment via Cashfree. "
+                            "Please retry the purchase from your account page.\n\n"
+                            "— Forge AI"
+                        ),
+                    })
+            except Exception:
+                logging.exception("Failed to send Cashfree payment-failed email to %s", user_doc.get("email"))
 
 
 async def _handle_cashfree_subscription_activated(db: Any, sub: Dict[str, Any]) -> None:

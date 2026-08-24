@@ -90,36 +90,45 @@ class ConnectionManager:
         instance count. Messages tagged with this process's own instance id
         are skipped since _publish already delivered them locally.
         """
-        redis = await self._get_redis()
-        pubsub = redis.pubsub()
-        await pubsub.psubscribe("build:*")
-        try:
-            async for message in pubsub.listen():
-                if message.get("type") != "pmessage":
-                    continue
+        while True:
+            try:
+                redis = await self._get_redis()
+                pubsub = redis.pubsub()
+                await pubsub.psubscribe("build:*")
                 try:
-                    channel = message["channel"]
-                    if isinstance(channel, bytes):
-                        channel = channel.decode()
-                    build_id = channel.split(":", 1)[1]
-                    raw = message["data"]
-                    if isinstance(raw, bytes):
-                        raw = raw.decode()
-                    envelope = json.loads(raw)
+                    async for message in pubsub.listen():
+                        if message.get("type") != "pmessage":
+                            continue
+                        try:
+                            channel = message["channel"]
+                            if isinstance(channel, bytes):
+                                channel = channel.decode()
+                            build_id = channel.split(":", 1)[1]
+                            raw = message["data"]
+                            if isinstance(raw, bytes):
+                                raw = raw.decode()
+                            envelope = json.loads(raw)
+                        except Exception:
+                            continue
+                        if envelope.get("_origin") == self._instance_id:
+                            continue
+                        await self._deliver_local(build_id, envelope.get("data", ""))
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
+                    await asyncio.sleep(1)
                     continue
-                if envelope.get("_origin") == self._instance_id:
-                    continue
-                await self._deliver_local(build_id, envelope.get("data", ""))
-        except asyncio.CancelledError:
-            pass
-        finally:
-            await pubsub.punsubscribe("build:*")
-            await pubsub.aclose()
+                finally:
+                    await pubsub.punsubscribe("build:*")
+                    await pubsub.aclose()
+                break
+            except asyncio.CancelledError:
+                raise
 
     def start(self):
         if self._pubsub_task is None or self._pubsub_task.done():
             self._pubsub_task = asyncio.create_task(self.start_pubsub_listener())
+            self._pubsub_task.add_done_callback(lambda t: print(f"[WS_MANAGER] listener task done: {t.exception()}", flush=True) if t.exception() else None)
 
     async def close_all_connections(self, reason: str = "Server shutting down") -> None:
         for build_id in list(self.active.keys()):

@@ -70,6 +70,7 @@ class UserUpdateRequest(BaseModel):
     plan: Optional[PlanTier] = None
     credits: Optional[int] = None
     banned: Optional[bool] = None
+    email_verified: Optional[bool] = None
 
 
 class PaginatedUsers(BaseModel):
@@ -354,6 +355,8 @@ async def update_user(
         update_data["credits"] = req.credits
     if req.banned is not None:
         update_data["banned"] = req.banned
+    if req.email_verified is not None:
+        update_data["email_verified"] = req.email_verified
     
     if update_data:
         await db.users.update_one({"id": user_id}, {"$set": update_data})
@@ -494,7 +497,7 @@ async def retry_dead_letter_build(
     if not build_doc:
         raise HTTPException(status_code=404, detail="Build not found")
 
-    project = await db.projects.find_one({"id": build_doc["project_id"]})
+    project = await db.projects.find_one({"id": build_doc["project_id"], "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 

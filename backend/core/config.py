@@ -231,6 +231,9 @@ class Settings(BaseSettings):
     # Admin
     admin_emails: str = "admin@forge.ai"
 
+    # Test / smoke
+    smoke_test_mode: bool = False
+
     # Growth
     resend_api_key: str = ""
     from_email: str = "noreply@forge.ai"

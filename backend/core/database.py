@@ -17,6 +17,27 @@ _db_lock = asyncio.Lock()
 _redis_lock = asyncio.Lock()
 
 
+def reset_db_clients() -> None:
+    """Close and reset database clients.
+
+    Used by Celery worker_process_init so each forked worker gets fresh
+    loop-local Motor/Redis clients instead of inheriting the parent's.
+    """
+    global _mongo_client, _redis_client
+    try:
+        if _mongo_client is not None:
+            _mongo_client.close()
+    except Exception:
+        pass
+    try:
+        if _redis_client is not None:
+            _redis_client.close()
+    except Exception:
+        pass
+    _mongo_client = None
+    _redis_client = None
+
+
 def _server_selection_timeout_ms() -> int:
     """5s in real deployments; near-immediate under the CI test contract.
 

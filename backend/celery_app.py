@@ -1,11 +1,28 @@
 import logging
 
 from celery import Celery
-from celery.signals import worker_shutting_down, task_prerun, task_postrun
+from celery.signals import worker_process_init, worker_shutting_down, task_prerun, task_postrun
 from core.config import get_settings
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+
+@worker_process_init.connect
+def _reset_db_clients(sender=None, **kwargs):
+    """Reset database clients in each worker process.
+
+    Celery ForkPoolWorker inherits the parent process's module globals,
+    including Motor/Redis clients bound to the parent's event loop. Recreate
+    them here so every worker has loop-local connections and avoids
+    "Future attached to a different loop" errors.
+    """
+    try:
+        from core.database import reset_db_clients  # noqa: F401
+        reset_db_clients()
+    except Exception:
+        logger.debug("reset_db_clients failed", exc_info=True)
+
 
 celery_app = Celery(
     "forge",

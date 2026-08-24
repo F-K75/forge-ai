@@ -157,7 +157,7 @@ async def authenticate_org_websocket(websocket: WebSocket, project_id: str) -> O
         await websocket.close(code=4001, reason="User not found")
         return None
 
-    project_doc = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    project_doc = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
     if not project_doc or not await has_project_access(db, user_id, project_doc):
         await websocket.close(code=4001, reason="Foreign project")
         return None
@@ -181,7 +181,7 @@ async def authenticate_org_websocket_token(token: Optional[str], project_id: Opt
         return None
 
     if project_id:
-        project_doc = await db.projects.find_one({"id": project_id}, {"_id": 0})
+        project_doc = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
         if not project_doc or not await has_project_access(db, user_id, project_doc):
             return None
 

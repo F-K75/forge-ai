@@ -248,21 +248,32 @@ async def create_checkout_session(req: CheckoutRequest, user: User = Depends(get
     metadata = {"user_id": user.id, "trial_eligible": "true"}
 
     customer_id = user.stripe_customer_id
-    if not customer_id:
-        customer = stripe.Customer.create(email=user.email, name=user.name, metadata=metadata)
-        customer_id = customer.id
-        await db.users.update_one({"id": user.id}, {"$set": {"stripe_customer_id": customer_id}})
+    try:
+        if not customer_id:
+            customer = stripe.Customer.create(email=user.email, name=user.name, metadata=metadata)
+            customer_id = customer.id
+            await db.users.update_one({"id": user.id}, {"$set": {"stripe_customer_id": customer_id}})
 
-    checkout_session = stripe.checkout.Session.create(
-        customer=customer_id,
-        mode="subscription",
-        payment_method_types=["card"],
-        line_items=[{"price": price_id, "quantity": 1}],
-        success_url=req.success_url,
-        cancel_url=req.cancel_url,
-        metadata=metadata,
-        allow_promotion_codes=True,
-    )
+        checkout_session = stripe.checkout.Session.create(
+            customer=customer_id,
+            mode="subscription",
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=req.success_url,
+            cancel_url=req.cancel_url,
+            metadata=metadata,
+            allow_promotion_codes=True,
+        )
+    except stripe.StripeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Payment provider error: {exc.user_message or str(exc)}",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create checkout session.",
+        ) from exc
 
     return {"url": checkout_session.url, "id": checkout_session.id}
 

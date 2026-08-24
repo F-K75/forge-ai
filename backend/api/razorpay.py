@@ -200,9 +200,32 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
 
     elif event_type == "subscription.halted":
         sub_id = entity.get("id")
+        sub_doc = await db.subscriptions.find_one({"razorpay_subscription_id": sub_id}, {"_id": 0, "user_id": 1})
         await db.subscriptions.update_one(
             {"razorpay_subscription_id": sub_id},
-            {"$set": {"status": "halted"}},
+            {"$set": {"status": entity.get("status", "halted")}},
         )
+        if sub_doc and sub_doc.get("user_id"):
+            user_doc = await db.users.find_one({"id": sub_doc["user_id"]}, {"_id": 0, "email": 1, "name": 1})
+            if user_doc and user_doc.get("email"):
+                try:
+                    from core.config import get_settings
+                    _settings = get_settings()
+                    if _settings.resend_api_key:
+                        import resend
+                        resend.api_key = _settings.resend_api_key
+                        resend.Emails.send({
+                            "from": _settings.from_email,
+                            "to": user_doc["email"],
+                            "subject": "Forge: Action required — subscription payment failed",
+                            "text": (
+                                f"Hi {user_doc.get('name', 'there')},\n\n"
+                                "We weren't able to process your latest subscription payment via Razorpay. "
+                                "Please update your payment method to avoid interruption to your access.\n\n"
+                                "— Forge AI"
+                            ),
+                        })
+                except Exception:
+                    logging.exception("Failed to send Razorpay dunning email to %s", user_doc.get("email"))
 
     return RazorpayWebhookResponse(status="ok", event=event_type)
