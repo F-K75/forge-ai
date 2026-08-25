@@ -1,156 +1,163 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState, type ReactNode } from "react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  Play,
   Check,
   X,
   Minus,
   Github,
-  RefreshCw,
-  BarChart3,
-  Workflow as WorkflowIcon,
-  KeyRound,
-  Server,
-  Layers,
-  Network,
-  Rocket,
-  Briefcase,
-  Users,
-  Building2,
-  Lock,
-  ShieldCheck,
-  Globe,
-  Zap,
+  ArrowUpRight,
 } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
 import { AGENTS, type Agent } from "../lib/agents";
-import gsap from "gsap";
-import { useStaggerIn, useSplitTextReveal } from "../lib/animations";
 import { presets } from "../lib/animationPresets";
 
-// ─── Primitives (ported from the Lovable design) ───────────────────────────
+// ─── Animation wrapper ─────────────────────────────────────────────────────
 
-function Eyebrow({ children }: { children: ReactNode }) {
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const reduceMotion = useReducedMotion();
   return (
-    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-land-muted mb-6">
-      <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" />
+    <motion.div
+      className={className}
+      initial={reduceMotion ? false : { opacity: 0, y: 32 }}
+      whileInView="visible"
+      viewport={{ once: true, margin: "-80px" }}
+      variants={{
+        hidden: { opacity: 0, y: 32 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1], delay },
+        },
+      }}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
-function SectionHead({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle?: string }) {
-  return (
-    <div className="max-w-2xl mb-16" data-reveal>
-      <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.05] text-land-ink">
-        {title}
-      </h2>
-      {subtitle && <p className="mt-5 text-land-muted text-base md:text-lg leading-relaxed">{subtitle}</p>}
-    </div>
-  );
-}
+// ─── Layout primitives ──────────────────────────────────────────────────────
 
-function Section({ id, children, className = "" }: { id?: string; children: ReactNode; className?: string }) {
+function Section({
+  id,
+  children,
+  className = "",
+}: {
+  id?: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <section id={id} data-reveal-section className={`py-32 border-t border-land-border ${className}`}>
-      <div className="max-w-6xl mx-auto px-6">{children}</div>
+    <section
+      id={id}
+      className={`px-6 md:px-12 lg:px-20 ${className}`}
+    >
+      <div className="max-w-[1200px] mx-auto">{children}</div>
     </section>
   );
 }
 
-// ─── Agent descriptions for the "team" section — kept separate from the
-// terminal's short status fragments since a grid card reads better with a
-// full sentence.
+// ─── Content data ───────────────────────────────────────────────────────────
+
 const AGENT_DESCRIPTIONS: Record<Agent["id"], string> = {
-  architect: "Defines the system: data models, service boundaries, and how services communicate.",
-  business_improver: "Validates the plan against real-world constraints and unit economics.",
-  designer: "Produces a complete design system and UI — not wireframes, not placeholders.",
-  developer: "Writes the full stack, streaming each file as it is created.",
-  integration: "Connects Stripe, auth, and other services your app needs — automatically.",
+  architect:
+    "Defines the system: data models, service boundaries, and how services communicate.",
+  business_improver:
+    "Validates the plan against real-world constraints and unit economics.",
+  designer:
+    "Produces a complete design system and UI — not wireframes, not placeholders.",
+  developer:
+    "Writes the full stack, streaming each file as it is created.",
+  integration:
+    "Connects Stripe, auth, and other services your app needs — automatically.",
   pm: "Evaluates the build against the plan and blocks anything below the quality bar.",
 };
 
-const AGENT_STATUS_LINES: Record<Agent["id"], string> = {
-  architect: "designing service graph",
-  business_improver: "checking unit economics",
-  designer: "generating design tokens",
-  developer: "scaffolding 32 files, 9 endpoints",
-  integration: "wiring Stripe + auth",
-  pm: "218 checks · quality gate",
-};
-
 const WORKFLOW_STEPS = [
-  { n: "01", t: "Describe", d: "Tell Forge what you want to build, in plain English." },
-  { n: "02", t: "Plan", d: "The architect drafts a typed blueprint and service graph." },
-  { n: "03", t: "Build", d: "Designer and developer ship the UI and backend in parallel." },
-  { n: "04", t: "Validate", d: "PM scores the build; a debug loop retries failures automatically." },
-  { n: "05", t: "Ship", d: "Every build syncs to GitHub and deploys as a container." },
+  {
+    n: "01",
+    t: "Describe",
+    d: "Tell Forge what you want to build, in plain English.",
+  },
+  {
+    n: "02",
+    t: "Plan",
+    d: "The architect drafts a typed blueprint and service graph.",
+  },
+  {
+    n: "03",
+    t: "Build",
+    d: "Designer and developer ship the UI and backend in parallel.",
+  },
+  {
+    n: "04",
+    t: "Validate",
+    d: "PM scores the build; a debug loop retries failures automatically.",
+  },
+  {
+    n: "05",
+    t: "Ship",
+    d: "Every build syncs to GitHub and deploys as a container.",
+  },
 ];
 
-interface Feature {
-  title: string;
-  description: string;
-  icon: typeof RefreshCw;
-}
-
-const FEATURES: Feature[] = [
+const FEATURES = [
   {
     title: "Self-correcting debug loop",
-    description: "Reruns the responsible agent automatically, up to three times, until the build passes validation.",
-    icon: RefreshCw,
+    description:
+      "Reruns the responsible agent automatically, up to three times, until the build passes validation.",
   },
   {
     title: "Shared project memory",
-    description: "Every agent reads and writes to the same project state, so context never gets lost between handoffs.",
-    icon: Layers,
+    description:
+      "Every agent reads and writes to the same project state, so context never gets lost between handoffs.",
   },
   {
     title: "Quality score on every build",
-    description: "Every build ships with a quality score, so you know what you are deploying.",
-    icon: BarChart3,
+    description:
+      "Every build ships with a quality score, so you know what you are deploying.",
   },
   {
     title: "Real stack, Docker deploy",
-    description: "Production-grade code on a real stack, containerized and ready to deploy.",
-    icon: Server,
+    description:
+      "Production-grade code on a real stack, containerized and ready to deploy.",
   },
   {
     title: "Playbook integrations",
-    description: "Stripe, Slack, and other services get wired in automatically when your app needs them.",
-    icon: WorkflowIcon,
+    description:
+      "Stripe, Slack, and other services get wired in automatically when your app needs them.",
   },
   {
     title: "GitHub sync",
-    description: "Every build pushes to a connected repo, so your code lives where your team already works.",
-    icon: Github,
+    description:
+      "Every build pushes to a connected repo, so your code lives where your team already works.",
   },
-  {
-    title: "Bring your own key",
-    description: "Use your own model key on the Pro plan for full control over usage and cost.",
-    icon: KeyRound,
-  },
-  {
-    title: "Provider-independent core",
-    description: "Forge runs on a model-agnostic gateway, so your build is not tied to one AI provider.",
-    icon: Network,
-  },
-];
-
-const PROBLEM_POINTS = [
-  { title: "Chat tools generate code.", body: "They do not reason about your product." },
-  { title: "Autocomplete speeds up typing.", body: "It does not decide what to build." },
-  { title: "Single-agent tools do it all alone.", body: "Architecture, UI, backend, tests — with nobody checking the work." },
 ];
 
 const WHY_FORGE_LINES = [
-  "Other tools generate code. Forge builds software.",
-  "Other tools show you a demo. Forge ships you a deploy.",
-  "Other tools guess what you meant. Forge's agents ask, plan, and validate.",
-  "Other tools lock you into their sandbox. Forge hands you the repo.",
-  "Other tools are one model pretending to be a team. Forge is a team.",
+  "Other tools generate code.",
+  "Forge builds software.",
+  "",
+  "Other tools show you a demo.",
+  "Forge ships you a deploy.",
+  "",
+  "Other tools guess what you meant.",
+  "Forge's agents ask, plan, and validate.",
+  "",
+  "Other tools lock you into their sandbox.",
+  "Forge hands you the repo.",
+  "",
+  "Other tools are one model pretending to be a team.",
+  "Forge is a team.",
 ];
 
 type CompareValue = "yes" | "no" | "partial";
@@ -163,39 +170,51 @@ interface CompareRow {
 }
 
 const COMPARE_ROWS: CompareRow[] = [
-  { capability: "Plans before building", promptToApp: "no", pairProgrammer: "no", singleAgent: "partial" },
-  { capability: "Specialist roles (PM, architect, QA…)", promptToApp: "no", pairProgrammer: "no", singleAgent: "no" },
-  { capability: "Shared project memory across steps", promptToApp: "no", pairProgrammer: "partial", singleAgent: "partial" },
-  { capability: "Automatic quality scoring", promptToApp: "no", pairProgrammer: "no", singleAgent: "no" },
-  { capability: "Self-correcting debug loop", promptToApp: "no", pairProgrammer: "no", singleAgent: "partial" },
-  { capability: "Real stack + container deploy", promptToApp: "partial", pairProgrammer: "no", singleAgent: "partial" },
-  { capability: "Own your code, no lock-in", promptToApp: "partial", pairProgrammer: "yes", singleAgent: "partial" },
+  {
+    capability: "Plans before building",
+    promptToApp: "no",
+    pairProgrammer: "no",
+    singleAgent: "partial",
+  },
+  {
+    capability: "Specialist roles (PM, architect, QA…)",
+    promptToApp: "no",
+    pairProgrammer: "no",
+    singleAgent: "no",
+  },
+  {
+    capability: "Shared project memory across steps",
+    promptToApp: "no",
+    pairProgrammer: "partial",
+    singleAgent: "partial",
+  },
+  {
+    capability: "Automatic quality scoring",
+    promptToApp: "no",
+    pairProgrammer: "no",
+    singleAgent: "no",
+  },
+  {
+    capability: "Self-correcting debug loop",
+    promptToApp: "no",
+    pairProgrammer: "no",
+    singleAgent: "partial",
+  },
+  {
+    capability: "Real stack + container deploy",
+    promptToApp: "partial",
+    pairProgrammer: "no",
+    singleAgent: "partial",
+  },
+  {
+    capability: "Own your code, no lock-in",
+    promptToApp: "partial",
+    pairProgrammer: "yes",
+    singleAgent: "partial",
+  },
 ];
 
-interface Segment {
-  icon: typeof Rocket;
-  title: string;
-  body: string;
-}
-
-const SEGMENTS: Segment[] = [
-  { icon: Rocket, title: "Founders & indie hackers", body: "Go from idea to a live product without hiring a technical co-founder." },
-  { icon: Briefcase, title: "Agencies", body: "Deliver client work faster without lowering your quality bar — every build is production-grade, not a demo you rebuild later." },
-  { icon: Users, title: "Product teams", body: "Turn backlog items into working, tested features your engineers just have to review and merge." },
-  { icon: Building2, title: "Enterprises & CTOs", body: "Give every team the output of a senior engineering org — reviewed, scored, and ready to merge." },
-];
-
-interface PricingPlan {
-  name: string;
-  price: string;
-  credits: string;
-  blurb: string;
-  features: string[];
-  cta: string;
-  featured?: boolean;
-}
-
-const PRICING_PLANS: PricingPlan[] = [
+const PRICING_PLANS = [
   {
     name: "Free",
     price: "$0",
@@ -209,17 +228,28 @@ const PRICING_PLANS: PricingPlan[] = [
     price: "$29",
     credits: "100 credits / month",
     blurb: "For builders shipping regularly.",
-    features: ["Unlimited projects", "Private builds", "GitHub sync"],
+    features: [
+      "Unlimited projects",
+      "Private builds",
+      "GitHub sync",
+    ],
     cta: "Choose Standard",
+    featured: true,
   },
   {
     name: "Pro",
     price: "$99",
     credits: "750 credits / month",
-    blurb: "Bring your own key, unlock the full team, publish to the marketplace.",
-    features: ["1M context window", "Bring your own key", "GitHub sync", "Marketplace publishing", "Usage overages available"],
+    blurb:
+      "Bring your own key, unlock the full team, publish to the marketplace.",
+    features: [
+      "1M context window",
+      "Bring your own key",
+      "GitHub sync",
+      "Marketplace publishing",
+      "Usage overages available",
+    ],
     cta: "Start building",
-    featured: true,
   },
 ];
 
@@ -253,86 +283,34 @@ const FAQS = [
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-    const id = window.setInterval(() => {
-      setActiveIndex((i) => (i + 1) % AGENTS.length);
-    }, 1600);
-    return () => window.clearInterval(id);
-  }, []);
-
   return (
-    <div className="launch-os w-full scroll-smooth text-ink">
-      <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <div className="launch-atmosphere absolute inset-0" />
-        <div className="launch-name-veil absolute inset-0" />
-      </div>
-
-      <div className="relative z-10 bg-base">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-land-ink focus:text-land-paper focus:text-sm focus:font-medium"
-        >
-          Skip to content
-        </a>
-        <Nav />
-        <main id="main-content">
-          <LandingPageBody />
-        </main>
-        <Footer />
-      </div>
+    <div className="w-full scroll-smooth bg-base text-ink min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-ink focus:text-base focus:text-sm focus:font-medium"
+      >
+        Skip to content
+      </a>
+      <Nav />
+      <main id="main-content">
+        <HeroSection />
+        <LandingPageBody />
+      </main>
+      <Footer />
     </div>
   );
 }
 
-// Everything below the hero — split out so Launch.tsx (the "/" splash) can
-// scroll straight from its globe into this same content instead of routing
-// away to /home. Owns its own scroll-reveal IntersectionObserver so it works
-// wherever it's mounted.
+// Everything below the hero — split out so Launch.tsx can embed it.
 export function LandingPageBody() {
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    const ctx = gsap.context(() => {
-      const targets = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal-section]"));
-      const io = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (!entry.isIntersecting) return;
-            const el = entry.target as HTMLElement;
-            gsap.from(el.querySelectorAll("[data-reveal]"), {
-              opacity: 0,
-              y: 28,
-              duration: 0.6,
-              ease: "power3.out",
-              stagger: 0.08,
-            });
-            io.unobserve(el);
-          });
-        },
-        { threshold: 0.15 },
-      );
-      targets.forEach((el) => io.observe(el));
-      return () => io.disconnect();
-    });
-    return () => ctx.revert();
-  }, [reduceMotion]);
-
   return (
     <>
-      <ProblemSection />
-      <SolutionSection />
+      <InferenceSection />
+      <AgentsSection />
       <WorkflowSection />
-      <Agents />
       <FeaturesSection />
       <WhyForgeSection />
       <ComparisonSection />
-      <CustomerBenefitsSection />
-      <TrustSection />
       <PricingSection />
       <FAQSection />
       <FinalCTA />
@@ -344,24 +322,30 @@ export function LandingPageBody() {
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    window.addEventListener("scroll", onScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5">
+    <header className="fixed inset-x-0 top-0 z-50">
       <div
         className={[
-          "mx-auto max-w-content rounded-apple-lg px-4 transition-all duration-300 sm:px-5",
-          scrolled ? "apple-glass-strong" : "apple-glass",
+          "mx-auto transition-all duration-500",
+          scrolled
+            ? "apple-glass-strong border-b border-border-soft"
+            : "bg-transparent",
         ].join(" ")}
       >
-        <nav aria-label="Primary" className="flex h-14 items-center justify-between md:h-16">
+        <nav
+          aria-label="Primary"
+          className="max-w-[1200px] mx-auto flex h-16 md:h-[72px] items-center justify-between px-6 md:px-12 lg:px-20"
+        >
           <a
             href="#top"
-            className="flex items-center gap-2.5 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="flex items-center gap-2.5 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
           >
             <BrandLogo size="md" />
             <span className="font-brand text-[17px] font-semibold tracking-tight text-ink">
@@ -369,31 +353,38 @@ export function Nav() {
             </span>
           </a>
 
-          <div className="hidden items-center gap-8 text-[13px] font-medium text-muted md:flex">
-            <a href="#agents" className="transition hover:text-ink">
-              Agents
-            </a>
-            <a href="#workflow" className="transition hover:text-ink">
-              Workflow
-            </a>
-            <a href="#features" className="transition hover:text-ink">
-              Features
-            </a>
-            <a href="#pricing" className="transition hover:text-ink">
-              Pricing
-            </a>
+          <div className="hidden items-center gap-10 text-[14px] font-medium text-muted md:flex">
+            {[
+              { label: "Platform", href: "#solution" },
+              { label: "Agents", href: "#agents" },
+              { label: "Workflow", href: "#workflow" },
+              { label: "Pricing", href: "#pricing" },
+            ].map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className="relative py-1 transition-colors duration-200 hover:text-ink group"
+              >
+                {link.label}
+                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-ink transition-all duration-300 group-hover:w-full" />
+              </a>
+            ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link to="/login" className="text-[14px] font-medium text-muted transition hover:text-ink">
+          <div className="flex items-center gap-4">
+            <Link
+              to="/login"
+              className="hidden sm:inline-flex text-[14px] font-medium text-muted transition-colors duration-200 hover:text-ink"
+            >
               Sign in
             </Link>
             <motion.div {...presets.button}>
               <Link
                 to="/signup"
-                className="inline-flex items-center rounded-full bg-accent px-4 py-2 text-[14px] font-medium text-white transition hover:brightness-110"
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-base transition-all duration-200 hover:bg-ink/85"
               >
                 Start building
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
               </Link>
             </motion.div>
           </div>
@@ -405,192 +396,196 @@ export function Nav() {
 
 // ─── Hero ───────────────────────────────────────────────────────────────────
 
-function Hero({ activeIndex }: { activeIndex: number }) {
-  const reduceMotion = useReducedMotion();
-  // anime.js staggered reveal of the simulated build transcript lines
-  useStaggerIn("[data-hero-transcript] [data-line]", 70);
-  // SplitType + GSAP word-by-word reveal of the headline
-  const headlineRef = useRef<HTMLHeadingElement>(null);
-  useSplitTextReveal(headlineRef, { by: "words", stagger: 0.025, delay: 0.15 });
+function HeroSection() {
+  const { scrollY } = useScroll();
+  const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
+  const heroY = useTransform(scrollY, [0, 600], [0, -60]);
 
   return (
-    <section id="top" className="pt-28 pb-36">
-      <div className="max-w-6xl mx-auto px-6">
-        <motion.div
-          className="max-w-3xl"
-          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="inline-flex items-center gap-2 text-xs text-land-muted mb-8" data-reveal>
-            <span className="w-1.5 h-1.5 rounded-full bg-land-accent" aria-hidden="true" />
-            The AI engineering organization — live now
-          </div>
+    <section
+      id="top"
+      className="relative min-h-[100dvh] flex flex-col justify-end pb-20 md:pb-28 pt-32"
+    >
+      <motion.div
+        style={{ opacity: heroOpacity, y: heroY }}
+        className="px-6 md:px-12 lg:px-20"
+      >
+        <div className="max-w-[1200px] mx-auto">
+          <Reveal>
+            <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+              The AI engineering organization
+            </p>
+          </Reveal>
 
-          <h1
-            ref={headlineRef}
-            data-reveal
-            className="font-display text-5xl md:text-7xl font-medium leading-[1.02] tracking-tight"
-          >
-            Software, engineered.
-            <br />
-            <span className="text-land-muted">Not generated.</span>
-          </h1>
+          <Reveal delay={0.08}>
+            <h1 className="font-display text-[clamp(3rem,8vw,6.5rem)] font-medium leading-[1.02] tracking-[-0.04em] max-w-[900px]">
+              Software,
+              <br />
+              engineered.
+            </h1>
+          </Reveal>
 
-          <motion.p
-            data-reveal
-            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-8 text-lg text-land-muted max-w-xl leading-relaxed"
-          >
-            Forge sends your prompt to a team of specialist agents — architecture, design, engineering,
-            integration, and review — that plan, build, and validate a working app, then ship it to GitHub
-            and deploy it as a container.
-          </motion.p>
+          <Reveal delay={0.16}>
+            <p className="mt-8 text-[19px] md:text-[21px] text-muted max-w-[560px] leading-relaxed">
+              Turn ideas into production-ready software. Describe what you want,
+              and a team of specialist agents plans, builds, and ships it.
+            </p>
+          </Reveal>
 
-          <div className="mt-10 flex flex-col sm:flex-row gap-3" data-reveal>
-            <motion.div {...presets.button}>
-              <Link
-                to="/signup"
-                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition"
-              >
-                Start building — free <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Link>
-            </motion.div>
-            <motion.div {...presets.button}>
-              <a
-                href="#build-demo"
-                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md text-sm font-medium text-land-muted hover:text-land-ink transition"
-              >
-                <Play className="w-4 h-4" aria-hidden="true" /> Watch the team work
-              </a>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Terminal-style build transcript */}
-        <motion.div
-          id="build-demo"
-          data-hero-transcript
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-24 border border-land-border rounded-lg overflow-hidden max-w-4xl"
-        >
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-land-border bg-land-muted-bg/30">
-            <div className="flex gap-1.5" aria-hidden="true">
-              <span className="w-2.5 h-2.5 rounded-full bg-land-border" />
-              <span className="w-2.5 h-2.5 rounded-full bg-land-border" />
-              <span className="w-2.5 h-2.5 rounded-full bg-land-border" />
+          <Reveal delay={0.24}>
+            <div className="mt-10 flex flex-col sm:flex-row gap-4">
+              <motion.div {...presets.button}>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full bg-ink text-base text-[15px] font-medium transition-all duration-200 hover:bg-ink/85"
+                >
+                  Start building — free
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
+              </motion.div>
+              <motion.div {...presets.button}>
+                <a
+                  href="#solution"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full border border-border text-[15px] font-medium text-ink transition-all duration-200 hover:bg-inlay-hover"
+                >
+                  See how it works
+                </a>
+              </motion.div>
             </div>
-            <span className="font-mono text-xs text-land-muted ml-2">forge · build session</span>
-            <span className="ml-auto text-[10px] uppercase tracking-wide text-land-muted/70">Simulated example</span>
-          </div>
-          <div className="p-6 font-mono text-sm space-y-2 leading-relaxed" role="group" aria-label="Simulated build transcript example">
-            <div className="text-land-muted" data-line>
-              $ forge build "Build a habit tracker with streaks and reminders."
-            </div>
-            {AGENTS.map((agent, i) => {
-              const isDone = i < activeIndex;
-              const isActive = i === activeIndex;
-              const status = isDone ? "ok" : isActive ? "running" : "queued";
-              const statusClass = isDone || isActive ? "text-land-accent" : "text-land-muted";
-              return (
-                <div key={agent.id} data-line>
-                  <span className="text-land-ink">{agent.id.replace("_", " ")}</span>{"  "}
-                  <span className="text-land-muted">{AGENT_STATUS_LINES[agent.id]}</span>{"  "}
-                  <span className={statusClass}>→ {status}</span>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-      </div>
+          </Reveal>
+        </div>
+      </motion.div>
+
+      <Reveal className="absolute bottom-8 left-1/2 -translate-x-1/2" delay={0.5}>
+        <div className="flex flex-col items-center gap-2 text-muted/50">
+          <span className="text-[11px] tracking-widest uppercase">Scroll</span>
+          <div className="w-px h-8 bg-gradient-to-b from-muted/30 to-transparent" />
+        </div>
+      </Reveal>
     </section>
   );
 }
 
-// ─── Problem ────────────────────────────────────────────────────────────────
+// ─── Inference / Problem + Solution combined ─────────────────────────────────
 
-function ProblemSection() {
+function InferenceSection() {
   return (
-    <Section id="problem">
-      <SectionHead
-        eyebrow="The problem"
-        title={<>AI made it easy to start.<br />It did not make it easy to ship.</>}
-        subtitle="Prompt-to-app tools get you a demo in an afternoon. Then reality arrives: broken auth, no tests, a schema you cannot explain, and code your team does not want to touch."
-      />
-      <div className="grid md:grid-cols-3 gap-px bg-land-border">
-        {PROBLEM_POINTS.map((p) => (
-          <motion.div key={p.title} data-reveal {...presets.card}>
-            <div className="bg-land-paper p-8 h-full">
-              <h3 className="font-display font-medium mb-2 text-land-ink">{p.title}</h3>
-              <p className="text-sm text-land-muted leading-relaxed">{p.body}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <p className="mt-10 font-display text-xl md:text-2xl text-land-ink max-w-2xl" data-reveal>
-        You do not need faster typing. You need a team that knows what production means.
-      </p>
-    </Section>
-  );
-}
+    <Section id="solution" className="py-32 md:py-44">
+      <Reveal>
+        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+          Every customer served.
+        </p>
+      </Reveal>
 
-// ─── Solution ───────────────────────────────────────────────────────────────
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+          Every product sold.
+          <br />
+          Every commit merged.
+          <br />
+          Every agent task completed.
+        </h2>
+      </Reveal>
 
-function SolutionSection() {
-  return (
-    <Section id="solution">
-      <SectionHead
-        eyebrow="The solution"
-        title={<>Forge runs the org.<br />You run the vision.</>}
-        subtitle="Every build goes through the same discipline a real engineering team uses — product thinking, architecture, design, implementation, integration, and review — orchestrated automatically."
-      />
-      <p className="max-w-2xl text-land-muted leading-relaxed" data-reveal>
-        You describe what you want. Forge assembles the right specialists, gives them shared context and a
-        single source of truth for your project, and does not stop until the build passes its own quality bar.
-        What ships is code you can read, deploy, and own.
-      </p>
-          <div className="mt-10" data-reveal>
-            <motion.div {...presets.button} className="inline-block">
-              <Link
-                to="/signup"
-                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition"
-              >
-                Start your first build <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Link>
-            </motion.div>
-            <p className="mt-3 text-xs text-land-muted">Average build: under 15 minutes.</p>
-          </div>
+      <Reveal delay={0.12}>
+        <p className="mt-12 text-[19px] md:text-[21px] text-muted max-w-[600px] leading-relaxed">
+          Training creates the possibility.
+          <br />
+          Inference creates the value.
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.18}>
+        <p className="mt-8 text-[19px] md:text-[21px] text-muted max-w-[600px] leading-relaxed">
+          The more we ask of AI, the more inference it takes. And inference is
+          becoming the bottleneck.
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.24}>
+        <p className="mt-8 text-[19px] md:text-[21px] text-ink max-w-[600px] leading-relaxed font-medium">
+          Forge was built for this.
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.3}>
+        <p className="mt-8 text-[19px] md:text-[21px] text-muted max-w-[700px] leading-relaxed">
+          We pioneered the multi-agent architecture. Specialist agents —
+          architect, designer, developer, integration, and review — work together
+          with shared context to plan, build, and validate production-grade
+          software, reliably, affordably, at scale.
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.36}>
+        <p className="mt-8 text-[19px] md:text-[21px] text-muted max-w-[700px] leading-relaxed">
+          Fast or affordable is no longer a tradeoff.
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.42}>
+        <p className="mt-8 text-[19px] md:text-[21px] text-ink max-w-[700px] leading-relaxed font-medium">
+          Forge makes software engineering work at scale.
+        </p>
+      </Reveal>
     </Section>
   );
 }
 
 // ─── Agents ─────────────────────────────────────────────────────────────────
 
-function Agents() {
+function AgentsSection() {
   return (
-    <Section id="agents">
-      <SectionHead
-        eyebrow="Multi-agent architecture"
-        title={<>Meet the team behind every build.</>}
-        subtitle="Each agent reads the same project memory and hands off automatically — no prompting required between steps."
-      />
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-land-border">
-        {AGENTS.map((agent) => {
-          const Icon = agent.icon;
-          return (
-            <motion.div key={agent.id} data-reveal {...presets.card}>
-              <div className="bg-land-paper p-8 h-full">
-                <Icon className="w-5 h-5 mb-6 text-land-muted" strokeWidth={1.5} aria-hidden="true" />
-                <h3 className="font-display font-medium mb-2 text-land-ink">{agent.label}</h3>
-                <p className="text-sm text-land-muted leading-relaxed">{AGENT_DESCRIPTIONS[agent.id]}</p>
+    <Section id="agents" className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+          Multi-agent architecture
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+          The team behind every build.
+        </h2>
+      </Reveal>
+
+      <Reveal delay={0.12}>
+        <p className="mt-8 text-[19px] md:text-[21px] text-muted max-w-[600px] leading-relaxed">
+          Each agent reads the same project memory and hands off automatically —
+          no prompting required between steps.
+        </p>
+      </Reveal>
+
+      <div className="mt-20 grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border-soft">
+        {AGENTS.map((agent, i) => (
+          <Reveal key={agent.id} delay={0.05 * i}>
+            <motion.div
+              className="bg-base p-10 h-full"
+              whileHover={{
+                backgroundColor: "rgb(var(--inlay-hover))",
+                transition: { duration: 0.3 },
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center mb-8"
+                style={{ background: `${agent.hue}10` }}
+              >
+                <agent.icon
+                  size={18}
+                  strokeWidth={1.5}
+                  style={{ color: agent.hue }}
+                  aria-hidden="true"
+                />
               </div>
+              <h3 className="font-display text-[17px] font-medium mb-3 text-ink">
+                {agent.label}
+              </h3>
+              <p className="text-[15px] text-muted leading-relaxed">
+                {AGENT_DESCRIPTIONS[agent.id]}
+              </p>
             </motion.div>
-          );
-        })}
+          </Reveal>
+        ))}
       </div>
     </Section>
   );
@@ -600,17 +595,36 @@ function Agents() {
 
 function WorkflowSection() {
   return (
-    <Section id="workflow">
-      <SectionHead eyebrow="How it works" title="From prompt to production, one handoff at a time." />
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-land-border">
-        {WORKFLOW_STEPS.map((s) => (
-          <motion.div key={s.n} data-reveal {...presets.card}>
-            <div className="bg-land-paper p-6 h-full">
-              <div className="font-mono text-xs text-land-muted mb-6">{s.n}</div>
-              <div className="font-display font-medium mb-1.5 text-land-ink">{s.t}</div>
-              <div className="text-sm text-land-muted leading-relaxed">{s.d}</div>
+    <Section id="workflow" className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+          How it works
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+          From prompt to production.
+          <br />
+          One handoff at a time.
+        </h2>
+      </Reveal>
+
+      <div className="mt-20 grid grid-cols-1 md:grid-cols-5 gap-px bg-border-soft">
+        {WORKFLOW_STEPS.map((s, i) => (
+          <Reveal key={s.n} delay={0.06 * i}>
+            <div className="bg-base p-8 md:p-10 h-full">
+              <div className="font-mono text-[12px] text-muted/60 mb-8">
+                {s.n}
+              </div>
+              <div className="font-display text-[17px] font-medium mb-3 text-ink">
+                {s.t}
+              </div>
+              <div className="text-[15px] text-muted leading-relaxed">
+                {s.d}
+              </div>
             </div>
-          </motion.div>
+          </Reveal>
         ))}
       </div>
     </Section>
@@ -621,21 +635,38 @@ function WorkflowSection() {
 
 function FeaturesSection() {
   return (
-    <Section id="features">
-      <SectionHead eyebrow="Features" title="Built for real work." />
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-land-border">
-        {FEATURES.map((f) => {
-          const Icon = f.icon;
-          return (
-            <motion.div key={f.title} data-reveal {...presets.card}>
-              <div className="bg-land-paper p-8 h-full">
-                <Icon className="w-5 h-5 mb-5 text-land-muted" strokeWidth={1.5} aria-hidden="true" />
-                <h3 className="font-display font-medium mb-2 text-land-ink">{f.title}</h3>
-                <p className="text-sm text-land-muted leading-relaxed">{f.description}</p>
-              </div>
+    <Section id="features" className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+          Features
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+          Built for real work.
+        </h2>
+      </Reveal>
+
+      <div className="mt-20 grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border-soft">
+        {FEATURES.map((f, i) => (
+          <Reveal key={f.title} delay={0.04 * i}>
+            <motion.div
+              className="bg-base p-10 h-full"
+              whileHover={{
+                backgroundColor: "rgb(var(--inlay-hover))",
+                transition: { duration: 0.3 },
+              }}
+            >
+              <h3 className="font-display text-[17px] font-medium mb-3 text-ink">
+                {f.title}
+              </h3>
+              <p className="text-[15px] text-muted leading-relaxed">
+                {f.description}
+              </p>
             </motion.div>
-          );
-        })}
+          </Reveal>
+        ))}
       </div>
     </Section>
   );
@@ -645,89 +676,33 @@ function FeaturesSection() {
 
 function WhyForgeSection() {
   return (
-    <Section id="why">
-      <SectionHead eyebrow="Why Forge" title="Because shipping is the point." />
-      <ul className="space-y-6">
-        {WHY_FORGE_LINES.map((line, i) => (
-          <li
-            key={line}
-            data-reveal
-            className={`font-display text-2xl md:text-3xl leading-snug tracking-tight ${
-              i % 2 === 0 ? "text-land-ink" : "text-land-muted"
-            }`}
-          >
-            {line}
-          </li>
-        ))}
-      </ul>
-    </Section>
-  );
-}
+    <Section id="why" className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+          Why Forge
+        </p>
+      </Reveal>
 
-// ─── Comparison ─────────────────────────────────────────────────────────────
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+          Because shipping is the point.
+        </h2>
+      </Reveal>
 
-function CompareMark({ value }: { value: CompareValue }) {
-  if (value === "yes") return <Check className="w-4 h-4 text-land-accent inline" strokeWidth={2} aria-label="Yes" />;
-  if (value === "partial") return <Minus className="w-4 h-4 text-land-muted inline" strokeWidth={2} aria-label="Partial" />;
-  return <X className="w-4 h-4 text-land-muted/40 inline" strokeWidth={2} aria-label="No" />;
-}
-
-function ComparisonSection() {
-  return (
-    <Section id="compare">
-      <SectionHead
-        eyebrow="Comparison"
-        title="Not another way to generate code."
-        subtitle="Here is what changes when a team plans, builds, and reviews your software — instead of one model guessing at all of it."
-      />
-      <div className="overflow-x-auto" data-reveal>
-        <table className="w-full text-sm border-collapse min-w-[640px]">
-          <thead>
-            <tr className="border-b border-land-border text-left">
-              <th className="py-3 pr-4 font-normal text-land-muted">Capability</th>
-              <th className="py-3 px-4 font-normal text-land-muted text-center">Prompt-to-app tools</th>
-              <th className="py-3 px-4 font-normal text-land-muted text-center">AI pair programmers</th>
-              <th className="py-3 px-4 font-normal text-land-muted text-center">Autonomous single agents</th>
-              <th className="py-3 pl-4 font-medium text-land-ink text-center">Forge AI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {COMPARE_ROWS.map((row) => (
-              <tr key={row.capability} className="border-b border-land-border">
-                <td className="py-4 pr-4 text-land-ink">{row.capability}</td>
-                <td className="py-4 px-4 text-center"><CompareMark value={row.promptToApp} /></td>
-                <td className="py-4 px-4 text-center"><CompareMark value={row.pairProgrammer} /></td>
-                <td className="py-4 px-4 text-center"><CompareMark value={row.singleAgent} /></td>
-                <td className="py-3 pl-4 text-center bg-land-muted-bg/40">
-                  <Check className="w-4 h-4 text-land-accent inline" strokeWidth={2} aria-label="Yes" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-6 text-xs text-land-muted" data-reveal>We built this table to be fair. Judge it yourself.</p>
-    </Section>
-  );
-}
-
-// ─── Customer Benefits ──────────────────────────────────────────────────────
-
-function CustomerBenefitsSection() {
-  return (
-    <Section id="benefits">
-      <SectionHead eyebrow="Who it is for" title="Built for whoever has to ship." />
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-land-border">
-        {SEGMENTS.map((s) => {
-          const Icon = s.icon;
+      <div className="mt-20 max-w-[800px]">
+        {WHY_FORGE_LINES.map((line, i) => {
+          if (line === "") return <div key={i} className="h-6" />;
+          const isEmphasis = i % 4 === 1 || i % 4 === 3;
           return (
-            <motion.div key={s.title} data-reveal {...presets.card}>
-              <div className="bg-land-paper p-8 h-full">
-                <Icon className="w-5 h-5 mb-5 text-land-muted" strokeWidth={1.5} aria-hidden="true" />
-                <h3 className="font-display font-medium mb-2 text-land-ink">{s.title}</h3>
-                <p className="text-sm text-land-muted leading-relaxed">{s.body}</p>
-              </div>
-            </motion.div>
+            <Reveal key={i} delay={0.02 * i}>
+              <p
+                className={`text-[clamp(1.5rem,3vw,2.5rem)] leading-[1.2] tracking-[-0.025em] font-medium ${
+                  isEmphasis ? "text-ink" : "text-muted"
+                }`}
+              >
+                {line}
+              </p>
+            </Reveal>
           );
         })}
       </div>
@@ -735,25 +710,105 @@ function CustomerBenefitsSection() {
   );
 }
 
-// ─── Trust ───────────────────────────────────────────────────────────────────
+// ─── Comparison ─────────────────────────────────────────────────────────────
 
-function TrustSection() {
-  const items = [
-    { icon: Lock, label: "Encrypted data" },
-    { icon: ShieldCheck, label: "SOC 2 in progress" },
-    { icon: Globe, label: "GDPR compliant" },
-    { icon: Zap, label: "99.9% uptime SLA" },
-  ];
+function CompareMark({ value }: { value: CompareValue }) {
+  if (value === "yes")
+    return (
+      <Check
+        className="w-4 h-4 text-ink inline"
+        strokeWidth={2}
+        aria-label="Yes"
+      />
+    );
+  if (value === "partial")
+    return (
+      <Minus
+        className="w-4 h-4 text-muted inline"
+        strokeWidth={2}
+        aria-label="Partial"
+      />
+    );
   return (
-    <Section id="trust">
-      <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-        {items.map(({ icon: Icon, label }) => (
-          <div key={label} className="flex items-center gap-2 text-land-muted">
-            <Icon size={16} strokeWidth={1.5} aria-hidden="true" />
-            <span className="text-xs font-medium tracking-wide uppercase">{label}</span>
-          </div>
-        ))}
-      </div>
+    <X
+      className="w-4 h-4 text-muted/30 inline"
+      strokeWidth={2}
+      aria-label="No"
+    />
+  );
+}
+
+function ComparisonSection() {
+  return (
+    <Section id="compare" className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+          Comparison
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+          Not another way to generate code.
+        </h2>
+      </Reveal>
+
+      <Reveal delay={0.12}>
+        <p className="mt-8 text-[19px] text-muted max-w-[600px] leading-relaxed">
+          Here is what changes when a team plans, builds, and reviews your
+          software — instead of one model guessing at all of it.
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.18}>
+        <div className="mt-16 overflow-x-auto">
+          <table className="w-full text-[14px] border-collapse min-w-[640px]">
+            <thead>
+              <tr className="border-b border-border-soft text-left">
+                <th className="py-4 pr-4 font-normal text-muted">Capability</th>
+                <th className="py-4 px-4 font-normal text-muted text-center">
+                  Prompt-to-app tools
+                </th>
+                <th className="py-4 px-4 font-normal text-muted text-center">
+                  AI pair programmers
+                </th>
+                <th className="py-4 px-4 font-normal text-muted text-center">
+                  Autonomous single agents
+                </th>
+                <th className="py-3 pl-4 font-medium text-ink text-center">
+                  Forge AI
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE_ROWS.map((row) => (
+                <tr
+                  key={row.capability}
+                  className="border-b border-border-soft"
+                >
+                  <td className="py-5 pr-4 text-ink">{row.capability}</td>
+                  <td className="py-5 px-4 text-center">
+                    <CompareMark value={row.promptToApp} />
+                  </td>
+                  <td className="py-5 px-4 text-center">
+                    <CompareMark value={row.pairProgrammer} />
+                  </td>
+                  <td className="py-5 px-4 text-center">
+                    <CompareMark value={row.singleAgent} />
+                  </td>
+                  <td className="py-5 pl-4 text-center bg-inlay-subtle">
+                    <Check
+                      className="w-4 h-4 text-ink inline"
+                      strokeWidth={2}
+                      aria-label="Yes"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
     </Section>
   );
 }
@@ -762,45 +817,84 @@ function TrustSection() {
 
 function PricingSection() {
   return (
-    <Section id="pricing">
-      <SectionHead eyebrow="Pricing" title="Start free. Scale when it ships." subtitle="Credits cover agent work. A typical build runs about 13." />
-      <div className="grid md:grid-cols-3 gap-px bg-land-border border border-land-border">
-        {PRICING_PLANS.map((plan) => (
-          <motion.div
-            key={plan.name}
-            data-reveal
-            whileHover={{ y: -4, scale: plan.featured ? 1.02 : 1.0, transition: { type: "spring", stiffness: 300, damping: 22 } }}
-            className={`bg-land-paper p-8 flex flex-col ${plan.featured ? "relative" : ""}`}
-          >
-            {plan.featured && <div className="absolute top-0 left-0 right-0 h-px bg-land-accent" aria-hidden="true" />}
-            <h3 className="font-display font-medium text-land-ink">{plan.name}</h3>
-            <div className="mt-6 flex items-baseline gap-2">
-              <span className="font-display text-4xl font-medium tracking-tight text-land-ink">{plan.price}</span>
-              <span className="text-sm text-land-muted">/mo</span>
-            </div>
-            <p className="text-xs text-land-muted mt-1">{plan.credits}</p>
-            <p className="text-xs text-land-muted/80 mt-0.5 mb-6">{plan.blurb}</p>
-            <motion.div {...presets.button}>
-              <Link
-                to="/signup"
-                className={`w-full text-center py-2.5 rounded-md text-sm font-medium block transition ${
-                  plan.featured
-                    ? "bg-land-ink text-land-paper hover:bg-land-ink/90"
-                    : "border border-land-border text-land-ink hover:bg-land-muted-bg"
-                }`}
-              >
-                {plan.cta}
-              </Link>
+    <Section id="pricing" className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+          Pricing
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+          Start free. Scale when it ships.
+        </h2>
+      </Reveal>
+
+      <Reveal delay={0.12}>
+        <p className="mt-8 text-[19px] text-muted max-w-[500px] leading-relaxed">
+          Credits cover agent work. A typical build runs about 13.
+        </p>
+      </Reveal>
+
+      <div className="mt-20 grid md:grid-cols-3 gap-px bg-border-soft border border-border-soft">
+        {PRICING_PLANS.map((plan, i) => (
+          <Reveal key={plan.name} delay={0.06 * i}>
+            <motion.div
+              className="bg-base p-10 flex flex-col relative"
+              whileHover={{
+                y: -4,
+                transition: {
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 22,
+                },
+              }}
+            >
+              {plan.featured && (
+                <div
+                  className="absolute top-0 left-0 right-0 h-px bg-ink"
+                  aria-hidden="true"
+                />
+              )}
+              <h3 className="font-display text-[17px] font-medium text-ink">
+                {plan.name}
+              </h3>
+              <div className="mt-8 flex items-baseline gap-2">
+                <span className="font-display text-[40px] font-medium tracking-[-0.03em] text-ink">
+                  {plan.price}
+                </span>
+                <span className="text-[14px] text-muted">/mo</span>
+              </div>
+              <p className="text-[13px] text-muted mt-1">{plan.credits}</p>
+              <p className="text-[13px] text-muted/70 mt-0.5 mb-8">
+                {plan.blurb}
+              </p>
+              <motion.div {...presets.button}>
+                <Link
+                  to="/signup"
+                  className={`w-full text-center py-3 rounded-full text-[14px] font-medium block transition-all duration-200 ${
+                    plan.featured
+                      ? "bg-ink text-base hover:bg-ink/85"
+                      : "border border-border text-ink hover:bg-inlay-hover"
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </motion.div>
+              <ul className="mt-10 space-y-4 text-[14px]">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <Check
+                      className="w-4 h-4 text-muted mt-0.5 shrink-0"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                    <span className="text-muted">{f}</span>
+                  </li>
+                ))}
+              </ul>
             </motion.div>
-            <ul className="mt-8 space-y-3 text-sm">
-              {plan.features.map((f) => (
-                <li key={f} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-land-muted mt-0.5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-                  <span className="text-land-muted">{f}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
+          </Reveal>
         ))}
       </div>
     </Section>
@@ -811,20 +905,32 @@ function PricingSection() {
 
 function FAQSection() {
   return (
-    <Section>
-      <div className="grid lg:grid-cols-[1fr_2fr] gap-16">
+    <Section className="py-32 md:py-44 border-t border-border-soft">
+      <div className="grid lg:grid-cols-[1fr_2fr] gap-16 lg:gap-24">
         <div>
-          <Eyebrow>FAQ</Eyebrow>
-          <h2 className="font-display text-4xl md:text-5xl font-medium leading-[1.05] tracking-tight text-land-ink">
-            Questions, answered.
-          </h2>
+          <Reveal>
+            <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+              FAQ
+            </p>
+          </Reveal>
+          <Reveal delay={0.06}>
+            <h2 className="font-display text-[clamp(2.5rem,4vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.035em] text-ink">
+              Questions,
+              <br />
+              answered.
+            </h2>
+          </Reveal>
         </div>
         <dl>
-          {FAQS.map((f) => (
-            <div key={f.q} data-reveal className="border-b border-land-border py-5">
-              <dt className="font-medium text-land-ink">{f.q}</dt>
-              <dd className="text-land-muted leading-relaxed mt-2">{f.a}</dd>
-            </div>
+          {FAQS.map((f, i) => (
+            <Reveal key={f.q} delay={0.03 * i}>
+              <div className="border-b border-border-soft py-6">
+                <dt className="font-medium text-[16px] text-ink">{f.q}</dt>
+                <dd className="text-[15px] text-muted leading-relaxed mt-3">
+                  {f.a}
+                </dd>
+              </div>
+            </Reveal>
           ))}
         </dl>
       </div>
@@ -835,33 +941,29 @@ function FAQSection() {
 // ─── Final CTA ──────────────────────────────────────────────────────────────
 
 function FinalCTA() {
-  const reduceMotion = useReducedMotion();
   return (
-    <Section>
-      <motion.div
-        className="max-w-3xl"
-        initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        data-reveal
-      >
-        <h2 className="font-display text-5xl md:text-7xl font-medium tracking-tight leading-[1.02] text-land-ink">
+    <Section className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <h2 className="font-display text-[clamp(3rem,7vw,5.5rem)] font-medium tracking-[-0.04em] leading-[1.02]">
           Your next app is
           <br />
-          <span className="text-land-muted">one prompt away.</span>
+          one prompt away.
         </h2>
-        <p className="mt-5 text-land-muted">Free to start. No card. No setup.</p>
-        <div className="mt-10">
+        <p className="mt-6 text-[19px] text-muted">
+          Free to start. No card. No setup.
+        </p>
+        <div className="mt-12">
           <motion.div {...presets.button}>
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 transition"
+              className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full bg-ink text-base text-[15px] font-medium transition-all duration-200 hover:bg-ink/85"
             >
-              Start building free <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              Start building free
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Link>
           </motion.div>
         </div>
-      </motion.div>
+      </Reveal>
     </Section>
   );
 }
@@ -870,21 +972,110 @@ function FinalCTA() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-land-border py-16">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-3">
-          <BrandLogo size="sm" />
-          <span className="font-display font-medium text-land-ink">Forge</span>
-          <span className="hidden sm:inline text-xs text-land-muted">The AI engineering organization.</span>
+    <footer className="border-t border-border-soft">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-12 lg:px-20 py-16 md:py-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-2.5 mb-4">
+              <BrandLogo size="sm" />
+              <span className="font-brand text-[16px] font-semibold tracking-tight text-ink">
+                Forge
+              </span>
+            </div>
+            <p className="text-[14px] text-muted leading-relaxed max-w-[280px]">
+              The AI engineering organization. Turn ideas into production-ready
+              software.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-5">
+              Product
+            </h4>
+            <ul className="space-y-3">
+              {["Platform", "Agents", "Workflow", "Pricing"].map((item) => (
+                <li key={item}>
+                  <a
+                    href={`#${item.toLowerCase()}`}
+                    className="text-[14px] text-muted hover:text-ink transition-colors duration-200"
+                  >
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-5">
+              Company
+            </h4>
+            <ul className="space-y-3">
+              {[
+                { label: "GitHub", href: "https://github.com" },
+                { label: "Blog", href: "#" },
+                { label: "Contact", href: "#" },
+              ].map((item) => (
+                <li key={item.label}>
+                  <a
+                    href={item.href}
+                    target={item.href.startsWith("http") ? "_blank" : undefined}
+                    rel={
+                      item.href.startsWith("http")
+                        ? "noopener noreferrer"
+                        : undefined
+                    }
+                    className="text-[14px] text-muted hover:text-ink transition-colors duration-200 inline-flex items-center gap-1"
+                  >
+                    {item.label}
+                    {item.href.startsWith("http") && (
+                      <ArrowUpRight
+                        className="w-3 h-3 opacity-40"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-5">
+              Legal
+            </h4>
+            <ul className="space-y-3">
+              {["Terms", "Privacy", "Security"].map((item) => (
+                <li key={item}>
+                  <span
+                    className="text-[14px] text-muted transition-colors duration-200 cursor-default"
+                    role="link"
+                    aria-disabled="true"
+                  >
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <nav aria-label="Footer" className="flex items-center gap-6 text-sm text-land-muted">
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-land-ink transition">
-            <Github size={13} aria-hidden="true" /> GitHub
-          </a>
-        </nav>
-
-        <p className="text-xs text-land-muted">© {new Date().getFullYear()} Forge</p>
+        <div className="mt-16 pt-8 border-t border-border-soft flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-[13px] text-muted/60">
+            © {new Date().getFullYear()} Forge AI. All rights reserved.
+          </p>
+          <div className="flex items-center gap-5">
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted/60 hover:text-ink transition-colors duration-200"
+              aria-label="GitHub"
+            >
+              <Github size={16} aria-hidden="true" />
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );
