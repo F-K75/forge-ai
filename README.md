@@ -250,7 +250,7 @@ uvicorn main:app --reload --port 8100
 | `RAZORPAY_*` | Razorpay credentials for the India market (optional) |
 | `RESEND_API_KEY` | Transactional email |
 | `APP_URL` / `API_URL` | Public endpoints |
-| `ADMIN_EMAILS` | Admin allowlist |
+| `ADMIN_EMAILS` | Emails promoted to admin on register / startup; console still requires MFA |
 | `MONGO_PASSWORD` / `REDIS_PASSWORD` | Docker secrets |
 | `ALLOWED_HOSTS` | Trusted host allowlist (comma-separated) |
 | `ALLOWED_ORIGINS` | CORS allowlist (comma-separated or JSON array) |

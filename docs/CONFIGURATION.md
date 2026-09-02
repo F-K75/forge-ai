@@ -66,7 +66,7 @@ configured:**
 | `JWT_ALGORITHM` / `JWT_EXPIRE_MINUTES` | `HS256` / 10080 (7 days) |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_WEBHOOK_SECRET` | GitHub OAuth + repo sync + PM task webhooks |
 | `RESEND_API_KEY` / `FROM_EMAIL` | Transactional email |
-| `ADMIN_EMAILS` | Comma-separated admin allowlist |
+| `ADMIN_EMAILS` | Comma-separated emails promoted to `is_admin` on register / startup migrations. Request-time admin checks use the DB flag plus MFA, not this list. |
 
 ## Builds & credits
 

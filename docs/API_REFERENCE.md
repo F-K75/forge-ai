@@ -112,7 +112,7 @@ server falls back to the authenticated user's stored GitHub token.
 | `/gdpr` | `GET /export` (full data export), `DELETE /delete` (cascade deletion) |
 | `/support` | Create/list/get support tickets |
 
-## Admin — `/admin` (allowlisted via `ADMIN_EMAILS`)
+## Admin — `/admin` (`users.is_admin` + MFA)
 
 Users (list/export/get/update, grant admin), builds (list, get, dead-letter
 list + retry), analytics (overview, revenue, AI usage), fraud events, feature

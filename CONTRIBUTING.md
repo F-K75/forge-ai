@@ -45,6 +45,24 @@ npm install
 docker compose up
 ```
 
+#### Local admin login
+
+There is no shared default admin password. Admin access is a **DB flag**
+(`users.is_admin`) plus MFA — not `VITE_ADMIN_EMAILS`.
+
+1. Set `ADMIN_EMAILS` in `.env` (default `admin@forge.ai`).
+2. Open `/signup` (or `/login` → create account) with an email on that list
+   and a password of at least 12 characters that includes upper, lower,
+   number, and a special character. Registration auto-sets `is_admin`.
+3. Sign in at `/login`.
+4. Enable two-factor authentication in **Settings**. Admin API routes
+   (`admin_required`) return 403 until MFA is on; the UI sends you here
+   if you open `/admin-console` first.
+5. Open `/admin-console`. Later logins ask for a TOTP (or backup) code.
+
+To grant admin to an existing user whose email is **not** in `ADMIN_EMAILS`,
+an already-admin account must call `PUT /admin/users/{user_id}/admin`.
+
 #### Making Changes
 1. Create a feature branch: `git checkout -b feature/your-feature`
 2. Make your changes

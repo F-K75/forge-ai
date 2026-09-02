@@ -153,6 +153,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/projects" replace />
   }
 
+  // admin_required also demands MFA. Send admins here before they hit an
+  // empty console whose every request 403s with "enable MFA in Settings".
+  if (LIVE_MODE && user?.mfa_enabled !== true) {
+    return <Navigate to="/settings?mfa=required" replace />
+  }
+
   return <>{children}</>
 }
 

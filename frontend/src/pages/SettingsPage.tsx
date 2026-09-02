@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Key, Github, Bell, Sliders, Monitor, ShieldCheck, LifeBuoy, Palette, Lock, Download, Trash2 } from "lucide-react";
 import { ThemeSegmented } from "../components/ThemeToggle";
 import { QRCodeSVG } from "qrcode.react";
@@ -69,6 +69,8 @@ function formatLastActive(iso: string): string {
 export default function SettingsPage() {
   const { user, fetchMe, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mfaRequiredForAdmin = searchParams.get("mfa") === "required";
   const reduceMotion = useReducedMotion();
 
   // Demo-mode-only local state (no backend to persist to).
@@ -731,6 +733,29 @@ export default function SettingsPage() {
               <ShieldCheck size={13} className="text-muted" aria-hidden="true" />
               <h2 id="section-security" className="text-sm font-medium text-ink">Security</h2>
             </div>
+            {mfaRequiredForAdmin && !mfaEnabled && (
+              <p
+                role="status"
+                className="mb-3 text-xs text-muted leading-relaxed border border-border rounded-lg px-4 py-3"
+              >
+                Admin tools require two-factor authentication. Enable it below, then open the Admin Console again.
+              </p>
+            )}
+            {mfaRequiredForAdmin && mfaEnabled && mfaStep !== "backup-codes" && (
+              <p
+                role="status"
+                className="mb-3 text-xs text-muted leading-relaxed border border-border rounded-lg px-4 py-3"
+              >
+                Two-factor authentication is on.{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin-console")}
+                  className="text-ink underline underline-offset-2 hover:opacity-70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded"
+                >
+                  Continue to Admin Console
+                </button>
+              </p>
+            )}
             <div className="border border-border rounded-lg">
               <Row
                 label="Two-factor authentication"
