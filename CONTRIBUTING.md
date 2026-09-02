@@ -60,6 +60,10 @@ There is no shared default admin password. Admin access is a **DB flag**
    if you open `/admin-console` first.
 5. Open `/admin-console`. Later logins ask for a TOTP (or backup) code.
 
+Use the same hostname for the app and `VITE_API_URL` (for example
+`http://localhost:5173` with `http://localhost:8000`). Mixing `localhost` and
+`127.0.0.1` drops the auth cookies.
+
 To grant admin to an existing user whose email is **not** in `ADMIN_EMAILS`,
 an already-admin account must call `PUT /admin/users/{user_id}/admin`.
 
