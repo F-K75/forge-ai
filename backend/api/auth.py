@@ -366,6 +366,7 @@ async def register(req: RegisterRequest, request: Request, response: Response):
     admin_emails = [e.strip() for e in (settings.admin_emails or "").split(",") if e.strip()]
     if admin_emails and req.email in admin_emails:
         await db.users.update_one({"id": user.id}, {"$set": {"is_admin": True}})
+        user_dict["is_admin"] = True
 
     if os.getenv("SMOKE_TEST_MODE") == "true":
         await db.users.update_one({"id": user.id}, {"$set": {"email_verified": True}})
@@ -606,6 +607,7 @@ async def mfa_verify_setup(
             }
         },
     )
+    await invalidate_cache(user_profile_cache_key(user.id))
 
     return MfaVerifySetupResponse(backup_codes=backup_codes)
 
@@ -630,6 +632,7 @@ async def mfa_disable(req: MfaDisableRequest, user: User = Depends(get_current_u
             }
         },
     )
+    await invalidate_cache(user_profile_cache_key(user.id))
     return {"ok": True}
 
 

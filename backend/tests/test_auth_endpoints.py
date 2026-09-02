@@ -271,5 +271,71 @@ def test_logout_blacklists_access_token(app_client):
     assert any(s.get("revoked_at") is not None for s in db.sessions.docs)
 
 
+def test_mfa_verify_setup_invalidates_profile_cache(app_client, monkeypatch):
+    """GET /auth/me caches the profile for 60s. Enabling MFA must drop that
+    cache so the admin UI sees mfa_enabled immediately (not after TTL)."""
+    import json
+    import pyotp
+
+    import core.cache as cache_module
+
+    class FakeRedis:
+        def __init__(self):
+            self.data = {}
+
+        async def get(self, key):
+            raw = self.data.get(key)
+            return json.loads(raw) if raw is not None else None
+
+        async def setex(self, key, ttl, value):
+            self.data[key] = json.dumps(value, default=str)
+
+        async def delete(self, key):
+            self.data.pop(key, None)
+
+    store = FakeRedis()
+
+    async def fake_get(key):
+        return await store.get(key)
+
+    async def fake_set(key, value, ttl=300):
+        await store.setex(key, ttl, value)
+
+    async def fake_redis():
+        return store
+
+    monkeypatch.setattr(cache_module, "cache_get_json", fake_get)
+    monkeypatch.setattr(cache_module, "cache_set_json", fake_set)
+    monkeypatch.setattr(cache_module, "get_redis", fake_redis)
+
+    client, _db = app_client
+    register = client.post(
+        "/auth/register",
+        json={"email": "mfa-cache@example.com", "name": "MFA", "password": STRONG_PASSWORD},
+    )
+    assert register.status_code == 200
+    client.cookies.set("access_token", register.json()["access_token"])
+    client.cookies.set("refresh_token", register.json()["refresh_token"])
+
+    me_before = client.get("/auth/me")
+    assert me_before.status_code == 200
+    assert me_before.json()["mfa_enabled"] is False
+
+    setup = client.post("/auth/mfa/setup")
+    assert setup.status_code == 200
+    secret = setup.json()["secret"]
+
+    verify = client.post(
+        "/auth/mfa/verify-setup",
+        json={"code": pyotp.TOTP(secret).now()},
+    )
+    assert verify.status_code == 200
+    assert verify.json()["backup_codes"]
+
+    me_after = client.get("/auth/me")
+    assert me_after.status_code == 200
+    assert me_after.json()["mfa_enabled"] is True
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
