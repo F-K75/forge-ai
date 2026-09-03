@@ -51,16 +51,22 @@ interface AuthState {
 // Demo mode has no backend to authenticate against — this stands in for a
 // real session so route guards, onboarding, and the workspace all behave
 // as if a user is signed in.
-const demoUser = (overrides: Partial<User> = {}): User => ({
-  id: 'demo-user',
-  email: 'demo@forge.dev',
-  name: 'Demo Builder',
-  plan: 'pro',
-  credits: 612,
-  created_at: new Date().toISOString(),
-  completed_onboarding: false,
-  ...overrides,
-})
+const demoUser = (overrides: Partial<User> = {}): User => {
+  const email = overrides.email ?? 'demo@forge.dev'
+  return {
+    id: 'demo-user',
+    email,
+    name: 'Demo Builder',
+    plan: 'pro',
+    credits: 612,
+    created_at: new Date().toISOString(),
+    completed_onboarding: false,
+    // Matches backend ADMIN_EMAILS default so a mock Pages build can open
+    // /admin-console without a live API. Not a production grant.
+    is_admin: email.toLowerCase() === 'admin@forge.ai',
+    ...overrides,
+  }
+}
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -130,7 +136,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchMe: async () => {
     if (!LIVE_MODE) {
-      set({ user: demoUser(), isAuthenticated: true, isLoading: false })
+      const current = useAuthStore.getState().user
+      set({ user: current ?? demoUser(), isAuthenticated: true, isLoading: false })
       return
     }
     try {

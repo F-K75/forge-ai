@@ -25,6 +25,12 @@ describe('useAuthStore', () => {
     expect(state.user?.email).toBe('user@example.com')
     expect(state.user?.name).toBe('Demo Builder')
     expect(state.user?.plan).toBe('pro')
+    expect(state.user?.is_admin).toBe(false)
+  })
+
+  it('login as admin@forge.ai is a demo admin when LIVE_MODE is false', async () => {
+    await useAuthStore.getState().login('admin@forge.ai', 'anything')
+    expect(useAuthStore.getState().user?.is_admin).toBe(true)
   })
 
   it('login returns undefined in demo mode (no MFA)', async () => {
@@ -49,12 +55,21 @@ describe('useAuthStore', () => {
     expect(state.isAuthenticated).toBe(false)
   })
 
-  it('fetchMe sets demo user in demo mode', async () => {
+  it('fetchMe sets demo user in demo mode when there is no session', async () => {
     await useAuthStore.getState().fetchMe()
     const state = useAuthStore.getState()
     expect(state.isAuthenticated).toBe(true)
     expect(state.isLoading).toBe(false)
     expect(state.user?.email).toBe('demo@forge.dev')
+    expect(state.user?.is_admin).toBe(false)
+  })
+
+  it('fetchMe keeps the demo admin instead of resetting to demo@forge.dev', async () => {
+    await useAuthStore.getState().login('admin@forge.ai', 'anything')
+    await useAuthStore.getState().fetchMe()
+    const state = useAuthStore.getState()
+    expect(state.user?.email).toBe('admin@forge.ai')
+    expect(state.user?.is_admin).toBe(true)
   })
 
   it('isLoading is false after successful login', async () => {

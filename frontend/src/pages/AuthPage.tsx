@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useAnimationControls } from "motion/react";
 import { Eye, EyeOff, Loader2, ArrowRight, AlertCircle, Check, Chrome } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { API_URL } from "../store/authStore";
+import { LIVE_MODE } from "../lib/env";
 import BrandLogo from "../components/BrandLogo";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
@@ -227,6 +228,18 @@ export default function AuthPage() {
               </div>
               <h2 className="font-display text-3xl font-medium tracking-tight">Welcome back</h2>
               <p className="text-sm text-land-muted mt-2">Sign in to pick up where you left off.</p>
+              {!LIVE_MODE && (
+                <p
+                  role="status"
+                  className="mt-4 text-xs text-land-muted leading-relaxed border border-land-border rounded-lg px-3 py-2"
+                >
+                  This build is not connected to the API, so sign-in is demo-only.
+                  Use <span className="font-mono text-land-ink">admin@forge.ai</span> and any
+                  password to open the Admin Console. For a real admin session, rebuild
+                  with <span className="font-mono">VITE_API_URL</span> and{" "}
+                  <span className="font-mono">VITE_WS_URL</span> pointing at the backend.
+                </p>
+              )}
             </div>
 
             <AnimatePresence mode="wait" initial={false}>
