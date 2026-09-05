@@ -24,6 +24,8 @@ Thumbs.db
 # Build outputs
 dist
 build
+# Keep the frontend source directory named `build/` (not a build artifact).
+!frontend/src/components/build/
 *.pyc
 *.pyo
 *.pyd

@@ -27,11 +27,9 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.31
 httpx==0.27.0
-# 3.1.50 carries 8 pip-audit advisories (GHSA-2f96-g7mh-g2hx, -v396-v7q4-x2qj,
-# -956x-8gvw-wg5v, -3rp5-jjmw-4wv2, -fjr4-x663-mwxc, -6p8h-3wgx-97gf,
-# -r9mr-m37c-5fr3, -94p4-4cq8-9g67), the last of which is fixed in 3.1.55.
-# Only api/deployments.py uses it, via the stable `from git import Repo, Actor`.
-gitpython==3.1.58
+# 3.1.58 carries PYSEC-2026-3785..3788 (clone/submodule path handling).
+# Only api/deployments.py and api/repos.py use it, via `from git import Repo`.
+gitpython==3.1.59
 docker==7.1.0
 celery==5.4.0
 stripe==8.9.0

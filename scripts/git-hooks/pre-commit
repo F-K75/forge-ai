@@ -62,7 +62,7 @@ ALLOWLIST_REGEX='\.env\..*example$|\.gitignore$|\.github/workflows/|scripts/git-
 # unquoted -- these are variable/attribute/dict references, not literal
 # secret values, since a
 # hardcoded credential in Python source is always a quoted string literal.
-_API_KEY_VAR_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*(self\.)?(api_key|[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z0-9_]*api_key)\b|[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*\.get\('
+_API_KEY_VAR_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*(self\.)?(api_key|[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z0-9_]*api_key)\b|[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*\.get\(|[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*settings\.'
 
 # .claude/skills/design/scripts/{icon,logo,cip}/generate.py read a Gemini/Google
 # key from the environment and pass the resulting variable on to genai.Client --

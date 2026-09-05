@@ -69,7 +69,7 @@ async def create_build(
 ):
     db = await get_db()
 
-    project = await db.projects.find_one({"id": req.project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
+    project = await db.projects.find_one({"id": req.project_id, "deleted_at": None}, {"_id": 0})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 

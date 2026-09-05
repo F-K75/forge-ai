@@ -839,7 +839,7 @@ async def get_usage(user: User = Depends(get_current_user)):
         agents_runs[agent] = doc.get("count", 0)
 
     projects_count = await db.projects.count_documents(
-        {"user_id": user.id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}
+        {"user_id": user.id, "deleted_at": None}
     )
     max_projects = await get_max_projects_for_user(db, user.id)
 

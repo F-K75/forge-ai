@@ -497,7 +497,7 @@ async def retry_dead_letter_build(
     if not build_doc:
         raise HTTPException(status_code=404, detail="Build not found")
 
-    project = await db.projects.find_one({"id": build_doc["project_id"], "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]})
+    project = await db.projects.find_one({"id": build_doc["project_id"], "deleted_at": None})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 

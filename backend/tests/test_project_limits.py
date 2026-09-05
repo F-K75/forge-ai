@@ -193,6 +193,9 @@ def _client_for(monkeypatch, router_module, fake_db, user):
 
     monkeypatch.setattr(router_module, "get_db", _get_db)
     monkeypatch.setattr(router_module, "get_redis", lambda: FakeRedis())
+    if hasattr(router_module, "generate_initiative_plan"):
+        from unittest.mock import MagicMock
+        monkeypatch.setattr(router_module, "generate_initiative_plan", MagicMock())
 
     app = FastAPI()
     app.include_router(router_module.router)
