@@ -66,11 +66,28 @@ class _StubAgent:
         return {"files": {}}
 
 
+def asyncio_coroutine(result):
+    """Helper to create a coroutine that returns result immediately."""
+    async def _coro():
+        return result
+    return _coro
+
+
+def _stub_orchestrator_io(monkeypatch, Orchestrator):
+    """Keep run_build() off the network: no BYOK lookup, no agent registry."""
+
+    async def _no_profile(self, build, agent_type):
+        return None
+
+    monkeypatch.setattr(Orchestrator, "_is_byok_active", lambda self, user_id: asyncio_coroutine(False)())
+    monkeypatch.setattr(Orchestrator, "_resolve_agent_profile", _no_profile)
+
+
 @pytest.mark.asyncio
 async def test_exactly_one_file_update_per_developer_pass_using_delta_shape(monkeypatch):
     from core.orchestrator import Orchestrator
 
-    monkeypatch.setattr(Orchestrator, "_is_byok_active", lambda self, user_id: asyncio_coroutine(False)())
+    _stub_orchestrator_io(monkeypatch, Orchestrator)
 
     orchestrator = Orchestrator()
     for attr in ("architect", "business_model", "designer", "developer", "integration", "pm"):
@@ -95,18 +112,11 @@ async def test_exactly_one_file_update_per_developer_pass_using_delta_shape(monk
     assert data["delta"]["deleted"] == []
 
 
-def asyncio_coroutine(result):
-    """Helper to create a coroutine that returns result immediately."""
-    async def _coro():
-        return result
-    return _coro
-
-
 @pytest.mark.asyncio
 async def test_debug_loop_file_update_also_uses_delta_shape(monkeypatch):
     from core.orchestrator import Orchestrator
 
-    monkeypatch.setattr(Orchestrator, "_is_byok_active", lambda self, user_id: asyncio_coroutine(False)())
+    _stub_orchestrator_io(monkeypatch, Orchestrator)
 
     orchestrator = Orchestrator()
     for attr in ("architect", "business_model", "designer", "developer", "integration"):
@@ -143,7 +153,7 @@ async def test_debug_loop_file_update_also_uses_delta_shape(monkeypatch):
 async def test_build_complete_carries_full_files_with_no_trailing_file_update(monkeypatch):
     from core.orchestrator import Orchestrator
 
-    monkeypatch.setattr(Orchestrator, "_is_byok_active", lambda self, user_id: asyncio_coroutine(False)())
+    _stub_orchestrator_io(monkeypatch, Orchestrator)
 
     orchestrator = Orchestrator()
     for attr in ("architect", "business_model", "designer", "developer", "integration", "pm"):

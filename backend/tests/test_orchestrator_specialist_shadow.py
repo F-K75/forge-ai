@@ -70,7 +70,11 @@ def _make_orchestrator(monkeypatch):
     async def _no_byok(self, user_id):
         return False
 
+    async def _no_profile(self, build, agent_type):
+        return None
+
     monkeypatch.setattr(Orchestrator, "_is_byok_active", _no_byok)
+    monkeypatch.setattr(Orchestrator, "_resolve_agent_profile", _no_profile)
 
     orchestrator = Orchestrator()
     stubs = {}
