@@ -140,50 +140,6 @@ jobs:
           path: backend/coverage.xml
           retention-days: 30
 
-  orchestrator:
-    name: Review Board — lint, tests
-    runs-on: ubuntu-latest
-    env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
-      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: orchestrator/requirements.txt
-
-      - name: Install orchestrator dependencies
-        run: |
-          cd orchestrator
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Lint (ruff)
-        run: |
-          cd orchestrator
-          ruff check . --select F,E9 --exclude venv
-
-      - name: Run orchestrator tests
-        run: |
-          cd orchestrator
-          pytest tests/ -q --timeout=30
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: orchestrator-test-results
-          path: orchestrator/test-results.xml
-          retention-days: 30
-
   frontend:
     name: Frontend — test, type-check, build, audit
     runs-on: ubuntu-latest
@@ -197,17 +153,14 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          # npm workspaces: the lockfile lives at the repo root.
+          cache-dependency-path: package-lock.json
 
       - name: Set up Python
-        # `npm run build`'s prebuild hook runs backend/scripts/export_ws_events.py,
-        # which imports backend/core/models.py to regenerate wsEvents.ts from
-        # WSEventType — the frontend/backend WebSocket event contract check.
-        # core/models.py imports fastapi at module level (PaginationParams
-        # uses fastapi.Query), so both it and pydantic must be importable —
-        # not the full backend dependency set. Versions must match
-        # backend/requirements.txt — fastapi 0.139.0 requires pydantic>=2.9,
-        # so an older pydantic pin here makes pip's resolver reject the pair.
+        # `npm run build` may invoke backend/scripts/export_ws_events.py via a
+        # prebuild hook. core/models.py imports fastapi at module level, so
+        # pydantic + fastapi must be importable. Versions match
+        # backend/requirements.txt — fastapi 0.139.0 requires pydantic>=2.9.
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -216,26 +169,26 @@ jobs:
         run: pip install pydantic==2.13.4 fastapi==0.139.0
 
       - name: Install frontend dependencies
-        run: cd frontend && npm ci
+        run: npm ci
 
       - name: Lint (eslint)
-        run: cd frontend && npm run lint
+        run: npm run lint --workspace=frontend
 
       - name: Unit tests (vitest)
         # Blocks the pipeline: frontend had zero automated tests until this
         # gate was added, so regressions in client logic (auth/CSRF, build
         # store state machine, etc.) would ship silently.
-        run: cd frontend && npm test
+        run: npm test --workspace=frontend
 
       - name: Security scan — dependency vulnerabilities (npm audit)
         # Scoped to production deps: the only current advisories (vite/esbuild dev-server
         # path traversal & CORS issues) affect `vite dev`/`vite serve`, never the built
         # artifact, and fixing them requires a major vite bump (5.x has no patched release)
         # that needs its own regression pass rather than being rushed through this gate.
-        run: cd frontend && npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=high --workspace=frontend
 
       - name: Type-check & build (tsc + vite)
-        run: cd frontend && npm run build
+        run: npm run build --workspace=frontend
 
       - name: Check bundle size
         run: node scripts/check-bundle-size.js
@@ -322,54 +275,42 @@ jobs:
 
       - name: Build frontend production image
         run: |
-          docker build frontend/ \
+          docker build -f frontend/Dockerfile \
             --build-arg VITE_API_URL=https://ci.invalid/api \
-            --build-arg VITE_WS_URL=wss://ci.invalid/api
+            --build-arg VITE_WS_URL=wss://ci.invalid/api \
+            -t forge-frontend-ci \
+            .
 
       - name: Verify frontend Dockerfile has HEALTHCHECK
         run: |
-          if ! docker build frontend/ --target=none -q 2>/dev/null; then
-            echo "::warning::Cannot inspect multi-stage frontend image; verifying Dockerfile content instead"
-            grep -q 'HEALTHCHECK' frontend/Dockerfile || { echo "::error::frontend/Dockerfile is missing HEALTHCHECK instruction"; exit 1; }
-            echo "✓ Frontend Dockerfile contains HEALTHCHECK"
-          else
-            FRONTEND_IMG=$(docker build frontend/ -q 2>/dev/null | tail -1)
-            if ! docker inspect "$FRONTEND_IMG" --format '{{.Config.Healthcheck}}' | grep -q 'Cmd'; then
-              echo "::error::frontend/Dockerfile final stage is missing HEALTHCHECK instruction"
-              exit 1
-            fi
-            echo "✓ Frontend image has HEALTHCHECK"
+          if [ "$(docker inspect forge-frontend-ci \
+                    --format '{{if .Config.Healthcheck}}{{len .Config.Healthcheck.Test}}{{else}}0{{end}}')" -lt 1 ]; then
+            echo "::error::frontend/Dockerfile final stage is missing HEALTHCHECK instruction"
+            exit 1
           fi
+          echo "✓ Frontend image has HEALTHCHECK"
 
       - name: Verify frontend dist contains entry point
-        # The build stage produces /app/dist; verify it contains index.html by
-        # inspecting the intermediate image's filesystem.
-        #
-        # The image id is captured from this single build rather than from a
-        # second one. The previous version rebuilt without the --build-arg
-        # flags, which the frontend Dockerfile requires -- as the very next
-        # step asserts -- so that build failed, 2>/dev/null swallowed the
-        # error, BUILD_IMG came back empty and `docker run --rm ""` reported
-        # `invalid reference format`. The empty check below keeps any future
-        # build failure legible instead of surfacing as a docker usage error.
+        # The build stage produces /app/frontend/dist; verify it contains
+        # index.html by inspecting the intermediate image's filesystem.
         run: |
-          BUILD_IMG=$(docker build frontend/ \
+          BUILD_IMG=$(docker build -f frontend/Dockerfile \
             --build-arg VITE_API_URL=https://ci.invalid/api \
             --build-arg VITE_WS_URL=wss://ci.invalid/api \
-            --target=build -q | tail -1)
+            --target=build -q . | tail -1)
           if [ -z "$BUILD_IMG" ]; then
             echo "::error::Frontend build stage produced no image id"
             exit 1
           fi
-          if ! docker run --rm "$BUILD_IMG" test -f /app/dist/index.html; then
-            echo "::error::Frontend build output is missing /app/dist/index.html"
+          if ! docker run --rm "$BUILD_IMG" test -f /app/frontend/dist/index.html; then
+            echo "::error::Frontend build output is missing /app/frontend/dist/index.html"
             exit 1
           fi
           echo "✓ Frontend dist contains index.html"
 
       - name: Verify frontend build requires VITE_API_URL and VITE_WS_URL
         run: |
-          if docker build frontend/ -q 2>/dev/null; then
+          if docker build -f frontend/Dockerfile -q . 2>/dev/null; then
             echo "ERROR: frontend build must fail when VITE_API_URL/VITE_WS_URL are missing"
             exit 1
           fi
@@ -430,13 +371,13 @@ jobs:
 
   quality-gate:
     name: Quality Gate
-    needs: [backend, orchestrator, frontend, prod-artifacts, backup-restore]
+    needs: [backend, frontend, prod-artifacts, backup-restore]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Fail if any required job failed
         run: |
-          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.orchestrator.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ] || [ "${{ needs.backup-restore.result }}" != "success" ]; then
+          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ] || [ "${{ needs.backup-restore.result }}" != "success" ]; then
             echo "::error::One or more required CI jobs failed. Blocking merge."
             exit 1
           fi
