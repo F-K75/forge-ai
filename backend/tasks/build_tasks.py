@@ -106,7 +106,7 @@ def run_build(
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
 
         project_doc = await db.projects.find_one(
-            {"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0, "template": 1}
+            {"id": project_id, "deleted_at": None}, {"_id": 0, "template": 1}
         )
         template = project_doc.get("template") if project_doc else None
 

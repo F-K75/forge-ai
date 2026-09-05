@@ -54,7 +54,7 @@ async def verify_api_key(request: Request) -> User:
 
 
 async def _assert_project_access(db, project_id: str, user_id: str) -> None:
-    project = await db.projects.find_one({"id": project_id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0})
+    project = await db.projects.find_one({"id": project_id, "deleted_at": None}, {"_id": 0})
     if not project or not await has_project_access(db, user_id, project):
         raise HTTPException(status_code=404, detail="Project not found")
 

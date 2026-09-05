@@ -49,7 +49,9 @@ class TestRunHealthCheckWithRollback:
             )
             MockClient.return_value = mock_instance
 
-            with patch("app.tasks.deployment._rollback_deployment") as mock_rollback:
+            with patch("app.tasks.deployment.HEALTH_CHECK_TIMEOUT", 0.05), \
+                 patch("app.tasks.deployment.HEALTH_CHECK_INTERVAL", 0), \
+                 patch("app.tasks.deployment._rollback_deployment") as mock_rollback:
                 result = await run_health_check_with_rollback(
                     "deploy-123", "http://localhost:8000", emit
                 )

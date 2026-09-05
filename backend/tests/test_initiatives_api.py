@@ -14,6 +14,8 @@ os.environ.setdefault("TESTING", "true")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-that-is-at-least-32-characters")
 os.environ.setdefault("FIELD_ENCRYPTION_KEY", "01" * 32)
 
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi import APIRouter, FastAPI
 from fastapi.testclient import TestClient
@@ -222,6 +224,7 @@ def app_client(monkeypatch):
 
     import api.initiatives as initiatives_module
     monkeypatch.setattr(initiatives_module, "get_db", _get_db)
+    monkeypatch.setattr(initiatives_module, "generate_initiative_plan", MagicMock())
 
     app = FastAPI()
     app.include_router(auth_router)

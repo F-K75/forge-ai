@@ -136,7 +136,7 @@ async def create_deployment(
         raise HTTPException(status_code=404, detail="Build not found")
 
     project = await db.projects.find_one(
-        {"id": req.project_id, "user_id": current_user.id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0}
+        {"id": req.project_id, "user_id": current_user.id, "deleted_at": None}, {"_id": 0}
     )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -251,7 +251,7 @@ async def redeploy(
 
     project_id = deployment["project_id"]
     project = await db.projects.find_one(
-        {"id": project_id, "user_id": current_user.id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0}
+        {"id": project_id, "user_id": current_user.id, "deleted_at": None}, {"_id": 0}
     )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -322,7 +322,7 @@ async def cancel_deployment(
     project = {}
     if status in (DeploymentStatus.BUILDING, DeploymentStatus.DEPLOYING):
         _require_deployments_enabled()
-        project = await db.projects.find_one({"id": deployment["project_id"], "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0}) or {}
+        project = await db.projects.find_one({"id": deployment["project_id"], "deleted_at": None}, {"_id": 0}) or {}
         dep_obj = Deployment(**deployment)
         target = get_deploy_target(dep_obj.target_type, dep_obj.target_config or None)
         await target.teardown(deployment_id=deployment_id, project=project)
@@ -417,7 +417,7 @@ async def push_to_github(
 ):
     db = await get_db()
     project = await db.projects.find_one(
-        {"id": req.project_id, "user_id": current_user.id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}, {"_id": 0}
+        {"id": req.project_id, "user_id": current_user.id, "deleted_at": None}, {"_id": 0}
     )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

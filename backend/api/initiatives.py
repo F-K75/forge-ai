@@ -203,7 +203,7 @@ async def create_initiative(req: CreateInitiativeRequest, request: Request, curr
 
     max_projects = await get_max_projects_for_user(db, current_user.id)
     if max_projects >= 0:
-        current_count = await db.projects.count_documents({"user_id": current_user.id, "$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]})
+        current_count = await db.projects.count_documents({"user_id": current_user.id, "deleted_at": None})
         if current_count >= max_projects:
             raise HTTPException(
                 status_code=402,
