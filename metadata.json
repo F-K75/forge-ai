@@ -1,0 +1,6 @@
+{
+  "name": "Forge AI",
+  "description": "The AI Software Engineering Platform: orchestrates specialist AI agents to plan, build, and ship production software from a single prompt.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

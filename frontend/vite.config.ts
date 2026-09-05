@@ -6,14 +6,16 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
-    allowedHosts: ['.trycloudflare.com', 'localhost', '127.0.0.1'],
+    allowedHosts: true,
   },
   preview: {
     host: '0.0.0.0',
     port: 3000,
-    allowedHosts: ['.trycloudflare.com', 'localhost', '127.0.0.1'],
+    allowedHosts: true,
   },
   build: {
+    outDir: '../dist',
+    emptyOutDir: true,
     base: process.env.VITE_BASE || '/',
     sourcemap: true,
     rollupOptions: {

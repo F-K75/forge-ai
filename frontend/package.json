@@ -4,11 +4,9 @@
   "version": "0.2.0",
   "type": "module",
   "scripts": {
-    "predev": "python3 ../backend/scripts/export_ws_events.py 2>/dev/null || true",
-    "dev": "vite",
-    "prebuild": "python3 ../backend/scripts/export_ws_events.py 2>/dev/null || true",
+    "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc && vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0 --port 3000",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "test": "vitest run",
