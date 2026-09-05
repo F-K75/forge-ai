@@ -2,7 +2,6 @@ import { type LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import { Button, Heading } from './index'
-import { layout } from '../../lib/designTokens'
 
 interface EmptyStateProps {
   icon: LucideIcon
@@ -31,14 +30,14 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
       >
         <Icon className="w-8 h-8 text-muted" aria-hidden="true" />
       </motion.div>
-      <motion.h3
+      <motion.div
         className="mb-2"
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
         <Heading level="h3">{title}</Heading>
-      </motion.h3>
+      </motion.div>
       {description && (
         <motion.div
           className="mb-6 max-w-sm"

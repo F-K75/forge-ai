@@ -93,9 +93,12 @@ export default function BillingPage() {
     >
       {/* Header */}
       <header className="mb-8">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-sm text-muted">
+            <h1 id="billing-page-title" className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
+              Subscription &amp; Billing
+            </h1>
+            <p className="mt-1 text-sm text-muted">
               {LIVE_MODE
                 ? subscription?.current_period_end
                   ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()} · ${activeTier} plan`
@@ -104,7 +107,7 @@ export default function BillingPage() {
             </p>
           </div>
           {LIVE_MODE && billingProvider && (
-            <span className="text-[11px] font-medium px-2 py-1 rounded-full border border-border text-muted">
+            <span className="self-start sm:self-auto text-[11px] font-medium px-2.5 py-1 rounded-full border border-border bg-panel-alt text-muted">
               {billingProvider}
             </span>
           )}
@@ -277,7 +280,7 @@ export default function BillingPage() {
           )}
         </div>
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4"
           variants={reduceMotion ? undefined : motionVariants.staggerContainer}
           initial={reduceMotion ? false : "hidden"}
           animate="visible"
@@ -318,7 +321,14 @@ function RawPlanCard({
   const savingsAmount = monthlyTotal - plan.price_annual;
   const savingsPct = monthlyTotal > 0 ? Math.round((savingsAmount / monthlyTotal) * 100) : 0;
   return (
-    <motion.div className="relative bg-base p-6 flex flex-col gap-4 rounded-m3-lg border border-outline shadow-apple" {...presets.card} variants={motionVariants.staggerItem}>
+    <motion.div
+      className={twMerge(clsx(
+        "relative bg-panel p-6 flex flex-col gap-4 rounded-2xl border transition-all duration-200 shadow-apple",
+        active ? "border-accent ring-1 ring-accent/30" : "border-border hover:border-accent/40"
+      ))}
+      {...presets.card}
+      variants={motionVariants.staggerItem}
+    >
       {active && <div className="absolute top-0 left-0 right-0 h-0.5 bg-accent rounded-b-full" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -370,7 +380,14 @@ function RawPlanCard({
 
 function PlanCard({ plan }: { plan: Plan }) {
   return (
-    <motion.div className="relative bg-base p-6 flex flex-col gap-4 rounded-m3-lg border border-outline shadow-apple" {...presets.card} variants={motionVariants.staggerItem}>
+    <motion.div
+      className={twMerge(clsx(
+        "relative bg-panel p-6 flex flex-col gap-4 rounded-2xl border transition-all duration-200 shadow-apple",
+        plan.active ? "border-accent ring-1 ring-accent/30" : "border-border hover:border-accent/40"
+      ))}
+      {...presets.card}
+      variants={motionVariants.staggerItem}
+    >
       {plan.active && <div className="absolute top-0 left-0 right-0 h-0.5 bg-accent rounded-b-full" aria-hidden="true" />}
       <div className="flex items-start justify-between gap-2">
         <div>

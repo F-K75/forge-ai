@@ -143,8 +143,8 @@ function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; valu
   const [hovered, setHovered] = useState(false);
   return (
     <motion.div
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       variants={motionVariants.staggerItem}
       custom={0}
       className="relative overflow-hidden rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3"
@@ -399,7 +399,7 @@ function PromptInput({
             aria-expanded={showSuggestions}
             aria-controls="forge-suggestions"
           />
-          <button
+          <motion.button
             onClick={onSubmit}
             disabled={creating || !value.trim()}
             {...presets.button}
@@ -407,7 +407,7 @@ function PromptInput({
           >
             <CtaIcon size={14} aria-hidden="true" />
             {creating ? "Working…" : ctaLabel}
-          </button>
+          </motion.button>
         </div>
         <AnimatePresence>
           {showSuggestions && (
@@ -646,11 +646,12 @@ export default function InitiativesListPage() {
                 </motion.div>
 
                 <motion.h1
+                  id="initiatives-hero-heading"
                   variants={motionVariants.staggerItem}
                   className="mt-3 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[2.75rem]"
                 >
                   Turn Ideas into{" "}
-                  <span className="bg-gradient-to-r from-accent to-secondary bg-clip-text text-transparent">
+                  <span className="text-ink underline decoration-accent/40 decoration-2 underline-offset-8">
                     Production
                   </span>
                 </motion.h1>
@@ -721,7 +722,7 @@ export default function InitiativesListPage() {
                           <span className="font-semibold text-ink">Out of credits.</span>{" "}
                           Generations cost {creditPreview.cost} credits. Top up to keep planning.
                         </p>
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => navigate("/billing")}
                           {...presets.button}
@@ -729,7 +730,7 @@ export default function InitiativesListPage() {
                         >
                           <Coins size={12} aria-hidden="true" />
                           Get credits
-                        </button>
+                        </motion.button>
                       </div>
                     )}
                 </div>

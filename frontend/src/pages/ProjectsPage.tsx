@@ -130,8 +130,8 @@ function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; valu
   const [hovered, setHovered] = useState(false)
   return (
     <motion.div
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       variants={motionVariants.staggerItem}
       custom={0}
       className="relative overflow-hidden rounded-2xl border border-outline bg-panel px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:bg-panel-alt hover:shadow-apple"
@@ -409,11 +409,12 @@ export default function ProjectsPage() {
                 </motion.div>
 
                 <motion.h1
+                  id="projects-hero-heading"
                   variants={motionVariants.staggerItem}
                   className="mt-3 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[2.75rem]"
                 >
                   Build{" "}
-                  <span className="bg-gradient-to-r from-accent to-secondary bg-clip-text text-transparent">
+                  <span className="text-ink underline decoration-accent/40 decoration-2 underline-offset-8">
                     Production Software
                   </span>
                 </motion.h1>
@@ -590,29 +591,32 @@ export default function ProjectsPage() {
                   aria-hidden="true"
                 />
                 <input
+                  id="projects-search-input"
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search library…"
                   aria-label="Search projects"
-                  className="h-9 w-full rounded-full border border-transparent bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  className="h-9 w-full rounded-full border border-border/80 bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-accent/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                 />
               </div>
               <select
+                id="projects-status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                 aria-label="Filter by status"
-                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="h-9 cursor-pointer rounded-full border border-border/80 bg-panel-alt px-3 text-xs text-ink transition-colors hover:border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <option value="all">All</option>
                 <option value="live">Live</option>
                 <option value="idle">Idle</option>
               </select>
               <select
+                id="projects-sort-key"
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as SortKey)}
                 aria-label="Sort by"
-                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="h-9 cursor-pointer rounded-full border border-border/80 bg-panel-alt px-3 text-xs text-ink transition-colors hover:border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <option value="recent">Recent</option>
                 <option value="name">Name</option>

@@ -117,8 +117,8 @@ function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; valu
   const [hovered, setHovered] = useState(false);
   return (
     <motion.div
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       variants={motionVariants.staggerItem}
       custom={0}
       className="relative overflow-hidden rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3"
@@ -673,11 +673,12 @@ export default function ReviewsListPage() {
                 </motion.div>
 
                 <motion.h1
+                  id="reviews-hero-heading"
                   variants={motionVariants.staggerItem}
                   className="mt-3 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[2.75rem]"
                 >
                   Audit{" "}
-                  <span className="bg-gradient-to-r from-accent to-secondary bg-clip-text text-transparent">
+                  <span className="text-ink underline decoration-accent/40 decoration-2 underline-offset-8">
                     Production Code
                   </span>
                 </motion.h1>
