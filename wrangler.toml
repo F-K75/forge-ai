@@ -1,0 +1,7 @@
+name = "forge-frontend"
+main = "frontend/worker.ts"
+compatibility_date = "2026-08-02"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+API_URL = "https://forge-ai-ioom.onrender.com"
