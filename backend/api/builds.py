@@ -398,7 +398,7 @@ async def websocket_endpoint(
         await websocket.close(code=4001, reason="Unauthorized")
         return
 
-    await websocket.accept()
+    await websocket.accept(subprotocol=ws_token)
     await manager.connect(websocket, build_id)
 
     try:
