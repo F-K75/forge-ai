@@ -10,6 +10,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
+import PageBackground from "../components/PageBackground";
 import { AGENTS, type Agent } from "../lib/agents";
 import { presets } from "../lib/animationPresets";
 
@@ -280,11 +281,45 @@ const FAQS = [
   },
 ];
 
+const TESTIMONIALS = [
+  {
+    quote:
+      "Forge saved us weeks of planning. The architect agent alone was worth the price — it caught three design flaws we would have missed.",
+    name: "Sarah Chen",
+    role: "CTO, Luminary Labs",
+    company: "Luminary Labs",
+  },
+  {
+    quote:
+      "We went from idea to deployed MVP in under a day. The multi-agent approach means you get real architecture, not just generated snippets.",
+    name: "Marcus Rivera",
+    role: "Founder, StackCraft",
+    company: "StackCraft",
+  },
+  {
+    quote:
+      "The quality scoring changed how we ship. Every build comes with confidence — we know exactly what we're deploying.",
+    name: "Aisha Patel",
+    role: "Head of Engineering, NovaBuild",
+    company: "NovaBuild",
+  },
+];
+
+const TRUST_LOGOS = [
+  "Vercel",
+  "Stripe",
+  "Supabase",
+  "Cloudflare",
+  "PlanetScale",
+  "Railway",
+];
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
     <div className="w-full scroll-smooth bg-base text-ink min-h-screen">
+      <PageBackground />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-ink focus:text-base focus:text-sm focus:font-medium"
@@ -305,11 +340,13 @@ export default function LandingPage() {
 export function LandingPageBody() {
   return (
     <>
+      <TrustBar />
       <InferenceSection />
       <AgentsSection />
       <WorkflowSection />
       <FeaturesSection />
       <WhyForgeSection />
+      <TestimonialsSection />
       <ComparisonSection />
       <PricingSection />
       <FAQSection />
@@ -333,10 +370,10 @@ export function Nav() {
     <header className="fixed inset-x-0 top-0 z-50">
       <div
         className={[
-          "mx-auto transition-all duration-500",
+          "mx-auto transition-all duration-500 border-b",
           scrolled
-            ? "apple-glass-strong border-b border-border-soft"
-            : "bg-transparent",
+            ? "apple-glass-strong border-border-soft"
+            : "bg-transparent border-transparent",
         ].join(" ")}
       >
         <nav
@@ -366,7 +403,7 @@ export function Nav() {
                 className="relative py-1 transition-colors duration-200 hover:text-ink group"
               >
                 {link.label}
-                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-ink transition-all duration-300 group-hover:w-full" />
+                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-ink/25 transition-all duration-300 group-hover:w-full group-hover:bg-ink" />
               </a>
             ))}
           </div>
@@ -381,7 +418,7 @@ export function Nav() {
             <motion.div {...presets.button}>
               <Link
                 to="/signup"
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-base transition-all duration-200 hover:bg-ink/85"
+                className="inline-flex items-center gap-2 rounded-[4px] bg-accent px-5 py-2.5 text-[14px] font-medium text-white shadow-[0_4px_14px_rgba(0,0,0,0.25)] transition-all duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
               >
                 Start building
                 <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
@@ -404,22 +441,27 @@ function HeroSection() {
   return (
     <section
       id="top"
-      className="relative min-h-[100dvh] flex flex-col justify-end pb-20 md:pb-28 pt-32"
+      className="relative min-h-[100dvh] flex flex-col justify-end pb-20 md:pb-28 pt-32 overflow-hidden"
     >
+      <div className="hero-vignette" aria-hidden="true" />
+      <div className="ghost-text absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center" aria-hidden="true">
+        FORGE
+      </div>
+
       <motion.div
         style={{ opacity: heroOpacity, y: heroY }}
-        className="px-6 md:px-12 lg:px-20"
+        className="px-6 md:px-12 lg:px-20 relative z-10"
       >
         <div className="max-w-[1200px] mx-auto">
           <Reveal>
-            <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+            <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
               The AI engineering organization
             </p>
           </Reveal>
 
           <Reveal delay={0.08}>
-            <h1 className="font-display text-[clamp(3rem,8vw,6.5rem)] font-medium leading-[1.02] tracking-[-0.04em] max-w-[900px]">
-              Software,
+            <h1 className="font-display text-[clamp(3.5rem,9vw,7.5rem)] font-light leading-[0.95] tracking-[-0.048em] max-w-[900px]">
+              <span className="gradient-text">Software,</span>
               <br />
               engineered.
             </h1>
@@ -437,7 +479,7 @@ function HeroSection() {
               <motion.div {...presets.button}>
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full bg-ink text-base text-[15px] font-medium transition-all duration-200 hover:bg-ink/85"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-[4px] bg-accent text-white text-[15px] font-medium shadow-[0_4px_14px_rgba(0,0,0,0.25)] transition-all duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
                 >
                   Start building — free
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -446,7 +488,7 @@ function HeroSection() {
               <motion.div {...presets.button}>
                 <a
                   href="#solution"
-                  className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full border border-border text-[15px] font-medium text-ink transition-all duration-200 hover:bg-inlay-hover"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-[4px] border border-border text-[15px] font-medium text-ink transition-all duration-200 hover:bg-inlay-hover"
                 >
                   See how it works
                 </a>
@@ -466,19 +508,45 @@ function HeroSection() {
   );
 }
 
+// ─── Trust bar ──────────────────────────────────────────────────────────────
+
+function TrustBar() {
+  return (
+    <Section className="py-20 md:py-28 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted text-center mb-12">
+          Trusted by builders shipping production software
+        </p>
+      </Reveal>
+      <Reveal delay={0.06}>
+        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6">
+          {TRUST_LOGOS.map((logo) => (
+            <span
+              key={logo}
+              className="text-[18px] font-medium text-muted/40 tracking-tight"
+            >
+              {logo}
+            </span>
+          ))}
+        </div>
+      </Reveal>
+    </Section>
+  );
+}
+
 // ─── Inference / Problem + Solution combined ─────────────────────────────────
 
 function InferenceSection() {
   return (
     <Section id="solution" className="py-32 md:py-44">
       <Reveal>
-        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
           Every customer served.
         </p>
       </Reveal>
 
       <Reveal delay={0.06}>
-        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
           Every product sold.
           <br />
           Every commit merged.
@@ -538,13 +606,13 @@ function AgentsSection() {
   return (
     <Section id="agents" className="py-32 md:py-44 border-t border-border-soft">
       <Reveal>
-        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
           Multi-agent architecture
         </p>
       </Reveal>
 
       <Reveal delay={0.06}>
-        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
           The team behind every build.
         </h2>
       </Reveal>
@@ -560,26 +628,34 @@ function AgentsSection() {
         {AGENTS.map((agent, i) => (
           <Reveal key={agent.id} delay={0.05 * i}>
             <motion.div
-              className="bg-base p-10 h-full"
+              className="bg-base p-10 h-full card-gradient arc-card"
               whileHover={{
                 backgroundColor: "rgb(var(--inlay-hover))",
                 transition: { duration: 0.3 },
               }}
             >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center mb-8"
-                style={{ background: `${agent.hue}10` }}
-              >
-                <agent.icon
-                  size={18}
-                  strokeWidth={1.5}
-                  style={{ color: agent.hue }}
-                  aria-hidden="true"
-                />
+              <div className="flex items-center gap-3 mb-6">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: `${agent.hue}18` }}
+                >
+                  <agent.icon
+                    size={14}
+                    strokeWidth={1.5}
+                    style={{ color: agent.hue }}
+                    aria-hidden="true"
+                  />
+                </div>
+                <span
+                  className="text-[11px] font-light tracking-[0.06em] uppercase px-2.5 py-1 rounded-full"
+                  style={{
+                    color: agent.hue,
+                    background: `${agent.hue}12`,
+                  }}
+                >
+                  {agent.label}
+                </span>
               </div>
-              <h3 className="font-display text-[17px] font-medium mb-3 text-ink">
-                {agent.label}
-              </h3>
               <p className="text-[15px] text-muted leading-relaxed">
                 {AGENT_DESCRIPTIONS[agent.id]}
               </p>
@@ -597,13 +673,13 @@ function WorkflowSection() {
   return (
     <Section id="workflow" className="py-32 md:py-44 border-t border-border-soft">
       <Reveal>
-        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
           How it works
         </p>
       </Reveal>
 
       <Reveal delay={0.06}>
-        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
           From prompt to production.
           <br />
           One handoff at a time.
@@ -614,7 +690,7 @@ function WorkflowSection() {
         {WORKFLOW_STEPS.map((s, i) => (
           <Reveal key={s.n} delay={0.06 * i}>
             <div className="bg-base p-8 md:p-10 h-full">
-              <div className="font-mono text-[12px] text-muted/60 mb-8">
+              <div className="font-mono text-[13px] text-accent mb-8">
                 {s.n}
               </div>
               <div className="font-display text-[17px] font-medium mb-3 text-ink">
@@ -637,13 +713,13 @@ function FeaturesSection() {
   return (
     <Section id="features" className="py-32 md:py-44 border-t border-border-soft">
       <Reveal>
-        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
           Features
         </p>
       </Reveal>
 
       <Reveal delay={0.06}>
-        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
           Built for real work.
         </h2>
       </Reveal>
@@ -652,7 +728,7 @@ function FeaturesSection() {
         {FEATURES.map((f, i) => (
           <Reveal key={f.title} delay={0.04 * i}>
             <motion.div
-              className="bg-base p-10 h-full"
+              className="bg-base p-10 h-full card-gradient arc-card"
               whileHover={{
                 backgroundColor: "rgb(var(--inlay-hover))",
                 transition: { duration: 0.3 },
@@ -678,13 +754,13 @@ function WhyForgeSection() {
   return (
     <Section id="why" className="py-32 md:py-44 border-t border-border-soft">
       <Reveal>
-        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
           Why Forge
         </p>
       </Reveal>
 
       <Reveal delay={0.06}>
-        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
           Because shipping is the point.
         </h2>
       </Reveal>
@@ -700,11 +776,51 @@ function WhyForgeSection() {
                   isEmphasis ? "text-ink" : "text-muted"
                 }`}
               >
-                {line}
+                {isEmphasis ? <span className="gradient-text">{line}</span> : line}
               </p>
             </Reveal>
           );
         })}
+      </div>
+    </Section>
+  );
+}
+
+// ─── Testimonials ───────────────────────────────────────────────────────────
+
+function TestimonialsSection() {
+  return (
+    <Section id="testimonials" className="py-32 md:py-44 border-t border-border-soft">
+      <Reveal>
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
+          What builders say
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.06}>
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
+          Trusted by teams
+          <br />
+          who ship.
+        </h2>
+      </Reveal>
+
+      <div className="mt-20 grid md:grid-cols-3 gap-px bg-border-soft">
+        {TESTIMONIALS.map((t, i) => (
+          <Reveal key={t.name} delay={0.06 * i}>
+            <div className="bg-base p-10 flex flex-col h-full card-gradient arc-card">
+              <blockquote className="text-[16px] text-ink leading-relaxed flex-1">
+                &ldquo;{t.quote}&rdquo;
+              </blockquote>
+              <div className="mt-8 pt-6 border-t border-border-soft">
+                <p className="text-[14px] font-medium text-ink">{t.name}</p>
+                <p className="text-[13px] text-muted mt-0.5">
+                  {t.role}
+                </p>
+              </div>
+            </div>
+          </Reveal>
+        ))}
       </div>
     </Section>
   );
@@ -742,13 +858,13 @@ function ComparisonSection() {
   return (
     <Section id="compare" className="py-32 md:py-44 border-t border-border-soft">
       <Reveal>
-        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
           Comparison
         </p>
       </Reveal>
 
       <Reveal delay={0.06}>
-        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
           Not another way to generate code.
         </h2>
       </Reveal>
@@ -819,13 +935,13 @@ function PricingSection() {
   return (
     <Section id="pricing" className="py-32 md:py-44 border-t border-border-soft">
       <Reveal>
-        <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+        <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
           Pricing
         </p>
       </Reveal>
 
       <Reveal delay={0.06}>
-        <h2 className="font-display text-[clamp(2.5rem,5vw,4.5rem)] font-medium leading-[1.06] tracking-[-0.035em] max-w-[900px]">
+        <h2 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-light leading-[1.0] tracking-[-0.04em] max-w-[900px]">
           Start free. Scale when it ships.
         </h2>
       </Reveal>
@@ -874,7 +990,7 @@ function PricingSection() {
                   to="/signup"
                   className={`w-full text-center py-3 rounded-full text-[14px] font-medium block transition-all duration-200 ${
                     plan.featured
-                      ? "bg-ink text-base hover:bg-ink/85"
+                      ? "bg-accent text-white shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
                       : "border border-border text-ink hover:bg-inlay-hover"
                   }`}
                 >
@@ -909,12 +1025,12 @@ function FAQSection() {
       <div className="grid lg:grid-cols-[1fr_2fr] gap-16 lg:gap-24">
         <div>
           <Reveal>
-            <p className="text-[13px] font-medium tracking-[0.06em] uppercase text-muted mb-8">
+            <p className="text-[12px] font-light tracking-[0.14em] uppercase text-muted mb-8">
               FAQ
             </p>
           </Reveal>
           <Reveal delay={0.06}>
-            <h2 className="font-display text-[clamp(2.5rem,4vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.035em] text-ink">
+            <h2 className="font-display text-[clamp(2.5rem,4vw,3.5rem)] font-light leading-[1.08] tracking-[-0.035em] text-ink">
               Questions,
               <br />
               answered.
@@ -944,7 +1060,7 @@ function FinalCTA() {
   return (
     <Section className="py-32 md:py-44 border-t border-border-soft">
       <Reveal>
-        <h2 className="font-display text-[clamp(3rem,7vw,5.5rem)] font-medium tracking-[-0.04em] leading-[1.02]">
+        <h2 className="font-display text-[clamp(3rem,7vw,5.5rem)] font-light tracking-[-0.048em] leading-[0.95]">
           Your next app is
           <br />
           one prompt away.
@@ -956,7 +1072,7 @@ function FinalCTA() {
           <motion.div {...presets.button}>
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full bg-ink text-base text-[15px] font-medium transition-all duration-200 hover:bg-ink/85"
+              className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-[4px] bg-accent text-white text-[15px] font-medium shadow-[0_4px_14px_rgba(0,0,0,0.25)] transition-all duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
             >
               Start building free
               <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -972,8 +1088,11 @@ function FinalCTA() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border-soft">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-12 lg:px-20 py-16 md:py-20">
+    <footer className="border-t border-border-soft relative overflow-hidden">
+      <div className="ghost-text absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4" aria-hidden="true">
+        FORGE
+      </div>
+      <div className="max-w-[1200px] mx-auto px-6 md:px-12 lg:px-20 py-16 md:py-20 relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">

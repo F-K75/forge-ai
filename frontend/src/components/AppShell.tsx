@@ -228,11 +228,11 @@ export default function AppShell() {
 
       <main
         id="apple-main"
-        className="relative z-10 flex-1 overflow-y-auto px-3 pb-28 pt-4 sm:px-5 sm:pt-5"
+        className="relative z-10 flex-1 overflow-y-auto pb-28"
       >
         <motion.div
           key={location.pathname}
-          className="mx-auto max-w-content"
+          className="h-full"
           initial={reduceMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}

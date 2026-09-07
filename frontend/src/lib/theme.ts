@@ -3,15 +3,15 @@ import { THEME_STORAGE_KEY, type ThemeMode } from './designTokens'
 export type { ThemeMode }
 
 // Single source of truth for color values used as raw JS strings.
-// Keep in sync with index.css light-first tokens.
+// Keep in sync with index.css dark-first tokens.
 export const COLORS = {
-  base: "#F3F3EE",
-  ink: "#0C0A09",
-  muted: "#766F6B",
-  accent: "#1E1E1E",
-  ok: "#228B22",
-  warn: "#B46414",
-  error: "#C83232",
+  base: "#000000",
+  ink: "#F5F5F7",
+  muted: "#A1A1A6",
+  accent: "#14B8A6",
+  ok: "#30D158",
+  warn: "#FF9F0A",
+  error: "#FF453A",
   agentArchitect: "#0A84FF",
   agentBusinessImprover: "#5E5CE6",
   agentDesigner: "#BF5AF2",
@@ -35,16 +35,16 @@ function clearThemeClasses(root: HTMLElement) {
   root.classList.remove(...ROOT_CLASSES)
 }
 
-/** Apply theme to <html>. Light (warm) is the product default. */
+/** Apply theme to <html>. Dark is the product default. */
 export function applyTheme(mode: ThemeMode) {
   const root = document.documentElement
   clearThemeClasses(root)
-  if (mode === 'dark') {
-    root.classList.add('dark')
+  if (mode === 'light') {
+    root.classList.add('light')
   } else if (mode === 'high-contrast') {
     root.classList.add('dark', 'hc', 'high-contrast')
   } else {
-    root.classList.add('light')
+    root.classList.add('dark')
   }
   try {
     localStorage.setItem(THEME_STORAGE_KEY, mode)
@@ -60,7 +60,7 @@ export function getStoredTheme(): ThemeMode {
   } catch {
     /* ignore */
   }
-  return 'light'
+  return 'dark'
 }
 
 export function initTheme() {

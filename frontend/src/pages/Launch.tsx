@@ -6,6 +6,7 @@ import { AGENTS } from "../lib/agents";
 import { presets } from "../lib/animationPresets";
 import LaunchGlobe from "../components/LaunchGlobe";
 import Globe3D from "../components/Globe3D";
+import PageBackground from "../components/PageBackground";
 import {
   LandingPageBody,
   Nav as SiteNav,
@@ -43,6 +44,7 @@ export default function Launch() {
 
   return (
     <div className="w-full scroll-smooth bg-base text-ink min-h-screen">
+      <PageBackground atmosphere={false} />
       <div
         className="fixed inset-0 z-0 overflow-hidden pointer-events-none"
         aria-hidden="true"
@@ -80,7 +82,7 @@ export default function Launch() {
             }}
           >
             <motion.p
-              className="mb-6 text-[13px] font-medium tracking-[0.08em] uppercase text-muted"
+              className="mb-6 text-[12px] font-light tracking-[0.14em] uppercase text-muted"
               variants={{
                 hidden: { opacity: 0, y: 12 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
@@ -90,7 +92,7 @@ export default function Launch() {
             </motion.p>
 
             <motion.h1
-              className="font-brand text-[clamp(3.5rem,11vw,7rem)] font-medium leading-[1.02] tracking-[-0.045em] text-ink"
+              className="font-brand text-[clamp(4rem,12vw,8rem)] font-medium leading-[0.95] tracking-[-0.05em] text-ink"
               variants={{
                 hidden: {
                   opacity: 0,
@@ -108,7 +110,7 @@ export default function Launch() {
                 },
               }}
             >
-              Forge.
+              <span className="gradient-text">Forge.</span>
             </motion.h1>
 
             <motion.p
@@ -226,7 +228,7 @@ function PromptBar() {
         </div>
         <motion.button
           type="submit"
-          className="bb-btn bb-btn-primary shrink-0 px-6"
+          className="bb-btn bb-btn-primary shrink-0 px-6 bg-accent text-white rounded-[4px] shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
           {...presets.button}
         >
           Start building <ArrowRight className="h-4 w-4" aria-hidden="true" />

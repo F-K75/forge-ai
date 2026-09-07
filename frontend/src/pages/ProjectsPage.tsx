@@ -379,7 +379,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+    <div className="relative flex h-full min-h-0 flex-col">
       {/* Background layers */}
       <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
         <div className="forge-bg-glow absolute inset-0" />
@@ -387,10 +387,10 @@ export default function ProjectsPage() {
         <div className="forge-bg-vignette absolute inset-0" />
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto">
-        <div className="mx-auto px-4 pb-16 md:px-8">
+      <div className="relative z-10 px-4 pb-24 pt-6 md:px-8 md:pt-10">
+        <div className="mx-auto max-w-7xl">
           {/* ============ HERO SECTION ============ */}
-          <section aria-label="Welcome" className="relative pt-6 md:pt-10">
+          <section aria-label="Welcome" className="relative">
             <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
               {/* Left column */}
               <motion.div
@@ -452,7 +452,7 @@ export default function ProjectsPage() {
           </section>
 
           {/* ============ BUILD COMMAND ============ */}
-          <section aria-label="Start a new build" className="mt-10">
+          <section aria-label="Start a new build" className="mt-8">
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -580,7 +580,7 @@ export default function ProjectsPage() {
 
           {/* ============ PROJECT LIBRARY ============ */}
           <section aria-label="Project library" className="mt-6 flex min-h-0 flex-1 flex-col">
-            <div className="flex flex-wrap items-center gap-2 border-b border-inlay px-4 py-2.5 md:px-8">
+            <div className="flex flex-wrap items-center gap-2 border-b border-inlay py-2.5">
               <p className="mr-2 hidden text-caption font-semibold uppercase tracking-[0.12em] text-accent sm:block">
                 Library
               </p>
@@ -646,7 +646,7 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto px-3 py-5 md:px-6 md:py-6">
+            <div className="min-h-0 flex-1 overflow-auto py-5 md:py-6">
               {projects.length === 0 ? (
                 <EmptyState
                   icon={Folder}
@@ -700,7 +700,7 @@ export default function ProjectsPage() {
             </div>
           </section>
         </div>
-      </div>
+        </div>
     </div>
   );
 }
