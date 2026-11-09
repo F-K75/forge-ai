@@ -26,7 +26,15 @@ class WebhookResponse(BaseModel):
     active: bool
     created_at: datetime
     last_triggered: Optional[datetime]
-    secret: Optional[str] = None
+
+
+class WebhookCreateResponse(WebhookResponse):
+    """Returned by POST /webhooks/ only: the one time the signing secret is
+    shown, so the receiver can verify X-Forge-Signature. Every other
+    endpoint uses WebhookResponse, which has no `secret` field at all --
+    01e9aa3 put an optional `secret` on WebhookResponse itself, which made
+    every list item carry "secret": null."""
+    secret: str
 
 
 class PaginatedWebhooks(BaseModel):
@@ -42,7 +50,7 @@ def _generate_secret() -> str:
     return secrets.token_urlsafe(32)
 
 
-@router.post("/", response_model=WebhookResponse)
+@router.post("/", response_model=WebhookCreateResponse)
 async def create_webhook(
     req: WebhookCreateRequest,
     request: Request,
@@ -72,7 +80,7 @@ async def create_webhook(
         changes={"url": req.url, "events": req.events, "active": req.active},
     )
     
-    return WebhookResponse(
+    return WebhookCreateResponse(
         id=webhook["id"],
         url=webhook["url"],
         events=webhook["events"],

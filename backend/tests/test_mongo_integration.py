@@ -230,3 +230,39 @@ def test_celery_build_task_persists_and_refunds_against_real_db(real_db, monkeyp
     # Unused reservation refunded exactly once.
     assert sync.users.find_one({"id": "u1"})["credits"] == 100 - used
     real_db.reset_db_clients()
+
+
+def test_webhook_secret_lifecycle_against_real_db(real_db, monkeypatch):
+    """POST /webhooks/ stores a per-webhook secret and returns it once;
+    GET /webhooks/ (real paginated_query + projection) never exposes it."""
+    import pymongo
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    import api.auth as auth_module
+    import api.webhooks as webhooks_module
+    from core.models import User
+
+    async def _valid(url):
+        return True, None
+
+    monkeypatch.setattr(webhooks_module, "validate_webhook_url", _valid)
+    app = FastAPI()
+    app.include_router(webhooks_module.router)
+    app.dependency_overrides[auth_module.get_current_user] = lambda: User(
+        id="u1", email="w@example.com", name="W", hashed_password="x", plan="free"
+    )
+
+    real_db.reset_db_clients()
+    with TestClient(app) as client:  # one portal loop for the Motor client
+        created = [
+            client.post("/webhooks/", json={"url": f"https://hooks.example.com/{i}", "events": ["build.completed"]}).json()
+            for i in range(2)
+        ]
+        listed = client.get("/webhooks/").json()["webhooks"]
+    real_db.reset_db_clients()
+
+    stored = {d["id"]: d["secret"] for d in pymongo.MongoClient(INTEGRATION_URL)[DB_NAME].webhooks.find()}
+    assert {c["id"]: c["secret"] for c in created} == stored
+    assert created[0]["secret"] != created[1]["secret"]
+    assert len(listed) == 2 and all("secret" not in w for w in listed)
