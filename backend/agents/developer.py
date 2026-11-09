@@ -93,11 +93,16 @@ class DeveloperAgent(BaseAgent):
         build_id: str = None,
         project_id: str = None,
         org_id: str = None,
+        raise_errors: bool = False,
     ) -> list[str]:
         """Questions for the Architect about ambiguities that would otherwise
         force a guess during implementation. Best-effort like
         ArchitectAgent.clarify: any LLM/parse failure returns [] so the
-        build continues exactly as it did before clarifications existed."""
+        build continues exactly as it did before clarifications existed.
+
+        raise_errors: re-raise LLM/parse failures instead -- for validation
+        (scripts/validate_clarifications.py), where "no questions" must not
+        be confused with "the call failed"."""
         if max_questions <= 0:
             return []
         try:
@@ -124,8 +129,12 @@ class DeveloperAgent(BaseAgent):
                     clean = clean[4:]
             questions = json.loads(clean.strip(), strict=False)
         except Exception:
+            if raise_errors:
+                raise
             return []
         if not isinstance(questions, list):
+            if raise_errors:
+                raise ValueError(f"expected a JSON array of questions, got {type(questions).__name__}")
             return []
         return [q.strip() for q in questions if isinstance(q, str) and q.strip()][:max_questions]
 
