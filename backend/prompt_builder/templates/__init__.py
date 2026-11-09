@@ -26,7 +26,9 @@ from prompt_builder.templates.base import PromptTemplate
 TEMPLATE_REGISTRY: dict[tuple[str, str], PromptTemplate] = {
     ("architect", "v1"): architect_v1.TEMPLATE,
     ("architect", "clarify-v1"): architect_v1.CLARIFY_TEMPLATE,
+    ("architect", "answer-v1"): architect_v1.ANSWER_TEMPLATE,
     ("developer", "v1"): developer_v1.TEMPLATE,
+    ("developer", "questions-v1"): developer_v1.QUESTIONS_TEMPLATE,
     ("designer", "v1"): designer_v1.TEMPLATE,
     ("qa", "v1"): qa_v1.TEMPLATE,
     ("security", "v1"): security_v1.TEMPLATE,

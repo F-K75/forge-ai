@@ -202,4 +202,36 @@ describe('buildStore', () => {
     expect(s.streamBuffer).toBe('')
     expect(s.tokenCount).toBe(0)
   })
+  it('agent_message_request/response record the exchange, narrate it, and update credits', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    const base = {
+      message_id: 'm1', conversation_id: 'c1', sender: 'developer', recipient: 'architect',
+      message_type: 'clarification', question: 'What happens when auth expires?', credits_charged: 0,
+    }
+    useBuildStore.getState().handleEvent({ type: 'agent_message_request', data: { ...base, status: 'pending' } } as any)
+    useBuildStore.getState().handleEvent({
+      type: 'agent_message_response',
+      data: { ...base, status: 'answered', answer: 'Redirect to /login.', credits_charged: 1, credits_used: 13 },
+    } as any)
+    const s = useBuildStore.getState()
+    expect(s.agentMessages).toHaveLength(1)
+    expect(s.agentMessages[0].status).toBe('answered')
+    expect(s.creditsUsed).toBe(13)
+    const texts = s.messages.map(m => m.text)
+    expect(texts).toContain('Developer → Architect: What happens when auth expires?')
+    expect(texts).toContain('Architect → Developer: Redirect to /login.')
+  })
+
+  it('agent_message_response explains an unanswered question', () => {
+    useBuildStore.getState().startBuild('b1', 'p')
+    useBuildStore.getState().handleEvent({
+      type: 'agent_message_response',
+      data: {
+        message_id: 'm2', conversation_id: 'c1', sender: 'developer', recipient: 'architect',
+        message_type: 'clarification', question: 'q?', status: 'rejected', reason: 'budget_exhausted', credits_charged: 0,
+      },
+    } as any)
+    const s = useBuildStore.getState()
+    expect(s.messages[s.messages.length - 1]?.text).toContain('credit budget reached')
+  })
 })

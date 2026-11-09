@@ -194,6 +194,11 @@ class BaseAgent:
         if self.use_context_engineering:
             # Assemble a full context from multiple sources
             ctx = await self._assemble_context(task, extra_system, project_state, previous_outputs)
+            # The assembler always produces the default template version, so
+            # without this a caller's variant (architect "clarify-v1",
+            # "answer-v1", developer "questions-v1") was silently ignored and
+            # the call ran under the role's default system prompt.
+            ctx.template_version = prompt_template_version or self.prompt_template_version
         else:
             # Minimal legacy path
             ctx = PromptContext(

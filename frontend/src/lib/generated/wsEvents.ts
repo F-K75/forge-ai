@@ -16,4 +16,6 @@ export const WS_EVENT_TYPES = {
   agent_output: "agent_output",
   gate_request: "gate_request",
   gate_resolved: "gate_resolved",
+  agent_message_request: "agent_message_request",
+  agent_message_response: "agent_message_response",
 } as const

@@ -64,6 +64,29 @@ class ArchitectAgent(BaseAgent):
             org_id=org_id,
         )
 
+    async def answer(self, question: str, blueprint: dict, design: Optional[dict] = None, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> str:
+        """Answer another agent's clarifying question about this build's
+        blueprint. Routed here only by core/agent_communication.py -- agents
+        never call this directly -- which owns authorization, timeouts,
+        credit accounting and persistence. Raises on LLM failure or an empty
+        answer so the caller can record the exchange as failed."""
+        context = f"Blueprint:\n{json.dumps(blueprint, indent=2)}"
+        if design:
+            context += f"\n\nDesign:\n{json.dumps(design, indent=2)}"
+        response = await self.run(
+            [{"role": "user", "content": f"{context}\n\nQuestion from the Developer:\n{question}"}],
+            max_tokens=400,
+            user_id=user_id,
+            build_id=build_id,
+            project_id=project_id,
+            org_id=org_id,
+            prompt_template_version="answer-v1",
+        )
+        answer = (response or "").strip()
+        if not answer:
+            raise ValueError("Architect returned an empty answer")
+        return answer
+
 
 def _strip_fences(response: str) -> str:
     clean = response.strip()

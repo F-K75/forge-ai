@@ -1,5 +1,16 @@
 # Orchestration System
 
+> **Status: experimental, not on the production build path.**
+> User builds run through `backend/core/orchestrator.py` (dispatched by
+> `backend/tasks/build_tasks.py`); nothing in `backend/` imports this
+> package's Python code. The only production touchpoint is read-only data:
+> `backend/api/admin.py` serves this directory's JSON snapshots (metrics,
+> dashboard, benchmark) to the Engineering Health page, which is why
+> `docker-compose.yml` mounts it into the backend container. Agent-to-agent
+> messaging for builds lives in `backend/core/agent_communication.py`, not
+> in `engine/event_bus.py`. Kept for its scheduler/retry/recovery ideas;
+> don't wire it into the build pipeline without a design review.
+
 ## Overview
 
 The orchestration system manages the AI engineering platform's multi-agent pipeline. It provides task management, agent coordination, workflow automation, and comprehensive monitoring.

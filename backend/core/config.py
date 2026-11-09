@@ -139,6 +139,12 @@ class Settings(BaseSettings):
     credits_qa: int = 2
     credits_security: int = 2
     credits_research: int = 2
+    # Developer -> Architect clarifications (core/agent_communication.py):
+    # cost per answered question, max questions per build (0 disables the
+    # phase), and how long the Architect gets to answer each one.
+    credits_clarification: int = 1
+    developer_clarification_max_questions: int = 3
+    agent_message_timeout_seconds: float = 60.0
 
     # Pricing Tiers ($USD)
     # Free: 0 credits, Standard: 100 credits/mo @ $20, Pro: 750 credits/mo @ $50
