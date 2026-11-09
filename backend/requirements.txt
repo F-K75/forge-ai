@@ -13,7 +13,7 @@ pydantic-settings==2.3.0
 jsonschema==4.23.0
 # PyJWT replaces python-jose: jose pulled ecdsa (PYSEC-2026-1325 / Minerva),
 # which has no upstream fix. HS256 via PyJWT uses cryptography only.
-PyJWT==2.13.0
+PyJWT==2.15.0
 # GitHub OAuth login flow (api/auth.py imports authlib.integrations.requests_client).
 # Was imported but never declared, so `import main` failed in any clean environment.
 authlib==1.9.5
