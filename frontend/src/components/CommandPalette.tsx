@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, User, LogOut, ArrowRight, Workflow } from "lucide-react";
+import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, User, LogOut, ArrowRight, Workflow, Terminal, Lock } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import BrandLogo from "./BrandLogo";
 import { useAuthStore } from "../store/authStore";
 
 type Command = {
@@ -14,6 +15,9 @@ type Command = {
 };
 
 const COMMANDS: Command[] = [
+  { id: "launch", label: "Launch CLI ($ build)", icon: <Rocket size={16} />, href: "/launch", section: "nav", keywords: ["launch", "prompt", "cli", "compiler"] },
+  { id: "home", label: "Home (Landing Page)", icon: <Home size={16} />, href: "/home", section: "nav", keywords: ["home", "landing", "marketing", "overview"] },
+  { id: "workspace", label: "Workspace IDE", icon: <Terminal size={16} />, href: "/build/demo-project", section: "nav", keywords: ["editor", "code", "dev", "workspace"] },
   { id: "projects", label: "Projects", icon: <LayoutGrid size={16} />, href: "/projects", section: "nav", keywords: ["dashboard", "library"] },
   { id: "initiatives", label: "Initiatives", icon: <Rocket size={16} />, href: "/initiatives", section: "nav", keywords: ["pm", "agile", "epics"] },
   { id: "flow", label: "Flow", icon: <Workflow size={16} />, href: "/flow", section: "nav", keywords: ["agents", "pipeline", "graph", "nodes"] },
@@ -21,6 +25,8 @@ const COMMANDS: Command[] = [
   { id: "marketplace", label: "Marketplace", icon: <Store size={16} />, href: "/marketplace", section: "nav", keywords: ["templates", "playbooks"] },
   { id: "billing", label: "Billing", icon: <CreditCard size={16} />, href: "/billing", section: "nav", keywords: ["plans", "subscription", "upgrade"] },
   { id: "settings", label: "Settings", icon: <Settings size={16} />, href: "/settings", section: "nav", keywords: ["preferences", "profile"] },
+  { id: "login", label: "Sign in / Auth", icon: <Lock size={16} />, href: "/login", section: "nav", keywords: ["login", "auth", "signin", "credentials"] },
+  { id: "signup", label: "Create Account / Sign up", icon: <User size={16} />, href: "/signup", section: "nav", keywords: ["register", "signup", "join"] },
   { id: "new-build", label: "New build…", icon: <FileText size={16} />, href: "/projects", section: "action", keywords: ["create", "prompt", "start"] },
   { id: "profile", label: "Profile & account", icon: <User size={16} />, href: "/settings", section: "action", keywords: ["account", "avatar", "name"] },
   { id: "logout", label: "Log out", icon: <LogOut size={16} />, href: "/login", section: "action", keywords: ["sign out"] },
@@ -84,8 +90,35 @@ export function CommandPalette() {
       navigate("/login", { replace: true });
       return;
     }
+    const currentProject = localStorage.getItem("forge_last_project") || "demo-project";
+    if (cmd.id === "workspace") {
+      navigate(`/p/${currentProject}/workspace`);
+      setOpen(false);
+      return;
+    }
+    if (cmd.id === "initiatives") {
+      navigate(`/p/${currentProject}/initiatives`);
+      setOpen(false);
+      return;
+    }
+    if (cmd.id === "flow") {
+      navigate(`/p/${currentProject}/flow`);
+      setOpen(false);
+      return;
+    }
+    if (cmd.id === "reviews") {
+      navigate(`/p/${currentProject}/reviews`);
+      setOpen(false);
+      return;
+    }
+    if (cmd.id === "settings") {
+      navigate(`/p/${currentProject}/settings`);
+      setOpen(false);
+      return;
+    }
     if (cmd.id === "new-build") {
       navigate(cmd.href);
+      setOpen(false);
       return;
     }
     navigate(cmd.href);
@@ -107,7 +140,7 @@ export function CommandPalette() {
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
@@ -115,14 +148,15 @@ export function CommandPalette() {
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
-            className="relative w-full max-w-lg rounded-2xl bg-panel border border-border shadow-apple-lg overflow-hidden"
+            className="relative w-full max-w-lg rounded-sm bg-white border-3 border-black shadow-brutal-xl overflow-hidden"
              initial={reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -8, scale: 0.98 }}
              animate={{ opacity: 1, y: 0, scale: 1 }}
              exit={reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            <div className="flex items-center gap-3 px-4 border-b border-border">
-              <Search size={16} className="text-muted shrink-0" aria-hidden="true" />
+            <div className="flex items-center gap-2.5 px-4 border-b-2 border-black bg-brutal-cream">
+              <BrandLogo size="xs" />
+              <Search size={16} className="text-black shrink-0" strokeWidth={2.5} aria-hidden="true" />
               <input
                 ref={inputRef}
                 type="text"
@@ -143,12 +177,12 @@ export function CommandPalette() {
                   }
                 }}
                 placeholder="Type a command or search…"
-                className="flex-1 bg-transparent py-3.5 text-sm text-ink placeholder:text-faint focus:outline-none"
+                className="flex-1 bg-transparent py-3.5 text-sm font-bold text-black placeholder:text-muted/60 focus:outline-none"
                 aria-label="Search commands"
                 aria-controls="command-list"
                 aria-activedescendant={filtered[activeIndex] ? `cmd-${filtered[activeIndex].id}` : undefined}
               />
-              <kbd className="hidden sm:inline-flex items-center gap-1 rounded-md border border-border bg-panel-alt px-1.5 py-0.5 text-[10px] font-mono text-muted">
+              <kbd className="hidden sm:inline-flex items-center gap-1 rounded-sm border-2 border-black bg-white px-1.5 py-0.5 text-[10px] font-mono font-bold text-black shadow-brutal-sm">
                 ESC
               </kbd>
             </div>
@@ -156,19 +190,19 @@ export function CommandPalette() {
               id="command-list"
               ref={listRef}
               role="listbox"
-              className="max-h-80 overflow-y-auto p-2"
+              className="max-h-80 overflow-y-auto p-2.5 bg-white"
               aria-label="Commands"
             >
               {filtered.length === 0 ? (
-                <p className="px-3 py-6 text-center text-sm text-muted">No results for &ldquo;{query}&rdquo;</p>
+                <p className="px-3 py-6 text-center text-sm font-bold text-muted">No results for &ldquo;{query}&rdquo;</p>
               ) : (
                 sections.map((section) => {
                   const items = filtered.filter((c) => c.section === section.key);
                   if (items.length === 0) return null;
                   return (
                     <div key={section.key} className="mb-2 last:mb-0">
-                      <p className="px-3 pt-2 pb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-faint">{section.label}</p>
-                      {items.map((cmd, idx) => {
+                      <p className="px-3 pt-2 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-black">{section.label}</p>
+                      {items.map((cmd) => {
                         const globalIdx = filtered.indexOf(cmd);
                         const isActive = globalIdx === activeIndex;
                         return (
@@ -180,13 +214,13 @@ export function CommandPalette() {
                             onClick={() => handleSelect(cmd)}
                             onMouseEnter={() => setActiveIndex(globalIdx)}
                             className={[
-                              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                              isActive ? "bg-accent-soft text-ink" : "text-muted hover:text-ink hover:bg-panel-alt",
+                              "flex w-full items-center gap-3 rounded-sm px-3 py-2 text-left text-sm font-bold transition-all border-2",
+                              isActive ? "bg-brutal-yellow text-black border-black shadow-brutal-sm translate-x-1" : "text-black border-transparent hover:bg-neutral-100",
                             ].join(" ")}
                           >
-                            <span className="shrink-0 text-muted">{cmd.icon}</span>
+                            <span className="shrink-0 text-black">{cmd.icon}</span>
                             <span className="flex-1 truncate">{cmd.label}</span>
-                            {cmd.id === "new-build" && <ArrowRight size={12} className="shrink-0 text-faint" aria-hidden="true" />}
+                            {cmd.id === "new-build" && <ArrowRight size={14} className="shrink-0 text-black" strokeWidth={2.5} aria-hidden="true" />}
                           </button>
                         );
                       })}
@@ -195,8 +229,11 @@ export function CommandPalette() {
                 })
               )}
             </div>
-            <div className="flex items-center justify-between border-t border-border px-4 py-2 text-[11px] text-muted">
-              <span><kbd className="font-mono">↑↓</kbd> to navigate · <kbd className="font-mono">↵</kbd> to select</span>
+            <div className="flex items-center justify-between border-t-2 border-black bg-brutal-cream px-4 py-2 text-[11px] font-bold text-black">
+              <span className="flex items-center gap-2">
+                <BrandLogo size="xs" />
+                <span><kbd className="font-mono bg-white px-1 border border-black rounded-none">↑↓</kbd> to navigate · <kbd className="font-mono bg-white px-1 border border-black rounded-none">↵</kbd> to select</span>
+              </span>
               <span>{filtered.length} result{filtered.length === 1 ? "" : "s"}</span>
             </div>
           </motion.div>

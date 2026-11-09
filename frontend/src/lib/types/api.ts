@@ -165,6 +165,7 @@ export interface PMExecution {
   task_id: string
   initiative_id: string
   agent?: string
+  agent_type?: string
   status?: string
   progress?: number
   cost_usd?: number

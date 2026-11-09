@@ -31,21 +31,21 @@ export function ThemeToggle({ className = "", compact = false }: Props) {
 
   const Icon = ICONS[mode];
 
+  const defaultClasses = compact
+    ? "h-7 w-7 bg-white dark:bg-[#252530] border-2 border-black dark:border-white/80 text-ink shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff] hover:bg-brutal-yellow hover:text-black active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center cursor-pointer transition-none shrink-0"
+    : "bb-btn bb-btn-icon bb-btn-subtle gap-2 px-3";
+
   return (
     <button
       type="button"
       onClick={() =>
         setMode((m) => ORDER[(ORDER.indexOf(m) + 1) % ORDER.length]!)
       }
-      className={[
-        "bb-btn bb-btn-icon bb-btn-subtle",
-        compact ? "h-9 w-9" : "gap-2 px-3",
-        className,
-      ].join(" ")}
+      className={`${defaultClasses} ${className}`.trim()}
       aria-label={`Theme: ${LABELS[mode]}. Click to cycle.`}
       title={`Theme: ${LABELS[mode]}`}
     >
-      <Icon size={16} aria-hidden="true" />
+      <Icon size={compact ? 13 : 16} strokeWidth={2.5} aria-hidden="true" />
       {!compact && <span className="text-caption">{LABELS[mode]}</span>}
     </button>
   );

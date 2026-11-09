@@ -1,13 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <path d="M16 1L29 8.5V23.5L16 31L3 23.5V8.5L16 1Z" fill="#0A0A0F"/>
-  <path d="M16 1L29 8.5V23.5L16 31L3 23.5V8.5L16 1Z" stroke="url(#g)" stroke-width="1.2" fill="none"/>
-  <path d="M12.5 7H20.5L22.5 10.5H15V13.5H21.5V17H15V24.5H12.5V7Z" fill="url(#g)"/>
-  <path d="M16 7L20 10.5H16V7Z" fill="#0A0A0F"/>
-  <path d="M15 13.5H20L21.5 17H15V13.5Z" fill="#0A0A0F"/>
-  <defs>
-    <linearGradient id="g" x1="3" y1="1" x2="29" y2="31" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#14B8A6"/>
-      <stop offset="1" stop-color="#84CC16"/>
-    </linearGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Industrial Outer Hex-Bezel / Anvil Silhouette -->
+  <path d="M24 3L44 14.5V33.5L24 45L4 33.5V14.5L24 3Z" fill="#0A0C0E" stroke="#000000" stroke-width="2" stroke-linejoin="miter"/>
+  
+  <!-- Outer Corner Alignment Markings (Industrial Cyber Aesthetic) -->
+  <path d="M24 3V8M44 14.5L40 16.8M44 33.5L40 31.2M24 45V40M4 33.5L8 31.2M4 14.5L8 16.8" stroke="#FF5522" stroke-width="1.8" stroke-linecap="square"/>
+
+  <!-- Inner Angular Forge Core (Hammer & Anvil Beam Geometry in Hazard Orange) -->
+  <!-- Top Horizontal Forge Crown -->
+  <path d="M14 13H34V18H27V21H32V25H27V35H21V18H14V13Z" fill="#FF5522"/>
+  
+  <!-- Secondary Cyber Accent Notch / High-Tech Spark Point -->
+  <polygon points="30,13 34,13 34,17 30,17" fill="#FFFFFF"/>
+  <polygon points="14,31 18,31 18,35 14,35" fill="#FF5522" opacity="0.8"/>
+  <rect x="29" y="27" width="5" height="4" fill="#FFFFFF"/>
 </svg>

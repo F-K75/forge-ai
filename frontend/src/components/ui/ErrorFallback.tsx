@@ -2,9 +2,11 @@ import React from 'react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from 'motion/react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { isChunkLoadError } from '../../lib/lazyRetry'
 
 function ErrorFallback({ error, onRetry }: { error: Error | null; onRetry: () => void }) {
   const reduceMotion = useReducedMotion()
+  const isChunk = isChunkLoadError(error)
 
   return (
     <div className="min-h-screen bg-base flex items-center justify-center p-4">
@@ -23,14 +25,20 @@ function ErrorFallback({ error, onRetry }: { error: Error | null; onRetry: () =>
         >
           <AlertTriangle className="w-8 h-8 text-red-400" aria-hidden="true" />
         </motion.div>
-        <h1 className="font-display text-xl font-medium text-ink mb-2">Something went wrong</h1>
-        <p className="text-sm text-muted mb-4">{error?.message || 'Something unexpected happened'}</p>
+        <h1 className="font-display text-xl font-medium text-ink mb-2">
+          {isChunk ? 'Application Update Available' : 'Something went wrong'}
+        </h1>
+        <p className="text-sm text-muted mb-4">
+          {isChunk
+            ? 'A newer version or updated module could not be loaded. Please reload the application.'
+            : (error?.message || 'Something unexpected happened')}
+        </p>
         <button
           onClick={onRetry}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-ink text-base text-sm font-medium hover:bg-ink/90 transition-colors"
         >
           <RefreshCw size={14} />
-          Retry
+          {isChunk ? 'Reload Application' : 'Retry'}
         </button>
       </motion.div>
     </div>

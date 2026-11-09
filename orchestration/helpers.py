@@ -42,7 +42,10 @@ PATHS = {
 
 # Get the default storage backend on demand (supports test injection)
 def _read_json(path: str) -> Dict[str, Any]:
-    return get_storage().read(path)
+    try:
+        return get_storage().read(path)
+    except FileNotFoundError:
+        return {}
 
 
 def _write_json(path: str, data: Dict[str, Any]) -> None:

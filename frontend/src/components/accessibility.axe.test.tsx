@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { axe } from 'vitest-axe'
 import { SummaryChip } from './SummaryChip'
 import { StatusPill } from './StatusPill'
 import { Toggle } from './Toggle'
+import { TopNavBar } from './TopNavBar'
+import { InitiativeCopilotChat } from './pm/InitiativeCopilotChat'
 
 declare module 'vitest' {
   interface Assertion<T> {
@@ -44,6 +48,40 @@ describe('accessibility (axe) — core primitives', () => {
 
   it('StatusPill is accessible', async () => {
     const { container } = render(<StatusPill status="complete" />)
+    await axeIt(container)
+  })
+
+  it('TopNavBar is accessible', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <TopNavBar />
+        </BrowserRouter>
+      </QueryClientProvider>
+    )
+    await axeIt(container)
+  })
+
+  it('InitiativeCopilotChat is accessible', async () => {
+    const mockInit = {
+      id: 'init-1',
+      user_id: 'user-1',
+      version: 1,
+      name: 'Agent Pipeline',
+      status: 'active',
+      tech_stack: ['Next.js', 'Go'],
+    }
+    const { container } = render(
+      <InitiativeCopilotChat
+        initiative={mockInit}
+        epics={[]}
+        isOpen={true}
+        onClose={vi.fn()}
+      />
+    )
     await axeIt(container)
   })
 })

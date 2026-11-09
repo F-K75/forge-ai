@@ -41,14 +41,14 @@ const InputComponent = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputF
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-ink"
+            className="text-xs font-bold text-ink uppercase tracking-wider"
           >
             {label}
           </label>
         )}
         <div className="relative">
           {leftIcon && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden="true">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black pointer-events-none" aria-hidden="true">
               {leftIcon}
             </span>
           )}
@@ -59,14 +59,14 @@ const InputComponent = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputF
               aria-invalid={hasError}
               aria-describedby={hasError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
               className={clsx(
-                'w-full rounded-m3 border bg-panel px-4 py-3 text-body text-ink outline-none transition-all duration-fast placeholder:text-faint focus:border-accent/50 focus:shadow-[0_0_0_4px_var(--state-focus)] focus:bg-panel',
+                'w-full rounded-sm border-2 border-black bg-white px-4 py-3 text-body text-ink outline-none transition-all duration-fast placeholder:text-muted/70 shadow-brutal-sm font-medium focus:shadow-brutal focus:border-black focus:bg-white',
                 leftIcon && 'pl-10',
                 rightIcon && 'pr-10',
-                hasError && 'border-error',
-                props.disabled && 'cursor-not-allowed opacity-50',
+                hasError && 'border-error shadow-[2px_2px_0px_0px_#FF5376] focus:shadow-[4px_4px_0px_0px_#FF5376]',
+                props.disabled && 'cursor-not-allowed bg-neutral-100 opacity-60 shadow-none',
                 className
               )}
-              style={{ borderRadius: layout.radiusMd, minHeight: 120 }}
+              style={{ borderRadius: layout.radiusSm, minHeight: 120 }}
               {...props as TextareaHTMLAttributes<HTMLTextAreaElement>}
             />
           ) : (
@@ -76,14 +76,14 @@ const InputComponent = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputF
               aria-invalid={hasError}
               aria-describedby={hasError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
               className={clsx(
-                'h-12 w-full rounded-m3 border bg-panel px-4 py-3 text-body text-ink outline-none transition-all duration-fast placeholder:text-faint focus:border-accent/50 focus:shadow-[0_0_0_4px_var(--state-focus)] focus:bg-panel',
+                'h-12 w-full rounded-sm border-2 border-black bg-white px-4 py-3 text-body text-ink outline-none transition-all duration-fast placeholder:text-muted/70 shadow-brutal-sm font-medium focus:shadow-brutal focus:border-black focus:bg-white',
                 leftIcon && 'pl-10',
                 rightIcon && 'pr-10',
-                hasError && 'border-error',
-                props.disabled && 'cursor-not-allowed opacity-50',
+                hasError && 'border-error shadow-[2px_2px_0px_0px_#FF5376] focus:shadow-[4px_4px_0px_0px_#FF5376]',
+                props.disabled && 'cursor-not-allowed bg-neutral-100 opacity-60 shadow-none',
                 className
               )}
-              style={{ borderRadius: layout.radiusMd }}
+              style={{ borderRadius: layout.radiusSm }}
               {...props as InputHTMLAttributes<HTMLInputElement>}
             />
           )}

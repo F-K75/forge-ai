@@ -27,6 +27,7 @@ class ApiKeyResponse(BaseModel):
     expires_at: Optional[datetime]
     created_at: datetime
     last_used_at: Optional[datetime]
+    key: Optional[str] = None
 
 
 class PaginatedApiKeys(BaseModel):
@@ -80,7 +81,7 @@ async def create_api_key(
         resource_id=key_doc["id"],
         changes={"name": req.name, "scopes": req.scopes, "expires_at": key_doc.get("expires_at")},
     )
-    return ApiKeyResponse(**key_doc)
+    return ApiKeyResponse(**key_doc, key=api_key)
 
 
 @router.get("/", response_model=PaginatedApiKeys)

@@ -1,7 +1,6 @@
 import { type InputHTMLAttributes, forwardRef } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { layout } from '../../lib/designTokens'
 
 interface SwitchProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -21,24 +20,23 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           />
           <div
             className={clsx(
-              'h-6 w-11 rounded-full transition-colors duration-fast',
-              'bg-panel-alt peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-base',
-              props.checked && 'bg-accent'
+              'h-7 w-12 rounded-sm border-2 border-black bg-white shadow-brutal-sm transition-colors duration-fast',
+              'peer-focus-visible:ring-2 peer-focus-visible:ring-black peer-focus-visible:ring-offset-2',
+              props.checked && 'bg-brutal-yellow'
             )}
-            style={{ borderRadius: layout.radiusFull }}
           >
             <div
               className={clsx(
-                'absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-fast',
-                props.checked && 'translate-x-5'
+                'absolute left-0.5 top-0.5 h-5 w-5 rounded-sm border-2 border-black bg-black transition-transform duration-fast',
+                props.checked ? 'translate-x-5 bg-black' : 'bg-neutral-300'
               )}
             />
           </div>
         </div>
         {(label || description) && (
           <div className="flex flex-col gap-0.5">
-            {label && <span className="text-sm font-medium text-ink">{label}</span>}
-            {description && <span className="text-xs text-muted">{description}</span>}
+            {label && <span className="text-xs font-bold uppercase tracking-wider text-ink">{label}</span>}
+            {description && <span className="text-xs font-medium text-muted">{description}</span>}
           </div>
         )}
       </label>

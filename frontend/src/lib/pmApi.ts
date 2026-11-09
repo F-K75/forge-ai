@@ -57,6 +57,8 @@ export const initiativesApi = {
       api.post(`/v1/initiatives/${initiative_id}/integrations`, data).then(r => r.data),
     unlink: (initiative_id: string, provider: string) =>
       api.delete(`/v1/initiatives/${initiative_id}/integrations/${provider}`).then(r => r.data),
+    sync: (initiative_id: string, provider: string) =>
+      api.post(`/v1/initiatives/${initiative_id}/integrations/${provider}/sync`).then(r => r.data),
   },
   analytics: (initiative_id: string) => api.get(`/v1/analytics/initiatives/${initiative_id}`).then(r => r.data),
 }
@@ -121,6 +123,7 @@ export const releasesApi = {
   generate: (initiative_id: string, version: string) =>
     api.post('/releases/generate', { initiative_id, version }).then(r => r.data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/releases/${id}`, data).then(r => r.data),
+  delete: (id: string) => api.delete(`/releases/${id}`).then(r => r.data),
 }
 
 // Agent executions / live dashboard (Modules 9, 10)

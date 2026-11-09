@@ -54,7 +54,7 @@ const MOCK_RUNS: Record<string, { lastRun: string; duration: string; successRate
   task_executor: { lastRun: "15m ago", duration: "2.1s", successRate: 82 },
 };
 
-type AgentRunStats = {
+export type AgentRunStats = {
   lastRun?: string;
   duration?: string;
   successRate?: number;
@@ -125,73 +125,91 @@ function runReducer(state: RunState, action: { type: "tick" }): RunState {
   };
 }
 
-function AgentNode({ data, selected }: NodeProps) {
-  const statusInfo = STATUS_META[data.status as AgentStatus];
-  const StatusIcon = statusInfo.icon;
-  const run = data.runStats || MOCK_RUNS[data.id];
-  const statusColor = data.status === "success" ? "rgb(var(--success))" : data.status === "error" ? "rgb(var(--error))" : statusInfo.color;
-
+function LaneLabelNode({ data }: NodeProps) {
   return (
-    <div
-      className={[
-        "relative min-w-[180px] rounded-2xl border bg-inlay px-4 py-3 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] transition-all duration-200",
-        selected ? "border-inlay-strong shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85)] scale-[1.02]" : "border-inlay hover:border-inlay-strong",
-      ].join(" ")}
-      style={{ boxShadow: `inset 0 0 0 1px ${data.hue}22, 0 12px 32px -12px rgba(0,0,0,0.7)` }}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 rounded-2xl"
-        style={{ background: `linear-gradient(135deg, ${data.hue}14 0%, transparent 50%)` }}
-      />
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border-0" style={{ background: `${data.hue}88` }} />
-
-      <div className="relative flex items-center gap-3">
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-inlay-strong"
-          style={{ background: `linear-gradient(135deg, ${data.hue}24 0%, ${data.hue}10 100%)`, color: data.hue }}
-        >
-          <Activity size={18} />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-ink">{data.label}</p>
-          <span className="flex items-center gap-1.5 text-xs text-muted">
-            <StatusIcon size={10} style={{ color: statusColor }} />
-            <span style={{ color: statusColor }}>{statusInfo.label}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="relative mt-2.5 flex items-center gap-2 text-[11px] text-faint">
-        {run && (
-          <>
-            {run.lastRun && (
-              <span className="flex items-center gap-1">
-                <Clock size={10} />
-                {run.lastRun}
-              </span>
-            )}
-            {run.duration && (
-              <span className="flex items-center gap-1">
-                <Timer size={10} />
-                {run.duration}
-              </span>
-            )}
-            {run.successRate != null && (
-              <span className="flex items-center gap-1">
-                <CheckCircle2 size={10} />
-                {run.successRate}%
-              </span>
-            )}
-          </>
-        )}
-      </div>
-
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0" style={{ background: `${data.hue}88` }} />
+    <div className="flex items-center gap-2 px-3 py-1.5 border-2 border-black dark:border-white/80 bg-white dark:bg-[#1E1E28] shadow-[1.5px_1.5px_0px_#000] dark:shadow-[1.5px_1.5px_0px_#fff] select-none font-mono">
+      <span className="h-2.5 w-2.5 rounded-none border border-black dark:border-white" style={{ backgroundColor: data.color || "#14B8A6" }} />
+      <span className="font-mono text-xs font-black tracking-tight text-ink uppercase">{data.label}</span>
+      {data.badge && (
+        <span className="text-[10px] font-mono font-black px-1.5 py-0.5 border border-black bg-brutal-yellow text-black">
+          {data.badge}
+        </span>
+      )}
     </div>
   );
 }
 
-const nodeTypes = { agentNode: AgentNode };
+function AgentNode({ data, selected }: NodeProps) {
+  const statusInfo = STATUS_META[data.status as AgentStatus] || STATUS_META.idle;
+  const StatusIcon = statusInfo.icon;
+  const run = data.runStats || MOCK_RUNS[data.id];
+  const isSelected = selected || data.isSelected;
+  const isDimmed = data.isDimmed;
+  const isActiveSim = data.isActiveSim || data.status === "running";
+  const AgentIcon = data.icon || Activity;
+  const statusColor = data.status === "success" ? "#10B981" : data.status === "error" ? "#EF4444" : statusInfo.color;
+
+  return (
+    <div
+      className={[
+        "relative min-w-[210px] border-2 transition-none select-none",
+        isDimmed ? "opacity-30 grayscale" : "opacity-100",
+        isActiveSim ? "ring-2 ring-black dark:ring-white scale-[1.02]" : "",
+        isSelected
+          ? "border-black dark:border-white bg-brutal-yellow text-black shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff]"
+          : "border-black dark:border-white/80 bg-white dark:bg-[#181820] hover:border-black dark:hover:border-white shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]",
+      ].join(" ")}
+    >
+      <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border-2 !border-black dark:!border-white !rounded-none" style={{ background: data.hue }} />
+
+      <div className="p-3">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black dark:border-white/80 font-black shadow-[1px_1px_0px_#000]"
+            style={{ backgroundColor: `${data.hue}25`, color: data.hue }}
+          >
+            <AgentIcon size={18} strokeWidth={2.5} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <p className="truncate text-xs font-black text-ink">{data.label}</p>
+              {data.stage && (
+                <span className="text-[9px] font-mono uppercase tracking-wider font-bold px-1 py-0.5 border border-black/30 dark:border-white/30 bg-black/5 dark:bg-white/5 text-muted">
+                  {data.stage}
+                </span>
+              )}
+            </div>
+            <span className="flex items-center gap-1.5 text-[11px] font-mono text-muted mt-0.5">
+              <StatusIcon size={11} style={{ color: statusColor }} className={data.status === "running" ? "animate-spin" : ""} />
+              <span style={{ color: statusColor }} className="font-bold">{statusInfo.label}</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-2 pt-2 border-t-2 border-black/10 dark:border-white/10 flex items-center justify-between text-[10px] font-mono text-muted">
+          {run?.lastRun ? (
+            <span className="flex items-center gap-1 truncate">
+              <Clock size={10} />
+              {run.lastRun}
+            </span>
+          ) : (
+            <span className="text-muted/60">STANDBY</span>
+          )}
+          {run?.successRate != null && (
+            <span className="flex items-center gap-1 font-bold text-ink">
+              <CheckCircle2 size={10} className="text-emerald-500" />
+              {run.successRate}%
+            </span>
+          )}
+        </div>
+      </div>
+
+      <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border-2 !border-black dark:!border-white !rounded-none" style={{ background: data.hue }} />
+    </div>
+  );
+}
+
+const nodeTypes = { agentNode: AgentNode, laneLabel: LaneLabelNode };
 
 function GraphHeader() {
   return (
@@ -307,13 +325,51 @@ function AgentDetailPanel({ agent, kind, onClose }: { agent: typeof AGENTS[numbe
   );
 }
 
-export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentStats }: { onClose?: () => void; embedded?: boolean; autoPlay?: boolean; onTourEnd?: () => void; agentStats?: Record<string, AgentRunStats> }) {
+export interface AgentFleetGraphProps {
+  onClose?: () => void;
+  embedded?: boolean;
+  autoPlay?: boolean;
+  onTourEnd?: () => void;
+  agentStats?: Record<string, AgentRunStats>;
+  selectedAgentId?: string | null;
+  onSelectAgent?: (agent: any, kind: "build" | "gateway") => void;
+  filterStage?: string | null;
+  activeSimAgentId?: string | null;
+}
+
+const BUILD_AGENT_STAGES: Record<string, string> = {
+  architect: "definition",
+  business_improver: "execution",
+  designer: "definition",
+  developer: "execution",
+  integration: "execution",
+  pm: "planning",
+};
+
+export function AgentFleetGraph({
+  onClose,
+  embedded,
+  autoPlay,
+  onTourEnd,
+  agentStats,
+  selectedAgentId,
+  onSelectAgent,
+  filterStage,
+  activeSimAgentId,
+}: AgentFleetGraphProps) {
   const [selectedAgent, setSelectedAgent] = useState<{ id: string; kind: "build" | "gateway" } | null>(null);
   const [{ active, currentIndex, results }, dispatch] = useReducer(runReducer, {
     active: false,
     currentIndex: 0,
     results: {},
   });
+
+  useEffect(() => {
+    if (selectedAgentId) {
+      const isBuild = AGENTS.some((a) => a.id === selectedAgentId);
+      setSelectedAgent({ id: selectedAgentId, kind: isBuild ? "build" : "gateway" });
+    }
+  }, [selectedAgentId]);
 
   useEffect(() => {
     if (!active) return;
@@ -354,23 +410,34 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
       const agent = AGENTS.find((a) => a.id === id)!;
       const run = agentStats?.[agent.id] || MOCK_RUNS[agent.id];
       const simulatedStatus = results[agent.id] || "idle";
+      const stage = BUILD_AGENT_STAGES[agent.id] || "execution";
+      const isDimmed = Boolean(filterStage && filterStage !== "all" && filterStage !== stage);
+      const isActiveSim = activeSimAgentId === agent.id;
+      const isSelected = selectedAgentId === agent.id || selectedAgent?.id === agent.id;
+
       return {
         id: agent.id,
         type: "agentNode",
         position: { x: laneX, y: startY + index * gap },
         data: {
+          id: agent.id,
           label: agent.label,
           hue: agent.hue,
+          icon: agent.icon,
+          stage,
           kind: "build" as const,
-          status: active ? simulatedStatus : "idle",
+          status: isActiveSim ? "running" : active ? simulatedStatus : "idle",
           lastRun: run?.lastRun,
           duration: run?.duration,
           successRate: run?.successRate,
           runStats: run,
+          isDimmed,
+          isActiveSim,
+          isSelected,
         },
       };
     });
-  }, [results, active, agentStats]);
+  }, [results, active, agentStats, filterStage, activeSimAgentId, selectedAgentId, selectedAgent]);
 
   const gatewayNodes = useMemo(() => {
     const laneX = 360;
@@ -380,47 +447,70 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
       const id = agent.id;
       const run = agentStats?.[id] || MOCK_RUNS[id];
       const simulatedStatus = results[id] || "idle";
+      const stage = agent.stage.toLowerCase();
+      const isDimmed = Boolean(filterStage && filterStage !== "all" && filterStage !== stage);
+      const isActiveSim = activeSimAgentId === agent.id;
+      const isSelected = selectedAgentId === agent.id || selectedAgent?.id === agent.id;
+
       return {
         id,
         type: "agentNode",
         position: { x: laneX, y: startY + index * gap },
         data: {
+          id: agent.id,
           label: agent.label,
           hue: agent.hue,
+          icon: agent.icon,
+          stage,
           kind: "gateway" as const,
-          status: active ? simulatedStatus : "idle",
+          status: isActiveSim ? "running" : active ? simulatedStatus : "idle",
           lastRun: run?.lastRun,
           duration: run?.duration,
           successRate: run?.successRate,
           runStats: run,
+          isDimmed,
+          isActiveSim,
+          isSelected,
         },
       };
     });
-  }, [results, active, agentStats]);
+  }, [results, active, agentStats, filterStage, activeSimAgentId, selectedAgentId, selectedAgent]);
 
   const allNodes = useMemo(() => {
     const buildLabel = {
       id: "lane-build",
       type: "laneLabel" as const,
-      position: { x: 0, y: 6 },
-      data: { label: "Build Pipeline" },
+      position: { x: 40, y: -20 },
+      data: { label: "Build Orchestrator", color: "#14B8A6", badge: "6 AGENTS" },
     };
     const gatewayLabel = {
       id: "lane-gateway",
       type: "laneLabel" as const,
-      position: { x: 280, y: 6 },
-      data: { label: "Gateway Agents" },
+      position: { x: 340, y: -20 },
+      data: { label: "Gateway Matrix", color: "#A855F7", badge: "11 AGENTS" },
     };
     return [...([buildLabel, gatewayLabel] as any), ...pipelineNodes, ...gatewayNodes];
   }, [pipelineNodes, gatewayNodes]);
 
   const initialEdges = useMemo(() => [...AGENT_CONNECTIONS, ...GATEWAY_CONNECTIONS], []);
-  const [nodes, , onNodesChange] = useNodesState(allNodes as any);
+  const [nodes, setNodes, onNodesChange] = useNodesState(allNodes as any);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
+  useEffect(() => {
+    setNodes(allNodes as any);
+  }, [allNodes, setNodes]);
+
   const handleNodeClick = useCallback((_: React.MouseEvent, node: any) => {
-    setSelectedAgent({ id: node.id, kind: node.data.kind });
-  }, []);
+    const kind = node.data.kind;
+    const agentData =
+      kind === "build"
+        ? AGENTS.find((a) => a.id === node.id)
+        : GATEWAY_AGENTS.find((a) => a.id === node.id);
+    setSelectedAgent({ id: node.id, kind });
+    if (onSelectAgent && agentData) {
+      onSelectAgent(agentData, kind);
+    }
+  }, [onSelectAgent]);
 
   const selectedAgentData = selectedAgent
     ? (selectedAgent.kind === "build"
@@ -429,7 +519,7 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden rounded-2xl border border-inlay bg-panel/95 shadow-m3-2 backdrop-blur-xl`}>
+    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden border-2 border-black dark:border-white/80 bg-white dark:bg-[#121218] shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]`}>
       {!embedded && <GraphHeader />}
 
       <div className="flex flex-1 min-h-0">
@@ -455,23 +545,23 @@ export function AgentFleetGraph({ onClose, embedded, autoPlay, onTourEnd, agentS
             <Controls showInteractive={false} />
           </ReactFlow>
 
-          <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
+          <div className="absolute bottom-3 left-3 flex items-center gap-2 z-10 font-mono">
             <button
               type="button"
               onClick={startRun}
               disabled={active}
-              className="flex items-center gap-2 rounded-full border border-inlay-strong bg-accent px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-7 px-3 flex items-center gap-1.5 border-2 border-black bg-brutal-yellow text-black font-black uppercase text-[11px] shadow-[1.5px_1.5px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Play size={12} />
-              {active ? "Running..." : "Simulate build"}
+              <Play size={11} className="fill-current" />
+              {active ? "RUNNING..." : "SIMULATE DAG"}
             </button>
             <button
               type="button"
               onClick={resetRun}
-              className="flex items-center gap-2 rounded-full border border-inlay-strong bg-panel-alt px-4 py-2 text-xs font-semibold text-ink shadow-lg transition hover:brightness-110"
+              className="h-7 px-2.5 flex items-center gap-1.5 border-2 border-black bg-white dark:bg-[#1E1E28] text-black dark:text-white font-black uppercase text-[11px] shadow-[1.5px_1.5px_0px_#000] active:translate-x-[1px] active:translate-y-[1px]"
             >
-              <RotateCcw size={12} />
-              Reset
+              <RotateCcw size={11} />
+              RESET
             </button>
           </div>
         </div>

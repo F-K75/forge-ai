@@ -90,6 +90,13 @@ export interface BuildState {
   pendingGate: PendingGate | null
   autoApprove: boolean
 
+  // Workspace OS Layout State
+  viewMode: 'split' | 'editor' | 'chat' | 'preview' | 'diff'
+  showContextPanel: boolean
+  showBottomPanel: boolean
+  bottomTab: 'terminal' | 'problems' | 'output' | 'logs' | 'git'
+  activeModel: string
+
   // Actions
   startBuild: (buildId: string, prompt: string) => void
   handleEvent: (event: AnyWSEvent) => void
@@ -98,6 +105,11 @@ export interface BuildState {
   setBuildId: (buildId: string | null) => void
   setFiles: (files: Record<string, string>) => void
   setAutoApprove: (value: boolean) => void
+  setViewMode: (mode: 'split' | 'editor' | 'chat' | 'preview' | 'diff') => void
+  toggleContextPanel: () => void
+  toggleBottomPanel: () => void
+  setBottomTab: (tab: 'terminal' | 'problems' | 'output' | 'logs' | 'git') => void
+  setActiveModel: (model: string) => void
   reset: () => void
 }
 
@@ -159,6 +171,12 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
   agentOutputs: {},
   pendingGate: null,
   autoApprove: false,
+
+  viewMode: 'split',
+  showContextPanel: true,
+  showBottomPanel: false,
+  bottomTab: 'terminal',
+  activeModel: 'Gemini 2.5 Pro',
 
   startBuild: (buildId, prompt) => {
     useDeploymentStore.getState().reset()
@@ -397,6 +415,12 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
   },
 
   setFiles: (files) => set({ files }),
+
+  setViewMode: (viewMode) => set({ viewMode }),
+  toggleContextPanel: () => set((state) => ({ showContextPanel: !state.showContextPanel })),
+  toggleBottomPanel: () => set((state) => ({ showBottomPanel: !state.showBottomPanel })),
+  setBottomTab: (bottomTab) => set({ bottomTab, showBottomPanel: true }),
+  setActiveModel: (activeModel) => set({ activeModel }),
 
   reset: () => {
     useDeploymentStore.getState().reset()

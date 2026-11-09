@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { motion, useReducedMotion } from 'motion/react'
-import { layout } from '../../lib/designTokens'
 
 interface TooltipProps {
   content: ReactNode
@@ -19,18 +17,15 @@ const sideClasses: Record<string, string> = {
 }
 
 export function Tooltip({ content, children, side = 'top', className }: TooltipProps) {
-  const reduceMotion = useReducedMotion()
-
   return (
     <div className={twMerge(clsx('relative inline-flex', className))}>
       {children}
       <div
         role="tooltip"
         className={twMerge(clsx(
-          'pointer-events-none absolute z-[60] whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-ink apple-glass-strong shadow-apple',
+          'pointer-events-none absolute z-[60] whitespace-nowrap px-2.5 py-1 text-xs font-bold text-white bg-black border-2 border-black shadow-brutal-sm rounded-none uppercase tracking-wider',
           sideClasses[side]
         ))}
-        style={{ borderRadius: layout.radiusSm }}
       >
         {content}
       </div>

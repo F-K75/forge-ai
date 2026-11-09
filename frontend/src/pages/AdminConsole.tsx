@@ -28,6 +28,7 @@ import { motionVariants } from "../lib/animations"
 import { presets } from "../lib/animationPresets"
 import { adminApi, analyticsApi } from "../lib/api"
 import { LIVE_MODE } from "../lib/env"
+import BrandLogo from "../components/BrandLogo"
 import { StatusPill } from "../components/StatusPill"
 import { ChartContainer } from "../components/charts/ChartContainer"
 import { ChartTooltip } from "../components/charts/ChartTooltip"
@@ -250,7 +251,7 @@ export default function AdminConsole() {
         Admin
       </div>
       <header className="flex items-center gap-3 mb-10">
-        <Activity size={20} className="text-ink" aria-hidden="true" />
+        <BrandLogo size="md" />
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">
           Admin
         </h1>

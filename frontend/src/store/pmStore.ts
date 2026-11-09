@@ -3,6 +3,23 @@ import type { AnyPMWSEvent } from '../lib/pmWsContract'
 import { initiativesApi, epicsApi, storiesApi, tasksApi, sprintsApi, agentExecutionsApi } from '../lib/pmApi'
 import { captureEvent } from '../lib/analytics'
 import type { PMInitiative, PMPRD, PMEpic, PMStory, PMTask, PMSprint, PMExecution } from '../lib/types/api'
+import {
+  findInitiativeById,
+  updateLocalTaskStatus,
+  updateLocalTask,
+  addLocalTask,
+  deleteLocalTask,
+  addLocalExecution,
+  updateLocalSprint,
+  addLocalSprint,
+  updateLocalEpic,
+  addLocalEpic,
+  deleteLocalEpic,
+  updateLocalStory,
+  addLocalStory,
+  deleteLocalStory,
+  updateLocalInitiative,
+} from '../lib/pmData'
 
 export interface DecisionFeedItem {
   taskId?: string
@@ -32,7 +49,19 @@ export interface PMState {
   refreshTasks: () => Promise<void>
   refreshExecutions: () => Promise<void>
   handleEvent: (event: AnyPMWSEvent) => void
-  setTaskLocal: (taskId: string, patch: Partial<Pick<PMTask, 'status'>>) => void
+  setTaskLocal: (taskId: string, patch: Partial<PMTask>) => void
+  addTaskLocal: (task: PMTask) => void
+  deleteTaskLocal: (taskId: string) => void
+  setEpicLocal: (epicId: string, patch: Partial<PMEpic>) => void
+  addEpicLocal: (epic: PMEpic) => void
+  deleteEpicLocal: (epicId: string) => void
+  setStoryLocal: (storyId: string, patch: Partial<PMStory>) => void
+  addStoryLocal: (story: PMStory) => void
+  deleteStoryLocal: (storyId: string) => void
+  setInitiativeLocal: (patch: Partial<PMInitiative>) => void
+  addExecutionLocal: (execution: PMExecution) => void
+  setSprintLocal: (sprintId: string, patch: Partial<PMSprint>) => void
+  addSprintLocal: (sprint: PMSprint) => void
   reset: () => void
 }
 
@@ -77,7 +106,35 @@ export const usePMStore = create<PMState>((set, get) => ({
         loading: false,
       })
     } catch {
-      set({ loading: false, error: 'Failed to load initiative' })
+      const fallback = findInitiativeById(initiativeId)
+      if (fallback) {
+        const rawDecisions = (fallback as any).decision_feed || (fallback as any).decisions || (fallback.initiative as any)?.decision_feed || []
+        const mappedDecisions: DecisionFeedItem[] = rawDecisions.map((d: any) => ({
+          summary: d.summary || d.text || String(d),
+          recommendedNextTasks: d.recommended_next_tasks || d.recommendedNextTasks || [],
+          bottlenecks: d.bottlenecks || [],
+        }))
+
+        set({
+          initiative: fallback.initiative,
+          prd: fallback.prd,
+          epics: fallback.epics,
+          stories: fallback.stories,
+          tasks: fallback.tasks,
+          sprints: fallback.sprints,
+          executions: fallback.executions,
+          decisionFeed: mappedDecisions.length > 0 ? mappedDecisions : get().decisionFeed,
+          generationStatus:
+            fallback.initiative.status === 'generating' ? 'generating' :
+            fallback.initiative.status === 'failed' ? 'failed' :
+            fallback.initiative.status === 'review' ? 'review' : 'complete',
+          generationError: fallback.initiative.generation_error ?? null,
+          loading: false,
+          error: null,
+        })
+      } else {
+        set({ loading: false, error: 'Failed to load initiative' })
+      }
     }
   },
 
@@ -103,10 +160,147 @@ export const usePMStore = create<PMState>((set, get) => ({
     }
   },
 
-  setTaskLocal: (taskId, patch) =>
+  setTaskLocal: (taskId, patch) => {
+    const { initiative } = get()
+    if (initiative) {
+      updateLocalTask(initiative.id, taskId, patch)
+      if (patch.status) {
+        updateLocalTaskStatus(initiative.id, taskId, patch.status)
+      }
+    }
     set(state => ({
       tasks: state.tasks.map(t => (t.id === taskId ? { ...t, ...patch } : t)),
-    })),
+    }))
+  },
+
+  addTaskLocal: (task) => {
+    const { initiative } = get()
+    if (initiative) {
+      addLocalTask(initiative.id, task)
+    }
+    set(state => ({
+      tasks: [task, ...state.tasks.filter(t => t.id !== task.id)],
+    }))
+  },
+
+  deleteTaskLocal: (taskId) => {
+    const { initiative } = get()
+    if (initiative) {
+      deleteLocalTask(initiative.id, taskId)
+    }
+    set(state => ({
+      tasks: state.tasks
+        .filter(t => t.id !== taskId)
+        .map(t => ({
+          ...t,
+          dependencies: Array.isArray(t.dependencies) ? t.dependencies.filter(d => d !== taskId) : [],
+        })),
+      sprints: state.sprints.map(s => ({
+        ...s,
+        task_ids: Array.isArray(s.task_ids) ? s.task_ids.filter(id => id !== taskId) : [],
+      })),
+    }))
+  },
+
+  setEpicLocal: (epicId, patch) => {
+    const { initiative } = get()
+    if (initiative) {
+      updateLocalEpic(initiative.id, epicId, patch)
+    }
+    set(state => ({
+      epics: state.epics.map(e => (e.id === epicId ? { ...e, ...patch } : e)),
+    }))
+  },
+
+  addEpicLocal: (epic) => {
+    const { initiative } = get()
+    if (initiative) {
+      addLocalEpic(initiative.id, epic)
+    }
+    set(state => ({
+      epics: [...state.epics, epic],
+    }))
+  },
+
+  deleteEpicLocal: (epicId) => {
+    const { initiative } = get()
+    if (initiative) {
+      deleteLocalEpic(initiative.id, epicId)
+    }
+    set(state => ({
+      epics: state.epics.filter(e => e.id !== epicId),
+    }))
+  },
+
+  setStoryLocal: (storyId, patch) => {
+    const { initiative } = get()
+    if (initiative) {
+      updateLocalStory(initiative.id, storyId, patch)
+    }
+    set(state => ({
+      stories: state.stories.map(s => (s.id === storyId ? { ...s, ...patch } : s)),
+    }))
+  },
+
+  addStoryLocal: (story) => {
+    const { initiative } = get()
+    if (initiative) {
+      addLocalStory(initiative.id, story)
+    }
+    set(state => ({
+      stories: [...state.stories, story],
+    }))
+  },
+
+  deleteStoryLocal: (storyId) => {
+    const { initiative } = get()
+    if (initiative) {
+      deleteLocalStory(initiative.id, storyId)
+    }
+    set(state => ({
+      stories: state.stories.filter(s => s.id !== storyId),
+    }))
+  },
+
+  setInitiativeLocal: (patch) => {
+    const { initiative } = get()
+    if (initiative) {
+      updateLocalInitiative(initiative.id, patch)
+      set(state => ({
+        initiative: state.initiative ? { ...state.initiative, ...patch } : null,
+      }))
+    }
+  },
+
+  addExecutionLocal: (execution) => {
+    const { initiative } = get()
+    if (initiative) {
+      addLocalExecution(initiative.id, execution)
+    }
+    set(state => ({
+      executions: [execution, ...state.executions.filter(e => e.id !== execution.id)],
+    }))
+  },
+
+  setSprintLocal: (sprintId, patch) => {
+    const { initiative } = get()
+    if (initiative) {
+      updateLocalSprint(initiative.id, sprintId, patch)
+    }
+    set(state => ({
+      sprints: state.sprints.map(s => (s.id === sprintId ? { ...s, ...patch } : s)),
+    }))
+  },
+
+  addSprintLocal: (sprint) => {
+    const { initiative } = get()
+    if (initiative) {
+      addLocalSprint(initiative.id, sprint)
+    }
+    set(state => ({
+      sprints: [...state.sprints.filter(s => s.id !== sprint.id), sprint],
+    }))
+  },
 
   handleEvent: (event: AnyPMWSEvent) => {
     const { type, data } = event

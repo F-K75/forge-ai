@@ -2,7 +2,6 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { motion, useReducedMotion } from 'motion/react'
-import { layout } from '../../lib/designTokens'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'chip' | 'tonal' | 'outlined' | 'ghost' | 'text'
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
@@ -15,20 +14,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-white hover:opacity-90 shadow-apple',
-  secondary: 'border border-border bg-panel text-ink hover:bg-panel-alt shadow-apple',
-  tonal: 'bg-accent-soft text-accent hover:bg-accent-soft/80',
-  outlined: 'border border-border bg-transparent text-ink hover:bg-inlay',
-  ghost: 'bg-transparent text-muted hover:text-ink hover:bg-inlay',
-  text: 'bg-transparent text-accent hover:bg-inlay p-0 h-auto',
-  chip: 'border border-border bg-panel text-muted hover:border-accent/40 hover:text-ink',
+  primary: 'border-2 border-black bg-brutal-yellow text-black shadow-brutal font-bold hover:bg-[#2DD4BF] active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
+  secondary: 'border-2 border-black bg-white text-black shadow-brutal font-bold hover:bg-brutal-cream active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
+  tonal: 'border-2 border-black bg-brutal-cyan text-black shadow-brutal font-bold hover:bg-[#54A0FF] active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
+  outlined: 'border-2 border-black bg-white text-black shadow-brutal font-bold hover:bg-brutal-yellow active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
+  ghost: 'border-2 border-transparent hover:border-black bg-transparent text-ink font-bold hover:bg-black/5 active:translate-x-[1px] active:translate-y-[1px]',
+  text: 'bg-transparent text-ink font-bold hover:underline p-0 h-auto border-0 shadow-none',
+  chip: 'border-2 border-black bg-white text-black shadow-brutal-sm font-bold hover:bg-brutal-yellow active:translate-x-[1px] active:translate-y-[1px] active:shadow-none',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-xs',
-  md: 'h-10 px-5 text-sm',
-  lg: 'h-12 px-7 text-base',
-  icon: 'h-10 w-10 p-0',
+  sm: 'h-9 min-h-[44px] sm:min-h-[36px] sm:h-9 px-3 text-xs',
+  md: 'h-11 min-h-[44px] sm:min-h-[40px] sm:h-10 px-5 text-sm',
+  lg: 'h-12 min-h-[44px] px-7 text-base',
+  icon: 'h-11 w-11 min-h-[44px] min-w-[44px] p-0',
 }
 
 export function Button({
@@ -42,9 +41,7 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const reduceMotion = useReducedMotion()
-  const isChip = variant === 'chip'
   const isText = variant === 'text'
-  const isIcon = size === 'icon'
 
   return (
     <motion.button
@@ -52,18 +49,15 @@ export function Button({
       disabled={disabled || loading}
       className={twMerge(
         clsx(
-          'relative inline-flex cursor-pointer select-none items-center justify-center gap-2 overflow-hidden font-medium transition-all duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50',
+          'relative inline-flex cursor-pointer select-none items-center justify-center gap-2 overflow-hidden font-bold transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none rounded-sm',
           variantClasses[variant],
           sizeClasses[size],
-          (isChip || isIcon) && 'rounded-full',
-          !isChip && !isIcon && 'rounded-full',
           className
         )
       )}
-      style={!isChip && !isIcon ? { borderRadius: layout.radiusMd } : undefined}
-      whileHover={reduceMotion || disabled ? {} : { y: -1 }}
-      whileTap={reduceMotion || disabled ? {} : { scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      whileHover={reduceMotion || disabled || isText ? {} : { x: -1, y: -1 }}
+      whileTap={reduceMotion || disabled || isText ? {} : { x: 2, y: 2 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       {...(rest as any)}
     >
       {loading && (

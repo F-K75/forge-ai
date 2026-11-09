@@ -22,6 +22,12 @@ class UpdateReleaseRequest(BaseModel):
     version: Optional[str] = None
     status: Optional[str] = None
     estimated_release_date: Optional[datetime] = None
+    features: Optional[list[str]] = None
+    risks: Optional[list[str]] = None
+    blocked_items: Optional[list[str]] = None
+    qa_status: Optional[str] = None
+    deployment_readiness: Optional[str] = None
+    confidence_score: Optional[int] = None
 
 
 async def _assert_initiative_access(db, initiative_id: str, user_id: str):
@@ -101,3 +107,15 @@ async def update_release(release_id: str, req: UpdateReleaseRequest, current_use
     update["updated_at"] = utcnow()
     await db.releases.update_one({"id": release_id}, {"$set": update})
     return {"ok": True}
+
+
+@router.delete("/{release_id}")
+async def delete_release(release_id: str, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    release = await db.releases.find_one({"id": release_id}, {"_id": 0})
+    if not release:
+        raise HTTPException(status_code=404, detail="Release not found")
+    await _assert_initiative_access(db, release["initiative_id"], current_user.id)
+    await db.releases.delete_one({"id": release_id})
+    return {"ok": True}
+

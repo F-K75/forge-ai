@@ -1,12 +1,13 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { AlertTriangle, Sparkles } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts"
 import { motion, useReducedMotion } from "motion/react"
 import { motionVariants } from "../lib/animations"
 import { presets } from "../lib/animationPresets"
 import { adminApi } from "../lib/api"
 import { LIVE_MODE } from "../lib/env"
+import BrandLogo from "../components/BrandLogo"
 import { ChartContainer } from "../components/charts/ChartContainer"
 import { ChartTooltip } from "../components/charts/ChartTooltip"
 import { colorForIndex } from "../components/charts/palette"
@@ -112,7 +113,7 @@ export default function EngineeringHealthPage() {
         Admin
       </div>
       <header className="flex items-center gap-3 mb-10">
-        <Sparkles size={20} className="text-ink" aria-hidden="true" />
+        <BrandLogo size="md" />
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">
           Engineering health
         </h1>

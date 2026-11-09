@@ -26,6 +26,7 @@ class WebhookResponse(BaseModel):
     active: bool
     created_at: datetime
     last_triggered: Optional[datetime]
+    secret: Optional[str] = None
 
 
 class PaginatedWebhooks(BaseModel):
@@ -78,6 +79,7 @@ async def create_webhook(
         active=webhook["active"],
         created_at=webhook["created_at"],
         last_triggered=None,
+        secret=webhook["secret"],
     )
 
 

@@ -221,19 +221,40 @@ export const integrationsApi = {
 }
 
 // API Keys
+export interface ApiKeyItem {
+  id: string
+  name: string
+  key_prefix: string
+  scopes: string[]
+  created_at: string
+  last_used_at?: string | null
+  expires_at?: string | null
+  key?: string
+}
+
 export const apiKeysApi = {
-  list: () => api.get("/api-keys/").then((r) => r.data.api_keys),
-  create: (data: { name: string; scopes?: string[] }) =>
+  list: (): Promise<ApiKeyItem[]> => api.get("/api-keys/").then((r) => r.data.api_keys),
+  create: (data: { name: string; scopes?: string[]; expires_in_days?: number }): Promise<ApiKeyItem> =>
     api.post("/api-keys/", data).then((r) => r.data),
-  delete: (id: string) => api.delete(`/api-keys/${id}`).then((r) => r.data),
+  delete: (id: string): Promise<{ ok: boolean }> => api.delete(`/api-keys/${id}`).then((r) => r.data),
 }
 
 // Webhooks
+export interface WebhookItem {
+  id: string
+  url: string
+  events: string[]
+  active: boolean
+  created_at: string
+  last_triggered?: string | null
+  secret?: string
+}
+
 export const webhooksApi = {
-  list: () => api.get("/webhooks/").then((r) => r.data.webhooks),
-  create: (data: { url: string; events?: string[] }) =>
+  list: (): Promise<WebhookItem[]> => api.get("/webhooks/").then((r) => r.data.webhooks),
+  create: (data: { url: string; events?: string[]; active?: boolean }): Promise<WebhookItem> =>
     api.post("/webhooks/", data).then((r) => r.data),
-  delete: (id: string) => api.delete(`/webhooks/${id}`).then((r) => r.data),
+  delete: (id: string): Promise<{ ok: boolean }> => api.delete(`/webhooks/${id}`).then((r) => r.data),
 }
 
 // Notifications (Module 15 of the Agile PM layer reuses this existing collection)
@@ -255,10 +276,20 @@ export const notificationsApi = {
 }
 
 // Support
+export interface SupportTicketItem {
+  id: string
+  subject: string
+  description: string
+  priority: string
+  status: string
+  created_at: string
+  updated_at?: string
+}
+
 export const supportApi = {
-  create: (data: { subject: string; description: string; priority?: string }) =>
+  create: (data: { subject: string; description: string; priority?: string }): Promise<SupportTicketItem> =>
     api.post("/support/tickets", data).then((r) => r.data),
-  list: (page?: number) =>
+  list: (page?: number): Promise<SupportTicketItem[]> =>
     api.get("/support/tickets", { params: { page } }).then((r) => r.data.tickets),
 }
 

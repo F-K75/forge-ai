@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { Loader2, ArrowRight, AlertCircle, Check, Mail } from "lucide-react"
+import BrandLogo from "../components/BrandLogo"
 import { motion } from "motion/react"
 import { presets } from "../lib/animationPresets"
 import { shouldReduceMotion } from "../lib/animations"
@@ -68,6 +69,9 @@ export default function VerifyEmail() {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
         <motion.div {...pageMotion} className="w-full max-w-sm text-center">
+          <div className="mb-6 inline-flex items-center justify-center">
+            <BrandLogo size="lg" />
+          </div>
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-6 text-land-muted" aria-hidden="true" />
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Verifying your email…</h1>
           <p className="text-sm text-land-muted">Almost done.</p>
@@ -80,6 +84,9 @@ export default function VerifyEmail() {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
         <motion.div {...pageMotion} className="w-full max-w-sm text-center" role="status" aria-live="polite">
+          <div className="mb-6 inline-flex items-center justify-center">
+            <BrandLogo size="lg" />
+          </div>
           <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
@@ -94,6 +101,9 @@ export default function VerifyEmail() {
     <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
       <motion.div {...pageMotion} className="w-full max-w-sm">
         <div className="text-center mb-8">
+          <div className="mb-6 inline-flex items-center justify-center">
+            <BrandLogo size="md" />
+          </div>
           <div className="w-10 h-10 rounded-full border border-land-destructive/40 flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-4 h-4 text-land-destructive" aria-hidden="true" />
           </div>

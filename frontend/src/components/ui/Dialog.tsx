@@ -51,7 +51,7 @@ export function Dialog({
         aria-labelledby={title ? 'dialog-title' : undefined}
         aria-describedby={description ? 'dialog-desc' : undefined}
         className={twMerge(clsx(
-          'relative w-full apple-glass-strong p-6 shadow-apple-float',
+          'relative w-full bg-white border-3 border-black p-6 shadow-brutal-xl rounded-sm',
           sizeClasses[size],
           className
         ))}
@@ -59,10 +59,10 @@ export function Dialog({
         initial={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        transition={{ type: 'spring', stiffness: 450, damping: 30 }}
       >
         {title && (
-          <h2 id="dialog-title" className="text-xl font-semibold text-ink mb-1">
+          <h2 id="dialog-title" className="text-xl font-black uppercase tracking-tight text-ink mb-1">
             {title}
           </h2>
         )}

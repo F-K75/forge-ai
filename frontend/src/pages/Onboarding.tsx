@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Hammer, Check, Github, Key, ArrowUpRight } from "lucide-react";
+import { Check, Github, Key, ArrowUpRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import BrandLogo from "../components/BrandLogo";
 import { motionVariants } from "../lib/animations";
 import { presets } from "../lib/animationPresets";
 import { getIcon } from "../lib/iconMap";
@@ -74,7 +75,11 @@ export default function Onboarding() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <div className="mb-4 flex justify-end">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <BrandLogo size="sm" />
+            <span className="font-brand font-semibold text-ink text-sm tracking-tight">Forge Onboarding</span>
+          </div>
           <button
             type="button"
             onClick={() => navigate("/projects")}
@@ -201,8 +206,8 @@ export default function Onboarding() {
 function StepWelcome() {
   return (
     <div className="flex flex-col items-center text-center gap-5">
-      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-[#A855F7] flex items-center justify-center">
-        <Hammer size={22} className="text-white" aria-hidden="true" />
+      <div className="w-16 h-16 rounded-2xl bg-panel-alt border border-border-soft flex items-center justify-center shadow-lg">
+        <BrandLogo size="lg" />
       </div>
       <div>
       <h1 className="text-xl font-bold text-ink mb-2">Welcome to Forge</h1>

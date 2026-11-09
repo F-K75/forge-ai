@@ -856,6 +856,36 @@ async def unlink_initiative_integration(initiative_id: str, provider: str, reque
     return {"ok": True, "deleted": result.deleted_count > 0}
 
 
+@router.post("/{initiative_id}/integrations/{provider}/sync")
+async def sync_initiative_integration(initiative_id: str, provider: str, request: Request, current_user: User = Depends(get_current_user)):
+    db = await get_db()
+    await _get_owned_initiative(db, initiative_id, current_user.id)
+    provider = provider.lower()
+    now = utcnow()
+    res = await db.initiative_integrations.update_one(
+        {"initiative_id": initiative_id, "provider": provider},
+        {"$set": {"status": "connected", "last_synced_at": now, "updated_at": now}}
+    )
+    if res.matched_count == 0:
+        # If not already created, create a default connected entry
+        new_int = InitiativeIntegration(
+            initiative_id=initiative_id,
+            user_id=current_user.id,
+            provider=provider,
+            external_project_id=f"{provider}-default",
+            external_project_name=f"{provider.capitalize()} Workspace",
+            status="connected",
+            last_synced_at=now,
+            updated_at=now,
+        )
+        await db.initiative_integrations.insert_one(new_int.model_dump())
+    
+    stored = await db.initiative_integrations.find_one({"initiative_id": initiative_id, "provider": provider}, {"_id": 0})
+    await record_audit_log(db, request, current_user, "sync_initiative_integration", "initiative", resource_id=initiative_id, changes={"provider": provider})
+    await _record_initiative_analytics(db, current_user.id, "initiative_integration_synced", initiative_id=initiative_id, properties={"provider": provider})
+    return stored
+
+
 @router.websocket("/ws/{initiative_id}")
 async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: Optional[str] = Query(None)):
     origin = websocket.headers.get("origin")

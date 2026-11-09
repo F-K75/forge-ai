@@ -17,7 +17,7 @@ export function Select({ label, hint, error, children, className, id, name, disa
   return (
     <div className={twMerge(clsx('flex flex-col gap-1.5 w-full', className))}>
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-ink">
+        <label htmlFor={inputId} className="text-xs font-bold text-ink uppercase tracking-wider">
           {label}
         </label>
       )}
@@ -28,17 +28,17 @@ export function Select({ label, hint, error, children, className, id, name, disa
           aria-describedby={hasError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           disabled={disabled}
           className={clsx(
-            'h-12 w-full appearance-none rounded-m3 border bg-panel px-4 py-3 pr-10 text-body text-ink outline-none transition-all duration-fast focus:border-accent/50 focus:shadow-[0_0_0_4px_var(--state-focus)] focus:bg-panel',
-            hasError && 'border-error',
-            disabled && 'cursor-not-allowed opacity-50'
+            'h-12 w-full appearance-none rounded-sm border-2 border-black bg-white px-4 py-3 pr-10 text-body text-ink outline-none transition-all duration-fast font-bold shadow-brutal-sm focus:shadow-brutal focus:border-black focus:bg-white',
+            hasError && 'border-error shadow-[2px_2px_0px_0px_#FF5376] focus:shadow-[4px_4px_0px_0px_#FF5376]',
+            disabled && 'cursor-not-allowed bg-neutral-100 opacity-60 shadow-none'
           )}
-          style={{ borderRadius: layout.radiusMd }}
+          style={{ borderRadius: layout.radiusSm }}
           {...rest}
         >
           {children}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-black" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <path d="m6 9 6 6 6-6" />
           </svg>
         </span>

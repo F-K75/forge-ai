@@ -75,6 +75,17 @@ class DependencyResolver:
         blocking = []
         warnings = []
         
+        # Check for circular dependencies
+        cycle = self.detect_cycle(task_id)
+        if cycle:
+            cycle_path = " -> ".join(cycle)
+            blocking.append(Dependency(
+                type=DependencyType.TASK,
+                target=cycle[1] if len(cycle) > 1 else task_id,
+                required=True,
+                description=f"Circular dependency detected: {cycle_path}"
+            ))
+
         # Check task dependencies
         task_deps = task.get("dependencies", [])
         for dep_task_id in task_deps:
@@ -261,6 +272,42 @@ class DependencyResolver:
         build_chain(task_id)
         return chain
     
+    def detect_cycle(self, task_id: str) -> Optional[List[str]]:
+        """
+        Detect if a task is part of a circular dependency cycle.
+        
+        Args:
+            task_id: The task identifier.
+            
+        Returns:
+            List of task IDs representing the cycle path if found, None otherwise.
+        """
+        visited = set()
+        rec_stack = []
+
+        def dfs(curr_id: str) -> Optional[List[str]]:
+            if curr_id in rec_stack:
+                cycle_start = rec_stack.index(curr_id)
+                return rec_stack[cycle_start:] + [curr_id]
+            if curr_id in visited:
+                return None
+
+            visited.add(curr_id)
+            rec_stack.append(curr_id)
+
+            t = get_task_by_id(curr_id)
+            if t:
+                neighbors = list(t.get("dependencies", [])) + list(t.get("blocked_by", []))
+                for neighbor in neighbors:
+                    cycle = dfs(neighbor)
+                    if cycle:
+                        return cycle
+
+            rec_stack.pop()
+            return None
+
+        return dfs(task_id)
+
     def clear_cache(self, task_id: Optional[str] = None) -> None:
         """
         Clear the resolution cache.

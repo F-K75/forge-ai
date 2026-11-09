@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail } from 'lucide-react'
+import BrandLogo from '../components/BrandLogo'
 import { api } from '../lib/api'
 import { motion } from 'motion/react'
 import { presets } from '../lib/animationPresets'
@@ -45,6 +46,9 @@ export default function ForgotPassword() {
           {...(reduce ? {} : presets.pageTransition)}
           className="w-full max-w-sm text-center"
         >
+          <div className="mb-6 inline-flex items-center justify-center">
+            <BrandLogo size="lg" />
+          </div>
           <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Mail className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
@@ -64,7 +68,11 @@ export default function ForgotPassword() {
         {...(reduce ? {} : presets.pageTransition)}
         className="w-full max-w-sm"
       >
-        <div className="mb-10">
+        <div className="mb-8">
+          <Link to="/home" className="inline-flex items-center gap-2.5 mb-6 hover:opacity-85 transition">
+            <BrandLogo size="sm" />
+            <span className="font-brand text-base font-semibold tracking-tight text-land-ink">Forge</span>
+          </Link>
           <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
           </div>

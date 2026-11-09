@@ -1,16 +1,31 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { geminiPlugin } from './vite-plugins/geminiPlugin'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), geminiPlugin()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    setupFiles: ['./src/test/setup.ts'],
+    env: {
+      VITE_API_URL: 'http://localhost:8000',
+      VITE_WS_URL: '',
+      VITE_LIVE_MODE: 'false',
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 3000,
+    strictPort: true,
     allowedHosts: true,
   },
   preview: {
     host: '0.0.0.0',
     port: 3000,
+    strictPort: true,
     allowedHosts: true,
   },
   build: {

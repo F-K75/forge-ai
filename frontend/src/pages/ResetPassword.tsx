@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { Loader2, ArrowRight, AlertCircle, Check } from "lucide-react"
+import BrandLogo from "../components/BrandLogo"
 import { motion } from "motion/react"
 import { presets } from "../lib/animationPresets"
 import { shouldReduceMotion } from "../lib/animations"
@@ -86,6 +87,9 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
         <motion.div {...pageMotion} className="w-full max-w-sm text-center" role="status" aria-live="polite">
+          <div className="mb-6 inline-flex items-center justify-center">
+            <BrandLogo size="lg" />
+          </div>
           <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
             <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
           </div>
@@ -99,7 +103,11 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
       <motion.div {...pageMotion} className="w-full max-w-sm">
-        <div className="mb-10">
+        <div className="mb-8">
+          <Link to="/home" className="inline-flex items-center gap-2.5 mb-6 hover:opacity-85 transition">
+            <BrandLogo size="sm" />
+            <span className="font-brand text-base font-semibold tracking-tight text-land-ink">Forge</span>
+          </Link>
           <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
             <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
           </div>

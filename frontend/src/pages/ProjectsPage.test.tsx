@@ -1,16 +1,77 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
-import { useNavigate } from 'react-router-dom'
 import ProjectsPage from './ProjectsPage'
 
 const mockNavigate = vi.fn()
 const mockReset = vi.fn()
 
-const { mockProjectsApi, mockFlowApi, mockReposApi } = vi.hoisted(() => {
+const { mockProjectsApi, mockFlowApi, mockReposApi, mockScaffoldProjectWithGemini, mockAnalyzeProjectWithGemini, mockExpandProjectIdeaWithGemini } = vi.hoisted(() => {
   const projectsApi = { list: vi.fn().mockResolvedValue([]), create: vi.fn().mockResolvedValue({ id: 'p1', name: 'Test' }) }
   const flowApi = { personalAnalytics: vi.fn().mockResolvedValue(null), agentStats: vi.fn().mockResolvedValue(null) }
   const reposApi = { import: vi.fn().mockResolvedValue({ project: { id: 'p1', name: 'Imported' } }) }
-  return { mockProjectsApi: projectsApi, mockFlowApi: flowApi, mockReposApi: reposApi }
+  const scaffoldProjectWithGemini = vi.fn().mockResolvedValue({
+    id: 'proj-gemini-test',
+    name: 'gemini-test-app',
+    displayName: 'Gemini Test App',
+    description: 'Autonomous project scaffolded with Gemini',
+    template: 'saas',
+    techStack: ['TypeScript', 'React'],
+    qaScore: 95,
+    agents: ['architect', 'developer'],
+    architectureOverview: 'Clean architecture',
+    lastBuilt: 'Just now',
+    live: true,
+    isAiGenerated: true,
+  })
+  const analyzeProjectWithGemini = vi.fn().mockResolvedValue({
+    executiveSummary: 'High-performance decoupled architecture with robust security invariants.',
+    architectureGrade: 'A+',
+    securityScore: 96,
+    scalabilityScore: 92,
+    reliabilityScore: 98,
+    strengths: ['Strict boundary isolation', 'Sub-millisecond token evaluation'],
+    vulnerabilities: [
+      {
+        area: 'Distributed Caching',
+        risk: 'medium',
+        recommendation: 'Add TTL jitter to avoid stampede',
+      },
+    ],
+    suggestedEnhancements: [
+      {
+        title: 'OpenTelemetry Distributed Tracing',
+        impact: 'Full visibility across microservice boundaries',
+        effort: 'low',
+        promptAction: 'Add OTel tracing',
+      },
+    ],
+    agentDirectives: {
+      architect: 'Maintain OpenAPI 3.1 schema',
+      developer: 'Connection pooling',
+      qa: 'Fuzz testing',
+      security: 'Dependency scanner',
+    },
+  })
+  const expandProjectIdeaWithGemini = vi.fn().mockResolvedValue([
+    {
+      id: 'opt-edge',
+      title: 'Globally Distributed Edge Service',
+      summary: 'Stateless high-throughput microservice architecture.',
+      archetype: 'edge',
+      recommendedStack: ['TypeScript', 'Hono', 'Redis'],
+      keyTradeoff: 'Fast latency, external state required',
+      estimatedSla: '99.99% uptime',
+      refinedPrompt: 'Build edge service with Redis caching',
+    },
+  ])
+  return {
+    mockProjectsApi: projectsApi,
+    mockFlowApi: flowApi,
+    mockReposApi: reposApi,
+    mockScaffoldProjectWithGemini: scaffoldProjectWithGemini,
+    mockAnalyzeProjectWithGemini: analyzeProjectWithGemini,
+    mockExpandProjectIdeaWithGemini: expandProjectIdeaWithGemini,
+  }
 })
 
 vi.mock('react-router-dom', async () => {
@@ -58,6 +119,12 @@ vi.mock('../components/BrandLogo', () => ({
 
 vi.mock('../components/ui/EmptyState', () => ({
   EmptyState: ({ children }: any) => <div data-testid="empty-state">{children}</div>,
+}))
+
+vi.mock('../lib/geminiProject', () => ({
+  scaffoldProjectWithGemini: mockScaffoldProjectWithGemini,
+  analyzeProjectWithGemini: mockAnalyzeProjectWithGemini,
+  expandProjectIdeaWithGemini: mockExpandProjectIdeaWithGemini,
 }))
 
 vi.mock('../lib/animations', () => {
@@ -108,6 +175,61 @@ describe('ProjectsPage', () => {
     mockFlowApi.personalAnalytics.mockResolvedValue(null)
     mockFlowApi.agentStats.mockResolvedValue(null)
     mockReposApi.import.mockResolvedValue({ project: { id: 'p1', name: 'Imported' } })
+    mockScaffoldProjectWithGemini.mockResolvedValue({
+      id: 'proj-gemini-test',
+      name: 'gemini-test-app',
+      displayName: 'Gemini Test App',
+      description: 'Autonomous project scaffolded with Gemini',
+      template: 'saas',
+      techStack: ['TypeScript', 'React'],
+      qaScore: 95,
+      agents: ['architect', 'developer'],
+      architectureOverview: 'Clean architecture',
+      lastBuilt: 'Just now',
+      live: true,
+      isAiGenerated: true,
+    })
+    mockAnalyzeProjectWithGemini.mockResolvedValue({
+      executiveSummary: 'High-performance decoupled architecture with robust security invariants.',
+      architectureGrade: 'A+',
+      securityScore: 96,
+      scalabilityScore: 92,
+      reliabilityScore: 98,
+      strengths: ['Strict boundary isolation', 'Sub-millisecond token evaluation'],
+      vulnerabilities: [
+        {
+          area: 'Distributed Caching',
+          risk: 'medium',
+          recommendation: 'Add TTL jitter to avoid stampede',
+        },
+      ],
+      suggestedEnhancements: [
+        {
+          title: 'OpenTelemetry Distributed Tracing',
+          impact: 'Full visibility across microservice boundaries',
+          effort: 'low',
+          promptAction: 'Add OTel tracing',
+        },
+      ],
+      agentDirectives: {
+        architect: 'Maintain OpenAPI 3.1 schema',
+        developer: 'Connection pooling',
+        qa: 'Fuzz testing',
+        security: 'Dependency scanner',
+      },
+    })
+    mockExpandProjectIdeaWithGemini.mockResolvedValue([
+      {
+        id: 'opt-edge',
+        title: 'Globally Distributed Edge Service',
+        summary: 'Stateless high-throughput microservice architecture.',
+        archetype: 'edge',
+        recommendedStack: ['TypeScript', 'Hono', 'Redis'],
+        keyTradeoff: 'Fast latency, external state required',
+        estimatedSla: '99.99% uptime',
+        refinedPrompt: 'Build edge service with Redis caching',
+      },
+    ])
   })
 
   it('renders the page title', () => {
@@ -157,5 +279,90 @@ describe('ProjectsPage', () => {
       expect(mockReposApi.import).toHaveBeenCalled()
     })
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('scaffolds a project with Gemini AI and displays blueprint preview', async () => {
+    render(<ProjectsPage />)
+
+    // Click GEMINI AI button in the command bar
+    const geminiBtn = screen.getByRole('button', { name: /gemini ai/i })
+    fireEvent.click(geminiBtn)
+
+    // Verify modal is open in AI mode
+    expect(screen.getByText(/ai architect/i)).toBeTruthy()
+
+    // Type project prompt
+    const promptInput = screen.getByPlaceholderText(/rate limiter/i)
+    fireEvent.change(promptInput, { target: { value: 'Distributed Rate Limiter in Go' } })
+
+    // Click Scaffold with Gemini
+    const scaffoldBtn = screen.getByRole('button', { name: /generate blueprint/i })
+    fireEvent.click(scaffoldBtn)
+
+    await waitFor(() => {
+      expect(mockScaffoldProjectWithGemini).toHaveBeenCalledWith(
+        expect.objectContaining({ prompt: 'Distributed Rate Limiter in Go' })
+      )
+    })
+
+    // Verify blueprint preview or workspace shows up
+    await waitFor(() => {
+      expect(screen.getByText(/gemini-test-app/i)).toBeTruthy()
+    })
+  })
+
+  it('calls Gemini plugin to expand concept ideas and displays architectural proposals', async () => {
+    render(<ProjectsPage />)
+
+    const terminalInput = screen.getByPlaceholderText(/event-driven payment clearing/i)
+    fireEvent.change(terminalInput, { target: { value: 'High Frequency Matching Engine' } })
+
+    const expandBtn = screen.getByRole('button', { name: /expand ideas/i })
+    fireEvent.click(expandBtn)
+
+    await waitFor(() => {
+      expect(mockExpandProjectIdeaWithGemini).toHaveBeenCalledWith('High Frequency Matching Engine')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText(/gemini 3.8 architectural proposals/i)).toBeTruthy()
+      expect(screen.getByText(/globally distributed edge service/i)).toBeTruthy()
+    })
+  })
+
+  it('runs Gemini AI deep architecture audit on a workspace and renders audit report', async () => {
+    render(<ProjectsPage />)
+
+    // Click AI Audit button on a card
+    const auditBtns = screen.getAllByRole('button', { name: /audit/i })
+    expect(auditBtns.length).toBeGreaterThan(0)
+    fireEvent.click(auditBtns[0])
+
+    await waitFor(() => {
+      expect(mockAnalyzeProjectWithGemini).toHaveBeenCalled()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText(/gemini architecture & security audit/i)).toBeTruthy()
+      expect(screen.getByText(/high-performance decoupled architecture/i)).toBeTruthy()
+      expect(screen.getByText(/opentelemetry distributed tracing/i)).toBeTruthy()
+    })
+  })
+
+  it('allows toggling between Bento Grid view and High-Density Table view', () => {
+    render(<ProjectsPage />)
+
+    // Grid view is default
+    const tableToggleBtn = screen.getByTitle(/dense table view/i)
+    fireEvent.click(tableToggleBtn)
+
+    // Verify table elements exist
+    expect(screen.getByRole('table')).toBeTruthy()
+    expect(screen.getByText('Status')).toBeTruthy()
+
+    const gridToggleBtn = screen.getByTitle(/grid view/i)
+    fireEvent.click(gridToggleBtn)
+
+    expect(screen.queryByRole('table')).toBeNull()
   })
 })

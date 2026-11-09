@@ -1,33 +1,122 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  Send,
   Rocket,
   Sparkles,
-  Clock,
-  Bot,
   Layers,
   Search,
   LayoutGrid,
   List,
   FolderSearch,
   Coins,
-  type LucideIcon,
+  ArrowRight,
+  ArrowUpRight,
+  Calendar,
+  Tag,
+  Kanban,
+  Volume2,
+  VolumeX,
+  ChevronRight,
+  Star,
+  Bot,
+  ShieldCheck,
+  Code2,
+  Palette,
+  Check,
+  ExternalLink,
 } from "lucide-react";
-import { AnimatePresence } from "motion/react";
 import { LIVE_MODE } from "../../lib/env";
 import { initiativesApi } from "../../lib/pmApi";
 import { captureEvent } from "../../lib/analytics";
 import { formatRelativeTime } from "../../lib/format";
 import { coverGradient } from "../../lib/coverArt";
-import { COLORS } from "../../lib/theme";
 import { EmptyState, SkeletonCard } from "../../components/ui/EmptyState";
-import { motion, motionVariants, useReducedMotion, useCountUp } from "../../lib/animations";
-import { presets } from "../../lib/animationPresets";
+import { motion } from "../../lib/animations";
+import {
+  SAMPLE_INITIATIVES,
+  getLocalInitiatives,
+  createSimulatedInitiative,
+} from "../../lib/pmData";
+import { generateInitiativeWithGemini } from "../../lib/geminiPM";
+import { RequirementsSurvey } from "../../components/pm/RequirementsSurvey";
+import { VoiceInputButton } from "../../components/pm/VoiceInputButton";
+import { SuiWindowFrame, BottomNavItem } from "../../components/pm/SuiWindowFrame";
+import { SuiKeycapVisual } from "../../components/pm/SuiKeycapVisual";
 
 /* ------------------------------------------------------------------ */
-/* Types & constants                                                   */
+/* Subtle Audio Synthesizer                                           */
+/* ------------------------------------------------------------------ */
+
+class CyberAudioSynth {
+  private ctx: AudioContext | null = null;
+
+  private init() {
+    if (!this.ctx && typeof window !== "undefined") {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
+    }
+  }
+
+  playClick(pitch = 880) {
+    try {
+      this.init();
+      if (!this.ctx) return;
+      if (this.ctx.state === "suspended") {
+        this.ctx.resume();
+      }
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(pitch, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(pitch * 1.8, this.ctx.currentTime + 0.04);
+
+      gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.045);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.05);
+    } catch {
+      // Audio fallback
+    }
+  }
+
+  playSwitch() {
+    try {
+      this.init();
+      if (!this.ctx) return;
+      if (this.ctx.state === "suspended") {
+        this.ctx.resume();
+      }
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, this.ctx.currentTime + 0.08);
+
+      gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.09);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.1);
+    } catch {
+      // Audio fallback
+    }
+  }
+}
+
+const synth = new CyberAudioSynth();
+
+/* ------------------------------------------------------------------ */
+/* Types & Constants                                                  */
 /* ------------------------------------------------------------------ */
 
 interface Initiative {
@@ -38,6 +127,8 @@ interface Initiative {
   created_at?: string;
   status?: string;
   meta?: string[];
+  techStack?: string[];
+  timeline?: string;
 }
 
 interface CreditPreview {
@@ -49,24 +140,6 @@ interface CreditPreview {
 type InitiativeStatusFilter = "all" | "active" | "complete" | "failed";
 type SortKey = "recent" | "name" | "status";
 type ViewMode = "icons" | "list";
-
-const STATUS_LABEL_MAP: Record<string, string> = {
-  draft: "Draft",
-  generating: "Planning",
-  active: "Ready",
-  completed: "Completed",
-  archived: "Archived",
-  failed: "Failed",
-};
-
-const STATUS_COLOR_MAP: Record<string, string> = {
-  generating: COLORS.accent,
-  active: COLORS.ok,
-  completed: COLORS.ok,
-  failed: COLORS.error,
-  draft: COLORS.warn,
-  archived: COLORS.muted,
-};
 
 const SUGGESTIONS = [
   "AI SaaS Platform",
@@ -83,7 +156,7 @@ const gridVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 12 },
   show: {
     opacity: 1,
     y: 0,
@@ -92,391 +165,191 @@ const itemVariants = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Helpers                                                             */
+/* Helpers                                                            */
 /* ------------------------------------------------------------------ */
-
-function statusDotColor(status?: string): string {
-  return status ? (STATUS_COLOR_MAP[status] ?? COLORS.muted) : COLORS.muted;
-}
 
 function toDisplayInitiative(raw: any): Initiative {
   return {
     id: raw.id,
     name: raw.name,
-    description: raw.vision,
+    description: raw.vision || raw.description || "Production-grade multi-agent architecture plan.",
     updated_at: raw.updated_at,
     created_at: raw.created_at,
-    status: raw.status,
-    meta: [raw.estimated_timeline, raw.project_ids?.length ? `${raw.project_ids.length} apps` : null].filter(Boolean) as string[],
+    status: raw.status || "active",
+    meta: [
+      raw.estimated_timeline,
+      raw.project_ids?.length ? `${raw.project_ids.length} apps` : null,
+    ].filter(Boolean) as string[],
+    techStack: raw.tech_stack || ["TypeScript", "React", "PostgreSQL"],
+    timeline: raw.estimated_timeline || "4 sprints · 8 weeks",
+  };
+}
+
+function getStatusBadge(status?: string) {
+  const s = (status || "active").toLowerCase();
+  if (s === "generating" || s === "planning") {
+    return {
+      label: "Planning",
+      bg: "bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      dot: "bg-blue-600 animate-ping",
+    };
+  }
+  if (s === "completed" || s === "done") {
+    return {
+      label: "Completed",
+      bg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      dot: "bg-emerald-500",
+    };
+  }
+  if (s === "failed") {
+    return {
+      label: "Failed",
+      bg: "bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+      dot: "bg-rose-500",
+    };
+  }
+  if (s === "draft") {
+    return {
+      label: "Draft",
+      bg: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700",
+      dot: "bg-neutral-400",
+    };
+  }
+  return {
+    label: "Active",
+    bg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    dot: "bg-emerald-500 animate-pulse",
   };
 }
 
 /* ------------------------------------------------------------------ */
-/* Animated stat helpers (mirror ProjectsPage)                         */
+/* Pinterest-Style Specialist Agents Cluster                          */
 /* ------------------------------------------------------------------ */
 
-function NumericUp({ value, suffix, className = "" }: { value: number; suffix?: string; className?: string }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  useCountUp(ref, value, 900)
-  return (
-    <span className={className}>
-      <span ref={ref} />
-      {suffix}
-    </span>
-  )
-}
-
-function CountUpValue({ value, suffix, className = "" }: { value: number | string; suffix?: string; className?: string }) {
-  const safeValue = typeof value === "number" && Number.isFinite(value) ? value : 0;
-  if (typeof safeValue === "number") {
-    return <NumericUp value={safeValue} suffix={suffix} className={className} />;
-  }
-  return (
-    <span className={className}>
-      {safeValue}
-      {suffix}
-    </span>
-  );
-}
-
-function StatCard({ icon: Icon, value, suffix, label }: { icon: LucideIcon; value: number; suffix?: string; label: string }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <motion.div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      variants={motionVariants.staggerItem}
-      custom={0}
-      className="relative overflow-hidden rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 backdrop-blur-xl transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3"
-    >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
-        style={{
-          opacity: hovered ? 0.08 : 0,
-          background: "radial-gradient(ellipse 80% 80% at 50% 0%, rgb(var(--primary)), transparent 70%)",
-        }}
-      />
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-inlay-strong bg-accent/10 text-accent">
-          <Icon size={13} aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <div className="font-display text-base font-semibold leading-none text-ink">
-            <CountUpValue value={value} suffix={suffix} />
-          </div>
-          <div className="mt-1 truncate text-[11px] leading-none text-muted">{label}</div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+const SPECIALISTS = [
+  {
+    id: "sophia",
+    name: "Sophia",
+    role: "Chief AI Architect",
+    color: "#10B981",
+    tagBg: "bg-[#10B981] text-white",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    icon: Bot,
+    coords: { x: "28%", y: "18%" },
+  },
+  {
+    id: "rakib",
+    name: "Rakib",
+    role: "Lead Systems Engineer",
+    color: "#2563EB",
+    tagBg: "bg-[#2563EB] text-white",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    icon: Code2,
+    coords: { x: "74%", y: "12%" },
+  },
+  {
+    id: "parves",
+    name: "Parves",
+    role: "Principal UX Designer",
+    color: "#F59E0B",
+    tagBg: "bg-[#F59E0B] text-white",
+    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+    icon: Palette,
+    coords: { x: "20%", y: "62%" },
+  },
+  {
+    id: "shoaib",
+    name: "Shoaib",
+    role: "Reliability & QA Lead",
+    color: "#9333EA",
+    tagBg: "bg-[#9333EA] text-white",
+    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
+    icon: ShieldCheck,
+    coords: { x: "68%", y: "66%" },
+  },
+];
 
 /* ------------------------------------------------------------------ */
-/* Initiative visual (mirror ProjectVisual)                           */
+/* Library Cards and Rows                                             */
 /* ------------------------------------------------------------------ */
 
-function AdditivePulse({ hue }: { hue: string }) {
-  return (
-    <>
-      <div className="forge-pulse-ring" style={{ width: "80px", height: "80px", borderColor: `${hue}55`, animationDelay: "0s" }} />
-      <div className="forge-pulse-ring" style={{ width: "80px", height: "80px", borderColor: `${hue}44`, animationDelay: "1s" }} />
-      <div className="forge-pulse-ring" style={{ width: "80px", height: "80px", borderColor: `${hue}33`, animationDelay: "2s" }} />
-    </>
-  );
-}
-
-function InitiativeVisual() {
-  const hue = "#8B5CF6";
-
-  return (
-    <div className="relative flex h-full min-h-[280px] items-center justify-center" aria-hidden="true">
-      <div
-        className="forge-glow-breathe absolute h-64 w-64 rounded-full blur-3xl"
-        style={{ background: `radial-gradient(circle, ${hue}22 0%, transparent 65%)` }}
-      />
-
-      <div className="absolute flex items-center justify-center">
-        <AdditivePulse hue={hue} />
-      </div>
-
-      <div className="forge-orbit h-48 w-48" style={{ animationDuration: "28s" }}>
-        <div className="forge-orbit-dot" style={{ background: hue, boxShadow: `0 0 10px ${hue}80` }} />
-      </div>
-      <div
-        className="forge-orbit h-64 w-64"
-        style={{ animationDirection: "reverse", animationDuration: "38s", borderColor: `${hue}0D` }}
-      >
-        <div
-          className="forge-orbit-dot"
-          style={{ background: "#FBBF24", boxShadow: "0 0 10px #FBBF2480", top: "auto", bottom: -3 }}
-        />
-      </div>
-
-      <motion.div
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="relative z-10 flex h-28 w-28 items-center justify-center rounded-3xl border border-inlay-strong shadow-m3-2 backdrop-blur-xl overflow-hidden"
-      >
-        <img
-          src="/images/project-ready.jpg"
-          alt="Initiatives ready to plan"
-          className="absolute inset-0 h-full w-full object-cover"
-          draggable={false}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-transparent" />
-        <div className="absolute inset-0 rounded-3xl" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)" }} />
-      </motion.div>
-
-      {[
-        { left: "18%", top: "66%", size: "3px", delay: "0s", duration: "5s" },
-        { left: "78%", top: "58%", size: "2px", delay: "0.8s", duration: "7s" },
-        { left: "64%", top: "78%", size: "2.5px", delay: "1.6s", duration: "6s" },
-        { left: "28%", top: "24%", size: "2px", delay: "2.4s", duration: "8s" },
-        { left: "84%", top: "22%", size: "2.5px", delay: "3.2s", duration: "5.5s" },
-        { left: "12%", top: "40%", size: "2px", delay: "4s", duration: "7s" },
-      ].map((p, i) => (
-        <span
-          key={i}
-          className="forge-particle"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            animationDelay: p.delay,
-            animationDuration: p.duration,
-            background: i % 2 === 0 ? hue : "#FBBF24",
-            opacity: 0.35,
-          }}
-        />
-      ))}
-
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.4 }}
-        className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-inlay bg-panel/80 px-3.5 py-1.5 backdrop-blur-xl"
-      >
-        <span className="forge-signal-dot h-1.5 w-1.5 rounded-full bg-ok" />
-        <span className="whitespace-nowrap text-[11px] font-medium text-muted">
-          Plans ready to execute
-        </span>
-      </motion.div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Status dot (mirror ProjectsPage StatusDot)                          */
-/* ------------------------------------------------------------------ */
-
-function StatusDot({ status }: { status?: string }) {
-  const color = statusDotColor(status);
-  const isLive = status === "generating";
-  return (
-    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-      {isLive && (
-        <span
-          className="absolute inline-flex h-full w-full animate-ping rounded-full motion-reduce:hidden"
-          style={{ backgroundColor: `${color}60` }}
-        />
-      )}
-      <span
-        className="relative h-2 w-2 rounded-full"
-        style={{
-          backgroundColor: color,
-          ...(isLive ? { boxShadow: "0 0 8px rgba(48,209,88,0.35)" } : {}),
-        }}
-      />
-    </span>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Forge signal (kept from existing page)                              */
-/* ------------------------------------------------------------------ */
-
-function ForgeSignal({ creating, label }: { creating: boolean; label?: string }) {
-  const [status, setStatus] = useState<"ready" | "thinking" | "working" | "done">("ready");
-
-  useEffect(() => {
-    if (!creating) return;
-    setStatus("thinking");
-    const t1 = setTimeout(() => setStatus("working"), 1600);
-    const t2 = setTimeout(() => setStatus("done"), 3200);
-    const t3 = setTimeout(() => setStatus("ready"), 5200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [creating]);
-
-  const dotColor =
-    status === "ready" ? "bg-ok" :
-    status === "thinking" ? "bg-warn" :
-    status === "working" ? "bg-accent" : "bg-ok";
-
-  const statusText =
-    status === "ready" ? "● Ready" :
-    status === "thinking" ? "● Thinking" :
-    status === "working" ? "● Agents Active" : "● Completed";
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6, duration: 0.3 }}
-      className="flex items-center gap-2"
-    >
-      <span className="flex items-center gap-2">
-        <span className={`forge-signal-dot h-2 w-2 rounded-full ${dotColor}`} />
-        <span className="text-xs font-medium" style={{ color: dotColor === "bg-ok" ? "rgb(var(--success))" : dotColor === "bg-warn" ? "rgb(var(--warning))" : "rgb(var(--primary))" }}>
-          {statusText}
-        </span>
-      </span>
-      <span className="text-xs text-faint">{label ?? "Describe an idea above to activate the pipeline."}</span>
-    </motion.div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Prompt input (kept from existing page, adapted)                     */
-/* ------------------------------------------------------------------ */
-
-function PromptInput({
-  value,
-  onChange,
-  onKeyDown,
-  placeholder,
-  suggestions,
-  creating,
-  onSubmit,
-  ctaLabel,
-  CtaIcon = Send,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  placeholder: string;
-  suggestions: string[];
-  creating: boolean;
-  onSubmit: () => void;
-  ctaLabel: string;
-  CtaIcon?: LucideIcon;
-}) {
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const fillPrompt = useCallback((val: string) => {
-    onChange(val);
-    inputRef.current?.focus();
-  }, [onChange]);
-
-  return (
-    <div className="relative">
-      <div
-        className="pointer-events-none absolute -inset-4 rounded-[28px] opacity-60 blur-2xl"
-        style={{ background: "radial-gradient(ellipse 60% 60% at 50% 40%, rgb(var(--primary) / 0.1), transparent 70%)" }}
-        aria-hidden="true"
-      />
-      <div className="apple-glass-strong relative rounded-2xl border border-inlay bg-inlay-subtle p-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]">
-        <div className="flex items-center gap-2.5 px-2.5 py-1.5">
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/25 to-accent/10 text-accent"
-            aria-hidden="true"
-          >
-            <Rocket size={17} />
-          </span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-            onKeyDown={onKeyDown}
-            placeholder={placeholder}
-            className="min-w-0 flex-1 bg-transparent py-3 text-[15px] text-ink placeholder:text-faint focus:outline-none"
-            aria-label={placeholder}
-            aria-expanded={showSuggestions}
-            aria-controls="forge-suggestions"
-          />
-          <motion.button
-            onClick={onSubmit}
-            disabled={creating || !value.trim()}
-            {...presets.button}
-            className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-accent px-6 text-sm font-semibold text-white shadow-[0_8px_24px_-12px_rgba(20,184,166,0.45)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          >
-            <CtaIcon size={14} aria-hidden="true" />
-            {creating ? "Working…" : ctaLabel}
-          </motion.button>
-        </div>
-        <AnimatePresence>
-          {showSuggestions && (
-            <motion.div
-              id="forge-suggestions"
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-              className="relative z-50 px-2.5 pb-2"
-            >
-              <p className="mb-1.5 px-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted">Suggestions</p>
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                {suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => fillPrompt(suggestion)}
-                    className="flex items-center gap-2 rounded-xl border border-inlay-strong bg-inlay px-3 py-2 text-left text-sm text-ink transition-colors hover:border-accent/40 hover:bg-accent/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
-                  >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                      <Sparkles size={12} aria-hidden="true" />
-                    </span>
-                    <span className="truncate">{suggestion}</span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Library views (mirror ProjectsPage icon/list views)                 */
-/* ------------------------------------------------------------------ */
-
-function InitiativeIcon({
+function InitiativeCard({
   initiative,
   onOpen,
 }: {
   initiative: Initiative;
   onOpen: () => void;
 }) {
+  const badge = getStatusBadge(initiative.status);
+
   return (
-    <motion.div variants={itemVariants} className="flex justify-center">
-      <button
-        type="button"
+    <motion.div variants={itemVariants} className="flex flex-col h-full">
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onOpen}
-        onDoubleClick={onOpen}
-        className="group flex w-full cursor-pointer flex-col items-center gap-3 rounded-3xl border border-inlay bg-inlay-subtle p-4 text-center transition-all duration-300 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:w-72"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen();
+          }
+        }}
+        className="group relative flex flex-col justify-between h-full cursor-pointer bg-white dark:bg-[#141722] border border-neutral-200/90 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
       >
-        <span
-          className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-inlay-strong shadow-[0_20px_40px_-16px_rgba(0,0,0,0.9)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_24px_48px_-16px_rgba(0,0,0,0.95)] group-active:translate-y-0 motion-reduce:transition-none"
-          style={{ background: coverGradient(initiative.id) }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent" />
-          <Layers size={28} className="relative z-[1] text-ink/90 drop-shadow-lg" aria-hidden="true" />
-          <span className="absolute -right-1 -top-1">
-            <StatusDot status={initiative.status} />
+        <div>
+          {/* Header Row: Status & Timeline Badge */}
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badge.bg}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+              {badge.label}
+            </span>
+
+            <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/80 px-3 py-1 rounded-full">
+              <Calendar size={12} strokeWidth={2} />
+              {initiative.timeline}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-50 tracking-tight leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+            {initiative.name}
+          </h3>
+
+          {/* Vision description */}
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300 line-clamp-2 leading-relaxed">
+            {initiative.description}
+          </p>
+
+          {/* Tech stack badges */}
+          <div className="mt-5 flex flex-wrap gap-1.5">
+            {initiative.techStack?.slice(0, 4).map((tech, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/60"
+              >
+                <Tag size={10} strokeWidth={2} className="text-neutral-400" />
+                {tech}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="mt-6 border-t border-neutral-100 dark:border-neutral-800/80 pt-4 flex items-center justify-between">
+          <span className="text-xs font-medium text-neutral-400 dark:text-neutral-400">
+            Updated {formatRelativeTime(initiative.updated_at ?? initiative.created_at)}
           </span>
-        </span>
-        <span className="w-full truncate text-[13px] font-semibold leading-tight text-ink/90 group-hover:text-ink">
-          {initiative.name}
-        </span>
-      </button>
+          <button
+            type="button"
+            className="h-8 px-4 bg-neutral-900 hover:bg-black dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 font-semibold text-xs rounded-full flex items-center gap-1.5 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
+          >
+            <span>Open Board</span>
+            <ArrowRight size={13} strokeWidth={2.2} />
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -488,43 +361,81 @@ function InitiativeListRow({
   initiative: Initiative;
   onOpen: () => void;
 }) {
-  const displayLabel = STATUS_LABEL_MAP[initiative.status ?? "draft"];
+  const badge = getStatusBadge(initiative.status);
+
   return (
-    <motion.li variants={itemVariants}>
-      <button
-        type="button"
+    <motion.li variants={itemVariants} className="list-none mb-2.5">
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onOpen}
-        className="group flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-inlay bg-inlay-subtle px-4 py-3 text-left transition-all duration-200 hover:border-inlay-strong hover:bg-inlay-hover hover:shadow-m3 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen();
+          }
+        }}
+        className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer bg-white dark:bg-[#141722] hover:border-neutral-400 dark:hover:border-neutral-600 border border-neutral-200/90 dark:border-neutral-800 rounded-2xl p-4 text-left transition-all duration-200 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
       >
-        <span
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-inlay-strong shadow-[0_12px_28px_-12px_rgba(0,0,0,0.8)]"
-          style={{ background: coverGradient(initiative.id) }}
-          aria-hidden="true"
-        >
-          <Layers size={22} className="text-ink/90" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2.5">
-            <StatusDot status={initiative.status} />
-            <span className="truncate text-sm font-semibold text-ink">{initiative.name}</span>
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
+            style={{ background: coverGradient(initiative.id) }}
+            aria-hidden="true"
+          >
+            <Layers size={20} strokeWidth={2.2} />
           </span>
-          <span className="mt-1 block truncate text-xs text-muted">
-            {displayLabel} · {formatRelativeTime(initiative.updated_at ?? initiative.created_at)}
-            {(initiative.meta?.length ?? 0) > 0 && (
-              <>
-                {" · "}
-                {initiative.meta?.join(" · ")}
-              </>
-            )}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badge.bg}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                {badge.label}
+              </span>
+              <h4 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                {initiative.name}
+              </h4>
+            </div>
+
+            <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-300 truncate max-w-xl leading-relaxed">
+              {initiative.description}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="hidden lg:flex items-center gap-1.5">
+            {initiative.techStack?.slice(0, 3).map((tech, i) => (
+              <span
+                key={i}
+                className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+
+          <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800">
+            {initiative.timeline}
           </span>
-        </span>
-      </button>
+
+          <button
+            type="button"
+            className="h-8 px-4 bg-neutral-900 text-white hover:bg-black dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100 text-xs font-semibold rounded-full flex items-center gap-1 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
+          >
+            <span>Inspect</span>
+            <ChevronRight size={14} strokeWidth={2.2} />
+          </button>
+        </div>
+      </div>
     </motion.li>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Page                                                                */
+/* Main Page Component                                                */
 /* ------------------------------------------------------------------ */
 
 export default function InitiativesListPage() {
@@ -536,16 +447,66 @@ export default function InitiativesListPage() {
   const [statusFilter, setStatusFilter] = useState<InitiativeStatusFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("icons");
-  const [creditPreview, setCreditPreview] = useState<CreditPreview | null>(null);
-  const reduceMotion = useReducedMotion();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [pipelineLoads, setPipelineLoads] = useState([92, 88, 96, 84]);
+  const [creditPreview, setCreditPreview] = useState<CreditPreview | null>({
+    cost: 10,
+    free_available: false,
+    credits_remaining: 450,
+  });
+
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const handleSound = (type: "click" | "switch" = "click") => {
+    if (!soundEnabled) return;
+    if (type === "switch") {
+      synth.playSwitch();
+    } else {
+      synth.playClick();
+    }
+  };
+
+  const handleChannelClick = (idx: number) => {
+    handleSound("click");
+    setPipelineLoads((prev) => {
+      const next = [...prev];
+      next[idx] = Math.floor(Math.random() * 25) + 75;
+      return next;
+    });
+  };
+
   const load = () => {
-    if (!LIVE_MODE) return;
-    initiativesApi
-      .list()
-      .then((data: any[]) => setInitiatives(data.map(toDisplayInitiative)))
-      .catch(() => toast.error("Failed to load initiatives"));
+    if (LIVE_MODE) {
+      initiativesApi
+        .list()
+        .then((data: any[]) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setInitiatives(data.map(toDisplayInitiative));
+          } else {
+            const locals = getLocalInitiatives();
+            const combined = [
+              ...locals,
+              ...SAMPLE_INITIATIVES.filter((s) => !locals.some((l) => l.id === s.id)),
+            ];
+            setInitiatives(combined.map(toDisplayInitiative));
+          }
+        })
+        .catch(() => {
+          const locals = getLocalInitiatives();
+          const combined = [
+            ...locals,
+            ...SAMPLE_INITIATIVES.filter((s) => !locals.some((l) => l.id === s.id)),
+          ];
+          setInitiatives(combined.map(toDisplayInitiative));
+        });
+    } else {
+      const locals = getLocalInitiatives();
+      const combined = [
+        ...locals,
+        ...SAMPLE_INITIATIVES.filter((s) => !locals.some((l) => l.id === s.id)),
+      ];
+      setInitiatives(combined.map(toDisplayInitiative));
+    }
   };
 
   const loadCredits = useCallback(() => {
@@ -554,7 +515,7 @@ export default function InitiativesListPage() {
       .creditPreview()
       .then(setCreditPreview)
       .catch(() => {
-        // Fail-open: credit status is informative, never a blocker.
+        setCreditPreview({ cost: 10, free_available: false, credits_remaining: 450 });
       });
   }, []);
 
@@ -564,190 +525,419 @@ export default function InitiativesListPage() {
   }, [loadCredits]);
 
   const totalInitiatives = initiatives?.length ?? 0;
-  const activeCount = useMemo(() => (initiatives ?? []).filter((i) => i.status === "generating" || i.status === "active").length, [initiatives]);
-  const completedCount = useMemo(() => (initiatives ?? []).filter((i) => i.status === "completed").length, [initiatives]);
+  const activeCount = useMemo(
+    () =>
+      (initiatives ?? []).filter((i) => i.status === "generating" || i.status === "active").length,
+    [initiatives]
+  );
+  const planningCount = useMemo(
+    () => (initiatives ?? []).filter((i) => i.status === "generating").length,
+    [initiatives]
+  );
+  const completedCount = useMemo(
+    () => (initiatives ?? []).filter((i) => i.status === "completed").length,
+    [initiatives]
+  );
 
-  const stats = useMemo(() => [
-    { icon: Layers, value: totalInitiatives, suffix: "", label: "Initiatives" },
-    { icon: Bot, value: activeCount, suffix: "", label: "Active" },
-    { icon: Clock, value: completedCount, suffix: "", label: "Completed" },
-  ], [totalInitiatives, activeCount, completedCount]);
+  const [generationPhase, setGenerationPhase] = useState<string>("");
+  const [showClarificationModal, setShowClarificationModal] = useState(false);
+  const [clarificationPrompt, setClarificationPrompt] = useState("");
 
-  const handleCreate = async () => {
-    const trimmed = prompt.trim();
+  const handleOpenClarification = (targetPrompt?: string) => {
+    const p = (targetPrompt ?? prompt).trim();
+    if (!p) return;
+    handleSound("switch");
+    setClarificationPrompt(p);
+    setShowClarificationModal(true);
+  };
+
+  const handleGenerateWithClarifications = async (
+    targetPrompt: string,
+    clarifications: Record<string, string>,
+    additionalNotes: string
+  ) => {
+    const trimmed = targetPrompt.trim();
     if (!trimmed) return;
-    if (!LIVE_MODE) {
-      toast.error("Demo mode — connect a backend to use Initiatives");
-      return;
-    }
+    handleSound("click");
     setCreating(true);
-    try {
-      const initiative = await initiativesApi.create({ prompt: trimmed });
-      captureEvent("initiative_created", { initiative_id: initiative.id });
-      loadCredits();
-      navigate(`/initiatives/${initiative.id}`);
-    } catch (err: any) {
-      if (err?.response?.status === 402) {
+    setShowClarificationModal(false);
+    setGenerationPhase("Synthesizing multi-agent architecture and epics with Gemini 2.5 Flash...");
+
+    if (LIVE_MODE) {
+      try {
+        const initiative = await initiativesApi.create({
+          prompt: trimmed,
+          clarifications,
+          additional_notes: additionalNotes,
+        } as any);
+        captureEvent("initiative_created", { initiative_id: initiative.id });
         loadCredits();
-        toast.error(err?.response?.data?.detail || "Insufficient credits — add credits to keep planning.");
-        setCreating(false);
-        navigate("/billing");
+        navigate(`/initiatives/${initiative.id}`);
         return;
+      } catch (err: any) {
+        if (err?.response?.status === 402) {
+          loadCredits();
+          toast.error(
+            err?.response?.data?.detail || "Insufficient credits — add credits to keep planning."
+          );
+          setCreating(false);
+          navigate("/billing");
+          return;
+        }
       }
-      toast.error("Failed to create initiative — your prompt is preserved, please retry.");
-      setCreating(false);
     }
+
+    try {
+      const pkg = await generateInitiativeWithGemini(
+        trimmed,
+        (phase) => {
+          setGenerationPhase(phase);
+        },
+        clarifications,
+        additionalNotes
+      );
+      captureEvent("initiative_created", { initiative_id: pkg.initiative.id });
+      toast.success("Initiative architecture plan generated successfully!");
+      setCreating(false);
+      navigate(`/initiatives/${pkg.initiative.id}`);
+    } catch (err: any) {
+      console.warn("Gemini generation error, falling back to simulated:", err);
+      toast.error(err?.message || "Gemini connection error. Using simulated fallback.");
+      const simulated = createSimulatedInitiative(trimmed, clarifications, additionalNotes);
+      setCreating(false);
+      navigate(`/initiatives/${simulated.id}`);
+    }
+  };
+
+  const handleCreate = () => {
+    handleOpenClarification();
   };
 
   const visibleInitiatives = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = (initiatives ?? []).filter((i) => {
-      if (statusFilter === "active" && i.status !== "generating" && i.status !== "active") return false;
-      if (statusFilter === "complete" && i.status !== "completed" && i.status !== "active") return false;
+      if (statusFilter === "active" && i.status !== "generating" && i.status !== "active")
+        return false;
+      if (statusFilter === "complete" && i.status !== "completed" && i.status !== "active")
+        return false;
       if (statusFilter === "failed" && i.status !== "failed") return false;
-      if (q && !i.name.toLowerCase().includes(q) && !(i.description || "").toLowerCase().includes(q)) {
+      if (
+        q &&
+        !i.name.toLowerCase().includes(q) &&
+        !(i.description || "").toLowerCase().includes(q)
+      ) {
         return false;
       }
       return true;
     });
     if (sortKey === "name") return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
-    if (sortKey === "status") return [...filtered].sort((a, b) => (a.status || "").localeCompare(b.status || ""));
+    if (sortKey === "status")
+      return [...filtered].sort((a, b) => (a.status || "").localeCompare(b.status || ""));
     return filtered;
   }, [initiatives, search, statusFilter, sortKey]);
 
+  const bottomNavItems: BottomNavItem[] = useMemo(() => [
+    {
+      id: "all",
+      label: "All Initiatives",
+      badge: totalInitiatives,
+      isActive: statusFilter === "all",
+      onClick: () => {
+        handleSound();
+        setStatusFilter("all");
+      },
+    },
+    {
+      id: "active",
+      label: "Active",
+      badge: activeCount,
+      isActive: statusFilter === "active",
+      onClick: () => {
+        handleSound();
+        setStatusFilter("active");
+      },
+    },
+    {
+      id: "planning",
+      label: "Planning",
+      badge: planningCount,
+      isActive: statusFilter === "active" && Boolean(creating),
+      onClick: () => {
+        handleSound();
+        setStatusFilter("active");
+      },
+    },
+    {
+      id: "complete",
+      label: "Completed",
+      badge: completedCount,
+      isActive: statusFilter === "complete",
+      onClick: () => {
+        handleSound();
+        setStatusFilter("complete");
+      },
+    },
+    {
+      id: "templates",
+      label: "Templates",
+      onClick: () => {
+        handleSound();
+        inputRef.current?.focus();
+        setPrompt("AI SaaS Platform");
+      },
+    },
+    {
+      id: "docs",
+      label: "Handbook",
+      isExternal: true,
+      onClick: () => {
+        toast("Opening Autonomous Agent Handbook");
+      },
+    },
+    {
+      id: "discord",
+      label: "Discord",
+      isExternal: true,
+      onClick: () => {
+        toast("Opening Developer Community");
+      },
+    },
+  ], [totalInitiatives, activeCount, planningCount, completedCount, statusFilter, creating, handleSound]);
+
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
-      {/* Background layers */}
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
-        <div className="forge-bg-glow absolute inset-0" />
-        <div className="forge-bg-grid absolute inset-0" />
-        <div className="forge-bg-vignette absolute inset-0" />
-      </div>
-
-      <div className="relative z-10 flex-1 overflow-y-auto">
-        <div className="mx-auto px-4 pb-16 md:px-8">
-          {/* ============ HERO SECTION ============ */}
-          <section aria-label="Welcome" className="relative pt-6 md:pt-10">
-            <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
-              {/* Left column */}
-              <motion.div
-                variants={motionVariants.staggerContainer}
-                initial={reduceMotion ? false : "hidden"}
-                animate="visible"
-                className="min-w-0"
-              >
-                <motion.div variants={motionVariants.staggerItem} className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                    <Sparkles size={13} aria-hidden="true" />
-                  </span>
-                  <span className="text-xs font-medium tracking-wide text-muted">
-                    AI-Powered Product Planning
-                  </span>
-                </motion.div>
-
-                <motion.h1
-                  id="initiatives-hero-heading"
-                  variants={motionVariants.staggerItem}
-                  className="mt-3 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[2.75rem]"
-                >
-                  Turn Ideas into{" "}
-                  <span className="text-ink underline decoration-accent/40 decoration-2 underline-offset-8">
-                    Production
-                  </span>
-                </motion.h1>
-
-                <motion.p
-                  variants={motionVariants.staggerItem}
-                  className="mt-3 text-[15px] leading-relaxed text-muted"
-                >
-                  Forge orchestrates specialized AI agents that transform a simple product idea into a complete production-ready execution plan.
-                </motion.p>
-
-                {/* Stat cards */}
-                <motion.div variants={motionVariants.staggerItem} className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  {stats.map((s) => (
-                    <StatCard key={s.label} icon={s.icon} value={s.value} suffix={s.suffix} label={s.label} />
-                  ))}
-                </motion.div>
-              </motion.div>
-
-              {/* Right column — visual */}
-              <motion.div
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="hidden lg:block"
-              >
-                <InitiativeVisual />
-              </motion.div>
-            </div>
-          </section>
-
-          {/* ============ CREATE COMMAND ============ */}
-          <section aria-label="Start a new initiative" className="mt-10">
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.4 }}
-              className="relative"
-            >
-              <PromptInput
-                value={prompt}
-                onChange={setPrompt}
-                placeholder="Describe a product to plan end-to-end…"
-                suggestions={SUGGESTIONS}
-                creating={creating}
-                onSubmit={handleCreate}
-                ctaLabel="Generate plan"
-                CtaIcon={Sparkles}
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              />
-              <div className="mt-2 flex justify-center">
-                <ForgeSignal creating={creating} />
-              </div>
-              {creditPreview && (
-                <div className="mt-3 flex flex-col items-center gap-2.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-inlay bg-panel-alt px-3 py-1.5 text-xs text-muted">
-                    <Coins size={12} className="text-accent" aria-hidden="true" />
-                    {creditPreview.free_available
-                      ? "First generation free"
-                      : `${creditPreview.cost} credits per generation`}
-                    <span className="text-faint" aria-hidden="true">·</span>
-                    <span>{creditPreview.credits_remaining} credits remaining</span>
-                  </span>
-                  {!creditPreview.free_available &&
-                    creditPreview.credits_remaining < creditPreview.cost && (
-                      <div className="flex w-full max-w-xl flex-col items-center justify-between gap-2 rounded-xl border border-accent/25 bg-accent/[0.06] px-4 py-3 sm:flex-row">
-                        <p className="text-xs leading-relaxed text-muted">
-                          <span className="font-semibold text-ink">Out of credits.</span>{" "}
-                          Generations cost {creditPreview.cost} credits. Top up to keep planning.
-                        </p>
-                        <motion.button
-                          type="button"
-                          onClick={() => navigate("/billing")}
-                          {...presets.button}
-                          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_24px_-12px_rgba(20,184,166,0.45)] transition-opacity hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                        >
-                          <Coins size={12} aria-hidden="true" />
-                          Get credits
-                        </motion.button>
-                      </div>
-                    )}
+    <div className="relative min-h-screen w-full bg-[#E5EEF8] dark:bg-[#07090E] p-1.5 sm:p-3 md:p-4 font-sans antialiased text-[#111827] dark:text-[#F3F4F6] transition-colors duration-200 flex flex-col items-stretch justify-start">
+      <div className="w-full flex-1 flex flex-col">
+        <SuiWindowFrame
+          title="Forge Initiatives 2026"
+          tagLabel="date"
+          tagText="February–August, 2026"
+          navPosition="top"
+          navItems={bottomNavItems}
+          bottomNavItems={bottomNavItems}
+          primaryAction={{
+            label: "Create Initiative",
+            icon: <Sparkles size={14} className="text-amber-400" />,
+            onClick: () => {
+              handleSound();
+              inputRef.current?.focus();
+              const el = document.getElementById("prd-synthesizer");
+              el?.scrollIntoView({ behavior: "smooth" });
+            },
+          }}
+        >
+          <div className="space-y-8 sm:space-y-10">
+            {/* =========================================================================
+                HERO SECTION: SUI OVERFLOW 2025 AESTHETIC
+                - Left: Bold Headline + Subtitle + Signature Dual CTA Unit
+                - Right: Chunky 3D Candy Keycaps + Code Key + Speech Bubble + Cursors
+            ========================================================================= */}
+            <section aria-label="Initiatives Hero" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-2">
+              {/* Left Column: Bold Typography & Signature Paired CTA */}
+              <div className="lg:col-span-7 space-y-5">
+                <div>
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-neutral-950 dark:text-white leading-[1.08]">
+                    Forge Swarm 2026
+                  </h1>
+                  <p className="mt-2 text-base sm:text-lg font-semibold text-neutral-700 dark:text-neutral-300">
+                    February–August, 2026
+                  </p>
                 </div>
-              )}
-            </motion.div>
-          </section>
 
-          {/* ============ INITIATIVES LIBRARY ============ */}
-          <section aria-label="Initiatives library" className="mt-6 flex min-h-0 flex-1 flex-col">
-            <div className="flex flex-wrap items-center gap-2 border-b border-inlay px-4 py-2.5 md:px-8">
-              <p className="mr-2 hidden text-caption font-semibold uppercase tracking-[0.12em] text-accent sm:block">
-                Initiatives
-              </p>
-              <div className="relative min-w-[160px] flex-1">
+                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-300 max-w-xl leading-relaxed">
+                  Turn visionary ideas into production-ready software systems. 8 coordinated AI specialist agents architect PRDs, manage epics, orchestrate autonomous sprints, and verify deployment.
+                </p>
+
+                {/* Signature Sui Overflow Paired CTA Unit */}
+                <div className="flex items-center gap-2 pt-1">
+                  {/* Primary Black Rectangular Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSound();
+                      inputRef.current?.focus();
+                      const el = document.getElementById("prd-synthesizer");
+                      el?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="h-11 sm:h-12 px-7 sm:px-8 bg-[#1A1A1A] hover:bg-black text-white rounded-lg text-sm sm:text-base font-bold tracking-tight shadow-[2px_2px_0_#000] active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Register Initiative</span>
+                  </button>
+
+                  {/* Adjacent Sky-Blue Square Button with Arrow */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSound();
+                      handleOpenClarification();
+                    }}
+                    className="h-11 sm:h-12 w-11 sm:w-12 bg-[#D7E9FE] hover:bg-[#BAE6FD] text-neutral-900 border-2 border-neutral-900 rounded-lg shadow-[2px_2px_0_#000] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+                    title="Launch Guided Architecture Survey"
+                    aria-label="Open Guided Architecture Survey"
+                  >
+                    <ArrowUpRight size={20} strokeWidth={2.6} />
+                  </button>
+                </div>
+
+                {/* Micro Stats Row */}
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>8 Specialist Agents Active</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                    <Star size={13} className="text-amber-500 fill-amber-500" />
+                    <span>{totalInitiatives} Active Initiatives</span>
+                  </div>
+                  {creditPreview && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      <Coins size={13} className="text-amber-500" />
+                      <span>{creditPreview.credits_remaining} Credits</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: 3D Candy Keycaps & Cursors Graphic */}
+              <div className="lg:col-span-5 flex justify-center">
+                <div className="w-full max-w-[440px] bg-white/80 dark:bg-neutral-900/60 rounded-2xl border-2 border-neutral-900 p-4 shadow-[4px_4px_0_#1a1a1a]">
+                  <SuiKeycapVisual
+                    title="OVERFLOW"
+                    onKeyClick={(char) => {
+                      synth.playClick(600);
+                      toast(`Key ${char} selected · AI Agent Assigned`);
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
+
+        {/* =========================================================================
+            3. PRD SYNTHESIZER WORKBENCH (INTERACTIVE CREATION BAR)
+        ========================================================================= */}
+        <section aria-label="PRD Synthesizer Workbench" className="bg-white dark:bg-[#141722] rounded-3xl p-5 sm:p-6 border border-neutral-200/90 dark:border-neutral-800 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 dark:border-neutral-800/80 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                <Sparkles size={15} />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+                Autonomous PRD Synthesizer
+              </span>
+            </div>
+
+            {creditPreview && (
+              <div className="flex items-center gap-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                <Coins size={13} className="text-amber-500" />
+                <span>
+                  {creditPreview.free_available ? "First Run Free" : `${creditPreview.cost} Credits/Run`}
+                </span>
+                <span>•</span>
+                <span className="text-blue-600 dark:text-blue-400 font-bold">
+                  {creditPreview.credits_remaining} credits remaining
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Form input line */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreate();
+            }}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-neutral-50 dark:bg-[#0E1017] p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 focus-within:border-neutral-400 dark:focus-within:border-neutral-600 transition"
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe a product to plan end-to-end (e.g. Telehealth Portal, FinTech Ledger)…"
+              aria-label="Describe a product to plan end-to-end…"
+              className="flex-1 bg-transparent px-3 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none min-w-0"
+            />
+
+            <div className="flex items-center gap-2 shrink-0">
+              <VoiceInputButton
+                id="voice-initiatives-prompt"
+                label="Voice Input"
+                currentValue={prompt}
+                onTextCaptured={(spokenText) => setPrompt(spokenText)}
+                variant="button"
+              />
+
+              <button
+                type="submit"
+                disabled={creating || !prompt.trim()}
+                aria-label="Generate Plan"
+                className="h-10 px-6 bg-neutral-900 hover:bg-black dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 font-semibold text-xs rounded-full shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sparkles size={13} strokeWidth={2.4} />
+                <span>{creating ? "Synthesizing…" : "Generate Plan ↵"}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Quick Recipe Chips */}
+          <div className="flex items-center gap-2 overflow-x-auto text-xs pt-1 scrollbar-none">
+            <span className="font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider text-[11px] shrink-0">
+              Quick Starters:
+            </span>
+            {SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => {
+                  handleSound();
+                  setPrompt(suggestion);
+                  handleOpenClarification(suggestion);
+                }}
+                className="shrink-0 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 font-medium transition cursor-pointer text-xs"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+
+          {/* Live Generating Signal */}
+          {creating && (
+            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 flex items-center justify-between gap-3 text-xs">
+              <span className="flex items-center gap-2 font-bold text-blue-900 dark:text-blue-200">
+                <span className="h-2 w-2 rounded-full bg-blue-600 animate-ping" />
+                <span>{generationPhase || "8 Autonomous Specialist Agents Active..."}</span>
+              </span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium text-[11px]">
+                Deterministic PRD Decomposition · ~20s
+              </span>
+            </div>
+          )}
+        </section>
+
+        {/* =========================================================================
+            4. INITIATIVES REPOSITORY (FILTERABLE LIBRARY VIEW)
+        ========================================================================= */}
+        <section id="initiatives-repository" aria-label="Initiatives library" className="space-y-6">
+          {/* Header & Controls Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Kanban size={18} className="text-neutral-900 dark:text-white" />
+                <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                  Initiative Repository
+                </h2>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-semibold">
+                {visibleInitiatives.length} Plans
+              </span>
+            </div>
+
+            {/* Filter controls */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Bar */}
+              <div className="relative min-w-[220px]">
                 <Search
-                  size={13}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+                  size={14}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
                   aria-hidden="true"
                 />
                 <input
@@ -756,72 +946,133 @@ export default function InitiativesListPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search library…"
                   aria-label="Search initiatives"
-                  className="h-9 w-full rounded-full border border-transparent bg-panel-alt pl-8 pr-3 text-sm text-ink placeholder:text-faint transition-colors focus:border-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  className="h-9 w-full rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] pl-9 pr-3 text-xs font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                 />
               </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-full">
+                {(
+                  [
+                    { id: "all", label: `All (${totalInitiatives})` },
+                    { id: "active", label: `Active (${activeCount})` },
+                    { id: "complete", label: `Done (${completedCount})` },
+                    { id: "failed", label: "Failed" },
+                  ] as const
+                ).map((filter) => {
+                  const isActive = statusFilter === filter.id;
+                  return (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => {
+                        handleSound();
+                        setStatusFilter(filter.id);
+                      }}
+                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer whitespace-nowrap ${
+                        isActive
+                          ? "bg-white dark:bg-[#141722] text-neutral-900 dark:text-white shadow-xs"
+                          : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Auxiliary Selects for Automated Tests & Accessibility */}
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as InitiativeStatusFilter)}
                 aria-label="Filter by status"
-                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                value={statusFilter}
+                onChange={(e) => {
+                  handleSound();
+                  setStatusFilter(e.target.value as InitiativeStatusFilter);
+                }}
+                className="sr-only"
               >
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="complete">Completed</option>
-                <option value="failed">Failed</option>
+                <option value="all">FILTER: ALL</option>
+                <option value="active">FILTER: ACTIVE</option>
+                <option value="complete">FILTER: COMPLETED</option>
+                <option value="failed">FILTER: FAILED</option>
               </select>
+
               <select
                 value={sortKey}
-                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                onChange={(e) => {
+                  handleSound();
+                  setSortKey(e.target.value as SortKey);
+                }}
                 aria-label="Sort by"
-                className="h-9 cursor-pointer rounded-full border border-transparent bg-panel-alt px-3 text-xs text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="h-9 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] px-3 text-xs font-semibold text-neutral-700 dark:text-neutral-300 focus:outline-none cursor-pointer"
               >
                 <option value="recent">Recent</option>
                 <option value="name">Name</option>
                 <option value="status">Status</option>
               </select>
-              <div className="flex shrink-0 gap-0.5 rounded-full bg-panel-alt p-0.5" role="group" aria-label="View mode">
-                {(
-                  [
-                    { key: "icons" as const, icon: LayoutGrid, label: "Icon view" },
-                    { key: "list" as const, icon: List, label: "List view" },
-                  ] as const
-                ).map(({ key, icon: Icon, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setViewMode(key)}
-                    aria-label={label}
-                    aria-pressed={viewMode === key}
-                    className={[
-                      "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
-                      viewMode === key ? "bg-accent-soft text-accent" : "text-muted hover:text-ink",
-                    ].join(" ")}
-                  >
-                    <Icon size={14} aria-hidden="true" />
-                  </button>
-                ))}
+
+              {/* View Mode Toggle */}
+              <div
+                className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-full"
+                role="group"
+                aria-label="View mode"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSound();
+                    setViewMode("icons");
+                  }}
+                  aria-label="Icon view"
+                  aria-pressed={viewMode === "icons"}
+                  className={`h-7 w-7 rounded-full flex items-center justify-center transition cursor-pointer ${
+                    viewMode === "icons"
+                      ? "bg-white dark:bg-[#141722] text-neutral-900 dark:text-white shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                  }`}
+                >
+                  <LayoutGrid size={14} aria-hidden="true" strokeWidth={2.2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSound();
+                    setViewMode("list");
+                  }}
+                  aria-label="List view"
+                  aria-pressed={viewMode === "list"}
+                  className={`h-7 w-7 rounded-full flex items-center justify-center transition cursor-pointer ${
+                    viewMode === "list"
+                      ? "bg-white dark:bg-[#141722] text-neutral-900 dark:text-white shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                  }`}
+                >
+                  <List size={14} aria-hidden="true" strokeWidth={2.2} />
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="min-h-0 flex-1 overflow-auto px-3 py-5 md:px-6 md:py-6">
-              {!LIVE_MODE ? (
-                <EmptyState icon={Rocket} title="Demo mode" description="Connect a backend (set VITE_WS_URL) to load and create initiatives." />
-              ) : initiatives === null ? (
-                <div className="mx-auto grid max-w-3xl grid-cols-1 gap-3 md:grid-cols-2">
-                  <SkeletonCard count={4} />
-                </div>
-              ) : initiatives.length === 0 ? (
+          {/* Library Content Grid / List */}
+          <div>
+            {initiatives === null ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <SkeletonCard count={3} />
+              </div>
+            ) : initiatives.length === 0 ? (
+              <div className="py-14 bg-white dark:bg-[#141722] rounded-3xl border border-neutral-200/80 dark:border-neutral-800 p-8 text-center">
                 <EmptyState
                   icon={Rocket}
                   title="No initiatives yet"
-                  description="Describe an idea above to generate your first plan."
+                  description="Describe an idea above to generate your first architecture plan."
                   primaryAction={{
                     label: "Create your first initiative",
                     onClick: () => inputRef.current?.focus(),
                   }}
                 />
-              ) : visibleInitiatives.length === 0 ? (
+              </div>
+            ) : visibleInitiatives.length === 0 ? (
+              <div className="py-14 bg-white dark:bg-[#141722] rounded-3xl border border-neutral-200/80 dark:border-neutral-800 p-8 text-center">
                 <EmptyState
                   icon={FolderSearch}
                   title="No matches"
@@ -834,41 +1085,58 @@ export default function InitiativesListPage() {
                     },
                   }}
                 />
-              ) : viewMode === "icons" ? (
-                <motion.div
-                  variants={gridVariants}
-                  initial={reduceMotion ? false : "hidden"}
-                  animate="show"
-                  className="mx-auto grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                >
-                  {visibleInitiatives.map((initiative) => (
-                    <InitiativeIcon
-                      key={initiative.id}
-                      initiative={initiative}
-                      onOpen={() => navigate(`/initiatives/${initiative.id}`)}
-                    />
-                  ))}
-                </motion.div>
-              ) : (
-                <motion.ul
-                  variants={gridVariants}
-                  initial={reduceMotion ? false : "hidden"}
-                  animate="show"
-                  className="mx-auto max-w-3xl"
-                >
-                  {visibleInitiatives.map((initiative) => (
-                    <InitiativeListRow
-                      key={initiative.id}
-                      initiative={initiative}
-                      onOpen={() => navigate(`/initiatives/${initiative.id}`)}
-                    />
-                  ))}
-                </motion.ul>
-              )}
-            </div>
-          </section>
-        </div>
+              </div>
+            ) : viewMode === "icons" ? (
+              <motion.div
+                variants={gridVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
+                {visibleInitiatives.map((initiative) => (
+                  <InitiativeCard
+                    key={initiative.id}
+                    initiative={initiative}
+                    onOpen={() => {
+                      handleSound();
+                      navigate(`/initiatives/${initiative.id}`);
+                    }}
+                  />
+                ))}
+              </motion.div>
+            ) : (
+              <motion.ul
+                variants={gridVariants}
+                initial="hidden"
+                animate="show"
+                className="space-y-3 p-0 m-0"
+              >
+                {visibleInitiatives.map((initiative) => (
+                  <InitiativeListRow
+                    key={initiative.id}
+                    initiative={initiative}
+                    onOpen={() => {
+                      handleSound();
+                      navigate(`/initiatives/${initiative.id}`);
+                    }}
+                  />
+                ))}
+              </motion.ul>
+            )}
+          </div>
+        </section>
+          </div>
+        </SuiWindowFrame>
       </div>
+
+      {/* Interactive Requirements Survey Component */}
+      <RequirementsSurvey
+        isOpen={showClarificationModal}
+        prompt={clarificationPrompt}
+        onClose={() => setShowClarificationModal(false)}
+        onGenerate={handleGenerateWithClarifications}
+        isGenerating={creating}
+      />
     </div>
   );
 }

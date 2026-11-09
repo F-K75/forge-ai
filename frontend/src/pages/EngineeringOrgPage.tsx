@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { Users, Send } from "lucide-react"
+import { Send } from "lucide-react"
 import ReactFlow, { Background, Controls, type Node, type Edge, MarkerType, useNodesState, useEdgesState } from "reactflow"
 import "reactflow/dist/style.css"
 import { motion, useReducedMotion } from "motion/react"
+import BrandLogo from "../components/BrandLogo"
 import { motionVariants } from "../lib/animations"
 import { agentOrgApi, type AgentProfile, type RouteAssignment } from "../lib/api"
 import { LIVE_MODE } from "../lib/env"
@@ -299,7 +300,7 @@ export default function EngineeringOrgPage() {
         <Link to={`/project/${projectId}`} className="hover:text-ink">Project</Link>
       </div>
       <header className="flex items-center gap-3 mb-10">
-        <Users size={20} className="text-ink" aria-hidden="true" />
+        <BrandLogo size="md" />
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-ink">
           Engineering organization
         </h1>

@@ -1,56 +1,60 @@
-import { useEffect, useState, Suspense, lazy } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
 import { LIVE_MODE } from "./lib/env"
+import { lazyWithRetry } from "./lib/lazyRetry"
 import GlobalBackground from "./components/GlobalBackground"
+import BrandLogo from "./components/BrandLogo"
 
-const AuthPage = lazy(() => import("./pages/AuthPage"))
-const Signup = lazy(() => import("./pages/Signup"))
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"))
-const Onboarding = lazy(() => import("./pages/Onboarding"))
-const ResetPassword = lazy(() => import("./pages/ResetPassword"))
-const VerifyEmail = lazy(() => import("./pages/VerifyEmail"))
-const GoogleCallback = lazy(() => import("./pages/GoogleCallback"))
-const NotFoundPage = lazy(() => import("./pages/NotFoundPage"))
+const AuthPage = lazyWithRetry(() => import("./pages/AuthPage"))
+const Signup = lazyWithRetry(() => import("./pages/Signup"))
+const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"))
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"))
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"))
+const VerifyEmail = lazyWithRetry(() => import("./pages/VerifyEmail"))
+const GoogleCallback = lazyWithRetry(() => import("./pages/GoogleCallback"))
+const NotFoundPage = lazyWithRetry(() => import("./pages/NotFoundPage"))
 
 // App shell + routed pages (step 1)
-const AppShell = lazy(() => import("./components/AppShell"))
-const Launch = lazy(() => import("./pages/Launch"))
-const ProjectsPage = lazy(() => import("./pages/ProjectsPage"))
-const FlowPage = lazy(() => import("./pages/FlowPage"))
-const MarketplacePage = lazy(() => import("./pages/MarketplacePage"))
-const BillingPage = lazy(() => import("./pages/BillingPage"))
-const SettingsPage = lazy(() => import("./pages/SettingsPage"))
-const WorkspacePage = lazy(() => import("./pages/WorkspacePage"))
-const LLMManagementPage = lazy(() => import("./pages/LLMManagementPage"))
-const OptimizationDashboard = lazy(() => import("./pages/OptimizationDashboard"))
-const EngineeringHealthPage = lazy(() => import("./pages/EngineeringHealthPage"))
-const PromptStudioPage = lazy(() => import("./pages/PromptStudioPage"))
+const AppShell = lazyWithRetry(() => import("./components/AppShell"))
+const Launch = lazyWithRetry(() => import("./pages/Launch"))
+const ProjectsPage = lazyWithRetry(() => import("./pages/ProjectsPage"))
+const FlowPage = lazyWithRetry(() => import("./pages/FlowPage"))
+const FilesPage = lazyWithRetry(() => import("./pages/FilesPage"))
+const HistoryPage = lazyWithRetry(() => import("./pages/HistoryPage"))
+const MarketplacePage = lazyWithRetry(() => import("./pages/MarketplacePage"))
+const BillingPage = lazyWithRetry(() => import("./pages/BillingPage"))
+const SettingsPage = lazyWithRetry(() => import("./pages/SettingsPage"))
+const WorkspacePage = lazyWithRetry(() => import("./pages/WorkspacePage"))
+const LLMManagementPage = lazyWithRetry(() => import("./pages/LLMManagementPage"))
+const OptimizationDashboard = lazyWithRetry(() => import("./pages/OptimizationDashboard"))
+const EngineeringHealthPage = lazyWithRetry(() => import("./pages/EngineeringHealthPage"))
+const PromptStudioPage = lazyWithRetry(() => import("./pages/PromptStudioPage"))
 // Step 3: in-shell surfaces
-const AdminConsole = lazy(() => import("./pages/AdminConsole"))
-const ProjectHistory = lazy(() => import("./pages/ProjectHistory"))
-const EngineeringOrgPage = lazy(() => import("./pages/EngineeringOrgPage"))
+const AdminConsole = lazyWithRetry(() => import("./pages/AdminConsole"))
+const ProjectHistory = lazyWithRetry(() => import("./pages/ProjectHistory"))
+const EngineeringOrgPage = lazyWithRetry(() => import("./pages/EngineeringOrgPage"))
 // AI-native Agile PM layer (Initiatives): vision/PRD -> epics/stories/tasks -> sprints -> board -> releases
-const InitiativesListPage = lazy(() => import("./pages/pm/InitiativesListPage"))
-const InitiativeLayout = lazy(() => import("./pages/pm/InitiativeLayout"))
-const OverviewTab = lazy(() => import("./pages/pm/OverviewTab"))
-const KanbanTab = lazy(() => import("./pages/pm/KanbanTab"))
-const SprintsTab = lazy(() => import("./pages/pm/SprintsTab"))
-const AgentRunsTab = lazy(() => import("./pages/pm/AgentRunsTab"))
-const RoadmapTab = lazy(() => import("./pages/pm/RoadmapTab"))
-const GraphTab = lazy(() => import("./pages/pm/GraphTab"))
-const ReleasesTab = lazy(() => import("./pages/pm/ReleasesTab"))
-const ActivityTab = lazy(() => import("./pages/pm/ActivityTab"))
-const IntegrationsTab = lazy(() => import("./pages/pm/IntegrationsTab"))
-const AnalyticsTab = lazy(() => import("./pages/pm/AnalyticsTab"))
+const InitiativesListPage = lazyWithRetry(() => import("./pages/pm/InitiativesListPage"))
+const InitiativeLayout = lazyWithRetry(() => import("./pages/pm/InitiativeLayout"))
+const OverviewTab = lazyWithRetry(() => import("./pages/pm/OverviewTab"))
+const KanbanTab = lazyWithRetry(() => import("./pages/pm/KanbanTab"))
+const SprintsTab = lazyWithRetry(() => import("./pages/pm/SprintsTab"))
+const AgentRunsTab = lazyWithRetry(() => import("./pages/pm/AgentRunsTab"))
+const RoadmapTab = lazyWithRetry(() => import("./pages/pm/RoadmapTab"))
+const GraphTab = lazyWithRetry(() => import("./pages/pm/GraphTab"))
+const ReleasesTab = lazyWithRetry(() => import("./pages/pm/ReleasesTab"))
+const ActivityTab = lazyWithRetry(() => import("./pages/pm/ActivityTab"))
+const IntegrationsTab = lazyWithRetry(() => import("./pages/pm/IntegrationsTab"))
+const AnalyticsTab = lazyWithRetry(() => import("./pages/pm/AnalyticsTab"))
 // Review board — orchestrator UI (separate backend service, see lib/orchestratorApi.ts)
-const ReviewsListPage = lazy(() => import("./pages/reviews/ReviewsListPage"))
-const ReviewDetailPage = lazy(() => import("./pages/reviews/ReviewDetailPage"))
+const ReviewsListPage = lazyWithRetry(() => import("./pages/reviews/ReviewsListPage"))
+const ReviewDetailPage = lazyWithRetry(() => import("./pages/reviews/ReviewDetailPage"))
 // Step 5: public marketing surface (independent theme, no shell, no auth)
-const LandingPage = lazy(() => import("./pages/LandingPage"))
+const LandingPage = lazyWithRetry(() => import("./pages/LandingPage"))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,8 +65,8 @@ const queryClient = new QueryClient({
 function LoadingSpinner() {
   return (
     <div className="relative z-50 min-h-[100dvh] bg-[#07070b] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-ember border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center gap-4">
+        <BrandLogo size="lg" />
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Booting Forge OS</p>
       </div>
     </div>
@@ -73,7 +77,7 @@ function RouteSkeleton() {
   return (
     <div className="relative z-50 min-h-full flex items-center justify-center py-20">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-ember border-t-transparent rounded-full animate-spin" />
+        <BrandLogo size="md" />
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Opening…</p>
       </div>
     </div>
@@ -154,6 +158,41 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>
+}
+
+function RootRoute() {
+  const { isAuthenticated, fetchMe } = useAuthStore()
+  const location = useLocation()
+  const [checking, setChecking] = useState(LIVE_MODE)
+
+  useEffect(() => {
+    if (!LIVE_MODE) return
+    fetchMe()
+      .catch(() => {
+        useAuthStore.setState({ isAuthenticated: false, user: null })
+      })
+      .finally(() => setChecking(false))
+  }, [fetchMe])
+
+  if (checking) {
+    return <RouteSkeleton />
+  }
+
+  const searchParams = new URLSearchParams(location.search)
+  const wantsApp = searchParams.get("app") === "true"
+
+  if (wantsApp || (LIVE_MODE && isAuthenticated)) {
+    const lastProject = localStorage.getItem("forge_last_project") || "demo-project"
+    return <Navigate to={`/p/${lastProject}/workspace`} replace />
+  }
+
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<RouteSkeleton />}>
+        <LandingPage />
+      </Suspense>
+    </ErrorBoundary>
+  )
 }
 
 export default function App() {
@@ -253,9 +292,14 @@ export default function App() {
             }
           />
 
-          {/* Launch — public entry splash; already-authenticated visitors are bounced straight to /projects by PublicRoute */}
+          {/* Layer 1: Public Marketing & CLI Launchpad */}
+          <Route path="/" element={<RootRoute />} />
           <Route
-            path="/"
+            path="/demo"
+            element={<Navigate to="/p/demo-project/workspace" replace />}
+          />
+          <Route
+            path="/launch"
             element={
               <ErrorBoundary>
                 <PublicRoute>
@@ -267,7 +311,7 @@ export default function App() {
             }
           />
 
-          {/* App shell — rail + routed pages */}
+          {/* Layer 2 & 3: Platform Hub & Project-Scoped Workspaces */}
           <Route
             element={
               <ErrorBoundary>
@@ -279,11 +323,154 @@ export default function App() {
               </ErrorBoundary>
             }
           >
+            {/* Backward-compatibility and global aliases */}
+            <Route
+              path="/workspace"
+              element={<Navigate to="/p/demo-project/workspace" replace />}
+            />
+            <Route
+              path="/build/:projectId"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <WorkspacePage />
+                </Suspense>
+              }
+            />
+
+            {/* Layer 3: Project-Scoped Deep Work Context (/p/:projectId/*) */}
+            <Route path="/p/:projectId">
+              <Route index element={<Navigate to="workspace" replace />} />
+              <Route
+                path="workspace"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <WorkspacePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="flow"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <FlowPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="agents"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <FlowPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="initiatives"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <InitiativesListPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="initiatives/:initiativeId"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <InitiativeLayout />
+                  </Suspense>
+                }
+              >
+                <Route index element={<OverviewTab />} />
+                <Route path="board" element={<KanbanTab />} />
+                <Route path="sprints" element={<SprintsTab />} />
+                <Route path="agent-runs" element={<AgentRunsTab />} />
+                <Route path="roadmap" element={<RoadmapTab />} />
+                <Route path="graph" element={<GraphTab />} />
+                <Route path="releases" element={<ReleasesTab />} />
+                <Route path="activity" element={<ActivityTab />} />
+                <Route path="integrations" element={<IntegrationsTab />} />
+                <Route path="analytics" element={<AnalyticsTab />} />
+              </Route>
+              <Route
+                path="reviews"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <ReviewsListPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="reviews/:runId"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <ReviewDetailPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="files"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <FilesPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="history"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <HistoryPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <SettingsPage />
+                  </Suspense>
+                }
+              />
+            </Route>
+
+            {/* Layer 2: Platform Hub Routes */}
             <Route
               path="/projects"
               element={
                 <Suspense fallback={<RouteSkeleton />}>
                   <ProjectsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/agents"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <FlowPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/files"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <FilesPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <HistoryPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/models"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <LLMManagementPage />
                 </Suspense>
               }
             />
@@ -430,20 +617,6 @@ export default function App() {
               <Route path="analytics" element={<AnalyticsTab />} />
             </Route>
           </Route>
-
-          {/* Workspace — full-screen, no shell (step 4 fills this) */}
-          <Route
-            path="/build/:projectId"
-            element={
-              <ErrorBoundary>
-                <ProtectedRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <WorkspacePage />
-                  </Suspense>
-                </ProtectedRoute>
-              </ErrorBoundary>
-            }
-          />
 
           <Route
             path="*"

@@ -1,7 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { layout } from '../../lib/designTokens'
 
 interface SectionProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
@@ -20,8 +19,8 @@ export function Section({ children, title, description, actions, padding = true,
       {(title || description || actions) && (
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            {title && <h2 className="text-xl font-semibold text-ink tracking-tight">{title}</h2>}
-            {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+            {title && <h2 className="text-xl font-black uppercase tracking-tight text-ink">{title}</h2>}
+            {description && <p className="mt-1 text-sm text-muted font-medium">{description}</p>}
           </div>
           {actions && <div className="shrink-0">{actions}</div>}
         </div>
@@ -60,31 +59,30 @@ interface StatCardProps {
 
 export function StatCard({ title, value, change, icon, trend = 'neutral', className }: StatCardProps) {
   const trendColors = {
-    up: 'text-ok',
-    down: 'text-error',
-    neutral: 'text-muted',
+    up: 'text-ok font-bold',
+    down: 'text-error font-bold',
+    neutral: 'text-muted font-medium',
   }
 
   return (
     <div
       className={twMerge(clsx(
-        'rounded-m3-lg border border-border bg-panel p-5 shadow-apple transition-all duration-med hover:shadow-apple-lg',
+        'rounded-sm border-2 border-black bg-white p-5 shadow-brutal transition-all hover:shadow-brutal-lg hover:-translate-x-0.5 hover:-translate-y-0.5',
         className
       ))}
-      style={{ borderRadius: layout.radiusLg }}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">{title}</p>
-          <p className="mt-2 text-3xl font-semibold text-ink tracking-tight">{value}</p>
+          <p className="font-mono text-xs font-black uppercase tracking-wider text-muted">{title}</p>
+          <p className="mt-2 font-mono text-3xl font-black text-ink tracking-tight">{value}</p>
           {change && (
-            <p className={clsx('mt-1 text-xs font-medium', trendColors[trend])}>
+            <p className={clsx('mt-1 text-xs font-mono', trendColors[trend])}>
               {change}
             </p>
           )}
         </div>
         {icon && (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border-2 border-black bg-brutal-yellow text-black shadow-brutal-xs">
             {icon}
           </div>
         )}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import BrandLogo from '../components/BrandLogo'
 import { motionVariants } from '../lib/animations'
 import { presets } from '../lib/animationPresets'
 import { promptsApi, type PromptTemplatePayload, type PromptContextPayload } from '../lib/api'
@@ -245,7 +246,10 @@ export default function PromptStudioPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      <h1 className="text-2xl font-semibold">Prompt Studio</h1>
+      <div className="flex items-center gap-3">
+        <BrandLogo size="md" />
+        <h1 className="text-2xl font-semibold">Prompt Studio</h1>
+      </div>
       <p className="mt-2 text-slate-400">
         Design prompt templates and preview how agents see them.
       </p>

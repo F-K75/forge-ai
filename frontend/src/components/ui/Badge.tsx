@@ -1,9 +1,8 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { layout } from '../../lib/designTokens'
 
-export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'outlined'
+export type BadgeVariant = 'default' | 'accent' | 'success' | 'warning' | 'error' | 'info' | 'outlined'
 export type BadgeSize = 'sm' | 'md' | 'lg'
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -14,12 +13,13 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-panel-alt text-muted border-border',
-  success: 'bg-ok/15 text-ok border-ok/20',
-  warning: 'bg-warn/15 text-warn border-warn/20',
-  error: 'bg-error/15 text-error border-error/20',
-  info: 'bg-info/15 text-info border-info/20',
-  outlined: 'bg-transparent text-ink border-outline',
+  default: 'bg-white text-black border-2 border-black shadow-brutal-sm',
+  accent: 'bg-[#14B8A6] text-black border-2 border-black shadow-brutal-sm',
+  success: 'bg-[#00F59B] text-black border-2 border-black shadow-brutal-sm',
+  warning: 'bg-[#FF8A00] text-black border-2 border-black shadow-brutal-sm',
+  error: 'bg-[#FF5376] text-black border-2 border-black shadow-brutal-sm',
+  info: 'bg-[#00F0FF] text-black border-2 border-black shadow-brutal-sm',
+  outlined: 'bg-white text-black border-2 border-black shadow-brutal-sm',
 }
 
 const sizeClasses: Record<BadgeSize, string> = {
@@ -40,18 +40,17 @@ export function Badge({
     <span
       className={twMerge(
         clsx(
-          'inline-flex items-center gap-1.5 rounded-full border font-medium',
+          'inline-flex items-center gap-1.5 rounded-sm font-bold uppercase tracking-wider select-none',
           variantClasses[variant],
           sizeClasses[size],
           className
         )
       )}
-      style={{ borderRadius: layout.radiusFull, ...rest.style }}
       {...rest}
     >
       {dot && (
         <span
-          className="h-1.5 w-1.5 rounded-full bg-current"
+          className="h-2 w-2 rounded-full border border-black bg-current"
           aria-hidden="true"
         />
       )}

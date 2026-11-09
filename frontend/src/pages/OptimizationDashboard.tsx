@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react"
 import { motionVariants } from "../lib/animations"
 import { presets } from "../lib/animationPresets"
 import { optimizerApi, budgetsApi } from "../lib/api"
+import BrandLogo from "../components/BrandLogo"
 import { ChartContainer } from "../components/charts/ChartContainer"
 import { ChartTooltip } from "../components/charts/ChartTooltip"
 import { colorForAgent, colorForIndex } from "../components/charts/palette"
@@ -249,7 +250,10 @@ export default function OptimizationDashboard() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      <h1 className="text-2xl font-semibold">AI optimization</h1>
+      <div className="flex items-center gap-3">
+        <BrandLogo size="md" />
+        <h1 className="text-2xl font-semibold">AI optimization</h1>
+      </div>
       <p className="mt-2 text-slate-400">
         Monitor spend, cache performance, and optimization across the AI Gateway.
       </p>

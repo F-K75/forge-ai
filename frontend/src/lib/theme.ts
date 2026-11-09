@@ -3,21 +3,21 @@ import { THEME_STORAGE_KEY, type ThemeMode } from './designTokens'
 export type { ThemeMode }
 
 // Single source of truth for color values used as raw JS strings.
-// Keep in sync with index.css dark-first tokens.
+// Neubrutalism palette
 export const COLORS = {
-  base: "#000000",
-  ink: "#F5F5F7",
-  muted: "#A1A1A6",
+  base: "#F4F0EA",
+  ink: "#0A0A0A",
+  muted: "#4A4A4A",
   accent: "#14B8A6",
-  ok: "#30D158",
-  warn: "#FF9F0A",
-  error: "#FF453A",
-  agentArchitect: "#0A84FF",
-  agentBusinessImprover: "#5E5CE6",
-  agentDesigner: "#BF5AF2",
-  agentDeveloper: "#30D158",
-  agentIntegration: "#64D2FF",
-  agentPm: "#FF9F0A",
+  ok: "#00F59B",
+  warn: "#FF8A00",
+  error: "#FF5376",
+  agentArchitect: "#00F0FF",
+  agentBusinessImprover: "#A855F7",
+  agentDesigner: "#FF5376",
+  agentDeveloper: "#00F59B",
+  agentIntegration: "#00F0FF",
+  agentPm: "#14B8A6",
 } as const
 
 export const HUE_CYCLE = [
@@ -35,16 +35,16 @@ function clearThemeClasses(root: HTMLElement) {
   root.classList.remove(...ROOT_CLASSES)
 }
 
-/** Apply theme to <html>. Dark is the product default. */
+/** Apply theme to <html>. Light/cream is the Neubrutalism default. */
 export function applyTheme(mode: ThemeMode) {
   const root = document.documentElement
   clearThemeClasses(root)
-  if (mode === 'light') {
-    root.classList.add('light')
+  if (mode === 'dark') {
+    root.classList.add('dark')
   } else if (mode === 'high-contrast') {
     root.classList.add('dark', 'hc', 'high-contrast')
   } else {
-    root.classList.add('dark')
+    root.classList.add('light')
   }
   try {
     localStorage.setItem(THEME_STORAGE_KEY, mode)
@@ -60,7 +60,7 @@ export function getStoredTheme(): ThemeMode {
   } catch {
     /* ignore */
   }
-  return 'dark'
+  return 'light'
 }
 
 export function initTheme() {

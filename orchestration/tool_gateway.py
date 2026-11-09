@@ -166,7 +166,7 @@ class ToolGateway:
                 "timeout_seconds": 120,
                 "max_retries": 2,
                 "config": {
-                    "allowed_commands": ["npm", "pip", "python", "node", "git"],
+                    "allowed_commands": ["npm", "pip", "python", "node", "git", "ls"],
                     "blocked_commands": ["rm -rf", "sudo", "chmod 777"],
                     "working_directory": "."
                 }
@@ -376,19 +376,52 @@ class ToolGateway:
                 "exit_code": -1
             }
     
+    def _sanitize_path(self, user_path: Any) -> Path:
+        """
+        Resolve and validate path within sandbox boundaries.
+        Prevents path traversal attacks (e.g., ../../../../etc/passwd).
+        """
+        base_dir = Path.cwd().resolve()
+        target = (base_dir / Path(str(user_path))).resolve()
+        if not str(target).startswith(str(base_dir)):
+            raise PermissionError(f"Access denied: path '{user_path}' escapes sandbox boundary")
+        return target
+
     def _execute_terminal(self, command: str, args: Optional[List[Any]], timeout: int) -> Dict[str, Any]:
-        """Execute terminal command."""
-        # Security: validate command
-        blocked_commands = ["rm -rf", "sudo", "chmod 777", "eval", "exec"]
-        command_lower = command.lower()
-        for blocked in blocked_commands:
-            if blocked in command_lower:
-                return {
-                    "success": False,
-                    "error": f"Command blocked for security: {command}",
-                    "exit_code": -1
-                }
-        
+        """Execute terminal command with strict security controls."""
+        if not command or not command.strip():
+            return {
+                "success": False,
+                "error": "Empty command provided",
+                "exit_code": -1
+            }
+
+        # Security: validate base executable against allowed commands
+        tool_config = self.tools.get("terminal")
+        allowed_commands = (
+            tool_config.config.get("allowed_commands", ["npm", "pip", "python", "node", "git", "pytest", "ls", "echo"])
+            if tool_config else ["npm", "pip", "python", "node", "git", "pytest", "ls", "echo"]
+        )
+        base_cmd = os.path.basename(command.strip().split()[0]).lower()
+        if base_cmd not in allowed_commands:
+            return {
+                "success": False,
+                "error": f"Command '{base_cmd}' is not permitted by security policy. Allowed: {allowed_commands}",
+                "exit_code": -1
+            }
+
+        # Check for dangerous metacharacters and blocked commands
+        blocked_tokens = ["rm -rf", "sudo", "chmod 777", "eval", "exec", ";", "&&", "||", "`", "$("]
+        for arg in [command] + [str(a) for a in (args or [])]:
+            arg_lower = arg.lower()
+            for blocked in blocked_tokens:
+                if blocked in arg_lower:
+                    return {
+                        "success": False,
+                        "error": f"Blocked token '{blocked}' detected in command arguments",
+                        "exit_code": -1
+                    }
+
         # Build full command
         full_command = [command] + [str(arg) for arg in args or []]
         
@@ -527,11 +560,13 @@ class ToolGateway:
             }
     
     def _execute_filesystem(self, command: str, args: Optional[List[Any]]) -> Dict[str, Any]:
-        """Execute filesystem operation."""
+        """Execute filesystem operation within sandboxed boundaries."""
         try:
             if command == "read":
-                filepath = Path(args[0])
-                if not filepath.exists():
+                if not args or len(args) < 1:
+                    return {"success": False, "error": "Missing filepath argument", "exit_code": -1}
+                filepath = self._sanitize_path(args[0])
+                if not filepath.exists() or not filepath.is_file():
                     return {
                         "success": False,
                         "error": f"File not found: {filepath}",
@@ -546,7 +581,9 @@ class ToolGateway:
                 }
             
             elif command == "write":
-                filepath = Path(args[0])
+                if not args or len(args) < 2:
+                    return {"success": False, "error": "Missing filepath or content arguments", "exit_code": -1}
+                filepath = self._sanitize_path(args[0])
                 content = args[1]
                 filepath.parent.mkdir(parents=True, exist_ok=True)
                 filepath.write_text(content)
@@ -558,8 +595,9 @@ class ToolGateway:
                 }
             
             elif command == "list":
-                dirpath = Path(args[0]) if args else Path(".")
-                if not dirpath.exists():
+                target_dir = args[0] if args and len(args) > 0 else "."
+                dirpath = self._sanitize_path(target_dir)
+                if not dirpath.exists() or not dirpath.is_dir():
                     return {
                         "success": False,
                         "error": f"Directory not found: {dirpath}",
@@ -574,7 +612,9 @@ class ToolGateway:
                 }
             
             elif command == "exists":
-                filepath = Path(args[0])
+                if not args or len(args) < 1:
+                    return {"success": False, "error": "Missing filepath argument", "exit_code": -1}
+                filepath = self._sanitize_path(args[0])
                 return {
                     "success": True,
                     "exit_code": 0,

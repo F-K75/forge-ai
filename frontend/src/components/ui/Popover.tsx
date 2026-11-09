@@ -44,14 +44,13 @@ export function Popover({
           <motion.div
             role="menu"
             className={twMerge(clsx(
-              'absolute z-[60] min-w-[200px] apple-glass-strong shadow-apple-float overflow-hidden',
+              'absolute z-[60] min-w-[200px] border-2 border-black bg-white shadow-brutal-lg rounded-sm overflow-hidden',
               sideClasses[side]
             ))}
-            style={{ borderRadius: layout.radiusMd }}
             initial={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+            transition={{ type: 'spring', stiffness: 450, damping: 32 }}
           >
             <div className="py-1.5">
               {children}

@@ -1,132 +1,35 @@
-# AGENTS.md
+# UI Standards & Guidelines for AI Coding Agents
 
-Guidance for Codex and other AI coding agents working in this repository.
+UI STANDARDS — apply to all UI output unless overridden
 
-## gstack
+## DESIGN TOKENS
+- Define a token set before writing components: colors (primary, secondary, neutral scale, semantic: success/warning/error/info), spacing scale (4/8/12/16/24/32/48/64px), typography scale (H1–H6, body, caption), border-radius scale, shadow/elevation levels.
+- Never hardcode raw hex/px values inline — reference tokens.
+- Token implementations live in `/frontend/src/lib/designTokens.ts` and CSS variables in `/frontend/src/index.css`.
 
-This project uses [gstack](https://github.com/garrytan/gstack), a suite of Codex
-skills for planning, review, shipping, QA, and browsing.
+## LAYOUT
+- Use a 12-column grid or flex/grid layout, not absolute positioning.
+- Define breakpoints: mobile (<640px), tablet (640–1024px), desktop (>1024px).
+- Consistent max-width containers; no fixed pixel widths on responsive pages.
 
-### Install
+## COMPONENTS
+- Every interactive component must define states: default, hover, active, focus, disabled, error/invalid, loading.
+- Buttons: max 3 visual weights (primary, secondary, ghost/text).
+- Forms: label + input + helper/error text pattern, consistent across all forms.
+- Tables/data views: sticky headers, zebra striping or dividers, empty-state and loading-state variants (important for dashboards / backtest results).
 
-gstack is a per-developer install (it lives in `~/.Codex/skills`, not in this repo):
+## ACCESSIBILITY
+- WCAG AA minimum: 4.5:1 contrast for text, 3:1 for large text/icons.
+- All interactive elements keyboard-navigable and screen-reader labeled.
+- Touch targets ≥ 44x44px on mobile.
 
-```bash
-git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.Codex/skills/gstack
-cd ~/.Codex/skills/gstack && ./setup
-```
+## CONTENT & MICROCOPY
+- Error messages: state what happened + how to fix it, no blame language.
+- Empty states: explain what belongs there + a clear next action.
 
-Update later with `/gstack-upgrade`.
+## MOTION
+- Transitions 150–300ms, ease-in-out; avoid motion for its own sake.
 
-### Web browsing
-
-Use the `/browse` skill from gstack for **all** web browsing.
-**Never** use `mcp__claude-in-chrome__*` tools.
-
-### Available skills
-
-- `/office-hours`
-- `/plan-ceo-review`
-- `/plan-eng-review`
-- `/plan-design-review`
-- `/design-consultation`
-- `/design-shotgun`
-- `/design-html`
-- `/review`
-- `/ship`
-- `/land-and-deploy`
-- `/canary`
-- `/benchmark`
-- `/browse`
-- `/connect-chrome`
-- `/qa`
-- `/qa-only`
-- `/design-review`
-- `/setup-browser-cookies`
-- `/setup-deploy`
-- `/setup-gbrain`
-- `/retro`
-- `/investigate`
-- `/document-release`
-- `/document-generate`
-- `/codex`
-- `/cso`
-- `/autoplan`
-- `/plan-devex-review`
-- `/devex-review`
-- `/careful`
-- `/freeze`
-- `/guard`
-- `/unfreeze`
-- `/gstack-upgrade`
-- `/learn`
-
-## Skill routing
-
-When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
-
-Key routing rules:
-- Product ideas/brainstorming → invoke /office-hours
-- Strategy/scope → invoke /plan-ceo-review
-- Architecture → invoke /plan-eng-review
-- Design system/plan review → invoke /design-consultation or /plan-design-review
-- Full review pipeline → invoke /autoplan
-- Bugs/errors → invoke /investigate
-- QA/testing site behavior → invoke /qa or /qa-only
-- Code review/diff check → invoke /review
-- Visual polish → invoke /design-review
-- Ship/deploy/PR → invoke /ship or /land-and-deploy
-- Save progress → invoke /context-save
-- Resume context → invoke /context-restore
-- Author a backlog-ready spec/issue → invoke /spec
-
-## Cursor Cloud specific instructions
-
-Forge is a full-stack app (FastAPI backend + Vite/React frontend + MongoDB + Redis). Cloud VMs do not have Docker pre-installed; use the local (no-Docker) workflow below. See also `.claude/skills/run-forge-locally/SKILL.md` for the portable MongoDB/Redis approach.
-
-### One-time system packages (not in the update script)
-
-```bash
-sudo apt-get install -y python3.12-venv redis-server build-essential
-```
-
-MongoDB is not available via apt on Ubuntu 24.04 — download the portable binary once into `/tmp/forge-scratch` (edition `targeted`, target `ubuntu2404`, arch `x86_64` from `https://downloads.mongodb.org/current.json`).
-
-### Environment files
-
-Copy templates and generate secrets (never commit `.env`):
-
-```bash
-cp .env.example .env
-cp .env backend/.env
-cp frontend/.env.example frontend/.env.local
-# Set JWT_SECRET, FIELD_ENCRYPTION_KEY (openssl rand -hex 32), MONGODB_URL=mongodb://localhost:27017/forge_dev, REDIS_URL=redis://localhost:6379
-# frontend/.env.local: VITE_API_URL=http://localhost:8000 and VITE_WS_URL=ws://localhost:8000
-```
-
-Do **not** set `CORS_ORIGINS` in `.env` — it is not a `Settings` field and will crash startup.
-
-### Starting services (each in a tmux session)
-
-1. **Redis:** `redis-server --daemonize yes --port 6379 --bind 127.0.0.1`
-2. **MongoDB:** `/tmp/forge-scratch/mongo-install/bin/mongod --dbpath /tmp/forge-scratch/mongo-data --port 27017 --bind_ip 127.0.0.1 --logpath /tmp/forge-scratch/mongod.log`
-3. **Backend:** `cd backend && set -a && source .env && set +a && ./venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000`
-4. **Frontend:** `cd frontend && npm run dev -- --port 5173`
-
-Health check: `curl http://localhost:8000/health` → `{"status":"ok"}`.
-
-**Vite dev binds IPv6-only** (`localhost:5173`, not `127.0.0.1:5173`). Use `http://localhost:5173` in browsers and Playwright.
-
-Celery worker (`celery -A celery_app worker --queues=build,deployment`) is required for AI builds but not for login/projects CRUD.
-
-### Lint / test / build
-
-| Target | Command |
-|--------|---------|
-| Backend lint | `cd backend && source venv/bin/activate && ruff check . --select F,E9 --exclude venv` |
-| Backend tests | `cd backend && CI_TEST_MODE=true TESTING=true pytest tests/ -v --timeout=30` |
-| Frontend lint | `cd frontend && npm run lint` |
-| Frontend tests | `cd frontend && npm test` |
-| Frontend build | `cd frontend && npm run build` (needs `pydantic` + `fastapi` on PATH for prebuild hook) |
-
-Standard dev commands are also documented in `README.md` and `CONTRIBUTING.md`.
+## OUTPUT FORMAT
+- When generating code, use CSS variables/design tokens, not magic numbers.
+- Favor composable components over one-off styled elements.

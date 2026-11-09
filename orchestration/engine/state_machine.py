@@ -64,26 +64,35 @@ class TaskStateMachine:
         ],
         TaskState.ASSIGNED: [
             StateTransition(TaskState.ASSIGNED, TaskState.IN_PROGRESS, "start", "Implementation started"),
+            StateTransition(TaskState.ASSIGNED, TaskState.READY, "unassign", "Agent unassigned, return to queue"),
+            StateTransition(TaskState.ASSIGNED, TaskState.FAILED, "fail", "Assignment or pre-flight check failed"),
         ],
         TaskState.IN_PROGRESS: [
             StateTransition(TaskState.IN_PROGRESS, TaskState.UNDER_REVIEW, "complete", "Implementation complete, pending review"),
+            StateTransition(TaskState.IN_PROGRESS, TaskState.FAILED, "fail", "Implementation failed or encountered runtime exception"),
         ],
         TaskState.UNDER_REVIEW: [
             StateTransition(TaskState.UNDER_REVIEW, TaskState.VALIDATING, "validate", "Validation started"),
+            StateTransition(TaskState.UNDER_REVIEW, TaskState.IN_PROGRESS, "rework", "Review requested changes, returned to agent"),
+            StateTransition(TaskState.UNDER_REVIEW, TaskState.FAILED, "reject", "Review rejected changes with fatal blocker"),
         ],
         TaskState.VALIDATING: [
             StateTransition(TaskState.VALIDATING, TaskState.UNDER_REVIEW, "fail", "Validation failed, back to review"),
             StateTransition(TaskState.VALIDATING, TaskState.APPROVED, "approve", "Validation passed, approved"),
+            StateTransition(TaskState.VALIDATING, TaskState.FAILED, "fatal", "Validation identified unrecoverable failure"),
         ],
         TaskState.FAILED: [
             StateTransition(TaskState.FAILED, TaskState.REPAIRING, "repair", "Repair started"),
+            StateTransition(TaskState.FAILED, TaskState.READY, "retry", "Task reset to ready queue for retry"),
         ],
         TaskState.REPAIRING: [
             StateTransition(TaskState.REPAIRING, TaskState.REVALIDATING, "revalidate", "Repair complete, revalidating"),
+            StateTransition(TaskState.REPAIRING, TaskState.FAILED, "abort", "Repair could not resolve issues"),
         ],
         TaskState.REVALIDATING: [
             StateTransition(TaskState.REVALIDATING, TaskState.REPAIRING, "fail", "Revalidation failed, back to repair"),
             StateTransition(TaskState.REVALIDATING, TaskState.APPROVED, "approve", "Revalidation passed, approved"),
+            StateTransition(TaskState.REVALIDATING, TaskState.FAILED, "fatal", "Revalidation failed fatally"),
         ],
         TaskState.APPROVED: [
             StateTransition(TaskState.APPROVED, TaskState.DONE, "close", "Task fully completed and closed"),

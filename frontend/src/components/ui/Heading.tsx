@@ -3,7 +3,19 @@ import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { fontScale, typeScale } from '../../lib/designTokens'
 
-export type HeadingLevel = 'display' | 'h1' | 'h2' | 'h3' | 'bodyLg' | 'body' | 'label' | 'section'
+export type HeadingLevel =
+  | 'display'
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'h4'
+  | 'h5'
+  | 'h6'
+  | 'bodyLg'
+  | 'body'
+  | 'caption'
+  | 'label'
+  | 'section'
 
 interface HeadingProps {
   level?: HeadingLevel
@@ -17,8 +29,12 @@ const elementFor: Record<HeadingLevel, ElementType> = {
   h1: 'h1',
   h2: 'h2',
   h3: 'h3',
+  h4: 'h4',
+  h5: 'h5',
+  h6: 'h6',
   bodyLg: 'p',
   body: 'p',
+  caption: 'span',
   label: 'p',
   section: 'h2',
 }
@@ -28,8 +44,12 @@ const toneFor: Record<HeadingLevel, string> = {
   h1: 'font-display text-ink',
   h2: 'font-display text-ink',
   h3: 'font-display text-ink',
+  h4: 'font-display text-ink font-semibold',
+  h5: 'font-display text-ink font-semibold',
+  h6: 'font-display text-ink font-semibold',
   bodyLg: 'text-ink',
   body: 'text-muted',
+  caption: 'text-muted text-xs tracking-normal',
   label: 'font-medium uppercase tracking-widest text-muted',
   section: 'font-display text-ink',
 }

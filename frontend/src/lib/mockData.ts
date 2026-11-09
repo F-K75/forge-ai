@@ -10,6 +10,46 @@ export interface Project {
   qaScore: number;
   lastBuilt: string;
   live: boolean;
+  status?: string;
+  fileTree?: Record<string, string>;
+  displayName?: string;
+  template?: string;
+  techStack?: string[];
+  architectureOverview?: string;
+  keyEndpoints?: Array<{ method: string; path: string; description: string }>;
+  initialFiles?: Array<{ path: string; content: string }>;
+  suggestedPrompt?: string;
+  isAiGenerated?: boolean;
+}
+
+const CUSTOM_PROJECTS_KEY = "forge_custom_projects";
+
+export function getCustomProjects(): Project[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PROJECTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomProject(project: Project): void {
+  try {
+    const current = getCustomProjects().filter((p) => p.id !== project.id);
+    const updated = [project, ...current];
+    localStorage.setItem(CUSTOM_PROJECTS_KEY, JSON.stringify(updated));
+  } catch {
+    // localStorage errors ignored
+  }
+}
+
+export function findProjectById(id: string | undefined): Project | undefined {
+  if (!id) return undefined;
+  const custom = getCustomProjects().find((p) => p.id === id);
+  if (custom) return custom;
+  return PROJECTS.find((p) => p.id === id);
 }
 
 export const PROJECTS: Project[] = [

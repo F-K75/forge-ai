@@ -1,8 +1,7 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { motion, useReducedMotion } from 'motion/react'
-import { layout } from '../../lib/designTokens'
 
 interface DrawerProps {
   open: boolean
@@ -15,9 +14,9 @@ interface DrawerProps {
 }
 
 const sideClasses: Record<string, string> = {
-  left: 'inset-y-0 left-0 border-r',
-  right: 'inset-y-0 right-0 border-l',
-  bottom: 'inset-x-0 bottom-0 border-t',
+  left: 'inset-y-0 left-0 border-r-3 border-black shadow-brutal-xl',
+  right: 'inset-y-0 right-0 border-l-3 border-black shadow-brutal-xl',
+  bottom: 'inset-x-0 bottom-0 border-t-3 border-black shadow-brutal-xl',
 }
 
 const sizeClasses: Record<string, Record<string, string>> = {
@@ -50,7 +49,7 @@ export function Drawer({
   return (
     <div className="fixed inset-0 z-[70] flex">
       <motion.div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -60,27 +59,26 @@ export function Drawer({
         role="dialog"
         aria-modal="true"
         className={twMerge(clsx(
-          'relative flex flex-col apple-glass-strong shadow-apple-float',
+          'relative flex flex-col bg-white text-ink shadow-brutal-xl',
           sideClasses[side],
           sizeClasses[side][size],
           className
         ))}
-        style={{ borderRadius: side === 'bottom' ? layout.radiusLg : undefined }}
         initial={reduceMotion ? { x: 0, y: 0 } : variants.initial}
         animate={{ x: 0, y: 0 }}
         exit={reduceMotion ? { x: 0, y: 0 } : variants.exit}
-        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        transition={{ type: 'spring', stiffness: 450, damping: 32 }}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-border-soft px-6 py-4">
-            <h2 className="text-lg font-semibold text-ink">{title}</h2>
+          <div className="flex items-center justify-between border-b-2 border-black bg-brutal-cream px-6 py-4">
+            <h2 className="text-lg font-black uppercase tracking-tight text-ink">{title}</h2>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-inlay hover:text-ink"
+              className="flex h-8 w-8 items-center justify-center rounded-sm border-2 border-black bg-white text-black transition-colors hover:bg-brutal-yellow active:translate-x-[1px] active:translate-y-[1px]"
               aria-label="Close"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
             </button>
