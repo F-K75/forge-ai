@@ -69,6 +69,8 @@ export interface AgentMessageData {
   status: AgentMessageStatus
   reason?: string | null
   credits_charged: number
+  delivery_attempts?: number
+  delivery_started_at?: string | null
   credits_used?: number
   created_at?: string
   resolved_at?: string | null

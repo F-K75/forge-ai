@@ -257,6 +257,13 @@ class AgentMessage(BaseModel):
     # question_limit, budget_exhausted, timeout, or the responder's error.
     reason: Optional[str] = None
     credits_charged: int = 0
+    # Set (and persisted) immediately before the recipient is invoked. A
+    # resumed build that finds a PENDING message with delivery_attempts > 0
+    # knows a previous attempt may already have paid for the provider call
+    # but died before the answer was saved, and closes it as "interrupted"
+    # instead of paying for the same call again.
+    delivery_attempts: int = 0
+    delivery_started_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=utcnow)
     resolved_at: Optional[datetime] = None
     duration_ms: Optional[int] = None

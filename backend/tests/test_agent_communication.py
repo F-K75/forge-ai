@@ -37,6 +37,12 @@ DESIGN = {"theme": "default"}
 # designer 2 + developer 5 (core/config.py defaults).
 CREDITS_BEFORE_CLARIFY = 12
 
+# Worst case of everything after the developer, which clarifications may
+# never eat into: PM 1 + 3 debug iterations x (debug 2 + PM 1).
+SET_ASIDE = 1 + 3 * (2 + 1)
+
+RESERVED_AMPLE = 40
+
 
 class _StubAgent:
     def __init__(self, questions=None, answer_delay=0.0, answer_error=None):
@@ -143,7 +149,7 @@ async def test_developer_question_is_answered_by_architect_and_reaches_generatio
     question = "What should happen when API authentication expires?"
     orchestrator, stubs = _make_orchestrator(monkeypatch, questions=[question])
 
-    build, _, emitted = await _run(orchestrator, _make_build(), reserved_credits=17)
+    build, _, emitted = await _run(orchestrator, _make_build(), reserved_credits=RESERVED_AMPLE)
 
     assert build.status == BuildStatus.SUCCESS
     # Architect got the question with the build's blueprint and design.
@@ -178,7 +184,7 @@ async def test_developer_question_is_answered_by_architect_and_reaches_generatio
 async def test_no_questions_means_no_clarification_traffic(monkeypatch):
     orchestrator, stubs = _make_orchestrator(monkeypatch, questions=[])
 
-    build, _, emitted = await _run(orchestrator, _make_build(), reserved_credits=17)
+    build, _, emitted = await _run(orchestrator, _make_build(), reserved_credits=RESERVED_AMPLE)
 
     assert build.status == BuildStatus.SUCCESS
     assert build.agent_messages == []
@@ -256,11 +262,12 @@ async def test_comms_rejects_questions_past_the_limit():
 
 @pytest.mark.asyncio
 async def test_budget_exhaustion_rejects_remaining_questions_without_exceeding_reservation(monkeypatch):
-    # Ceiling = reserved 14 - PM 1 = 13: room for exactly one 1-credit answer
-    # on top of the 12 credits already charged.
+    # Ceiling = reserved 23 - set-aside 10 = 13: room for exactly one
+    # 1-credit answer on top of the 12 credits already charged.
+    reserved = CREDITS_BEFORE_CLARIFY + 1 + SET_ASIDE
     orchestrator, stubs = _make_orchestrator(monkeypatch, questions=["q1?", "q2?", "q3?"])
 
-    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=14)
+    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=reserved)
 
     assert build.status == BuildStatus.SUCCESS
     statuses = [(m.question, m.status, m.reason) for m in build.agent_messages]
@@ -270,14 +277,15 @@ async def test_budget_exhaustion_rejects_remaining_questions_without_exceeding_r
         ("q3?", AgentMessageStatus.REJECTED, "budget_exhausted"),
     ]
     assert len(_answers(stubs)) == 1
-    assert build.credits_used <= 14
+    assert build.credits_used <= reserved
     assert len(_generate_kwargs(stubs)["clarifications"]) == 1
 
 
 @pytest.mark.asyncio
 async def test_integration_credits_are_set_aside(monkeypatch):
-    """With integrations in the blueprint, their stage cost is also reserved
-    for, so the same 14-credit reservation leaves no room at all."""
+    """With integrations in the blueprint, their stage cost is also set
+    aside: a reservation that would allow one answer without integrations
+    (24 - 10 = 14 >= 13) allows none with them (24 - 12 = 12 < 13)."""
     orchestrator, stubs = _make_orchestrator(monkeypatch, questions=["q1?"])
     blueprint = dict(BLUEPRINT, integrations=["stripe"])
 
@@ -285,7 +293,7 @@ async def test_integration_credits_are_set_aside(monkeypatch):
         return blueprint
 
     orchestrator.architect.blueprint = _bp
-    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=14)
+    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=24)
 
     assert not any(c[0] == "identify_questions" for c in stubs["developer"].calls)
     assert build.agent_messages == []
@@ -324,7 +332,7 @@ async def test_architect_timeout_is_recorded_and_build_continues_uncharged(monke
     monkeypatch.setattr(orchestrator_module.settings, "agent_message_timeout_seconds", 0.05)
     orchestrator, stubs = _make_orchestrator(monkeypatch, questions=["slow?"], answer_delay=1.0)
 
-    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=17)
+    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=RESERVED_AMPLE)
 
     assert build.status == BuildStatus.SUCCESS
     (msg,) = build.agent_messages
@@ -340,7 +348,7 @@ async def test_architect_error_is_recorded_and_build_continues(monkeypatch):
         monkeypatch, questions=["q?"], answer_error=RuntimeError("llm down"),
     )
 
-    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=17)
+    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=RESERVED_AMPLE)
 
     assert build.status == BuildStatus.SUCCESS
     (msg,) = build.agent_messages
@@ -357,7 +365,7 @@ async def test_developer_question_pass_failure_degrades_to_plain_build(monkeypat
         raise RuntimeError("parse error")
 
     orchestrator.developer.identify_questions = _boom
-    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=17)
+    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=RESERVED_AMPLE)
 
     assert build.status == BuildStatus.SUCCESS
     assert build.agent_messages == []
@@ -374,7 +382,7 @@ async def test_slow_question_pass_times_out(monkeypatch):
         return ["q?"]
 
     orchestrator.developer.identify_questions = _slow
-    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=17)
+    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=RESERVED_AMPLE)
 
     assert build.status == BuildStatus.SUCCESS
     assert build.agent_messages == []
@@ -516,3 +524,88 @@ async def test_prompt_template_variant_survives_context_engineering(monkeypatch)
 
     assert "clarifying question" in answer_prompt
     assert "clarifying question" not in default_prompt
+
+
+@pytest.mark.asyncio
+async def test_clarifications_never_push_a_full_debug_loop_past_the_reservation(monkeypatch):
+    """Worst case: every question is answered AND PM fails every pass, so all
+    MAX_DEBUG_ITERATIONS debug iterations run. The build must still end
+    within its reservation -- clarifications only used headroom the debug
+    loop could not need."""
+    reserved = CREDITS_BEFORE_CLARIFY + 3 + SET_ASIDE  # exactly enough
+    orchestrator, stubs = _make_orchestrator(monkeypatch, questions=["q1?", "q2?", "q3?"])
+
+    async def _always_fail(*a, **kw):
+        return {"passed": False, "issues": [{"severity": "high", "file": "a", "description": "bad"}]}
+
+    orchestrator.pm.validate = _always_fail
+    build, _, _ = await _run(orchestrator, _make_build(), reserved_credits=reserved)
+
+    assert build.status == BuildStatus.FAILED
+    assert build.debug_iterations == 3
+    assert [m.status for m in build.agent_messages] == [AgentMessageStatus.ANSWERED] * 3
+    assert build.credits_used == reserved
+
+    # One credit less and the third question is refused rather than
+    # overspending.
+    orchestrator2, _ = _make_orchestrator(monkeypatch, questions=["q1?", "q2?", "q3?"])
+    orchestrator2.pm.validate = _always_fail
+    build2, _, _ = await _run(orchestrator2, _make_build(), reserved_credits=reserved - 1)
+    assert [m.status for m in build2.agent_messages][-1] == AgentMessageStatus.REJECTED
+    assert build2.credits_used <= reserved - 1
+
+
+@pytest.mark.asyncio
+async def test_delivery_marker_is_persisted_before_the_recipient_is_called():
+    build = _make_build()
+    snapshots = []
+
+    async def emit(event):
+        snapshots.append((event.type, [m.model_dump() for m in build.agent_messages]))
+
+    async def responder(q, ctx):
+        # By the time the (paid) call runs, an emit -- i.e. a persisted
+        # build-document write in production -- has recorded the attempt.
+        marker_writes = [
+            msgs for t, msgs in snapshots
+            if t == WSEventType.AGENT_PROGRESS and msgs[0]["delivery_attempts"] == 1
+        ]
+        assert marker_writes
+        return "a"
+
+    comms = InProcessAgentCommunication(
+        build, emit, {"architect": responder},
+        CommunicationPolicy(max_questions=3, credit_cost=1, credit_ceiling=None, timeout_seconds=1),
+    )
+    result = await comms.ask("developer", "architect", "q?", {})
+    assert result["status"] == "answered"
+
+
+@pytest.mark.asyncio
+async def test_message_interrupted_mid_delivery_is_not_sent_again():
+    """A PENDING message whose delivery had already started on a previous
+    attempt may have been paid for at the provider: don't pay twice."""
+    interrupted = AgentMessage(
+        conversation_id="c1", sender="developer", recipient="architect",
+        question="q?", delivery_attempts=1,
+    )
+    build = _make_build(agent_messages=[interrupted])
+    called = []
+
+    async def emit(_):
+        pass
+
+    async def responder(q, ctx):
+        called.append(q)
+        return "a"
+
+    comms = InProcessAgentCommunication(
+        build, emit, {"architect": responder},
+        CommunicationPolicy(max_questions=3, credit_cost=1, credit_ceiling=None, timeout_seconds=1),
+    )
+    msg = await comms.resolve(build.agent_messages[0], {})
+
+    assert called == []
+    assert msg.status == AgentMessageStatus.FAILED
+    assert msg.reason == "interrupted"
+    assert build.credits_used == 0

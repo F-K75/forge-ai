@@ -510,27 +510,38 @@ class Orchestrator:
 
         return build, files
 
+    @staticmethod
+    def _worst_case_cost_after_developer(build: Build, blueprint: dict) -> int:
+        """Most the stages after the developer can still charge: integration
+        (when the blueprint has any), the first PM pass, and every remaining
+        debug iteration (debugger + PM re-validation) up to
+        MAX_DEBUG_ITERATIONS."""
+        remaining_debug = max(0, MAX_DEBUG_ITERATIONS - build.debug_iterations)
+        cost = settings.credits_pm + remaining_debug * (settings.credits_debug + settings.credits_pm)
+        if blueprint.get("integrations"):
+            cost += settings.credits_integration
+        return cost
+
     def _clarification_policy(
-        self, blueprint: dict, byok_active: bool, reserved_credits: Optional[int]
+        self, build: Build, blueprint: dict, byok_active: bool, reserved_credits: Optional[int]
     ) -> CommunicationPolicy:
         """Budget rules for Developer -> Architect clarifications.
 
         BYOK builds are unmetered (no charge, question limit only), mirroring
         _start_agent's skip_credits. Metered builds may only spend what the
-        upfront reservation still covers after setting aside the stages
-        that always run after the developer -- integration (when the
-        blueprint has any) and one PM validation pass -- so clarifications
-        never eat into credits the rest of the pipeline needs. An unknown
-        reservation, or the free first build (reserved 0), leaves no
-        headroom, so those builds skip the phase."""
+        upfront reservation still covers after setting aside the worst case
+        of everything that runs after the developer, debug loop included.
+        Clarifications therefore only ever use reservation headroom the
+        pipeline provably can't need, and can never be the reason a build
+        ends above its reservation. An unknown reservation, the free first
+        build (reserved 0), or a reservation that doesn't cover the
+        pipeline's own worst case leaves no headroom, so the phase is
+        skipped."""
         ceiling: Optional[int]
         if byok_active:
             ceiling = None
         else:
-            set_aside = settings.credits_pm
-            if blueprint.get("integrations"):
-                set_aside += settings.credits_integration
-            ceiling = (reserved_credits or 0) - set_aside
+            ceiling = (reserved_credits or 0) - self._worst_case_cost_after_developer(build, blueprint)
         return CommunicationPolicy(
             max_questions=settings.developer_clarification_max_questions,
             credit_cost=settings.credits_clarification,
@@ -558,7 +569,7 @@ class Orchestrator:
 
         Never raises: the build always continues, with whatever answers it
         got, exactly as it did before clarifications existed."""
-        policy = self._clarification_policy(blueprint, byok_active, reserved_credits)
+        policy = self._clarification_policy(build, blueprint, byok_active, reserved_credits)
         if policy.max_questions <= 0:
             return []
 
@@ -578,6 +589,11 @@ class Orchestrator:
             messages = comms.messages_between("developer", "architect")
             if not messages:
                 if not policy.can_afford(build.credits_used):
+                    logger.info(
+                        "Build %s: skipping developer clarifications -- no reservation headroom "
+                        "(reserved=%s, used=%s, ceiling=%s).",
+                        build.id, reserved_credits, build.credits_used, policy.credit_ceiling,
+                    )
                     return []
                 try:
                     questions = await asyncio.wait_for(

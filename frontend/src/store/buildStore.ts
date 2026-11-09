@@ -153,6 +153,7 @@ const AGENT_MESSAGE_REASONS: Record<string, string> = {
   route_not_allowed: 'not permitted',
   invalid_question: 'empty question',
   empty_answer: 'no answer returned',
+  interrupted: 'interrupted by a restart',
 }
 
 function upsertAgentMessage(list: AgentMessageData[], msg: AgentMessageData): AgentMessageData[] {

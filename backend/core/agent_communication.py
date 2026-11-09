@@ -12,6 +12,11 @@ it. That object is the single place that decides:
   ``build.credits_used`` (the same counter ``_start_agent`` charges and
   ``tasks/build_tasks.py`` settles against the upfront reservation), and is
   refused if that would push ``credits_used`` past ``credit_ceiling``;
+* crash safety -- before invoking a recipient the message's
+  ``delivery_attempts`` is bumped and persisted. If the worker dies after the
+  provider call but before the answer is saved, the retried build sees the
+  attempt and closes the message as ``failed``/``interrupted`` rather than
+  silently paying for the same call a second time;
 * timeouts -- a responder gets ``timeout_seconds`` and the exchange is
   recorded as ``timeout`` instead of blocking the build;
 * persistence/observability -- every exchange is an ``AgentMessage`` on
@@ -177,6 +182,33 @@ class InProcessAgentCommunication(AgentCommunication):
             self._close(message, AgentMessageStatus.REJECTED, reason="budget_exhausted")
             await self._emit_response(message)
             return message
+
+        if message.delivery_attempts > 0:
+            # A previous attempt of this build invoked the recipient and then
+            # died before recording the outcome. That call may already have
+            # been paid for at the provider; don't pay for it twice.
+            logger.warning(
+                "Build %s: agent message %s was interrupted mid-delivery on a "
+                "previous attempt; not re-sending it.",
+                self.build.id, message.message_id,
+            )
+            self._close(message, AgentMessageStatus.FAILED, reason="interrupted")
+            await self._emit_response(message)
+            return message
+
+        message.delivery_attempts += 1
+        message.delivery_started_at = utcnow()
+        # emit() persists the build document (tasks/build_tasks.py) before
+        # broadcasting, so this is the durable "call in flight" marker.
+        await self.emit(WSEvent(
+            type=WSEventType.AGENT_PROGRESS,
+            build_id=self.build.id,
+            data={
+                "agent": message.recipient,
+                "message": f"Answering {message.sender}'s question",
+                "message_id": message.message_id,
+            },
+        ))
 
         responder = self.responders[message.recipient]
         started = time.monotonic()
