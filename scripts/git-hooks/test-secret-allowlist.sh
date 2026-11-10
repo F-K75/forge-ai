@@ -42,21 +42,21 @@ FAIL=0
 ok()   { printf '  ok    %s\n' "$1"; }
 bad()  { printf '  FAIL  %s\n' "$1"; FAIL=1; }
 
-# --- 1. The two copies must allow exactly the same lines --------------------
-echo "== ALLOW_LINE identical in pre-commit and secret-scanning.yml"
+# --- 1. The two copies must define exactly the same scanner ------------------
+echo "== definitions identical in pre-commit and secret-scanning.yml"
 value_of() {  # value_of <file> <var>
   bash -c "set -u; $(defs_from "$1"); COMBINED=\$(IFS='|'; echo \"\${SECRET_PATTERNS[*]}\"); printf '%s' \"\$$2\""
 }
 h=$(value_of "$HOOK" ALLOW_LINE); w=$(value_of "$WF" ALLOW_LINE)
 if [ -n "$h" ] && [ "$h" = "$w" ]; then ok "ALLOW_LINE"; else bad "ALLOW_LINE differs (or is empty)"; fi
-# Pattern-list drift is reported, not failed: at the time of writing the hook
-# carries Cashfree patterns the workflow copy lacks (pre-existing on main).
-if [ "$(value_of "$HOOK" COMBINED)" != "$(value_of "$WF" COMBINED)" ]; then
-  printf '  WARN  SECRET_PATTERNS differ between the two copies\n'
-fi
+# The pattern lists drifted once (the hook gained Cashfree patterns the CI
+# copy never got), so CI silently stopped scanning for them. Fail on drift.
+h=$(value_of "$HOOK" COMBINED); w=$(value_of "$WF" COMBINED)
+if [ -n "$h" ] && [ "$h" = "$w" ]; then ok "SECRET_PATTERNS"; else bad "SECRET_PATTERNS differ (or are empty)"; fi
 
 # --- 2. Probes ---------------------------------------------------------------
 S="sec""ret"; W="whs""ec_"; P="pass""word"; FAKE="ZZprobe""NOTreal""99xyz"
+CF="c""f_"; CFL="cash""free_"; FAKE20="${FAKE}0"   # Cashfree patterns need 20+ chars
 ALLOWED="        ${S}=webhook[\"${S}\"],"
 
 MUST_FLAG=(
@@ -70,6 +70,8 @@ MUST_FLAG=(
   "    x = f(${S}=webhook[\"${S}\"],"                  # expression not alone on the line
   "${W}${FAKE}"                                        # bare signing-secret-shaped value
   "${P}=${FAKE}"                                       # unrelated pattern still active
+  "  key: ${CF}${FAKE20}"                              # Cashfree key shape
+  "  key: ${CFL}${FAKE20}"                             # Cashfree key shape (long prefix)
 )
 
 for src in "$HOOK" "$WF"; do
