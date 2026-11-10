@@ -369,15 +369,64 @@ jobs:
           cd backend
           python3 ../scripts/test_restore.py
 
+  mongo-integration:
+    name: Backend — real MongoDB 7 integration tests
+    runs-on: ubuntu-latest
+    # The backend job's suite mocks the database (or lets it fail open), so a
+    # driver upgrade can pass it while broken against a real server. These
+    # tests drive the app's own database code (index provisioning,
+    # paginated_query, atomic credit reservation, aggregation, budget
+    # manager, the Celery build task, the webhook secret lifecycle) through
+    # Motor against a live mongod of the major version production runs.
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports: ["27017:27017"]
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: testpass
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run real-MongoDB integration tests
+        # FORGE_MONGO_INTEGRATION_URL is what un-skips these tests; it is set
+        # unconditionally here, so they always run in this job (an unreachable
+        # server makes them error, never silently skip). Not run with
+        # CI_TEST_MODE/TESTING, which would cut get_db()'s server-selection
+        # timeout to 50ms.
+        env:
+          FORGE_MONGO_INTEGRATION_URL: mongodb://root:testpass@localhost:27017/?authSource=admin
+        run: |
+          cd backend
+          python -m pytest tests/test_mongo_integration.py -v -rA --timeout=120
+
   quality-gate:
     name: Quality Gate
-    needs: [backend, frontend, prod-artifacts, backup-restore]
+    needs: [backend, frontend, prod-artifacts, backup-restore, mongo-integration]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Fail if any required job failed
         run: |
-          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ] || [ "${{ needs.backup-restore.result }}" != "success" ]; then
+          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.prod-artifacts.result }}" != "success" ] || [ "${{ needs.backup-restore.result }}" != "success" ] || [ "${{ needs.mongo-integration.result }}" != "success" ]; then
             echo "::error::One or more required CI jobs failed. Blocking merge."
             exit 1
           fi

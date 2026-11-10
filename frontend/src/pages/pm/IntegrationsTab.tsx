@@ -303,7 +303,6 @@ export default function IntegrationsTab() {
   // Custom Webhook Modal state
   const [showWebhookModal, setShowWebhookModal] = useState(false);
   const [webhookUrlCopied, setWebhookUrlCopied] = useState(false);
-  const [webhookSecretCopied, setWebhookSecretCopied] = useState(false);
 
   // Storage key for resilient offline / demo mode persistence
   const storageKey = `forge_pm_integrations_${initiativeId}`;
@@ -1380,32 +1379,19 @@ export default function IntegrationsTab() {
               </div>
             </div>
 
-            {/* Webhook Secret */}
+            {/* Signing secret: per-webhook, never a shared literal. A single
+                hardcoded "signing secret" used to be shown here to every user;
+                it signed nothing (no backend code uses it) and implied all
+                initiatives share one key. Real secrets are generated per
+                webhook by POST /webhooks/ and shown once at creation. */}
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 HMAC SHA-256 Signing Secret
               </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="password"
-                  readOnly
-                  value="whsec_98f12a0d9e83c7b1e4a6f200d7"
-                  className="flex-1 h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs font-mono text-neutral-800 dark:text-neutral-200"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText("whsec_98f12a0d9e83c7b1e4a6f200d7");
-                    setWebhookSecretCopied(true);
-                    toast.success("Signing secret copied");
-                    setTimeout(() => setWebhookSecretCopied(false), 2000);
-                  }}
-                  className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                >
-                  {webhookSecretCopied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
-                  <span>{webhookSecretCopied ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
+              <p className="text-xs text-neutral-500">
+                Each webhook gets its own signing secret, shown once when you create it in
+                Settings → Integrations. Use it to verify the X-Forge-Signature header.
+              </p>
             </div>
 
             {/* Supported Event Payloads */}
