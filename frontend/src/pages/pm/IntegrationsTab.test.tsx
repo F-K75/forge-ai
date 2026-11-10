@@ -114,4 +114,17 @@ describe("IntegrationsTab Component (Redesigned)", () => {
     expect(screen.getByText("Inbound Payload URL")).toBeDefined();
     expect(screen.getByText("agent.execution.completed")).toBeDefined();
   });
+
+  it("does not expose a shared hardcoded signing secret in the webhooks modal", () => {
+    const { container } = render(<IntegrationsTab />);
+    fireEvent.click(screen.getByRole("button", { name: /Webhooks/i }));
+
+    // No secret value anywhere in the rendered modal (text or input values),
+    // and nothing offering to copy one.
+    expect(container.innerHTML).not.toMatch(/whsec_/);
+    const inputs = Array.from(container.querySelectorAll("input")) as HTMLInputElement[];
+    expect(inputs.some((i) => i.type === "password" || /whsec_/.test(i.value))).toBe(false);
+    expect(screen.queryByText("Signing secret copied")).toBeNull();
+    expect(screen.getByText(/shown once when you create it/i)).toBeDefined();
+  });
 });

@@ -15,6 +15,8 @@ const WEBHOOK_EVENTS = [
   { id: "qa.score_updated", label: "QA Score Finalized" },
 ];
 
+// Demo mode only (no backend). The secret is a visibly fake placeholder --
+// real per-webhook secrets come from POST /webhooks/ and are shown once.
 const DEMO_WEBHOOKS: WebhookItem[] = [
   {
     id: "wh_demo_1",
@@ -23,7 +25,7 @@ const DEMO_WEBHOOKS: WebhookItem[] = [
     active: true,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
     last_triggered: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    secret: "whsec_98f12a0d9e83c7b1",
+    secret: "whsec_demo_placeholder",
   },
 ];
 
@@ -48,6 +50,9 @@ export function IntegrationsTab() {
     "deployment.success",
   ]);
   const [addingWebhook, setAddingWebhook] = useState(false);
+  // The signing secret POST /webhooks/ returns. The API never returns it
+  // again (list responses omit it), so it is shown once, right after creation.
+  const [revealedSecret, setRevealedSecret] = useState<{ url: string; secret: string } | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
 
   const loadWebhooks = useCallback(async () => {
@@ -65,7 +70,12 @@ export function IntegrationsTab() {
         }
       }
     } catch {
-      setWebhooks(DEMO_WEBHOOKS);
+      if (LIVE_MODE) {
+        setWebhooks([]);
+        toast.error("Failed to load webhooks");
+      } else {
+        setWebhooks(DEMO_WEBHOOKS);
+      }
     } finally {
       setLoadingWebhooks(false);
     }
@@ -116,11 +126,14 @@ export function IntegrationsTab() {
     setAddingWebhook(true);
     try {
       if (LIVE_MODE) {
-        await webhooksApi.create({
+        const created = await webhooksApi.create({
           url: webhookUrl.trim(),
           events: selectedEvents,
           active: true,
         });
+        if (created?.secret) {
+          setRevealedSecret({ url: created.url, secret: created.secret });
+        }
       } else {
         const newHook: WebhookItem = {
           id: `wh_${Date.now()}`,
@@ -299,6 +312,39 @@ export function IntegrationsTab() {
             Add Webhook
           </button>
         </div>
+
+        {revealedSecret && (
+          <div
+            role="alert"
+            className="mb-4 p-4 rounded-xl border border-warn/40 bg-warn/5 space-y-2 text-xs"
+          >
+            <div className="flex items-center gap-1.5 font-semibold text-ink">
+              <Shield size={13} />
+              Copy your signing secret now — it won't be shown again.
+            </div>
+            <p className="text-muted">
+              Use it to verify the X-Forge-Signature header on deliveries to{" "}
+              <code className="font-mono">{revealedSecret.url}</code>.
+            </p>
+            <div className="flex items-center gap-2">
+              <code data-testid="revealed-webhook-secret" className="flex-1 truncate font-mono text-ink">
+                {revealedSecret.secret}
+              </code>
+              <ClipboardCopyButton
+                text={revealedSecret.secret}
+                successMessage="Secret copied"
+                className="text-xs text-accent hover:underline flex items-center gap-1"
+              />
+              <button
+                type="button"
+                onClick={() => setRevealedSecret(null)}
+                className="bb-btn bb-btn-subtle text-xs py-1 px-2.5 h-7"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
 
         {loadingWebhooks ? (
           <div className="p-8 text-center text-xs text-muted">Loading webhooks...</div>

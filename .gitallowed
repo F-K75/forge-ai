@@ -87,3 +87,14 @@ API_KEY=<REDACTED>
 sk_live_abc123def456
 sk_test_abc123def456
 whsec_abc123def456
+
+# backend/api/webhooks.py, WebhookCreateResponse construction in
+# create_webhook: the `secret` keyword argument is filled from the webhook
+# document's "secret" field, which create_webhook generated a moment earlier
+# with secrets.token_urlsafe(32), for the one response that returns it to its
+# owner. A dict field read, no credential literal on the line.
+# Anchored to this file and this exact expression only; any other line in
+# webhooks.py, and the same expression in any other file, is still scanned.
+# `[=]` is a literal "=": written as a bracket so this rule's own text does
+# not trip the generic secret-assignment pattern when .gitallowed is scanned.
+^backend/api/webhooks\.py:[0-9]+: *secret[=]webhook\["secret"\],$

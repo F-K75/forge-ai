@@ -3,8 +3,8 @@ uvicorn[standard]==0.29.0
 websockets==12.0
 anthropic==0.28.0
 openai==1.30.0
-motor==3.4.0
-pymongo==4.8.0
+motor==3.7.1
+pymongo==4.18.3
 redis[asyncio]==5.0.4
 # [email] extra supplies email-validator, required by the EmailStr fields in
 # api/auth.py. Without it `import main` raises at model-definition time.
@@ -13,10 +13,10 @@ pydantic-settings==2.3.0
 jsonschema==4.23.0
 # PyJWT replaces python-jose: jose pulled ecdsa (PYSEC-2026-1325 / Minerva),
 # which has no upstream fix. HS256 via PyJWT uses cryptography only.
-PyJWT==2.13.0
+PyJWT==2.15.0
 # GitHub OAuth login flow (api/auth.py imports authlib.integrations.requests_client).
 # Was imported but never declared, so `import main` failed in any clean environment.
-authlib==1.7.2
+authlib==1.9.5
 passlib[bcrypt]==1.7.4
 # Pinned below latest: bcrypt>=4.1 removed the `__about__` module passlib 1.7.4
 # reads for version detection, which breaks its internal self-test and makes
@@ -27,9 +27,10 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.31
 httpx==0.27.0
-# 3.1.58 carries PYSEC-2026-3785..3788 (clone/submodule path handling).
+# 3.1.58 carries PYSEC-2026-3785..3788 (clone/submodule path handling);
+# 3.1.59 carries PYSEC-2026-3982/3984 and GHSA-83vg/23mf/f9j4/m64x/w8jc/fx3j.
 # Only api/deployments.py and api/repos.py use it, via `from git import Repo`.
-gitpython==3.1.59
+gitpython==3.2.1
 docker==7.1.0
 celery==5.4.0
 stripe==8.9.0
@@ -48,10 +49,10 @@ bandit==1.8.6
 pip-audit==2.9.0
 
 # Transitive dependencies pinned to their latest available patched release
-urllib3==2.7.0
+urllib3==2.8.0
 requests==2.33.0
 python-dotenv==1.2.2
-filelock==3.20.3
+filelock==4.2.9
 ujson==5.13.0
 orjson==3.11.6
 
