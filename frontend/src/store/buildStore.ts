@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AnyWSEvent } from '../lib/wsContract'
+import type { AgentMessageData, AnyWSEvent } from '../lib/wsContract'
 import { isRecord } from '../lib/wsContract'
 import type { Agent } from '../lib/agents'
 import { useDeploymentStore } from './deploymentStore'
@@ -90,6 +90,10 @@ export interface BuildState {
   pendingGate: PendingGate | null
   autoApprove: boolean
 
+  // Agent-to-agent exchanges (e.g. Developer asking the Architect), in the
+  // order they were raised; updated in place when the response arrives.
+  agentMessages: AgentMessageData[]
+
   // Workspace OS Layout State
   viewMode: 'split' | 'editor' | 'chat' | 'preview' | 'diff'
   showContextPanel: boolean
@@ -142,6 +146,24 @@ export const AGENT_LABELS: Record<string, string> = {
   debugger: 'Debugger',
 }
 
+const AGENT_MESSAGE_REASONS: Record<string, string> = {
+  budget_exhausted: 'credit budget reached',
+  question_limit: 'question limit reached',
+  timeout: 'timed out',
+  route_not_allowed: 'not permitted',
+  invalid_question: 'empty question',
+  empty_answer: 'no answer returned',
+  interrupted: 'interrupted by a restart',
+}
+
+function upsertAgentMessage(list: AgentMessageData[], msg: AgentMessageData): AgentMessageData[] {
+  const i = list.findIndex(m => m.message_id === msg.message_id)
+  if (i === -1) return [...list, msg]
+  const next = list.slice()
+  next[i] = msg
+  return next
+}
+
 export const useBuildStore = create<BuildState>((set, _get) => ({
   buildId: null,
   status: 'idle',
@@ -169,6 +191,7 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
   businessModel: null,
   error: null,
   agentOutputs: {},
+  agentMessages: [],
   pendingGate: null,
   autoApprove: false,
 
@@ -199,6 +222,7 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
       businessModel: null,
       error: null,
       agentOutputs: {},
+      agentMessages: [],
       pendingGate: null,
       autoApprove: false,
     })
@@ -377,6 +401,35 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
           }
         }
 
+        case 'agent_message_request': {
+          const from = AGENT_LABELS[data.sender] ?? data.sender
+          const to = AGENT_LABELS[data.recipient] ?? data.recipient
+          return {
+            agentMessages: upsertAgentMessage(state.agentMessages, data),
+            messages: [
+              ...state.messages,
+              { from: 'system', text: `${from} → ${to}: ${data.question}`, agent: knownAgentId(data.sender) },
+            ],
+          }
+        }
+
+        case 'agent_message_response': {
+          const from = AGENT_LABELS[data.sender] ?? data.sender
+          const to = AGENT_LABELS[data.recipient] ?? data.recipient
+          const text =
+            data.status === 'answered'
+              ? `${to} → ${from}: ${data.answer ?? ''}`
+              : `${from} continues without an answer from ${to} (${AGENT_MESSAGE_REASONS[data.reason ?? ''] ?? data.reason ?? data.status}).`
+          return {
+            agentMessages: upsertAgentMessage(state.agentMessages, data),
+            creditsUsed: data.credits_used ?? state.creditsUsed,
+            messages: [
+              ...state.messages,
+              { from: 'system', text, agent: knownAgentId(data.status === 'answered' ? data.recipient : data.sender) },
+            ],
+          }
+        }
+
         case 'build_failed': {
           return {
             status: 'failed',
@@ -444,6 +497,7 @@ export const useBuildStore = create<BuildState>((set, _get) => ({
       businessModel: null,
       error: null,
       agentOutputs: {},
+      agentMessages: [],
       pendingGate: null,
       autoApprove: false,
     })

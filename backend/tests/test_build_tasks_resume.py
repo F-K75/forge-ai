@@ -303,3 +303,137 @@ def test_build_files_for_current_build_id_take_priority_over_existing_files_arg(
     )
 
     assert captured["existing_files"] == {"src/Resumed.tsx": "// resumed"}
+
+
+class _ClarifyingStubAgent(_StubAgent):
+    """Developer/Architect stub that takes part in the clarification phase;
+    the developer's first generate_files call can be made to crash."""
+
+    def __init__(self, crash_first_generation=False):
+        super().__init__()
+        self.answers = 0
+        self.question_passes = 0
+        self._crash = crash_first_generation
+
+    async def identify_questions(self, *a, **kw):
+        self.question_passes += 1
+        return ["What happens when the session expires?"]
+
+    async def answer(self, question, blueprint, design=None, **kw):
+        self.answers += 1
+        return "Redirect to /login and keep the draft."
+
+    async def generate_files(self, *a, **kw):
+        self.calls += 1
+        self.last_clarifications = kw.get("clarifications")
+        if self._crash:
+            self._crash = False
+            raise RuntimeError("simulated crash mid-generation")
+        return {"files": {"src/App.tsx": "// v1"}}
+
+
+def test_clarification_survives_crash_and_retry_without_double_charge(monkeypatch):
+    """A crash during file generation, after a clarification was answered and
+    charged, must not re-ask or re-charge it on the retried attempt: the
+    exchange is persisted on the build document by the task's emit() in the
+    same write as the charge, and the orchestrator reuses it on resume.
+    The final refund is settled against the reservation passed to the task."""
+    build, user = _make_build_and_user()
+    fake_db = FakeDB(build, user)
+
+    async def fake_get_db():
+        return fake_db
+
+    monkeypatch.setattr(build_tasks_module, "get_db", fake_get_db)
+    _patch_agents(monkeypatch)
+    architect = _ClarifyingStubAgent()
+    developer = _ClarifyingStubAgent(crash_first_generation=True)
+    monkeypatch.setattr(build_tasks_module.orchestrator, "architect", architect)
+    monkeypatch.setattr(build_tasks_module.orchestrator, "developer", developer)
+
+    reserved = 30
+    build_tasks_module.run_build.push_request(retries=0)
+    try:
+        with pytest.raises(Exception):
+            build_tasks_module.run_build.run("build-1", "p1", "u1", reserved)
+    finally:
+        build_tasks_module.run_build.pop_request()
+
+    crashed_doc = fake_db.builds.docs["build-1"]
+    (persisted,) = crashed_doc["agent_messages"]
+    assert persisted["status"] == "answered"
+    assert persisted["credits_charged"] == 1
+    assert architect.answers == 1
+
+    result = build_tasks_module.run_build.run("build-1", "p1", "u1", reserved)
+
+    assert result["status"] == "success"
+    assert architect.answers == 1           # not re-asked
+    assert developer.question_passes == 1   # no fresh question pass
+    assert developer.last_clarifications == [
+        {"question": "What happens when the session expires?",
+         "answer": "Redirect to /login and keep the draft."}
+    ]
+    final_doc = fake_db.builds.docs["build-1"]
+    assert len(final_doc["agent_messages"]) == 1
+    # One clarification credit in total, across both attempts.
+    assert sum(m["credits_charged"] for m in final_doc["agent_messages"]) == 1
+    assert result["credits_used"] <= reserved
+
+
+
+class _WorkerCrash(BaseException):
+    """Stands in for the worker process dying (SIGKILL, OOM): not an
+    Exception, so no handler in the pipeline or the task can absorb it."""
+
+
+def test_crash_after_paid_answer_before_persist_does_not_repeat_the_call_or_charge(monkeypatch):
+    """The crash boundary between a successful (paid) Architect call and the
+    write that records its answer + charge. The retried build must neither
+    charge for that answer nor pay the provider for the same question again:
+    the in-flight marker written before the call tells it the question was
+    already sent, so it is closed as interrupted and the build continues."""
+    build, user = _make_build_and_user()
+    fake_db = FakeDB(build, user)
+
+    async def fake_get_db():
+        return fake_db
+
+    monkeypatch.setattr(build_tasks_module, "get_db", fake_get_db)
+    _patch_agents(monkeypatch)
+    architect = _ClarifyingStubAgent()
+    developer = _ClarifyingStubAgent()
+    monkeypatch.setattr(build_tasks_module.orchestrator, "architect", architect)
+    monkeypatch.setattr(build_tasks_module.orchestrator, "developer", developer)
+
+    real_update_one = fake_db.builds.update_one
+    crash = {"armed": True}
+
+    async def crashing_update_one(query, update):
+        msgs = (update.get("$set") or {}).get("agent_messages") or []
+        if crash["armed"] and any(m["status"] == "answered" for m in msgs):
+            crash["armed"] = False
+            raise _WorkerCrash()
+        return await real_update_one(query, update)
+
+    monkeypatch.setattr(fake_db.builds, "update_one", crashing_update_one)
+
+    reserved = 30
+    with pytest.raises(_WorkerCrash):
+        build_tasks_module.run_build.run("build-1", "p1", "u1", reserved)
+
+    assert architect.answers == 1  # the provider call happened...
+    (persisted,) = fake_db.builds.docs["build-1"]["agent_messages"]
+    assert persisted["status"] == "pending"  # ...but its outcome was never saved
+    assert persisted["delivery_attempts"] == 1
+    assert persisted["credits_charged"] == 0
+
+    result = build_tasks_module.run_build.run("build-1", "p1", "u1", reserved)
+
+    assert result["status"] == "success"
+    assert architect.answers == 1  # not paid for a second time
+    (final,) = fake_db.builds.docs["build-1"]["agent_messages"]
+    assert final["status"] == "failed"
+    assert final["reason"] == "interrupted"
+    assert final["credits_charged"] == 0
+    assert developer.last_clarifications is None  # built without the lost answer

@@ -231,6 +231,44 @@ class AgentStep(BaseModel):
     agent_profile_id: Optional[str] = None
 
 
+class AgentMessageStatus(str, Enum):
+    PENDING = "pending"
+    ANSWERED = "answered"
+    REJECTED = "rejected"
+    TIMEOUT = "timeout"
+    FAILED = "failed"
+
+
+class AgentMessage(BaseModel):
+    """One agent-to-agent request/reply exchange, routed and recorded by
+    core/agent_communication.py. Persisted on Build.agent_messages so a
+    resumed build reuses answered exchanges instead of re-asking (and
+    re-charging) them."""
+    message_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    conversation_id: str
+    correlation_id: Optional[str] = None
+    sender: str
+    recipient: str
+    message_type: str = "clarification"
+    question: str
+    answer: Optional[str] = None
+    status: AgentMessageStatus = AgentMessageStatus.PENDING
+    # Why a non-answered exchange ended: route_not_allowed, invalid_question,
+    # question_limit, budget_exhausted, timeout, or the responder's error.
+    reason: Optional[str] = None
+    credits_charged: int = 0
+    # Set (and persisted) immediately before the recipient is invoked. A
+    # resumed build that finds a PENDING message with delivery_attempts > 0
+    # knows a previous attempt may already have paid for the provider call
+    # but died before the answer was saved, and closes it as "interrupted"
+    # instead of paying for the same call again.
+    delivery_attempts: int = 0
+    delivery_started_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=utcnow)
+    resolved_at: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+
+
 class Build(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     project_id: str
@@ -249,6 +287,7 @@ class Build(BaseModel):
     # blocked on; POST /builds/{id}/gate writes its "response" key.
     interactive: bool = False
     pending_gate: Optional[Dict[str, Any]] = None
+    agent_messages: List[AgentMessage] = []
     created_at: datetime = Field(default_factory=utcnow)
     completed_at: Optional[datetime] = None
 
@@ -518,6 +557,10 @@ class WSEventType(str, Enum):
     AGENT_OUTPUT = "agent_output"
     GATE_REQUEST = "gate_request"
     GATE_RESOLVED = "gate_resolved"
+
+    # Agent-to-agent request/reply (core/agent_communication.py).
+    AGENT_MESSAGE_REQUEST = "agent_message_request"
+    AGENT_MESSAGE_RESPONSE = "agent_message_response"
 
 
 class WSEvent(BaseModel):

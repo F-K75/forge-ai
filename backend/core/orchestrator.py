@@ -12,9 +12,10 @@ from agents.integration import IntegrationAgent
 from agents.pm import PMAgent
 from agents.business_model import BusinessModelAgent
 from agent_registry import get_agent_registry
+from core.agent_communication import CommunicationPolicy, InProcessAgentCommunication
 from core.models import (
-    Build, BuildStatus, AgentStep, AgentType, WSEvent, WSEventType, PlanTier,
-    utcnow,
+    AgentMessageStatus, Build, BuildStatus, AgentStep, AgentType, WSEvent,
+    WSEventType, PlanTier, utcnow,
 )
 from core.specialist_shadow import launch_shadow_comparison
 from core.config import get_settings
@@ -80,6 +81,7 @@ class Orchestrator:
         existing_files: dict = None,
         template: Optional[str] = None,
         persist_files: Optional[Callable[[dict], Awaitable[None]]] = None,
+        reserved_credits: Optional[int] = None,
     ) -> tuple[Build, dict]:
 
         """
@@ -100,6 +102,11 @@ class Orchestrator:
         `files` changes, so a caller (tasks/build_tasks.py) can persist
         generated files incrementally instead of only once at the very end --
         this is what makes resume possible after a crash mid-pipeline.
+
+        reserved_credits: the credits api/builds.py reserved up front for
+        this build. Only used to cap Developer -> Architect clarifications so
+        they can never push credits_used past the reservation; when None
+        (unknown) metered builds skip clarifications entirely.
 
         Returns (build, files): build output no longer carries a `files` field
         (persisted separately in the build_files collection), so the generated
@@ -268,9 +275,15 @@ class Orchestrator:
                         data={"agent": "developer", "token": chunk}
                     ))
 
+                clarifications = await self._run_developer_clarifications(
+                    build, blueprint, design, emit,
+                    byok_active=byok_active, reserved_credits=reserved_credits,
+                )
+                extra_kwargs = {"clarifications": clarifications} if clarifications else {}
                 files_result = await self.developer.generate_files(
                     blueprint, design, stream_callback=stream_token, existing_files=existing_files,
                     user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                    **extra_kwargs,
                 )
                 files.update(files_result.get("files", {}))
                 await persist_files(files)
@@ -496,6 +509,130 @@ class Orchestrator:
 
 
         return build, files
+
+    @staticmethod
+    def _worst_case_cost_after_developer(build: Build, blueprint: dict) -> int:
+        """Most the stages after the developer can still charge: integration
+        (when the blueprint has any), the first PM pass, and every remaining
+        debug iteration (debugger + PM re-validation) up to
+        MAX_DEBUG_ITERATIONS."""
+        remaining_debug = max(0, MAX_DEBUG_ITERATIONS - build.debug_iterations)
+        cost = settings.credits_pm + remaining_debug * (settings.credits_debug + settings.credits_pm)
+        if blueprint.get("integrations"):
+            cost += settings.credits_integration
+        return cost
+
+    def _clarification_policy(
+        self, build: Build, blueprint: dict, byok_active: bool, reserved_credits: Optional[int]
+    ) -> CommunicationPolicy:
+        """Budget rules for Developer -> Architect clarifications.
+
+        BYOK builds are unmetered (no charge, question limit only), mirroring
+        _start_agent's skip_credits. Metered builds may only spend what the
+        upfront reservation still covers after setting aside the worst case
+        of everything that runs after the developer, debug loop included.
+        Clarifications therefore only ever use reservation headroom the
+        pipeline provably can't need, and can never be the reason a build
+        ends above its reservation. An unknown reservation, the free first
+        build (reserved 0), or a reservation that doesn't cover the
+        pipeline's own worst case leaves no headroom, so the phase is
+        skipped."""
+        ceiling: Optional[int]
+        if byok_active:
+            ceiling = None
+        else:
+            ceiling = (reserved_credits or 0) - self._worst_case_cost_after_developer(build, blueprint)
+        return CommunicationPolicy(
+            max_questions=settings.developer_clarification_max_questions,
+            credit_cost=settings.credits_clarification,
+            credit_ceiling=ceiling,
+            timeout_seconds=settings.agent_message_timeout_seconds,
+        )
+
+    async def _run_developer_clarifications(
+        self,
+        build: Build,
+        blueprint: dict,
+        design: dict,
+        emit: Callable,
+        byok_active: bool,
+        reserved_credits: Optional[int],
+    ) -> list[dict]:
+        """Let the Developer ask the Architect about ambiguities before it
+        generates files. Returns the answered exchanges as
+        [{"question", "answer"}] for generate_files.
+
+        Resume: exchanges already on build.agent_messages (from a crashed
+        attempt) are reused -- ANSWERED ones as-is with no new charge,
+        PENDING ones delivered now -- and the Developer is not asked for a
+        fresh list of questions.
+
+        Never raises: the build always continues, with whatever answers it
+        got, exactly as it did before clarifications existed."""
+        policy = self._clarification_policy(build, blueprint, byok_active, reserved_credits)
+        if policy.max_questions <= 0:
+            return []
+
+        architect_context = {"blueprint": blueprint, "design": design}
+
+        async def architect_responder(question: str, context: dict) -> str:
+            return await self.architect.answer(
+                question, context["blueprint"], context.get("design"),
+                user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+            )
+
+        comms = InProcessAgentCommunication(
+            build, emit, responders={"architect": architect_responder}, policy=policy,
+        )
+
+        try:
+            messages = comms.messages_between("developer", "architect")
+            if not messages:
+                if not policy.can_afford(build.credits_used):
+                    logger.info(
+                        "Build %s: skipping developer clarifications -- no reservation headroom "
+                        "(reserved=%s, used=%s, ceiling=%s).",
+                        build.id, reserved_credits, build.credits_used, policy.credit_ceiling,
+                    )
+                    return []
+                try:
+                    questions = await asyncio.wait_for(
+                        self.developer.identify_questions(
+                            blueprint, design, policy.max_questions,
+                            user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                        ),
+                        timeout=policy.timeout_seconds,
+                    )
+                except Exception:
+                    logger.warning("Build %s: developer question pass failed; continuing without clarifications.", build.id, exc_info=True)
+                    return []
+                questions = (questions or [])[: policy.max_questions]
+                if not questions:
+                    return []
+
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_UPDATE,
+                    build_id=build.id,
+                    data={"agent": "developer", "message": f"Asking the Architect {len(questions)} clarifying question{'s' if len(questions) != 1 else ''}"},
+                ))
+                conversation_id = str(uuid.uuid4())
+                messages = [
+                    await comms.submit("developer", "architect", q, conversation_id=conversation_id)
+                    for q in questions
+                ]
+            else:
+                logger.info("Build %s: resuming -- reusing %d recorded developer clarification(s).", build.id, len(messages))
+
+            for message in messages:
+                await comms.resolve(message, architect_context)
+        except Exception:
+            logger.warning("Build %s: clarification phase failed; continuing with answers so far.", build.id, exc_info=True)
+
+        return [
+            {"question": m.question, "answer": m.answer}
+            for m in comms.messages_between("developer", "architect")
+            if m.status == AgentMessageStatus.ANSWERED and m.answer
+        ]
 
     async def _emit_output(self, build: Build, agent: str, emit: Callable, output) -> None:
         """Structured (already-parsed) agent output for the workspace's center

@@ -135,6 +135,7 @@ def run_build(
                         "agents": [a.model_dump() for a in build.agents],
                         "credits_used": build.credits_used,
                         "business_model": build.business_model,
+                        "agent_messages": [m.model_dump() for m in build.agent_messages],
                     }
                 },
             )
@@ -178,6 +179,7 @@ def run_build(
                 existing_files=effective_existing_files,
                 template=template,
                 persist_files=persist_files,
+                reserved_credits=reserved_credits,
             )
             await db.builds.update_one({"id": build_id}, {"$set": build.model_dump()})
 

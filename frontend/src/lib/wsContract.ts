@@ -53,6 +53,31 @@ export type GateResolvedEvent = WSEventBase<
   'gate_resolved',
   { gate_id: string; stage: string; agent: string; action: string; auto: boolean }
 >
+// Agent-to-agent request/reply, routed by the backend orchestrator (see
+// backend/core/agent_communication.py). One request event when a question
+// is recorded, one response event when it is answered or turned away.
+export type AgentMessageStatus = 'pending' | 'answered' | 'rejected' | 'timeout' | 'failed'
+export interface AgentMessageData {
+  message_id: string
+  conversation_id: string
+  correlation_id?: string | null
+  sender: string
+  recipient: string
+  message_type: string
+  question: string
+  answer?: string | null
+  status: AgentMessageStatus
+  reason?: string | null
+  credits_charged: number
+  delivery_attempts?: number
+  delivery_started_at?: string | null
+  credits_used?: number
+  created_at?: string
+  resolved_at?: string | null
+  duration_ms?: number | null
+}
+export type AgentMessageRequestEvent = WSEventBase<'agent_message_request', AgentMessageData>
+export type AgentMessageResponseEvent = WSEventBase<'agent_message_response', AgentMessageData>
 export type BuildFailedEvent = WSEventBase<'build_failed', { error?: string }>
 export type StreamTokenEvent = WSEventBase<'stream_token', { agent?: string; token: string }>
 export type DebugStartEvent = WSEventBase<'debug_start', { iteration?: number; errors?: any }>
@@ -70,6 +95,8 @@ export type AnyWSEvent =
   | BuildCompleteEvent
   | GateRequestEvent
   | GateResolvedEvent
+  | AgentMessageRequestEvent
+  | AgentMessageResponseEvent
   | BuildFailedEvent
   | StreamTokenEvent
   | DebugStartEvent
@@ -146,6 +173,17 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
     case WS_EVENT_TYPES.gate_resolved:
       if (!isRecord(data) || !isString((data as any).gate_id)) return null
       return raw as GateResolvedEvent
+    case WS_EVENT_TYPES.agent_message_request:
+    case WS_EVENT_TYPES.agent_message_response:
+      if (
+        !isRecord(data) ||
+        !isString((data as any).message_id) ||
+        !isString((data as any).sender) ||
+        !isString((data as any).recipient) ||
+        !isString((data as any).question) ||
+        !isString((data as any).status)
+      ) return null
+      return raw as AgentMessageRequestEvent | AgentMessageResponseEvent
     case WS_EVENT_TYPES.build_failed:
       if (!isRecord(data)) return null
       return raw as BuildFailedEvent
