@@ -79,9 +79,10 @@ _API_KEY_VAR_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*(self\.)?(a
 _ENV_KEY_REF='[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*os\.(environ\.get|getenv)\(|[Aa][Pp][Ii]_?[Kk][Ee][Yy][[:space:]]*=[[:space:]]*[A-Z][A-Z0-9_]*_API_KEY\b|API_KEY='"'"'your-key'"'"''
 
 # frontend/src/App.tsx lazy-imports the ForgotPassword/ResetPassword page
-# components -- "Password" here is a substring of a route/component name,
-# not a credential value.
-_ROUTE_NAME_REF='(ForgotPassword|ResetPassword)[[:space:]]*=[[:space:]]*lazy\('
+# components (via React.lazy or the app's lazyWithRetry wrapper) --
+# "Password" here is a substring of a route/component name, not a
+# credential value.
+_ROUTE_NAME_REF='(ForgotPassword|ResetPassword)[[:space:]]*=[[:space:]]*lazy(WithRetry)?\('
 
 # docker-compose.yml (and similar) interpolate secrets from the environment
 # at container-start time, e.g. ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} or
