@@ -538,6 +538,11 @@ def _is_blocked_webhook_ip(ip_str: str) -> bool:
     )
 
 
+async def _resolve_host(hostname: str) -> list:
+    """Resolve ``hostname`` to getaddrinfo tuples. Separate so tests can stub DNS."""
+    return await asyncio.get_running_loop().getaddrinfo(hostname, None)
+
+
 async def validate_webhook_url(url: str) -> tuple[bool, str]:
     """Validate a user-supplied webhook URL against SSRF.
 
@@ -562,7 +567,7 @@ async def validate_webhook_url(url: str) -> tuple[bool, str]:
         return False, "Webhook URL must include a hostname"
 
     try:
-        addrinfo = await asyncio.get_event_loop().getaddrinfo(hostname, None)
+        addrinfo = await _resolve_host(hostname)
     except Exception:
         return False, "Webhook URL hostname could not be resolved"
 
@@ -601,7 +606,7 @@ async def validate_byok_base_url(url: str) -> tuple[bool, str]:
         return False, "BYOK base URL must include a hostname"
 
     try:
-        addrinfo = await asyncio.get_event_loop().getaddrinfo(hostname, None)
+        addrinfo = await _resolve_host(hostname)
     except Exception:
         return False, "BYOK base URL hostname could not be resolved"
 

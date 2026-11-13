@@ -17,6 +17,18 @@ import core.security as security_module
 
 
 @pytest.fixture(autouse=True)
+def _stub_public_dns(monkeypatch):
+    # validate_byok_base_url resolves the BYOK host to block private/internal
+    # addresses (SSRF). These tests are about BYOK routing, not DNS, so make
+    # every host resolve to a public address instead of depending on the
+    # machine's network. SSRF behaviour itself is covered in test_byok_ssrf.py.
+    async def _resolve_public(hostname):
+        return [(2, 1, 6, "", ("93.184.216.34", 0))]
+
+    monkeypatch.setattr(security_module, "_resolve_host", _resolve_public)
+
+
+@pytest.fixture(autouse=True)
 def _reset_in_memory_rate_limit_state():
     # LLM request-frequency limiting now lives in core.llm.rate_limiter's
     # RateLimiter, whose in-memory fallback is per-LLMRouter-instance (each
