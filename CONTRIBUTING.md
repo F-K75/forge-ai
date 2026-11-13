@@ -45,6 +45,22 @@ npm install
 docker compose up
 ```
 
+#### Running the backend without Docker
+Builds and initiative plans run in a **Celery worker**, not in the API process.
+If you start only `uvicorn`, you can log in and create projects, but every build
+stays "pending" because nothing picks it up. Start both together:
+
+```bash
+# Needs MongoDB and Redis running (MONGODB_URL / REDIS_URL in backend/.env)
+npm run dev:backend        # same as: bash scripts/dev-backend.sh
+```
+
+This starts the API on `:8000` (with `--reload`) and a worker on the `build` and
+`deployment` queues, prefixes their logs with `[api]` / `[worker]`, and stops both
+on Ctrl-C or if either one exits. Options: `PORT=8001`, `NO_RELOAD=1`,
+`PYTHON=/path/to/python` (defaults to the first of `backend/runenv`,
+`backend/.venv`, `backend/venv` that exists, else `python3`).
+
 #### Making Changes
 1. Create a feature branch: `git checkout -b feature/your-feature`
 2. Make your changes
