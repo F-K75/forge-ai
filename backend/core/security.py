@@ -363,6 +363,7 @@ _CSRF_EXCLUDED_PATHS = [
     "/v1/auth/google",
     "/health",
     "/v1/waitlist",  # public landing-page signup; no session exists to forge
+    "/v1/email/unsubscribe",  # signed-token link; mail clients POST one-click unsubscribes with no session
     "/billing/webhook",  # Stripe webhook has its own signature verification
     "/billing/webhook/payment",  # Stripe payment webhook — signature-verified, no session cookie
     # NOTE: /api/llm is intentionally NOT excluded. Its mutating admin routes

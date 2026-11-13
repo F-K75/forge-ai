@@ -20,6 +20,7 @@ from api.auth import router as auth_router
 from api.billing import router as billing_router
 from api.builds import router as builds_router
 from api.deployments import router as deployments_router
+from api.email_prefs import router as email_prefs_router
 from api.epics import router as epics_router
 from api.gdpr import router as gdpr_router
 from api.growth import router as growth_router
@@ -55,6 +56,7 @@ v1_router.include_router(auth_router)
 v1_router.include_router(billing_router)
 v1_router.include_router(builds_router)
 v1_router.include_router(deployments_router)
+v1_router.include_router(email_prefs_router)
 v1_router.include_router(epics_router)
 v1_router.include_router(gdpr_router)
 v1_router.include_router(growth_router)
