@@ -56,6 +56,7 @@ PUBLIC_ROUTES: dict[tuple[str, str, str], str] = {
     ("auth.py", "/reset-password", "post"): "presents a reset token instead of a session",
     ("auth.py", "/verify-email", "get"): "presents a verification token instead of a session",
     ("auth.py", "/resend-verification", "post"): "user may not be able to log in yet",
+    ("waitlist.py", "", "post"): "public landing-page waitlist signup; rate-limited, no account exists yet",
     ("auth.py", "/organizations/invitations/{token}/accept", "post"): "presents an invite token",
     ("razorpay.py", "/webhook", "post"): "Razorpay-signed server-to-server callback, verified by signature",
     ("razorpay.py", "/verify", "post"): "verifies a client-side payment handshake by signature, not session",

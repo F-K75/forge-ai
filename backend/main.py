@@ -48,6 +48,7 @@ from core.security import (
     csrf_protection_middleware,
     request_id_middleware,
     RequestIdLogFilter,
+    cors_allowed_origins,
 )
 from core.shutdown import get_health_status, init_shutdown_manager, DrainMiddleware, get_shutdown_manager
 from services.ws_manager import manager as ws_manager
@@ -214,9 +215,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins + [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()] + [
-        "https://forge-frontend-8gr.pages.dev",
-    ],
+    allow_origins=cors_allowed_origins(),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],

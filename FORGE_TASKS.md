@@ -50,4 +50,6 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - Found: the `landing.html` waitlist form shows "You're on the list!" but never sends the email anywhere (fetch is commented out). Needs a backend endpoint before the page goes live.
 - Claude queue is now empty.
 - Later same day: added `POST /v1/waitlist` (`backend/api/waitlist.py`) and wired `landing.html` to it. Before the landing page goes live, its origin must be added to `ALLOWED_ORIGINS` on the backend.
-- Found (not fixed): `rate_limit_middleware` and `csrf_protection_middleware` in `backend/core/security.py` raise `HTTPException` from function middleware, which FastAPI turns into a 500. Every rate-limit 429, CSRF 403 and body-too-large 413 reaches clients as a 500.
+- Fixed (see next entry): `rate_limit_middleware` and `csrf_protection_middleware` in `backend/core/security.py` raise `HTTPException` from function middleware, which FastAPI turns into a 500. Every rate-limit 429, CSRF 403 and body-too-large 413 reaches clients as a 500.
+- Fixed the middleware bug: security middlewares now return their 413/403/429 responses (with CORS headers for allowed origins, and Retry-After on 429). Also added the waitlist route to `PUBLIC_ROUTES` in `test_route_auth_coverage.py`, which the waitlist commit missed.
+- Found (not fixed, already failing before today): 4 backend tests fail — 3 in `tests/test_llm_byok.py` and `test_audit_logging.py::test_webhook_create_and_delete_audited` (gets 400 instead of 200).

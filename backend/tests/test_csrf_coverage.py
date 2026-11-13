@@ -55,15 +55,15 @@ async def test_api_llm_mutations_are_not_excluded_and_require_token():
     # rejected, not passed through.
     for path in ("/api/llm/agent/pro", "/api/llm/reload", "/api/llm/test"):
         req = FakeRequest("POST", path, cookie={"access_token": "tok"})
-        with pytest.raises(Exception):  # HTTPException 403 from middleware
-            await csrf_protection_middleware(req, _call_next)
+        resp = await csrf_protection_middleware(req, _call_next)
+        assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_arbitrary_mutating_route_requires_token():
     req = FakeRequest("PUT", "/auth/me", cookie={"access_token": "tok"})
-    with pytest.raises(Exception):
-        await csrf_protection_middleware(req, _call_next)
+    resp = await csrf_protection_middleware(req, _call_next)
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio

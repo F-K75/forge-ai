@@ -86,19 +86,19 @@ async def test_authenticated_requests_keyed_per_user_not_per_ip(patched):
             _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_a}),
             _call_next_factory(),
         )
-    with pytest.raises(Exception) as exc:
-        await rate_limit_middleware(
-            _FakeRequest(client_host="9.9.9.9", cookies={"access_token": user_a}),
-            _call_next_factory(),
-        )
-    assert "429" in str(exc.value) or "Rate limit" in str(exc.value)
+    resp = await rate_limit_middleware(
+        _FakeRequest(client_host="9.9.9.9", cookies={"access_token": user_a}),
+        _call_next_factory(),
+    )
+    assert resp.status_code == 429
+    assert b"Rate limit" in resp.body
 
     # user-a is now blocked even from a third IP (limit is per-account, not IP).
-    with pytest.raises(Exception):
-        await rate_limit_middleware(
-            _FakeRequest(client_host="5.5.5.5", cookies={"access_token": user_a}),
-            _call_next_factory(),
-        )
+    resp = await rate_limit_middleware(
+        _FakeRequest(client_host="5.5.5.5", cookies={"access_token": user_a}),
+        _call_next_factory(),
+    )
+    assert resp.status_code == 429
 
     # user-b (different account) still has a fresh counter and is allowed
     # up to the same fallback limit of 2.
@@ -107,11 +107,11 @@ async def test_authenticated_requests_keyed_per_user_not_per_ip(patched):
             _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_b}),
             _call_next_factory(),
         )
-    with pytest.raises(Exception):
-        await rate_limit_middleware(
-            _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_b}),
-            _call_next_factory(),
-        )
+    resp = await rate_limit_middleware(
+        _FakeRequest(client_host="1.2.3.4", cookies={"access_token": user_b}),
+        _call_next_factory(),
+    )
+    assert resp.status_code == 429
 
 
 @pytest.mark.asyncio
@@ -126,10 +126,10 @@ async def test_unauthenticated_requests_still_keyed_by_ip(patched):
         await rate_limit_middleware(
             _FakeRequest(client_host=ip), _call_next_factory()
         )
-    with pytest.raises(Exception):
-        await rate_limit_middleware(
-            _FakeRequest(client_host=ip), _call_next_factory()
-        )
+    resp = await rate_limit_middleware(
+        _FakeRequest(client_host=ip), _call_next_factory()
+    )
+    assert resp.status_code == 429
 
     # A different IP is not blocked by the first IP's counter.
     await rate_limit_middleware(
@@ -146,11 +146,11 @@ async def test_invalid_token_falls_back_to_ip_keying(patched):
             _FakeRequest(client_host=ip, cookies={"access_token": "not-a-jwt"}),
             _call_next_factory(),
         )
-    with pytest.raises(Exception):
-        await rate_limit_middleware(
-            _FakeRequest(client_host=ip, cookies={"access_token": "not-a-jwt"}),
-            _call_next_factory(),
-        )
+    resp = await rate_limit_middleware(
+        _FakeRequest(client_host=ip, cookies={"access_token": "not-a-jwt"}),
+        _call_next_factory(),
+    )
+    assert resp.status_code == 429
 
 
 @pytest.mark.asyncio
@@ -172,11 +172,11 @@ async def test_in_memory_fallback_uses_conservative_half_limit(patched):
         _call_next_factory(),
     )
     # The 3rd request must be blocked because the fallback limit is 2.
-    with pytest.raises(Exception):
-        await rate_limit_middleware(
-            _FakeRequest(client_host="9.9.9.9", cookies={"access_token": user_a}),
-            _call_next_factory(),
-        )
+    resp = await rate_limit_middleware(
+        _FakeRequest(client_host="9.9.9.9", cookies={"access_token": user_a}),
+        _call_next_factory(),
+    )
+    assert resp.status_code == 429
 
 
 if __name__ == "__main__":

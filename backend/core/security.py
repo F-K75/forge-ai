@@ -1,4 +1,5 @@
 from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
 from typing import Optional
 from datetime import timedelta
 import asyncio
@@ -133,10 +134,44 @@ async def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+# Origins always allowed in addition to settings.allowed_origins.
+_EXTRA_CORS_ORIGINS = ["https://forge-frontend-8gr.pages.dev"]
+
+
+def cors_allowed_origins() -> list[str]:
+    """Every origin the API accepts cross-origin requests from.
+
+    Shared by ``main.py``'s CORSMiddleware and :func:`_middleware_error`, so
+    the two can't drift apart.
+    """
+    tunnels = [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()]
+    return list(settings.allowed_origins) + tunnels + _EXTRA_CORS_ORIGINS
+
+
+def _middleware_error(
+    request: Request, status_code: int, detail: str, headers: Optional[dict] = None
+) -> JSONResponse:
+    """Build an error response from inside a function middleware.
+
+    Raising ``HTTPException`` here does not work: function middlewares run
+    outside FastAPI's exception handling, so the exception reaches Starlette's
+    ServerErrorMiddleware and the client gets a 500 instead of the intended
+    status. These middlewares also sit outside CORSMiddleware, so CORS headers
+    are added here (for allowed origins only) to let browsers read the error.
+    """
+    response = JSONResponse(status_code=status_code, content={"detail": detail}, headers=headers)
+    origin = request.headers.get("origin")
+    if origin and origin in cors_allowed_origins():
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+    return response
+
+
 async def request_size_limit_middleware(request: Request, call_next):
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > settings.max_request_size:
-        raise HTTPException(status_code=413, detail="Request body too large")
+        return _middleware_error(request, 413, "Request body too large")
     
     # Add security headers
     response = await call_next(request)
@@ -255,9 +290,9 @@ async def rate_limit_middleware(request: Request, call_next):
                 except Exception:
                     logging.warning("Failed to log rate limit security event", exc_info=True)
 
-                raise HTTPException(
-                    status_code=429,
-                    detail="Rate limit exceeded. Please try again later.",
+                return _middleware_error(
+                    request, 429, "Rate limit exceeded. Please try again later.",
+                    headers={"Retry-After": str(window)},
                 )
 
             response = await call_next(request)
@@ -279,9 +314,9 @@ async def rate_limit_middleware(request: Request, call_next):
         key, limit, window, fallback_limit=fallback_limit
     )
     if not allowed:
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded. Please try again later.",
+        return _middleware_error(
+            request, 429, "Rate limit exceeded. Please try again later.",
+            headers={"Retry-After": str(window)},
         )
     
     response = await call_next(request)
@@ -360,27 +395,25 @@ async def csrf_protection_middleware(request: Request, call_next):
     # Extract session token from the access_token cookie
     access_token = request.cookies.get("access_token")
     if not access_token:
-        raise HTTPException(status_code=403, detail="CSRF: No session token")
+        return _middleware_error(request, 403, "CSRF: No session token")
     
     # Decode the JWT to get the session identifier (jti)
     payload = decode_token(access_token)
     if not payload or not payload.get("jti"):
-        raise HTTPException(status_code=403, detail="CSRF: Invalid session")
+        return _middleware_error(request, 403, "CSRF: Invalid session")
     
     session_token = payload["jti"]
     csrf_header = request.headers.get("X-CSRF-Token")
     
     if not csrf_header:
-        raise HTTPException(
-            status_code=403,
-            detail="CSRF token required. Include X-CSRF-Token header.",
+        return _middleware_error(
+            request, 403, "CSRF token required. Include X-CSRF-Token header."
         )
     
     valid = await validate_csrf_token(session_token, csrf_header)
     if not valid:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid or expired CSRF token. Refresh the page.",
+        return _middleware_error(
+            request, 403, "Invalid or expired CSRF token. Refresh the page."
         )
     
     response = await call_next(request)
