@@ -1,6 +1,6 @@
 import { useEffect, useState, Suspense } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom"
 import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
@@ -158,7 +158,32 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/projects" replace />
   }
 
+  // The backend refuses every admin endpoint (api/admin.py admin_required,
+  // SEC-007) until the admin has enabled MFA. Say so up front instead of
+  // rendering the page and letting each panel fail with a bare 403.
+  if (LIVE_MODE && user?.mfa_enabled !== true) {
+    return <AdminMfaRequired />
+  }
+
   return <>{children}</>
+}
+
+function AdminMfaRequired() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
+      <h1 className="text-xl font-bold text-ink">Turn on two-factor authentication</h1>
+      <p className="max-w-md text-sm text-muted">
+        Admin tools are only available to admin accounts with two-factor authentication (MFA)
+        enabled. Set it up in Security settings, then come back to this page.
+      </p>
+      <Link
+        to="/settings#security"
+        className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-neutral-900"
+      >
+        Set up two-factor authentication
+      </Link>
+    </div>
+  )
 }
 
 function RootRoute() {
