@@ -4,7 +4,8 @@ import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react
 import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
-import { LIVE_MODE } from "./lib/env"
+import { IS_PUBLIC_DEMO, LIVE_MODE, PUBLIC_DEMO_APP_URL } from "./lib/env"
+import { DemoBanner } from "./components/DemoBanner"
 import { lazyWithRetry } from "./lib/lazyRetry"
 import { useActiveProject } from "./hooks/useActiveProject"
 import GlobalBackground from "./components/GlobalBackground"
@@ -205,7 +206,9 @@ function RootRoute() {
   }
 
   const searchParams = new URLSearchParams(location.search)
-  const wantsApp = searchParams.get("app") === "true"
+  // The public demo opens straight into the sample workspace: its own landing
+  // page would send visitors to a sign-up form that has no backend.
+  const wantsApp = IS_PUBLIC_DEMO || searchParams.get("app") === "true"
 
   if (LIVE_MODE && isAuthenticated) {
     // /projects resolves the user's real projects; a stale or foreign
@@ -235,11 +238,27 @@ function WorkspaceRedirect() {
   return <ProjectScopedRedirect sub="workspace" />
 }
 
+/**
+ * Public demo build: the demo has no backend, so account pages go to the real
+ * app. Uses a full page load (it's another site), with a link as fallback.
+ */
+function ExternalRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to)
+  }, [to])
+  return (
+    <p className="p-8 font-mono text-sm">
+      Taking you to <a className="underline" href={to}>{to}</a>…
+    </p>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="relative isolate min-h-screen bg-base">
         <GlobalBackground />
+        <DemoBanner />
         <div className="relative z-50">
           <BrowserRouter>
             <Routes>
@@ -258,16 +277,23 @@ export default function App() {
           <Route
             path="/login"
             element={
+              IS_PUBLIC_DEMO ? (
+                <ExternalRedirect to={`${PUBLIC_DEMO_APP_URL}/login`} />
+              ) : (
               <ErrorBoundary>
                 <Suspense fallback={<RouteSkeleton />}>
                   <AuthPage />
                 </Suspense>
               </ErrorBoundary>
+              )
             }
           />
           <Route
             path="/signup"
             element={
+              IS_PUBLIC_DEMO ? (
+                <ExternalRedirect to={`${PUBLIC_DEMO_APP_URL}/signup`} />
+              ) : (
               <ErrorBoundary>
                 <PublicRoute>
                   <Suspense fallback={<RouteSkeleton />}>
@@ -275,6 +301,7 @@ export default function App() {
                   </Suspense>
                 </PublicRoute>
               </ErrorBoundary>
+              )
             }
           />
           <Route

@@ -57,6 +57,8 @@
         }
 
         /* Waitlist Form */
+        .demo-cta { margin-top: 16px; font-size: 14px; color: #a1a1aa; text-align: center; }
+        .demo-cta a { color: #14B8A6; text-decoration: underline; }
         .waitlist-form {
             display: flex; gap: 12px; max-width: 480px; margin: 0 auto;
             flex-wrap: wrap; justify-content: center;
@@ -172,6 +174,8 @@
     <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
+        <a href="#" data-site-link="demo" hidden>Try the demo</a>
+        <a href="#" data-site-link="signin">Sign in</a>
         <a href="#waitlist">Join Waitlist</a>
     </div>
 </nav>
@@ -180,9 +184,9 @@
     <div class="hero-badge">⚡ Multi-Agent AI Engineering Platform</div>
     <h1>Your <em>AI Engineering</em> Team</h1>
     <p>
-        Describe your app. Forge deploys a coordinated team of AI agents — 
-        Architect, Designer, Developer, PM — to build, validate, and deploy 
-        production-ready applications.
+        Describe your app. Forge's team of AI agents (architect, designer,
+        developers, QA) plans it, builds it and checks it. Your first build is
+        free, and you push the code to your own GitHub repo.
     </p>
 
     <form class="waitlist-form" id="waitlistForm">
@@ -192,23 +196,26 @@
         <button type="submit" id="submitBtn">Join the Waitlist</button>
     </form>
     <div id="formMessage" class="form-message"></div>
+    <p class="demo-cta" data-site-link-wrap="demo" hidden>
+        Or <a href="#" data-site-link="demo">try the live demo</a>: no signup, sample data.
+    </p>
 
     <div class="social-proof">
         <div class="stat">
-            <div class="number pulse">0</div>
-            <div class="label">Apps Built</div>
-        </div>
-        <div class="stat">
-            <div class="number pulse">0</div>
-            <div class="label">Developers</div>
-        </div>
-        <div class="stat">
             <div class="number">6</div>
-            <div class="label">AI Agents</div>
+            <div class="label">Build Agents</div>
         </div>
         <div class="stat">
-            <div class="number">8+</div>
+            <div class="number">9</div>
             <div class="label">LLM Providers</div>
+        </div>
+        <div class="stat">
+            <div class="number">3</div>
+            <div class="label">Auto-Fix Attempts</div>
+        </div>
+        <div class="stat">
+            <div class="number">1st</div>
+            <div class="label">Build Free</div>
         </div>
     </div>
 </section>
@@ -242,7 +249,7 @@
         <div class="feature-card">
             <div class="icon">🔌</div>
             <h3>Multi-Provider LLM Support</h3>
-            <p>Works with Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Azure, Ollama — 8+ providers with automatic routing.</p>
+            <p>Works with Anthropic, OpenAI, Azure OpenAI, Gemini, Groq, Mistral, OpenRouter, Together and Ollama: 9 providers with automatic failover.</p>
         </div>
         <div class="feature-card">
             <div class="icon">📋</div>
@@ -262,7 +269,7 @@
         <div class="feature-card">
             <div class="icon">🏗️</div>
             <h3>Full-Stack Generation</h3>
-            <p>React 18 + Vite + TypeScript + Tailwind frontend, FastAPI + MongoDB backend, JWT auth, Docker deployment.</p>
+            <p>React 18 + Vite + TypeScript + Tailwind frontend, FastAPI + MongoDB backend and JWT auth, pushed to your own GitHub repo.</p>
         </div>
         <div class="feature-card">
             <div class="icon">🔑</div>
@@ -322,16 +329,39 @@
 
 <footer class="container">
     <div class="social-links">
-        <a href="https://github.com/F-K75/forge-ai" target="_blank">GitHub</a>
-        <a href="https://twitter.com" target="_blank">Twitter / X</a>
+        <a href="https://github.com/F-K75/forge-ai" target="_blank" rel="noopener">GitHub</a>
     </div>
     <p>&copy; 2026 Forge AI. All rights reserved.</p>
 </footer>
 
+<!-- Optional. The Cloudflare deploy writes this file with the real URLs
+     (.github/workflows/deploy-cloudflare.yml); without it the defaults below
+     apply and the demo links stay hidden. -->
+<script src="site-config.js"></script>
 <script>
-// Forge API endpoint for waitlist signups. The page's origin must be listed in
-// the backend's ALLOWED_ORIGINS for the browser to allow this request (CORS).
-const WAITLIST_API_URL = 'https://forge-ai-ioom.onrender.com/v1/waitlist';
+// Where the API, the app and the public demo live. The page's own origin must
+// be in the backend's ALLOWED_ORIGINS for the waitlist POST to work (CORS).
+const SITE = Object.assign({
+    apiUrl: 'https://forge-ai-ioom.onrender.com',
+    appUrl: 'https://forge-frontend-8gr.pages.dev',
+    demoUrl: '',
+}, window.FORGE_SITE || {});
+const WAITLIST_API_URL = SITE.apiUrl.replace(/\/$/, '') + '/v1/waitlist';
+
+// Point the nav and hero links at the configured app and demo.
+(function wireSiteLinks() {
+    const targets = {
+        signin: SITE.appUrl ? SITE.appUrl.replace(/\/$/, '') + '/login' : '',
+        demo: SITE.demoUrl,
+    };
+    document.querySelectorAll('[data-site-link]').forEach(function (a) {
+        const url = targets[a.getAttribute('data-site-link')];
+        if (url) { a.href = url; a.hidden = false; } else { a.hidden = true; }
+    });
+    document.querySelectorAll('[data-site-link-wrap]').forEach(function (el) {
+        el.hidden = !targets[el.getAttribute('data-site-link-wrap')];
+    });
+})();
 
 document.getElementById('waitlistForm').addEventListener('submit', async function(e) {
     e.preventDefault();
