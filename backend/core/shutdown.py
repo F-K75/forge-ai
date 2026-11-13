@@ -114,10 +114,24 @@ class ShutdownManager:
         if self._signal_registered:
             return
 
+        # This runs inside the app's lifespan, *after* the ASGI server (uvicorn)
+        # has installed its own SIGTERM/SIGINT handlers. Replacing them outright
+        # meant uvicorn never learned it should exit: the app sat in drain mode
+        # answering 503 forever (stuck --reload, and every deploy restart
+        # waited out the platform's kill timeout). Chain to the previous
+        # handler so the server still shuts down -- its shutdown then runs the
+        # lifespan's wait_for_drain().
+        previous = {
+            sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGINT)
+        }
+
         def _handler(sig, frame):
             if self._config.verbose:
                 logger.info("Received signal %s", sig)
             self.begin_drain()
+            prev = previous.get(sig)
+            if callable(prev):
+                prev(sig, frame)
 
         # FastAPI runs in the main thread; signal handlers must be registered there.
         signal.signal(signal.SIGTERM, _handler)

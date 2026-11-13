@@ -117,3 +117,33 @@ async def test_ws_close_all_connections_on_shutdown():
     assert closed[0][0] == 1011
     assert "Server shutting down" in closed[0][1]
     assert mgr.active == {}
+
+
+@pytest.mark.parametrize("signame", ["SIGTERM", "SIGINT"])
+def test_signal_handler_chains_to_the_servers_handler(signame):
+    """The app's handler is installed during lifespan startup, after uvicorn
+    has installed its own. It must start draining *and* still call the
+    server's handler; replacing it meant uvicorn never exited (stuck in
+    drain mode answering 503 on every reload / deploy restart)."""
+    import signal
+
+    sig = getattr(signal, signame)
+    original_term = signal.getsignal(signal.SIGTERM)
+    original_int = signal.getsignal(signal.SIGINT)
+    server_calls = []
+
+    def server_handler(s, frame):
+        server_calls.append(s)
+
+    try:
+        signal.signal(sig, server_handler)
+        mgr = ShutdownManager(ShutdownConfig(drain_timeout=1.0, verbose=False))
+        mgr.register_signal_handlers()
+
+        signal.getsignal(sig)(sig, None)
+
+        assert mgr.draining
+        assert server_calls == [sig]
+    finally:
+        signal.signal(signal.SIGTERM, original_term)
+        signal.signal(signal.SIGINT, original_int)
