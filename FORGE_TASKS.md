@@ -16,7 +16,7 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - [x] Draft blog post 3: "Building a Full-Stack App in 5 Minutes with Forge" → `blog/03-tutorial.md`
 - [x] Add PostHog analytics snippet to frontend (signups, builds started/completed, errors)
 - [x] Draft onboarding welcome email templates for Resend integration
-- [ ] Draft Product Hunt launch kit: tagline, description, first comment → `launch/product-hunt.md`
+- [x] Draft Product Hunt launch kit: tagline, description, first comment → `launch/product-hunt.md`
 - [ ] Draft "Show HN" post text → `launch/hacker-news.md`
 - [ ] Update README with waitlist link and contributing pointers
 
@@ -44,4 +44,5 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 ### 2026-11-13
 - Found already complete but unchecked: blog posts 1–3 (in `blog/` as `01-multi-agent-architecture.md`, `02-why-single-agent-is-not-enough.md`, `03-building-fullstack-app-in-5-minutes.md`) and PostHog analytics (`frontend/src/lib/analytics.ts`). Checked off.
 - Completed: onboarding email templates in `backend/services/email_templates.py` (welcome, first-build nudge, first-build-done, planning tips), with tests. Templates only: not yet sent or scheduled anywhere.
-- Next in queue: Product Hunt launch kit (`launch/product-hunt.md`).
+- Completed: Product Hunt launch kit (`launch/product-hunt.md`): taglines, description, maker comment, FAQ replies, gallery/video plan, launch checklist. Claims checked against code; bracketed placeholders need keshav.
+- Next in queue: "Show HN" post (`launch/hacker-news.md`).
