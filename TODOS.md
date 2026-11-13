@@ -8,7 +8,7 @@
 - **Cons:** Deploy/Helm/ops surface; not required for CB/concurrency correctness.
 - **Context:** Surfaced in `/plan-eng-review` (2026-08-01) + Codex outside voice. See plan `keshav-main-backend-reliability-plan-20260801-024334.md`. Start at `backend/core/metrics.py` and current worker deployment manifests.
 - **Depends on / blocked by:** Can ship reliability slice without this. Do after CB/concurrency/gateway schema PR lands.
-- **Status:** open
+- **Status:** done — workers publish snapshots to Redis and the API `/metrics` aggregates them (`backend/core/fleet_metrics.py`).
 - **Added:** 2026-08-01
 
 ## Optimize-before-cache / response-cache rekey
@@ -19,7 +19,7 @@
 - **Cons:** Cache-key migration can cause miss storms or incorrect hits; needs careful tenancy tests.
 - **Context:** Deferred from reliability slice on purpose. Start at `backend/optimizer/service.py:117-139` and `backend/optimizer/response_cache.py`.
 - **Depends on / blocked by:** Independent of CB/concurrency PR; ship as its own perf PR.
-- **Status:** open
+- **Status:** done — response cache is checked on the original messages before optimize/truncate (`backend/optimizer/service.py`).
 - **Added:** 2026-08-01
 
 ## Harness eval for JSON-repair prompt quality
@@ -30,7 +30,7 @@
 - **Cons:** Needs fixtures or recorded outputs; live-model CI is costly unless offline.
 - **Context:** Repair lives in `backend/gateway/service.py` (`structured_output_schema` + `_repair`). Do after T3 gateway schema wiring in the reliability plan.
 - **Depends on / blocked by:** Gateway schemas for hot agents (reliability T3).
-- **Status:** open
+- **Status:** done — `backend/harness/json_repair_suite.py` + `backend/tests/test_json_repair_suite.py`.
 - **Added:** 2026-08-01
 
 ## Gateway schemas for pm / integration / business_model
@@ -41,7 +41,7 @@
 - **Cons:** More schema maintenance; lower leverage than the three hot agents.
 - **Context:** Today `backend/agents/pm.py`, `integration.py`, `business_model.py` hand-roll fence-strip + `json.loads`. Reuse the T3 pattern from the reliability plan.
 - **Depends on / blocked by:** Reliability T3 (gateway schema pattern for hot agents) should land first.
-- **Status:** open
+- **Status:** done — PM, Integration and Business Model agents use `_call_structured` with schemas from `backend/agents/structured_schemas.py`.
 - **Added:** 2026-08-01
 
 ## Persist TemplateRegistry overlay to Mongo
@@ -52,7 +52,7 @@
 - **Cons:** Needs migration + invalidation; not on the LLM reliability hot path (CB/concurrency).
 - **Context:** `backend/prompt_builder/registry.py`; reuse `core/migrations.py`. Independent of the reliability slice.
 - **Depends on / blocked by:** None hard; schedule after reliability PR if capacity allows.
-- **Status:** open
+- **Status:** done — overlay persisted in `backend/prompt_builder/persistence.py`, hydrated at startup in `backend/main.py`.
 - **Added:** 2026-08-01
 
 ## Regenerate: enqueue before deleting plan artifacts

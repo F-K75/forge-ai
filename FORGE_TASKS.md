@@ -11,10 +11,10 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - [x] Set pricing tiers in `backend/core/config.py` (Free 5 credits/$0, Standard 100/$20mo, Pro 750/$50mo, Enterprise custom)
 - [x] Draft `TEAM.md` (founding team page skeleton for keshav to fill in)
 - [x] Add GitHub issue templates (bug + feature) under `.github/ISSUE_TEMPLATE/`
-- [ ] Draft blog post 1: "How We Built a Multi-Agent AI Engineering Platform" → `blog/01-architecture.md`
-- [ ] Draft blog post 2: "Why Single-Agent AI Coding Tools Are Not Enough" → `blog/02-positioning.md`
-- [ ] Draft blog post 3: "Building a Full-Stack App in 5 Minutes with Forge" → `blog/03-tutorial.md`
-- [ ] Add PostHog analytics snippet to frontend (signups, builds started/completed, errors)
+- [x] Draft blog post 1: "How We Built a Multi-Agent AI Engineering Platform" → `blog/01-architecture.md`
+- [x] Draft blog post 2: "Why Single-Agent AI Coding Tools Are Not Enough" → `blog/02-positioning.md`
+- [x] Draft blog post 3: "Building a Full-Stack App in 5 Minutes with Forge" → `blog/03-tutorial.md`
+- [x] Add PostHog analytics snippet to frontend (signups, builds started/completed, errors)
 - [ ] Draft onboarding welcome email templates for Resend integration
 - [ ] Draft Product Hunt launch kit: tagline, description, first comment → `launch/product-hunt.md`
 - [ ] Draft "Show HN" post text → `launch/hacker-news.md`
@@ -40,3 +40,7 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - Next in queue: GitHub issue templates (`.github/ISSUE_TEMPLATE/`).
 - Later same day (with keshav): finalized TEAM.md (bio, GitHub/LinkedIn links; waitlist URL TBD pending domain). Added issue templates: `bug_report.yml`, `feature_request.yml`, `config.yml` (discussions link — update URL after GitHub org move).
 - Next in queue: blog post 1 (`blog/01-architecture.md`).
+
+### 2026-11-13
+- Found already complete but unchecked: blog posts 1–3 (in `blog/` as `01-multi-agent-architecture.md`, `02-why-single-agent-is-not-enough.md`, `03-building-fullstack-app-in-5-minutes.md`) and PostHog analytics (`frontend/src/lib/analytics.ts`). Checked off.
+- Next in queue: onboarding welcome email templates for Resend.
