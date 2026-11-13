@@ -48,6 +48,7 @@ from core.security import (
     csrf_protection_middleware,
     request_id_middleware,
     RequestIdLogFilter,
+    cors_allowed_origins,
 )
 from core.shutdown import get_health_status, init_shutdown_manager, DrainMiddleware, get_shutdown_manager
 from services.ws_manager import manager as ws_manager
@@ -199,10 +200,13 @@ async def global_exception_handler(request: Request, exc: Exception):
         import sentry_sdk
         sentry_sdk.capture_exception(exc)
     resp = JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    # ServerErrorMiddleware sits outside CORSMiddleware, so add CORS headers
+    # here -- but only for allowed origins, never by echoing any Origin.
     origin = request.headers.get("origin")
-    if origin:
+    if origin and origin in cors_allowed_origins():
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Vary"] = "Origin"
     return resp
 
 
@@ -214,9 +218,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins + [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()] + [
-        "https://forge-frontend-8gr.pages.dev",
-    ],
+    allow_origins=cors_allowed_origins(),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],

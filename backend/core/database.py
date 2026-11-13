@@ -134,6 +134,8 @@ async def _ensure_indexes(db):
             # User indexes
             db.users.create_index("email", unique=True),
             db.users.create_index([("id", 1)]),
+            # Waitlist (public landing-page signups)
+            db.waitlist.create_index("email", unique=True),
             # Organization indexes
             db.organizations.create_index("slug", unique=True),
             # Project indexes

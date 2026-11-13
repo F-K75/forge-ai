@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-13 — Free tier set to 10 credits
+
+### Changed
+
+- **Free tier is 10 credits, granted once at signup.** Signup already granted 10 (hardcoded in `register` and Google sign-up), so the 2026-08 reduction to 5 below never reached users. `settings.free_credits` is now 10, and both signup paths read it instead of hardcoding a number. Docs, `landing.html`, the in-app pricing card and the launch drafts now say 10. The in-app card said "10 free credits / month", but nothing refills free credits, so it now says "on signup".
+
 ## 2026-08-04 — Dynamic DB isolation, health check timeout with rollback, secret masking on build logs, Cashfree async HTTP fix
 
 ### Features Added

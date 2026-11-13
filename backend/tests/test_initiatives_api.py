@@ -492,3 +492,71 @@ async def test_regenerate_insufficient_credits(app_client):
     assert "Insufficient credits" in resp.json()["detail"]
     user = await db.users.find_one({"id": "user-1"})
     assert user["credits"] == 2
+
+
+async def _seed_plan_artifacts(db, initiative_id="init-1"):
+    for name in ("prds", "epics", "stories", "tasks", "sprints"):
+        await db[name].insert_one({"id": f"old-{name}", "initiative_id": initiative_id})
+
+
+async def _plan_artifact_ids(db, initiative_id="init-1"):
+    ids = []
+    for name in ("prds", "epics", "stories", "tasks", "sprints"):
+        ids += [d["id"] for d in await db[name].find({"initiative_id": initiative_id}).to_list(None)]
+    return ids
+
+
+async def test_regenerate_keeps_plan_until_worker_replaces_it(app_client):
+    client, db = app_client
+    await db.users.insert_one({"id": "user-1", "credits": 10, "free_initiative_used": True, "plan": "free"})
+    await db.initiatives.insert_one({"id": "init-1", "user_id": "user-1", "name": "Test", "status": "review"})
+    await _seed_plan_artifacts(db)
+
+    resp = client.post("/v1/initiatives/init-1/regenerate?confirm=true", headers=_auth_headers())
+
+    assert resp.status_code == 200
+    assert len(await _plan_artifact_ids(db)) == 5
+
+
+async def test_regenerate_enqueue_failure_keeps_plan_and_refunds(app_client, monkeypatch):
+    client, db = app_client
+    await db.users.insert_one({"id": "user-1", "credits": 10, "free_initiative_used": True, "plan": "free"})
+    await db.initiatives.insert_one({"id": "init-1", "user_id": "user-1", "name": "Test", "status": "review"})
+    await _seed_plan_artifacts(db)
+
+    import api.initiatives as initiatives_module
+    broken = MagicMock()
+    broken.delay.side_effect = ConnectionError("redis down")
+    monkeypatch.setattr(initiatives_module, "generate_initiative_plan", broken)
+
+    with pytest.raises(ConnectionError):
+        client.post("/v1/initiatives/init-1/regenerate?confirm=true", headers=_auth_headers())
+
+    assert len(await _plan_artifact_ids(db)) == 5
+    user = await db.users.find_one({"id": "user-1"})
+    assert user["credits"] == 10
+
+
+async def test_worker_replaces_old_plan_artifacts():
+    from tasks.pm_tasks import _replace_plan_artifacts
+
+    db = FakeDB()
+    await _seed_plan_artifacts(db)
+    await db.tasks.insert_one({"id": "other-task", "initiative_id": "init-2"})
+
+    def _model(doc_id):
+        m = MagicMock()
+        m.model_dump.return_value = {"id": doc_id, "initiative_id": "init-1"}
+        return m
+
+    result = {
+        "prd": _model("new-prd"),
+        "epics": [_model("new-epic")],
+        "stories": [_model("new-story")],
+        "tasks": [_model("new-task")],
+        "sprints": [],
+    }
+    await _replace_plan_artifacts(db, "init-1", result)
+
+    assert sorted(await _plan_artifact_ids(db)) == ["new-epic", "new-prd", "new-story", "new-task"]
+    assert await db.tasks.find_one({"id": "other-task"})

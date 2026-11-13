@@ -38,6 +38,7 @@ from api.sprints import router as sprints_router
 from api.stories import router as stories_router
 from api.support import router as support_router
 from api.tasks import router as tasks_router
+from api.waitlist import router as waitlist_router
 from api.webhooks import router as webhooks_router
 from api.workload import router as workload_router
 
@@ -72,5 +73,6 @@ v1_router.include_router(sprints_router)
 v1_router.include_router(stories_router)
 v1_router.include_router(support_router)
 v1_router.include_router(tasks_router)
+v1_router.include_router(waitlist_router)
 v1_router.include_router(webhooks_router)
 v1_router.include_router(workload_router)

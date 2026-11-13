@@ -71,6 +71,14 @@ ALLOWED_SETTINGS=(
   "            <span>export FORGE_${AK}=&quot;sk_forge_...&quot; && forge build</span>"
   '          qr_code_url: `otpauth://totp/Forge:${user?.email || "developer"}?'"${LSC}"'=${'"${LSC}"'}&issuer=Forge`,'
 )
+# auth.py MFA lines (see _MFA_SECRET_REF).
+ALLOWED_MFA=(
+  "    ${S} = pyotp.random_base32()"
+  "    return MfaSetupResponse(${S}=${S}, otpauth_uri=otpauth_uri)"
+  "    encrypted_${S} = user_doc.get(\"totp_${S}\") if user_doc else None"
+  "    encrypted_${S} = user_doc.get(\"totp_${S}\")"
+  "        ${S} = decrypt_field(encrypted_${S})"
+)
 
 MUST_FLAG=(
   "        ${S}=${FAKE},"                              # literal value
@@ -89,6 +97,11 @@ MUST_FLAG=(
   "        const generated${SC} = \`${FAKE}\`;"                       # settings rule: literal value
   "            <span>export FORGE_${AK}=&quot;sk_forge_${FAKE}&quot; && forge build</span>"  # real-looking key
   "          qr_code_url: \`otpauth://totp/Forge:x?${LSC}=${FAKE}&issuer=Forge\`,"           # literal TOTP secret
+  "    ${S} = ${FAKE}"                                              # MFA rule: literal value
+  "    ${S} = pyotp.random_base32() or ${FAKE}"                     # MFA rule: trailing literal
+  "    return MfaSetupResponse(${S}=${FAKE}, otpauth_uri=otpauth_uri)"  # MFA rule: literal in response
+  "        ${S} = decrypt_field(encrypted_${S}) or ${FAKE}"         # MFA rule: trailing literal
+  "    encrypted_${S} = user_doc.get(\"totp_${S}\") or ${FAKE}"     # MFA rule: literal fallback
 )
 
 for src in "$HOOK" "$WF"; do
@@ -102,6 +115,11 @@ for src in "$HOOK" "$WF"; do
   for r in "${ALLOWED_SETTINGS[@]}"; do
     out=$(printf '%s\n' "$r" | scan_with "$src" "$dc")
     if [ -z "$out" ]; then ok "settings line not flagged: ${r:8:40}"; else bad "settings line flagged: ${r:8:40}"; fi
+  done
+
+  for r in "${ALLOWED_MFA[@]}"; do
+    out=$(printf '%s\n' "$r" | scan_with "$src" "$dc")
+    if [ -z "$out" ]; then ok "MFA line not flagged: ${r:4:40}"; else bad "MFA line flagged: ${r:4:40}"; fi
   done
 
   for r in "${ALLOWED_ROUTES[@]}"; do

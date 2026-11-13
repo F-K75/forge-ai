@@ -147,12 +147,12 @@ class Settings(BaseSettings):
     agent_message_timeout_seconds: float = 60.0
 
     # Pricing Tiers ($USD)
-    # Free: 0 credits, Standard: 100 credits/mo @ $20, Pro: 750 credits/mo @ $50
+    # Free: 10 credits once at signup, Standard: 100 credits/mo @ $20, Pro: 750 credits/mo @ $50
     # Credit packs available for purchase
     standard_monthly_price: int = 20
     pro_monthly_price: int = 50
     enterprise_minimum_annual: int = 5000  # $5K/yr minimum for enterprise
-    free_credits: int = 5  # Reduced from 10 to limit abuse
+    free_credits: int = 10  # One-time signup grant; the first build is also free (api/builds.py)
     standard_credits: int = 100
     pro_credits: int = 750
 

@@ -187,6 +187,8 @@
 
     <form class="waitlist-form" id="waitlistForm">
         <input type="email" id="email" placeholder="Enter your email" required />
+        <!-- Honeypot: hidden from people, often filled in by bots. Leave empty. -->
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0;" />
         <button type="submit" id="submitBtn">Join the Waitlist</button>
     </form>
     <div id="formMessage" class="form-message"></div>
@@ -277,7 +279,7 @@
             <div class="tier">Free</div>
             <div class="price">$0<span>/month</span></div>
             <ul class="perks">
-                <li><strong>5</strong> credits</li>
+                <li><strong>10</strong> credits</li>
                 <li>1 project</li>
                 <li>Basic models</li>
                 <li>Community support</li>
@@ -327,6 +329,10 @@
 </footer>
 
 <script>
+// Forge API endpoint for waitlist signups. The page's origin must be listed in
+// the backend's ALLOWED_ORIGINS for the browser to allow this request (CORS).
+const WAITLIST_API_URL = 'https://forge-ai-ioom.onrender.com/v1/waitlist';
+
 document.getElementById('waitlistForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const email = document.getElementById('email').value.trim();
@@ -340,18 +346,30 @@ document.getElementById('waitlistForm').addEventListener('submit', async functio
     msg.textContent = '';
     msg.className = 'form-message';
 
-    // Send to waitlist API (will be set up later; for now just show success)
     try {
-        // When backend waitlist endpoint is ready, uncomment:
-        // const resp = await fetch('https://api.forge.ai/waitlist', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ email })
-        // });
-        // if (!resp.ok) throw new Error('Failed to join');
+        const params = new URLSearchParams(window.location.search);
+        const source = (params.get('ref') || params.get('utm_source') || 'landing').slice(0, 64);
+        const resp = await fetch(WAITLIST_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email,
+                source,
+                website: document.getElementById('website').value,
+            }),
+        });
+        if (resp.status === 422) {
+            msg.textContent = 'Please enter a valid email address.';
+            msg.className = 'form-message error';
+            return;
+        }
+        if (resp.status === 429) {
+            msg.textContent = 'Too many attempts. Please try again in a minute.';
+            msg.className = 'form-message error';
+            return;
+        }
+        if (!resp.ok) throw new Error('Failed to join');
 
-        // Simulate success for now:
-        await new Promise(r => setTimeout(r, 800));
         msg.textContent = '✅ You\'re on the list! We\'ll be in touch soon.';
         msg.className = 'form-message success';
         document.getElementById('email').value = '';

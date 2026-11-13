@@ -122,7 +122,16 @@ _WEBHOOK_SECRET_FIELD_REF='^[0-9]+:[[:space:]]*secret[=]webhook\["secret"\],$'
 # scripts/git-hooks/pre-commit; scripts/git-hooks/test-secret-allowlist.sh
 # checks both.
 _SETTINGS_DEMO_REF='^[0-9]+:[[:space:]]*const generatedSecret [=] `sk_forge_[$][{]Math[.]random[(][)][.]toString[(]36[)][.]substring[(]2, 15[)][}]_[$][{]Math[.]random[(][)][.]toString[(]36[)][.]substring[(]2, 15[)][}]`;$|^[0-9]+:[[:space:]]*<span>export FORGE_API_KEY[=]&quot;sk_forge_[.][.][.]&quot; && forge build</span>$|^[0-9]+:[[:space:]]*qr_code_url: `otpauth://totp/Forge:[$][{]user[?][.]email [|][|] "developer"[}][?]secret[=][$][{]secret[}]&issuer[=]Forge`,$'
-ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|pk_test_1234567890abcdef|pk_live_1234567890abcdef|cf_test1234567890abcdef|cashfree_test1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}|${_SHELL_VAR_REF}|${_WEBHOOK_SECRET_FIELD_REF}|${_SETTINGS_DEMO_REF}"
+# Exact lines in backend/api/auth.py's MFA code that name a TOTP secret
+# without containing one: generating it (pyotp.random_base32()),
+# returning it in the setup response, reading the encrypted value from
+# the user document, and decrypting it. Pinned to whole lines like the
+# rules above, so a literal value or any other edit is still flagged.
+# Keep identical in .github/workflows/secret-scanning.yml and
+# scripts/git-hooks/pre-commit; scripts/git-hooks/test-secret-allowlist.sh
+# checks both.
+_MFA_SECRET_REF='^[0-9]+:[[:space:]]*secret [=] pyotp[.]random_base32[(][)]$|^[0-9]+:[[:space:]]*return MfaSetupResponse[(]secret[=]secret, otpauth_uri[=]otpauth_uri[)]$|^[0-9]+:[[:space:]]*encrypted_secret [=] user_doc[.]get[(]"totp_secret"[)]( if user_doc else None)?$|^[0-9]+:[[:space:]]*secret [=] decrypt_field[(]encrypted_secret[)]$'
+ALLOW_LINE="sk_live_test123456789|whsec_test123456789|sk_live_1234567890abcdef|whsec_1234567890abcdef|pk_test_1234567890abcdef|pk_live_1234567890abcdef|cf_test1234567890abcdef|cashfree_test1234567890abcdef|CHANGE_ME|your_[a-zA-Z0-9_]+_here|testpass|ci-dummy|${_API_KEY_VAR_REF}|${_ENV_KEY_REF}|${_ROUTE_NAME_REF}|${_SHELL_VAR_REF}|${_WEBHOOK_SECRET_FIELD_REF}|${_SETTINGS_DEMO_REF}|${_MFA_SECRET_REF}"
 
 # --- Check for .env file in staged changes ---
 if git diff --cached --name-only | grep -q '^.env$'; then

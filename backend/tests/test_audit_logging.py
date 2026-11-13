@@ -198,6 +198,14 @@ class TestCriticalOpAudit:
     def test_webhook_create_and_delete_audited(self, fake_db, monkeypatch):
         import api.webhooks as webhooks_module
 
+        import core.security as security_module
+
+        async def _resolve_public(hostname):
+            # Webhook URLs are DNS-checked against SSRF; don't depend on the
+            # test machine's network for that (covered in test_ssrf_protection.py).
+            return [(2, 1, 6, "", ("93.184.216.34", 0))]
+
+        monkeypatch.setattr(security_module, "_resolve_host", _resolve_public)
         user = _make_user()
         client = _client_for(monkeypatch, webhooks_module, fake_db, user)
 

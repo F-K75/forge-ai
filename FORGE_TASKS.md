@@ -11,14 +11,14 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - [x] Set pricing tiers in `backend/core/config.py` (Free 5 credits/$0, Standard 100/$20mo, Pro 750/$50mo, Enterprise custom)
 - [x] Draft `TEAM.md` (founding team page skeleton for keshav to fill in)
 - [x] Add GitHub issue templates (bug + feature) under `.github/ISSUE_TEMPLATE/`
-- [ ] Draft blog post 1: "How We Built a Multi-Agent AI Engineering Platform" → `blog/01-architecture.md`
-- [ ] Draft blog post 2: "Why Single-Agent AI Coding Tools Are Not Enough" → `blog/02-positioning.md`
-- [ ] Draft blog post 3: "Building a Full-Stack App in 5 Minutes with Forge" → `blog/03-tutorial.md`
-- [ ] Add PostHog analytics snippet to frontend (signups, builds started/completed, errors)
-- [ ] Draft onboarding welcome email templates for Resend integration
-- [ ] Draft Product Hunt launch kit: tagline, description, first comment → `launch/product-hunt.md`
-- [ ] Draft "Show HN" post text → `launch/hacker-news.md`
-- [ ] Update README with waitlist link and contributing pointers
+- [x] Draft blog post 1: "How We Built a Multi-Agent AI Engineering Platform" → `blog/01-architecture.md`
+- [x] Draft blog post 2: "Why Single-Agent AI Coding Tools Are Not Enough" → `blog/02-positioning.md`
+- [x] Draft blog post 3: "Building a Full-Stack App in 5 Minutes with Forge" → `blog/03-tutorial.md`
+- [x] Add PostHog analytics snippet to frontend (signups, builds started/completed, errors)
+- [x] Draft onboarding welcome email templates for Resend integration
+- [x] Draft Product Hunt launch kit: tagline, description, first comment → `launch/product-hunt.md`
+- [x] Draft "Show HN" post text → `launch/hacker-news.md`
+- [x] Update README with waitlist link and contributing pointers
 
 ## Needs keshav (not automatable)
 
@@ -40,3 +40,21 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - Next in queue: GitHub issue templates (`.github/ISSUE_TEMPLATE/`).
 - Later same day (with keshav): finalized TEAM.md (bio, GitHub/LinkedIn links; waitlist URL TBD pending domain). Added issue templates: `bug_report.yml`, `feature_request.yml`, `config.yml` (discussions link — update URL after GitHub org move).
 - Next in queue: blog post 1 (`blog/01-architecture.md`).
+
+### 2026-11-13
+- Found already complete but unchecked: blog posts 1–3 (in `blog/` as `01-multi-agent-architecture.md`, `02-why-single-agent-is-not-enough.md`, `03-building-fullstack-app-in-5-minutes.md`) and PostHog analytics (`frontend/src/lib/analytics.ts`). Checked off.
+- Completed: onboarding email templates in `backend/services/email_templates.py` (welcome, first-build nudge, first-build-done, planning tips), with tests. Templates only: not yet sent or scheduled anywhere.
+- Completed: Product Hunt launch kit (`launch/product-hunt.md`): taglines, description, maker comment, FAQ replies, gallery/video plan, launch checklist. Claims checked against code; bracketed placeholders need keshav.
+- Completed: "Show HN" draft (`launch/hacker-news.md`): titles, post text, prepared thread answers, and a claim-to-source table. Found there's no logged-out demo in production (`/demo` redirects to `/projects` in LIVE_MODE); flagged in the pre-post checklist.
+- Completed: root `README.md` restored from `.stash/README.md` (moved there in 01e9aa3, breaking links from docs/README.md) with corrections (deploy is off in prod, no Cloud Run target, first build free) plus a waitlist placeholder and Contributing/License sections.
+- Found: the `landing.html` waitlist form shows "You're on the list!" but never sends the email anywhere (fetch is commented out). Needs a backend endpoint before the page goes live.
+- Claude queue is now empty.
+- Later same day: added `POST /v1/waitlist` (`backend/api/waitlist.py`) and wired `landing.html` to it. Before the landing page goes live, its origin must be added to `ALLOWED_ORIGINS` on the backend.
+- Fixed (see next entry): `rate_limit_middleware` and `csrf_protection_middleware` in `backend/core/security.py` raise `HTTPException` from function middleware, which FastAPI turns into a 500. Every rate-limit 429, CSRF 403 and body-too-large 413 reaches clients as a 500.
+- Fixed the middleware bug: security middlewares now return their 413/403/429 responses (with CORS headers for allowed origins, and Retry-After on 429). Also added the waitlist route to `PUBLIC_ROUTES` in `test_route_auth_coverage.py`, which the waitlist commit missed.
+- Found, then fixed in the next entry: 4 backend tests fail — 3 in `tests/test_llm_byok.py` and `test_audit_logging.py::test_webhook_create_and_delete_audited` (gets 400 instead of 200).
+- Fixed the 4 failing tests: they depended on live DNS (BYOK base URL and webhook URL SSRF checks resolve the hostname), so they failed on machines without DNS. DNS lookup moved into `core.security._resolve_host`, stubbed in those tests. Full backend suite: 1147 passed, 0 failed.
+- Welcome email now sends once per user: after `/verify-email`, and when a Google account is first created (`_send_welcome_email_once` in `backend/api/auth.py`).
+- Fixed: Google login returned 400 on every sign-in. The callback awaited authlib's synchronous `requests_client` (`fetch_token`, `get`); those calls now run in a thread.
+- Resolved (keshav chose 10): `register` and Google sign-up both hardcoded `credits=10`, while `settings.free_credits` is 5 with a comment saying it was "reduced from 10 to limit abuse". New users currently get 10. Decide which is intended.
+- Free tier set to 10 credits at signup: `settings.free_credits = 10`, both signup paths read it, docs/landing/launch drafts updated. Note: a build reserves ~17 credits, so after the free first build, 10 credits still can't start a second build without upgrading.

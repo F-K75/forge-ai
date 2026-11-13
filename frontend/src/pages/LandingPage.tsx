@@ -295,7 +295,7 @@ const PRICING_PLANS = [
     badge: "FREE STARTER",
     badgeBg: "bg-white text-black",
     description: "For individual developers exploring autonomous multi-agent software generation.",
-    credits: "10 free credits / month",
+    credits: "10 free credits on signup",
     features: [
       "1 Active project workspace",
       "Full 6-Agent engineering fleet",
