@@ -449,11 +449,9 @@ export default function InitiativesListPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("icons");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [pipelineLoads, setPipelineLoads] = useState([92, 88, 96, 84]);
-  const [creditPreview, setCreditPreview] = useState<CreditPreview | null>({
-    cost: 10,
-    free_available: false,
-    credits_remaining: 450,
-  });
+  const [creditPreview, setCreditPreview] = useState<CreditPreview | null>(
+    LIVE_MODE ? null : { cost: 10, free_available: false, credits_remaining: 450 }
+  );
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -477,27 +475,16 @@ export default function InitiativesListPage() {
 
   const load = () => {
     if (LIVE_MODE) {
+      // Backend is the source of truth: an empty account shows an empty
+      // list, not sample data the user can't open.
       initiativesApi
         .list()
         .then((data: any[]) => {
-          if (Array.isArray(data) && data.length > 0) {
-            setInitiatives(data.map(toDisplayInitiative));
-          } else {
-            const locals = getLocalInitiatives();
-            const combined = [
-              ...locals,
-              ...SAMPLE_INITIATIVES.filter((s) => !locals.some((l) => l.id === s.id)),
-            ];
-            setInitiatives(combined.map(toDisplayInitiative));
-          }
+          setInitiatives(Array.isArray(data) ? data.map(toDisplayInitiative) : []);
         })
         .catch(() => {
-          const locals = getLocalInitiatives();
-          const combined = [
-            ...locals,
-            ...SAMPLE_INITIATIVES.filter((s) => !locals.some((l) => l.id === s.id)),
-          ];
-          setInitiatives(combined.map(toDisplayInitiative));
+          setInitiatives([]);
+          toast.error("Couldn't load your initiatives.");
         });
     } else {
       const locals = getLocalInitiatives();
@@ -515,7 +502,7 @@ export default function InitiativesListPage() {
       .creditPreview()
       .then(setCreditPreview)
       .catch(() => {
-        setCreditPreview({ cost: 10, free_available: false, credits_remaining: 450 });
+        setCreditPreview(null);
       });
   }, []);
 
@@ -584,6 +571,13 @@ export default function InitiativesListPage() {
           navigate("/billing");
           return;
         }
+        // Don't fall through to the client-side generator: it would create
+        // an initiative that only exists in this browser and 404s on open.
+        const detail = err?.response?.data?.detail;
+        toast.error(typeof detail === "string" ? detail : "Couldn't create the initiative.");
+        setCreating(false);
+        setGenerationPhase("");
+        return;
       }
     }
 
@@ -786,7 +780,7 @@ export default function InitiativesListPage() {
                   </div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
                     <Star size={13} className="text-amber-500 fill-amber-500" />
-                    <span>{totalInitiatives} Active Initiatives</span>
+                    <span>{totalInitiatives} Initiatives</span>
                   </div>
                   {creditPreview && (
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-blue-600 dark:text-blue-400">

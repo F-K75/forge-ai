@@ -58,6 +58,12 @@ if [ -n "$h" ] && [ "$h" = "$w" ]; then ok "SECRET_PATTERNS"; else bad "SECRET_P
 S="sec""ret"; W="whs""ec_"; P="pass""word"; FAKE="ZZprobe""NOTreal""99xyz"
 CF="c""f_"; CFL="cash""free_"; FAKE20="${FAKE}0"   # Cashfree patterns need 20+ chars
 ALLOWED="        ${S}=webhook[\"${S}\"],"
+# Lazily-imported route components whose names contain "Password".
+PW="Pass""word"
+ALLOWED_ROUTES=(
+  "const Forgot${PW} = lazy(() => import(\"./pages/Forgot${PW}\"))"
+  "const Reset${PW} = lazyWithRetry(() => import(\"./pages/Reset${PW}\"))"
+)
 
 MUST_FLAG=(
   "        ${S}=${FAKE},"                              # literal value
@@ -72,6 +78,7 @@ MUST_FLAG=(
   "${P}=${FAKE}"                                       # unrelated pattern still active
   "  key: ${CF}${FAKE20}"                              # Cashfree key shape
   "  key: ${CFL}${FAKE20}"                             # Cashfree key shape (long prefix)
+  "const Reset${PW} = lazyLoad(() => ${FAKE})"         # route-name rule: other wrapper
 )
 
 for src in "$HOOK" "$WF"; do
@@ -81,6 +88,11 @@ for src in "$HOOK" "$WF"; do
 
   out=$(printf '%s\n' "$ALLOWED" | scan_with "$src" "$dc")
   if [ -z "$out" ]; then ok "allowed expression is not flagged"; else bad "allowed expression was flagged"; fi
+
+  for r in "${ALLOWED_ROUTES[@]}"; do
+    out=$(printf '%s\n' "$r" | scan_with "$src" "$dc")
+    if [ -z "$out" ]; then ok "route import not flagged: ${r:0:40}"; else bad "route import flagged: ${r:0:40}"; fi
+  done
 
   for i in "${!MUST_FLAG[@]}"; do
     out=$(printf '%s\n' "${MUST_FLAG[$i]}" | scan_with "$src" "$dc")

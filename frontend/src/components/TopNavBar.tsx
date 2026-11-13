@@ -33,6 +33,7 @@ import {
 import { useAuthStore } from "../store/authStore";
 import { CURRENT_USER, PROJECTS } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
+import { useActiveProject } from "../hooks/useActiveProject";
 import { NotificationsBell } from "./NotificationsBell";
 import { ThemeToggle } from "./ThemeToggle";
 import BrandLogo from "./BrandLogo";
@@ -54,8 +55,8 @@ interface NavItem {
 
 export const TopNavBar: React.FC<TopNavBarProps> = ({
   onOpenAgentFleet,
-  activeAgentCount = 3,
-  creditsBalance = 1247,
+  activeAgentCount,
+  creditsBalance,
 }) => {
   const { user, logout } = useAuthStore();
   const location = useLocation();
@@ -100,34 +101,47 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   const email = LIVE_MODE ? user?.email ?? "developer@forge.ai" : CURRENT_USER.email;
   const initial = (name || "F").charAt(0).toUpperCase();
 
-  // Project context resolution
-  const projectMatch = location.pathname.match(/^\/(?:p|build|project)\/([^/]+)/);
-  const activeProjectId = projectMatch
-    ? projectMatch[1]
-    : localStorage.getItem("forge_last_project") || "demo-project";
+  // Project context resolution (shared with AppShell / CommandPalette)
+  const {
+    activeProjectId: resolvedProjectId,
+    activeProject: liveActiveProject,
+    projects: liveProjects,
+    projectPath,
+    isLoading: projectsLoading,
+  } = useActiveProject();
+  const activeProjectId = resolvedProjectId ?? "";
 
-  const allProjects = [
-    {
-      id: "demo-project",
-      name: "Forge Core Engine",
-      description: "Autonomous multi-agent engineering platform",
-      live: true,
-      qaScore: 99,
-      branch: "main",
-    },
-    ...PROJECTS.map((p) => ({
-      ...p,
-      branch: "main",
-    })),
-  ];
+  const allProjects = LIVE_MODE
+    ? liveProjects.map((p) => ({ ...p, branch: "main" }))
+    : [
+        {
+          id: "demo-project",
+          name: "Forge Core Engine",
+          description: "Autonomous multi-agent engineering platform",
+          live: true,
+          qaScore: 99,
+          branch: "main",
+        },
+        ...PROJECTS.map((p) => ({
+          ...p,
+          branch: "main",
+        })),
+      ];
 
   const activeProject =
-    allProjects.find((p) => p.id === activeProjectId) || {
+    allProjects.find((p) => p.id === activeProjectId) ||
+    (liveActiveProject ? { ...liveActiveProject, branch: "main" } : null) || {
       id: activeProjectId,
-      name: activeProjectId,
-      description: "Active workspace",
-      live: true,
-      qaScore: 95,
+      name: LIVE_MODE
+        ? !activeProjectId
+          ? "No project selected"
+          : projectsLoading
+          ? "Loading project…"
+          : "Unknown project"
+        : activeProjectId,
+      description: "",
+      live: false,
+      qaScore: 0,
       branch: "main",
     };
 
@@ -143,7 +157,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   // Primary workflow navigation items
   const primaryNavItems: NavItem[] = [
     {
-      to: `/p/${activeProjectId}/workspace`,
+      to: projectPath("workspace"),
       label: "Workspace",
       description: "Interactive IDE, terminal & preview",
       icon: Terminal,
@@ -162,7 +176,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       match: (p) => p === "/projects" || p.startsWith("/project/"),
     },
     {
-      to: `/p/${activeProjectId}/initiatives`,
+      to: projectPath("initiatives"),
       label: "Initiatives",
       description: "Agile Kanban, sprints & roadmap",
       icon: Layers,
@@ -170,7 +184,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       match: (p) => p.includes("/initiatives"),
     },
     {
-      to: `/p/${activeProjectId}/flow`,
+      to: projectPath("flow"),
       label: "Agents",
       description: "Autonomous agent graph & fleet",
       icon: Bot,
@@ -181,7 +195,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         (p.startsWith("/p/") && (p.endsWith("/flow") || p.endsWith("/agents"))),
     },
     {
-      to: `/p/${activeProjectId}/reviews`,
+      to: projectPath("reviews"),
       label: "Reviews",
       description: "Agent PR reviews & diff inspector",
       icon: GitCompare,
@@ -209,7 +223,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       match: (p) => p.startsWith("/marketplace"),
     },
     {
-      to: `/p/${activeProjectId}/files`,
+      to: projectPath("files"),
       label: "Files",
       description: "Repository file tree & assets",
       icon: FolderTree,
@@ -217,7 +231,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       match: (p) => p.includes("/files"),
     },
     {
-      to: `/p/${activeProjectId}/history`,
+      to: projectPath("history"),
       label: "History",
       description: "Audit log & task revisions",
       icon: Clock,
@@ -248,7 +262,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       match: (p) => p.startsWith("/admin-console"),
     },
     {
-      to: `/p/${activeProjectId}/settings`,
+      to: projectPath("settings"),
       label: "Settings",
       description: "Workspace & integration preferences",
       icon: Settings,
@@ -256,6 +270,14 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       match: (p) => p.includes("/settings"),
     },
   ];
+
+  // Model Studio and Admin Console are backed by admin-only APIs; showing
+  // them to everyone just led to pages full of 403s.
+  const ADMIN_ONLY = new Set(["/models", "/admin-console"]);
+  const isAdmin = !LIVE_MODE || user?.is_admin === true;
+  const visibleSecondaryNavItems = secondaryNavItems.filter(
+    (item) => isAdmin || !ADMIN_ONLY.has(item.to)
+  );
 
   // Close menus on route change or outside click
   useEffect(() => {
@@ -317,7 +339,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
     );
   };
 
-  const isMoreActive = secondaryNavItems.some((item) => item.match(location.pathname));
+  const isMoreActive = visibleSecondaryNavItems.some((item) => item.match(location.pathname));
 
   return (
     <>
@@ -458,7 +480,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                         </div>
                         <div className="text-right shrink-0">
                           <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400">
-                            QA {p.qaScore}%
+                            {p.qaScore ? `QA ${p.qaScore}%` : ""}
                           </span>
                         </div>
                       </button>
@@ -513,7 +535,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             const ItemIcon = item.icon;
             return (
               <NavLink
-                key={item.to}
+                key={item.label}
                 to={item.to}
                 id={`taskbar-tab-${item.label.toLowerCase()}`}
                 className={`relative h-7 px-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -571,12 +593,12 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                 <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
                   Ecosystem & Utilities
                 </div>
-                {secondaryNavItems.map((item) => {
+                {visibleSecondaryNavItems.map((item) => {
                   const isActive = item.match(location.pathname);
                   const Icon = item.icon;
                   return (
                     <NavLink
-                      key={item.to}
+                      key={item.label}
                       to={item.to}
                       role="menuitem"
                       onClick={() => setShowMoreMenu(false)}
@@ -625,6 +647,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           </button>
 
           {/* Autonomous Fleet Monitor Beacon */}
+          {activeAgentCount !== undefined && (
           <button
             type="button"
             id="os-agent-fleet-trigger"
@@ -643,6 +666,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
               {activeAgentCount}
             </span>
           </button>
+          )}
 
           {/* Compute Credits Balance */}
           <NavLink
@@ -653,7 +677,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           >
             <Sparkles size={12} className="text-amber-500 shrink-0" />
             <span className="font-semibold text-neutral-900 dark:text-neutral-100">
-              {creditsBalance.toLocaleString()}
+              {creditsBalance === undefined ? "—" : creditsBalance.toLocaleString()}
             </span>
             <span className="text-[10px] text-neutral-400">CR</span>
           </NavLink>
@@ -722,7 +746,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                     role="menuitem"
                     onClick={() => {
                       setShowUserMenu(false);
-                      navigate(`/p/${activeProjectId}/settings`);
+                      navigate(projectPath("settings"));
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-white/[0.06] text-neutral-700 dark:text-neutral-300 text-xs transition-colors cursor-pointer"
                   >
@@ -746,7 +770,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                     role="menuitem"
                     onClick={() => {
                       setShowUserMenu(false);
-                      navigate(`/project/${activeProjectId}/org`);
+                      navigate(activeProjectId ? `/project/${activeProjectId}/org` : "/projects");
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-white/[0.06] text-neutral-700 dark:text-neutral-300 text-xs transition-colors cursor-pointer"
                   >
@@ -845,7 +869,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                     main
                   </span>
                   <span>·</span>
-                  <span>QA {activeProject.qaScore}%</span>
+                  <span>QA {activeProject.qaScore ? `${activeProject.qaScore}%` : "—"}</span>
                 </div>
               </div>
 
@@ -860,7 +884,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                     const Icon = item.icon;
                     return (
                       <NavLink
-                        key={item.to}
+                        key={item.label}
                         to={item.to}
                         onClick={() => setShowMobileDrawer(false)}
                         className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
@@ -890,12 +914,12 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                   Ecosystem & Settings
                 </div>
                 <div className="space-y-0.5">
-                  {secondaryNavItems.map((item) => {
+                  {visibleSecondaryNavItems.map((item) => {
                     const isActive = item.match(location.pathname);
                     const Icon = item.icon;
                     return (
                       <NavLink
-                        key={item.to}
+                        key={item.label}
                         to={item.to}
                         onClick={() => setShowMobileDrawer(false)}
                         className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
@@ -928,7 +952,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                 </div>
                 <div className="text-xs">
                   <div className="font-semibold truncate max-w-[120px]">{name}</div>
-                  <div className="text-[10px] text-neutral-400">{creditsBalance} CR</div>
+                  <div className="text-[10px] text-neutral-400">{creditsBalance ?? "—"} CR</div>
                 </div>
               </div>
               <button

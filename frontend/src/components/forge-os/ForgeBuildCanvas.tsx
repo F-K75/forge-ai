@@ -303,12 +303,18 @@ export function ForgeBuildCanvas({
   customNodes,
 }: ForgeBuildCanvasProps) {
   const [nodes, setNodes] = useState<CanvasNode[]>(customNodes || DEFAULT_NODES);
-  const [selectedNodeId, setSelectedNodeId] = useState<string>("billing");
+  const [selectedNodeId, setSelectedNodeId] = useState<string>(
+    customNodes && customNodes.length > 0 ? customNodes[0].id : "billing"
+  );
 
   useEffect(() => {
     if (customNodes && customNodes.length > 0) {
       setNodes(customNodes);
-      setSelectedNodeId(customNodes[0].id);
+      // Keep the user's selection across live updates; only fall back to the
+      // first node when the selected one no longer exists.
+      setSelectedNodeId((cur) =>
+        customNodes.some((n) => n.id === cur) ? cur : customNodes[0].id
+      );
     }
   }, [customNodes]);
   const [viewMode, setViewMode] = useState<ViewMode>("dag");
@@ -903,7 +909,9 @@ export function ForgeBuildCanvas({
                   <div>
                     <div className="text-[10px] font-black uppercase text-neutral-500 mb-1.5 flex items-center justify-between">
                       <span>Architecture Specs</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% SATISFIED</span>
+                      {selectedNode.details.specs.length > 0 && (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% SATISFIED</span>
+                      )}
                     </div>
                     <ul className="space-y-1.5">
                       {selectedNode.details.specs.map((spec, i) => (
@@ -1194,6 +1202,10 @@ function DAGNodeCard({
           ) : isDone ? (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-400 rounded text-[9px] font-black">
               ✓ VERIFIED
+            </span>
+          ) : node.status === "queued" ? (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 text-neutral-600 dark:bg-white/5 dark:text-neutral-400 border border-neutral-300 dark:border-white/15 rounded text-[9px] font-black">
+              <Clock size={10} /> QUEUED
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-400 rounded text-[9px] font-black">
