@@ -64,3 +64,26 @@ def test_error_has_cors_headers_for_allowed_origin_only(client):
     evil = client.post("/v1/projects", json={}, headers={"Origin": EVIL})
     assert evil.status_code == 403
     assert "access-control-allow-origin" not in evil.headers
+
+
+def test_unhandled_500_has_cors_headers_for_allowed_origin_only(client):
+    from fastapi import APIRouter
+
+    router = APIRouter()
+
+    @router.get("/__test_boom")
+    async def _boom():
+        raise RuntimeError("boom")
+
+    app.include_router(router)
+    try:
+        ok = client.get("/__test_boom", headers={"Origin": ALLOWED})
+        assert ok.status_code == 500
+        assert ok.json() == {"detail": "Internal server error"}
+        assert ok.headers["access-control-allow-origin"] == ALLOWED
+
+        evil = client.get("/__test_boom", headers={"Origin": EVIL})
+        assert evil.status_code == 500
+        assert "access-control-allow-origin" not in evil.headers
+    finally:
+        app.router.routes[:] = [r for r in app.router.routes if getattr(r, "path", None) != "/__test_boom"]

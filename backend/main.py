@@ -200,10 +200,13 @@ async def global_exception_handler(request: Request, exc: Exception):
         import sentry_sdk
         sentry_sdk.capture_exception(exc)
     resp = JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    # ServerErrorMiddleware sits outside CORSMiddleware, so add CORS headers
+    # here -- but only for allowed origins, never by echoing any Origin.
     origin = request.headers.get("origin")
-    if origin:
+    if origin and origin in cors_allowed_origins():
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Vary"] = "Origin"
     return resp
 
 
