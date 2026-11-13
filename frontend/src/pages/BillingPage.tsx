@@ -22,6 +22,7 @@ import { AGENT_SPEND } from "../lib/mockData";
 import { agentById } from "../lib/agents";
 import { LIVE_MODE } from "../lib/env";
 import { billingApi } from "../lib/api";
+import { useAuthStore } from "../store/authStore";
 
 interface RawPlan {
   tier: string;
@@ -38,6 +39,7 @@ interface RawUsage {
   credits_remaining: number;
   builds_count: number;
   agents_runs: Record<string, number>;
+  period_end?: string | null;
 }
 
 interface RawSubscription {
@@ -118,7 +120,9 @@ export default function BillingPage() {
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
   const [billingProvider, setBillingProvider] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<InvoiceItem[]>(DEFAULT_INVOICES);
+  // Live: only real invoices (none until the user is billed).
+  const [invoices, setInvoices] = useState<InvoiceItem[]>(LIVE_MODE ? [] : DEFAULT_INVOICES);
+  const user = useAuthStore((st) => st.user);
   const [activeTab, setActiveTab] = useState<BillingTab>("plans");
 
   // Credit top-up modal
@@ -137,7 +141,7 @@ export default function BillingPage() {
         if (Array.isArray(invs) && invs.length > 0) {
           setInvoices(
             invs.map((inv: any) => ({
-              id: inv.id || `INV-${Math.floor(Math.random() * 9000 + 1000)}`,
+              id: inv.id || "—",
               date: inv.created_at ? new Date(inv.created_at).toLocaleDateString() : "Recent",
               amount: `$${((inv.amount || 0) / 100).toFixed(2)} ${inv.currency?.toUpperCase() || "USD"}`,
               status: (inv.status === "paid" ? "Paid" : "Pending") as any,
@@ -150,7 +154,8 @@ export default function BillingPage() {
       .catch(() => {});
   }, []);
 
-  const activeTier = subscription?.plan ?? "pro";
+  // Live: never assume a paid plan -- fall back to the account's own plan.
+  const activeTier = LIVE_MODE ? subscription?.plan ?? user?.plan ?? "free" : subscription?.plan ?? "pro";
   const plansToDisplay = rawPlans && rawPlans.length > 0 ? rawPlans : FALLBACK_PLANS;
 
   const handleSelectPlan = async (tier: string) => {
@@ -209,19 +214,27 @@ export default function BillingPage() {
   };
 
   // Compute metrics
-  const totalCredits = usage ? usage.credits_used + usage.credits_remaining : 750;
-  const creditsUsed = usage ? usage.credits_used : 138;
-  const creditsRemaining = usage ? usage.credits_remaining : 612;
+  // Live: until usage loads (or if it fails) show the account's real balance,
+  // never the demo figures.
+  const creditsUsed = usage ? usage.credits_used : LIVE_MODE ? 0 : 138;
+  const creditsRemaining = usage ? usage.credits_remaining : LIVE_MODE ? user?.credits ?? 0 : 612;
+  const totalCredits = usage ? usage.credits_used + usage.credits_remaining : LIVE_MODE ? creditsUsed + creditsRemaining : 750;
+  const periodEnd = usage?.period_end || subscription?.current_period_end || null;
+  const daysUntilReset = periodEnd
+    ? Math.max(0, Math.ceil((new Date(/([zZ]|[+-]\d\d:?\d\d)$/.test(periodEnd) ? periodEnd : `${periodEnd}Z`).getTime() - Date.now()) / 86_400_000))
+    : null;
   const creditUsagePercent = Math.min(100, Math.round((creditsUsed / (totalCredits || 1)) * 100));
 
   const agentSpendData = useMemo(() => {
-    if (LIVE_MODE && usage?.agents_runs) {
-      return Object.entries(usage.agents_runs).map(([agentId, runs]) => {
+    if (LIVE_MODE) {
+      // The API reports how many times each agent ran this period, not
+      // credits per agent -- show run counts rather than invent a cost.
+      return Object.entries(usage?.agents_runs ?? {}).map(([agentId, runs]) => {
         const agent = agentById(agentId as any);
         return {
           agentId,
           label: agent?.label || agentId,
-          credits: runs * 5,
+          credits: runs,
           hue: agent?.hue || "#2DD4BF",
         };
       });
@@ -665,7 +678,9 @@ export default function BillingPage() {
                     </span>
                     <span className="w-2 h-2 rounded-full bg-emerald-400 border border-black" />
                   </div>
-                  <p className="text-2xl font-mono font-black text-ink">22 DAYS</p>
+                  <p className="text-2xl font-mono font-black text-ink">
+                    {LIVE_MODE ? (daysUntilReset === null ? "—" : `${daysUntilReset} DAYS`) : "22 DAYS"}
+                  </p>
                   <p className="text-[10px] font-mono text-muted">
                     RESETS ON NEXT RENEWAL
                   </p>
@@ -677,7 +692,7 @@ export default function BillingPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-black/20 dark:border-white/20 pb-2.5 font-mono text-xs">
                   <div className="font-black text-ink uppercase flex items-center gap-2">
                     <Activity size={14} />
-                    <span>AGENT_COMPUTE_CONSUMPTION.LOG</span>
+                    <span>{LIVE_MODE ? "AGENT RUNS THIS PERIOD" : "AGENT_COMPUTE_CONSUMPTION.LOG"}</span>
                   </div>
                   <span className="text-muted">
                     CYCLE TOTAL: <strong className="text-ink">{creditsUsed} CREDITS USED</strong>
@@ -685,10 +700,17 @@ export default function BillingPage() {
                 </div>
 
                 <div className="space-y-3">
+                  {agentSpendData.length === 0 && (
+                    <p className="text-xs font-mono text-muted">No agent runs yet this period.</p>
+                  )}
                   {agentSpendData.map((item) => {
                     const pct = Math.min(100, Math.round((item.credits / maxAgentCredits) * 100));
-                    const shareOfTotal =
-                      totalCredits > 0 ? Math.round((item.credits / (creditsUsed || 1)) * 100) : 0;
+                    const totalRuns = agentSpendData.reduce((n, a) => n + a.credits, 0);
+                    const shareOfTotal = LIVE_MODE
+                      ? Math.round((item.credits / (totalRuns || 1)) * 100)
+                      : totalCredits > 0
+                      ? Math.round((item.credits / (creditsUsed || 1)) * 100)
+                      : 0;
                     return (
                       <div key={item.agentId} className="space-y-1">
                         <div className="flex items-center justify-between text-xs font-mono">
@@ -699,10 +721,12 @@ export default function BillingPage() {
                             />
                             <span>{item.label}</span>
                             <span className="text-[10px] text-muted font-normal uppercase">
-                              ({shareOfTotal}% OF BURN)
+                              ({shareOfTotal}% OF {LIVE_MODE ? "RUNS" : "BURN"})
                             </span>
                           </div>
-                          <span className="font-black text-ink">{item.credits} CR</span>
+                          <span className="font-black text-ink">
+                            {item.credits} {LIVE_MODE ? (item.credits === 1 ? "RUN" : "RUNS") : "CR"}
+                          </span>
                         </div>
                         <div className="h-3 w-full bg-neutral-100 dark:bg-neutral-800 border border-black dark:border-white overflow-hidden">
                           <div
@@ -751,6 +775,13 @@ export default function BillingPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y-2 divide-black/20 dark:divide-white/20 bg-white dark:bg-[#1A1A24]">
+                    {invoices.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-4 text-center text-xs font-mono text-muted">
+                          No invoices yet.
+                        </td>
+                      </tr>
+                    )}
                     {invoices.map((inv) => (
                       <tr
                         key={inv.id}

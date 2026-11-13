@@ -112,7 +112,13 @@ export function SecurityTab() {
         setSessions(stored ? JSON.parse(stored) : DEMO_SESSIONS);
       }
     } catch {
-      setSessions(DEMO_SESSIONS);
+      // Never show made-up sessions on a security screen in live mode.
+      if (LIVE_MODE) {
+        setSessions([]);
+        toast.error("Failed to load active sessions");
+      } else {
+        setSessions(DEMO_SESSIONS);
+      }
     } finally {
       setLoadingSessions(false);
     }

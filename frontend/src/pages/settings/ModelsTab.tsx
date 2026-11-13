@@ -333,6 +333,16 @@ export function ModelsTab() {
               </div>
             )}
 
+{LIVE_MODE ? (
+              // There's no backend endpoint that checks a user's own key, and
+              // the old button always reported success after a delay. Be
+              // honest about when the key is actually exercised.
+              <p className="text-[11px] text-muted bg-base/40 p-3 rounded-lg border border-border-soft">
+                Your key is used on your next build. If the provider rejects it, that build fails with
+                the provider's error message.
+              </p>
+            ) : (
+              <>
             {/* Test Connection Button & Status */}
             <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base/40 p-3 rounded-lg border border-border-soft">
               <div className="text-xs">
@@ -360,6 +370,8 @@ export function ModelsTab() {
                 {testResult.ok ? <CheckCircle2 size={16} className="shrink-0 mt-0.5" /> : <XCircle size={16} className="shrink-0 mt-0.5" />}
                 <p className="leading-relaxed">{testResult.message}</p>
               </div>
+            )}
+              </>
             )}
           </form>
         )}

@@ -67,7 +67,12 @@ export function ApiKeysTab() {
         }
       }
     } catch {
-      setKeys(DEMO_KEYS);
+      if (LIVE_MODE) {
+        setKeys([]);
+        toast.error("Failed to load API keys");
+      } else {
+        setKeys(DEMO_KEYS);
+      }
     } finally {
       setLoading(false);
     }

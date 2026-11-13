@@ -45,7 +45,12 @@ export function SupportTab() {
         setTickets(stored ? JSON.parse(stored) : DEMO_TICKETS);
       }
     } catch {
-      setTickets(DEMO_TICKETS);
+      if (LIVE_MODE) {
+        setTickets([]);
+        toast.error("Failed to load support tickets");
+      } else {
+        setTickets(DEMO_TICKETS);
+      }
     } finally {
       setLoadingTickets(false);
     }
