@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-11-13 — One set of prices everywhere
+
+### Changed
+
+- **Plans now match the published pricing everywhere.** Billing code, the in-app billing page, the in-app landing page and `landing.html` had four different price lists. The decided plans: Free (10 credits at signup, 1 project), Standard ($20/mo, 100 credits), Pro ($50/mo, 750 credits, BYOK), Enterprise (custom); paid plans have unlimited projects; annual is 10x monthly.
+  - `PLAN_DETAILS` (what `/billing/plans` shows and what a subscription grants) now reads prices and credits from `core/config.py`. Previously Standard showed $29, Pro showed $99 and granted 500 credits instead of 750, and Enterprise showed $999.
+  - Project limits: Free 1 (was 3); Standard and Pro unlimited (were 25 and 100).
+  - Enterprise shows "Custom" with a contact link instead of a price and checkout.
+  - The plans cache key is versioned, so the old list isn't served for up to an hour after deploy.
+
+### Fixed
+
+- The billing page reported a failed checkout as "Plan updated to …"; it now shows an error.
+
 ## 2026-11-13 — Free tier set to 10 credits
 
 ### Changed

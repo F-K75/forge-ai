@@ -298,10 +298,13 @@ Each agent action costs credits:
 (`api/builds.py`).
 
 Plan tiers (configure in `core/config.py`):
-- Free: 10 credits at signup (first build free)
-- Standard: 100/month ($20)
-- Pro: 750/month ($50) + BYOK
-- Enterprise: custom
+- Free: 10 credits at signup (first build free), 1 project
+- Standard: $20/month, 100 credits/month, unlimited projects
+- Pro: $50/month, 750 credits/month, unlimited projects, BYOK
+- Enterprise: custom pricing, unlimited projects
+
+Annual billing is 10x the monthly price. The source of truth is `PLAN_DETAILS`
+in `backend/api/billing.py`; `backend/tests/test_plan_details.py` pins it.
 
 ## Adding integrations (Playbooks)
 

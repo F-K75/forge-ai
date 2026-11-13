@@ -32,6 +32,8 @@ interface RawPlan {
   credits: number;
   features: string[];
   max_projects?: number;
+  /** Enterprise: show "Custom" and a contact button instead of a price. */
+  custom_pricing?: boolean;
 }
 
 interface RawUsage {
@@ -59,9 +61,9 @@ interface InvoiceItem {
 }
 
 const DEFAULT_INVOICES: InvoiceItem[] = [
-  { id: "INV-2026-0801", date: "Aug 1, 2026", amount: "$99.00 USD", status: "Paid", plan: "Pro Plan (Monthly)" },
-  { id: "INV-2026-0701", date: "Jul 1, 2026", amount: "$99.00 USD", status: "Paid", plan: "Pro Plan (Monthly)" },
-  { id: "INV-2026-0601", date: "Jun 1, 2026", amount: "$99.00 USD", status: "Paid", plan: "Pro Plan (Monthly)" },
+  { id: "INV-2026-0801", date: "Aug 1, 2026", amount: "$50.00 USD", status: "Paid", plan: "Pro Plan (Monthly)" },
+  { id: "INV-2026-0701", date: "Jul 1, 2026", amount: "$50.00 USD", status: "Paid", plan: "Pro Plan (Monthly)" },
+  { id: "INV-2026-0601", date: "Jun 1, 2026", amount: "$50.00 USD", status: "Paid", plan: "Pro Plan (Monthly)" },
   { id: "INV-2026-0515", date: "May 15, 2026", amount: "$40.00 USD", status: "Paid", plan: "Credit Pack (500 Credits)" },
 ];
 
@@ -72,42 +74,45 @@ const CREDIT_PACKAGES = [
   { id: "credits_5000", credits: 5000, price: 250, bonus: "Save 50%", perCredit: "$0.05" },
 ];
 
+// Shown in demo mode and if /billing/plans fails. Must match PLAN_DETAILS in
+// backend/api/billing.py (pinned by backend/tests/test_plan_details.py).
 const FALLBACK_PLANS: RawPlan[] = [
   {
     tier: "free",
     name: "Free",
     price_monthly: 0,
     price_annual: 0,
-    credits: 50,
-    max_projects: 3,
-    features: ["50 monthly credits", "3 active projects", "Standard community models", "Community Discord support"],
+    credits: 10,
+    max_projects: 1,
+    features: ["10 credits at signup", "First build free", "1 project", "Community support"],
   },
   {
     tier: "standard",
     name: "Standard",
-    price_monthly: 29,
-    price_annual: 290,
+    price_monthly: 20,
+    price_annual: 200,
     credits: 100,
-    max_projects: 25,
-    features: ["100 monthly credits", "25 active projects", "All autonomous agents", "Custom domains & SSL", "Priority build queue"],
+    max_projects: -1,
+    features: ["100 credits/month", "Unlimited projects", "All agents", "Email support"],
   },
   {
     tier: "pro",
     name: "Pro",
-    price_monthly: 99,
-    price_annual: 990,
-    credits: 500,
-    max_projects: 100,
-    features: ["500 monthly credits", "100 active projects", "Frontier models (Gemini 2.5 Pro & Claude 3.7)", "Bring Your Own Key (BYOK)", "24/7 Priority SLA & SSO"],
+    price_monthly: 50,
+    price_annual: 500,
+    credits: 750,
+    max_projects: -1,
+    features: ["750 credits/month", "Unlimited projects", "All agents", "Bring your own LLM key (BYOK)", "Priority support"],
   },
   {
     tier: "enterprise",
     name: "Enterprise",
-    price_monthly: 999,
-    price_annual: 9990,
+    price_monthly: 0,
+    price_annual: 0,
     credits: 5000,
     max_projects: -1,
-    features: ["5,000 monthly credits", "Unlimited projects & concurrency", "Dedicated inference routing cluster", "Custom system prompts & fine-tuning", "Dedicated account engineer"],
+    custom_pricing: true,
+    features: ["Custom pricing and credit volume", "Unlimited projects", "All agents", "Bring your own LLM key (BYOK)", "Dedicated support"],
   },
 ];
 
@@ -178,7 +183,8 @@ export default function BillingPage() {
         }
       }
     } catch {
-      toast.success(`Plan updated to ${tier.toUpperCase()}`);
+      // Never report success here: the checkout or downgrade request failed.
+      toast.error("Couldn't change your plan. Nothing was charged. Please try again.");
     } finally {
       setPendingPlan(null);
     }
@@ -522,11 +528,17 @@ export default function BillingPage() {
 
                         {/* Price */}
                         <div>
-                          <div className="flex items-baseline gap-1 font-mono">
-                            <span className="text-3xl font-black text-ink">${displayPrice}</span>
-                            <span className="text-xs text-muted uppercase">/mo</span>
-                          </div>
-                          {billingInterval === "annual" && plan.price_monthly > 0 && (
+                          {plan.custom_pricing ? (
+                            <div className="flex items-baseline gap-1 font-mono">
+                              <span className="text-3xl font-black text-ink">Custom</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-baseline gap-1 font-mono">
+                              <span className="text-3xl font-black text-ink">${displayPrice}</span>
+                              <span className="text-xs text-muted uppercase">/mo</span>
+                            </div>
+                          )}
+                          {!plan.custom_pricing && billingInterval === "annual" && plan.price_monthly > 0 && (
                             <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
                               ${plan.price_annual}/yr billed annually
                             </p>
@@ -536,7 +548,13 @@ export default function BillingPage() {
                         {/* Credits quota chip */}
                         <div className="p-1.5 bg-[#F4F0EA] dark:bg-[#252532] border border-black dark:border-white/60 text-xs font-mono font-black text-ink flex items-center gap-1.5">
                           <Zap size={12} className="text-black dark:text-white shrink-0" />
-                          <span>{plan.credits.toLocaleString()} CR / MO</span>
+                          <span>
+                            {plan.custom_pricing
+                              ? "CUSTOM CREDITS"
+                              : plan.tier === "free"
+                              ? `${plan.credits.toLocaleString()} CR AT SIGNUP`
+                              : `${plan.credits.toLocaleString()} CR / MO`}
+                          </span>
                         </div>
 
                         {/* Features checklist */}
@@ -556,6 +574,15 @@ export default function BillingPage() {
 
                       {/* Select Plan Push-Button */}
                       <div className="pt-3 border-t-2 border-black/20 dark:border-white/20">
+                        {plan.custom_pricing && !isCurrent ? (
+                          <a
+                            id={`btn-select-plan-${plan.tier}`}
+                            href="/settings#support"
+                            className="block w-full py-2 text-center font-mono text-xs font-black uppercase border-2 border-black dark:border-white shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] bg-white dark:bg-[#202028] text-ink hover:bg-neutral-100"
+                          >
+                            Contact us
+                          </a>
+                        ) : (
                         <button
                           type="button"
                           id={`btn-select-plan-${plan.tier}`}
@@ -582,6 +609,7 @@ export default function BillingPage() {
                             `SELECT ${plan.name.toUpperCase()}`
                           )}
                         </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -654,15 +682,18 @@ export default function BillingPage() {
                     </span>
                   </div>
                   <p className="text-2xl font-mono font-black text-ink">
-                    $
-                    {activeTier === "pro"
-                      ? 99
-                      : activeTier === "standard"
-                      ? 29
-                      : activeTier === "enterprise"
-                      ? 999
-                      : 0}
-                    <span className="text-xs font-normal text-muted">/MO</span>
+                    {(() => {
+                      // Read from the same plan list as the cards, not a
+                      // second hardcoded copy of the prices.
+                      const current = plansToDisplay.find((p) => p.tier === activeTier);
+                      if (current?.custom_pricing) return "Custom";
+                      return (
+                        <>
+                          ${current?.price_monthly ?? 0}
+                          <span className="text-xs font-normal text-muted">/MO</span>
+                        </>
+                      );
+                    })()}
                   </p>
                   <p className="text-[10px] font-mono text-muted truncate">
                     AUTO-RENEWS VIA STRIPE

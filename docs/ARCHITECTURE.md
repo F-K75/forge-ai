@@ -145,8 +145,9 @@ Dual-provider billing: **Stripe** (`api/billing.py`) and **Razorpay**
 (`api/razorpay.py`, for the India market), selected by `BILLING_PROVIDER`.
 Credit-based usage — each agent action costs credits (Architect 3, Designer 2,
 Developer 5, Integration 2, PM 1, Business Model 2, Debug 2; ~15–17 per
-build). Tiers: Free (10 credits at signup), Standard (100/mo), Pro (750/mo + 1M context
-+ BYOK). Webhooks are idempotent; production config is validated at startup
+build). Tiers (`PLAN_DETAILS` in `backend/api/billing.py`): Free (10 credits at
+signup, 1 project), Standard ($20/mo, 100 credits/mo), Pro ($50/mo, 750
+credits/mo + BYOK), Enterprise (custom); paid plans have unlimited projects. Webhooks are idempotent; production config is validated at startup
 (see `docs/CONFIGURATION.md`).
 
 ## Review Board orchestrator (`orchestrator/`)

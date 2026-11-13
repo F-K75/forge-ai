@@ -421,6 +421,7 @@ async def _build_plans():
             credits=p["credits"],
             features=p["features"],
             max_projects=p.get("max_projects", 0),
+            custom_pricing=p.get("custom_pricing", False),
         ).model_dump()
         for p in PLAN_DETAILS
     ]
