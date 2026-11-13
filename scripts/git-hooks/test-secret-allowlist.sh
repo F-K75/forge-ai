@@ -64,6 +64,13 @@ ALLOWED_ROUTES=(
   "const Forgot${PW} = lazy(() => import(\"./pages/Forgot${PW}\"))"
   "const Reset${PW} = lazyWithRetry(() => import(\"./pages/Reset${PW}\"))"
 )
+# Settings demo/placeholder lines (see _SETTINGS_DEMO_REF).
+SC="Sec""ret"; LSC="sec""ret"; AK="API_""KEY"; RND='${Math.random().toString(36).substring(2, 15)}'
+ALLOWED_SETTINGS=(
+  "        const generated${SC} = \`sk_forge_${RND}_${RND}\`;"
+  "            <span>export FORGE_${AK}=&quot;sk_forge_...&quot; && forge build</span>"
+  '          qr_code_url: `otpauth://totp/Forge:${user?.email || "developer"}?'"${LSC}"'=${'"${LSC}"'}&issuer=Forge`,'
+)
 
 MUST_FLAG=(
   "        ${S}=${FAKE},"                              # literal value
@@ -79,6 +86,9 @@ MUST_FLAG=(
   "  key: ${CF}${FAKE20}"                              # Cashfree key shape
   "  key: ${CFL}${FAKE20}"                             # Cashfree key shape (long prefix)
   "const Reset${PW} = lazyLoad(() => ${FAKE})"         # route-name rule: other wrapper
+  "        const generated${SC} = \`${FAKE}\`;"                       # settings rule: literal value
+  "            <span>export FORGE_${AK}=&quot;sk_forge_${FAKE}&quot; && forge build</span>"  # real-looking key
+  "          qr_code_url: \`otpauth://totp/Forge:x?${LSC}=${FAKE}&issuer=Forge\`,"           # literal TOTP secret
 )
 
 for src in "$HOOK" "$WF"; do
@@ -88,6 +98,11 @@ for src in "$HOOK" "$WF"; do
 
   out=$(printf '%s\n' "$ALLOWED" | scan_with "$src" "$dc")
   if [ -z "$out" ]; then ok "allowed expression is not flagged"; else bad "allowed expression was flagged"; fi
+
+  for r in "${ALLOWED_SETTINGS[@]}"; do
+    out=$(printf '%s\n' "$r" | scan_with "$src" "$dc")
+    if [ -z "$out" ]; then ok "settings line not flagged: ${r:8:40}"; else bad "settings line flagged: ${r:8:40}"; fi
+  done
 
   for r in "${ALLOWED_ROUTES[@]}"; do
     out=$(printf '%s\n' "$r" | scan_with "$src" "$dc")
