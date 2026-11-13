@@ -70,6 +70,13 @@ ANNUAL_PLAN_PRICES: Dict[PlanTier, str] = {
     PlanTier.FREE: "price_free",
 }
 
+# The single source of truth for plans: what /billing/plans shows, what a
+# subscription grants, and the project limits enforced in api/projects.py and
+# api/initiatives.py. Prices and credits come from core/config.py so this
+# table, the config and the marketing pages can't drift apart again.
+# Stripe/Razorpay/Cashfree charge whatever their configured price IDs say;
+# keep those prices in step with this table.
+# max_projects: -1 means unlimited. Annual price = 10x monthly (2 months free).
 PLAN_DETAILS = [
     {
         "tier": PlanTier.FREE,
@@ -77,47 +84,67 @@ PLAN_DETAILS = [
         "price_id": "price_free",
         "price_monthly": 0,
         "price_annual": 0,
-        "credits": 50,
-        "features": ["Basic agents", "50 credits", "Community support"],
-        "max_projects": 3,
+        # One-time signup grant (not monthly); the first build is also free.
+        "credits": settings.free_credits,
+        "features": [
+            f"{settings.free_credits} credits at signup",
+            "First build free",
+            "1 project",
+            "Community support",
+        ],
+        "max_projects": 1,
     },
     {
         "tier": PlanTier.STANDARD,
         "name": "Standard",
         "price_id": settings.stripe_price_standard_monthly,
         "price_annual_id": settings.stripe_price_standard_annual,
-        "price_monthly": 29,
-        "price_annual": 290,
-        "credits": 100,
-        "features": ["All agents", "100 credits/month", "Priority support", "Custom domains"],
-        "max_projects": 25,
+        "price_monthly": settings.standard_monthly_price,
+        "price_annual": settings.standard_monthly_price * 10,
+        "credits": settings.standard_credits,
+        "features": [
+            f"{settings.standard_credits} credits/month",
+            "Unlimited projects",
+            "All agents",
+            "Email support",
+        ],
+        "max_projects": -1,
     },
     {
         "tier": PlanTier.PRO,
         "name": "Pro",
         "price_id": settings.stripe_price_pro_monthly,
         "price_annual_id": settings.stripe_price_pro_annual,
-        "price_monthly": 99,
-        "price_annual": 990,
-        "credits": 500,
-        "features": ["All agents", "500 credits/month", "24/7 support", "SSO", "Advanced analytics"],
-        "max_projects": 100,
+        "price_monthly": settings.pro_monthly_price,
+        "price_annual": settings.pro_monthly_price * 10,
+        "credits": settings.pro_credits,
+        "features": [
+            f"{settings.pro_credits} credits/month",
+            "Unlimited projects",
+            "All agents",
+            "Bring your own LLM key (BYOK)",
+            "Priority support",
+        ],
+        "max_projects": -1,
     },
     {
+        # Custom pricing: the pages show "Custom" and "Contact us" instead of a
+        # price. The price IDs stay so existing Enterprise subscriptions keep
+        # working; credits are what such a subscription is granted.
         "tier": PlanTier.ENTERPRISE,
         "name": "Enterprise",
         "price_id": settings.stripe_price_enterprise_monthly,
         "price_annual_id": settings.stripe_price_enterprise_annual,
-        "price_monthly": 999,
-        "price_annual": 9990,
+        "price_monthly": 0,
+        "price_annual": 0,
+        "custom_pricing": True,
         "credits": 5000,
         "features": [
+            "Custom pricing and credit volume",
+            "Unlimited projects",
             "All agents",
-            "Unlimited credits",
+            "Bring your own LLM key (BYOK)",
             "Dedicated support",
-            "SSO/SAML",
-            "Custom SLA",
-            "On-premise option",
         ],
         "max_projects": -1,
     },
@@ -210,6 +237,8 @@ class PlanResponse(BaseModel):
     credits: int
     features: List[str]
     max_projects: int
+    # True for Enterprise: show "Custom" / "Contact us" instead of a price.
+    custom_pricing: bool = False
 
 
 @router.post("/checkout", response_model=Dict[str, Any])
@@ -338,6 +367,7 @@ async def _build_plans():
             credits=p["credits"],
             features=p["features"],
             max_projects=p.get("max_projects", 0),
+            custom_pricing=p.get("custom_pricing", False),
         ).model_dump()
         for p in PLAN_DETAILS
     ]
@@ -667,6 +697,7 @@ async def list_plans():
                 credits=p["credits"],
                 features=p["features"],
                 max_projects=p.get("max_projects", 0),
+            custom_pricing=p.get("custom_pricing", False),
             ).model_dump()
             for p in PLAN_DETAILS
         ]

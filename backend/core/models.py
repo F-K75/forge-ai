@@ -580,3 +580,5 @@ class PlanResponse(BaseModel):
     credits: int
     features: List[str]
     max_projects: int
+    # True for Enterprise: show "Custom" / "Contact us" instead of a price.
+    custom_pricing: bool = False

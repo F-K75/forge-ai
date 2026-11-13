@@ -67,4 +67,6 @@ def user_profile_cache_key(user_id: str) -> str:
     return f"cache:user:{user_id}"
 
 
-PLANS_CACHE_KEY = "cache:billing:plans"
+# Versioned so a deploy that changes plans doesn't serve the old cached
+# list for up to an hour. Bump when PLAN_DETAILS changes shape or values.
+PLANS_CACHE_KEY = "cache:billing:plans:v2"

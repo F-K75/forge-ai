@@ -104,4 +104,4 @@ def test_user_profile_cache_key_format():
 
 
 def test_plans_cache_key_constant():
-    assert PLANS_CACHE_KEY == "cache:billing:plans"
+    assert PLANS_CACHE_KEY == "cache:billing:plans:v2"

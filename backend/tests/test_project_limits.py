@@ -204,27 +204,40 @@ def _client_for(monkeypatch, router_module, fake_db, user):
 
 
 class TestProjectLimitEnforcement:
-    def test_free_user_can_create_up_to_three_projects(self, monkeypatch):
+    def test_free_user_can_create_one_project_then_is_blocked(self, monkeypatch):
         db = FakeDB(users=[{"id": "user-1", "plan": PlanTier.FREE}])
         user = _make_user(PlanTier.FREE)
         client = _client_for(monkeypatch, projects_module, db, user)
 
-        for i in range(3):
-            r = client.post("/projects/", json={"name": f"Project {i+1}", "description": "audit fixture"})
-            assert r.status_code == 200, r.text
-            assert asyncio.run(db.projects.count_documents({"user_id": "user-1"})) == i + 1
+        r = client.post("/projects/", json={"name": "Project 1", "description": "audit fixture"})
+        assert r.status_code == 200, r.text
+        assert asyncio.run(db.projects.count_documents({"user_id": "user-1"})) == 1
 
-    def test_free_user_is_blocked_at_fourth_project(self, monkeypatch):
+        r = client.post("/projects/", json={"name": "Project 2", "description": "audit fixture"})
+        assert r.status_code == 402
+        assert "Project limit reached" in r.json()["detail"]
+        assert asyncio.run(db.projects.count_documents({"user_id": "user-1"})) == 1
+
+    def test_free_user_is_blocked_at_second_project(self, monkeypatch):
         db = FakeDB(
             users=[{"id": "user-1", "plan": PlanTier.FREE}],
-            projects=[{"id": f"p{i}", "user_id": "user-1"} for i in range(3)],
+            projects=[{"id": "p0", "user_id": "user-1"}],
         )
         user = _make_user(PlanTier.FREE)
         client = _client_for(monkeypatch, projects_module, db, user)
 
-        r = client.post("/projects/", json={"name": "Project 4", "description": "audit fixture"})
+        r = client.post("/projects/", json={"name": "Project 2", "description": "audit fixture"})
         assert r.status_code == 402
         assert "Project limit reached" in r.json()["detail"]
+
+    def test_standard_user_can_create_unlimited_projects(self, monkeypatch):
+        db = FakeDB(users=[{"id": "user-1", "plan": PlanTier.STANDARD}])
+        user = _make_user(PlanTier.STANDARD)
+        client = _client_for(monkeypatch, projects_module, db, user)
+
+        for i in range(5):
+            r = client.post("/projects/", json={"name": f"Project {i+1}", "description": "audit fixture"})
+            assert r.status_code == 200, r.text
 
     def test_pro_user_can_create_unlimited_projects(self, monkeypatch):
         db = FakeDB(users=[{"id": "user-1", "plan": PlanTier.PRO}])
@@ -249,7 +262,7 @@ class TestInitiativeProjectLimitEnforcement:
     def test_initiative_creation_respects_project_limit(self, monkeypatch):
         db = FakeDB(
             users=[{"id": "user-1", "plan": PlanTier.FREE}],
-            projects=[{"id": f"p{i}", "user_id": "user-1"} for i in range(3)],
+            projects=[{"id": "p0", "user_id": "user-1"}],
         )
         user = _make_user(PlanTier.FREE)
         client = _client_for(monkeypatch, initiatives_module, db, user)
@@ -314,14 +327,14 @@ class TestProjectSoftDelete:
         db = FakeDB(
             users=[{"id": "user-1", "plan": PlanTier.FREE}],
             projects=[
-                {"id": "p1", "user_id": "user-1"},
-                {"id": "p2", "user_id": "user-1", "deleted_at": "2026-08-11T15:00:00"},
+                {"id": "p1", "user_id": "user-1", "deleted_at": "2026-08-11T15:00:00"},
             ],
         )
         user = _make_user(PlanTier.FREE)
         client = _client_for(monkeypatch, projects_module, db, user)
 
-        r = client.post("/projects/", json={"name": "Project 3", "description": "audit fixture"})
+        # The free plan allows 1 project; a deleted one doesn't use it up.
+        r = client.post("/projects/", json={"name": "Project 2", "description": "audit fixture"})
         assert r.status_code == 200, r.text
 
 

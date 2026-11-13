@@ -287,6 +287,8 @@ const COMPARISON_ROWS = [
   },
 ];
 
+// Must match PLAN_DETAILS in backend/api/billing.py (pinned by
+// backend/tests/test_plan_details.py). Enterprise is shown below the cards.
 const PRICING_PLANS = [
   {
     name: "FREE",
@@ -294,57 +296,50 @@ const PRICING_PLANS = [
     frequency: "/forever",
     badge: "FREE STARTER",
     badgeBg: "bg-white text-black",
-    description: "For individual developers exploring autonomous multi-agent software generation.",
-    credits: "10 free credits on signup",
+    description: "Try the full agent team on a real project before you pay anything.",
+    credits: "10 credits at signup + first build free",
     features: [
-      "1 Active project workspace",
-      "Full 6-Agent engineering fleet",
-      "Production Dockerfile export",
-      "Standard community templates",
-      "Standard build queue",
+      "1 project",
+      "All agents",
+      "Community support",
     ],
     cta: "Start Free",
     ctaPath: "/signup",
     featured: false,
   },
   {
-    name: "PRO",
-    price: "$29",
+    name: "STANDARD",
+    price: "$20",
     frequency: "/month",
     badge: "MOST POPULAR",
     badgeBg: "bg-black text-white dark:bg-white dark:text-black",
-    description: "For engineers, consultants, and founders shipping production software regularly.",
-    credits: "100 credits / month included",
+    description: "For founders and engineers building and iterating on apps every month.",
+    credits: "100 credits / month",
     features: [
-      "Unlimited active projects",
-      "Self-healing 3-pass debug loop",
-      "Bidirectional GitHub sync & PRs",
-      "Private repositories & secret manager",
-      "Priority agent orchestration queue",
-      "Full playbook marketplace access",
+      "Unlimited projects",
+      "All agents",
+      "Email support",
     ],
-    cta: "Start Pro",
-    ctaPath: "/signup?plan=pro",
+    cta: "Start Standard",
+    ctaPath: "/signup?plan=standard",
     featured: true,
   },
   {
-    name: "ENTERPRISE",
-    price: "$99",
+    name: "PRO",
+    price: "$50",
     frequency: "/month",
-    badge: "TEAM & SCALE",
+    badge: "HIGH VOLUME",
     badgeBg: "bg-brutal-cyan text-black",
-    description: "For engineering teams requiring custom models, high throughput, and compliance controls.",
-    credits: "750 credits / month + BYOK",
+    description: "For agencies and teams shipping many apps, or bringing their own model keys.",
+    credits: "750 credits / month",
     features: [
-      "Bring Your Own Key (Anthropic, OpenAI, Gemini)",
-      "High-throughput multi-agent execution",
-      "Custom security & architecture rules",
-      "Team collaboration & shared templates",
-      "Custom Docker base images",
-      "Dedicated Slack engineer support",
+      "Unlimited projects",
+      "All agents",
+      "Bring your own LLM key (BYOK)",
+      "Priority support",
     ],
-    cta: "Get Enterprise",
-    ctaPath: "/signup?plan=enterprise",
+    cta: "Start Pro",
+    ctaPath: "/signup?plan=pro",
     featured: false,
   },
 ];
@@ -1187,7 +1182,7 @@ function PricingSection() {
             START FREE. SCALE WHEN YOU SHIP.
           </h2>
           <p className="text-base sm:text-lg font-mono text-muted max-w-2xl leading-relaxed mb-12">
-            Credits power agent reasoning and compilation cycles. A typical full-stack application consumes 12 to 15 credits. Start free, upgrade when you need private repositories, priority build queues, or team keys.
+            Each agent step uses credits; a typical full-stack build uses about 15 to 17. Your first build is free, so you can see a finished app before paying anything.
           </p>
         </Reveal>
 
@@ -1249,6 +1244,21 @@ function PricingSection() {
               </div>
             </Reveal>
           ))}
+        </div>
+
+        <div className="mt-6 p-5 border-2 border-black dark:border-white/80 bg-white dark:bg-[#1A1A22] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="font-mono font-black uppercase text-ink">Enterprise: custom pricing</p>
+            <p className="text-sm font-mono text-muted mt-1">
+              Custom credit volume, unlimited projects, bring your own LLM keys, and dedicated support.
+            </p>
+          </div>
+          <Link
+            to="/signup?plan=enterprise"
+            className="shrink-0 px-5 py-2.5 border-2 border-black dark:border-white font-mono font-black text-xs uppercase text-ink hover:bg-neutral-100 dark:hover:bg-white/10"
+          >
+            Talk to us ↵
+          </Link>
         </div>
       </div>
     </section>
@@ -1322,7 +1332,7 @@ function FinalCTA() {
             </h2>
 
             <p className="font-mono text-sm sm:text-lg font-bold max-w-2xl leading-relaxed mb-8">
-              No credit card required. Free to start. Full GitHub repository sync. Run your first autonomous build in 20 seconds.
+              No credit card required. 10 free credits, and your first build is free. Push the code to your own GitHub repo.
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
