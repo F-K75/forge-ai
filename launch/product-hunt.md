@@ -123,8 +123,9 @@ Keep these handy for the comment thread. Adjust before using.
   you can push it to your own GitHub repo.
 
 - **"What does a build cost?"**
-  It depends on the size of the app and the stack, since each agent step uses
-  credits. Free accounts start with 5 credits; Standard is $20/month for 100.
+  Your first build is free. After that it depends on the size of the app and
+  the stack, since each agent step uses credits (a typical build is ~15–17).
+  Standard is $20/month for 100 credits.
 
 - **"Which payment methods?"**
   Cards via Stripe, plus Razorpay for payments in India (INR).
@@ -154,8 +155,8 @@ Use real screenshots of the product, not mockups.
 ## Launch-day checklist
 
 - [ ] Production signup, email verification and payments tested end to end
-- [ ] A launch build tested on a fresh account using only the free credits
-      (if 5 credits can't complete a meaningful build, fix that before launch)
+- [ ] A launch build tested end to end on a fresh account (the first build
+      on every account is free, per `backend/api/builds.py`)
 - [ ] Launch scheduled for 12:01 AM Pacific, Tuesday–Thursday
 - [ ] Hunter lined up `[name, or self-hunt]`
 - [ ] Gallery images and video uploaded

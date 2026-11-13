@@ -18,7 +18,7 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - [x] Draft onboarding welcome email templates for Resend integration
 - [x] Draft Product Hunt launch kit: tagline, description, first comment → `launch/product-hunt.md`
 - [x] Draft "Show HN" post text → `launch/hacker-news.md`
-- [ ] Update README with waitlist link and contributing pointers
+- [x] Update README with waitlist link and contributing pointers
 
 ## Needs keshav (not automatable)
 
@@ -46,4 +46,6 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - Completed: onboarding email templates in `backend/services/email_templates.py` (welcome, first-build nudge, first-build-done, planning tips), with tests. Templates only: not yet sent or scheduled anywhere.
 - Completed: Product Hunt launch kit (`launch/product-hunt.md`): taglines, description, maker comment, FAQ replies, gallery/video plan, launch checklist. Claims checked against code; bracketed placeholders need keshav.
 - Completed: "Show HN" draft (`launch/hacker-news.md`): titles, post text, prepared thread answers, and a claim-to-source table. Found there's no logged-out demo in production (`/demo` redirects to `/projects` in LIVE_MODE); flagged in the pre-post checklist.
-- Next in queue: README update with waitlist link and contributing pointers.
+- Completed: root `README.md` restored from `.stash/README.md` (moved there in 01e9aa3, breaking links from docs/README.md) with corrections (deploy is off in prod, no Cloud Run target, first build free) plus a waitlist placeholder and Contributing/License sections.
+- Found: the `landing.html` waitlist form shows "You're on the list!" but never sends the email anywhere (fetch is commented out). Needs a backend endpoint before the page goes live.
+- Claude queue is now empty.

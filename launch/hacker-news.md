@@ -12,7 +12,8 @@ like a developer explaining a project, not a launch.
       short video, and say plainly that trying it needs a signup.
 - [ ] If the repo is public (it's MIT-licensed), link it. Source access gets a
       much better reception on HN than a closed product.
-- [ ] The free 5 credits can complete a real build on a fresh account.
+- [ ] A fresh account can complete a real build. (The first build on every
+      account is free, per `backend/api/builds.py`; test it end to end anyway.)
 - [ ] Every technical claim below is still true (each one was checked against
       the code on 2026-11-13; file pointers are in the notes at the bottom).
 - [ ] You can stay in the thread for the first 3–4 hours to answer questions.
@@ -69,7 +70,7 @@ apps" alone reads as one more of many.
 >   code and retries, up to 3 times.
 >
 > - Models: one gateway in front of Anthropic, OpenAI, Azure OpenAI, Gemini,
->   Groq, Mistral and Ollama, with failover between providers, a circuit
+>   Groq, Mistral, OpenRouter, Together and Ollama, with failover between providers, a circuit
 >   breaker and per-user budgets. You can bring your own API key.
 >
 > - Generated apps get a strict default Content Security Policy and a
