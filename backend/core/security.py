@@ -55,6 +55,7 @@ DEFAULT_RATE_LIMITS = {
     "auth": {"limit": 10, "window": 60},
     "build": {"limit": 5, "window": 60},
     "api": {"limit": 100, "window": 60},
+    "waitlist": {"limit": 5, "window": 60},  # public, unauthenticated signup form
 }
 
 # User-based rate limits
@@ -68,6 +69,7 @@ EMAIL_RATE_LIMITS = {
     "forgot_password": {"limit": 3, "window": 3600},    # 3/hour
     "register":        {"limit": 5, "window": 3600},    # 5/hour
     "resend_verification": {"limit": 3, "window": 3600},  # 3/hour, same shape as forgot_password
+    "waitlist":        {"limit": 3, "window": 3600},    # 3/hour, public landing-page form
     "login":           {"limit": 10, "window": 3600},   # 10/hour -- blocks credential
                                                           # stuffing against one account
                                                           # regardless of source IP; the
@@ -92,6 +94,8 @@ LOGIN_LOCKOUT_WINDOW = 900  # 15 minutes
 
 
 def _get_limit_config(path: str) -> tuple[str, dict]:
+    if path in ("/waitlist", "/v1/waitlist"):
+        return "waitlist", DEFAULT_RATE_LIMITS["waitlist"]
     if path.startswith("/auth"):
         return "auth", DEFAULT_RATE_LIMITS["auth"]
     elif path.startswith("/builds"):
@@ -323,6 +327,7 @@ _CSRF_EXCLUDED_PATHS = [
     "/auth/google",
     "/v1/auth/google",
     "/health",
+    "/v1/waitlist",  # public landing-page signup; no session exists to forge
     "/billing/webhook",  # Stripe webhook has its own signature verification
     "/billing/webhook/payment",  # Stripe payment webhook — signature-verified, no session cookie
     # NOTE: /api/llm is intentionally NOT excluded. Its mutating admin routes

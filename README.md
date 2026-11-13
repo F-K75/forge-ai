@@ -2,8 +2,9 @@
 
 Describe your app in natural language and a coordinated team of AI agents builds the full stack — frontend, backend, database, and integrations.
 
-> **Status:** pre-launch. Join the waitlist at `[waitlist URL]` (the form in
-> [`landing.html`](landing.html) is not yet connected to a backend endpoint).
+> **Status:** pre-launch. Join the waitlist at `[waitlist URL]`. The form in
+> [`landing.html`](landing.html) posts to `POST /v1/waitlist`; the page's
+> origin must be in `ALLOWED_ORIGINS`.
 > Want to help build it? See [Contributing](#contributing).
 
 > **Documentation:** the essential docs (architecture, API reference, configuration, deployment & operations) live in [`docs/`](docs/README.md).

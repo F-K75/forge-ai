@@ -49,3 +49,5 @@ Worked by Claude's daily 7am scheduled task. Rules for the scheduled run:
 - Completed: root `README.md` restored from `.stash/README.md` (moved there in 01e9aa3, breaking links from docs/README.md) with corrections (deploy is off in prod, no Cloud Run target, first build free) plus a waitlist placeholder and Contributing/License sections.
 - Found: the `landing.html` waitlist form shows "You're on the list!" but never sends the email anywhere (fetch is commented out). Needs a backend endpoint before the page goes live.
 - Claude queue is now empty.
+- Later same day: added `POST /v1/waitlist` (`backend/api/waitlist.py`) and wired `landing.html` to it. Before the landing page goes live, its origin must be added to `ALLOWED_ORIGINS` on the backend.
+- Found (not fixed): `rate_limit_middleware` and `csrf_protection_middleware` in `backend/core/security.py` raise `HTTPException` from function middleware, which FastAPI turns into a 500. Every rate-limit 429, CSRF 403 and body-too-large 413 reaches clients as a 500.
