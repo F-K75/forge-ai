@@ -93,7 +93,15 @@ def _make_orchestrator(monkeypatch, *, byok=False, questions=None, **architect_k
     async def _byok(self, user_id):
         return byok
 
+    async def _no_profile(self, build, agent_type):
+        return None
+
     monkeypatch.setattr(Orchestrator, "_is_byok_active", _byok)
+    # The agent-registry lookup talks to MongoDB; with no database it waits
+    # out the server-selection timeout on every agent start (~3s x 22 starts
+    # in the debug-loop test, which blew the 30s CI timeout). Same stub as
+    # test_file_update_delta_shape.py / test_orchestrator_specialist_shadow.py.
+    monkeypatch.setattr(Orchestrator, "_resolve_agent_profile", _no_profile)
     orchestrator = Orchestrator()
     stubs = {}
     for attr in ("architect", "business_model", "designer", "developer", "integration", "pm"):
