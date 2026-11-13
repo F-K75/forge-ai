@@ -12,6 +12,7 @@ import {
   type SimulationStep,
 } from "../lib/flowData";
 import { flowApi } from "../lib/api";
+import { LIVE_MODE } from "../lib/env";
 import {
   Play,
   Pause,
@@ -112,7 +113,15 @@ export default function FlowPage() {
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   // Live Metrics & API Data
-  const [metrics, setMetrics] = useState<TelemetryMetric[]>(DEFAULT_METRICS);
+  // Live mode never shows the marketing numbers: unknown stats render "—"
+  // until the user's real analytics load.
+  const [metrics, setMetrics] = useState<TelemetryMetric[]>(() =>
+    LIVE_MODE
+      ? DEFAULT_METRICS.filter((m) => m.id === "builds" || m.id === "sla" || m.id === "turnaround").map(
+          (m) => ({ ...m, value: "—", trend: undefined })
+        )
+      : DEFAULT_METRICS
+  );
   const [agentStats, setAgentStats] = useState<Record<string, AgentRunStats>>({});
   const [, setLoadingMetrics] = useState(true);
 
@@ -161,25 +170,25 @@ export default function FlowPage() {
           {
             id: "builds",
             label: "Builds Completed",
-            value: personal.builds_total ? `${personal.builds_total}` : "1,247+",
-            subtext: "Orchestrated across fleet",
-            trend: "+14% MoM",
+            value: LIVE_MODE ? `${personal.builds_total ?? 0}` : personal.builds_total ? `${personal.builds_total}` : "1,247+",
+            subtext: LIVE_MODE ? "Last 30 days" : "Orchestrated across fleet",
+            trend: LIVE_MODE ? undefined : "+14% MoM",
             icon: TrendingUp,
           },
           {
             id: "sla",
             label: "Pipeline Success SLA",
-            value: personal.success_rate != null ? `${(personal.success_rate * 100).toFixed(1)}%` : "99.4%",
+            value: personal.success_rate != null ? `${(personal.success_rate * 100).toFixed(1)}%` : LIVE_MODE ? "—" : "99.4%",
             subtext: "Automated sandboxed builds",
-            trend: "Grade A",
+            trend: LIVE_MODE ? undefined : "Grade A",
             icon: ShieldCheck,
           },
           {
             id: "turnaround",
             label: "Avg Turnaround Time",
-            value: personal.avg_build_time_minutes ? `${personal.avg_build_time_minutes.toFixed(1)} min` : "3.4 min",
+            value: personal.avg_build_time_minutes ? `${personal.avg_build_time_minutes.toFixed(1)} min` : LIVE_MODE ? "—" : "3.4 min",
             subtext: "Prompt to deployed PR",
-            trend: "-22% latency",
+            trend: LIVE_MODE ? undefined : "-22% latency",
             icon: Timer,
           },
           {
@@ -198,7 +207,8 @@ export default function FlowPage() {
             trend: "Cache tier",
             icon: Zap,
           },
-        ]);
+        // "fleet" / "tokens" are static marketing figures, not user data.
+        ].filter((m) => !LIVE_MODE || (m.id !== "fleet" && m.id !== "tokens")));
       }
 
       if (stats?.agents) {
@@ -206,7 +216,7 @@ export default function FlowPage() {
         for (const agent of stats.agents) {
           mapped[agent._id] = {
             lastRun: agent.last_active_at ? new Date(agent.last_active_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently",
-            successRate: agent.avg_pass_rate ? Math.round(agent.avg_pass_rate * 100) : 96,
+            successRate: agent.avg_pass_rate ? Math.round(agent.avg_pass_rate * 100) : LIVE_MODE ? 0 : 96,
           };
         }
         setAgentStats(mapped);

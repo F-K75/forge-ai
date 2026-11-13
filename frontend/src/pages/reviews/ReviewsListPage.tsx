@@ -144,39 +144,27 @@ export default function ReviewsListPage() {
       reviewsApi
         .list()
         .then((data: { items?: any[] }) => {
-          if (data?.items && data.items.length > 0) {
-            // merge with stored detailed reviews
-            const stored = getStoredReviews();
-            const storedMap = new Map(stored.map((s) => [s.run_id, s]));
-            const mapped: ReviewRunDetails[] = data.items.map((it: any) => {
-              const existing = storedMap.get(it.run_id);
-              if (existing) return existing;
-              return {
-                run_id: it.run_id,
-                created_at: it.created_at || new Date().toISOString(),
-                repo_path: it.repo_path || "Unknown repository",
-                mode: it.mode || "full",
-                status: it.status || "complete",
-                candidate_files: it.candidate_files || 10,
-                triggered_agents: it.triggered_agents || ["security_agent", "code_quality_agent"],
-                agent_reports: [],
-                consolidated: it.consolidated || {
-                  overall_score: 85,
-                  recommendation: "GO",
-                  summary: "Audit completed successfully.",
-                },
-                total_cost_usd: it.total_cost_usd || 0.02,
-                total_tokens: it.total_tokens || 15000,
-                backlog: [],
-              };
-            });
-            setRuns(mapped);
-          } else {
-            setRuns(getStoredReviews());
-          }
+          // Live: only real review runs. Missing fields stay empty rather
+          // than defaulting to an invented score / GO verdict.
+          const mapped: ReviewRunDetails[] = (data?.items ?? []).map((it: any) => ({
+            run_id: it.run_id,
+            created_at: it.created_at || new Date().toISOString(),
+            repo_path: it.repo_path || "Unknown repository",
+            mode: it.mode || "full",
+            status: it.status || "complete",
+            candidate_files: it.candidate_files ?? 0,
+            triggered_agents: it.triggered_agents ?? [],
+            agent_reports: [],
+            consolidated: it.consolidated ?? null,
+            total_cost_usd: it.total_cost_usd ?? 0,
+            total_tokens: it.total_tokens ?? 0,
+            backlog: [],
+          }));
+          setRuns(mapped);
         })
         .catch(() => {
-          setRuns(getStoredReviews());
+          setRuns([]);
+          toast.error("The review service is unreachable, so no audits can be shown.");
         })
         .finally(() => setLoading(false));
     } else {
@@ -228,7 +216,11 @@ export default function ReviewsListPage() {
         navigate(`/reviews/${res.run_id}`);
         return;
       } catch {
-        toast.error("Backend unavailable, starting simulated audit locally");
+        // Never fabricate an audit result in live mode: a random score and
+        // GO verdict would look like a real security review.
+        toast.error("The review service is unavailable. Please try again later.");
+        setIsStarting(false);
+        return;
       }
     }
 
@@ -399,6 +391,7 @@ export default function ReviewsListPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {!LIVE_MODE && (
               <button
                 type="button"
                 onClick={handleResetSampleReviews}
@@ -408,6 +401,7 @@ export default function ReviewsListPage() {
                 <RotateCcw size={12} />
                 Seed Audits
               </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import {
   FileCode2,
@@ -25,6 +25,9 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import toast from "react-hot-toast";
 import BrandLogo from "../components/BrandLogo";
 import { useBuildStore } from "../store/buildStore";
+import { LIVE_MODE } from "../lib/env";
+import { buildsApi, projectsApi } from "../lib/api";
+import { useActiveProject } from "../hooks/useActiveProject";
 
 export interface VirtualFile {
   path: string;
@@ -204,7 +207,9 @@ export default function FilesPage() {
 
   // Local state for virtual files
   const [virtualFiles, setVirtualFiles] = useState<VirtualFile[]>(() => {
-    const list: VirtualFile[] = [...DEFAULT_FILES];
+    // Live mode never shows the bundled sample files; real files come from
+    // the project's latest build (loaded below) or the in-memory build store.
+    const list: VirtualFile[] = LIVE_MODE ? [] : [...DEFAULT_FILES];
     if (storeFiles && Object.keys(storeFiles).length > 0) {
       Object.entries(storeFiles).forEach(([path, content]) => {
         if (!list.some((f) => f.path === path)) {
@@ -228,8 +233,56 @@ export default function FilesPage() {
     return list;
   });
 
-  const [selectedPath, setSelectedPath] = useState<string>(DEFAULT_FILES[0].path);
-  const [currentContent, setCurrentContent] = useState<string>(DEFAULT_FILES[0].content);
+  const [selectedPath, setSelectedPath] = useState<string>(LIVE_MODE ? "" : DEFAULT_FILES[0].path);
+  const [currentContent, setCurrentContent] = useState<string>(LIVE_MODE ? "" : DEFAULT_FILES[0].content);
+  const { projectId: routeProjectId } = useParams<{ projectId: string }>();
+  const { activeProjectId } = useActiveProject();
+  const filesProjectId = routeProjectId || activeProjectId;
+  const [liveFilesState, setLiveFilesState] = useState<"loading" | "ready" | "error">(
+    LIVE_MODE ? "loading" : "ready"
+  );
+
+  // Live: load the files produced by this project's most recent build.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    if (!filesProjectId) {
+      setLiveFilesState("ready");
+      return;
+    }
+    let cancelled = false;
+    setLiveFilesState("loading");
+    projectsApi
+      .getBuilds(filesProjectId)
+      .then(async (builds: Array<{ id: string }>) => {
+        const latest = builds?.[0];
+        const files: Record<string, string> = latest ? await buildsApi.getFiles(latest.id) : {};
+        if (cancelled) return;
+        const list: VirtualFile[] = Object.entries(files || {}).map(([path, content]) => {
+          const parts = path.split("/");
+          const name = parts.pop() || path;
+          return {
+            path,
+            name,
+            folder: parts.join("/") || "root",
+            language: getLanguageFromPath(path),
+            content,
+            size: `${(content.length / 1024).toFixed(1)} KB`,
+            sizeBytes: content.length,
+            lines: content.split("\n").length,
+            modified: "latest build",
+          };
+        });
+        setVirtualFiles(list);
+        setSelectedPath(list[0]?.path ?? "");
+        setLiveFilesState("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setLiveFilesState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [filesProjectId]);
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [search, setSearch] = useState("");
   const [languageFilter, setLanguageFilter] = useState<string>("all");
@@ -504,6 +557,32 @@ export default function FilesPage() {
   }, [virtualFiles]);
 
   const totalSizeFormatted = (totalBytes / 1024).toFixed(1);
+
+  if (LIVE_MODE && !activeFile) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
+        <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Files</h1>
+        <p className="max-w-md text-sm text-neutral-500">
+          {liveFilesState === "loading"
+            ? "Loading files…"
+            : liveFilesState === "error"
+            ? "Couldn't load files for this project."
+            : !filesProjectId
+            ? "Create a project first — its generated files will show up here."
+            : "No files yet. Run a build in the workspace and the generated files will appear here."}
+        </p>
+        {filesProjectId && liveFilesState !== "loading" && (
+          <button
+            type="button"
+            onClick={() => navigate(`/p/${filesProjectId}/workspace`)}
+            className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-neutral-900"
+          >
+            Open workspace
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <motion.div

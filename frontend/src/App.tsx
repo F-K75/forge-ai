@@ -200,10 +200,14 @@ function RootRoute() {
   )
 }
 
-function WorkspaceRedirect() {
+function ProjectScopedRedirect({ sub }: { sub: string }) {
   const { projectPath, isLoading } = useActiveProject()
   if (LIVE_MODE && isLoading) return <RouteSkeleton />
-  return <Navigate to={projectPath("workspace")} replace />
+  return <Navigate to={projectPath(sub)} replace />
+}
+
+function WorkspaceRedirect() {
+  return <ProjectScopedRedirect sub="workspace" />
 }
 
 export default function App() {
@@ -430,7 +434,8 @@ export default function App() {
                 path="history"
                 element={
                   <Suspense fallback={<RouteSkeleton />}>
-                    <HistoryPage />
+                    {/* Live mode: the real, API-backed build history. */}
+                    {LIVE_MODE ? <ProjectHistory /> : <HistoryPage />}
                   </Suspense>
                 }
               />
@@ -464,17 +469,25 @@ export default function App() {
             <Route
               path="/files"
               element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <FilesPage />
-                </Suspense>
+                LIVE_MODE ? (
+                  <ProjectScopedRedirect sub="files" />
+                ) : (
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <FilesPage />
+                  </Suspense>
+                )
               }
             />
             <Route
               path="/history"
               element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <HistoryPage />
-                </Suspense>
+                LIVE_MODE ? (
+                  <ProjectScopedRedirect sub="history" />
+                ) : (
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <HistoryPage />
+                  </Suspense>
+                )
               }
             />
             <Route
