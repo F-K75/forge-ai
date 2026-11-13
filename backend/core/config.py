@@ -243,6 +243,13 @@ class Settings(BaseSettings):
     # Growth
     resend_api_key: str = ""
     from_email: str = "noreply@forge.ai"
+    # Promotional onboarding emails (nudge, first build done, tips), sent by an
+    # hourly Celery beat task. Off until explicitly enabled. Only users who
+    # signed up within onboarding_max_age_days are emailed, so enabling this
+    # doesn't email the whole existing user base.
+    onboarding_emails_enabled: bool = False
+    onboarding_max_age_days: int = 14
+    onboarding_batch_size: int = 200
 
     # Database credentials (used by docker-compose)
     mongo_password: str = ""
