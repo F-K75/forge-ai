@@ -59,7 +59,12 @@ export interface ExtendedTemplate {
   version: string;
   lastUpdated: string;
   featured?: boolean;
-  architecture: {
+  // Live mode: a curated starter that ships with the app (installs straight
+  // from its prompt; it has no marketplace stats).
+  builtIn?: boolean;
+  // Live mode: whether `rating` came from the API (otherwise don't show one).
+  ratingKnown?: boolean;
+  architecture?: {
     frontend: string;
     backend: string;
     database: string;
@@ -334,7 +339,17 @@ export default function MarketplacePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Local templates catalog
-  const [templates, setTemplates] = useState<ExtendedTemplate[]>(INITIAL_TEMPLATES);
+  // Live mode: the bundled "community" entries and every bundled rating /
+  // install count are sample data. Keep only the official starters (as
+  // built-in prompts) and add the real community templates from the API.
+  const builtInTemplates = useMemo(
+    () =>
+      INITIAL_TEMPLATES.filter((t) => t.source === "official").map((t) => ({ ...t, builtIn: true })),
+    []
+  );
+  const [templates, setTemplates] = useState<ExtendedTemplate[]>(
+    LIVE_MODE ? builtInTemplates : INITIAL_TEMPLATES
+  );
 
   // Bookmarks / Stars stored in local state
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
@@ -366,38 +381,36 @@ export default function MarketplacePage() {
     marketplaceApi
       .list({ search: search.trim() || undefined })
       .then((items: any[]) => {
-        if (items && items.length > 0) {
-          const mapped = items.map((item: any) => ({
+        const mapped: ExtendedTemplate[] = (items ?? []).map((item: any) => {
+          const downloads: number = typeof item.downloads === "number" ? item.downloads : 0;
+          const hasRating = typeof item.rating === "number";
+          return {
             id: item.id,
             name: item.title,
-            author: "Community",
+            author: item.author_name || "Community",
             source: "community" as const,
             category: "ai" as const,
-            description: item.description,
-            tags: item.tags || ["community", "starter"],
-            rating: Math.round((item.rating || 4.8) * 10) / 10,
-            ratingCount: 42,
-            installs: item.downloads ? `${(item.downloads / 1000).toFixed(1)}k` : "1.2k",
-            installsNum: item.downloads || 1200,
+            description: item.description || "",
+            tags: item.tags || [],
+            rating: hasRating ? Math.round(item.rating * 10) / 10 : 0,
+            ratingKnown: hasRating,
+            ratingCount: typeof item.rating_count === "number" ? item.rating_count : 0,
+            installs: downloads >= 1000 ? `${(downloads / 1000).toFixed(1)}k` : String(downloads),
+            installsNum: downloads,
             hue: "#FACC15",
-            version: "v1.0.0",
-            lastUpdated: "Recently",
-            prompt: item.prompt || `Build ${item.title} with modern best practices.`,
-            architecture: {
-              frontend: "React + Tailwind",
-              backend: "Node.js",
-              database: "PostgreSQL",
-              auth: "Firebase Auth"
-            },
-            filesList: ["src/App.tsx", "src/main.tsx"]
-          }));
-          setTemplates(mapped);
-        }
+            version: item.version || "v1.0.0",
+            lastUpdated: "—",
+            prompt: item.prompt || "",
+            filesList: [],
+          };
+        });
+        setTemplates([...builtInTemplates, ...mapped]);
       })
       .catch(() => {
-        // Fallback silently to built-in templates
+        // Community listings unavailable: the built-in starters still work.
+        setTemplates(builtInTemplates);
       });
-  }, [search]);
+  }, [search, builtInTemplates]);
 
   // Toggle bookmark
   const toggleBookmark = (id: string, e?: React.MouseEvent) => {
@@ -447,7 +460,10 @@ export default function MarketplacePage() {
     e?.stopPropagation();
     const tId = toast.loading(`Scaffolding ${template.name}...`);
     try {
-      if (LIVE_MODE) {
+      if (LIVE_MODE && template.builtIn) {
+        toast.success(`Loaded starter: ${template.name}`, { id: tId });
+        navigate("/build/new", { state: { prompt: template.prompt } });
+      } else if (LIVE_MODE) {
         const res = await marketplaceApi.download(template.id);
         toast.success(`Loaded starter: ${template.name}`, { id: tId });
         navigate("/build/new", { state: { prompt: res.prompt || template.prompt } });
@@ -524,8 +540,10 @@ export default function MarketplacePage() {
           tags: newTpl.tags,
           is_public: true
         });
-      } catch {
-        // Continue with local insertion
+      } catch (err: any) {
+        const detail = err?.response?.data?.detail;
+        toast.error(typeof detail === "string" ? detail : "Couldn't publish the starter.");
+        return;
       }
     }
 
@@ -540,7 +558,8 @@ export default function MarketplacePage() {
 
   // Total metrics
   const totalInstallsCount = useMemo(() => {
-    return templates.reduce((acc, t) => acc + t.installsNum, 0);
+    // Built-in starters carry sample install counts; only real downloads count.
+    return templates.reduce((acc, t) => acc + (LIVE_MODE && t.builtIn ? 0 : t.installsNum), 0);
   }, [templates]);
 
   return (
@@ -618,7 +637,8 @@ export default function MarketplacePage() {
               </span>
               <div className="min-w-0">
                 <div className="font-mono text-lg font-black leading-none text-ink">
-                  {(totalInstallsCount / 1000).toFixed(1)}k+ <span className="text-[11px] font-normal text-muted">runs</span>
+                  {LIVE_MODE ? totalInstallsCount.toLocaleString() : `${(totalInstallsCount / 1000).toFixed(1)}k+`}{" "}
+                  <span className="text-[11px] font-normal text-muted">{LIVE_MODE ? "downloads" : "runs"}</span>
                 </div>
                 <div className="mt-1 truncate font-mono text-[10px] font-black uppercase tracking-wider text-muted">
                   Deployments
@@ -868,14 +888,22 @@ export default function MarketplacePage() {
                   {/* Card Footer */}
                   <div className="mt-5 pt-3.5 border-t-2 border-black dark:border-white/80 flex items-center justify-between">
                     <div className="flex items-center gap-3 text-xs font-mono font-bold">
-                      <span className="flex items-center gap-1 text-black dark:text-white">
-                        <Star size={12} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
-                        {template.rating}
-                      </span>
-                      <span className="flex items-center gap-1 text-muted">
-                        <Download size={12} />
-                        {template.installs}
-                      </span>
+                      {LIVE_MODE && template.builtIn ? (
+                        <span className="text-muted uppercase text-[10px]">Built-in starter</span>
+                      ) : (
+                        <>
+                          {(!LIVE_MODE || template.ratingKnown) && (
+                            <span className="flex items-center gap-1 text-black dark:text-white">
+                              <Star size={12} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
+                              {template.rating}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1 text-muted">
+                            <Download size={12} />
+                            {template.installs}
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -963,14 +991,22 @@ export default function MarketplacePage() {
                   {/* List Row Right Stats & Actions */}
                   <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-black/20 dark:border-white/20">
                     <div className="flex items-center gap-3 text-xs font-mono font-bold">
-                      <span className="flex items-center gap-1 text-black dark:text-white">
-                        <Star size={12} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
-                        {template.rating}
-                      </span>
-                      <span className="flex items-center gap-1 text-muted">
-                        <Download size={12} />
-                        {template.installs}
-                      </span>
+                      {LIVE_MODE && template.builtIn ? (
+                        <span className="text-muted uppercase text-[10px]">Built-in starter</span>
+                      ) : (
+                        <>
+                          {(!LIVE_MODE || template.ratingKnown) && (
+                            <span className="flex items-center gap-1 text-black dark:text-white">
+                              <Star size={12} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
+                              {template.rating}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1 text-muted">
+                            <Download size={12} />
+                            {template.installs}
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -1081,6 +1117,7 @@ export default function MarketplacePage() {
                 </div>
 
                 {/* Architecture & Stack Matrix */}
+                {selectedTemplate.architecture && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-mono font-black uppercase text-muted tracking-wider">
                     Architectural Specifications
@@ -1089,39 +1126,41 @@ export default function MarketplacePage() {
                     <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
                       <span className="text-muted block text-[10px] uppercase font-bold">Frontend UI</span>
                       <span className="font-bold text-ink">
-                        {selectedTemplate.architecture.frontend}
+                        {selectedTemplate.architecture!.frontend}
                       </span>
                     </div>
                     <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
                       <span className="text-muted block text-[10px] uppercase font-bold">Backend Server</span>
                       <span className="font-bold text-ink">
-                        {selectedTemplate.architecture.backend}
+                        {selectedTemplate.architecture!.backend}
                       </span>
                     </div>
                     <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
                       <span className="text-muted block text-[10px] uppercase font-bold">Database / State</span>
                       <span className="font-bold text-ink">
-                        {selectedTemplate.architecture.database}
+                        {selectedTemplate.architecture!.database}
                       </span>
                     </div>
                     <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
                       <span className="text-muted block text-[10px] uppercase font-bold">Authentication</span>
                       <span className="font-bold text-ink">
-                        {selectedTemplate.architecture.auth}
+                        {selectedTemplate.architecture!.auth}
                       </span>
                     </div>
-                    {selectedTemplate.architecture.aiEngine && (
+                    {selectedTemplate.architecture!.aiEngine && (
                       <div className="p-2.5 rounded-none border-2 border-black bg-brutal-yellow sm:col-span-2 shadow-[2px_2px_0px_#000]">
                         <span className="text-black block text-[10px] font-black uppercase">Autonomous AI Engine</span>
                         <span className="font-black text-black">
-                          {selectedTemplate.architecture.aiEngine}
+                          {selectedTemplate.architecture!.aiEngine}
                         </span>
                       </div>
                     )}
                   </div>
                 </div>
+                )}
 
                 {/* File Manifest */}
+                {selectedTemplate.filesList.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-mono font-black uppercase text-muted tracking-wider">
                     Included File Manifest
@@ -1135,6 +1174,7 @@ export default function MarketplacePage() {
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* System Prompt Blueprint with Copy */}
                 <div className="space-y-1.5">
@@ -1160,12 +1200,22 @@ export default function MarketplacePage() {
               {/* Modal Footer */}
               <div className="p-4 border-t-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 text-xs font-mono font-bold text-muted">
-                  <span className="flex items-center gap-1 text-black dark:text-white">
-                    <Star size={13} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
-                    {selectedTemplate.rating} ({selectedTemplate.ratingCount} reviews)
-                  </span>
-                  <span>•</span>
-                  <span>{selectedTemplate.installs} installs</span>
+                  {LIVE_MODE && selectedTemplate.builtIn ? (
+                    <span>Built-in starter</span>
+                  ) : (
+                    <>
+                      {(!LIVE_MODE || selectedTemplate.ratingKnown) && (
+                        <>
+                          <span className="flex items-center gap-1 text-black dark:text-white">
+                            <Star size={13} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
+                            {selectedTemplate.rating} ({selectedTemplate.ratingCount} reviews)
+                          </span>
+                          <span>•</span>
+                        </>
+                      )}
+                      <span>{selectedTemplate.installs} installs</span>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">

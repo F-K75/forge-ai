@@ -24,6 +24,7 @@ import { reviewsApi } from "../../lib/orchestratorApi";
 import { useReviewSocket } from "../../hooks/useReviewSocket";
 import { useReviewStore } from "../../store/reviewStore";
 import { findReviewById, type BacklogItem, type ReviewRunDetails } from "../../lib/reviewsData";
+import { LIVE_MODE } from "../../lib/env";
 
 const SEVERITY_STYLES: Record<BacklogItem["severity"], { bg: string; text: string }> = {
   critical: { bg: "bg-brutal-pink", text: "text-black" },
@@ -44,6 +45,7 @@ export default function ReviewDetailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedItemId, setCopiedItemId] = useState<string | null>(null);
   const [fallbackData, setFallbackData] = useState<ReviewRunDetails | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const {
     hydrateFromRun,
@@ -64,6 +66,7 @@ export default function ReviewDetailPage() {
     if (!runId) return;
     reset();
     setHydrated(false);
+    setLoadError(null);
 
     // Attempt to load from API
     reviewsApi
@@ -72,8 +75,18 @@ export default function ReviewDetailPage() {
         hydrateFromRun(run);
         setHydrated(true);
       })
-      .catch(() => {
-        // Fallback to local stored/sample review data
+      .catch((err: any) => {
+        if (LIVE_MODE) {
+          // Never substitute sample audit results for a real run.
+          setLoadError(
+            err?.response?.status === 404
+              ? "This review run doesn't exist."
+              : "The review service is unreachable, so this review can't be shown."
+          );
+          setHydrated(true);
+          return;
+        }
+        // Demo mode: fall back to local stored/sample review data
         const local = findReviewById(runId);
         if (local) {
           setFallbackData(local);
@@ -113,6 +126,12 @@ export default function ReviewDetailPage() {
         setBacklogTotal(data.count);
       })
       .catch(() => {
+        if (LIVE_MODE) {
+          setBacklog([]);
+          setBacklogTotal(0);
+          toast.error("Couldn't load this review's backlog.");
+          return;
+        }
         const local = findReviewById(runId);
         if (local) {
           setBacklog(local.backlog);
@@ -212,6 +231,21 @@ export default function ReviewDetailPage() {
     : "bg-brutal-cyan text-black";
 
   const repoTarget = fallbackData?.repo_path || "Target Repository";
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
+        <h1 className="text-xl font-bold text-ink">Review unavailable</h1>
+        <p className="max-w-md text-sm text-muted">{loadError}</p>
+        <Link
+          to="/reviews"
+          className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-neutral-900"
+        >
+          Back to reviews
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-neutral-50 dark:bg-[#121218] p-4 md:p-8 font-mono">

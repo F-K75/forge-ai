@@ -368,6 +368,9 @@ export function IntegrationsTab() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    {/* No backend endpoint sends a test delivery yet, so the
+                        ping (which only simulated "HTTP 200 OK") is demo-only. */}
+                    {!LIVE_MODE && (
                     <button
                       type="button"
                       onClick={() => handleTestPing(hook.id, hook.url)}
@@ -378,6 +381,7 @@ export function IntegrationsTab() {
                       <Send size={11} className={testingId === hook.id ? "animate-spin" : ""} />
                       {testingId === hook.id ? "Sending..." : "Test Ping"}
                     </button>
+                    )}
 
                     <button
                       type="button"
