@@ -3,7 +3,7 @@
 A build reserves ``max(MAX_DEBUG_ITERATIONS * debug_cost, sum(CREDIT_COSTS) *
 (len(tech_stack) + 1))`` credits up front -- 17 for a project with no tech
 stack, more once it has one. A new account is granted ``settings.free_credits``,
-which is 5. Before this grant, ``POST /builds/`` rejected every free account
+which is 10. Before this grant, ``POST /builds/`` rejected every free account
 with 402 before their first build ever started, so no prospect could reach a
 finished application without paying first. ``docs/icp.md`` covers why that
 matters: every persona there buys on proof.
@@ -40,7 +40,7 @@ def _post(client):
 
 
 def test_free_account_can_start_its_first_build_despite_insufficient_credits(monkeypatch):
-    """The whole point: 5 credits, a build costs 17, and it still starts."""
+    """The whole point: fewer credits than a build costs, and it still starts."""
     db = FakeDB()
     user = _seed(db, credits=5)
     assert db.users.docs[0]["credits"] < BUILD_COST

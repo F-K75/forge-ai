@@ -4,7 +4,7 @@ Draft. Everything in `[brackets]` needs filling in before launch. Character
 limits are Product Hunt's; counts are noted next to each field.
 
 **Before you post, check these claims are still true:**
-- Free plan is 5 credits; Standard $20/mo (100 credits); Pro $50/mo (750 credits)
+- Free plan is 10 credits at signup; Standard $20/mo (100 credits); Pro $50/mo (750 credits)
   (`backend/core/config.py`).
 - Code can be pushed to GitHub (`POST /deployments/github/push`).
 - One-click hosting is **not** claimed anywhere below: Docker deployments are
@@ -50,7 +50,7 @@ Developer Tools, Artificial Intelligence, Productivity, No-Code
 
 ## Pricing field
 
-Freemium. Free plan with 5 credits; paid plans from $20/month.
+Freemium. Free plan with 10 credits; paid plans from $20/month.
 
 ## Launch offer (optional)
 
@@ -95,7 +95,7 @@ own voice; it reads better in first person from the founder.
 > Code, Copilot and Cursor are great at that. Forge is for the step before and
 > around the code.
 >
-> You get 5 free credits to try it. I'd love feedback on two things in
+> You get 10 free credits, and your first build is free. I'd love feedback on two things in
 > particular: [1. was the generated plan useful, 2. where did a build go wrong].
 > I'll be here all day answering questions.
 

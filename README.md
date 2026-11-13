@@ -294,11 +294,11 @@ Each agent action costs credits:
 | Debug iteration | 2 |
 
 **Total per build: ~15–17 credits** (more with integrations/debug). The
-**first build on every account is free**, so new users can finish a build on
-the 5 signup credits (`api/builds.py`).
+**first build on every account is free** and doesn't use the 10 signup credits
+(`api/builds.py`).
 
 Plan tiers (configure in `core/config.py`):
-- Free: 5 credits
+- Free: 10 credits at signup (first build free)
 - Standard: 100/month ($20)
 - Pro: 750/month ($50) + BYOK
 - Enterprise: custom

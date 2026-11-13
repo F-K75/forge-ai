@@ -372,7 +372,7 @@ async def register(req: RegisterRequest, request: Request, response: Response):
         email=req.email,
         name=req.name,
         plan=PlanTier.FREE,
-        credits=10,
+        credits=settings.free_credits,
     )
     user_dict = user.model_dump()
     user_dict["hashed_password"] = hash_password(req.password)
@@ -1167,7 +1167,7 @@ async def google_callback(request: Request, response: Response, background_tasks
             email=email,
             name=name,
             plan=PlanTier.FREE,
-            credits=10,
+            credits=settings.free_credits,
             avatar_url=picture,
         )
         user_dict = user.model_dump()
