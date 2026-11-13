@@ -60,6 +60,9 @@ import { ForgeVisualSurface } from "../components/forge-os/ForgeVisualSurface";
 import { ForgeDebugSurface } from "../components/forge-os/ForgeDebugSurface";
 import { ForgeDeploySurface } from "../components/forge-os/ForgeDeploySurface";
 import { ForgeMomentCard } from "../components/forge-os/ForgeMomentCard";
+import { LiveQaSurface, type QaValidation } from "../components/forge-os/live/LiveQaSurface";
+import { LivePreviewSurface } from "../components/forge-os/live/LivePreviewSurface";
+import { LiveDeploySurface } from "../components/forge-os/live/LiveDeploySurface";
 import { synthesizeCodeForPrompt, SynthesizedFile } from "../lib/codeSynthesizer";
 import type { CanvasNode } from "../components/forge-os/ForgeBuildCanvas";
 
@@ -531,6 +534,9 @@ export default function WorkspacePage() {
   const liveMessages = useBuildStore((s) => s.messages);
   const liveQaScore = useBuildStore((s) => s.qaScore);
   const liveError = useBuildStore((s) => s.error);
+  const liveValidation = useBuildStore((s) => s.validation) as QaValidation | null;
+  const liveDebug = useBuildStore((s) => s.debug);
+  const liveDebugIterations = useBuildStore((s) => s.debugIterations);
   const liveAgentStates = useBuildStore((s) => s.agentStates);
   useBuildSocket(LIVE_MODE ? buildId : null);
 
@@ -611,6 +617,26 @@ export default function WorkspacePage() {
           const mapped = map[latest.status];
           if (mapped) useBuildStore.setState({ status: mapped });
         }
+        // QA results aren't a field on the build record; the PM agent's
+        // validation is stored as its step output. Restore the latest one so
+        // the QA tab survives a reload.
+        const detail = await buildsApi.get(latest.id).catch(() => null);
+        if (cancelled || !detail) return;
+        const pmSteps = (detail.agents ?? []).filter(
+          (a: { agent?: string; output?: string }) => a.agent === "pm" && a.output
+        );
+        const lastPm = pmSteps[pmSteps.length - 1];
+        let validation: QaValidation | null = null;
+        try {
+          validation = lastPm ? JSON.parse(lastPm.output) : null;
+        } catch {
+          validation = null;
+        }
+        useBuildStore.setState({
+          validation: validation as Record<string, unknown> | null,
+          qaScore: typeof validation?.score === "number" ? validation.score : null,
+          debugIterations: detail.debug_iterations ?? 0,
+        });
       })
       .catch(() => {
         // No builds yet / transient error: leave the workspace empty.
@@ -653,9 +679,9 @@ export default function WorkspacePage() {
   useEffect(() => {
     if (!LIVE_MODE) return;
     setIsBuilding(liveStatus === "running" || liveStatus === "debugging");
-    setBuildStep(
-      liveStatus === "idle" ? 0 : liveStatus === "running" ? 2 : liveStatus === "debugging" ? 3 : 4
-    );
+    // Only meaningful while a build runs: a finished build hasn't been
+    // deployed, so it must not read "STEP 4/4 · DEPLOY".
+    setBuildStep(liveStatus === "running" ? 2 : liveStatus === "debugging" ? 3 : 0);
   }, [liveStatus]);
 
   useEffect(() => {
@@ -860,7 +886,7 @@ export default function WorkspacePage() {
         id: "visual",
         label: "Live Preview",
         icon: <Eye size={14} className="shrink-0" />,
-        badge: "Edge",
+        badge: LIVE_MODE ? undefined : "Edge",
         isActive: activeSurface === "visual",
         onClick: () => {
           handleSound();
@@ -891,7 +917,7 @@ export default function WorkspacePage() {
       },
       {
         id: "deploy",
-        label: "Deploy & Edge",
+        label: LIVE_MODE ? "Deploy" : "Deploy & Edge",
         icon: <Rocket size={14} className="shrink-0" />,
         badge: LIVE_MODE ? undefined : "5 PoPs",
         isActive: activeSurface === "deploy",
@@ -1142,10 +1168,10 @@ export default function WorkspacePage() {
                     <span>
                       {activeSurface === "canvas" && "System Architecture Canvas (DAG)"}
                       {activeSurface === "code" && `Code Studio · ${activeFilePath}`}
-                      {activeSurface === "visual" && "Edge Runtime Live Prototype"}
-                      {activeSurface === "debug" && "Vitest Autonomous Assertion Suite"}
+                      {activeSurface === "visual" && (LIVE_MODE ? "Live Preview · latest build" : "Edge Runtime Live Prototype")}
+                      {activeSurface === "debug" && (LIVE_MODE ? "QA Validation · PM agent" : "Vitest Autonomous Assertion Suite")}
                       {activeSurface === "agents" && "Autonomous Specialist Agent Swarm"}
-                      {activeSurface === "deploy" && "Multi-Region Edge Cloud Distribution"}
+                      {activeSurface === "deploy" && (LIVE_MODE ? "Deployments" : "Multi-Region Edge Cloud Distribution")}
                     </span>
                   </span>
                 </div>
@@ -1169,7 +1195,7 @@ export default function WorkspacePage() {
                   )}
 
                   <span className="text-neutral-400 font-bold hidden sm:inline">
-                    {projectName.toUpperCase()} · STABLE
+                    {LIVE_MODE ? projectName.toUpperCase() : `${projectName.toUpperCase()} · STABLE`}
                   </span>
                 </div>
               </div>
@@ -1308,12 +1334,30 @@ export default function WorkspacePage() {
 
                 {/* 3. Live Visual Preview Mode */}
                 {activeSurface === "visual" && (
-                  <ForgeVisualSurface />
+                  LIVE_MODE ? (
+                    <LivePreviewSurface
+                      files={liveFiles || {}}
+                      hasBuild={Boolean(buildId)}
+                      buildInProgress={liveStatus === "running" || liveStatus === "debugging"}
+                    />
+                  ) : (
+                    <ForgeVisualSurface />
+                  )
                 )}
 
                 {/* 4. QA Tests Mode */}
                 {activeSurface === "debug" && (
-                  <ForgeDebugSurface />
+                  LIVE_MODE ? (
+                    <LiveQaSurface
+                      buildStatus={liveStatus}
+                      hasBuild={Boolean(buildId)}
+                      validation={liveValidation}
+                      debugIterations={liveDebugIterations}
+                      debugErrors={liveDebug?.errors ?? []}
+                    />
+                  ) : (
+                    <ForgeDebugSurface />
+                  )
                 )}
 
                 {/* 5. Living Agent Swarm Fleet Mode */}
@@ -1383,7 +1427,15 @@ export default function WorkspacePage() {
 
                 {/* 6. Deploy & Edge Mode */}
                 {activeSurface === "deploy" && (
-                  <ForgeDeploySurface projectName={projectName} />
+                  LIVE_MODE ? (
+                    <LiveDeploySurface
+                      projectId={project?.id ?? null}
+                      buildId={buildId}
+                      buildStatus={liveStatus}
+                    />
+                  ) : (
+                    <ForgeDeploySurface projectName={projectName} />
+                  )
                 )}
               </div>
             </div>
