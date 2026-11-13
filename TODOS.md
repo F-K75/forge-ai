@@ -63,5 +63,5 @@
 - **Cons:** Reordering creates new edge cases (stale artifacts visible between enqueue and delete) that need tests.
 - **Context:** Surfaced in `/plan-ceo-review` re-audit (2026-08-15). Code at `backend/api/initiatives.py:381-409`; refund already works, only the artifact delete timing is wrong.
 - **Depends on / blocked by:** None; independent of the credit-charging change that shipped.
-- **Status:** open
+- **Status:** done (2026-11-13) — deletes moved into the worker (`_replace_plan_artifacts` in `backend/tasks/pm_tasks.py`); old plan is kept until the new one is generated.
 - **Added:** 2026-08-15

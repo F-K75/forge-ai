@@ -395,12 +395,9 @@ async def regenerate_initiative(initiative_id: str, request: Request, confirm: b
         )
         await _record_initiative_analytics(db, current_user.id, "initiative_regenerated", initiative_id=initiative_id)
 
-        await db.prds.delete_many({"initiative_id": initiative_id})
-        await db.epics.delete_many({"initiative_id": initiative_id})
-        await db.stories.delete_many({"initiative_id": initiative_id})
-        await db.tasks.delete_many({"initiative_id": initiative_id})
-        await db.sprints.delete_many({"initiative_id": initiative_id})
-
+        # The worker replaces the old plan artifacts only after the new plan
+        # has been generated, so a failed enqueue (or a failed generation)
+        # never leaves the user without a plan.
         generate_initiative_plan.delay(initiative_id)
     except Exception:
         await db.users.update_one(

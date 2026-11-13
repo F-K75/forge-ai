@@ -50,6 +50,30 @@ class PMTask(current_app.Task):
     acks_late = True
 
 
+PLAN_ARTIFACT_COLLECTIONS = ("prds", "epics", "stories", "tasks", "sprints")
+
+
+async def _replace_plan_artifacts(db, initiative_id: str, result: dict) -> None:
+    """Swap an initiative's plan artifacts for a freshly generated plan.
+
+    Old artifacts are deleted only here, after generation succeeded, so a
+    regenerate whose enqueue or generation fails keeps the previous plan.
+    Deleting first also keeps a Celery retry from duplicating artifacts.
+    """
+    for name in PLAN_ARTIFACT_COLLECTIONS:
+        await getattr(db, name).delete_many({"initiative_id": initiative_id})
+
+    await db.prds.insert_one(result["prd"].model_dump())
+    if result["epics"]:
+        await db.epics.insert_many([e.model_dump() for e in result["epics"]])
+    if result["stories"]:
+        await db.stories.insert_many([s.model_dump() for s in result["stories"]])
+    if result["tasks"]:
+        await db.tasks.insert_many([t.model_dump() for t in result["tasks"]])
+    if result["sprints"]:
+        await db.sprints.insert_many([sp.model_dump() for sp in result["sprints"]])
+
+
 @current_app.task(
     bind=True, base=PMTask,
     name="backend.tasks.pm_tasks.generate_initiative_plan",
@@ -103,15 +127,7 @@ def generate_initiative_plan(self, initiative_id: str) -> dict:
                 await db.initiatives.update_one(
                     {"id": initiative_id}, {"$set": generated.model_dump()}
                 )
-            await db.prds.insert_one(result["prd"].model_dump())
-            if result["epics"]:
-                await db.epics.insert_many([e.model_dump() for e in result["epics"]])
-            if result["stories"]:
-                await db.stories.insert_many([s.model_dump() for s in result["stories"]])
-            if result["tasks"]:
-                await db.tasks.insert_many([t.model_dump() for t in result["tasks"]])
-            if result["sprints"]:
-                await db.sprints.insert_many([sp.model_dump() for sp in result["sprints"]])
+            await _replace_plan_artifacts(db, initiative_id, result)
 
             return {"status": "success", "initiative_id": initiative_id}
 
