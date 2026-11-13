@@ -1,62 +1,52 @@
 import { useEffect, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { Bot } from "lucide-react";
 import { AgentFleetGraph } from "./AgentFleetGraph";
 import { CommandPalette } from "./CommandPalette";
 import { OSWindow } from "./OSWindow";
 import { TopNavBar } from "./TopNavBar";
+import { useActiveProject } from "../hooks/useActiveProject";
+import { useAuthStore } from "../store/authStore";
+import { LIVE_MODE } from "../lib/env";
 
 export default function AppShell() {
-  const location = useLocation();
   const navigate = useNavigate();
   const [showAgentFleet, setShowAgentFleet] = useState(false);
 
-  // Project context resolution for global shortcuts
-  const projectMatch = location.pathname.match(/^\/(?:p|build|project)\/([^/]+)/);
-  const activeProjectId = projectMatch
-    ? projectMatch[1]
-    : localStorage.getItem("forge_last_project") || "demo-project";
-
-  useEffect(() => {
-    if (projectMatch && projectMatch[1] && projectMatch[1] !== "new") {
-      try {
-        localStorage.setItem("forge_last_project", projectMatch[1]);
-      } catch {
-        // ignore storage errors
-      }
-    }
-  }, [projectMatch]);
+  // Project context resolution for global shortcuts (shared with TopNavBar)
+  const { projectPath } = useActiveProject();
+  const user = useAuthStore((st) => st.user);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey) {
         if (e.key === "1") navigate("/projects");
-        if (e.key === "2") navigate(`/p/${activeProjectId}/workspace`);
-        if (e.key === "3") navigate(`/p/${activeProjectId}/flow`);
-        if (e.key === "4") navigate(`/p/${activeProjectId}/initiatives`);
-        if (e.key === "5") navigate(`/p/${activeProjectId}/reviews`);
+        if (e.key === "2") navigate(projectPath("workspace"));
+        if (e.key === "3") navigate(projectPath("flow"));
+        if (e.key === "4") navigate(projectPath("initiatives"));
+        if (e.key === "5") navigate(projectPath("reviews"));
         if (e.key === "6") navigate("/marketplace");
-        if (e.key === "7") navigate(`/p/${activeProjectId}/files`);
-        if (e.key === "8") navigate(`/p/${activeProjectId}/history`);
+        if (e.key === "7") navigate(projectPath("files"));
+        if (e.key === "8") navigate(projectPath("history"));
         if (e.key === "9") navigate("/models");
         if (e.key === "0") navigate("/billing");
-        if (e.key === ",") navigate(`/p/${activeProjectId}/settings`);
+        if (e.key === ",") navigate(projectPath("settings"));
         if (e.key.toLowerCase() === "l") navigate("/launch");
         if (e.key.toLowerCase() === "h") navigate("/home");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navigate, activeProjectId]);
+  }, [navigate, projectPath]);
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden text-ink select-none font-sans bg-base">
       {/* Redesigned High-Performance Top Navigation Bar */}
       <TopNavBar
         onOpenAgentFleet={() => setShowAgentFleet(true)}
-        activeAgentCount={3}
-        creditsBalance={1247}
+        activeAgentCount={LIVE_MODE ? undefined : 3}
+        creditsBalance={LIVE_MODE ? user?.credits : 1247}
       />
 
       {/* Viewport Canvas Area */}

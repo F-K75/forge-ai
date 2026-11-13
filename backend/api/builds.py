@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import json
 
 from fastapi import (
@@ -28,6 +29,8 @@ from sandbox.runner import SandboxRunner
 from services.ws_manager import manager, authenticate_websocket_token
 from tasks.build_tasks import run_build
 from api.auth import get_current_user
+
+logger = logging.getLogger(__name__)
 from core.config import get_settings
 from core.security import sanitize_prompt
 from core.permissions import has_build_access
@@ -163,6 +166,7 @@ async def create_build(
         db, current_user.id, reserved.get("plan", "free"), reserved["credits"]
     )
 
+    build_inserted_id: str | None = None
     try:
         # Build deduplication: prevent duplicate builds for the same project within 30 seconds
         thirty_seconds_ago = utcnow() - timedelta(seconds=30)
@@ -170,7 +174,13 @@ async def create_build(
             {
                 "project_id": req.project_id,
                 "user_id": current_user.id,
-                "status": {"$in": ["pending", "building"]},
+                "status": {
+                    "$in": [
+                        BuildStatus.PENDING.value,
+                        BuildStatus.RUNNING.value,
+                        BuildStatus.DEBUGGING.value,
+                    ]
+                },
                 "created_at": {"$gte": thirty_seconds_ago},
             },
             {"_id": 0},
@@ -200,6 +210,7 @@ async def create_build(
             build_dict.pop("idempotency_key", None)
 
         await db.builds.insert_one(build_dict)
+        build_inserted_id = build.id
 
         conversation_history, existing_files = await _get_prior_build_context(
             db, req.project_id
@@ -216,7 +227,22 @@ async def create_build(
             ),
             headers={"correlation_id": request.headers.get("X-Request-ID", "-")},
         )
-    except Exception:
+    except Exception as exc:
+        if build_inserted_id is not None:
+            # The row exists but no worker will ever pick it up; leaving it
+            # "pending" makes the UI show a build that never progresses and
+            # trips the duplicate-build guard on the next attempt.
+            await db.builds.update_one(
+                {"id": build_inserted_id},
+                {
+                    "$set": {
+                        "status": BuildStatus.FAILED.value,
+                        "error": "Build could not be dispatched to a worker",
+                        "completed_at": utcnow(),
+                    }
+                },
+            )
+            logger.error("Build %s dispatch failed: %r", build_inserted_id, exc)
         # Anything failing between reservation and a successfully dispatched
         # Celery task (duplicate build, DB error, etc.) would otherwise leak
         # the reserved credits forever -- run_build's own refund logic never

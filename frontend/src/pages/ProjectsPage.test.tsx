@@ -1,6 +1,16 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ProjectsPage from './ProjectsPage'
+
+function renderPage() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={client}>
+      <ProjectsPage />
+    </QueryClientProvider>
+  )
+}
 
 const mockNavigate = vi.fn()
 const mockReset = vi.fn()
@@ -233,24 +243,24 @@ describe('ProjectsPage', () => {
   })
 
   it('renders the page title', () => {
-    render(<ProjectsPage />)
+    renderPage()
     expect(screen.getByText('Production Software')).toBeTruthy()
   })
 
   it('shows the import repo button', () => {
-    render(<ProjectsPage />)
+    renderPage()
     expect(screen.getByRole('button', { name: /import repo/i })).toBeTruthy()
   })
 
   it('reveals repo import input when button is clicked', async () => {
-    render(<ProjectsPage />)
+    renderPage()
     const importButton = screen.getByRole('button', { name: /import repo/i })
     fireEvent.click(importButton)
     expect(screen.getByPlaceholderText('https://github.com/owner/repo')).toBeTruthy()
   })
 
   it('calls reposApi.import and navigates on successful import', async () => {
-    render(<ProjectsPage />)
+    renderPage()
     fireEvent.click(screen.getByRole('button', { name: /import repo/i }))
 
     const input = screen.getByPlaceholderText('https://github.com/owner/repo')
@@ -261,14 +271,14 @@ describe('ProjectsPage', () => {
       expect(mockReposApi.import).toHaveBeenCalledWith({ repo_url: 'https://github.com/owner/repo' })
     })
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/build/p1')
+      expect(mockNavigate).toHaveBeenCalledWith('/p/p1/workspace')
     })
   })
 
   it('shows error toast when repo import fails', async () => {
     mockReposApi.import.mockRejectedValueOnce(new Error('fail'))
 
-    render(<ProjectsPage />)
+    renderPage()
     fireEvent.click(screen.getByRole('button', { name: /import repo/i }))
 
     const input = screen.getByPlaceholderText('https://github.com/owner/repo')
@@ -282,7 +292,7 @@ describe('ProjectsPage', () => {
   })
 
   it('scaffolds a project with Gemini AI and displays blueprint preview', async () => {
-    render(<ProjectsPage />)
+    renderPage()
 
     // Click GEMINI AI button in the command bar
     const geminiBtn = screen.getByRole('button', { name: /gemini ai/i })
@@ -312,7 +322,7 @@ describe('ProjectsPage', () => {
   })
 
   it('calls Gemini plugin to expand concept ideas and displays architectural proposals', async () => {
-    render(<ProjectsPage />)
+    renderPage()
 
     const terminalInput = screen.getByPlaceholderText(/event-driven payment clearing/i)
     fireEvent.change(terminalInput, { target: { value: 'High Frequency Matching Engine' } })
@@ -331,7 +341,7 @@ describe('ProjectsPage', () => {
   })
 
   it('runs Gemini AI deep architecture audit on a workspace and renders audit report', async () => {
-    render(<ProjectsPage />)
+    renderPage()
 
     // Click AI Audit button on a card
     const auditBtns = screen.getAllByRole('button', { name: /audit/i })
@@ -350,7 +360,7 @@ describe('ProjectsPage', () => {
   })
 
   it('allows toggling between Bento Grid view and High-Density Table view', () => {
-    render(<ProjectsPage />)
+    renderPage()
 
     // Grid view is default
     const tableToggleBtn = screen.getByTitle(/dense table view/i)

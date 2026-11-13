@@ -36,11 +36,21 @@ import {
 import { AnimatePresence } from "motion/react";
 import toast from "react-hot-toast";
 import { useBuildStore } from "../store/buildStore";
+import { AGENTS } from "../lib/agents";
+
+const AGENT_ORDER = AGENTS.map((a) => a.id);
+const AGENT_LABELS: Record<string, string> = Object.fromEntries(AGENTS.map((a) => [a.id, a.label]));
 import { useBuildSocket } from "../hooks/useBuildSocket";
 import { runMockBuild } from "../lib/mockEmitter";
 import { buildsApi, projectsApi } from "../lib/api";
 import { PROJECTS, findProjectById, getCustomProjects, type Project } from "../lib/mockData";
 import { LIVE_MODE } from "../lib/env";
+import { useProjectsQuery } from "../hooks/useActiveProject";
+
+function useProjectsQueryResult() {
+  const { data } = useProjectsQuery();
+  return { projects: data ?? [] };
+}
 import { SuiWindowFrame, BottomNavItem } from "../components/pm/SuiWindowFrame";
 import { SuiKeycapVisual } from "../components/pm/SuiKeycapVisual";
 import { VoiceInputButton } from "../components/pm/VoiceInputButton";
@@ -470,12 +480,16 @@ export default function WorkspacePage() {
     if (project?.displayName) return `Build and scale ${project.displayName}`;
     return "Interactive Google Maps Explorer & Geolocation Service";
   });
-  const [projectFiles, setProjectFiles] = useState<Record<string, string>>(DEFAULT_WORKSPACE_FILES);
-  const [projectTree, setProjectTree] = useState<TreeNode[]>(INITIAL_PROJECT_TREE);
+  // Live mode starts empty and is filled from the real build (see the
+  // build-store sync effects below); demo mode keeps the showcase content.
+  const [projectFiles, setProjectFiles] = useState<Record<string, string>>(
+    LIVE_MODE ? {} : DEFAULT_WORKSPACE_FILES
+  );
+  const [projectTree, setProjectTree] = useState<TreeNode[]>(LIVE_MODE ? [] : INITIAL_PROJECT_TREE);
   const [activeDagNodes, setActiveDagNodes] = useState<CanvasNode[] | undefined>(undefined);
-  const [logsList, setLogsList] = useState(STREAMING_LOGS);
+  const [logsList, setLogsList] = useState(LIVE_MODE ? [] : STREAMING_LOGS);
   const [isBuilding, setIsBuilding] = useState(false);
-  const [buildStep, setBuildStep] = useState<number>(2); // 1: Spec, 2: Code, 3: QA, 4: Deploy
+  const [buildStep, setBuildStep] = useState<number>(LIVE_MODE ? 0 : 2); // 1: Spec, 2: Code, 3: QA, 4: Deploy
   const [showMomentCard, setShowMomentCard] = useState(false);
 
   // Sync objective with project when project changes
@@ -506,10 +520,143 @@ export default function WorkspacePage() {
   }, [project]);
 
   // Global build store
-  const [buildId, setBuildId] = useState<string | null>("build-auth-oauth");
+  const [buildId, setBuildId] = useState<string | null>(LIVE_MODE ? null : "build-auth-oauth");
+  const [projectMissing, setProjectMissing] = useState(false);
   const startBuild = useBuildStore((s) => s.startBuild);
   const handleEvent = useBuildStore((s) => s.handleEvent);
+  const setStoreFiles = useBuildStore((s) => s.setFiles);
+  const setStoreBuildId = useBuildStore((s) => s.setBuildId);
+  const liveStatus = useBuildStore((s) => s.status);
+  const liveFiles = useBuildStore((s) => s.files);
+  const liveMessages = useBuildStore((s) => s.messages);
+  const liveQaScore = useBuildStore((s) => s.qaScore);
+  const liveError = useBuildStore((s) => s.error);
+  const liveAgentStates = useBuildStore((s) => s.agentStates);
   useBuildSocket(LIVE_MODE ? buildId : null);
+
+  // Live: the canvas shows the real agent pipeline for this build rather
+  // than the bundled showcase graph.
+  const liveDagNodes: CanvasNode[] = useMemo(() => {
+    if (!LIVE_MODE) return [];
+    const files = Object.keys(liveFiles || {});
+    const tiers: Record<string, { tier: number; category: CanvasNode["category"] }> = {
+      architect: { tier: 0, category: "foundation" },
+      business_improver: { tier: 0, category: "foundation" },
+      designer: { tier: 1, category: "shell" },
+      developer: { tier: 2, category: "core" },
+      integration: { tier: 2, category: "core" },
+      pm: { tier: 3, category: "infra" },
+    };
+    return AGENT_ORDER.map((id, i) => {
+      const state = liveAgentStates?.[id] ?? "idle";
+      const label = AGENT_LABELS[id] ?? id;
+      return {
+        id,
+        label,
+        category: tiers[id]?.category ?? "core",
+        tier: tiers[id]?.tier ?? 2,
+        status: state === "done" ? "done" : state === "active" || state === "debugging" ? "building" : "queued",
+        description:
+          state === "done"
+            ? `${label} finished`
+            : state === "active"
+            ? `${label} is working…`
+            : state === "debugging"
+            ? `${label} is fixing errors…`
+            : liveStatus === "failed"
+            ? "Not run — build failed"
+            : "Waiting",
+        agent: label,
+        files: id === "developer" ? files.slice(0, 6) : [],
+        dependencies: i > 0 ? [AGENT_ORDER[i - 1]] : [],
+        dependants: i < AGENT_ORDER.length - 1 ? [AGENT_ORDER[i + 1]] : [],
+        details: { specs: [] },
+      } satisfies CanvasNode;
+    });
+  }, [liveAgentStates, liveFiles, liveStatus]);
+
+  // Live: a different project must not inherit the previous one's build.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    setBuildId(null);
+    setProjectMissing(false);
+    useBuildStore.getState().reset();
+  }, [projectId]);
+
+  // Live: attach to the project's most recent build so a reload (or coming
+  // back from another page) shows real progress/files instead of a blank or
+  // fake workspace.
+  useEffect(() => {
+    if (!LIVE_MODE || !project?.id) return;
+    let cancelled = false;
+    projectsApi
+      .getBuilds(project.id)
+      .then(async (builds: Array<{ id: string; status?: string; prompt?: string }>) => {
+        const latest = builds?.[0];
+        if (cancelled || !latest) return;
+        setBuildId(latest.id);
+        setStoreBuildId(latest.id);
+        if (latest.prompt) setActiveGoal(latest.prompt);
+        const files = await buildsApi.getFiles(latest.id).catch(() => null);
+        if (!cancelled && files && typeof files === "object") setStoreFiles(files);
+        if (!cancelled && latest.status) {
+          // Backend BuildStatus: pending | running | debugging | success | failed
+          const map: Record<string, "running" | "debugging" | "complete" | "failed"> = {
+            pending: "running",
+            running: "running",
+            debugging: "debugging",
+            success: "complete",
+            failed: "failed",
+          };
+          const mapped = map[latest.status];
+          if (mapped) useBuildStore.setState({ status: mapped });
+        }
+      })
+      .catch(() => {
+        // No builds yet / transient error: leave the workspace empty.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id, setStoreBuildId, setStoreFiles]);
+
+  // Live: mirror the real build's files into the editor + file tree.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    const entries = Object.entries(liveFiles || {});
+    setProjectFiles(liveFiles || {});
+    setProjectTree(
+      addSynthesizedFilesToTree(
+        [],
+        entries.map(([path, content]) => ({ path, content, description: "" }))
+      )
+    );
+    if (entries.length > 0) {
+      setActiveFilePath((cur) => (liveFiles[cur] !== undefined ? cur : entries[0][0]));
+    }
+  }, [liveFiles]);
+
+  // Live: mirror agent messages into the log panel.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    setLogsList(
+      [...liveMessages].reverse().map((m) => ({
+        time: "",
+        agent: m.agent ? String(m.agent) : m.from === "user" ? "You" : "System",
+        message: m.text,
+        level: "info",
+      })) as typeof STREAMING_LOGS
+    );
+  }, [liveMessages]);
+
+  // Live: drive the building flag / step indicator from the real status.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    setIsBuilding(liveStatus === "running" || liveStatus === "debugging");
+    setBuildStep(
+      liveStatus === "idle" ? 0 : liveStatus === "running" ? 2 : liveStatus === "debugging" ? 3 : 4
+    );
+  }, [liveStatus]);
 
   useEffect(() => {
     if (!LIVE_MODE || !projectId) return;
@@ -558,8 +705,7 @@ export default function WorkspacePage() {
       })
       .catch(() => {
         if (!cancelled) {
-          toast.error("Couldn't load this project. Using fallback.");
-          setProject({ id: projectId, name: "Untitled project", displayName: "Untitled project" });
+          setProjectMissing(true);
         }
       });
     return () => {
@@ -594,17 +740,31 @@ export default function WorkspacePage() {
     setIsBuilding(true);
     setIntentInput("");
 
-    if (LIVE_MODE && project?.id) {
-      buildsApi
-        .create({ project_id: project.id, prompt: textToSubmit })
-        .then((b) => {
-          setBuildId(b.id);
-          startBuild(b.id, textToSubmit);
-          toast.success("Build job dispatched to autonomous agents");
-        })
-        .catch(() => {
-          toast.error("Failed to start build job");
-        });
+    if (LIVE_MODE) {
+      // The backend build is the source of truth; its progress and files
+      // arrive over the build WebSocket into useBuildStore (synced above).
+      if (!project?.id) {
+        setIsBuilding(false);
+        toast.error("Project is still loading — try again in a moment.");
+        return;
+      }
+      try {
+        const b = await buildsApi.create({ project_id: project.id, prompt: textToSubmit });
+        setBuildId(b.id);
+        startBuild(b.id, textToSubmit);
+        toast.success("Build started");
+      } catch (err: any) {
+        const detail = err?.response?.data?.detail;
+        const msg =
+          typeof detail === "string"
+            ? detail
+            : typeof detail?.message === "string"
+            ? detail.message
+            : "Failed to start the build.";
+        toast.error(msg);
+        setIsBuilding(false);
+      }
+      return;
     }
 
     try {
@@ -662,12 +822,14 @@ export default function WorkspacePage() {
   };
 
   const projectName = project?.displayName || project?.name || "Autonomous Workspace";
+  const { projects: liveProjects } = useProjectsQueryResult();
   const allProjectsList: Project[] = useMemo(() => {
+    if (LIVE_MODE) return liveProjects;
     const custom = getCustomProjects();
     const map = new Map<string, Project>();
     [...custom, ...PROJECTS].forEach((p) => map.set(p.id, p));
     return Array.from(map.values());
-  }, []);
+  }, [liveProjects]);
 
   // Window frame top navigation tabs matching Projects & Initiatives style
   const navItems: BottomNavItem[] = useMemo(() => {
@@ -709,7 +871,7 @@ export default function WorkspacePage() {
         id: "debug",
         label: "QA Tests",
         icon: <Bug size={14} className="shrink-0" />,
-        badge: "42/42",
+        badge: LIVE_MODE ? (liveQaScore != null ? `QA ${liveQaScore}` : undefined) : "42/42",
         isActive: activeSurface === "debug",
         onClick: () => {
           handleSound();
@@ -720,7 +882,7 @@ export default function WorkspacePage() {
         id: "agents",
         label: "Agent Fleet",
         icon: <Bot size={14} className="shrink-0" />,
-        badge: "5",
+        badge: LIVE_MODE ? String(AGENT_ORDER.length) : "5",
         isActive: activeSurface === "agents",
         onClick: () => {
           handleSound();
@@ -731,7 +893,7 @@ export default function WorkspacePage() {
         id: "deploy",
         label: "Deploy & Edge",
         icon: <Rocket size={14} className="shrink-0" />,
-        badge: "5 PoPs",
+        badge: LIVE_MODE ? undefined : "5 PoPs",
         isActive: activeSurface === "deploy",
         onClick: () => {
           handleSound();
@@ -748,7 +910,25 @@ export default function WorkspacePage() {
         },
       },
     ];
-  }, [activeSurface, handleSound, navigate]);
+  }, [activeSurface, handleSound, navigate, liveQaScore]);
+
+  if (LIVE_MODE && projectMissing) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
+        <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Project not found</h1>
+        <p className="max-w-md text-sm text-neutral-500">
+          This project doesn't exist or you don't have access to it.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate("/projects")}
+          className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-neutral-900"
+        >
+          Back to projects
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen w-full bg-[#E5EEF8] dark:bg-[#07090E] p-1 sm:p-2 md:p-3 font-sans antialiased text-[#111827] dark:text-[#F3F4F6] transition-colors duration-200 flex flex-col items-stretch justify-start">
@@ -787,18 +967,45 @@ export default function WorkspacePage() {
 
                 {/* Status Chips */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    EDGE LIVE · READY
-                  </span>
+                  {LIVE_MODE ? (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                        liveStatus === "failed"
+                          ? "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800"
+                          : liveStatus === "complete"
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                          : "bg-neutral-100 text-neutral-700 border-neutral-300 dark:bg-white/5 dark:text-neutral-300 dark:border-white/15"
+                      }`}
+                      title={liveStatus === "failed" && liveError ? String(liveError) : undefined}
+                    >
+                      {liveStatus === "idle"
+                        ? buildId
+                          ? "BUILD · LOADING"
+                          : "NO BUILDS YET"
+                        : liveStatus === "running"
+                        ? "BUILDING…"
+                        : liveStatus === "debugging"
+                        ? "DEBUGGING…"
+                        : liveStatus === "complete"
+                        ? "BUILD COMPLETE"
+                        : "BUILD FAILED"}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      EDGE LIVE · READY
+                    </span>
+                  )}
 
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-100 text-cyan-900 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
-                    <CheckCircle2 size={11} /> 42/42 VITEST PASSED
-                  </span>
+                  {(!LIVE_MODE || liveQaScore != null) && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-100 text-cyan-900 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
+                      <CheckCircle2 size={11} /> {LIVE_MODE ? `QA ${liveQaScore}` : "42/42 VITEST PASSED"}
+                    </span>
+                  )}
 
-                  <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                  {buildStep > 0 && !(LIVE_MODE && liveStatus === "failed") && <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
                     STEP {buildStep}/4 · {buildStep === 1 ? "SPEC" : buildStep === 2 ? "CODE" : buildStep === 3 ? "QA" : "DEPLOY"}
-                  </span>
+                  </span>}
                 </div>
 
                 {/* Objective / Goal Indicator */}
@@ -860,7 +1067,7 @@ export default function WorkspacePage() {
                   className="h-8 px-2.5 border-2 border-[#000F1D] bg-white dark:bg-[#1C2030] font-black uppercase text-[10px] sm:text-[11px] rounded flex items-center gap-1.5 shadow-[1.5px_1.5px_0_#000F1D] hover:bg-[#FFD731] hover:text-black active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
                 >
                   <FileCode2 size={13} strokeWidth={2.4} />
-                  <span>Files (14)</span>
+                  <span>Files ({Object.keys(projectFiles).length})</span>
                 </button>
 
                 <button
@@ -873,7 +1080,7 @@ export default function WorkspacePage() {
                   className="h-8 px-2.5 border-2 border-[#000F1D] bg-white dark:bg-[#1C2030] font-black uppercase text-[10px] sm:text-[11px] rounded flex items-center gap-1.5 shadow-[1.5px_1.5px_0_#000F1D] hover:bg-[#00F0FF] hover:text-black active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
                 >
                   <Bot size={13} strokeWidth={2.4} />
-                  <span>Fleet (5)</span>
+                  <span>Fleet ({LIVE_MODE ? AGENT_ORDER.length : 5})</span>
                 </button>
 
                 <button
@@ -973,7 +1180,7 @@ export default function WorkspacePage() {
                 {activeSurface === "canvas" && (
                   <ForgeBuildCanvas
                     buildPrompt={activeGoal}
-                    customNodes={activeDagNodes}
+                    customNodes={LIVE_MODE ? liveDagNodes : activeDagNodes}
                     onSelectNodeFile={(file: string) => {
                       setActiveFilePath(file);
                       setActiveSurface("code");
@@ -1548,7 +1755,7 @@ export default function WorkspacePage() {
                         agents: p.agents,
                         fileTree: p.fileTree,
                       });
-                      navigate(`/build/${p.id}`);
+                      navigate(`/p/${p.id}/workspace`);
                       setProjectSwitcherOpen(false);
                       toast.success(`Switched to ${p.displayName || p.name}`);
                     }}

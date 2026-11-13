@@ -4,6 +4,7 @@ import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import BrandLogo from "./BrandLogo";
 import { useAuthStore } from "../store/authStore";
+import { useActiveProject } from "../hooks/useActiveProject";
 
 type Command = {
   id: string;
@@ -17,7 +18,7 @@ type Command = {
 const COMMANDS: Command[] = [
   { id: "launch", label: "Launch CLI ($ build)", icon: <Rocket size={16} />, href: "/launch", section: "nav", keywords: ["launch", "prompt", "cli", "compiler"] },
   { id: "home", label: "Home (Landing Page)", icon: <Home size={16} />, href: "/home", section: "nav", keywords: ["home", "landing", "marketing", "overview"] },
-  { id: "workspace", label: "Workspace IDE", icon: <Terminal size={16} />, href: "/build/demo-project", section: "nav", keywords: ["editor", "code", "dev", "workspace"] },
+  { id: "workspace", label: "Workspace IDE", icon: <Terminal size={16} />, href: "/projects", section: "nav", keywords: ["editor", "code", "dev", "workspace"] },
   { id: "projects", label: "Projects", icon: <LayoutGrid size={16} />, href: "/projects", section: "nav", keywords: ["dashboard", "library"] },
   { id: "initiatives", label: "Initiatives", icon: <Rocket size={16} />, href: "/initiatives", section: "nav", keywords: ["pm", "agile", "epics"] },
   { id: "flow", label: "Flow", icon: <Workflow size={16} />, href: "/flow", section: "nav", keywords: ["agents", "pipeline", "graph", "nodes"] },
@@ -39,6 +40,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { projectPath } = useActiveProject();
   const reduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -90,29 +92,29 @@ export function CommandPalette() {
       navigate("/login", { replace: true });
       return;
     }
-    const currentProject = localStorage.getItem("forge_last_project") || "demo-project";
+    const scoped = (sub: string) => projectPath(sub);
     if (cmd.id === "workspace") {
-      navigate(`/p/${currentProject}/workspace`);
+      navigate(scoped("workspace"));
       setOpen(false);
       return;
     }
     if (cmd.id === "initiatives") {
-      navigate(`/p/${currentProject}/initiatives`);
+      navigate(scoped("initiatives"));
       setOpen(false);
       return;
     }
     if (cmd.id === "flow") {
-      navigate(`/p/${currentProject}/flow`);
+      navigate(scoped("flow"));
       setOpen(false);
       return;
     }
     if (cmd.id === "reviews") {
-      navigate(`/p/${currentProject}/reviews`);
+      navigate(scoped("reviews"));
       setOpen(false);
       return;
     }
     if (cmd.id === "settings") {
-      navigate(`/p/${currentProject}/settings`);
+      navigate(scoped("settings"));
       setOpen(false);
       return;
     }

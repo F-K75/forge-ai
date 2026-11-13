@@ -39,6 +39,10 @@ import {
   saveCustomProject,
 } from "../lib/mockData";
 import { reposApi, projectsApi } from "../lib/api";
+import { LIVE_MODE } from "../lib/env";
+import { fromApiProject, type ApiProject } from "../lib/projectAdapter";
+import { useQueryClient } from "@tanstack/react-query";
+import { PROJECTS_QUERY_KEY } from "../hooks/useActiveProject";
 import {
   scaffoldProjectWithGemini,
   analyzeProjectWithGemini,
@@ -321,22 +325,52 @@ export default function ProjectsPage() {
     }
   });
 
-  // Custom projects (stored in localStorage) + API projects
-  const [customProjects, setCustomProjects] = useState<Project[]>(() => getCustomProjects());
+  // Live mode: the backend is the only source of truth for projects.
+  // Demo mode (no backend): localStorage "custom" projects + bundled mocks.
+  const [customProjects, setCustomProjects] = useState<Project[]>(() =>
+    LIVE_MODE ? [] : getCustomProjects()
+  );
   const [apiProjects, setApiProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(LIVE_MODE);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const queryClient = useQueryClient();
+  const loadProjects = React.useCallback(() => {
+    if (!LIVE_MODE) return;
+    setProjectsLoading(true);
+    setProjectsError(null);
     projectsApi
       .list()
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setApiProjects(data);
-        }
+      .then((data: ApiProject[]) => {
+        setApiProjects(Array.isArray(data) ? data.map(fromApiProject) : []);
       })
-      .catch(() => {
-        // Fallback gracefully
-      });
+      .catch((err: any) => {
+        setProjectsError(err?.response?.data?.detail || "Could not load your projects.");
+      })
+      .finally(() => setProjectsLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  // Persist a project to the backend and return the server-issued record.
+  const createBackendProject = async (data: {
+    name: string;
+    description: string;
+    template?: string;
+  }): Promise<Project> => {
+    const created: ApiProject = await projectsApi.create({
+      name: data.name,
+      description: data.description || data.name,
+      template: data.template,
+    });
+    const proj = fromApiProject(created);
+    setApiProjects((prev) => [proj, ...prev.filter((p) => p.id !== proj.id)]);
+    // Keep the nav's project switcher in sync with the new project.
+    queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY });
+    return proj;
+  };
 
   const handleSound = (type: "click" | "switch" = "click") => {
     if (!soundEnabled) return;
@@ -363,7 +397,7 @@ export default function ProjectsPage() {
 
   // Combine mock, custom, and API projects
   const allProjects = useMemo(() => {
-    const combined = [...customProjects, ...apiProjects, ...MOCK_PROJECTS];
+    const combined = LIVE_MODE ? apiProjects : [...customProjects, ...MOCK_PROJECTS];
     const seen = new Set<string>();
     return combined.filter((p) => {
       if (seen.has(p.id)) return false;
@@ -424,8 +458,9 @@ export default function ProjectsPage() {
       toast.success("Repository imported successfully!");
       setShowImport(false);
       setImportRepoUrl("");
-      const importedId = res?.project?.id || res?.id || "p1";
-      navigate(`/build/${importedId}`);
+      const importedId = res?.project?.id || res?.project_id || res?.id;
+      loadProjects();
+      if (importedId) navigate(`/p/${importedId}/workspace`);
     } catch {
       toast.error("Failed to import repository. Please verify the URL and credentials.");
     } finally {
@@ -452,9 +487,25 @@ export default function ProjectsPage() {
       if (scaffolded.initialFiles && scaffolded.initialFiles.length > 0) {
         setSelectedPreviewFile(scaffolded.initialFiles[0].path);
       }
-      saveCustomProject(scaffolded);
-      setCustomProjects((prev) => [scaffolded, ...prev.filter((p) => p.id !== scaffolded.id)]);
-      toast.success("Workspace scaffolded with Gemini 3.8 Flash!");
+      if (LIVE_MODE) {
+        // Replace the client-side id with the real backend project so the
+        // workspace, builds and initiatives all resolve against the API.
+        const persisted = await createBackendProject({
+          name: scaffolded.displayName || scaffolded.name,
+          description: scaffolded.description || effectivePrompt,
+          template: scaffolded.template,
+        });
+        const merged = { ...scaffolded, id: persisted.id };
+        setGeneratedPreview(merged);
+        setApiProjects((prev) => [
+          { ...persisted, techStack: scaffolded.techStack, architectureOverview: scaffolded.architectureOverview },
+          ...prev.filter((p) => p.id !== persisted.id),
+        ]);
+      } else {
+        saveCustomProject(scaffolded);
+        setCustomProjects((prev) => [scaffolded, ...prev.filter((p) => p.id !== scaffolded.id)]);
+      }
+      toast.success("Workspace scaffolded");
     } catch (err: any) {
       toast.error(err?.message || "Failed to scaffold with Gemini");
     } finally {
@@ -514,10 +565,27 @@ export default function ProjectsPage() {
   };
 
   // Manual project creation
-  const handleCreateManual = (e: React.FormEvent) => {
+  const handleCreateManual = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
     handleSound("click");
+    if (LIVE_MODE) {
+      try {
+        const proj = await createBackendProject({
+          name: newProjectName.trim(),
+          description: `${newProjectTemplate} project`,
+          template: newProjectTemplate,
+        });
+        toast.success(`Created workspace ${proj.displayName}`);
+        setShowNewDialog(false);
+        setNewProjectName("");
+        navigate(`/p/${proj.id}/workspace`);
+      } catch (err: any) {
+        const detail = err?.response?.data?.detail;
+        toast.error(typeof detail === "string" ? detail : "Could not create the project.");
+      }
+      return;
+    }
     const newProj: Project = {
       id: `proj-${Date.now()}`,
       name: newProjectName.toLowerCase().replace(/[^a-z0-9_-]/g, "-"),
@@ -565,7 +633,7 @@ export default function ProjectsPage() {
       {
         id: "repos",
         label: "Repositories",
-        badge: 3,
+        badge: LIVE_MODE ? undefined : 3,
         isActive: activeTab === "repos",
         onClick: () => {
           handleSound();
@@ -575,7 +643,7 @@ export default function ProjectsPage() {
       {
         id: "deployments",
         label: "Edge Deployments",
-        badge: DEPLOYMENTS.length,
+        badge: LIVE_MODE ? undefined : DEPLOYMENTS.length,
         isActive: activeTab === "deployments",
         onClick: () => {
           handleSound();
@@ -585,7 +653,7 @@ export default function ProjectsPage() {
       {
         id: "activity",
         label: "Fleet Activity",
-        badge: ACTIVITIES.length,
+        badge: LIVE_MODE ? undefined : ACTIVITIES.length,
         isActive: activeTab === "activity",
         onClick: () => {
           handleSound();
@@ -1256,6 +1324,37 @@ export default function ProjectsPage() {
                     ))}
                   </div>
                 </div>
+              ) : LIVE_MODE && (projectsLoading || projectsError || visibleProjects.length === 0) ? (
+                <div className="bg-white dark:bg-[#141722] rounded-3xl p-10 border border-neutral-200/90 dark:border-neutral-800 shadow-sm text-center space-y-3">
+                  {projectsLoading ? (
+                    <p className="text-sm text-neutral-500">Loading your projects…</p>
+                  ) : projectsError ? (
+                    <>
+                      <p className="text-sm font-semibold text-red-600">{projectsError}</p>
+                      <button
+                        type="button"
+                        onClick={loadProjects}
+                        className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 text-sm font-semibold"
+                      >
+                        Retry
+                      </button>
+                    </>
+                  ) : allProjects.length === 0 ? (
+                    <>
+                      <p className="text-base font-bold text-neutral-900 dark:text-white">No projects yet</p>
+                      <p className="text-sm text-neutral-500">Create your first project to start a build.</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewDialog(true)}
+                        className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-sm font-semibold"
+                      >
+                        New project
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-neutral-500">No projects match your filters.</p>
+                  )}
+                </div>
               ) : viewMode === "table" ? (
                 /* Dense Engineering Table View */
                 <div className="bg-white dark:bg-[#141722] rounded-3xl p-4 border border-neutral-200/90 dark:border-neutral-800 shadow-sm overflow-x-auto">
@@ -1319,7 +1418,7 @@ export default function ProjectsPage() {
                               </div>
                             </td>
                             <td className="py-3.5 px-4 font-bold text-neutral-800 dark:text-neutral-200">
-                              {p.qaScore ?? 92}/100
+                              {p.qaScore ? `${p.qaScore}/100` : "—"}
                             </td>
                             <td className="py-3.5 px-4 text-neutral-600 dark:text-neutral-400">
                               {p.agents?.join(", ") || "Full Fleet"}
@@ -1336,7 +1435,7 @@ export default function ProjectsPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => navigate(`/build/${p.id}`)}
+                                  onClick={() => navigate(`/p/${p.id}/workspace`)}
                                   className="h-7 px-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full font-bold text-xs"
                                 >
                                   Open IDE
@@ -1379,7 +1478,7 @@ export default function ProjectsPage() {
                               <div className="flex items-center gap-2">
                                 <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/80 px-3 py-1 rounded-full">
                                   <ShieldCheck size={12} className="text-emerald-500" />
-                                  QA: {p.qaScore ?? 94}%
+                                  QA: {p.qaScore ? `${p.qaScore}%` : "—"}
                                 </span>
 
                                 <button
@@ -1400,7 +1499,7 @@ export default function ProjectsPage() {
                             <h3
                               onClick={() => {
                                 handleSound();
-                                navigate(`/build/${p.id}`);
+                                navigate(`/p/${p.id}/workspace`);
                               }}
                               className="text-lg font-bold text-neutral-900 dark:text-neutral-50 tracking-tight leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 cursor-pointer"
                             >
@@ -1451,7 +1550,7 @@ export default function ProjectsPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleSound();
-                                  navigate(`/build/${p.id}`);
+                                  navigate(`/p/${p.id}/workspace`);
                                 }}
                                 className="h-8 px-4 bg-neutral-900 hover:bg-black dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 font-semibold text-xs rounded-full flex items-center gap-1.5 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
                               >
@@ -1566,7 +1665,7 @@ export default function ProjectsPage() {
                       type="button"
                       onClick={() => {
                         setShowNewDialog(false);
-                        navigate(`/build/${generatedPreview.id}`);
+                        navigate(`/p/${generatedPreview.id}/workspace`);
                       }}
                       className="text-xs font-bold text-emerald-600 hover:underline"
                     >

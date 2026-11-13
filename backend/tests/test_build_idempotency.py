@@ -12,6 +12,7 @@ credits or spin up a worker task.
 """
 
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -272,7 +273,7 @@ def test_recent_build_blocks_duplicate_within_30_seconds(monkeypatch):
             "user_id": "u1",
             "project_id": "proj1",
             "idempotency_key": "key-recent",
-            "status": "building",
+            "status": "running",
             "created_at": recent_time,
         }
     )
@@ -309,7 +310,7 @@ def test_stale_build_does_not_block_new_build_after_30_seconds(monkeypatch):
             "user_id": "u1",
             "project_id": "proj1",
             "idempotency_key": "key-stale",
-            "status": "building",
+            "status": "running",
             "created_at": stale_time,
         }
     )
@@ -328,3 +329,31 @@ def test_stale_build_does_not_block_new_build_after_30_seconds(monkeypatch):
     # A new build was created.
     assert len(db.builds.docs) == 2
     assert len(run_build.calls) == 1
+
+
+def test_failed_dispatch_marks_build_failed_and_refunds(monkeypatch):
+    """If enqueueing the Celery task fails after the build row was inserted,
+    the row must not stay "pending" forever (the UI would show a build that
+    never progresses and the dedup guard would block the retry), and the
+    reserved credits must be refunded."""
+
+    class BrokenRunBuild(FakeRunBuild):
+        def apply_async(self, args=(), kwargs=None, **extra):
+            raise RuntimeError("broker unavailable")
+
+    db = FakeDB()
+    db.projects.docs.append({"id": "proj1", "user_id": "u1", "tech_stack": {}})
+    db.users.docs.append(
+        {"id": "u1", "email_verified": True, "credits": 1000, "free_build_used": True}
+    )
+
+    user = User(id="u1", email="a@b.com", name="U", hashed_password="x", plan="free")
+    client = _client(monkeypatch, db, user, BrokenRunBuild())
+
+    with pytest.raises(RuntimeError, match="broker unavailable"):
+        client.post("/builds/", json={"project_id": "proj1", "prompt": "build me an app"})
+
+    assert len(db.builds.docs) == 1
+    assert db.builds.docs[0]["status"] == "failed"
+    assert db.builds.docs[0]["error"]
+    assert db.users.docs[0]["credits"] == 1000

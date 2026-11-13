@@ -6,6 +6,7 @@ import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
 import { LIVE_MODE } from "./lib/env"
 import { lazyWithRetry } from "./lib/lazyRetry"
+import { useActiveProject } from "./hooks/useActiveProject"
 import GlobalBackground from "./components/GlobalBackground"
 import BrandLogo from "./components/BrandLogo"
 
@@ -181,9 +182,13 @@ function RootRoute() {
   const searchParams = new URLSearchParams(location.search)
   const wantsApp = searchParams.get("app") === "true"
 
-  if (wantsApp || (LIVE_MODE && isAuthenticated)) {
-    const lastProject = localStorage.getItem("forge_last_project") || "demo-project"
-    return <Navigate to={`/p/${lastProject}/workspace`} replace />
+  if (LIVE_MODE && isAuthenticated) {
+    // /projects resolves the user's real projects; a stale or foreign
+    // "last project" id from localStorage would otherwise 404.
+    return <Navigate to="/projects" replace />
+  }
+  if (wantsApp) {
+    return <Navigate to="/p/demo-project/workspace" replace />
   }
 
   return (
@@ -193,6 +198,12 @@ function RootRoute() {
       </Suspense>
     </ErrorBoundary>
   )
+}
+
+function WorkspaceRedirect() {
+  const { projectPath, isLoading } = useActiveProject()
+  if (LIVE_MODE && isLoading) return <RouteSkeleton />
+  return <Navigate to={projectPath("workspace")} replace />
 }
 
 export default function App() {
@@ -296,7 +307,7 @@ export default function App() {
           <Route path="/" element={<RootRoute />} />
           <Route
             path="/demo"
-            element={<Navigate to="/p/demo-project/workspace" replace />}
+            element={<Navigate to={LIVE_MODE ? "/projects" : "/p/demo-project/workspace"} replace />}
           />
           <Route
             path="/launch"
@@ -326,7 +337,7 @@ export default function App() {
             {/* Backward-compatibility and global aliases */}
             <Route
               path="/workspace"
-              element={<Navigate to="/p/demo-project/workspace" replace />}
+              element={<WorkspaceRedirect />}
             />
             <Route
               path="/build/:projectId"
@@ -469,9 +480,11 @@ export default function App() {
             <Route
               path="/models"
               element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <LLMManagementPage />
-                </Suspense>
+                <AdminRoute>
+                  <Suspense fallback={<RouteSkeleton />}>
+                    <LLMManagementPage />
+                  </Suspense>
+                </AdminRoute>
               }
             />
             <Route
