@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Cookie, Response, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, Cookie, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Union
@@ -6,12 +6,14 @@ from datetime import datetime, timedelta
 import os
 import uuid
 import hashlib
+import asyncio
 import logging
 import secrets
 
 import pyotp
 import resend
 
+from services.email_templates import render_welcome
 from core.models import User, PlanTier, Organization, TeamMember, Invitation, Role, AuditLog, Session, PaginationParams, utcnow
 from core.database import get_db, paginated_query
 from core.cache import cached_read, invalidate_cache, user_profile_cache_key, USER_PROFILE_CACHE_TTL
@@ -120,6 +122,35 @@ def _send_verification_email(email: str, verification_token: str) -> None:
         })
     except Exception:
         logging.exception("Failed to send verification email")
+
+
+async def _send_welcome_email_once(user_id: str) -> None:
+    """Send the onboarding welcome email, at most once per user.
+
+    Runs as a background task after the response is sent, so a slow or failing
+    email provider never affects verification or login. The ``welcome_email_sent``
+    flag is claimed atomically before sending, so concurrent verifications (or a
+    verify followed by a Google login) can't send it twice.
+    """
+    if not settings.resend_api_key:
+        return
+    try:
+        db = await get_db()
+        user_doc = await db.users.find_one_and_update(
+            {"id": user_id, "welcome_email_sent": {"$ne": True}},
+            {"$set": {"welcome_email_sent": True, "welcome_email_sent_at": utcnow()}},
+            return_document=True,
+        )
+        if not user_doc:
+            return  # already sent, or the user no longer exists
+        content = render_welcome(name=user_doc.get("name"), credits=user_doc.get("credits"))
+        resend.api_key = settings.resend_api_key
+        await asyncio.to_thread(
+            resend.Emails.send,
+            {"from": settings.from_email, "to": [user_doc["email"]], **content.as_resend_params()},
+        )
+    except Exception:
+        logging.exception("Failed to send welcome email to user %s", user_id)
 
 
 class ResetPasswordRequest(BaseModel):
@@ -1040,7 +1071,7 @@ async def reset_password(req: ResetPasswordRequest):
 
 
 @router.get("/verify-email")
-async def verify_email(token: str):
+async def verify_email(token: str, background_tasks: BackgroundTasks):
     db = await get_db()
     hashed = _hash_token(token)
     user_doc = await db.users.find_one(
@@ -1058,6 +1089,7 @@ async def verify_email(token: str):
         {"verification_token": hashed},
         {"$set": {"email_verified": True, "verification_token": None, "verification_expires": None}},
     )
+    background_tasks.add_task(_send_welcome_email_once, user_doc["id"])
     return {"ok": True}
 
 
@@ -1078,7 +1110,7 @@ async def google_login(request: Request):
 
 
 @router.get("/google/callback")
-async def google_callback(request: Request, response: Response):
+async def google_callback(request: Request, response: Response, background_tasks: BackgroundTasks):
     """Handle Google OAuth callback and redirect to frontend with tokens."""
     code = request.query_params.get("code")
     if not code:
@@ -1089,8 +1121,12 @@ async def google_callback(request: Request, response: Response):
         settings.google_client_secret,
         redirect_uri=settings.google_redirect_uri,
     )
+    # authlib's requests_client is synchronous: run it in a thread rather than
+    # awaiting it directly (awaiting its plain return value raised TypeError,
+    # which turned every Google login into a 400).
     try:
-        token = await client.fetch_token(
+        token = await asyncio.to_thread(
+            client.fetch_token,
             "https://oauth2.googleapis.com/token",
             code=code,
             grant_type="authorization_code",
@@ -1100,7 +1136,9 @@ async def google_callback(request: Request, response: Response):
 
     # Get user info from Google
     user_info_client = OAuth2Session(settings.google_client_id, token=token)
-    user_info = await user_info_client.get("https://www.googleapis.com/oauth2/v2/userinfo")
+    user_info = await asyncio.to_thread(
+        user_info_client.get, "https://www.googleapis.com/oauth2/v2/userinfo"
+    )
     if user_info.status_code != 200:
         raise HTTPException(status_code=400, detail="Failed to fetch user info")
     
@@ -1140,6 +1178,8 @@ async def google_callback(request: Request, response: Response):
             if hasattr(e, 'code') and e.code == 11000:
                 raise HTTPException(status_code=400, detail="Email already registered")
             raise
+        # Google accounts arrive verified and never hit /verify-email.
+        background_tasks.add_task(_send_welcome_email_once, user.id)
 
     access_token = create_access_token({"sub": user.id, "email": user.email})
     refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
