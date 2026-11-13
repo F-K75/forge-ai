@@ -275,6 +275,19 @@ export const notificationsApi = {
   markRead: (id: string) => api.post(`/growth/notifications/${id}/read`).then((r) => r.data),
 }
 
+// Marketing-email opt-in (onboarding tips and reminders). Account emails --
+// verification, password reset, billing -- are always sent. The unsubscribe
+// link in those emails writes the same setting (backend/api/email_prefs.py).
+export interface EmailPreferences {
+  marketing_emails: boolean
+}
+
+export const emailPreferencesApi = {
+  get: (): Promise<EmailPreferences> => api.get("/v1/email/preferences").then((r) => r.data),
+  update: (data: EmailPreferences): Promise<EmailPreferences> =>
+    api.put("/v1/email/preferences", data).then((r) => r.data),
+}
+
 // Support
 export interface SupportTicketItem {
   id: string

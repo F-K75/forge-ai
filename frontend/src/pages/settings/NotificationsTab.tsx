@@ -1,10 +1,100 @@
-import { useState } from "react";
-import { Bell, Mail, Monitor, Volume2, ShieldAlert, CreditCard, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, Mail, Monitor, Volume2, ShieldAlert, CreditCard, Sparkles, Lightbulb } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { authApi } from "../../lib/api";
+import { authApi, emailPreferencesApi } from "../../lib/api";
 import { LIVE_MODE } from "../../lib/env";
 import { useAuthStore } from "../../store/authStore";
 import type { NotificationPreferences } from "./types";
+
+/**
+ * Onboarding tips and reminders (the server-side marketing-email opt-in, which
+ * the unsubscribe link in those emails also writes). Saved immediately on
+ * change, separately from the form below, and reverted if the save fails so
+ * the checkbox never shows a state the server doesn't have.
+ */
+function ProductEmailsSection() {
+  const [enabled, setEnabled] = useState(true);
+  const [status, setStatus] = useState<"loading" | "ready" | "saving" | "error">(
+    LIVE_MODE ? "loading" : "ready",
+  );
+
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    let cancelled = false;
+    emailPreferencesApi
+      .get()
+      .then((prefs) => {
+        if (cancelled) return;
+        setEnabled(prefs.marketing_emails);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleChange = async (next: boolean) => {
+    const previous = enabled;
+    setEnabled(next);
+    if (!LIVE_MODE) {
+      toast.success(next ? "Product emails turned on" : "Product emails turned off");
+      return;
+    }
+    setStatus("saving");
+    try {
+      const saved = await emailPreferencesApi.update({ marketing_emails: next });
+      setEnabled(saved.marketing_emails);
+      toast.success(saved.marketing_emails ? "Product emails turned on" : "Product emails turned off");
+    } catch {
+      setEnabled(previous);
+      toast.error("Couldn't save your email preference. Please try again.");
+    } finally {
+      setStatus("ready");
+    }
+  };
+
+  return (
+    <section
+      id="settings-product-emails"
+      className="rounded-xl border border-border bg-panel p-6 shadow-sm space-y-4"
+    >
+      {/* Not wrapped in <label>: the global styles uppercase label text. The
+          checkbox is named by the heading via aria-labelledby instead. */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="product-emails-heading" className="text-sm font-semibold text-ink flex items-center gap-2">
+            <Lightbulb size={15} className="text-accent" />
+            Product tips & reminders
+          </h2>
+          <p id="product-emails-description" className="text-xs text-muted mt-1">
+            Occasional emails to help you get started, like a reminder to try your first build and
+            tips for planning bigger projects. Account emails (password resets, billing, security)
+            are always sent.
+          </p>
+          {status === "error" && (
+            <p role="alert" className="text-[11px] text-warn mt-2">
+              Couldn't load this setting. Refresh the page to try again.
+            </p>
+          )}
+        </div>
+        <input
+          id="product-emails-toggle"
+          type="checkbox"
+          aria-labelledby="product-emails-heading"
+          aria-describedby="product-emails-description"
+          checked={enabled}
+          disabled={status !== "ready"}
+          onChange={(e) => handleChange(e.target.checked)}
+          className="h-4 w-4 mt-1 shrink-0 rounded text-accent focus:ring-accent cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+        />
+      </div>
+      <p className="text-[11px] text-muted">Saved automatically.</p>
+    </section>
+  );
+}
 
 export function NotificationsTab() {
   const { user } = useAuthStore();
@@ -244,6 +334,8 @@ export function NotificationsTab() {
           </button>
         </div>
       </section>
+
+      <ProductEmailsSection />
     </div>
   );
 }
