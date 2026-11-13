@@ -99,7 +99,12 @@ services:
     # so `docker compose stop`/a deploy would still SIGKILL a worker
     # mid-build regardless (BE-005).
     stop_grace_period: 630s
-    command: ["celery", "-A", "celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "celery,deployment,build"]
+    # -B runs Celery beat inside this worker for the hourly onboarding-email
+    # sweep (celery_app.beat_schedule). Single replica, so one scheduler; the
+    # sweep is safe even if that changes (emails are claimed atomically per
+    # user). The schedule file lives in /tmp: losing it on restart only means
+    # beat recomputes the next run time.
+    command: ["celery", "-A", "celery_app", "worker", "-B", "-s", "/tmp/celerybeat-schedule", "--loglevel=info", "--concurrency=2", "-Q", "celery,deployment,build"]
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -125,6 +130,12 @@ services:
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?}@redis:6379/0
       - ADMIN_EMAILS=${ADMIN_EMAILS:?}
+      # Onboarding emails are sent from the worker: it needs the Resend key and
+      # the same public URLs as the backend service for links in the emails.
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - APP_URL=https://${DOMAIN:?}
+      - API_URL=https://${DOMAIN:?}/api
+      - ONBOARDING_EMAILS_ENABLED=${ONBOARDING_EMAILS_ENABLED:-false}
     depends_on:
       mongo:
         condition: service_healthy

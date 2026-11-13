@@ -1,6 +1,7 @@
 import logging
 
 from celery import Celery
+from celery.schedules import crontab
 from celery.signals import worker_process_init, worker_shutting_down, task_prerun, task_postrun
 from core.config import get_settings
 
@@ -38,11 +39,23 @@ celery_app.conf.task_routes = {
     "backend.tasks.pm_tasks.run_decision_engine": {"queue": "build"},
 }
 
+# Periodic jobs. Beat runs embedded in the worker (`celery worker -B`, see
+# docker-compose*.yml). If the worker is ever scaled to several replicas,
+# each would run beat; the onboarding sweep is safe under that because every
+# email is claimed atomically per user before it's sent.
+celery_app.conf.beat_schedule = {
+    "onboarding-emails-hourly": {
+        "task": "backend.tasks.onboarding_tasks.send_onboarding_emails",
+        "schedule": crontab(minute=17),
+    },
+}
+
 celery_app.conf.task_serializer = "json"
 celery_app.conf.result_serializer = "json"
 
 import tasks.build_tasks  # noqa: E402,F401 - registers tasks on this app instance
 import tasks.pm_tasks  # noqa: E402,F401 - registers tasks on this app instance
+import tasks.onboarding_tasks  # noqa: E402,F401 - registers tasks on this app instance
 
 
 @task_prerun.connect
