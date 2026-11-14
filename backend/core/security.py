@@ -135,7 +135,13 @@ async def get_client_ip(request: Request) -> str:
 
 
 # Origins always allowed in addition to settings.allowed_origins.
-_EXTRA_CORS_ORIGINS = ["https://forge-frontend-8gr.pages.dev"]
+_EXTRA_CORS_ORIGINS = [
+    "https://forge-frontend-8gr.pages.dev",
+    "https://forge-demo.pages.dev",
+    "https://forge-site.pages.dev",
+]
+
+_CORS_ALLOWED_REGEX = re.compile(r"^https://([a-zA-Z0-9-]+\.)*(pages\.dev|onrender\.com)$")
 
 
 def cors_allowed_origins() -> list[str]:
@@ -146,6 +152,14 @@ def cors_allowed_origins() -> list[str]:
     """
     tunnels = [o.strip() for o in settings.frontend_tunnel_url.split(",") if o.strip()]
     return list(settings.allowed_origins) + tunnels + _EXTRA_CORS_ORIGINS
+
+
+def is_cors_allowed_origin(origin: str) -> bool:
+    if not origin:
+        return False
+    if origin in cors_allowed_origins():
+        return True
+    return bool(_CORS_ALLOWED_REGEX.match(origin))
 
 
 def _middleware_error(
@@ -161,7 +175,7 @@ def _middleware_error(
     """
     response = JSONResponse(status_code=status_code, content={"detail": detail}, headers=headers)
     origin = request.headers.get("origin")
-    if origin and origin in cors_allowed_origins():
+    if origin and is_cors_allowed_origin(origin):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Vary"] = "Origin"
@@ -239,6 +253,10 @@ async def rate_limit_middleware(request: Request, call_next):
     # the auth module at import time.
     identity = client_ip
     access_token = request.cookies.get("access_token")
+    if not access_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ", 1)[1].strip()
     if access_token:
         try:
             payload = decode_token(access_token)
@@ -408,8 +426,12 @@ async def csrf_protection_middleware(request: Request, call_next):
         if path == excluded or path.startswith(excluded + "/"):
             return await call_next(request)
     
-    # Extract session token from the access_token cookie
+    # Extract session token from the access_token cookie or Authorization header
     access_token = request.cookies.get("access_token")
+    if not access_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ", 1)[1].strip()
     if not access_token:
         return _middleware_error(request, 403, "CSRF: No session token")
     

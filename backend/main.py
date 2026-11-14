@@ -49,6 +49,7 @@ from core.security import (
     request_id_middleware,
     RequestIdLogFilter,
     cors_allowed_origins,
+    is_cors_allowed_origin,
 )
 from core.shutdown import get_health_status, init_shutdown_manager, DrainMiddleware, get_shutdown_manager
 from services.ws_manager import manager as ws_manager
@@ -206,7 +207,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     # ServerErrorMiddleware sits outside CORSMiddleware, so add CORS headers
     # here -- but only for allowed origins, never by echoing any Origin.
     origin = request.headers.get("origin")
-    if origin and origin in cors_allowed_origins():
+    if origin and is_cors_allowed_origin(origin):
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Access-Control-Allow-Credentials"] = "true"
         resp.headers["Vary"] = "Origin"
@@ -222,9 +223,11 @@ app.add_middleware(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_allowed_origins(),
+    allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)*(pages\.dev|onrender\.com)$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token", "X-Refresh-Token"],
+    expose_headers=["X-Access-Token", "X-Refresh-Token", "X-CSRF-Token"],
     max_age=600,
 )
 

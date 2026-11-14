@@ -158,12 +158,18 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(max_length=128)
 
 
-def _get_cookie_kwargs(max_age: int) -> dict:
-    is_dev = settings.app_env != "production"
+def _get_cookie_kwargs(max_age: int, request: Optional[Request] = None) -> dict:
+    is_secure = False
+    if settings.app_env == "production":
+        is_secure = True
+    elif request is not None:
+        proto = request.headers.get("x-forwarded-proto", "")
+        scheme = getattr(getattr(request, "url", None), "scheme", "")
+        is_secure = proto == "https" or scheme == "https"
     return {
         "httponly": True,
-        "secure": not is_dev,
-        "samesite": "none" if not is_dev else "lax",
+        "secure": is_secure,
+        "samesite": "none" if is_secure else "lax",
         "max_age": max_age,
     }
 
@@ -281,6 +287,13 @@ async def get_current_user(
     refresh_token: Optional[str] = Cookie(None),
 ) -> User:
     if not access_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ", 1)[1].strip()
+    if not refresh_token:
+        refresh_token = request.headers.get("X-Refresh-Token")
+
+    if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     payload = decode_token(access_token)
@@ -317,13 +330,15 @@ async def get_current_user(
         response.set_cookie(
             "access_token",
             new_access,
-            **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+            **_get_cookie_kwargs(settings.jwt_expire_minutes * 60, request=request),
         )
         response.set_cookie(
             "refresh_token",
             new_refresh,
-            **_get_cookie_kwargs(30 * 24 * 60 * 60),
+            **_get_cookie_kwargs(30 * 24 * 60 * 60, request=request),
         )
+        response.headers["X-Access-Token"] = new_access
+        response.headers["X-Refresh-Token"] = new_refresh
         old_refresh_jti = refresh_payload.get("jti")
         await _record_session(db, user.id, new_access, new_refresh, request, old_refresh_jti)
         new_access_payload = decode_token(new_access) or {}
@@ -418,12 +433,12 @@ async def register(req: RegisterRequest, request: Request, response: Response):
     response.set_cookie(
         "access_token",
         access_token,
-        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60, request=request),
     )
     response.set_cookie(
         "refresh_token",
         refresh_token,
-        **_get_cookie_kwargs(30 * 24 * 60 * 60),
+        **_get_cookie_kwargs(30 * 24 * 60 * 60, request=request),
     )
 
     await _record_session(db, user.id, access_token, refresh_token, request)
@@ -488,12 +503,12 @@ async def login(req: LoginRequest, request: Request, response: Response):
     response.set_cookie(
         "access_token",
         access_token,
-        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60, request=request),
     )
     response.set_cookie(
         "refresh_token",
         refresh_token,
-        **_get_cookie_kwargs(30 * 24 * 60 * 60),
+        **_get_cookie_kwargs(30 * 24 * 60 * 60, request=request),
     )
 
     await _record_session(db, user.id, access_token, refresh_token, request)
@@ -529,12 +544,12 @@ async def refresh(req: RefreshRequest, request: Request, response: Response):
     response.set_cookie(
         "access_token",
         access_token,
-        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60, request=request),
     )
     response.set_cookie(
         "refresh_token",
         new_refresh,
-        **_get_cookie_kwargs(30 * 24 * 60 * 60),
+        **_get_cookie_kwargs(30 * 24 * 60 * 60, request=request),
     )
 
     old_refresh_jti = payload.get("jti")
@@ -549,11 +564,19 @@ async def refresh(req: RefreshRequest, request: Request, response: Response):
 
 @router.post("/logout")
 async def logout(
+    request: Request,
     response: Response,
     access_token: Optional[str] = Cookie(None),
     refresh_token: Optional[str] = Cookie(None),
     user: User = Depends(get_current_user),
 ):
+    if not access_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ", 1)[1].strip()
+    if not refresh_token:
+        refresh_token = request.headers.get("X-Refresh-Token")
+
     db = await get_db()
 
     # Blacklist the access token by JTI for immediate revocation
@@ -733,12 +756,12 @@ async def mfa_verify(req: MfaVerifyRequest, request: Request, response: Response
     response.set_cookie(
         "access_token",
         access_token,
-        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60),
+        **_get_cookie_kwargs(settings.jwt_expire_minutes * 60, request=request),
     )
     response.set_cookie(
         "refresh_token",
         refresh_token,
-        **_get_cookie_kwargs(30 * 24 * 60 * 60),
+        **_get_cookie_kwargs(30 * 24 * 60 * 60, request=request),
     )
 
     await _record_session(db, user.id, access_token, refresh_token, request)
@@ -845,6 +868,10 @@ async def get_csrf_token(
     # Decode the access token to get the jti (session identifier)
     from auth import decode_token
     access_token = request.cookies.get("access_token")
+    if not access_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ", 1)[1].strip()
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     

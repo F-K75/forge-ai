@@ -271,5 +271,56 @@ def test_logout_blacklists_access_token(app_client):
     assert any(s.get("revoked_at") is not None for s in db.sessions.docs)
 
 
+def test_bearer_token_authenticates_me_and_csrf_without_cookies(app_client, monkeypatch):
+    client, db = app_client
+    stored_csrf = {}
+
+    async def _mock_store_csrf(session_token: str, csrf_token: str, expires_in_minutes: int = 60):
+        stored_csrf[session_token] = csrf_token
+
+    monkeypatch.setattr("core.security.store_csrf_token", _mock_store_csrf)
+
+    db.users.docs.append(
+        {
+            "id": "user-bearer-1",
+            "email": "bearer@example.com",
+            "name": "Bearer User",
+            "hashed_password": hash_password(STRONG_PASSWORD),
+            "plan": "free",
+            "credits": 25,
+        }
+    )
+    login_resp = client.post(
+        "/auth/login", json={"email": "bearer@example.com", "password": STRONG_PASSWORD}
+    )
+    assert login_resp.status_code == 200
+    access_token = login_resp.json()["access_token"]
+    refresh_token = login_resp.json()["refresh_token"]
+
+    # Clear any cookies in client to simulate cross-site request where cookies are blocked
+    client.cookies.clear()
+
+    # Call /auth/me with Bearer token
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "X-Refresh-Token": refresh_token,
+    }
+    me_resp = client.get("/auth/me", headers=headers)
+    assert me_resp.status_code == 200
+    me_data = me_resp.json()
+    assert me_data["email"] == "bearer@example.com"
+    assert me_data["name"] == "Bearer User"
+
+    # Call /auth/csrf-token with Bearer token
+    csrf_resp = client.get("/auth/csrf-token", headers=headers)
+    assert csrf_resp.status_code == 200
+    assert "csrf_token" in csrf_resp.json()
+
+    # Logout with Bearer token without cookies
+    logout_resp = client.post("/auth/logout", headers=headers)
+    assert logout_resp.status_code == 200
+    assert len(db.token_blacklist.docs) >= 1
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

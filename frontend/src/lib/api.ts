@@ -36,13 +36,26 @@ function getCsrfToken(): Promise<string> {
 }
 
 api.interceptors.request.use(async (config) => {
+  config.headers = config.headers ?? {}
+
+  // Attach Bearer token from localStorage for cross-site authentication
+  if (typeof window !== "undefined") {
+    const accessToken = localStorage.getItem("forge_access_token")
+    if (accessToken && !config.headers["Authorization"]) {
+      config.headers["Authorization"] = `Bearer ${accessToken}`
+    }
+    const refreshToken = localStorage.getItem("forge_refresh_token")
+    if (refreshToken && !config.headers["X-Refresh-Token"]) {
+      config.headers["X-Refresh-Token"] = refreshToken
+    }
+  }
+
   const method = (config.method || "get").toLowerCase()
   const isMutating = method !== "get" && method !== "head" && method !== "options"
   const exempt = CSRF_EXEMPT_PATHS.some((p) => config.url?.includes(p))
   if (isMutating && !exempt) {
     try {
       const token = await getCsrfToken()
-      config.headers = config.headers ?? {}
       config.headers["X-CSRF-Token"] = token
     } catch {
       // Proceed without the header — the backend will 403 with a clear
@@ -55,7 +68,20 @@ api.interceptors.request.use(async (config) => {
 // A stale/expired CSRF token means the next mutating request should fetch a
 // fresh one rather than keep reusing the rejected one.
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Sync refreshed tokens issued by backend in response headers
+    if (typeof window !== "undefined" && res?.headers) {
+      const newAccess = res.headers["x-access-token"]
+      if (newAccess) {
+        localStorage.setItem("forge_access_token", newAccess)
+      }
+      const newRefresh = res.headers["x-refresh-token"]
+      if (newRefresh) {
+        localStorage.setItem("forge_refresh_token", newRefresh)
+      }
+    }
+    return res
+  },
   (err) => {
     if (err?.response?.status === 401 || err?.response?.status === 403) {
       csrfTokenPromise = null

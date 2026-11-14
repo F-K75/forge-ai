@@ -78,6 +78,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false })
       return { mfaRequired: true, mfaToken: res.data.mfa_token }
     }
+    if (typeof window !== 'undefined') {
+      if (res.data?.access_token) localStorage.setItem('forge_access_token', res.data.access_token)
+      if (res.data?.refresh_token) localStorage.setItem('forge_refresh_token', res.data.refresh_token)
+    }
     set({ user: res.data.user, isAuthenticated: true, isLoading: false })
   },
 
@@ -93,6 +97,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   verifyMfa: async (mfaToken: string, code: string) => {
     set({ isLoading: true })
     const data = await authApi.mfa.verify(mfaToken, code)
+    if (typeof window !== 'undefined') {
+      if (data?.access_token) localStorage.setItem('forge_access_token', data.access_token)
+      if (data?.refresh_token) localStorage.setItem('forge_refresh_token', data.refresh_token)
+    }
     set({ user: data.user, isAuthenticated: true, isLoading: false })
   },
 
@@ -103,6 +111,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({ isLoading: true })
     const res = await api.post('/v1/auth/register', { email, name, password })
+    if (typeof window !== 'undefined') {
+      if (res.data?.access_token) localStorage.setItem('forge_access_token', res.data.access_token)
+      if (res.data?.refresh_token) localStorage.setItem('forge_refresh_token', res.data.refresh_token)
+    }
     set({ user: res.data.user, isAuthenticated: true, isLoading: false })
   },
 
@@ -120,6 +132,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // ignore
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('forge_access_token')
+        localStorage.removeItem('forge_refresh_token')
+      }
       usePMStore.getState().reset()
       useBuildStore.getState().reset()
       useDeploymentStore.getState().reset()
@@ -137,7 +153,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       const res = await api.get('/v1/auth/me')
       set({ user: res.data, isAuthenticated: true, isLoading: false })
     } catch (err) {
-      set({ isLoading: false })
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('forge_access_token')
+        localStorage.removeItem('forge_refresh_token')
+      }
+      set({ user: null, isAuthenticated: false, isLoading: false })
       throw err
     }
   },
