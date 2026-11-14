@@ -17,6 +17,9 @@ spec:
       ttlSecondsAfterFinished: 3600
       backoffLimit: 3
       template:
+        metadata:
+          labels:
+            app: mongodb-backup
         spec:
           containers:
           - name: mongodb-backup
@@ -110,6 +113,7 @@ spec:
             configMap:
               name: forge-backup-scripts
               defaultMode: 0755
+              optional: true
           restartPolicy: OnFailure
 ---
 apiVersion: v1

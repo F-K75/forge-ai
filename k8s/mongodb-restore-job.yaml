@@ -24,6 +24,9 @@ spec:
   ttlSecondsAfterFinished: 600
   backoffLimit: 0
   template:
+    metadata:
+      labels:
+        app: mongodb-restore
     spec:
       containers:
       - name: mongodb-restore

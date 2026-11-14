@@ -20,6 +20,12 @@ spec:
     - podSelector:
         matchLabels:
           app: mongodb
+    - podSelector:
+        matchLabels:
+          app: mongodb-backup
+    - podSelector:
+        matchLabels:
+          app: mongodb-restore
     ports:
     - protocol: TCP
       port: 27017
