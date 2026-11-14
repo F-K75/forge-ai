@@ -316,23 +316,6 @@ class PRWorkflow:
         except Exception:
             pass
 
-        if to_stage == PRStage.SECURITY_REVIEW:
-            # Best-effort POC glue (see
-            # docs/architecture/review-board-reconciliation-proposal.md):
-            # trigger the standalone orchestrator/ Review Board's
-            # security_engineer LLM reviewer against the project's latest
-            # build, posted back as a TeamChat FINDING for a human to read --
-            # never auto-approves/rejects (see review_board_bridge.py). Same
-            # fail-open guarantee as the OrgEvent emission above: an
-            # unreachable orchestrator, a timeout, or any other failure here
-            # must never affect this stage transition.
-            try:
-                from agent_registry.review_board_bridge import trigger_security_review
-
-                await trigger_security_review(project_id, cr.id)
-            except Exception:
-                pass
-
         await self._chat.post(
             project_id, actor_agent_id,
             note or f"Moved from {old_stage.value} to {to_stage.value}",

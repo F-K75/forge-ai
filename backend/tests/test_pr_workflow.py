@@ -129,24 +129,12 @@ def _patched_workflow(monkeypatch, db=None):
     import agent_registry.planning as planning_module
     import agent_registry.pr_workflow as pr_module
     import agent_registry.repository as repo_module
-    import agent_registry.review_board_bridge as bridge_module
     import agent_registry.team_chat as chat_module
 
     monkeypatch.setattr(repo_module, "get_db", _get_db)
     monkeypatch.setattr(chat_module, "get_db", _get_db)
     monkeypatch.setattr(pr_module, "get_db", _get_db)
     monkeypatch.setattr(planning_module, "get_db", _get_db)
-    # advance() to SECURITY_REVIEW best-effort-triggers review_board_bridge,
-    # which does its own core.database.get_db() lookup for the project's
-    # latest build -- route it at the same FakeDB so tests never fall
-    # through to a real (unreachable, slow-to-time-out) Mongo connection.
-    # This FakeDB has no "builds"/"build_files" attributes at all, so
-    # db["builds"] raises AttributeError -- caught by trigger_security_review's
-    # own broad except, same externally-observable no-op result as a real DB
-    # returning "no build yet", just via a different internal path. See
-    # test_review_board_bridge.py for the graceful "no build" case tested
-    # directly against a DB that does have those collections.
-    monkeypatch.setattr(bridge_module, "get_db", _get_db)
 
     registry = AgentRegistry(repo=AgentRegistryRepository())
     ownership = CodeOwnership(registry=registry)
@@ -349,13 +337,8 @@ async def test_advance_succeeds_even_when_org_event_emission_unavailable(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_advance_to_security_review_succeeds_even_when_review_trigger_fails(monkeypatch):
-    """advance() to SECURITY_REVIEW best-effort-triggers the orchestrator/
-    Review Board bridge (review_board_bridge.trigger_security_review). A
-    failure there -- orchestrator unreachable, timeout, anything -- must
-    never raise out of advance() or change its return value/cr.stage. Here
-    the bridge is monkeypatched to raise unconditionally, proving the
-    try/except wrapping in advance() actually protects the caller."""
+async def test_advance_to_security_review_succeeds(monkeypatch):
+    """advance() to SECURITY_REVIEW persists state and posts a TeamChat note."""
     workflow, registry, chat, db = _patched_workflow(monkeypatch)
     await registry.get_or_create_org("proj1")
     dev, _ = await registry.get_or_create_agent("proj1", "developer")
@@ -363,19 +346,10 @@ async def test_advance_to_security_review_succeeds_even_when_review_trigger_fail
     for stage in [PRStage.IMPLEMENTING, PRStage.SELF_REVIEW, PRStage.PEER_REVIEW, PRStage.QA]:
         await workflow.advance("proj1", cr.id, stage, dev.id)
 
-    import agent_registry.review_board_bridge as bridge_module
-
-    async def _boom(project_id, cr_id):
-        raise RuntimeError("orchestrator is on fire")
-
-    monkeypatch.setattr(bridge_module, "trigger_security_review", _boom)
-
     updated = await workflow.advance("proj1", cr.id, PRStage.SECURITY_REVIEW, dev.id, note="off to security")
     assert updated.stage == PRStage.SECURITY_REVIEW
     assert updated.history[-1].to_stage == "security_review"
 
-    # advance()'s own persisted/returned state is unaffected -- re-fetching
-    # confirms the failed trigger didn't corrupt or roll back the save.
     refetched = await workflow.get("proj1", cr.id)
     assert refetched.stage == PRStage.SECURITY_REVIEW
 
@@ -558,7 +532,6 @@ def _client_for(monkeypatch, db, user):
     import agent_registry.planning as planning_module
     import agent_registry.pr_workflow as pr_module
     import agent_registry.repository as repo_module
-    import agent_registry.review_board_bridge as bridge_module
     import agent_registry.team_chat as chat_module
     import api.agent_registry as router_module
 
@@ -570,8 +543,6 @@ def _client_for(monkeypatch, db, user):
     monkeypatch.setattr(pr_module, "get_db", _get_db)
     monkeypatch.setattr(planning_module, "get_db", _get_db)
     monkeypatch.setattr(router_module, "get_db", _get_db)
-    # See _patched_workflow() above for why this is needed too.
-    monkeypatch.setattr(bridge_module, "get_db", _get_db)
 
     app = FastAPI()
     app.include_router(router_module.router)
