@@ -107,7 +107,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
   const [audioProgress, setAudioProgress] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Checked criteria for INVEST stories
   const [checkedCriteria, setCheckedCriteria] = useState<Record<number, boolean>>({});
