@@ -133,9 +133,14 @@ async def test_orchestrator_preserves_developer_generated_and_patched_files(monk
 
     monkeypatch.setattr(orch_mod, "get_db", fake_get_db)
     monkeypatch.setattr("core.database.get_db", fake_get_db)
+    monkeypatch.setattr("agent_registry.repository.get_db", fake_get_db)
+    monkeypatch.setattr("core.feature_flags.get_db", fake_get_db)
     monkeypatch.setattr(orch_mod, "deduct_credits", fake_deduct, raising=False)
 
     orch = orch_mod.Orchestrator()
+    async def fake_resolve_profile(*a, **kw):
+        return None
+    orch._resolve_agent_profile = fake_resolve_profile
     orch.architect = _Stub()
     orch.designer = _Stub()
     orch.developer = dev

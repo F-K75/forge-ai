@@ -68,7 +68,7 @@ async def get_db():
                     maxIdleTimeMS=60_000,
                     waitQueueTimeoutMS=10_000,
                     serverSelectionTimeoutMS=_server_selection_timeout_ms(),
-                    connectTimeoutMS=10000,
+                    connectTimeoutMS=_server_selection_timeout_ms(),
                 )
                 try:
                     await _ensure_indexes(client.forge)
