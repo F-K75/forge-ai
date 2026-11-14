@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { usePMStore } from "../../store/pmStore";
+import { initiativesApi } from "../../lib/pmApi";
 import AnalyticsTab from "./AnalyticsTab";
 import type { PMInitiative, PMStory, PMTask, PMSprint, PMExecution } from "../../lib/types/api";
 
@@ -138,6 +139,23 @@ describe("AnalyticsTab Component (Redesigned)", () => {
           at: Date.now(),
         },
       ],
+      refreshTasks: vi.fn().mockResolvedValue([]),
+      refreshExecutions: vi.fn().mockResolvedValue([]),
+    });
+
+    vi.spyOn(initiativesApi, "analytics").mockResolvedValue({
+      events: [
+        {
+          event_name: "tasks_completed",
+          count: 9,
+          last_at: new Date().toISOString(),
+        },
+        {
+          event_name: "tasks_in_progress",
+          count: 4,
+          last_at: new Date().toISOString(),
+        },
+      ],
     });
   });
 
@@ -233,6 +251,25 @@ describe("AnalyticsTab Component (Redesigned)", () => {
 
     const syncBtn = screen.getByRole("button", { name: /Sync/i });
     fireEvent.click(syncBtn);
-    expect(syncBtn).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Sync/i })).toBeInTheDocument();
+      expect(screen.queryByText(/Synchronizing Telemetry/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not update state or throw ReferenceError when unmounted while fetchAnalytics is in flight", async () => {
+    let resolveAnalytics!: (val: any) => void;
+    const pendingPromise = new Promise((resolve) => {
+      resolveAnalytics = resolve;
+    });
+    vi.spyOn(initiativesApi, "analytics").mockReturnValue(pendingPromise as any);
+
+    const { unmount } = render(<AnalyticsTab />);
+    // Unmount before the promise resolves
+    unmount();
+
+    // Resolving after unmount must safely be ignored by isMountedRef check
+    resolveAnalytics({ events: [{ event_name: "tasks_completed", count: 9, last_at: new Date().toISOString() }] });
+    await pendingPromise;
   });
 });
