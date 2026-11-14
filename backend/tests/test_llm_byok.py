@@ -253,11 +253,11 @@ async def test_call_llm_end_to_end_uses_byok_and_skips_budget_check(monkeypatch)
 
     calls = []
 
-    async def fake_check_budget(user_id, org_id=None):
+    async def fake_check_budget(user_id, estimated_tokens=0, org_id=None):
         calls.append(user_id)
         raise AssertionError("check_budget must not be called for a BYOK request")
 
-    monkeypatch.setattr("agents.base.check_budget", fake_check_budget)
+    monkeypatch.setattr("core.llm.router.check_budget", fake_check_budget)
 
     # track_usage still runs for BYOK calls (informational cost tracking) --
     # not the thing under test here (see test_ai_cost_tracking_wired.py), so
@@ -299,10 +299,10 @@ async def test_stream_end_to_end_uses_byok(monkeypatch):
         "llm_model": "llama-3.1-70b",
     })
 
-    async def fake_check_budget(user_id, org_id=None):
+    async def fake_check_budget(user_id, estimated_tokens=0, org_id=None):
         raise AssertionError("check_budget must not be called for a BYOK request")
 
-    monkeypatch.setattr("agents.base.check_budget", fake_check_budget)
+    monkeypatch.setattr("core.llm.router.check_budget", fake_check_budget)
 
     captured = {}
 
@@ -323,28 +323,47 @@ async def test_stream_end_to_end_uses_byok(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_call_llm_without_byok_still_checks_budget(monkeypatch):
+async def test_call_llm_without_byok_still_checks_budget(tmp_path, monkeypatch):
     """Control case: a non-BYOK user must still hit check_budget through the
-    same _call_llm code path -- guards against a change that skips the
-    budget check unconditionally instead of only when byok is active."""
+    same _call_llm -> AIGateway -> LLMRouter code path -- guards against a
+    change that skips the budget check unconditionally instead of only when
+    byok is active."""
     _patch_db(monkeypatch, None)
 
     calls = []
 
-    async def fake_check_budget(user_id, org_id=None):
+    async def fake_check_budget(user_id, estimated_tokens=0, org_id=None):
         calls.append(user_id)
 
-    monkeypatch.setattr("agents.base.check_budget", fake_check_budget)
-
-    async def fake_generate(self, **kwargs):
-        assert kwargs["byok"] is None
-        return CompletionResponse(text="normal-response", provider="anthropic", model=kwargs.get("model") or "claude-sonnet-4-6", usage={})
+    async def fake_track_usage(**kwargs):
+        return kwargs
 
     import core.llm.router as router_module
+    from core.llm.config import LLMConfigLoader
+    from core.llm.provider import BaseProviderAdapter
+    from gateway.service import AIGateway
 
-    monkeypatch.setattr(router_module.LLMRouter, "generate", fake_generate)
+    class _FakeProvider(BaseProviderAdapter):
+        name = "fake"
+        default_model = "claude-sonnet-4-6"
+
+        async def chat_completion(self, *, model, messages, **kwargs):
+            return CompletionResponse(text="normal-response", provider="fake", model=model, usage={"prompt_tokens": 2, "completion_tokens": 2})
+
+        async def stream_completion(self, *, model, messages, **kwargs):
+            yield "normal-response"
+
+    config_path = tmp_path / "llm.yaml"
+    config_path.write_text("default_provider: fake\nfallback_chain:\n  - fake\n")
+
+    monkeypatch.setattr(router_module, "check_budget", fake_check_budget)
+    monkeypatch.setattr(router_module, "track_usage", fake_track_usage)
+
+    router = router_module.LLMRouter(config_loader=LLMConfigLoader(config_path=config_path))
+    router.register_provider(_FakeProvider(), name="fake", priority=1)
 
     agent = _make_test_agent()
+    agent.gateway = AIGateway(router=router)
     text = await agent._call_llm([{"role": "user", "content": "hi"}], user_id="user-1")
 
     assert text == "normal-response"

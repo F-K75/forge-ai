@@ -288,6 +288,24 @@ async def test_validate_output_gives_up_after_one_failed_repair():
 
 
 @pytest.mark.asyncio
+async def test_validate_output_strips_markdown_fences_without_repair():
+    gateway = AIGateway(router=LLMRouter())
+    schema = {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
+
+    async def repair_fn(text, schema, errors):
+        raise AssertionError("repair_fn must not be called for valid fenced JSON")
+
+    for fenced in (
+        '```json\n{"name": "forge"}\n```',
+        '```\n{"name": "forge"}\n```',
+        '```json\n{"name": "forge ```code```"}\n```',
+    ):
+        result = await gateway.validate_output(fenced, schema, repair_fn=repair_fn)
+        assert result["valid"] is True
+        assert result["data"]["name"].startswith("forge")
+
+
+@pytest.mark.asyncio
 async def test_audit_logger_records_expected_fields_and_no_prompt_content(monkeypatch):
     fake_db = _FakeDB()
 

@@ -56,6 +56,8 @@ def few_shot_injection(context: PromptContext) -> PromptContext:
     Registered as a PRE_BUILD plugin so examples are available during
     template rendering. Runs after context_selector.select().
     """
+    if context.project_state.extra.get("_few_shot_injected"):
+        return context
     try:
         fsm = _get_fsm()
         examples = fsm.select(
@@ -70,6 +72,7 @@ def few_shot_injection(context: PromptContext) -> PromptContext:
             # optionally render them
             if formatted:
                 context.user_request += f"\n\n{formatted}"
+        context.project_state.extra["_few_shot_injected"] = "1"
     except Exception as exc:
         logger.debug("few_shot_injection plugin skipped: %s", exc)
     return context
