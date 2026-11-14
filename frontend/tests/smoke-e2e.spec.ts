@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 const API_URL = process.env.FORGE_API_URL || 'http://localhost:8000'
+const BASE_URL = process.env.FORGE_BASE_URL || 'http://localhost:3000'
 
 const TEST_EMAIL = `forge-smoke-${Date.now().toString(36)}@example.com`
 const TEST_PASSWORD = 'SmokeTest123!'
@@ -20,6 +21,8 @@ async function authenticatedHeaders(page: Page): Promise<Record<string, string>>
 
 test.describe('Forge AI revenue path — smoke test', () => {
   test('critical path: signup → payment → webhook → generate app → usage tracked', async ({ request, browser }) => {
+    // Accommodate the 180s build-status polling loop (global timeout is 120s).
+    test.setTimeout(210_000)
     // ------------------------------------------------------------------
     // STEP 0 — VERIFY EMAIL so build creation is allowed
     // ------------------------------------------------------------------
@@ -71,7 +74,7 @@ test.describe('Forge AI revenue path — smoke test', () => {
     // First, check if Stripe is configured by calling the checkout API directly
     const csrfToken = await getCsrfToken(page)
     const checkoutProbeResp = await page.request.post(`${API_URL}/v1/billing/checkout`, {
-      data: { plan: 'standard', interval: 'monthly', success_url: 'http://localhost:5173/billing', cancel_url: 'http://localhost:5173/billing' },
+      data: { plan: 'standard', interval: 'monthly', success_url: `${BASE_URL}/billing`, cancel_url: `${BASE_URL}/billing` },
       headers: { 'X-CSRF-Token': csrfToken },
     })
     

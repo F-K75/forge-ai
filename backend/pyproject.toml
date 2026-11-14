@@ -12,11 +12,27 @@ select = ["F"]
 
 [tool.coverage.run]
 # Measure coverage for application source only (exclude tests, migrations, scripts).
-source = ["core", "api", "agents", "sandbox", "tasks", "services", "celery_app.py", "main.py", "auth.py"]
+source = [
+    "core",
+    "api",
+    "agents",
+    "sandbox",
+    "tasks",
+    "services",
+    "gateway",
+    "providers",
+    "prompt_builder",
+    "optimizer",
+    "retrieval",
+    "celery_app.py",
+    "main.py",
+    "auth.py",
+]
 
 # Paths to exclude from coverage measurement entirely.
 omit = [
     "tests/*",
+    "*/__pycache__/*",
     "core/migrations.py",
     "scripts/*",
     "**/__init__.py",
