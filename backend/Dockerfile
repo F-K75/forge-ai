@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    git curl \
+    git curl bubblewrap \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN groupadd -r nonroot && useradd -r -g nonroot nonroot
+RUN groupadd -r -g 1000 nonroot && useradd -r -g nonroot -u 1000 -m nonroot
 
 USER nonroot
 

@@ -101,25 +101,3 @@ spec:
   selector:
     matchLabels:
       app: frontend
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: mongodb-pdb
-  namespace: forge-ai-prod
-spec:
-  minAvailable: 2
-  selector:
-    matchLabels:
-      app: mongodb
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: redis-pdb
-  namespace: forge-ai-prod
-spec:
-  minAvailable: 2
-  selector:
-    matchLabels:
-      app: redis

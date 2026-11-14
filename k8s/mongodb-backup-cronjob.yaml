@@ -13,6 +13,9 @@ spec:
   failedJobsHistoryLimit: 5  # keep more failures for post-mortem
   jobTemplate:
     spec:
+      # Clean up finished backup jobs so they don't accumulate.
+      ttlSecondsAfterFinished: 3600
+      backoffLimit: 3
       template:
         spec:
           containers:
@@ -102,20 +105,17 @@ spec:
           volumes:
           - name: backup-storage
             persistentVolumeClaim:
-              claimName: mongodb-backup-pvc-spec
+              claimName: mongodb-backup-pvc
           - name: scripts
             configMap:
               name: forge-backup-scripts
               defaultMode: 0755
           restartPolicy: OnFailure
-          # Clean up finished backup pods so they don't accumulate.
-          ttlSecondsAfterFinished: 3600
-          backoffLimit: 3
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mongodb-backup-pvc-spec
+  name: mongodb-backup-pvc
   namespace: forge-ai-prod
 spec:
   accessModes:

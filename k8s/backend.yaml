@@ -126,6 +126,12 @@ spec:
             secretKeyRef:
               name: forge-ai-secrets
               key: github-client-secret
+        - name: METRICS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: forge-ai-secrets
+              key: metrics-token
+              optional: true
         resources:
           requests:
             memory: "1Gi"
@@ -143,7 +149,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health/detailed
+            path: /health/ready
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
