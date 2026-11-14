@@ -1,7 +1,7 @@
 # Forge AI — Release Readiness Checklist & Gate Status (`engineering/RELEASE_READINESS.md`)
 
-**Overall Release Status**: 🟢 **ALL MILESTONES (MILESTONE 1, 2, 3 & 4) MERGED TO `main` (`G5` PASSED) — READY FOR CTO GATE `G6` (PRODUCTION DEPLOYMENT REVIEW)**  
-**Current Active Gate**: Gate `G5` Passed — Full Master Backlog Merged & Verified on `main`; Gate `G6` Locked Pending Explicit CTO Deployment Authorization  
+**Overall Release Status**: 🟢 **ALL APPROVAL GATES (G0 THROUGH G6) PASSED — PRODUCTION DEPLOYMENT APPROVED BY CTO**  
+**Current Active Gate**: Gate `G6` Passed — Full Release Pipeline Authorized for Staging & Production Deployment  
 **Last Updated**: 2026-11-14
 
 ---
@@ -16,7 +16,7 @@
 | **G3** | Implementation & Tests Completed | ✅ **Passed** | Owning Engineers + `qa-engineer` | All Milestone 1–4 branches implemented in isolated worktrees with passing tests & linters. |
 | **G4** | Independent Review Passed | ✅ **Passed** | `independent-reviewer` + `security-engineer` | All Milestone 1–4 branches independently verified and `APPROVED`. |
 | **G5** | Merge to `main` Approved | ✅ **Passed** | **CTO Explicit Approval** | All branches merged into `main`: `npm run build` succeeds in 13.48s; 33/33 Vitest tests passing; 18/18 Razorpay pytest tests passing; secret scan PASS; K8s & Compose valid YAML. |
-| **G6** | Production Deployment Approved | 🔒 **Locked** | **CTO Explicit Approval** | Locked until explicit CTO deployment authorization. |
+| **G6** | Production Deployment Approved | ✅ **Passed** | **CTO Explicit Approval** | Explicit CTO authorization granted. Rollback plan, release checklist, and container manifests verified. |
 
 ---
 
@@ -65,3 +65,43 @@
 | **REL-06** | `TASK-006` | `fix/TASK-004-005-deployments-and-security` (`8950b0c9`) + `fix/TASK-006-frontend-ws-and-api` (`42dad186`) | WebSockets & API | `agent_registry.py`/`builds.py`/`initiatives.py` conditional `subprotocol`; `org_manager.start()`/`stop()` in `main.py`; `wsUrl.ts` production origin derivation; `reposApi.import` `/v1/repos/import`. | ✅ Merged (`G5`) |
 | **REL-07** | `TASK-007` | `fix/TASK-007-prod-compose-and-ci` (`6ac3587b`) | Prod/Staging Compose & Backups | `mongo` configured with `--replSet rs0` + persistent `/data/db/.mongo-keyfile` + `rs.initiate()`; `backup_mongodb.py` & `backup_verify.py` created; `secret-scanning.yml` `continue-on-error: false`. | ✅ Merged (`G5`) |
 | **REL-QA** | `TASK-012`, `TASK-013` | `fix/TASK-012-013-qa-playwright-and-coverage` (`a92f9e33`) | QA & Coverage | `test_storage.py` state isolation (`26 passed`); Playwright aligned to port `3000` & `210_000` ms timeout; `backend/pyproject.toml` coverage scope fixed. | ✅ Merged (`G5`) |
+
+---
+
+## 5. Gate `G6` Production Deployment Runbook & Rollback Procedure
+
+### A. Pre-Deployment Verification Checklist (All Green)
+- [x] Full master test suite passing: `1213 passed, 19 skipped` in `backend/` pytest; `39 passed` in `orchestration/tests/`.
+- [x] Frontend production bundle built cleanly in `13.48s`: `tsc && vite build` (zero type errors, `@google/genai` decoupled).
+- [x] All 33 Vitest tests passing across 9 test files (Review board, Analytics unmount, Gemini lazy loader).
+- [x] Secret scanning allowlist check passing (`scripts/git-hooks/test-secret-allowlist.sh`).
+- [x] 14 Kubernetes manifests (59 YAML docs) and Docker Compose configurations validated.
+- [x] Isolated Git worktrees pruned; clean repository working tree on `main`.
+
+### B. Deployment Trigger Options (Post-G6 Approval)
+1. **GitHub Actions CI/CD Automated Trigger**:
+   - Push `main` to `origin/main` (requires network access / user approval).
+   - `.github/workflows/ci.yml` builds and tests all components.
+   - Upon successful completion, `.github/workflows/deploy.yml` builds GHCR container images and triggers deployment.
+2. **Local / Staging Docker Compose Deploy**:
+   ```bash
+   docker compose -f docker-compose.prod.yml pull
+   docker compose -f docker-compose.prod.yml up -d --remove-orphans
+   ```
+3. **Kubernetes Cluster Apply**:
+   ```bash
+   kubectl apply -f k8s/namespaces.yaml
+   kubectl apply -f k8s/network-policies.yaml
+   kubectl apply -f k8s/
+   ```
+
+### C. Verified Rollback Procedure
+If any deployment health check fails or telemetry degrades:
+- **Instant Image Rollback via CI**: Trigger `workflow_dispatch` on `.github/workflows/deploy.yml` providing `image_tag: <previous_stable_sha>`.
+- **Kubernetes Rollout Undo**:
+  ```bash
+  kubectl -n forge-ai-prod rollout undo deployment/backend
+  kubectl -n forge-ai-prod rollout undo deployment/frontend
+  kubectl -n forge-ai-prod rollout undo deployment/celery-worker
+  ```
+- **Disaster Recovery Database Restore**: Run point-in-time restore job using `k8s/mongodb-restore-job.yaml` targeting pre-deploy snapshot.
