@@ -1,0 +1,7 @@
+{
+  "name": "forge-engineering",
+  "displayName": "Forge AI Engineering Organisation",
+  "version": "1.0.0",
+  "description": "Persistent 9-agent engineering organisation for Forge AI: orchestrator, architect, backend-engineer, frontend-engineer, ai-engineer, qa-engineer, security-engineer, devops-engineer, and independent-reviewer."
+}
+
