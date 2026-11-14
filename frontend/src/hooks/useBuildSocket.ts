@@ -2,8 +2,9 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { useBuildStore } from '../store/buildStore'
 import { parseWSEvent } from '../lib/wsContract'
 import { api } from '../lib/api'
+import { resolveWsBaseUrl } from '../lib/wsUrl'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
+const WS_URL = resolveWsBaseUrl()
 
 export function useBuildSocket(buildId: string | null) {
   const wsRef = useRef<WebSocket | null>(null)

@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('api client', () => {
   let api: typeof import('./api').api
+  let reposApi: typeof import('./api').reposApi
 
   beforeEach(async () => {
     vi.resetModules()
     const mod = await import('./api')
     api = mod.api
+    reposApi = mod.reposApi
   })
 
   afterEach(() => {
@@ -73,5 +75,30 @@ describe('api client', () => {
     }) as any
 
     await expect(api.get('/projects/')).rejects.toBeTruthy()
+  })
+
+  it('posts reposApi.import to /v1/repos/import with the repository payload', async () => {
+    let captured: any = null
+    api.defaults.adapter = (async (config: any) => {
+      if (config.url !== '/v1/auth/csrf-token') {
+        captured = config
+      }
+      return {
+        data: config.url === '/v1/auth/csrf-token' ? { csrf_token: 'tok-repo' } : { project_id: 'proj-1' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      }
+    }) as any
+
+    const payload = { repo_url: 'https://github.com/acme/forge', project_name: 'forge', branch: 'main' }
+    const result = await reposApi.import(payload)
+
+    expect(result).toEqual({ project_id: 'proj-1' })
+    expect(captured).not.toBeNull()
+    expect(captured.method).toBe('post')
+    expect(captured.url).toBe('/v1/repos/import')
+    expect(JSON.parse(captured.data)).toEqual(payload)
   })
 })

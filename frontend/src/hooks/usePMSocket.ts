@@ -2,8 +2,9 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { usePMStore } from '../store/pmStore'
 import { parsePMWSEvent } from '../lib/pmWsContract'
 import { api } from '../lib/api'
+import { resolveWsBaseUrl } from '../lib/wsUrl'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
+const WS_URL = resolveWsBaseUrl()
 
 // Same shape as hooks/useBuildSocket.ts (ws-token handshake, exponential
 // backoff reconnect, generation-guarded cleanup) applied to the
