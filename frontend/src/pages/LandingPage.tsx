@@ -76,7 +76,7 @@ const AGENT_DOSSIERS: AgentDossier[] = [
     color: "#FFE600",
     badgeBg: "bg-brutal-yellow text-black",
     description: "Defines system blueprints, database entity relationships, microservice boundaries, and strict API schemas before any code is generated.",
-    deliverables: ["schema.prisma", "api-contract.ts", "system-graph.json"],
+    deliverables: ["blueprint.json", "data-models", "api-endpoints"],
     systemMetric: "99.8% Schema Coherence",
   },
   {
@@ -95,8 +95,8 @@ const AGENT_DOSSIERS: AgentDossier[] = [
     name: "Full-Stack Engineer",
     color: "#00F0FF",
     badgeBg: "bg-brutal-cyan text-black",
-    description: "Streams full-stack code across client interfaces, backend endpoints, database migrations, and unit tests simultaneously.",
-    deliverables: ["server.ts", "endpoints/*.ts", "useStore.ts"],
+    description: "Writes the full stack from the architect's blueprint and the designer's tokens: a React + Vite + Tailwind frontend and a FastAPI + MongoDB backend.",
+    deliverables: ["backend/main.py", "routes/*.py", "src/App.tsx"],
     systemMetric: "0 Lint / Syntax Errors",
   },
   {
@@ -105,8 +105,8 @@ const AGENT_DOSSIERS: AgentDossier[] = [
     name: "Business Auditor",
     color: "#FBBF24",
     badgeBg: "bg-amber-400 text-black",
-    description: "Validates requirements against realistic unit economics, API rate limits, database compute bounds, and production scaling bottlenecks.",
-    deliverables: ["audit-report.md", "cost-projection.csv", "rate-limits.env"],
+    description: "Drafts the business side of your app: target customers, value proposition, pricing tiers, and a go-to-market and validation plan.",
+    deliverables: ["target-customers", "pricing-tiers", "go-to-market"],
     systemMetric: "3.4x Cost Optimization",
   },
   {
@@ -116,7 +116,7 @@ const AGENT_DOSSIERS: AgentDossier[] = [
     color: "#C084FC",
     badgeBg: "bg-purple-400 text-black",
     description: "Connects external service playbooks: Stripe webhook pipelines, OAuth providers, Supabase Postgres, and Slack notifications automatically.",
-    deliverables: ["stripe.routes.ts", "oauth-client.ts", "webhook-worker.ts"],
+    deliverables: ["routes/billing.py", "env vars", "integration setup"],
     systemMetric: "Automated Handshake",
   },
   {
@@ -125,8 +125,8 @@ const AGENT_DOSSIERS: AgentDossier[] = [
     name: "PM & Quality Lead",
     color: "#22C55E",
     badgeBg: "bg-brutal-green text-black",
-    description: "Executes automated test suites, scores build compliance, and runs the self-correcting debug loop to heal failing code before deployment.",
-    deliverables: ["quality-scorecard.json", "e2e-specs.ts", "audit-log.json"],
+    description: "Checks the build against your spec, scores it, and lists issues and missing features. Failing syntax or type checks trigger the self-correcting debug loop.",
+    deliverables: ["quality score", "issues & fixes", "missing features"],
     systemMetric: "Self-Healing Debug Loop",
   },
 ];
@@ -153,7 +153,7 @@ const WORKFLOW_STEPS = [
     label: "BUILD",
     tagline: "Parallel Code Streaming",
     agent: "Designer (DES-02) + Developer (DEV-03)",
-    details: "Fullstack code, design components, API routers, and state stores are generated in parallel without waiting for serial prompts.",
+    details: "The designer sets up the UI system, then the developer writes components, API routes and state stores on top of the architect's blueprint.",
     output: "Full-Stack Source Code Tree",
   },
   {
@@ -161,30 +161,33 @@ const WORKFLOW_STEPS = [
     label: "VALIDATE",
     tagline: "Autonomous Debug Loop",
     agent: "PM & Quality Lead (PM-06)",
-    details: "Tests and type checks run in an isolated sandbox. If anything fails, the responsible agent is automatically dispatched up to 3 times.",
-    output: "Passing Test Suite & Quality Score",
+    details: "Syntax, type and import checks run in an isolated sandbox. If anything fails, the debug loop fixes it and re-checks, up to 3 times.",
+    output: "Passing Checks & Quality Score",
   },
   {
     step: "05",
     label: "SHIP",
-    tagline: "Docker Container & Git Sync",
+    tagline: "Push to GitHub",
     agent: "Integration Lead (INT-05)",
-    details: "The validated build is committed to your GitHub repo and deployed into a live containerized Cloud Run environment.",
-    output: "Live Cloud URL & Git Commit SHA",
+    details: "Push the validated code to your own GitHub repo and run it wherever you like.",
+    output: "Your Code in Your Repo",
   },
 ];
 
+// Technologies Forge actually generates or integrates with: the generated
+// stack (agents/developer.py) and the integration playbooks
+// (agents/integration.py). Not partnerships.
 const TECH_PARTNERS = [
-  "DOCKER",
   "GITHUB",
-  "VERCEL",
-  "STRIPE",
-  "SUPABASE",
-  "CLOUDFLARE",
-  "POSTGRESQL",
+  "REACT",
   "TYPESCRIPT",
   "TAILWIND",
-  "REDIS",
+  "FASTAPI",
+  "MONGODB",
+  "STRIPE",
+  "SUPABASE",
+  "SLACK",
+  "RESEND",
 ];
 
 const FEATURES_BENTO = [
@@ -193,7 +196,7 @@ const FEATURES_BENTO = [
     title: "Self-Correcting Debug Loop",
     badge: "AUTONOMOUS HEALING",
     badgeColor: "bg-brutal-green text-black",
-    description: "When tests or type compilation fails, Forge doesn't stop and demand human debugging. It automatically reruns the responsible agent up to 3 times with targeted error traces until green.",
+    description: "When syntax or type checks fail, Forge doesn't stop and demand human debugging. A debug agent fixes the code using the error traces and re-checks it, up to 3 times.",
     icon: RefreshCwIcon,
     kpi: "3X AUTO-RETRY",
   },
@@ -211,18 +214,18 @@ const FEATURES_BENTO = [
     title: "Quality Score on Every Build",
     badge: "GATEKEEPER PM",
     badgeColor: "bg-brutal-cyan text-black",
-    description: "Every build receives an automated quality scorecard covering type safety, security posture, accessibility, and test coverage before deployment is authorized.",
+    description: "Every build gets a quality score from the PM agent, with the issues it found, suggested fixes, and any features from your spec that are missing.",
     icon: ShieldCheck,
-    kpi: "A+ BENCHMARK",
+    kpi: "SCORED EVERY BUILD",
   },
   {
     code: "FT-04",
-    title: "Real Stack, Docker Containerized",
+    title: "A Real, Standard Stack",
     badge: "NO SANDBOX TRAPS",
     badgeColor: "bg-amber-400 text-black",
-    description: "No toy iframe widgets or proprietary runtimes. Forge writes standard Node/TypeScript/Python stacks with production-grade Dockerfiles ready for AWS, GCP, or bare metal.",
+    description: "No toy widgets or proprietary runtimes. Forge writes a standard React + TypeScript frontend and a Python (FastAPI) backend that you can host anywhere.",
     icon: Server,
-    kpi: "LIVE DOCKER ENV",
+    kpi: "HOST ANYWHERE",
   },
   {
     code: "FT-05",
@@ -235,10 +238,10 @@ const FEATURES_BENTO = [
   },
   {
     code: "FT-06",
-    title: "Bidirectional GitHub Sync",
+    title: "Push to GitHub",
     badge: "FULL CODE OWNERSHIP",
     badgeColor: "bg-brutal-pink text-black",
-    description: "Every agent commit is pushed directly to your connected GitHub repository with clear commit logs and branch pull requests. You own 100% of the code.",
+    description: "Push the generated code to your connected GitHub repository whenever you're ready. You own 100% of the code.",
     icon: GitBranch,
     kpi: "ZERO LOCK-IN",
   },
@@ -265,7 +268,7 @@ const COMPARISON_ROWS = [
     feature: "Shared project memory across handoffs",
     chatbots: "No (prompt context decays rapidly)",
     copilots: "Partial (local editor window)",
-    forge: "Yes (centralized immutable state bus)",
+    forge: "Yes (shared project memory)",
   },
   {
     feature: "Automated compile & test debug loop",
@@ -274,16 +277,16 @@ const COMPARISON_ROWS = [
     forge: "Yes (automatic 3-pass self-healing)",
   },
   {
-    feature: "Production Docker container generation",
+    feature: "Syntax & type checks before you get the code",
     chatbots: "No (snippets only)",
     copilots: "No",
-    forge: "Yes (production Dockerfile & ports)",
+    forge: "Yes (sandboxed checks + debug loop)",
   },
   {
     feature: "Full code ownership & Git export",
     chatbots: "Partial (copy-paste nightmare)",
     copilots: "Yes",
-    forge: "Yes (direct GitHub commit sync)",
+    forge: "Yes (push to your GitHub repo)",
   },
 ];
 
@@ -347,23 +350,23 @@ const PRICING_PLANS = [
 const FAQS = [
   {
     q: "How does Forge AI differ from Copilot or ChatGPT?",
-    a: "ChatGPT is a single prompt chatbot that guesses line-by-line and lacks execution sandboxes. Copilot is an autocomplete assistant. Forge is an autonomous engineering organization: 6 specialized agents plan blueprints, stream full-stack code, run real test suites, and deploy containerized software without requiring you to prompt every step.",
+    a: "ChatGPT is a general chatbot; Copilot is an autocomplete assistant inside your editor. Forge is a team of 6 specialized agents: they plan a blueprint, write the full stack, check it in a sandbox and fix what fails, without you prompting every step.",
   },
   {
     q: "What is the self-correcting debug loop?",
-    a: "When agents write code, Forge automatically runs type checking, linting, and unit tests in an isolated sandbox. If any error occurs, Forge catches the failure trace, identifies the responsible agent (e.g. Developer or Integration), and reruns them up to 3 times automatically to fix the bug before asking for human intervention.",
+    a: "After the agents write the code, Forge runs syntax, type and import checks on it in an isolated sandbox. If anything fails, a debug agent gets the error traces, fixes the code and re-checks it, up to 3 times, before handing it back to you.",
   },
   {
     q: "Do I actually own the generated code?",
-    a: "Yes, 100%. Every build can be synced directly to your personal or organization's GitHub repository. There is zero vendor lock-in, no proprietary runtime, and standard Docker containers that you can run on any cloud platform.",
+    a: "Yes, 100%. Push any build to your personal or organization's GitHub repository. There's no proprietary runtime: it's a standard React and FastAPI codebase you can run anywhere.",
   },
   {
     q: "Can I use my own AI model API keys?",
-    a: "Yes! On the Pro plan, you can enable Bring Your Own Key (BYOK) for Anthropic, OpenAI, or Google Gemini, allowing you to run agent fleets directly against your own enterprise quotas.",
+    a: "Yes. On Pro and Enterprise you can add your own Anthropic key, or any OpenAI-compatible endpoint (OpenAI, Groq, OpenRouter and others). Your builds then run on your key instead of using credits.",
   },
   {
     q: "How fast is a full build cycle?",
-    a: "Simple applications (like task managers or CRUD dashboards) compile in 12 to 20 seconds. Complex multi-service architectures with database migrations and OAuth wiring typically complete in under 60 seconds.",
+    a: "It depends on the size of the app: the agents run one after another, and the debug loop can add passes. You can watch every agent's progress live while it builds.",
   },
 ];
 
@@ -518,11 +521,11 @@ function HeroSection() {
   }, []);
 
   const terminalSteps = [
-    { tag: "[ARCH-01]", color: "bg-brutal-yellow text-black", text: "Architecting relational data models -> schema.prisma (100% typed)" },
-    { tag: "[DES-02]", color: "bg-brutal-pink text-black", text: "Compiling design system, responsive UI & AppShell layouts" },
-    { tag: "[DEV-03]", color: "bg-brutal-cyan text-black", text: "Streaming Fastify routes, PostgreSQL queries & state stores" },
-    { tag: "[QA-04]", color: "bg-brutal-green text-black", text: "Running automated type-checks, linter & test suite (Score: 99/100)" },
-    { tag: "[SHIP-05]", color: "bg-purple-400 text-black", text: "Multi-stage Docker container verified & live on port 3000" },
+    { tag: "[ARCH-01]", color: "bg-brutal-yellow text-black", text: "Architecting data models & API contracts -> blueprint.json" },
+    { tag: "[DES-02]", color: "bg-brutal-pink text-black", text: "Building the design system & responsive layouts" },
+    { tag: "[DEV-03]", color: "bg-brutal-cyan text-black", text: "Writing React components & FastAPI routes (MongoDB)" },
+    { tag: "[QA-04]", color: "bg-brutal-green text-black", text: "Running syntax & type checks in the sandbox (Score: 92/100)" },
+    { tag: "[SHIP-05]", color: "bg-purple-400 text-black", text: "Build validated: ready to push to GitHub" },
   ];
 
   return (
@@ -556,7 +559,7 @@ function HeroSection() {
         <Reveal delay={0.12}>
           <p className="text-base sm:text-xl font-mono text-muted max-w-3xl leading-relaxed mb-8">
             Describe what you want to build. A synchronized team of 6 specialist AI agents designs
-            the architecture, writes the full stack, runs automated debug loops, and ships a production Docker container.
+            the architecture, writes the full stack, checks it and fixes what fails, and hands you code you push to your own GitHub.
           </p>
         </Reveal>
 
@@ -686,12 +689,12 @@ function HeroSection() {
               {activeTab === "tree" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { file: "schema.prisma", size: "3.2 KB", type: "PostgreSQL Data Models" },
-                    { file: "src/server.ts", size: "8.4 KB", type: "Fastify / Express Core" },
-                    { file: "src/routes/billing.ts", size: "4.1 KB", type: "Stripe Webhook Handlers" },
-                    { file: "src/components/App.tsx", size: "12.8 KB", type: "React 19 + Tailwind Client" },
-                    { file: "Dockerfile", size: "1.1 KB", type: "Multi-Stage Container" },
-                    { file: "tests/e2e.spec.ts", size: "5.6 KB", type: "Playwright Automated Tests" },
+                    { file: "backend/models.py", size: "3.2 KB", type: "MongoDB Data Models" },
+                    { file: "backend/main.py", size: "8.4 KB", type: "FastAPI Application" },
+                    { file: "backend/routes/billing.py", size: "4.1 KB", type: "Stripe Webhook Handlers" },
+                    { file: "frontend/src/App.tsx", size: "12.8 KB", type: "React 18 + Tailwind Client" },
+                    { file: "frontend/src/theme.ts", size: "1.1 KB", type: "Design System Tokens" },
+                    { file: "backend/requirements.txt", size: "0.4 KB", type: "Python Dependencies" },
                   ].map((f) => (
                     <div
                       key={f.file}
@@ -716,9 +719,9 @@ function HeroSection() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { label: "FLEET AGENTS", val: "6 SYNCHRONIZED", color: "bg-brutal-yellow" },
-                    { label: "COMPILER LATENCY", val: "13.4s AVERAGE", color: "bg-brutal-cyan" },
-                    { label: "TYPE COVERAGE", val: "100% STRICT", color: "bg-brutal-green" },
-                    { label: "CONTAINER RUNTIME", val: "DOCKER READY", color: "bg-brutal-pink" },
+                    { label: "CREDITS PER BUILD", val: "~15-17", color: "bg-brutal-cyan" },
+                    { label: "DEBUG PASSES", val: "UP TO 3", color: "bg-brutal-green" },
+                    { label: "OUTPUT", val: "REACT + FASTAPI", color: "bg-brutal-pink" },
                   ].map((stat) => (
                     <div
                       key={stat.label}
@@ -822,7 +825,7 @@ function InferenceSection() {
               <ul className="space-y-3 font-mono text-xs sm:text-sm">
                 <li className="flex items-start gap-2.5 text-ink font-bold">
                   <span className="text-emerald-500 font-black">✓</span>
-                  <span>Architect blueprints the schema, Developer codes, Designer styles, and PM audits test suites.</span>
+                  <span>Architect blueprints the schema, Designer styles, Developer codes, and PM checks the build against your spec.</span>
                 </li>
                 <li className="flex items-start gap-2.5 text-ink font-bold">
                   <span className="text-emerald-500 font-black">✓</span>
@@ -830,7 +833,7 @@ function InferenceSection() {
                 </li>
                 <li className="flex items-start gap-2.5 text-ink font-bold">
                   <span className="text-emerald-500 font-black">✓</span>
-                  <span>Pushes directly to your GitHub repository with real Dockerfile and container deployment.</span>
+                  <span>Pushes to your own GitHub repository, with no proprietary runtime.</span>
                 </li>
               </ul>
             </div>
@@ -899,7 +902,7 @@ function AgentsSection() {
                   </div>
 
                   <div className="pt-3 border-t-2 border-black dark:border-white/80 flex items-center justify-between font-mono text-[11px] font-bold text-ink">
-                    <span className="text-muted">BENCHMARK:</span>
+                    <span className="text-muted">IN SHORT:</span>
                     <span className="text-amber-600 dark:text-amber-400 font-black">{agent.systemMetric}</span>
                   </div>
                 </div>
@@ -925,7 +928,7 @@ function WorkflowSection() {
             [ 02 // PIPELINE ]
           </div>
           <h2 className="text-3xl sm:text-5xl font-mono font-black uppercase tracking-tight text-ink max-w-3xl leading-[1.05] mb-4">
-            FROM PROMPT TO LIVE CONTAINER. 5 STRICT STEPS.
+            FROM PROMPT TO YOUR GITHUB REPO. 5 STEPS.
           </h2>
           <p className="text-base sm:text-lg font-mono text-muted max-w-2xl leading-relaxed mb-12">
             Every build traverses an immutable assembly line. Click any step to inspect the agent operations
@@ -1007,8 +1010,8 @@ function FeaturesSection() {
             BUILT FOR REAL PRODUCTION ENGINEERING.
           </h2>
           <p className="text-base sm:text-lg font-mono text-muted max-w-2xl leading-relaxed mb-12">
-            Every subsystem is engineered to eradicate hallucinations, prevent syntax regressions,
-            and hand you production-grade Docker repositories.
+            Every step is built to catch hallucinated APIs and broken code before you see it,
+            and to hand you a standard codebase in your own repo.
           </p>
         </Reveal>
 
@@ -1040,7 +1043,7 @@ function FeaturesSection() {
                   </div>
 
                   <div className="pt-4 border-t-2 border-black dark:border-white/80 flex items-center justify-between font-mono text-xs font-black text-ink">
-                    <span className="text-muted">BENCHMARK:</span>
+                    <span className="text-muted">IN SHORT:</span>
                     <span className="px-2 py-0.5 border border-black bg-neutral-100 dark:bg-neutral-800 text-ink">
                       {feat.kpi}
                     </span>
@@ -1059,10 +1062,10 @@ function FeaturesSection() {
 
 function WhyForgeSection() {
   const points = [
-    { old: "Other tools generate isolated code snippets.", forge: "Forge builds, tests, and deploys full applications." },
-    { old: "Other tools show you a preview and hope it works.", forge: "Forge runs automated QA loops and ships a live container." },
+    { old: "Other tools generate isolated code snippets.", forge: "Forge plans, builds and checks full applications." },
+    { old: "Other tools show you a preview and hope it works.", forge: "Forge checks the code and runs a self-correcting debug loop." },
     { old: "Other tools guess blindly what your schema should look like.", forge: "Forge architects plan, audit, and validate typed contracts." },
-    { old: "Other tools trap your code in a proprietary web sandbox.", forge: "Forge pushes commits directly to your GitHub repository." },
+    { old: "Other tools trap your code in a proprietary web sandbox.", forge: "Forge pushes the code to your own GitHub repository." },
     { old: "Other tools are one model pretending to be a team.", forge: "Forge is a genuine synchronized multi-agent engineering fleet." },
   ];
 
@@ -1114,7 +1117,7 @@ function ComparisonSection() {
       <div className="max-w-7xl mx-auto">
         <Reveal>
           <div className="inline-block px-3 py-1 border-2 border-black bg-brutal-cyan text-black font-mono font-black text-xs uppercase shadow-[3px_3px_0px_#000] mb-4">
-            [ 05 // BENCHMARK MATRIX ]
+            [ 05 // COMPARISON ]
           </div>
           <h2 className="text-3xl sm:text-5xl font-mono font-black uppercase tracking-tight text-ink max-w-3xl leading-[1.05] mb-4">
             COMPARE AGAINST EVERY GENERATION TOOL.
@@ -1372,7 +1375,7 @@ export function Footer() {
               <span className="font-black text-sm uppercase tracking-wider">FORGE AI OS</span>
             </div>
             <p className="text-xs text-muted leading-relaxed">
-              Autonomous multi-agent compiler converting natural language into production-grade containerized software.
+              A team of AI agents that turns a product description into a planned, built and checked full-stack app.
             </p>
           </div>
 
