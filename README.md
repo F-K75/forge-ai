@@ -340,21 +340,18 @@ The Integration Agent picks it up automatically when users mention the service.
 
 ## Public website and demo
 
-Every push to `main` deploys three Cloudflare Pages sites
-(`.github/workflows/deploy-cloudflare.yml`):
-
-| Site | Pages project | What it is |
+| Site | Deployed by | What it is |
 |---|---|---|
-| Website | `forge-site` | [`landing.html`](landing.html): waitlist, pricing, links to the demo and sign-in |
-| App | `forge-frontend` | the product (live backend) |
-| Demo | `forge-demo` | the frontend in demo mode: sample data, a "Demo with sample data" banner, sign-up goes to the app |
+| App | Cloudflare Workers Builds (`wrangler.toml`, `frontend/worker.ts`) | the product, live backend: `forge-frontend.<account>.workers.dev` |
+| Website | `.github/workflows/deploy-cloudflare.yml` → Pages project `forge-site` | [`landing.html`](landing.html): waitlist, pricing, links to the demo and sign-in |
+| Demo | same workflow → Pages project `forge-demo` | the frontend in demo mode: sample data, a "Demo with sample data" banner, sign-up goes to the app |
 
-The website and demo projects are created on the first deploy. Their real
-`*.pages.dev` addresses are looked up from the Cloudflare API
-(`scripts/cloudflare-pages-project.sh`) and printed in the workflow run's
-summary. **Add the website's address to the backend's `ALLOWED_ORIGINS`** or
-the waitlist form can't submit. To use your own domains later, set the GitHub
-repository variables `FORGE_APP_URL` and `FORGE_DEMO_URL`.
+The workflow deploys with the `wrangler` CLI on every push to `main`. The
+website and demo projects are created on the first run, and their real
+`*.pages.dev` addresses (looked up by `scripts/cloudflare-pages-project.sh`)
+are printed in the run summary. **Add the website's address to the backend's
+`ALLOWED_ORIGINS`** or the waitlist form can't submit. To use your own domains
+later, set the GitHub repository variables `FORGE_APP_URL` and `FORGE_DEMO_URL`.
 
 ## Contributing
 
