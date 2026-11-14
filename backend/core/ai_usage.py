@@ -21,9 +21,17 @@ MODEL_COSTS = {
     "claude-sonnet-4-6": {"input": 0.003, "output": 0.015, "provider": "anthropic"},
     "claude-opus-3": {"input": 0.015, "output": 0.075, "provider": "anthropic"},
     "gpt-4-turbo": {"input": 0.01, "output": 0.03, "provider": "openai"},
+    "gpt-4o-mini": {"input": 0.00015, "output": 0.0006, "provider": "openai"},
+    "gpt-4.1": {"input": 0.002, "output": 0.008, "provider": "openai"},
     "anthropic/claude-opus-4.8": {"input": 0.015, "output": 0.075, "provider": "openrouter"},
     "anthropic/claude-sonnet-5": {"input": 0.003, "output": 0.015, "provider": "openrouter"},
     "anthropic/claude-haiku-4.5": {"input": 0.0008, "output": 0.004, "provider": "openrouter"},
+    "openrouter/auto": {"input": 0.003, "output": 0.015, "provider": "openrouter"},
+    "gemini-1.5-pro": {"input": 0.00125, "output": 0.005, "provider": "gemini"},
+    "llama-3.1-8b": {"input": 0.00005, "output": 0.00008, "provider": "groq"},
+    "meta-llama/Llama-3-8b-chat-hf": {"input": 0.0002, "output": 0.0002, "provider": "together"},
+    "llama3.2": {"input": 0.0, "output": 0.0, "provider": "ollama"},
+    "mistral-small-latest": {"input": 0.0002, "output": 0.0006, "provider": "mistral"},
 }
 DEFAULT_MODEL = "claude-sonnet-4-6"
 
@@ -261,6 +269,7 @@ async def track_usage(
     cached_tokens: int = 0,
     provider: Optional[str] = None,
     agent: Optional[str] = None,
+    byok: bool = False,
 ) -> Dict[str, Any]:
     """Persist a single LLM call's usage record. Called after every completed LLM call, win or lose.
 
@@ -277,6 +286,7 @@ async def track_usage(
         "agent": agent,
         "model": model,
         "provider": provider or get_model_provider(model),
+        "byok": bool(byok),
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
         "cached_tokens": cached_tokens,

@@ -698,15 +698,22 @@ class LLMRouter:
             project_id=project_id,
             org_id=org_id,
             agent_name=agent_name,
+            byok=True,
         )
         if usage_out is not None:
+            cost_usd = calculate_cost(
+                response.model,
+                response.usage.get("prompt_tokens", 0),
+                response.usage.get("completion_tokens", 0),
+                cached_tokens=response.usage.get("cached_tokens", 0),
+            )
             usage_out.update({
                 "model": response.model,
                 "provider": response.provider,
                 "prompt_tokens": response.usage.get("prompt_tokens", 0),
                 "completion_tokens": response.usage.get("completion_tokens", 0),
                 "total_tokens": response.usage.get("total_tokens", 0),
-                "cost_usd": response.usage.get("cost_usd", 0.0),
+                "cost_usd": cost_usd,
             })
         await self._validate_response(response)
         return response
@@ -753,6 +760,91 @@ class LLMRouter:
             result = await result
         async for chunk in result:
             yield chunk
+
+    @staticmethod
+    def _estimate_stream_usage(
+        messages: List[Dict[str, Any]],
+        completion_text: str,
+        provider_usage: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, int]:
+        """Build usage metrics for a stream using provider usage when available
+        and falling back to deterministic token estimation."""
+        raw = provider_usage if isinstance(provider_usage, dict) else {}
+        prompt_tokens = int(raw.get("prompt_tokens", 0) or 0)
+        completion_tokens = int(raw.get("completion_tokens", 0) or 0)
+        cached_tokens = int(raw.get("cached_tokens", 0) or 0)
+        if prompt_tokens <= 0:
+            prompt_text = "\n".join(
+                str(m.get("content", "")) for m in messages if m.get("content") is not None
+            )
+            prompt_tokens = estimate_tokens(prompt_text)
+        if completion_tokens <= 0 and completion_text:
+            completion_tokens = estimate_tokens(completion_text)
+        return {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+            "cached_tokens": cached_tokens,
+        }
+
+    async def _finalize_stream_usage(
+        self,
+        *,
+        provider: BaseProviderAdapter,
+        provider_name: str,
+        model: str,
+        messages: List[Dict[str, Any]],
+        text: str,
+        user_id: Optional[str],
+        build_id: Optional[str],
+        project_id: Optional[str],
+        org_id: Optional[str],
+        agent_name: str,
+        usage_out: Optional[Dict[str, Any]],
+        byok: bool = False,
+        best_effort: bool = False,
+    ) -> CompletionResponse:
+        response = CompletionResponse(
+            text=text,
+            provider=provider_name,
+            model=model,
+            usage=self._estimate_stream_usage(
+                messages,
+                text,
+                getattr(provider, "last_stream_usage", None),
+            ),
+        )
+        self._normalize_usage(response)
+        try:
+            await self._record_usage(
+                response=response,
+                user_id=user_id,
+                build_id=build_id,
+                project_id=project_id,
+                org_id=org_id,
+                agent_name=agent_name,
+                byok=byok,
+            )
+        except Exception:
+            if not best_effort:
+                raise
+            logger.exception("Failed to record partial stream usage for user %s", user_id)
+        if usage_out is not None:
+            cost_usd = calculate_cost(
+                response.model,
+                response.usage.get("prompt_tokens", 0),
+                response.usage.get("completion_tokens", 0),
+                cached_tokens=response.usage.get("cached_tokens", 0),
+            )
+            usage_out.update({
+                "model": response.model,
+                "provider": response.provider,
+                "prompt_tokens": response.usage.get("prompt_tokens", 0),
+                "completion_tokens": response.usage.get("completion_tokens", 0),
+                "total_tokens": response.usage.get("total_tokens", 0),
+                "cost_usd": cost_usd,
+            })
+        return response
 
     async def stream(
         self,
@@ -801,42 +893,62 @@ class LLMRouter:
                 lease_id = await self._acquire_concurrent_lease(user_id, plan)
             try:
                 provider, provider_name, resolved_model = await self._build_byok_provider(byok, model)
+                stream_messages = self._with_system_prompt(sanitized_messages, extra_system)
                 chunks: List[str] = []
                 last_renew = time.monotonic()
-                async for chunk in self._iter_stream_completion(
-                    provider,
+                try:
+                    async for chunk in self._iter_stream_completion(
+                        provider,
+                        model=resolved_model,
+                        messages=stream_messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        tools=tools,
+                        user_id=user_id,
+                        build_id=build_id,
+                        project_id=project_id,
+                        org_id=org_id,
+                    ):
+                        chunks.append(chunk)
+                        yield chunk
+                        if lease_id and (
+                            len(chunks) % _STREAM_LEASE_RENEW_EVERY_N_CHUNKS == 0
+                            or time.monotonic() - last_renew >= _STREAM_LEASE_RENEW_SECONDS
+                        ):
+                            await self._renew_concurrent_lease(user_id, lease_id)
+                            last_renew = time.monotonic()
+                except Exception:
+                    if chunks:
+                        await self._finalize_stream_usage(
+                            provider=provider,
+                            provider_name=provider_name,
+                            model=resolved_model,
+                            messages=stream_messages,
+                            text="".join(chunks),
+                            user_id=user_id,
+                            build_id=build_id,
+                            project_id=project_id,
+                            org_id=org_id,
+                            agent_name=agent_name,
+                            usage_out=usage_out,
+                            byok=True,
+                            best_effort=True,
+                        )
+                    raise
+                await self._finalize_stream_usage(
+                    provider=provider,
+                    provider_name=provider_name,
                     model=resolved_model,
-                    messages=self._with_system_prompt(sanitized_messages, extra_system),
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    tools=tools,
+                    messages=stream_messages,
+                    text="".join(chunks),
                     user_id=user_id,
                     build_id=build_id,
                     project_id=project_id,
                     org_id=org_id,
-                ):
-                    chunks.append(chunk)
-                    yield chunk
-                    if lease_id and (
-                        len(chunks) % _STREAM_LEASE_RENEW_EVERY_N_CHUNKS == 0
-                        or time.monotonic() - last_renew >= _STREAM_LEASE_RENEW_SECONDS
-                    ):
-                        await self._renew_concurrent_lease(user_id, lease_id)
-                        last_renew = time.monotonic()
-                response = CompletionResponse(text="".join(chunks), provider=provider_name, model=resolved_model)
-                self._normalize_usage(response)
-                await self._record_usage(
-                    response=response, user_id=user_id, build_id=build_id,
-                    project_id=project_id, org_id=org_id, agent_name=agent_name,
+                    agent_name=agent_name,
+                    usage_out=usage_out,
+                    byok=True,
                 )
-                if usage_out is not None:
-                    usage_out.update({
-                        "model": response.model, "provider": response.provider,
-                        "prompt_tokens": response.usage.get("prompt_tokens", 0),
-                        "completion_tokens": response.usage.get("completion_tokens", 0),
-                        "total_tokens": response.usage.get("total_tokens", 0),
-                        "cost_usd": response.usage.get("cost_usd", 0.0),
-                    })
                 return
             finally:
                 await self._release_concurrent_lease(user_id, lease_id)
@@ -918,13 +1030,14 @@ class LLMRouter:
                     except Exception:
                         lease_id = None
                 chunks: List[str] = []
+                stream_messages = self._with_system_prompt(sanitized_messages, extra_system)
                 try:
                     last_renew = time.monotonic()
                     try:
                         async for chunk in self._iter_stream_completion(
                             provider,
                             model=candidate_model,
-                            messages=self._with_system_prompt(sanitized_messages, extra_system),
+                            messages=stream_messages,
                             max_tokens=max_tokens,
                             temperature=temperature,
                             tools=tools,
@@ -946,6 +1059,20 @@ class LLMRouter:
                             # Already yielded partial output — don't failover
                             # (would duplicate) and don't record CB failure on
                             # a mid-stream abort the caller already saw.
+                            await self._finalize_stream_usage(
+                                provider=provider,
+                                provider_name=provider_name,
+                                model=candidate_model,
+                                messages=stream_messages,
+                                text="".join(chunks),
+                                user_id=user_id,
+                                build_id=build_id,
+                                project_id=project_id,
+                                org_id=org_id,
+                                agent_name=agent_name,
+                                usage_out=usage_out,
+                                best_effort=True,
+                            )
                             raise ProviderError(str(exc)) from exc
                         # Transport failure before any output.
                         last_error = exc
@@ -970,12 +1097,19 @@ class LLMRouter:
                     # Transport success — heal fleet CB keys.
                     await self._record_provider_success(provider_name)
 
-                    response = CompletionResponse(text=text, provider=provider_name, model=candidate_model)
                     # Post-success bookkeeping must not trip the CB.
-                    self._normalize_usage(response)
-                    await self._record_usage(
-                        response=response, user_id=user_id, build_id=build_id,
-                        project_id=project_id, org_id=org_id, agent_name=agent_name,
+                    response = await self._finalize_stream_usage(
+                        provider=provider,
+                        provider_name=provider_name,
+                        model=candidate_model,
+                        messages=stream_messages,
+                        text=text,
+                        user_id=user_id,
+                        build_id=build_id,
+                        project_id=project_id,
+                        org_id=org_id,
+                        agent_name=agent_name,
+                        usage_out=usage_out,
                     )
                     await self.optimizer.cache_response(
                         messages=sanitized_messages, model=response.model,
@@ -992,14 +1126,6 @@ class LLMRouter:
                         optimization_overhead_ms=opt_result.optimization_time_ms,
                         prompt_cache_hit=False, response_cache_hit=False,
                     )
-                    if usage_out is not None:
-                        usage_out.update({
-                            "model": response.model, "provider": response.provider,
-                            "prompt_tokens": response.usage.get("prompt_tokens", 0),
-                            "completion_tokens": response.usage.get("completion_tokens", 0),
-                            "total_tokens": response.usage.get("total_tokens", 0),
-                            "cost_usd": response.usage.get("cost_usd", 0.0),
-                        })
                     return
                 finally:
                     await self._release_concurrent_lease(user_id, lease_id)
@@ -1037,12 +1163,24 @@ class LLMRouter:
             return "claude-sonnet-4-6"
         return getattr(provider, "default_model", "claude-sonnet-4-6")
 
-    async def _record_usage(self, *, response: CompletionResponse, user_id: Optional[str], build_id: Optional[str], project_id: Optional[str], org_id: Optional[str], agent_name: str) -> None:
+    async def _record_usage(
+        self,
+        *,
+        response: CompletionResponse,
+        user_id: Optional[str],
+        build_id: Optional[str],
+        project_id: Optional[str],
+        org_id: Optional[str],
+        agent_name: str,
+        byok: bool = False,
+    ) -> None:
         usage = response.usage or {}
         prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
         completion_tokens = int(usage.get("completion_tokens", 0) or 0)
         if prompt_tokens + completion_tokens <= 0:
             return
+        cached_tokens = int(usage.get("cached_tokens", 0) or 0)
+        cost_usd = calculate_cost(response.model, prompt_tokens, completion_tokens, cached_tokens=cached_tokens)
         # Prometheus token volume is recorded before the user_id gate: token
         # throughput is a platform-level signal, not a billing one.
         if prompt_tokens:
@@ -1055,7 +1193,6 @@ class LLMRouter:
             ).inc(completion_tokens)
         if not user_id:
             return
-        cost_usd = calculate_cost(response.model, prompt_tokens, completion_tokens, cached_tokens=int(usage.get("cached_tokens", 0) or 0))
         await track_usage(
             user_id=user_id,
             build_id=build_id,
@@ -1065,9 +1202,10 @@ class LLMRouter:
             cost_usd=cost_usd,
             org_id=org_id,
             project_id=project_id,
-            cached_tokens=int(usage.get("cached_tokens", 0) or 0),
+            cached_tokens=cached_tokens,
             provider=response.provider,
             agent=agent_name,
+            byok=byok or (response.provider or "").startswith("byok:"),
         )
 
     def _sanitize_messages(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
