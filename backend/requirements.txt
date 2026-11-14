@@ -44,6 +44,8 @@ celery==5.4.0
 kombu==5.4.2
 stripe==8.9.0
 razorpay==1.4.1
+# Pin setuptools<81: razorpay 1.4.1 imports pkg_resources, which setuptools 81+ removed.
+setuptools<81.0.0
 resend==2.6.0
 cryptography==50.0.0
 pyotp==2.9.0

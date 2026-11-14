@@ -14,12 +14,48 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/razorpay", tags=["razorpay"])
 settings = get_settings()
 
+# razorpay 1.4.1 imports pkg_resources at module load to inspect its own version.
+# In Python 3.12+ and modern setuptools (>=81), pkg_resources is no longer bundled.
+# If missing, supply a minimal shim backed by importlib.metadata so the SDK imports cleanly.
 try:
     import razorpay
-    _razorpay_client = razorpay.Client(auth=(settings.razorpay_key_id, settings.razorpay_key_secret)) if settings.razorpay_key_id else None
+except ModuleNotFoundError as _err:
+    if "pkg_resources" in str(_err):
+        import sys
+        import types
+
+        try:
+            import importlib.metadata as _metadata
+            _rzp_ver = _metadata.version("razorpay")
+        except Exception:
+            _rzp_ver = "1.4.1"
+
+        _pkg = types.ModuleType("pkg_resources")
+
+        class DistributionNotFound(Exception):
+            pass
+
+        _pkg.DistributionNotFound = DistributionNotFound
+
+        class _Req:
+            version = _rzp_ver
+
+        _pkg.require = lambda name: [_Req()]
+        sys.modules["pkg_resources"] = _pkg
+        try:
+            import razorpay
+        except ImportError:
+            razorpay = None
+    else:
+        razorpay = None
 except ImportError:
     razorpay = None
-    _razorpay_client = None
+
+_razorpay_client = (
+    razorpay.Client(auth=(settings.razorpay_key_id, settings.razorpay_key_secret))
+    if (razorpay and settings.razorpay_key_id)
+    else None
+)
 
 
 def _require_razorpay():
