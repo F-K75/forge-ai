@@ -1,10 +1,13 @@
 import asyncio
-import tempfile
+import logging
 import os
+import shutil
+import tempfile
 from core.config import get_settings
 from core.security import safe_join_path
 
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
@@ -45,6 +48,26 @@ class SandboxRunner:
         return errors
 
     async def _run_impl(self, files: dict) -> str:
+        bwrap_path = shutil.which("bwrap")
+        if bwrap_path is None:
+            is_dev_or_test = (
+                settings.app_env == "development"
+                or os.getenv("TESTING") == "1"
+            )
+            if not is_dev_or_test:
+                logger.error(
+                    "Sandbox execution refused: bubblewrap (bwrap) not found in non-development environment (app_env=%s)",
+                    settings.app_env,
+                )
+                return (
+                    "Sandbox execution unavailable: bubblewrap (bwrap) is "
+                    "required in non-development environments."
+                )
+            logger.warning(
+                "bubblewrap (bwrap) not found; falling back to unsandboxed execution in %s mode",
+                settings.app_env,
+            )
+
         errors = []
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write all files off the event loop -- this can be many files
@@ -68,11 +91,27 @@ class SandboxRunner:
     async def _check_python(self, tmpdir: str, files: dict) -> list:
         errors = []
         py_files = [p for p in files.keys() if p.endswith(".py")]
+        bwrap_path = shutil.which("bwrap")
 
         for py_file in py_files:
             full_path = os.path.join(tmpdir, py_file)
+            if bwrap_path:
+                cmd = [
+                    bwrap_path,
+                    "--ro-bind", "/", "/",
+                    "--bind", tmpdir, tmpdir,
+                    "--dev", "/dev",
+                    "--proc", "/proc",
+                    "--unshare-all",
+                    "--die-with-parent",
+                    "--new-session",
+                    "python3", "-m", "py_compile", full_path,
+                ]
+            else:
+                cmd = ["python3", "-m", "py_compile", full_path]
+
             proc = await asyncio.create_subprocess_exec(
-                "python3", "-m", "py_compile", full_path,
+                *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )

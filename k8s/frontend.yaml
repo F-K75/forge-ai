@@ -21,6 +21,8 @@ spec:
       labels:
         app: frontend
     spec:
+      securityContext:
+        fsGroup: 101
       containers:
       - name: frontend
         # See k8s/backend.yaml's image comment -- same GHCR_OWNER placeholder
@@ -28,7 +30,7 @@ spec:
         image: ghcr.io/GHCR_OWNER/forge-frontend:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 3000
+        - containerPort: 8080
           name: http
         env:
         - name: VITE_API_URL
@@ -45,7 +47,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 3000
+            port: 8080
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
@@ -53,16 +55,30 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
         securityContext:
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 101
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -76,5 +92,5 @@ spec:
     app: frontend
   ports:
   - port: 3000
-    targetPort: http
+    targetPort: 8080
     name: http
