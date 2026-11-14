@@ -21,6 +21,12 @@ export function useReviewSocket(runId: string | null) {
 
   const connect = useCallback(
     (id: string) => {
+      const url = reviewSocketUrl(id)
+      if (!url) {
+        setConnectionStatus('offline')
+        return
+      }
+
       if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
         try {
           wsRef.current.close()
@@ -40,8 +46,13 @@ export function useReviewSocket(runId: string | null) {
       const connectOnce = () => {
         if (generationRef.current !== gen) return
 
-        // No auth token — the orchestrator has no auth (see orchestrator/main.py).
-        const ws = new WebSocket(reviewSocketUrl(id))
+        const currentUrl = reviewSocketUrl(id)
+        if (!currentUrl) {
+          setConnectionStatus('offline')
+          return
+        }
+
+        const ws = new WebSocket(currentUrl)
         wsRef.current = ws
 
         ws.onopen = () => {
@@ -96,7 +107,10 @@ export function useReviewSocket(runId: string | null) {
   )
 
   useEffect(() => {
-    if (!runId) return
+    if (!runId || !reviewSocketUrl(runId)) {
+      setConnectionStatus('offline')
+      return
+    }
     connect(runId)
     return () => {
       generationRef.current += 1

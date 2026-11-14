@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -100,12 +100,23 @@ export default function AnalyticsTab() {
   // Backend Analytics Events
   const [rawEvents, setRawEvents] = useState<AnalyticsEventItem[]>([]);
 
+  // Mount tracking to prevent state updates after unmount / teardown
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // 1. Fetch backend analytics data with resilient fallback
   const fetchAnalytics = useCallback(async () => {
+    if (!isMountedRef.current) return;
     setLoading(true);
     try {
       if (initiativeId && initiativeId !== "default") {
         const data = await initiativesApi.analytics(initiativeId);
+        if (!isMountedRef.current) return;
         if (data && Array.isArray(data.events) && data.events.length > 0) {
           const categorized: AnalyticsEventItem[] = data.events.map((e: any) => {
             let cat: AnalyticsEventItem["category"] = "Initiative";
@@ -127,6 +138,7 @@ export default function AnalyticsTab() {
       }
       throw new Error("Local fallback required");
     } catch {
+      if (!isMountedRef.current) return;
       // Compute rich authentic analytics events from PM store state
       const completedTasks = tasks.filter((t) => t.status === "done").length;
       const runningTasks = tasks.filter((t) => t.status === "in_progress").length;
@@ -153,7 +165,9 @@ export default function AnalyticsTab() {
       setRawEvents(fallbackEvents);
       setLastRefreshedAt(new Date());
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [initiativeId, epics, stories, tasks, sprints, executions, decisionFeed]);
 
@@ -163,6 +177,7 @@ export default function AnalyticsTab() {
 
   // Handle manual sync refresh
   const handleRefresh = async () => {
+    if (!isMountedRef.current) return;
     setIsRefreshing(true);
     try {
       await Promise.all([
@@ -170,11 +185,17 @@ export default function AnalyticsTab() {
         refreshExecutions().catch(() => {}),
         fetchAnalytics(),
       ]);
-      toast.success("Analytics telemetry synchronized");
+      if (isMountedRef.current) {
+        toast.success("Analytics telemetry synchronized");
+      }
     } catch {
-      toast.error("Telemetry refresh completed with local state");
+      if (isMountedRef.current) {
+        toast.error("Telemetry refresh completed with local state");
+      }
     } finally {
-      setIsRefreshing(false);
+      if (isMountedRef.current) {
+        setIsRefreshing(false);
+      }
     }
   };
 

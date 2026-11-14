@@ -62,11 +62,47 @@ export default function ReviewDetailPage() {
     totalTokens,
   } = useReviewStore();
 
+  const isConfigured = typeof reviewsApi.isConfigured === "function"
+    ? reviewsApi.isConfigured()
+    : true;
+
   useEffect(() => {
     if (!runId) return;
     reset();
     setHydrated(false);
     setLoadError(null);
+
+    if (!isConfigured) {
+      if (LIVE_MODE) {
+        setLoadError(
+          "Review Board service not configured (missing VITE_ORCHESTRATOR_URL). Multi-agent audit details will appear here once connected."
+        );
+        setHydrated(true);
+        return;
+      }
+      // Demo mode: fall back to local stored/sample review data without hitting API
+      const local = findReviewById(runId);
+      if (local) {
+        setFallbackData(local);
+        hydrateFromRun({
+          run_id: local.run_id,
+          status: local.status,
+          mode: local.mode,
+          candidate_files: local.candidate_files,
+          triggered_agents: local.triggered_agents,
+          agent_reports: local.agent_reports,
+          consolidated: local.consolidated,
+          total_cost_usd: local.total_cost_usd,
+          total_tokens: local.total_tokens,
+        });
+        setBacklog(local.backlog);
+        setBacklogTotal(local.backlog.length);
+      } else {
+        toast.error("Could not find review run. Displaying template.");
+      }
+      setHydrated(true);
+      return;
+    }
 
     // Attempt to load from API
     reviewsApi
@@ -108,15 +144,15 @@ export default function ReviewDetailPage() {
         }
         setHydrated(true);
       });
-  }, [runId, reset, hydrateFromRun]);
+  }, [runId, reset, hydrateFromRun, isConfigured]);
 
-  const socketEnabled = hydrated && runId && !TERMINAL_STATUSES.has(status);
+  const socketEnabled = isConfigured && hydrated && runId && !TERMINAL_STATUSES.has(status);
   useReviewSocket(socketEnabled ? runId! : null);
 
   useEffect(() => {
     if (!runId || status !== "complete") return;
-    if (fallbackData) {
-      // In fallback mode, backlog is already set
+    if (fallbackData || !isConfigured) {
+      // In fallback mode or when unconfigured, backlog is already handled
       return;
     }
     reviewsApi
@@ -138,7 +174,7 @@ export default function ReviewDetailPage() {
           setBacklogTotal(local.backlog.length);
         }
       });
-  }, [runId, status, sortBy, fallbackData]);
+  }, [runId, status, sortBy, fallbackData, isConfigured]);
 
   // Copy remediation fix
   const handleCopyFix = (itemId: string, fixText: string) => {
@@ -233,16 +269,31 @@ export default function ReviewDetailPage() {
   const repoTarget = fallbackData?.repo_path || "Target Repository";
 
   if (loadError) {
+    const isUnconfigured = !isConfigured && LIVE_MODE;
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
-        <h1 className="text-xl font-bold text-ink">Review unavailable</h1>
-        <p className="max-w-md text-sm text-muted">{loadError}</p>
-        <Link
-          to="/reviews"
-          className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-neutral-900"
-        >
-          Back to reviews
-        </Link>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center font-mono">
+        <div className="border-3 border-black dark:border-white/90 bg-white dark:bg-[#181820] p-8 max-w-lg shadow-[4px_4px_0px_#000] dark:shadow-[4px_4px_0px_#fff]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border-2 border-black bg-brutal-yellow text-black shadow-[2px_2px_0px_#000]">
+            <ShieldAlert size={28} strokeWidth={2.5} />
+          </div>
+          <h1 className="text-lg font-black uppercase text-ink">
+            {isUnconfigured ? "Review Board service not configured" : "Review unavailable"}
+          </h1>
+          <p className="mt-2 text-xs text-muted leading-relaxed">{loadError}</p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              to="/reviews"
+              className="h-8 px-4 inline-flex items-center justify-center border-2 border-black bg-brutal-yellow font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_#000] hover:shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+            >
+              Back to reviews
+            </Link>
+          </div>
+          {isUnconfigured && (
+            <p className="mt-4 font-mono text-[11px] text-muted">
+              To view live audit reports, configure the <code className="border border-black/30 dark:border-white/30 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-bold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
+            </p>
+          )}
+        </div>
       </div>
     );
   }

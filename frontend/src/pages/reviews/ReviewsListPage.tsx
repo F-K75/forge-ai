@@ -137,10 +137,23 @@ export default function ReviewsListPage() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isConfigured = typeof reviewsApi.isConfigured === "function"
+    ? reviewsApi.isConfigured()
+    : false;
+
   // Load reviews from API or storage fallback
   const loadReviews = useCallback(() => {
     setLoading(true);
+    const configured = typeof reviewsApi.isConfigured === "function"
+      ? reviewsApi.isConfigured()
+      : false;
+
     if (LIVE_MODE) {
+      if (!configured) {
+        setRuns([]);
+        setLoading(false);
+        return;
+      }
       reviewsApi
         .list()
         .then((data: { items?: any[] }) => {
@@ -206,6 +219,16 @@ export default function ReviewsListPage() {
     setIsStarting(true);
 
     if (LIVE_MODE) {
+      const configured = typeof reviewsApi.isConfigured === "function"
+        ? reviewsApi.isConfigured()
+        : false;
+
+      if (!configured) {
+        toast.error("Review Board service is not configured. Configure VITE_ORCHESTRATOR_URL to dispatch live reviews.");
+        setIsStarting(false);
+        return;
+      }
+
       try {
         const res = await reviewsApi.create({
           repo_path: trimmedPath,
@@ -475,6 +498,16 @@ export default function ReviewsListPage() {
             </div>
           </div>
 
+          {LIVE_MODE && !isConfigured && (
+            <div className="mt-3 border-2 border-black bg-amber-50 dark:bg-amber-950/30 p-3 shadow-[2px_2px_0px_#000] flex items-start gap-2.5">
+              <AlertTriangle size={16} className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div className="font-mono text-xs text-ink">
+                <span className="font-black uppercase">Service Notice: </span>
+                Review Board orchestrator is not connected. Configure <code className="bg-black/10 dark:bg-white/10 px-1 py-0.5 font-bold">VITE_ORCHESTRATOR_URL</code> to dispatch audits to a live orchestrator daemon.
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 space-y-4">
             {/* Repo / File Target Input */}
             <div>
@@ -709,6 +742,34 @@ export default function ReviewsListPage() {
             <div className="border-3 border-black dark:border-white/90 bg-white dark:bg-[#181820] p-12 text-center shadow-[4px_4px_0px_#000]">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-black border-t-brutal-yellow mb-3" />
               <div className="font-mono text-sm font-black text-ink">Scanning audit records...</div>
+            </div>
+          ) : LIVE_MODE && !isConfigured ? (
+            <div className="border-3 border-black dark:border-white/90 bg-white dark:bg-[#181820] p-8 md:p-12 text-center shadow-[4px_4px_0px_#000] dark:shadow-[4px_4px_0px_#fff]">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border-2 border-black bg-brutal-yellow text-black shadow-[2px_2px_0px_#000]">
+                <ShieldAlert size={28} strokeWidth={2.5} />
+              </div>
+              <h3 className="font-mono text-base md:text-lg font-black uppercase text-ink">
+                Review Board service not configured
+              </h3>
+              <p className="mt-2 font-mono text-xs text-muted max-w-lg mx-auto leading-relaxed">
+                Autonomous multi-agent code reviews, architectural analyses, and security gate audits belong here. The Review Board orchestrator service is currently unconfigured in this environment.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRuns(SAMPLE_REVIEWS);
+                    toast.success("Loaded demo review sample data for preview");
+                  }}
+                  className="h-8 px-4 inline-flex items-center gap-2 border-2 border-black bg-brutal-yellow font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_#000] hover:shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+                >
+                  <Sparkles size={13} />
+                  Preview Demo Reviews
+                </button>
+              </div>
+              <p className="mt-4 font-mono text-[11px] text-muted">
+                To enable live orchestration audits, configure the <code className="border border-black/30 dark:border-white/30 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-bold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
+              </p>
             </div>
           ) : filteredRuns.length === 0 ? (
             <div className="border-3 border-black dark:border-white/90 bg-white dark:bg-[#181820] p-12 text-center shadow-[4px_4px_0px_#000]">
