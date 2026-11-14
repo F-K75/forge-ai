@@ -96,7 +96,7 @@ async def create_order(req: CashfreeOrderRequest, current_user: User = Depends(g
         "customer_details": customer,
         "order_meta": {
             "return_url": req.return_url or f"{settings.app_url}/billing?status=success",
-            "notify_url": f"{settings.api_url}/billing/webhook/cashfree",
+            "notify_url": f"{settings.api_url}/cashfree/webhook",
         },
     }
 
@@ -159,7 +159,7 @@ async def create_cashfree_order(req: Any, current_user: User) -> Dict[str, Any]:
         "customer_details": customer,
         "order_meta": {
             "return_url": success_url or f"{cf_settings.app_url}/billing?status=success",
-            "notify_url": f"{cf_settings.api_url}/billing/webhook/cashfree",
+            "notify_url": f"{cf_settings.api_url}/cashfree/webhook",
         },
     }
 
@@ -228,7 +228,7 @@ async def create_cashfree_subscription(req: CashfreeSubscriptionRequest, current
         "quantity": req.quantity,
         "customer_notify": req.customer_notify,
         "subscription_meta": {
-            "notify_url": f"{cf_settings.api_url}/billing/webhook/cashfree",
+            "notify_url": f"{cf_settings.api_url}/cashfree/webhook",
             "return_url": f"{cf_settings.app_url}/billing?status=success",
         },
     }

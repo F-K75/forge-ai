@@ -182,3 +182,98 @@ def test_razorpay_webhook_fails_closed_when_client_not_configured(monkeypatch):
 
     r = client.post("/razorpay/webhook", data=payload, headers={"X-Razorpay-Signature": sig})
     assert r.status_code == 500
+
+
+def test_razorpay_webhook_fails_closed_when_secret_missing(monkeypatch):
+    import api.razorpay as rzp
+    from fastapi import FastAPI
+
+    monkeypatch.setattr(rzp, "_razorpay_client", {"ignored": True})
+    rzp_settings = rzp.get_settings()
+    monkeypatch.setattr(rzp_settings, "razorpay_webhook_secret", "")
+
+    app = FastAPI()
+    app.include_router(rzp.router)
+    client = TestClient(app)
+
+    payload = '{"event":"payment.captured"}'
+    sig = _signature(payload, "")
+
+    r = client.post("/razorpay/webhook", data=payload, headers={"X-Razorpay-Signature": sig})
+    assert r.status_code in (500, 503)
+
+
+def test_razorpay_webhook_payment_captured_idempotent(monkeypatch):
+    import api.razorpay as rzp
+    from fastapi import FastAPI
+
+    monkeypatch.setattr(rzp, "_razorpay_client", {"ignored": True})
+
+    purchase_doc = {
+        "razorpay_order_id": "order_1",
+        "user_id": "user-1",
+        "credits": 100,
+        "status": "pending",
+    }
+    user_doc = {"id": "user-1", "credits": 10}
+
+    class _Col:
+        def __init__(self, docs):
+            self.docs = docs
+
+        async def find_one(self, query, projection=None):
+            for d in self.docs:
+                if all(d.get(k) == v for k, v in query.items()):
+                    return dict(d)
+            return None
+
+        async def update_one(self, query, update):
+            matched = 0
+            for d in self.docs:
+                ok = True
+                for k, v in query.items():
+                    if isinstance(v, dict) and "$ne" in v:
+                        if d.get(k) == v["$ne"]:
+                            ok = False
+                            break
+                    elif d.get(k) != v:
+                        ok = False
+                        break
+                if ok:
+                    matched = 1
+                    if "$set" in update:
+                        d.update(update["$set"])
+                    if "$inc" in update:
+                        for fk, fv in update["$inc"].items():
+                            d[fk] = d.get(fk, 0) + fv
+                    break
+            return type("Res", (), {"matched_count": matched, "modified_count": matched})()
+
+    class _DB:
+        def __init__(self):
+            self.credit_purchases = _Col([purchase_doc])
+            self.users = _Col([user_doc])
+            self.subscriptions = _Col([])
+
+    db = _DB()
+
+    async def _fake_db():
+        return db
+
+    monkeypatch.setattr(rzp, "get_db", _fake_db)
+
+    app = FastAPI()
+    app.include_router(rzp.router)
+    client = TestClient(app)
+
+    entity = {"id": "pay_123", "order_id": "order_1"}
+    payload, sig = _make_webhook("payment.captured", entity, os.environ["RAZORPAY_WEBHOOK_SECRET"])
+
+    r1 = client.post("/razorpay/webhook", data=payload, headers={"X-Razorpay-Signature": sig})
+    assert r1.status_code == 200
+    assert user_doc["credits"] == 110
+
+    r2 = client.post("/razorpay/webhook", data=payload, headers={"X-Razorpay-Signature": sig})
+    assert r2.status_code == 200
+    assert user_doc["credits"] == 110
+
