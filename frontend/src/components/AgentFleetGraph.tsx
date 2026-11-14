@@ -11,7 +11,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { AGENTS } from "../lib/agents";
 import { GATEWAY_AGENTS } from "../lib/gatewayAgents";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Activity,

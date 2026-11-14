@@ -1,6 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const API_URL = process.env.FORGE_API_URL || 'http://localhost:8000'
 const BASE_URL = process.env.FORGE_BASE_URL || 'http://localhost:5173'
 
 export default defineConfig({

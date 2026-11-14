@@ -1,7 +1,6 @@
-import { test, expect, type Page, type APIRequestContext } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 const API_URL = process.env.FORGE_API_URL || 'http://localhost:8000'
-const BASE_URL = process.env.FORGE_BASE_URL || 'http://localhost:5173'
 
 const TEST_EMAIL = `forge-smoke-${Date.now().toString(36)}@example.com`
 const TEST_PASSWORD = 'SmokeTest123!'
