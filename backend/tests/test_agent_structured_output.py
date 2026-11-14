@@ -64,8 +64,7 @@ def test_agents_declare_structured_output_schemas():
 async def test_call_structured_passes_schema_and_returns_data(monkeypatch):
     gateway = FakeGateway(response=FakeGatewayResponse(structured_data={"passed": True}))
     agent = _agent(gateway, PMAgent)
-    # Bypass budget/BYOK/circuit-breaker plumbing that touches services.
-    monkeypatch.setattr("agents.base.check_budget", lambda *a, **k: None)
+    # Bypass circuit-breaker plumbing that touches services.
 
     async def _noop(*a, **k):
         return None
