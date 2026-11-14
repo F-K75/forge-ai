@@ -67,5 +67,28 @@ class TestWebhookSSRFValidation:
         assert valid is False
 
 
+def test_import_repo_url_rejects_non_http_schemes_and_normalizes_shorthand():
+    from pydantic import ValidationError
+    from api.repos import ImportRepoRequest
+
+    for bad_url in (
+        "ssh://git@evil.com/org/repo.git",
+        "git://169.254.169.254/org/repo",
+        "file:///etc/passwd",
+        "ext::sh -c id",
+        "../etc/passwd",
+        "https://evil.com/org/repo",
+        "owner/repo:extra",
+    ):
+        with pytest.raises(ValidationError):
+            ImportRepoRequest(repo_url=bad_url)
+
+    req = ImportRepoRequest(repo_url="acme/my-app")
+    assert req.repo_url == "https://github.com/acme/my-app.git"
+
+    req_https = ImportRepoRequest(repo_url="https://github.com/acme/my-app")
+    assert req_https.repo_url == "https://github.com/acme/my-app"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

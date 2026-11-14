@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 import os
+import re
+import shutil
 import tempfile
 import asyncio
 import logging
@@ -17,6 +19,9 @@ from core.config import get_settings
 router = APIRouter(prefix="/repos", tags=["repos"])
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+
+_SHORTHAND_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 
 
 class ImportRepoRequest(BaseModel):
@@ -38,11 +43,14 @@ class ImportRepoRequest(BaseModel):
             parts = [p for p in parsed.path.split("/") if p]
             if len(parts) < 2:
                 raise ValueError("repo_url must be in the form https://host/owner/repo")
-        else:
-            parts = value.split("/")
-            if len(parts) < 2 or not all(parts):
-                raise ValueError("repo_url must be in the form owner/repo or https://host/owner/repo")
-        return value
+            return value
+        if ":" in value or not _SHORTHAND_RE.fullmatch(value):
+            raise ValueError("repo_url must be in the form owner/repo or https://host/owner/repo")
+        owner, repo = value.split("/", 1)
+        if owner in {".", ".."} or repo in {".", ".."}:
+            raise ValueError("repo_url must be in the form owner/repo or https://host/owner/repo")
+        repo_slug = repo[:-4] if repo.endswith(".git") else repo
+        return f"https://github.com/{owner}/{repo_slug}.git"
 
 
 class ImportRepoResponse(BaseModel):
@@ -89,21 +97,24 @@ async def import_repo(
 
     temp_dir = tempfile.mkdtemp(prefix="forge-repo-import-")
     try:
-        await _clone_repo(req.repo_url, temp_dir, req.branch, github_token)
-    except Exception as exc:
-        logger.exception("Failed to clone repo %s", req.repo_url)
-        raise HTTPException(status_code=400, detail=f"Failed to clone repository: {exc}") from exc
+        try:
+            await _clone_repo(req.repo_url, temp_dir, req.branch, github_token)
+        except Exception as exc:
+            logger.exception("Failed to clone repo %s", req.repo_url)
+            raise HTTPException(status_code=400, detail=f"Failed to clone repository: {exc}") from exc
 
-    repo_name = req.project_name or os.path.basename(temp_dir) or "Imported Repo"
-    project = Project(
-        user_id=current_user.id,
-        name=repo_name,
-        description=f"Imported from {req.repo_url}",
-        github_repo=req.repo_url,
-        github_branch=req.branch,
-    )
-    await db.projects.insert_one(project.model_dump())
+        repo_name = req.project_name or os.path.basename(temp_dir) or "Imported Repo"
+        project = Project(
+            user_id=current_user.id,
+            name=repo_name,
+            description=f"Imported from {req.repo_url}",
+            github_repo=req.repo_url,
+            github_branch=req.branch,
+        )
+        await db.projects.insert_one(project.model_dump())
 
-    files_indexed = _count_files(temp_dir)
+        files_indexed = _count_files(temp_dir)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
     return ImportRepoResponse(project=project, files_indexed=files_indexed)

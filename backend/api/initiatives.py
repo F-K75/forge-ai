@@ -906,7 +906,7 @@ async def initiative_websocket(websocket: WebSocket, initiative_id: str, token: 
     # Echo the client's chosen subprotocol (the ws token) back in the accept
     # frame -- browsers refuse the upgrade unless the server selects one of
     # the offered Sec-WebSocket-Protocol values (RFC 6455 4.2.2).
-    await websocket.accept(subprotocol=ws_token)
+    await websocket.accept(subprotocol=ws_token if header_token else None)
     await pm_manager.connect(websocket, initiative_id)
     try:
         while True:

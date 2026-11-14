@@ -1099,19 +1099,37 @@ async def google_login(request: Request):
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
+    state = secrets.token_urlsafe(32)
     client = OAuth2Session(
         settings.google_client_id,
         settings.google_client_secret,
         scope="openid email profile",
         redirect_uri=settings.google_redirect_uri,
     )
-    auth_url, _ = client.create_authorization_url("https://accounts.google.com/o/oauth2/v2/auth")
-    return RedirectResponse(url=auth_url)
+    auth_url, _ = client.create_authorization_url(
+        "https://accounts.google.com/o/oauth2/v2/auth",
+        state=state,
+    )
+    redirect_response = RedirectResponse(url=auth_url)
+    redirect_response.set_cookie(
+        "oauth_state",
+        state,
+        httponly=True,
+        secure=settings.app_env == "production",
+        samesite="lax",
+        max_age=600,
+    )
+    return redirect_response
 
 
 @router.get("/google/callback")
 async def google_callback(request: Request, response: Response, background_tasks: BackgroundTasks):
     """Handle Google OAuth callback and redirect to frontend with tokens."""
+    state = request.query_params.get("state")
+    cookie_state = request.cookies.get("oauth_state")
+    if not state or not cookie_state or not secrets.compare_digest(state, cookie_state):
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
@@ -1146,9 +1164,14 @@ async def google_callback(request: Request, response: Response, background_tasks
     email = google_user.get("email")
     name = google_user.get("name")
     picture = google_user.get("picture")
+    email_verified = google_user.get("email_verified")
+    if email_verified is None:
+        email_verified = google_user.get("verified_email")
 
     if not email:
         raise HTTPException(status_code=400, detail="No email provided by Google")
+    if not email_verified:
+        raise HTTPException(status_code=400, detail="Google account email is not verified")
 
     db = await get_db()
     user_doc = await db.users.find_one({"email": email}, {"_id": 0})
@@ -1181,16 +1204,30 @@ async def google_callback(request: Request, response: Response, background_tasks
         # Google accounts arrive verified and never hit /verify-email.
         background_tasks.add_task(_send_welcome_email_once, user.id)
 
+    # Prefer explicit Google frontend app URL if provided; otherwise fall back
+    # to settings.app_url. This avoids mismatches when frontend dev server
+    # runs on a different port than API/app URL config.
+    frontend_base = getattr(settings, "google_frontend_app_url", None) or settings.app_url
+
+    if user_doc and user_doc.get("mfa_enabled"):
+        mfa_token = create_access_token(
+            {"sub": user.id, "email": user.email},
+            expires_delta=timedelta(minutes=5),
+            token_type="mfa_pending",
+        )
+        mfa_redirect = RedirectResponse(
+            url=f"{frontend_base}?mfa_required=1&mfa_token={mfa_token}"
+        )
+        mfa_redirect.delete_cookie("oauth_state")
+        return mfa_redirect
+
     access_token = create_access_token({"sub": user.id, "email": user.email})
     refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
 
     await _record_session(db, user.id, access_token, refresh_token, request)
 
-    # Prefer explicit Google frontend app URL if provided; otherwise fall back
-    # to settings.app_url. This avoids mismatches when frontend dev server
-    # runs on a different port than API/app URL config.
-    frontend_base = getattr(settings, "google_frontend_app_url", None) or settings.app_url
     redirect_response = RedirectResponse(url=frontend_base)
+    redirect_response.delete_cookie("oauth_state")
     redirect_response.set_cookie(
         "access_token",
         access_token,

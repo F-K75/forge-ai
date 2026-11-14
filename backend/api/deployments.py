@@ -451,6 +451,23 @@ async def push_to_github(
     return GenericResponse(ok=True, message="GitHub push queued")
 
 
+async def _load_build_files(db, build: Dict[str, Any]) -> Dict[str, str]:
+    """Load generated build files from db.build_files, falling back to build.get('files')."""
+    build_id = build.get("id")
+    if build_id:
+        docs = await db.build_files.find(
+            {"build_id": build_id},
+            {"_id": 0, "path": 1, "content": 1},
+        ).to_list(None)
+        if docs:
+            return {
+                doc["path"]: doc["content"]
+                for doc in docs
+                if "path" in doc and "content" in doc
+            }
+    return build.get("files", {}) or {}
+
+
 async def _run_deployment_background(
     deployment: Deployment,
     build: Dict[str, Any],
@@ -459,9 +476,6 @@ async def _run_deployment_background(
 ):
     if db is None:
         db = await get_db()
-
-    def emit(event):
-        asyncio.run(manager.emit(event))
 
     target = get_deploy_target(deployment.target_type, deployment.target_config or None)
     logs = ""
@@ -486,7 +500,7 @@ async def _run_deployment_background(
             )
         )
 
-        files = build.get("files", {})
+        files = await _load_build_files(db, build)
         temp_dir = tempfile.mkdtemp(prefix=f"forge-deploy-{deployment.id}-")
         try:
             dockerfile_content = _infer_dockerfile(
@@ -568,10 +582,6 @@ async def _run_deployment_background(
 
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
-            try:
-                await target.teardown(deployment_id=deployment.id, project=project)
-            except Exception:
-                logger.debug("Deploy target teardown failed", exc_info=True)
 
         await db.projects.update_one(
             {"id": deployment.project_id},
@@ -584,6 +594,10 @@ async def _run_deployment_background(
         )
 
     except Exception as e:
+        try:
+            await target.teardown(deployment_id=deployment.id, project=project)
+        except Exception:
+            logger.debug("Deploy target teardown failed", exc_info=True)
         error_msg = f"Deployment failed: {str(e)}"
         await db.deployments.update_one(
             {"id": deployment.id},
@@ -637,7 +651,7 @@ async def _github_push_background(
                 env=env,
             )
 
-            files = build.get("files", {})
+            files = await _load_build_files(db, build)
 
             def _write_repo_files_sync():
                 for path, content in files.items():

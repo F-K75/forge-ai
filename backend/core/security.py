@@ -361,17 +361,29 @@ _CSRF_EXCLUDED_PATHS = [
     "/v1/auth/resend-verification",
     "/auth/google",
     "/v1/auth/google",
+    "/auth/refresh",
+    "/v1/auth/refresh",
     "/health",
     "/v1/waitlist",  # public landing-page signup; no session exists to forge
     "/v1/email/unsubscribe",  # signed-token link; mail clients POST one-click unsubscribes with no session
     "/billing/webhook",  # Stripe webhook has its own signature verification
     "/billing/webhook/payment",  # Stripe payment webhook — signature-verified, no session cookie
+    "/razorpay/webhook",
+    "/v1/razorpay/webhook",
+    "/cashfree/webhook",
+    "/v1/cashfree/webhook",
+    "/tasks/github/webhook",
+    "/v1/tasks/github/webhook",
     # NOTE: /api/llm is intentionally NOT excluded. Its mutating admin routes
     # (PUT /api/llm/agent/{agent}, POST /api/llm/reload, POST /api/llm/test)
     # are admin_required and the frontend already sends X-CSRF-Token on them;
     # excluding them would let a logged-in admin be CSRF'd into billed test
     # calls or platform-wide model-assignment changes.
 ]
+
+_MONITORING_WEBHOOK_PATH_RE = re.compile(
+    r"^/v1/projects/[^/]+/monitoring/webhook/findings$"
+)
 
 
 async def csrf_protection_middleware(request: Request, call_next):
@@ -386,6 +398,9 @@ async def csrf_protection_middleware(request: Request, call_next):
         return await call_next(request)
     
     path = request.url.path
+    if request.method == "POST" and _MONITORING_WEBHOOK_PATH_RE.match(path):
+        return await call_next(request)
+
     for excluded in _CSRF_EXCLUDED_PATHS:
         # Exact match, or prefix match followed by a path separator -- a bare
         # startswith() would let "/auth/mfa/verify" also exempt the distinct,

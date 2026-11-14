@@ -71,3 +71,43 @@ async def test_excluded_list_no_longer_contains_api_llm():
     assert "/api/llm" not in _CSRF_EXCLUDED_PATHS
     assert "/billing/webhook/payment" in _CSRF_EXCLUDED_PATHS
     assert "/billing/webhook" in _CSRF_EXCLUDED_PATHS
+    for expected in (
+        "/auth/refresh",
+        "/v1/auth/refresh",
+        "/razorpay/webhook",
+        "/v1/razorpay/webhook",
+        "/cashfree/webhook",
+        "/v1/cashfree/webhook",
+        "/tasks/github/webhook",
+        "/v1/tasks/github/webhook",
+    ):
+        assert expected in _CSRF_EXCLUDED_PATHS
+
+
+@pytest.mark.asyncio
+async def test_monitoring_webhook_findings_exempt_from_csrf():
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+    from core.security import csrf_protection_middleware
+
+    async def _ok_next(req):
+        return JSONResponse({"ok": True})
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/v1/projects/proj-123/monitoring/webhook/findings",
+        "headers": [(b"x-api-key", b"secret-key")],
+    }
+    resp = await csrf_protection_middleware(Request(scope), _ok_next)
+    assert resp.status_code == 200
+
+    # Other monitoring POST endpoints still require CSRF session cookie
+    scope_other = {
+        "type": "http",
+        "method": "POST",
+        "path": "/v1/projects/proj-123/monitoring/findings/f1/resolve",
+        "headers": [],
+    }
+    resp_other = await csrf_protection_middleware(Request(scope_other), _ok_next)
+    assert resp_other.status_code == 403
