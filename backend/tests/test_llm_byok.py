@@ -304,6 +304,14 @@ async def test_stream_end_to_end_uses_byok(monkeypatch):
 
     monkeypatch.setattr("core.llm.router.check_budget", fake_check_budget)
 
+    usage_records = []
+
+    async def fake_track_usage(**kwargs):
+        usage_records.append(kwargs)
+        return {}
+
+    monkeypatch.setattr("core.llm.router.track_usage", fake_track_usage)
+
     captured = {}
 
     async def fake_stream_completion(self, *, model, messages, **kwargs):
