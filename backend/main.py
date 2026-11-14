@@ -207,7 +207,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     # ServerErrorMiddleware sits outside CORSMiddleware, so add CORS headers
     # here -- but only for allowed origins, never by echoing any Origin.
     origin = request.headers.get("origin")
-    if origin and is_cors_allowed_origin(origin):
+    if origin and (origin in cors_allowed_origins() or is_cors_allowed_origin(origin)):
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Access-Control-Allow-Credentials"] = "true"
         resp.headers["Vary"] = "Origin"
