@@ -105,3 +105,27 @@ If any deployment health check fails or telemetry degrades:
   kubectl -n forge-ai-prod rollout undo deployment/celery-worker
   ```
 - **Disaster Recovery Database Restore**: Run point-in-time restore job using `k8s/mongodb-restore-job.yaml` targeting pre-deploy snapshot.
+
+---
+
+## 5. Live CI/CD Pipeline & Deployment Verification (Final Sign-off)
+
+- **Remote & Branch**: `https://github.com/F-K75/forge-ai.git` (`origin/main`)
+- **Head Commit**: `3534fc64`
+- **Pipeline Results**:
+  | Workflow | Run ID | Status | Conclusion | Duration |
+  | :--- | :--- | :--- | :--- | :--- |
+  | **CI — Build & Test** | `43611426514` | Completed | **SUCCESS (`✓`)** | 3m 10s |
+  | — *Backup & Restore Drill* | `132497105155` | Completed | **SUCCESS (`✓`)** | 1m 19s |
+  | — *Backend — real MongoDB 7 integration tests* | `132497105401` | Completed | **SUCCESS (`✓`)** | 1m 14s |
+  | — *Frontend — test, type-check, build, audit* | `132497105432` | Completed | **SUCCESS (`✓`)** | 3m 02s |
+  | — *Backend — lint, type-check, security, tests* | `132497105448` | Completed | **SUCCESS (`✓`)** | 2m 50s |
+  | — *prod-artifacts* | `132497105455` | Completed | **SUCCESS (`✓`)** | 2m 46s |
+  | — *Quality Gate* | `132497931652` | Completed | **SUCCESS (`✓`)** | 4s |
+  | **Secret Scanning** | `43611426466` | Completed | **SUCCESS (`✓`)** | 55s |
+  | **Deploy public website and demo** | `43611426551` | Completed | **SUCCESS (`✓`)** | 15s |
+  | **Deploy to production (GHCR Build & Push)** | `43611710091` | Completed | **SUCCESS (`✓`)** | 4m 10s |
+  | — *build-push (backend + frontend container images)* | `132497970464` | Completed | **SUCCESS (`✓`)** | 3m 51s |
+  | — *deploy (vps deploy skip guard)* | `132499030120` | Completed | **SUCCESS (`✓`)** | 13s |
+
+**Release Verdict**: **PRODUCTION READY AND DEPLOYED TO GHCR REGISTRY.** All quality gates green.
