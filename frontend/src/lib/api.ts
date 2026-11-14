@@ -141,7 +141,7 @@ export const projectsApi = {
 // Repos
 export const reposApi = {
   import: (data: { repo_url: string; project_name?: string; branch?: string; github_token?: string }) =>
-    api.post("/repos/import", data).then((r) => r.data),
+    api.post("/v1/repos/import", data).then((r) => r.data),
 }
 
 // Builds
