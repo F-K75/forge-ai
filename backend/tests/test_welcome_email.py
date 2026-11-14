@@ -142,7 +142,7 @@ class _GoogleUserInfo:
     status_code = 200
 
     def json(self):
-        return {"email": "grace@example.com", "name": "Grace Hopper"}
+        return {"email": "grace@example.com", "name": "Grace Hopper", "email_verified": True}
 
 
 @pytest.fixture
@@ -173,13 +173,17 @@ def google_env(env, monkeypatch):
 def test_google_signup_logs_in_and_sends_welcome_once(google_env):
     client, db, sent = google_env
 
-    first = client.get("/auth/google/callback?code=abc", follow_redirects=False)
+    oauth_state = "test-oauth-state"
+    client.cookies.set("oauth_state", oauth_state)
+    first = client.get(f"/auth/google/callback?code=abc&state={oauth_state}", follow_redirects=False)
     assert first.status_code in (302, 307), first.text
     assert "access_token" in first.cookies
     assert [p["to"] for p in sent] == [["grace@example.com"]]
     assert "Hi Grace," in sent[0]["text"]
 
     # Returning Google user: logs in again, no second welcome email.
-    again = client.get("/auth/google/callback?code=abc", follow_redirects=False)
-    assert again.status_code in (302, 307)
+    # google_callback deletes the oauth_state cookie on redirect, so set it again.
+    client.cookies.set("oauth_state", oauth_state)
+    again = client.get(f"/auth/google/callback?code=abc&state={oauth_state}", follow_redirects=False)
+    assert again.status_code in (302, 307), again.text
     assert len(sent) == 1
