@@ -749,12 +749,29 @@ class TestRecoveryCorruptedCheckpointFallback:
         checkpoint_path = os.path.join(checkpoint_dir, RecoveryManager.CHECKPOINT_FILE)
 
         checkpoint_path, original_exists, original_content = self._backup_and_reset_checkpoint_file()
+        task_registry_path = orch_helpers.PATHS["task_registry"]
+        workflow_state_path = orch_helpers.PATHS["workflow_state"]
+        execution_log_path = orch_helpers.PATHS["execution_log"]
 
+        # Back up task_registry, workflow_state, and execution_log alongside checkpoint_path
+        # so the live repo files are never left polluted after the test.
+        file_backups: list[tuple[str, bool, str | None]] = [
+            (checkpoint_path, original_exists, original_content),
+        ]
+        for path in (task_registry_path, workflow_state_path, execution_log_path):
+            exists = os.path.exists(path)
+            content = None
+            if exists:
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            file_backups.append((path, exists, content))
 
         # Ensure required base files exist for recovery
-        # (Recovery reads workflow_state and task_registry)
+        # (Recovery reads workflow_state and task_registry, and writes execution_log)
         # Use JSONStorage via helpers.
         try:
+            if not os.path.exists(execution_log_path):
+                orch_helpers._write_json(execution_log_path, {"entries": []})
             # Minimal task registry + workflow state required by recovery.
             # If existing content exists, overwrite to ensure deterministic assertions.
             task_registry_path = orch_helpers.PATHS["task_registry"]
@@ -817,16 +834,9 @@ class TestRecoveryCorruptedCheckpointFallback:
 
 
         finally:
-            # Restore original checkpoint file
-            if original_exists:
-                with open(checkpoint_path, "w", encoding="utf-8") as f:
-                    f.write(original_content)  # type: ignore[arg-type]
-            else:
-                try:
-                    if os.path.exists(checkpoint_path):
-                        os.remove(checkpoint_path)
-                except Exception:
-                    pass
+            # Restore original checkpoint, task_registry, and workflow_state files
+            for path, exists, content in file_backups:
+                self._restore_checkpoint_file(path, exists, content)
 
 
 # ---------------------------------------------------------------------------
