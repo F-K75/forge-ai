@@ -65,7 +65,7 @@ def test_require_razorpay_passes_when_configured():
         pytest.fail(f"_require_razorpay raised unexpectedly: {exc}")
 
 
-def test_create_rzp_order_returns_expected_fields(monkeypatch):
+async def test_create_rzp_order_returns_expected_fields(monkeypatch):
     import api.razorpay as rzp
 
     captured: dict = {}
@@ -80,7 +80,7 @@ def test_create_rzp_order_returns_expected_fields(monkeypatch):
     monkeypatch.setattr(rzp, "_razorpay_client", _FakeClient())
     req = razorpay_module.RazorpayOrderRequest(amount=50000, currency="INR", receipt="test")
 
-    result = create_rzp_order(req)
+    result = await create_rzp_order(req)
 
     assert result["order_id"] == "order_FAKE"
     assert result["amount"] == 50000
@@ -103,14 +103,16 @@ def test_razorpay_verify_request_model():
 
 def test_razorpay_verify_valid_signature(monkeypatch):
     import api.razorpay as rzp
+    from fastapi import FastAPI
 
     monkeypatch.setattr(rzp, "_razorpay_client", {"ignored": True})
 
-    app = rzp.router
+    app = FastAPI()
+    app.include_router(rzp.router)
     client = TestClient(app)
 
     body = "order_abc|pay_xyz"
-    sig = _signature(body, os.environ["RAZORPAY_WEBHOOK_SECRET"])
+    sig = _signature(body, os.environ["RAZORPAY_KEY_SECRET"])
 
     r = client.post("/razorpay/verify", json={
         "razorpay_order_id": "order_abc",
@@ -123,9 +125,12 @@ def test_razorpay_verify_valid_signature(monkeypatch):
 
 def test_razorpay_verify_bad_signature(monkeypatch):
     import api.razorpay as rzp
+    from fastapi import FastAPI
 
     monkeypatch.setattr(rzp, "_razorpay_client", {"ignored": True})
-    client = TestClient(rzp.router)
+    app = FastAPI()
+    app.include_router(rzp.router)
+    client = TestClient(app)
 
     r = client.post("/razorpay/verify", json={
         "razorpay_order_id": "order_abc",
@@ -139,6 +144,24 @@ def test_razorpay_verify_bad_signature(monkeypatch):
 def test_razorpay_webhook_valid_payment_event(monkeypatch):
     import api.razorpay as rzp
     from fastapi import FastAPI
+
+    class _Col:
+        async def find_one(self, *args, **kwargs):
+            return None
+
+        async def update_one(self, *args, **kwargs):
+            return type("Res", (), {"matched_count": 0, "modified_count": 0})()
+
+    class _DB:
+        def __init__(self):
+            self.credit_purchases = _Col()
+            self.users = _Col()
+            self.subscriptions = _Col()
+
+    async def _fake_db():
+        return _DB()
+
+    monkeypatch.setattr(rzp, "get_db", _fake_db)
 
     app = FastAPI()
     app.include_router(rzp.router)
