@@ -15,7 +15,6 @@ import logging
 
 from core.config import get_settings
 from core.models import AgentType, PlanTier, WSEvent, WSEventType
-from core.ai_usage import check_budget
 from core.database import get_db
 from core.encryption import decrypt_field
 from core.llm.circuit_breaker import get_circuit_breaker
@@ -228,16 +227,18 @@ class BaseAgent:
             pass  # Version recording is best-effort
 
         # --- Few-Shot Injection ---
-        few_shot_text = self.few_shot_manager.format_examples(
-            self.few_shot_manager.select(
-                role=self.prompt_role,
-                task=task,
-                strategy="semantic",
-                max_examples=3,
+        # Skip if the PRE_BUILD few_shot_injection plugin already ran during build().
+        if not ctx.project_state.extra.get("_few_shot_injected"):
+            few_shot_text = self.few_shot_manager.format_examples(
+                self.few_shot_manager.select(
+                    role=self.prompt_role,
+                    task=task,
+                    strategy="semantic",
+                    max_examples=3,
+                )
             )
-        )
-        if few_shot_text:
-            result.prompt += f"\n\n{few_shot_text}"
+            if few_shot_text:
+                result.prompt += f"\n\n{few_shot_text}"
 
         return result.prompt
 
@@ -281,8 +282,6 @@ class BaseAgent:
         await _ensure_global_circuit_allows_call()
 
         byok = await _resolve_byok(user_id)
-        if user_id and not byok:
-            await check_budget(user_id, org_id=org_id)
 
         try:
             request = GatewayRequest(
@@ -345,8 +344,6 @@ class BaseAgent:
         await _ensure_global_circuit_allows_call()
 
         byok = await _resolve_byok(user_id)
-        if user_id and not byok:
-            await check_budget(user_id, org_id=org_id)
 
         request = GatewayRequest(
             agent_name=self.__class__.__name__.lower(),
@@ -395,8 +392,6 @@ class BaseAgent:
         await _ensure_global_circuit_allows_call()
 
         byok = await _resolve_byok(user_id)
-        if user_id and not byok:
-            await check_budget(user_id, org_id=org_id)
 
         try:
             request = GatewayRequest(

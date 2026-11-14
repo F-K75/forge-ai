@@ -1,8 +1,95 @@
 from agents.base import BaseAgent
+from agents.json_utils import strip_markdown_fences
 from agents.structured_schemas import DEVELOPER_FILES_SCHEMA
 from core.models import AgentType
 from typing import Optional
 import json
+
+
+_PATCH_MAX_FILES = 20
+_PATCH_MAX_CHARS = 40_000
+_RELEVANT_FILE_PATTERNS = (
+    "main.py",
+    "app.py",
+    "models.py",
+    "database.py",
+    "schemas.py",
+    "config.py",
+    "auth.py",
+    "routers/",
+    "routes/",
+    "services/",
+    "App.tsx",
+    "App.jsx",
+    "main.tsx",
+    "index.tsx",
+    "api.ts",
+    "api.js",
+    "types.ts",
+    "pages/",
+    "components/",
+    "hooks/",
+    "lib/",
+    "utils/",
+    "package.json",
+    "requirements.txt",
+    "pyproject.toml",
+    "tsconfig.json",
+    "vite.config.",
+)
+_IGNORED_PATH_PARTS = (
+    "node_modules/",
+    "__pycache__/",
+    ".git/",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+)
+
+
+def _select_relevant_files(
+    existing_files: dict,
+    error_report: str = "",
+    max_files: int = _PATCH_MAX_FILES,
+    max_chars: int = _PATCH_MAX_CHARS,
+) -> dict:
+    """Select relevant backend/frontend files for patch_files within context caps.
+
+    Files referenced in `error_report` are prioritized first, followed by core
+    application files (`models.py`, `database.py`, `schemas.py`, `routers/`,
+    `routes/`, `pages/`, `components/`, `package.json`, `requirements.txt`, etc.).
+    """
+    if not existing_files:
+        return {}
+
+    mentioned: list[tuple[str, str]] = []
+    pattern_matched: list[tuple[str, str]] = []
+    err_text = error_report or ""
+
+    for path, content in existing_files.items():
+        if any(ign in path for ign in _IGNORED_PATH_PARTS):
+            continue
+        content_str = content if isinstance(content, str) else json.dumps(content)
+        basename = path.rsplit("/", 1)[-1]
+        if err_text and (path in err_text or (basename and basename in err_text)):
+            mentioned.append((path, content_str))
+        elif any(pat in path for pat in _RELEVANT_FILE_PATTERNS):
+            pattern_matched.append((path, content_str))
+
+    selected: dict[str, str] = {}
+    total_chars = 0
+    for path, content_str in mentioned + pattern_matched:
+        if len(selected) >= max_files:
+            break
+        if total_chars + len(content_str) > max_chars:
+            if not selected:
+                selected[path] = content_str[:max_chars]
+                total_chars += len(selected[path])
+            continue
+        selected[path] = content_str
+        total_chars += len(content_str)
+
+    return selected
 
 
 def _normalize_files_result(result: object) -> dict:
@@ -133,12 +220,7 @@ class DeveloperAgent(BaseAgent):
                 org_id=org_id,
                 prompt_template_version="questions-v1",
             )
-            clean = response.strip()
-            if clean.startswith("```"):
-                clean = clean.split("```")[1]
-                if clean.startswith("json"):
-                    clean = clean[4:]
-            questions = json.loads(clean.strip(), strict=False)
+            questions = json.loads(strip_markdown_fences(response), strict=False)
         except Exception:
             if raise_errors:
                 raise
@@ -160,6 +242,7 @@ class DeveloperAgent(BaseAgent):
         org_id: str = None,
     ) -> dict:
         """Fix errors found during sandbox execution."""
+        relevant_files = _select_relevant_files(existing_files, error_report=error_report)
         messages = [
             {
                 "role": "user",
@@ -167,7 +250,7 @@ class DeveloperAgent(BaseAgent):
                     f"Fix these errors in the generated code.\n\n"
                     f"Errors:\n{error_report}\n\n"
                     f"Current files (relevant ones):\n"
-                    f"{json.dumps({k: v for k, v in existing_files.items() if any(e in k for e in ['main.py', 'App.tsx', 'api.ts'])}, indent=2)}\n\n"
+                    f"{json.dumps(relevant_files, indent=2)}\n\n"
                     f"Return the same JSON structure with fixed file contents."
                 )
             }

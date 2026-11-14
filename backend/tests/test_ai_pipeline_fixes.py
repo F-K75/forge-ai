@@ -3,7 +3,6 @@ TASK-003 (streaming / BaseAgent.run token & cost tracking + BYOK flag).
 """
 
 import json
-from types import SimpleNamespace
 import pytest
 
 
@@ -218,7 +217,6 @@ async def test_base_agent_run_records_usage_via_track_usage(tmp_path, monkeypatc
 
     monkeypatch.setattr(router_mod, "track_usage", fake_track_usage)
     monkeypatch.setattr(router_mod, "check_budget", fake_check_budget)
-    monkeypatch.setattr("agents.base.check_budget", fake_check_budget)
 
     router = router_mod.LLMRouter(config_loader=LLMConfigLoader(config_path=config_path))
     router.register_provider(_FakeStreamProvider(), name="fake", priority=1)
@@ -292,3 +290,183 @@ async def test_track_usage_stores_byok_flag(monkeypatch):
     )
     assert rec["byok"] is True
     assert inserted[0]["byok"] is True
+
+
+def test_parse_json_response_preserves_embedded_triple_backticks():
+    """parse_json_response must strip only the outer fence so embedded
+    triple-backtick code blocks inside JSON string values are not truncated."""
+    from agents.json_utils import parse_json_response
+
+    payload = {
+        "files": {
+            "README.md": "# App\n```python\nprint('hello')\n```\nDone",
+            "docs.md": "```\nsome block\n```",
+        }
+    }
+    fenced = f"```json\n{json.dumps(payload, indent=2)}\n```"
+    parsed = parse_json_response(fenced)
+    assert parsed == payload
+
+    plain_fenced = f"```\n{json.dumps(payload)}\n```"
+    assert parse_json_response(plain_fenced) == payload
+    assert parse_json_response(json.dumps(payload)) == payload
+
+
+@pytest.mark.asyncio
+async def test_developer_patch_files_expands_context_and_caps_budget(monkeypatch):
+    """DeveloperAgent.patch_files must include relevant backend/frontend files
+    beyond main.py/App.tsx/api.ts, prioritize error-mentioned files, exclude
+    node_modules, and respect the file/char budget."""
+    from agents.developer import DeveloperAgent, _PATCH_MAX_FILES
+
+    agent = DeveloperAgent()
+    captured_messages = []
+
+    async def fake_call_structured(messages, **kwargs):
+        captured_messages.append(messages)
+        return {"files": {"backend/models.py": "fixed"}}
+
+    monkeypatch.setattr(agent, "_call_structured", fake_call_structured)
+
+    existing_files = {
+        "backend/models.py": "class User: pass",
+        "backend/database.py": "db = None",
+        "backend/schemas.py": "class UserSchema: pass",
+        "backend/routers/auth.py": "def login(): pass",
+        "frontend/src/pages/Home.tsx": "export default function Home() {}",
+        "frontend/src/components/Button.tsx": "export function Button() {}",
+        "package.json": '{"name": "app"}',
+        "requirements.txt": "fastapi",
+        "custom/helper.py": "def helper(): return 1",
+        "node_modules/pkg/index.js": "module.exports = {}",
+    }
+    for i in range(30):
+        existing_files[f"frontend/src/components/Comp{i}.tsx"] = f"export const C{i} = () => null;"
+
+    await agent.patch_files(
+        existing_files,
+        error_report="NameError in custom/helper.py line 1",
+        blueprint={"pages": []},
+    )
+
+    prompt_text = captured_messages[0][0]["content"]
+    assert "custom/helper.py" in prompt_text
+    assert "backend/models.py" in prompt_text
+    assert "backend/database.py" in prompt_text
+    assert "backend/schemas.py" in prompt_text
+    assert "backend/routers/auth.py" in prompt_text
+    assert "frontend/src/pages/Home.tsx" in prompt_text
+    assert "package.json" in prompt_text
+    assert "requirements.txt" in prompt_text
+    assert "node_modules/pkg/index.js" not in prompt_text
+
+    # Verify the JSON payload in the prompt respects _PATCH_MAX_FILES
+    json_start = prompt_text.index("Current files (relevant ones):\n") + len("Current files (relevant ones):\n")
+    json_end = prompt_text.index("\n\nReturn the same JSON structure")
+    included = json.loads(prompt_text[json_start:json_end])
+    assert len(included) <= _PATCH_MAX_FILES
+
+
+@pytest.mark.asyncio
+async def test_base_agent_single_few_shot_injection_with_plugins_registered(monkeypatch):
+    """When engineering plugins are registered, few-shot examples must be
+    injected once (in PRE_BUILD) and not duplicated by BaseAgent._resolve_system_prompt."""
+    from agents.base import BaseAgent
+    from core.models import AgentType
+    from engineering_plugins import register_engineering_plugins, unregister_engineering_plugins
+    from prompt_engineer.few_shot import FewShotExample, FewShotManager
+
+    select_calls = []
+    sample = FewShotExample(
+        example_id="ex-dedup-1",
+        role="developer",
+        input="Build a counter app",
+        expected_output="UNIQUE_FEW_SHOT_MARKER_XYZ",
+    )
+
+    def fake_select(self, *, role, task, strategy="semantic", max_examples=3):
+        select_calls.append((role, max_examples))
+        return [sample]
+
+    monkeypatch.setattr(FewShotManager, "select", fake_select)
+
+    class _DevTestAgent(BaseAgent):
+        agent_type = AgentType.DEVELOPER
+        prompt_role = "developer"
+        use_context_engineering = False
+
+    unregister_engineering_plugins()
+    register_engineering_plugins()
+    try:
+        agent = _DevTestAgent()
+        prompt = await agent._resolve_system_prompt(
+            [{"role": "user", "content": "Build a todo app"}],
+            extra_system="",
+        )
+        assert len(select_calls) == 1
+        assert prompt.count("UNIQUE_FEW_SHOT_MARKER_XYZ") == 1
+    finally:
+        unregister_engineering_plugins()
+
+
+@pytest.mark.asyncio
+async def test_base_agent_single_check_budget_call(tmp_path, monkeypatch):
+    """BaseAgent._call_llm must not perform a redundant estimated_tokens=0
+    check_budget call before LLMRouter.generate performs its own check_budget."""
+    from agents.base import BaseAgent
+    from core.llm import router as router_mod
+    from core.llm.config import LLMConfigLoader
+    from core.llm.provider import BaseProviderAdapter, CompletionResponse
+    from core.models import AgentType
+    from gateway.service import AIGateway
+
+    class _FakeProvider(BaseProviderAdapter):
+        name = "fake"
+        default_model = "claude-sonnet-4-6"
+
+        async def chat_completion(self, *, model, messages, **kwargs):
+            return CompletionResponse(
+                text="ok",
+                provider="fake",
+                model=model,
+                usage={"prompt_tokens": 10, "completion_tokens": 5},
+            )
+
+        async def stream_completion(self, *, model, messages, **kwargs):
+            yield "ok"
+
+    config_path = tmp_path / "llm.yaml"
+    config_path.write_text("default_provider: fake\nfallback_chain:\n  - fake\n")
+
+    budget_calls = []
+
+    async def fake_check_budget(user_id, estimated_tokens=0, org_id=None):
+        budget_calls.append({"user_id": user_id, "estimated_tokens": estimated_tokens, "org_id": org_id})
+
+    async def fake_track_usage(**kwargs):
+        return kwargs
+
+    monkeypatch.setattr(router_mod, "check_budget", fake_check_budget)
+    monkeypatch.setattr(router_mod, "track_usage", fake_track_usage)
+
+    router = router_mod.LLMRouter(config_loader=LLMConfigLoader(config_path=config_path))
+    router.register_provider(_FakeProvider(), name="fake", priority=1)
+    gateway = AIGateway(router=router)
+
+    class _TestAgent(BaseAgent):
+        agent_type = AgentType.ARCHITECT
+        system_prompt = "You are a test agent."
+        use_context_engineering = False
+
+    monkeypatch.setattr("agents.base.get_ai_gateway", lambda: gateway)
+    monkeypatch.setattr("agents.base._resolve_byok", lambda uid: _async_none())
+
+    agent = _TestAgent()
+    out = await agent._call_llm(
+        [{"role": "user", "content": "Hello"}],
+        user_id="user-budget-1",
+    )
+
+    assert out == "ok"
+    assert len(budget_calls) == 1
+    assert budget_calls[0]["estimated_tokens"] > 0

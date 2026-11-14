@@ -5,6 +5,7 @@ import time
 import uuid
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+from agents.json_utils import strip_markdown_fences
 from core.llm.provider import CompletionResponse
 from core.llm.router import LLMRouter, get_llm_router
 from core.metrics import (
@@ -289,8 +290,9 @@ class AIGateway:
         import jsonschema
 
         def _try_validate(candidate: str) -> Dict[str, Any]:
+            cleaned = strip_markdown_fences(candidate)
             try:
-                parsed = json.loads(candidate)
+                parsed = json.loads(cleaned)
             except json.JSONDecodeError as exc:
                 return {"valid": False, "errors": [f"invalid JSON: {exc}"]}
             try:
