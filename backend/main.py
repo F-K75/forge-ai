@@ -53,6 +53,7 @@ from core.security import (
 from core.shutdown import get_health_status, init_shutdown_manager, DrainMiddleware, get_shutdown_manager
 from services.ws_manager import manager as ws_manager
 from services.pm_ws_manager import pm_manager
+from services.org_ws_manager import org_manager
 
 settings = get_settings()
 
@@ -105,6 +106,7 @@ async def lifespan(app: FastAPI):
 
     ws_manager.start()
     pm_manager.start()
+    org_manager.start()
 
     # Fail fast if Mongo isn't reachable / isn't provisioned correctly.
     try:
@@ -164,6 +166,7 @@ async def lifespan(app: FastAPI):
 
     await ws_manager.stop()
     await pm_manager.stop()
+    await org_manager.stop()
     await close_connections()
 
 
@@ -220,7 +223,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_allowed_origins(),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
     max_age=600,
 )

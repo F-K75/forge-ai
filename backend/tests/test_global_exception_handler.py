@@ -112,5 +112,39 @@ async def test_handler_reports_to_sentry_when_configured(monkeypatch):
     assert captured == [exc]
 
 
+@pytest.mark.asyncio
+async def test_handler_does_not_reflect_untrusted_origin(monkeypatch):
+    monkeypatch.setattr(main, "cors_allowed_origins", lambda: ["https://app.forge.ai"])
+
+    class FakeURL:
+        path = "/__test"
+
+    class FakeRequest:
+        method = "GET"
+        url = FakeURL()
+        headers = {"origin": "https://evil.example"}
+
+    resp = await global_exception_handler(FakeRequest(), RuntimeError("boom"))
+    assert "access-control-allow-origin" not in {k.lower() for k in resp.headers}
+
+    class AllowedRequest:
+        method = "GET"
+        url = FakeURL()
+        headers = {"origin": "https://app.forge.ai"}
+
+    resp_ok = await global_exception_handler(AllowedRequest(), RuntimeError("boom"))
+    assert resp_ok.headers.get("Access-Control-Allow-Origin") == "https://app.forge.ai"
+    assert resp_ok.headers.get("Access-Control-Allow-Credentials") == "true"
+
+
+def test_cors_allows_patch_and_lifespan_manages_org_manager():
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "main.py").read_text()
+    assert '"PATCH"' in src
+    assert "org_manager.start()" in src
+    assert "await org_manager.stop()" in src
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

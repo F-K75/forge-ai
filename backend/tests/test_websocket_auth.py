@@ -180,3 +180,21 @@ def test_pm_websocket_rejects_before_accept(monkeypatch):
             with client.websocket_connect("/initiatives/ws/init-1?token=bad"):
                 pass
         assert exc_info.value.code == 4001
+
+
+def test_org_websocket_accepts_subprotocol_and_query_token(monkeypatch):
+    from types import SimpleNamespace
+    from api.agent_registry import router as org_router
+
+    async def _allow(*args, **kwargs):
+        return SimpleNamespace(id="user-1")
+
+    monkeypatch.setattr("api.agent_registry.authenticate_org_websocket_token", _allow)
+
+    app = FastAPI()
+    app.include_router(org_router)
+    with TestClient(app) as client:
+        with client.websocket_connect("/projects/p/org/ws", subprotocols=["ws-token"]) as ws:
+            assert ws.accepted_subprotocol == "ws-token"
+        with client.websocket_connect("/projects/p/org/ws?token=ws-token") as ws:
+            assert ws.accepted_subprotocol is None
