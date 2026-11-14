@@ -6,10 +6,9 @@ like a developer explaining a project, not a launch.
 
 **Before you post, check:**
 - [ ] There's a way to try it without much friction. HN dislikes signup walls,
-      and right now there's no logged-out demo: in production (`LIVE_MODE`)
-      `/demo` redirects to `/projects`, which needs an account. Either add a
-      public demo (a recorded run or read-only sample project) or link a
-      short video, and say plainly that trying it needs a signup.
+      There's now a public no-signup demo (the `forge-demo` Pages site; its
+      address is in the "Deploy frontend to Cloudflare Pages" run summary).
+      It uses sample data and says so in a banner. Link it as the demo.
 - [ ] If the repo is public (it's MIT-licensed), link it. Source access gets a
       much better reception on HN than a closed product.
 - [ ] A fresh account can complete a real build. (The first build on every
@@ -43,7 +42,7 @@ apps" alone reads as one more of many.
 > write a PRD, break it into epics, stories, tasks and sprints, and then
 > build the app.
 >
-> Demo: [video or public demo URL] / Code: [repo URL, MIT]
+> Demo (no signup, sample data): [forge-demo URL] / Code: [repo URL, MIT]
 >
 > I started it because AI coding tools made me faster inside a file, but most
 > of the time on client projects went into everything around the code:
