@@ -68,7 +68,6 @@ from .repo_memory import (
     get_repository_memory_service,
 )
 from .repository import AgentRegistryRepository
-from .review_board_bridge import trigger_security_review
 from .task_router import Assignment, RoleMatch, TaskRouter, classify, get_task_router
 from .team_chat import (
     MessageType,
@@ -146,7 +145,6 @@ __all__ = [
     "RepositoryMemoryRepository",
     "RepositoryMemoryService",
     "get_repository_memory_service",
-    "trigger_security_review",
     "OrgEvent",
     "OrgEventType",
 ]

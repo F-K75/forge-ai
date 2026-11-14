@@ -45,11 +45,6 @@ class Settings(BaseSettings):
     default_model: str = "claude-sonnet-4-6"
     mongodb_url: str = ""
     redis_url: str = "redis://localhost:6379"
-    # Base URL of the standalone `orchestrator/` microservice consumed by
-    # agent_registry/review_board_bridge.py (POST /reviews + GET /reviews/{id}).
-    # Empty = disabled; the bridge swallows the resulting failure, preserving
-    # its fail-open contract until the service is deployed.
-    orchestrator_url: str = ""
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
 
