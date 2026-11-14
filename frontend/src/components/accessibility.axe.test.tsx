@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, within } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { axe } from 'vitest-axe'
@@ -8,6 +8,8 @@ import { StatusPill } from './StatusPill'
 import { Toggle } from './Toggle'
 import { TopNavBar } from './TopNavBar'
 import { InitiativeCopilotChat } from './pm/InitiativeCopilotChat'
+import { AgentPayloadModal } from '../pages/pm/agentRun/AgentPayloadModal'
+import { RoadmapEpicModal } from '../pages/pm/roadmap/RoadmapEpicModal'
 
 declare module 'vitest' {
   interface Assertion<T> {
@@ -31,6 +33,10 @@ async function axeIt(element: HTMLElement) {
 }
 
 describe('accessibility (axe) — core primitives', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   it('SummaryChip is accessible', async () => {
     const { container } = render(<SummaryChip label="Credits" value="612" />)
     await axeIt(container)
@@ -82,6 +88,51 @@ describe('accessibility (axe) — core primitives', () => {
         onClose={vi.fn()}
       />
     )
+    await axeIt(container)
+  })
+
+  it('AgentPayloadModal has dialog semantics, Escape close, and zero axe violations', async () => {
+    const onClose = vi.fn()
+    const { container } = render(
+      <AgentPayloadModal
+        isOpen={true}
+        onClose={onClose}
+        title="Agent Output Payload"
+        agentName="Frontend Agent"
+        payload={{ status: 'ok' }}
+      />
+    )
+    const dialog = within(container).getByRole('dialog')
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveAttribute('aria-labelledby', 'agent-payload-modal-title')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+    await axeIt(container)
+  })
+
+  it('RoadmapEpicModal has dialog semantics, Escape close, and zero axe violations', async () => {
+    const onClose = vi.fn()
+    const { container } = render(
+      <RoadmapEpicModal
+        isOpen={true}
+        onClose={onClose}
+        epic={{
+          id: 'epic-1',
+          initiative_id: 'init-1',
+          title: 'Accessibility Hardening',
+          description: 'Ensure all custom modals follow WCAG AA dialog semantics.',
+          priority: 'p1',
+          story_points: 8,
+        }}
+        stories={[]}
+        tasks={[]}
+      />
+    )
+    const dialog = within(container).getByRole('dialog')
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveAttribute('aria-labelledby', 'roadmap-epic-modal-title')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
     await axeIt(container)
   })
 })

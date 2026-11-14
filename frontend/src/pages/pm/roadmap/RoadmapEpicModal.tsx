@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   Layers,
@@ -30,6 +30,15 @@ export function RoadmapEpicModal({
 }: RoadmapEpicModalProps) {
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen || !epic) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, epic, onClose]);
+
   if (!isOpen || !epic) return null;
 
   const linkedStories = stories.filter((s) => s.epic_id === epic.id);
@@ -50,6 +59,9 @@ export function RoadmapEpicModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="roadmap-epic-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
       onClick={onClose}
     >
@@ -65,7 +77,7 @@ export function RoadmapEpicModal({
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                <h3 id="roadmap-epic-modal-title" className="font-bold text-sm text-slate-900 dark:text-slate-100">
                   {epic.title}
                 </h3>
                 <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
