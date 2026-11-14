@@ -34,20 +34,19 @@ RUN test -n "$VITE_API_URL" && test -n "$VITE_WS_URL" \
 # file is committed, and CI runs the full npm build to catch contract drift.
 RUN npx tsc && npx vite build
 
-# Stage 2: serve with nginx
-FROM nginx:1.27-alpine
-
-# Server config comes from /etc/nginx/templates/*.template mounted at runtime
-# (the image's entrypoint substitutes ${DOMAIN} etc. via envsubst).
-RUN rm /etc/nginx/conf.d/default.conf
+# Stage 2: serve with unprivileged nginx (UID 101, port 8080)
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 # wget is needed for the HEALTHCHECK below; install without caching to keep
-# the image small.
+# the image small, then drop back to the non-root nginx user (UID 101).
+USER root
 RUN apk add --no-cache wget
+USER 101
 
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80 443
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD wget --spider -q http://localhost/healthz || exit 1
+  CMD wget --spider -q http://localhost:8080/healthz || exit 1
