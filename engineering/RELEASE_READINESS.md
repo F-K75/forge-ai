@@ -1,0 +1,67 @@
+# Forge AI — Release Readiness Checklist & Gate Status (`engineering/RELEASE_READINESS.md`)
+
+**Overall Release Status**: 🟢 **ALL MILESTONES (MILESTONE 1, 2, 3 & 4) IMPLEMENTED & VERIFIED AT GATE `G4` — AWAITING EXPLICIT CTO APPROVAL FOR GATE `G5` MERGE TO `main`**  
+**Current Active Gate**: Gate `G4` Passed for Milestone 4 Branches; Awaiting CTO Gate `G5` Approval to Merge to `main`  
+**Last Updated**: 2026-11-14
+
+---
+
+## 1. Approval Gate Progression (`G0`–`G6`)
+
+| Gate | Gate Name | Status | Sign-Off Authority | Evidence / Notes |
+| :--- | :--- | :---: | :--- | :--- |
+| **G0** | Repository Discovery Approved | ✅ **Passed** | `orchestrator` → **CTO** | Full repository structure, git/worktree state, and 4 historical issues revalidated. |
+| **G1** | Architecture & Technical Assessment Approved | ✅ **Passed** | Specialists + `independent-reviewer` → **CTO** | 7 specialist read-only audits completed and challenged by `independent-reviewer`. |
+| **G2** | Implementation Plan Approved | ✅ **Passed** | `orchestrator` + `architect` → **CTO** | CTO authorized parallel execution in isolated worktrees. |
+| **G3** | Implementation & Tests Completed | ✅ **Passed** | Owning Engineers + `qa-engineer` | All Milestone 1–4 branches implemented in isolated worktrees with passing tests & linters. |
+| **G4** | Independent Review Passed | ✅ **Passed** | `independent-reviewer` + `security-engineer` | All Milestone 1–4 branches independently verified and `APPROVED`. |
+| **G5** | Merge to `main` Approved | ⏳ **Awaiting CTO Approval** | **CTO Explicit Approval** | Milestone 1–3 merged on `main`. Milestone 4 branches verified and ready for CTO `G5` merge authorization. |
+| **G6** | Production Deployment Approved | 🔒 **Locked** | **CTO Explicit Approval** | Locked until explicit CTO deployment authorization. |
+
+---
+
+## 2. Milestone 4 (Post-M3 Hardening, Compatibility & Build Optimization) — Gate `G4` Verified
+
+| Task ID | Branch & Head Commit | Subsystem | Resolution Summary | Status |
+| :--- | :--- | :--- | :--- | :---: |
+| **`TASK-B1`** | `fix/B1-vite-build-genai` (`4905d610`) | Frontend Build Decoupling | Extracted `loadGeminiPlugin.ts` lazy loader; decoupled production `npm run build` from `@google/genai`; moved to `devDependencies`; 4/4 Vitest tests passing. | ✅ `G4` Passed |
+| **`TASK-RAZORPAY`** | `fix/razorpay-tests-py314` (`18a2a42c`) | Billing & Py3.14 Compatibility | Added `sys.modules["pkg_resources"]` fallback shim backed by `importlib.metadata` in `api/razorpay.py`; pinned `setuptools<81.0.0`; fixed async mock awaits; 18/18 pytest tests passing. | ✅ `G4` Passed |
+| **`TASK-B2-B3`** | `fix/B2-B3-analytics-teardown-and-reviews` (`8fe8fc31`) | Analytics Teardown & Review Board | Added `isMountedRef` lifecycle guard in `AnalyticsTab.tsx`; retired `localhost:8100` fallback in `orchestratorApi.ts` & `useReviewSocket.ts`; added Brutalist empty states in `ReviewsListPage.tsx` & `ReviewDetailPage.tsx`; 29/29 Vitest tests passing. | ✅ `G4` Passed |
+| **`TASK-INFRA`** | `fix/infra-compose-and-k8s` (`dc854414`) | Infra, Compose & K8s Hardening | Aligned `docker-compose.yml` frontend port `3000:8080` & healthcheck `/healthz`; mounted `emptyDir` `/tmp` in `k8s/celery-worker.yaml`; added `app: mongodb-backup` & `app: mongodb-restore` pod labels and `NetworkPolicy` rules; added `GEMINI_API_KEY=` to `.env.example`. | ✅ `G4` Passed |
+
+---
+
+## 3. Milestone 3 (`TASK-016` & Pre-Release Fixes) — Merged Status (`G5`)
+
+| Task ID | Branch & Head Commit | Subsystem | Resolution Summary | Status |
+| :--- | :--- | :--- | :--- | :---: |
+| **`TASK-016`** | `chore/TASK-016-retire-dead-packages` (`b31687fa`) | Repo & Architecture Cleanup | Removed dead `backend/app/` + 3 orphan tests, hollowed-out `orchestrator/`, `agents/security_engineer.json`, `k8s/orchestrator.yaml`, `docker-compose.yml` `orchestrator` service + `VITE_ORCHESTRATOR_URL`, and `review_board_bridge.py`. | ✅ Merged (`G5`) |
+| **Pre-Release TSC** | `fix/frontend-tsc-errors` (`60c12131`) | Frontend TypeScript | Fixed 4 pre-existing `tsc --noEmit` errors in `InitiativeMixedMediaTray.tsx`, `MixedMediaCard.tsx`, `GraphTab.test.tsx`, `SprintsTab.test.tsx`. | ✅ Merged (`G5`) |
+| **Pre-Release Tests** | `fix/backend-baseline-tests` (`e7f5570d`) | Backend Test Suite | Updated `test_llm_byok.py` (`track_usage` stub) and `test_welcome_email.py` (`oauth_state` cookie, `state` param, `email_verified: True`). | ✅ Merged (`G5`) |
+
+---
+
+## 3. Milestone 2 P1 Hardening & Coverage — Merged Status (`G5`)
+
+| Task ID | Branch & Head Commit | Subsystem | Resolution Summary | Status |
+| :--- | :--- | :--- | :--- | :---: |
+| **`TASK-008`, `TASK-010`** | `fix/TASK-008-010-billing-and-v1-parity` (`a5610a99`) | Billing, Webhooks & `/v1` Parity | Fixed `build_tasks.py` credit refund guard; added `price_inr` / `_package_amount_paise`; Razorpay webhook fail-closed (`HTTP 503`) + atomic idempotency; Cashfree `notify_url` `/cashfree/webhook`; mounted 6 missing routers in `api/v1.py`. | ✅ Merged (`G5`) |
+| **`TASK-009`, `TASK-015`** | `fix/TASK-009-015-sandbox-and-k8s-hardening` (`a9e06613`) | Sandbox & Kubernetes Hardening | Added `bubblewrap` + UID/GID `1000` in `backend/Dockerfile`; fail-closed `bwrap` execution in `backend/sandbox/runner.py`; `k8s/network-policies.yaml`; non-root `nginxinc/nginx-unprivileged` (`8080`, UID `101`) in `frontend/Dockerfile` & `k8s/frontend.yaml`; fixed `redis.yaml`, `ingress.yaml`, `mongodb-backup-cronjob.yaml`, `secrets.yaml` guards. | ✅ Merged (`G5`) |
+| **`TASK-011`** | `fix/TASK-011-ai-gateway-and-prompt-dedup` (`95fd6998`) | AI Gateway, Debugger & Prompts | Added `strip_markdown_fences()` preserving embedded backticks; `AIGateway.validate_output` fence stripping; `_select_relevant_files()` in `DeveloperAgent.patch_files()`; deduplicated `few_shot_injection` & redundant `BaseAgent.check_budget`; updated `test_llm_byok.py` & `test_agent_structured_output.py`. | ✅ Merged (`G5`) |
+| **`TASK-013`** | `test/TASK-013-pm-orchestrator-and-tasks-tests` (`54b06cfd`) | PM Orchestrator & Tasks Tests | Added `test_pm_orchestrator.py` and `test_pm_tasks.py` (`20 passed`, 100% coverage on `core/pm_orchestrator.py` and `tasks/pm_tasks.py`). | ✅ Merged (`G5`) |
+| **`TASK-014`** | `feat/TASK-014-frontend-a11y-and-tokens` (`03b31899`) | Frontend A11y & Design Tokens | Added `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `Escape` handling, and semantic design tokens in `AgentPayloadModal.tsx`, `RoadmapEpicModal.tsx`, `KanbanTab.tsx`, and `accessibility.axe.test.tsx` (`28 passed`). | ✅ Merged (`G5`) |
+
+---
+
+## 4. Milestone 1 P0 Release Blockers — Merged Status (`G5`)
+
+| Blocker ID | Task ID | Branch & Commit | Subsystem | Resolution Summary | Status |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **REL-01** | `TASK-001` | `main` (`935cd1e6`) + `fix/TASK-007-prod-compose-and-ci` (`6ac3587b`) | Git / Docker Hygiene | Pending merge finalized on `main`; `.dockerignore` & `backend/.dockerignore` exclude `eng.traineddata`, `dump.rdb`, `google-cloud-sdk/`, `runenv/`, `mongodb_data/`. | ✅ Merged (`G5`) |
+| **REL-02** | `TASK-002` | `fix/TASK-002-003-ai-pipeline-and-usage` (`aba8e106`) | AI Build Pipeline | `_normalize_files_result()` in `backend/agents/developer.py` ensures `{"files": <dict>}` contract across streaming & `patch_files()`. | ✅ Merged (`G5`) |
+| **REL-03** | `TASK-003` | `fix/TASK-002-003-ai-pipeline-and-usage` (`aba8e106`) | AI Telemetry & Budgets | `LLMRouter.stream()` records token/cost telemetry on completion and mid-stream abort; `MODEL_COSTS` expanded; `byok` flag tracked. | ✅ Merged (`G5`) |
+| **REL-04** | `TASK-004` | `fix/TASK-004-005-deployments-and-security` (`8950b0c9`) | Deployments & GitHub Push | `_load_build_files()` reads `db.build_files`; `target.teardown()` moved from `finally:` to `except Exception:`. | ✅ Merged (`G5`) |
+| **REL-05** | `TASK-005` | `fix/TASK-004-005-deployments-and-security` (`8950b0c9`) | Auth, OAuth, CSRF & Security | CSRF exemptions for `/auth/refresh` & webhooks; `repos.py` SSRF & `temp_dir` cleanup; Google OAuth `state`, `email_verified`, & `mfa_enabled`; CORS `PATCH`. | ✅ Merged (`G5`) |
+| **REL-06** | `TASK-006` | `fix/TASK-004-005-deployments-and-security` (`8950b0c9`) + `fix/TASK-006-frontend-ws-and-api` (`42dad186`) | WebSockets & API | `agent_registry.py`/`builds.py`/`initiatives.py` conditional `subprotocol`; `org_manager.start()`/`stop()` in `main.py`; `wsUrl.ts` production origin derivation; `reposApi.import` `/v1/repos/import`. | ✅ Merged (`G5`) |
+| **REL-07** | `TASK-007` | `fix/TASK-007-prod-compose-and-ci` (`6ac3587b`) | Prod/Staging Compose & Backups | `mongo` configured with `--replSet rs0` + persistent `/data/db/.mongo-keyfile` + `rs.initiate()`; `backup_mongodb.py` & `backup_verify.py` created; `secret-scanning.yml` `continue-on-error: false`. | ✅ Merged (`G5`) |
+| **REL-QA** | `TASK-012`, `TASK-013` | `fix/TASK-012-013-qa-playwright-and-coverage` (`a92f9e33`) | QA & Coverage | `test_storage.py` state isolation (`26 passed`); Playwright aligned to port `3000` & `210_000` ms timeout; `backend/pyproject.toml` coverage scope fixed. | ✅ Merged (`G5`) |

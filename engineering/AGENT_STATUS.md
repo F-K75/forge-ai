@@ -1,0 +1,26 @@
+# Forge AI — Live Agent Status & Worktree Registry (`engineering/AGENT_STATUS.md`)
+
+**Current Gate**: All Tasks (`TASK-001`–`TASK-016` + Pre-Release Fixes) **MERGED TO `main` (`G5` PASSED)** — Gate `G6` Locked Pending Explicit CTO Deployment Approval  
+**Last Updated**: 2026-11-14
+
+---
+
+## 1. Persistent Agent Roster & Current State
+
+| # | Agent Name | Definition File | Plugin Registration | Role | Tool Access Mode | Current Status | Completed Tasks | Branch / Worktree |
+| :- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
+| 1 | `orchestrator` | [`.agents/agents/orchestrator.md`](file:///Users/keshav/forge-ai/.agents/agents/orchestrator.md) | [`.agents/plugins/forge-engineering/agents/orchestrator.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/orchestrator.md) | Lead Engineering Orchestrator | Coordinator (`read_file`, `edit_file`, `write_file`, `run_command`, `manage_task`, `search_web` + subagents) | `IDLE` (All Milestones Merged) | `TASK-000` (`VERIFIED`) | Primary Workspace (`/Users/keshav/forge-ai`, `main`) |
+| 2 | `architect` | [`.agents/agents/architect.md`](file:///Users/keshav/forge-ai/.agents/agents/architect.md) | [`.agents/plugins/forge-engineering/agents/architect.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/architect.md) | Principal Systems Architect | **Strictly Read-Only** (`read_file`, `search_web`) | `IDLE` | `G1` Audit + `TASK-016` Assessment (`VERIFIED`) | None (Read-only) |
+| 3 | `backend-engineer` | [`.agents/agents/backend-engineer.md`](file:///Users/keshav/forge-ai/.agents/agents/backend-engineer.md) | [`.agents/plugins/forge-engineering/agents/backend-engineer.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/backend-engineer.md) | Senior Backend Engineer | Read/Write (`read_file`, `edit_file`, `write_file`, `run_command`, `manage_task`) | `IDLE` | `TASK-004`, `TASK-005`, `TASK-008`, `TASK-010`, `TASK-016` (`MERGED`) | `chore/TASK-016-retire-dead-packages` (`b31687fa` -> `main`) |
+| 4 | `frontend-engineer` | [`.agents/agents/frontend-engineer.md`](file:///Users/keshav/forge-ai/.agents/agents/frontend-engineer.md) | [`.agents/plugins/forge-engineering/agents/frontend-engineer.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/frontend-engineer.md) | Senior Frontend Engineer | Read/Write (`read_file`, `edit_file`, `write_file`, `run_command`, `manage_task`) | `IDLE` | `TASK-006`, `TASK-010`, `TASK-014`, `fix/frontend-tsc-errors` (`MERGED`) | `fix/frontend-tsc-errors` (`60c12131` -> `main`) |
+| 5 | `ai-engineer` | [`.agents/agents/ai-engineer.md`](file:///Users/keshav/forge-ai/.agents/agents/ai-engineer.md) | [`.agents/plugins/forge-engineering/agents/ai-engineer.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/ai-engineer.md) | Lead AI Orchestration Engineer | Read/Write (`read_file`, `edit_file`, `write_file`, `run_command`, `manage_task`) | `IDLE` | `TASK-002`, `TASK-003`, `TASK-011` (`MERGED`) | `fix/TASK-011-ai-gateway-and-prompt-dedup` (`95fd6998` -> `main`) |
+| 6 | `qa-engineer` | [`.agents/agents/qa-engineer.md`](file:///Users/keshav/forge-ai/.agents/agents/qa-engineer.md) | [`.agents/plugins/forge-engineering/agents/qa-engineer.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/qa-engineer.md) | Lead QA & Test Automation Engineer | Read/Write (`read_file`, `edit_file`, `write_file`, `run_command`, `manage_task`) | `IDLE` | `TASK-012`, `TASK-013`, `fix/backend-baseline-tests` (`MERGED`) | `fix/backend-baseline-tests` (`e7f5570d` -> `main`) |
+| 7 | `security-engineer` | [`.agents/agents/security-engineer.md`](file:///Users/keshav/forge-ai/.agents/agents/security-engineer.md) | [`.agents/plugins/forge-engineering/agents/security-engineer.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/security-engineer.md) | Principal Security Engineer | **Strictly Read-Only** (`read_file`, `search_web`) | `IDLE` | M1 & M2 `G4` Security Sign-Off (`APPROVED`) | None (Read-only) |
+| 8 | `devops-engineer` | [`.agents/agents/devops-engineer.md`](file:///Users/keshav/forge-ai/.agents/agents/devops-engineer.md) | [`.agents/plugins/forge-engineering/agents/devops-engineer.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/devops-engineer.md) | Lead DevOps & Platform Engineer | Read/Write (`read_file`, `edit_file`, `write_file`, `run_command`, `manage_task`) | `IDLE` | `TASK-007`, `TASK-009`, `TASK-015` (`MERGED`) | `fix/TASK-009-015-sandbox-and-k8s-hardening` (`a9e06613` -> `main`) |
+| 9 | `independent-reviewer` | [`.agents/agents/independent-reviewer.md`](file:///Users/keshav/forge-ai/.agents/agents/independent-reviewer.md) | [`.agents/plugins/forge-engineering/agents/independent-reviewer.md`](file:///Users/keshav/forge-ai/.agents/plugins/forge-engineering/agents/independent-reviewer.md) | Independent Technical Reviewer | **Strictly Read-Only** (`read_file`, `search_web`) | `IDLE` | All M1, M2 & M3 Branches (`APPROVED`) | None (Read-only) |
+
+---
+
+## 2. Next Gate
+
+All planned engineering tasks (`TASK-001`–`TASK-016`) and pre-release TypeScript/test fixes have been merged into `main` under CTO **Gate `G5`** approval. **Gate `G6` (Production Deployment)** remains locked until explicit CTO authorization.
