@@ -1,7 +1,7 @@
 # Forge AI — Release Readiness Checklist & Gate Status (`engineering/RELEASE_READINESS.md`)
 
-**Overall Release Status**: 🟢 **ALL MILESTONES (MILESTONE 1, 2, 3 & 4) IMPLEMENTED & VERIFIED AT GATE `G4` — AWAITING EXPLICIT CTO APPROVAL FOR GATE `G5` MERGE TO `main`**  
-**Current Active Gate**: Gate `G4` Passed for Milestone 4 Branches; Awaiting CTO Gate `G5` Approval to Merge to `main`  
+**Overall Release Status**: 🟢 **ALL MILESTONES (MILESTONE 1, 2, 3 & 4) MERGED TO `main` (`G5` PASSED) — READY FOR CTO GATE `G6` (PRODUCTION DEPLOYMENT REVIEW)**  
+**Current Active Gate**: Gate `G5` Passed — Full Master Backlog Merged & Verified on `main`; Gate `G6` Locked Pending Explicit CTO Deployment Authorization  
 **Last Updated**: 2026-11-14
 
 ---
@@ -15,19 +15,19 @@
 | **G2** | Implementation Plan Approved | ✅ **Passed** | `orchestrator` + `architect` → **CTO** | CTO authorized parallel execution in isolated worktrees. |
 | **G3** | Implementation & Tests Completed | ✅ **Passed** | Owning Engineers + `qa-engineer` | All Milestone 1–4 branches implemented in isolated worktrees with passing tests & linters. |
 | **G4** | Independent Review Passed | ✅ **Passed** | `independent-reviewer` + `security-engineer` | All Milestone 1–4 branches independently verified and `APPROVED`. |
-| **G5** | Merge to `main` Approved | ⏳ **Awaiting CTO Approval** | **CTO Explicit Approval** | Milestone 1–3 merged on `main`. Milestone 4 branches verified and ready for CTO `G5` merge authorization. |
+| **G5** | Merge to `main` Approved | ✅ **Passed** | **CTO Explicit Approval** | All branches merged into `main`: `npm run build` succeeds in 13.48s; 33/33 Vitest tests passing; 18/18 Razorpay pytest tests passing; secret scan PASS; K8s & Compose valid YAML. |
 | **G6** | Production Deployment Approved | 🔒 **Locked** | **CTO Explicit Approval** | Locked until explicit CTO deployment authorization. |
 
 ---
 
-## 2. Milestone 4 (Post-M3 Hardening, Compatibility & Build Optimization) — Gate `G4` Verified
+## 2. Milestone 4 (Post-M3 Hardening, Compatibility & Build Optimization) — Merged Status (`G5`)
 
 | Task ID | Branch & Head Commit | Subsystem | Resolution Summary | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| **`TASK-B1`** | `fix/B1-vite-build-genai` (`4905d610`) | Frontend Build Decoupling | Extracted `loadGeminiPlugin.ts` lazy loader; decoupled production `npm run build` from `@google/genai`; moved to `devDependencies`; 4/4 Vitest tests passing. | ✅ `G4` Passed |
-| **`TASK-RAZORPAY`** | `fix/razorpay-tests-py314` (`18a2a42c`) | Billing & Py3.14 Compatibility | Added `sys.modules["pkg_resources"]` fallback shim backed by `importlib.metadata` in `api/razorpay.py`; pinned `setuptools<81.0.0`; fixed async mock awaits; 18/18 pytest tests passing. | ✅ `G4` Passed |
-| **`TASK-B2-B3`** | `fix/B2-B3-analytics-teardown-and-reviews` (`8fe8fc31`) | Analytics Teardown & Review Board | Added `isMountedRef` lifecycle guard in `AnalyticsTab.tsx`; retired `localhost:8100` fallback in `orchestratorApi.ts` & `useReviewSocket.ts`; added Brutalist empty states in `ReviewsListPage.tsx` & `ReviewDetailPage.tsx`; 29/29 Vitest tests passing. | ✅ `G4` Passed |
-| **`TASK-INFRA`** | `fix/infra-compose-and-k8s` (`dc854414`) | Infra, Compose & K8s Hardening | Aligned `docker-compose.yml` frontend port `3000:8080` & healthcheck `/healthz`; mounted `emptyDir` `/tmp` in `k8s/celery-worker.yaml`; added `app: mongodb-backup` & `app: mongodb-restore` pod labels and `NetworkPolicy` rules; added `GEMINI_API_KEY=` to `.env.example`. | ✅ `G4` Passed |
+| **`TASK-B1`** | `fix/B1-vite-build-genai` (`4905d610`) | Frontend Build Decoupling | Extracted `loadGeminiPlugin.ts` lazy loader; decoupled production `npm run build` from `@google/genai`; moved to `devDependencies`; 4/4 Vitest tests passing. | ✅ Merged (`G5`) |
+| **`TASK-RAZORPAY`** | `fix/razorpay-tests-py314` (`18a2a42c`) | Billing & Py3.14 Compatibility | Added `sys.modules["pkg_resources"]` fallback shim backed by `importlib.metadata` in `api/razorpay.py`; pinned `setuptools<81.0.0`; fixed async mock awaits; 18/18 pytest tests passing. | ✅ Merged (`G5`) |
+| **`TASK-B2-B3`** | `fix/B2-B3-analytics-teardown-and-reviews` (`8fe8fc31`) | Analytics Teardown & Review Board | Added `isMountedRef` lifecycle guard in `AnalyticsTab.tsx`; retired `localhost:8100` fallback in `orchestratorApi.ts` & `useReviewSocket.ts`; added Brutalist empty states in `ReviewsListPage.tsx` & `ReviewDetailPage.tsx`; 29/29 Vitest tests passing. | ✅ Merged (`G5`) |
+| **`TASK-INFRA`** | `fix/infra-compose-and-k8s` (`dc854414`) | Infra, Compose & K8s Hardening | Aligned `docker-compose.yml` frontend port `3000:8080` & healthcheck `/healthz`; mounted `emptyDir` `/tmp` in `k8s/celery-worker.yaml`; added `app: mongodb-backup` & `app: mongodb-restore` pod labels and `NetworkPolicy` rules; added `GEMINI_API_KEY=` to `.env.example`. | ✅ Merged (`G5`) |
 
 ---
 
