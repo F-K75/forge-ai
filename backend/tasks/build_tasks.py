@@ -194,7 +194,7 @@ def run_build(
             refund = max(0, reserved_credits - used)
             if refund and user:
                 await db.users.find_one_and_update(
-                    {"id": user_id, "credits": {"$gte": reserved_credits - used}},
+                    {"id": user_id},
                     {"$inc": {"credits": refund}},
                     return_document=True,
                 )

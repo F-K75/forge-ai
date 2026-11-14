@@ -61,6 +61,15 @@ class _FakeCollection:
                 return True
         return False
 
+    async def replace_one(self, query, doc, upsert=False):
+        for i, d in enumerate(self.docs):
+            if all(d.get(k) == v for k, v in query.items()):
+                self.docs[i] = dict(doc)
+                return True
+        if upsert:
+            self.docs.append(dict(doc))
+        return True
+
 
 class _FakeDB:
     def __init__(self):
@@ -158,6 +167,7 @@ def test_create_cashfree_order_returns_expected_fields(monkeypatch):
     assert result["order_id"] == "order_FAKE"
     assert result["order_token"] == "token_FAKE"
     assert captured["payload"]["order_id"] == "order_user-1"
+    assert captured["payload"]["order_meta"]["notify_url"].endswith("/cashfree/webhook")
 
 
 def test_cashfree_verify_valid_response(monkeypatch):
@@ -257,3 +267,41 @@ def test_cashfree_webhook_fails_closed_when_secret_missing(monkeypatch):
 
     r = client.post("/cashfree/webhook", data=payload, headers={"X-Cashfree-Signature": sig})
     assert r.status_code == 500
+
+
+def test_cashfree_subscription_notify_url_matches_webhook_route(monkeypatch):
+    import asyncio
+    import api.cashfree as cf
+
+    captured: dict = {}
+
+    async def _fake_db():
+        return _FakeDB()
+
+    monkeypatch.setattr(cf, "get_db", _fake_db)
+    monkeypatch.setattr(cf, "_cashfree_plan_id", lambda plan_id: "plan_cf_test")
+
+    class _FakeSubResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"subscription_id": "sub_FAKE", "status": "INITIALIZED"}
+
+    class _CapturingSubClient(_FakeAsyncClient):
+        async def post(self, path, json=None):
+            captured["path"] = path
+            captured["payload"] = json
+            return _FakeSubResponse()
+
+    monkeypatch.setattr(cf, "httpx", type("httpx", (), {"AsyncClient": _CapturingSubClient})())
+
+    class _User:
+        id = "user-1"
+        email = "u@example.com"
+        name = "U"
+
+    req = cf.CashfreeSubscriptionRequest(plan_id="standard_monthly")
+    result = asyncio.run(cf.create_cashfree_subscription(req, current_user=_User()))
+    assert result["subscription_id"] == "sub_FAKE"
+    assert captured["payload"]["subscription_meta"]["notify_url"].endswith("/cashfree/webhook")

@@ -148,9 +148,13 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
     if not _razorpay_client:
         raise HTTPException(status_code=500, detail="Razorpay is not configured")
 
+    rzp_settings = get_settings()
+    if not rzp_settings.razorpay_webhook_secret:
+        raise HTTPException(status_code=503, detail="Razorpay webhook secret not configured")
+
     body_bytes = await request.body()
     expected = hmac.new(
-        settings.razorpay_webhook_secret.encode(),
+        rzp_settings.razorpay_webhook_secret.encode(),
         body_bytes,
         hashlib.sha256,
     ).hexdigest()
@@ -168,13 +172,15 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
     db = await get_db()
 
     if event_type == "payment.captured":
-        purchase = await db.credit_purchases.find_one({"razorpay_order_id": entity.get("order_id")}, {"_id": 0})
-        if purchase:
-            await db.credit_purchases.update_one(
-                {"razorpay_order_id": entity["order_id"]},
+        order_id = entity.get("order_id")
+        purchase = await db.credit_purchases.find_one({"razorpay_order_id": order_id}, {"_id": 0})
+        if purchase and purchase.get("status") != "completed":
+            res = await db.credit_purchases.update_one(
+                {"razorpay_order_id": order_id, "status": {"$ne": "completed"}},
                 {"$set": {"status": "completed", "razorpay_payment_id": entity.get("id")}},
             )
-            await db.users.update_one({"id": purchase["user_id"]}, {"$inc": {"credits": purchase.get("credits", 0)}})
+            if getattr(res, "modified_count", 1) > 0:
+                await db.users.update_one({"id": purchase["user_id"]}, {"$inc": {"credits": purchase.get("credits", 0)}})
 
     elif event_type == "subscription.activated":
         sub_id = entity.get("id")
@@ -209,7 +215,6 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
             user_doc = await db.users.find_one({"id": sub_doc["user_id"]}, {"_id": 0, "email": 1, "name": 1})
             if user_doc and user_doc.get("email"):
                 try:
-                    from core.config import get_settings
                     _settings = get_settings()
                     if _settings.resend_api_key:
                         import resend

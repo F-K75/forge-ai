@@ -151,11 +151,19 @@ PLAN_DETAILS = [
 ]
 
 CREDIT_PACKAGES = [
-    {"credits": 100, "price_usd": 10, "id": "credits_100"},
-    {"credits": 500, "price_usd": 40, "id": "credits_500"},
-    {"credits": 1000, "price_usd": 70, "id": "credits_1000"},
-    {"credits": 5000, "price_usd": 250, "id": "credits_5000"},
+    {"credits": 100, "price_usd": 10, "price_inr": 850, "id": "credits_100"},
+    {"credits": 500, "price_usd": 40, "price_inr": 3400, "id": "credits_500"},
+    {"credits": 1000, "price_usd": 70, "price_inr": 5950, "id": "credits_1000"},
+    {"credits": 5000, "price_usd": 250, "price_inr": 21250, "id": "credits_5000"},
 ]
+
+
+def _package_amount_paise(package: Dict[str, Any]) -> int:
+    """Return credit package price in INR paise, falling back from USD if needed."""
+    price_inr = package.get("price_inr")
+    if price_inr is None:
+        price_inr = int(package["price_usd"]) * 85
+    return int(price_inr) * 100
 
 
 class CheckoutRequest(BaseModel):
@@ -639,13 +647,14 @@ async def create_credit_purchase(req: CreditPurchaseRequest, user: User = Depend
 async def _razorpay_credit_purchase(req: CreditPurchaseRequest, package: Dict[str, Any], user: User):
     _require_razorpay()
     db = await get_db()
-    order = await create_rzp_order({"amount": package["price_inr"] * 100, "currency": "INR", "receipt": f"credits_{user.id}_{req.package_id}", "notes": {"user_id": user.id, "credits": str(package["credits"]), "package_id": req.package_id}})
+    amount_paise = _package_amount_paise(package)
+    order = await create_rzp_order({"amount": amount_paise, "currency": "INR", "receipt": f"credits_{user.id}_{req.package_id}", "notes": {"user_id": user.id, "credits": str(package["credits"]), "package_id": req.package_id}})
 
     purchase = CreditPurchase(
         user_id=user.id,
         razorpay_order_id=order["order_id"],
         credits=package["credits"],
-        amount=package["price_inr"] * 100,
+        amount=amount_paise,
         currency="INR",
         status="pending",
         provider="razorpay",
@@ -657,9 +666,10 @@ async def _razorpay_credit_purchase(req: CreditPurchaseRequest, package: Dict[st
 async def _cashfree_credit_purchase(req: CreditPurchaseRequest, package: Dict[str, Any], user: User):
     require_cashfree()
     db = await get_db()
+    amount_paise = _package_amount_paise(package)
     order = await create_cashfree_order(
         CashfreeOrderRequest(
-            amount=package["price_inr"] * 100,
+            amount=amount_paise,
             currency="INR",
             receipt=f"credits_{user.id}_{req.package_id}",
             notes={"user_id": user.id, "credits": str(package["credits"]), "package_id": req.package_id},
@@ -672,7 +682,7 @@ async def _cashfree_credit_purchase(req: CreditPurchaseRequest, package: Dict[st
         cashfree_order_id=order["order_id"],
         cashfree_order_token=order.get("order_token"),
         credits=package["credits"],
-        amount=package["price_inr"] * 100,
+        amount=amount_paise,
         currency="INR",
         status="pending",
         provider="cashfree",
