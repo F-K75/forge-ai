@@ -66,3 +66,11 @@ orchestration/
 tmp
 temp
 *.tmp
+
+# Local artifacts & large binaries
+eng.traineddata
+dump.rdb
+google-cloud-sdk/
+req.json
+gemini_resp.json
+reference_image.jpg

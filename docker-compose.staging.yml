@@ -22,7 +22,7 @@ services:
       - STRIPE_PRICE_PRO_ANNUAL=${STRIPE_PRICE_PRO_ANNUAL:?}
       - STRIPE_PRICE_ENTERPRISE_ANNUAL=${STRIPE_PRICE_ENTERPRISE_ANNUAL:?}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?replicaSet=rs0&authSource=admin
       - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/1
       - JWT_SECRET=${JWT_SECRET:?}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:?}
@@ -81,7 +81,7 @@ services:
       - STRIPE_PRICE_STANDARD_ANNUAL=${STRIPE_PRICE_STANDARD_ANNUAL:?}
       - STRIPE_PRICE_PRO_ANNUAL=${STRIPE_PRICE_PRO_ANNUAL:?}
       - STRIPE_PRICE_ENTERPRISE_ANNUAL=${STRIPE_PRICE_ENTERPRISE_ANNUAL:?}
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?replicaSet=rs0&authSource=admin
       - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379/1
       - JWT_SECRET=${JWT_SECRET:?}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:?}
@@ -160,7 +160,7 @@ services:
       - backup_data_staging:/backups
       - ./scripts:/app/scripts:ro
     environment:
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge_staging?replicaSet=rs0&authSource=admin
       - BACKUP_RETENTION_DAYS=30
       - BACKUP_FAILURE_WEBHOOK_URL=${BACKUP_FAILURE_WEBHOOK_URL:-}
     entrypoint: /bin/sh
