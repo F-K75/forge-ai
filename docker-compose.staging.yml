@@ -109,7 +109,16 @@ services:
   mongo:
     image: mongo:7
     restart: unless-stopped
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        if [ ! -f /data/db/.mongo-keyfile ]; then
+          openssl rand -base64 756 > /data/db/.mongo-keyfile
+          chmod 400 /data/db/.mongo-keyfile
+          chown mongodb:mongodb /data/db/.mongo-keyfile
+        fi
+        exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/db/.mongo-keyfile
     environment:
       MONGO_INITDB_ROOT_USERNAME: forge
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?}
