@@ -1,4 +1,12 @@
-name: Deploy frontend to Cloudflare Pages
+name: Deploy public website and demo
+
+# The app itself is deployed by Cloudflare Workers Builds (wrangler.toml,
+# frontend/worker.ts) to forge-frontend.<account>.workers.dev on every push.
+# This workflow deploys the two public Pages sites that link to it.
+#
+# Deploys use the wrangler CLI directly rather than a third-party GitHub
+# Action: cloudflare/pages-action, used before, became unavailable, which
+# failed every run of this workflow at "Set up job".
 
 on:
   push:
@@ -9,62 +17,14 @@ concurrency:
   group: cloudflare-pages-deploy
   cancel-in-progress: false
 
+env:
+  # wrangler 4 needs Node 22.12+; the frontend itself builds on Node 20.
+  WRANGLER_VERSION: "4.162.0"
+  # Where "Sign in" / "Sign up" send people. Override with the FORGE_APP_URL
+  # repository variable (for example once the app has its own domain).
+  APP_URL: ${{ vars.FORGE_APP_URL || 'https://forge-frontend.frendiakeshav75.workers.dev' }}
+
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
-
-      - name: Setup Python (prebuild hook compatibility)
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install prebuild script dependencies
-        run: pip install pydantic==2.13.4 fastapi==0.139.0
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Build frontend
-        env:
-          VITE_API_URL: https://forge-ai-ioom.onrender.com
-          VITE_WS_URL: wss://forge-ai-ioom.onrender.com
-          VITE_ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
-        run: npm run build --workspace=frontend
-
-      - name: Check Cloudflare secrets
-        id: creds
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not configured; skipping Pages deploy."
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy to Cloudflare Pages
-        if: steps.creds.outputs.configured == 'true'
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: forge-frontend
-          directory: frontend/dist
-
   # ---------------------------------------------------------------------------
   # Public demo: the frontend in demo mode (sample data, no backend), with a
   # "Demo with sample data" banner whose sign-up button goes to the real app.
@@ -78,7 +38,6 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       PROJECT: ${{ vars.FORGE_DEMO_PAGES_PROJECT || 'forge-demo' }}
-      APP_PROJECT: forge-frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -92,14 +51,12 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ensure Pages project exists and look up URLs
+      - name: Ensure Pages project exists and look up its URL
         id: project
         if: steps.creds.outputs.configured == 'true'
-        env:
-          APP_URL_OVERRIDE: ${{ vars.FORGE_APP_URL }}
-        run: bash scripts/cloudflare-pages-project.sh "$PROJECT" "$APP_PROJECT" "$APP_URL_OVERRIDE"
+        run: bash scripts/cloudflare-pages-project.sh "$PROJECT" "" "$APP_URL"
 
-      - name: Setup Node.js
+      - name: Setup Node.js (build)
         if: steps.creds.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
@@ -128,14 +85,15 @@ jobs:
           VITE_PUBLIC_DEMO_APP_URL: ${{ steps.project.outputs.app_url }}
         run: npm run build --workspace=frontend
 
+      - name: Setup Node.js (wrangler)
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Deploy demo to Cloudflare Pages
         if: steps.creds.outputs.configured == 'true'
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ env.PROJECT }}
-          directory: frontend/dist
+        run: npx --yes "wrangler@${WRANGLER_VERSION}" pages deploy frontend/dist --project-name="$PROJECT" --branch=main
 
       - name: Summary
         if: steps.creds.outputs.configured == 'true'
@@ -155,7 +113,6 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       PROJECT: ${{ vars.FORGE_SITE_PAGES_PROJECT || 'forge-site' }}
-      APP_PROJECT: forge-frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -169,37 +126,36 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ensure Pages project exists and look up URLs
+      - name: Ensure Pages project exists and look up its URL
         id: project
         if: steps.creds.outputs.configured == 'true'
-        env:
-          APP_URL_OVERRIDE: ${{ vars.FORGE_APP_URL }}
-        run: bash scripts/cloudflare-pages-project.sh "$PROJECT" "$APP_PROJECT" "$APP_URL_OVERRIDE"
+        run: bash scripts/cloudflare-pages-project.sh "$PROJECT" "" "$APP_URL"
+
+      - name: Setup Node.js (wrangler)
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: Assemble site
         if: steps.creds.outputs.configured == 'true'
         env:
           API_URL: https://forge-ai-ioom.onrender.com
-          APP_URL: ${{ steps.project.outputs.app_url }}
+          SITE_APP_URL: ${{ steps.project.outputs.app_url }}
           DEMO_URL: ${{ vars.FORGE_DEMO_URL || needs.demo.outputs.url }}
         run: |
           mkdir -p site-dist
           cp landing.html site-dist/index.html
           cp frontend/public/forge.svg site-dist/forge.svg
           node -e '
-            const c = { apiUrl: process.env.API_URL, appUrl: process.env.APP_URL, demoUrl: process.env.DEMO_URL || "" };
+            const c = { apiUrl: process.env.API_URL, appUrl: process.env.SITE_APP_URL, demoUrl: process.env.DEMO_URL || "" };
             require("fs").writeFileSync("site-dist/site-config.js", "window.FORGE_SITE = " + JSON.stringify(c) + ";\n");
           '
           cat site-dist/site-config.js
 
       - name: Deploy site to Cloudflare Pages
         if: steps.creds.outputs.configured == 'true'
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ env.PROJECT }}
-          directory: site-dist
+        run: npx --yes "wrangler@${WRANGLER_VERSION}" pages deploy site-dist --project-name="$PROJECT" --branch=main
 
       - name: Summary
         if: steps.creds.outputs.configured == 'true'

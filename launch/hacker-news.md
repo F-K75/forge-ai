@@ -7,7 +7,7 @@ like a developer explaining a project, not a launch.
 **Before you post, check:**
 - [ ] There's a way to try it without much friction. HN dislikes signup walls,
       There's now a public no-signup demo (the `forge-demo` Pages site; its
-      address is in the "Deploy frontend to Cloudflare Pages" run summary).
+      address is in the "Deploy public website and demo" run summary).
       It uses sample data and says so in a banner. Link it as the demo.
 - [ ] If the repo is public (it's MIT-licensed), link it. Source access gets a
       much better reception on HN than a closed product.
