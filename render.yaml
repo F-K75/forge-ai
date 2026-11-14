@@ -1,0 +1,47 @@
+services:
+  - type: keyvalue
+    name: forge-redis
+    plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+  - type: web
+    name: forge-backend
+    runtime: python
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: MONGODB_URL
+        value: ${MONGODB_URL}
+      - key: REDIS_URL
+        fromService:
+          name: forge-redis
+          type: keyvalue
+          property: connectionString
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+      - key: FIELD_ENCRYPTION_KEY
+        value: ${FIELD_ENCRYPTION_KEY}
+      - key: ADMIN_EMAILS
+        value: admin@forge.ai,frendiakeshav75@gmail.com
+      - key: ALLOWED_HOSTS
+        value: ${ALLOWED_HOSTS}
+      - key: FRONTEND_TUNNEL_URL
+        value: https://forge-frontend-8gr.pages.dev
+      - key: API_URL
+        value: https://forge-ai-ioom.onrender.com
+      - key: APP_URL
+        value: https://forge-frontend-8gr.pages.dev
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://forge-ai-ioom.onrender.com/v1/auth/google/callback
