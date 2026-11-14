@@ -5,6 +5,16 @@ from typing import Optional
 import json
 
 
+def _normalize_files_result(result: object) -> dict:
+    """Normalize DeveloperAgent file outputs to always have shape {"files": <dict>}."""
+    if not isinstance(result, dict):
+        return {"files": {}}
+    if "files" in result:
+        files = result["files"]
+        return {"files": files if isinstance(files, dict) else {}}
+    return {"files": result}
+
+
 class DeveloperAgent(BaseAgent):
     agent_type = AgentType.DEVELOPER
     prompt_role = "developer"
@@ -73,9 +83,9 @@ class DeveloperAgent(BaseAgent):
                 parsed = json.loads(clean, strict=False)
             except json.JSONDecodeError:
                 parsed = {"files": {}}
-            return parsed.get("files", parsed) if isinstance(parsed, dict) else {"files": {}}
+            return _normalize_files_result(parsed)
         else:
-            return await self._call_structured(
+            result = await self._call_structured(
                 messages,
                 max_tokens=8000,
                 user_id=user_id,
@@ -83,6 +93,7 @@ class DeveloperAgent(BaseAgent):
                 project_id=project_id,
                 org_id=org_id,
             )
+            return _normalize_files_result(result)
 
     async def identify_questions(
         self,
@@ -169,4 +180,4 @@ class DeveloperAgent(BaseAgent):
             project_id=project_id,
             org_id=org_id,
         )
-        return result.get("files", result) if isinstance(result, dict) else {"files": {}}
+        return _normalize_files_result(result)

@@ -221,3 +221,170 @@ fallback_chain:
         messages=[{"role": "user", "content": "build me a todo app"}],
     )
     assert result.text == "ok"
+
+
+@pytest.mark.asyncio
+async def test_stream_records_usage_and_cost_on_completion(tmp_path, monkeypatch):
+    """LLMRouter.stream() must populate token counts and call track_usage()."""
+    from core.llm import router as router_mod
+
+    config_path = tmp_path / "llm.yaml"
+    config_path.write_text(
+        """
+default_provider: fake
+fallback_chain:
+  - fake
+"""
+    )
+    recorded = []
+
+    async def fake_track_usage(**kwargs):
+        recorded.append(kwargs)
+        return kwargs
+
+    async def fake_check_budget(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(router_mod, "track_usage", fake_track_usage)
+    monkeypatch.setattr(router_mod, "check_budget", fake_check_budget)
+
+    router = LLMRouter(config_loader=LLMConfigLoader(config_path=config_path))
+    router.register_provider(FakeProvider(text="hello world from stream"), name="fake", priority=1)
+
+    usage_out = {}
+    chunks = [
+        c
+        async for c in router.stream(
+            agent_name="developer",
+            messages=[{"role": "user", "content": "build a simple counter app"}],
+            user_id="user-1",
+            build_id="build-1",
+            usage_out=usage_out,
+        )
+    ]
+
+    assert "".join(chunks) == "hello world from stream"
+    assert len(recorded) == 1
+    assert recorded[0]["prompt_tokens"] > 0
+    assert recorded[0]["completion_tokens"] > 0
+    assert recorded[0]["cost_usd"] > 0
+    assert recorded[0]["byok"] is False
+    assert usage_out["prompt_tokens"] == recorded[0]["prompt_tokens"]
+    assert usage_out["completion_tokens"] == recorded[0]["completion_tokens"]
+    assert usage_out["cost_usd"] == recorded[0]["cost_usd"]
+
+
+@pytest.mark.asyncio
+async def test_stream_records_partial_usage_on_midstream_abort(tmp_path, monkeypatch):
+    """If a stream fails after yielding chunks, partial completion tokens are still recorded."""
+    from core.llm import router as router_mod
+    from core.llm.provider import ProviderError
+
+    config_path = tmp_path / "llm.yaml"
+    config_path.write_text(
+        """
+default_provider: fake
+fallback_chain:
+  - fake
+"""
+    )
+    recorded = []
+
+    async def fake_track_usage(**kwargs):
+        recorded.append(kwargs)
+        return kwargs
+
+    async def fake_check_budget(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(router_mod, "track_usage", fake_track_usage)
+    monkeypatch.setattr(router_mod, "check_budget", fake_check_budget)
+
+    class AbortingStreamProvider(FakeProvider):
+        async def stream_completion(self, *, model, messages, **kwargs):
+            yield "partial "
+            yield "output"
+            raise RuntimeError("mid-stream disconnect")
+
+    router = LLMRouter(config_loader=LLMConfigLoader(config_path=config_path))
+    router.register_provider(AbortingStreamProvider(text=""), name="fake", priority=1)
+
+    usage_out = {}
+    collected = []
+    with pytest.raises(ProviderError, match="mid-stream disconnect"):
+        async for chunk in router.stream(
+            agent_name="developer",
+            messages=[{"role": "user", "content": "generate code"}],
+            user_id="user-2",
+            build_id="build-2",
+            usage_out=usage_out,
+        ):
+            collected.append(chunk)
+
+    assert "".join(collected) == "partial output"
+    assert len(recorded) == 1
+    assert recorded[0]["prompt_tokens"] > 0
+    assert recorded[0]["completion_tokens"] > 0
+    assert recorded[0]["cost_usd"] > 0
+    assert usage_out["completion_tokens"] == recorded[0]["completion_tokens"]
+
+
+@pytest.mark.asyncio
+async def test_stream_byok_records_usage_with_byok_flag(tmp_path, monkeypatch):
+    """BYOK stream path must record usage with byok=True."""
+    from core.llm import router as router_mod
+
+    config_path = tmp_path / "llm.yaml"
+    config_path.write_text("default_provider: fake\nfallback_chain:\n  - fake\n")
+    recorded = []
+
+    async def fake_track_usage(**kwargs):
+        recorded.append(kwargs)
+        return kwargs
+
+    monkeypatch.setattr(router_mod, "track_usage", fake_track_usage)
+
+    router = LLMRouter(config_loader=LLMConfigLoader(config_path=config_path))
+
+    async def fake_build_byok_provider(byok, model):
+        return FakeProvider(text="byok streamed response"), "byok:anthropic", "claude-sonnet-4-6"
+
+    monkeypatch.setattr(router, "_build_byok_provider", fake_build_byok_provider)
+
+    chunks = [
+        c
+        async for c in router.stream(
+            agent_name="architect",
+            messages=[{"role": "user", "content": "design an app"}],
+            user_id="user-byok",
+            build_id="build-byok",
+            byok={"provider": "anthropic", "api_key": "sk-test"},
+        )
+    ]
+
+    assert "".join(chunks) == "byok streamed response"
+    assert len(recorded) == 1
+    assert recorded[0]["byok"] is True
+    assert recorded[0]["prompt_tokens"] > 0
+    assert recorded[0]["completion_tokens"] > 0
+    assert recorded[0]["cost_usd"] > 0
+
+
+def test_model_costs_covers_all_registered_default_models():
+    """Every model registered in _register_default_providers must have a MODEL_COSTS entry."""
+    from core.ai_usage import MODEL_COSTS
+
+    expected_models = {
+        "claude-sonnet-4-6",
+        "claude-opus-3",
+        "gpt-4o-mini",
+        "gpt-4.1",
+        "openrouter/auto",
+        "gemini-1.5-pro",
+        "llama-3.1-8b",
+        "meta-llama/Llama-3-8b-chat-hf",
+        "llama3.2",
+        "mistral-small-latest",
+    }
+    missing = expected_models - set(MODEL_COSTS.keys())
+    assert not missing, f"Missing MODEL_COSTS entries: {missing}"
