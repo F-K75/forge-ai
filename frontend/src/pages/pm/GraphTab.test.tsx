@@ -7,7 +7,7 @@ import type { PMInitiative, PMEpic, PMStory, PMTask, PMExecution } from "../../l
 
 // Mock ResizeObserver for jsdom
 beforeAll(() => {
-  global.ResizeObserver = class {
+  globalThis.ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}

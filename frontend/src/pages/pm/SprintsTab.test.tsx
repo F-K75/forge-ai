@@ -35,7 +35,7 @@ vi.mock("../../lib/pmApi", () => ({
 }));
 
 // Mock ResizeObserver for Recharts
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}

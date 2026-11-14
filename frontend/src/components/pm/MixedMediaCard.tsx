@@ -71,7 +71,7 @@ export const AudioBriefingCard: React.FC<{
   const [showTranscript, setShowTranscript] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
