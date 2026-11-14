@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Copy, Check, Code2, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -18,6 +18,15 @@ export function AgentPayloadModal({
   payload,
 }: AgentPayloadModalProps) {
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -44,6 +53,9 @@ export function AgentPayloadModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="agent-payload-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
       onClick={onClose}
     >
@@ -58,7 +70,7 @@ export function AgentPayloadModal({
               <Code2 size={16} />
             </span>
             <div>
-              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{title}</h3>
+              <h3 id="agent-payload-modal-title" className="font-bold text-sm text-slate-900 dark:text-slate-100">{title}</h3>
               <p className="text-xs text-slate-500 font-mono">Agent: {agentName}</p>
             </div>
           </div>

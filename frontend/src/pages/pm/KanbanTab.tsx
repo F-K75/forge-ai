@@ -791,6 +791,15 @@ function TaskDetailModal({
   onOpenDependencyModal: (task: PMTask) => void;
   onExecuteAgent: (task: PMTask) => void;
 }) {
+  useEffect(() => {
+    if (!isOpen || !task) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, task, onClose]);
+
   if (!isOpen || !task) return null;
 
   const normP = normalizePriority(task.priority);
@@ -803,8 +812,17 @@ function TaskDetailModal({
   const downstream = allTasks.filter((t) => (t.dependencies || []).includes(task.id));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative w-full max-w-xl bg-white dark:bg-[#141824] rounded-3xl border-2 border-[#000F1D] shadow-[6px_6px_0_#000F1D] p-6 max-h-[90vh] overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="task-detail-modal-title"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-xl bg-panel rounded-3xl border-2 border-border shadow-[var(--elevation-3)] p-6 max-h-[90vh] overflow-y-auto"
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b-2 border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-2">
@@ -823,6 +841,7 @@ function TaskDetailModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close task details modal"
             className="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X size={16} strokeWidth={2.5} />
@@ -830,7 +849,7 @@ function TaskDetailModal({
         </div>
 
         {/* Title */}
-        <h2 className="text-lg font-black text-slate-900 dark:text-white mt-4 mb-2 leading-snug">
+        <h2 id="task-detail-modal-title" className="text-lg font-black text-ink mt-4 mb-2 leading-snug">
           {task.title}
         </h2>
 
@@ -850,7 +869,7 @@ function TaskDetailModal({
               id="task-detail-status-select"
               value={task.status}
               onChange={(e) => onUpdateStatus(task.id, e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+              className="w-full h-10 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink focus:outline-none cursor-pointer"
             >
               {COLUMNS.map((col) => (
                 <option key={col.id} value={col.id}>
@@ -869,7 +888,7 @@ function TaskDetailModal({
               id="task-detail-priority-select"
               value={normP || "p2"}
               onChange={(e) => onUpdatePriority(task.id, e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+              className="w-full h-10 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink focus:outline-none cursor-pointer"
             >
               <option value="p0">P0 - Critical</option>
               <option value="p1">P1 - High</option>
@@ -892,7 +911,7 @@ function TaskDetailModal({
                 onClose();
                 onOpenDependencyModal(task);
               }}
-              className="text-xs font-bold text-[#4DA2FE] hover:underline cursor-pointer flex items-center gap-1"
+              className="text-xs font-bold text-accent hover:underline cursor-pointer flex items-center gap-1"
             >
               <span>Manage Graph</span>
               <ChevronRight size={13} />
@@ -963,9 +982,9 @@ function TaskDetailModal({
                 onClose();
                 onExecuteAgent(task);
               }}
-              className="px-5 py-2.5 rounded-xl bg-[#000F1D] hover:bg-neutral-800 text-white dark:bg-white dark:text-[#000F1D] dark:hover:bg-neutral-100 text-xs font-black shadow-[2.5px_2.5px_0_#000F1D] flex items-center gap-2 cursor-pointer transition-all border-2 border-[#000F1D]"
+              className="px-5 py-2.5 rounded-xl bg-ink hover:opacity-90 text-panel text-xs font-black shadow-[var(--elevation-1)] flex items-center gap-2 cursor-pointer transition-all border-2 border-border"
             >
-              <Sparkles size={13} className="text-[#4DA2FE]" />
+              <Sparkles size={13} className="text-accent" />
               <span>Execute with Gemini</span>
             </button>
           )}
@@ -1013,6 +1032,15 @@ function CreateTaskModal({
     }
   }, [isOpen, initialColumn]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1036,18 +1064,28 @@ function CreateTaskModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#141824] rounded-3xl border-2 border-[#000F1D] shadow-[6px_6px_0_#000F1D] p-6">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-task-modal-title"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg bg-panel rounded-3xl border-2 border-border shadow-[var(--elevation-3)] p-6"
+      >
         <div className="flex items-center justify-between pb-3 border-b-2 border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-[#10B981] border-2 border-[#000F1D]" />
-            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+            <span className="w-3 h-3 rounded-full bg-ok border-2 border-border" />
+            <h3 id="create-task-modal-title" className="text-sm font-black uppercase tracking-wider text-ink">
               Create New Task
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close create task modal"
             className="w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center cursor-pointer"
           >
             <X size={15} strokeWidth={2.5} />
@@ -1066,7 +1104,7 @@ function CreateTaskModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Implement Webhook Replay Idempotency"
-              className="w-full h-10 px-3.5 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white focus:outline-none"
+              className="w-full h-10 px-3.5 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink focus:outline-none"
             />
           </div>
 
@@ -1080,7 +1118,7 @@ function CreateTaskModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detailed acceptance criteria and technical requirements..."
-              className="w-full p-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs text-slate-900 dark:text-white focus:outline-none"
+              className="w-full p-3 rounded-xl border-2 border-border bg-panel-alt text-xs text-ink focus:outline-none"
             />
           </div>
 
@@ -1093,7 +1131,7 @@ function CreateTaskModal({
                 id="create-task-status-select"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
               >
                 {COLUMNS.map((col) => (
                   <option key={col.id} value={col.id}>
@@ -1111,7 +1149,7 @@ function CreateTaskModal({
                 id="create-task-priority-select"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
               >
                 <option value="p0">P0 - Critical</option>
                 <option value="p1">P1 - High</option>
@@ -1130,7 +1168,7 @@ function CreateTaskModal({
                 id="create-task-agent-select"
                 value={assignedAgent}
                 onChange={(e) => setAssignedAgent(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
               >
                 <option value="frontend_agent">Frontend Agent</option>
                 <option value="backend_agent">Backend Agent</option>
@@ -1150,7 +1188,7 @@ function CreateTaskModal({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g. backend, security"
-                className="w-full h-9 px-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink"
               />
             </div>
           </div>
@@ -1164,7 +1202,7 @@ function CreateTaskModal({
                 id="create-task-sprint-select"
                 value={sprintId}
                 onChange={(e) => setSprintId(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] text-xs font-bold text-slate-900 dark:text-white cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
               >
                 <option value="">No specific sprint</option>
                 {sprints.map((s) => (
@@ -1186,7 +1224,7 @@ function CreateTaskModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-[#000F1D] hover:bg-neutral-800 text-white dark:bg-white dark:text-[#000F1D] dark:hover:bg-neutral-100 text-xs font-black shadow-[2.5px_2.5px_0_#000F1D] border-2 border-[#000F1D] cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-ink hover:opacity-90 text-panel text-xs font-black shadow-[var(--elevation-1)] border-2 border-border cursor-pointer"
             >
               Create Task
             </button>
