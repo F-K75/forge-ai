@@ -53,7 +53,7 @@ services:
       - STRIPE_PRICE_PRO_ANNUAL=${STRIPE_PRICE_PRO_ANNUAL:?}
       - STRIPE_PRICE_ENTERPRISE_ANNUAL=${STRIPE_PRICE_ENTERPRISE_ANNUAL:?}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?replicaSet=rs0&authSource=admin
       - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379
       - JWT_SECRET=${JWT_SECRET:?}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:?}
@@ -122,7 +122,7 @@ services:
       - STRIPE_PRICE_STANDARD_ANNUAL=${STRIPE_PRICE_STANDARD_ANNUAL:?}
       - STRIPE_PRICE_PRO_ANNUAL=${STRIPE_PRICE_PRO_ANNUAL:?}
       - STRIPE_PRICE_ENTERPRISE_ANNUAL=${STRIPE_PRICE_ENTERPRISE_ANNUAL:?}
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?replicaSet=rs0&authSource=admin
       - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379
       - JWT_SECRET=${JWT_SECRET:?}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:?}
@@ -156,13 +156,28 @@ services:
   mongo:
     image: mongo:7
     restart: unless-stopped
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        if [ ! -f /data/db/.mongo-keyfile ]; then
+          openssl rand -base64 756 > /data/db/.mongo-keyfile
+          chmod 400 /data/db/.mongo-keyfile
+          chown mongodb:mongodb /data/db/.mongo-keyfile
+        fi
+        exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/db/.mongo-keyfile
     environment:
       MONGO_INITDB_ROOT_USERNAME: forge
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?}
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      test:
+        - CMD-SHELL
+        - >
+          mongosh --quiet -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD"
+          --authenticationDatabase admin
+          --eval 'try { if (rs.status().myState !== 1) quit(1); } catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo:27017"}]}); quit(1); }'
       interval: 10s
       timeout: 5s
       retries: 5
@@ -215,7 +230,7 @@ services:
       - backup_data:/backups
       - ./scripts:/app/scripts:ro
     environment:
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?replicaSet=rs0&authSource=admin
       - BACKUP_RETENTION_DAYS=30
       - BACKUP_FAILURE_WEBHOOK_URL=${BACKUP_FAILURE_WEBHOOK_URL:-}
     entrypoint: /bin/sh
