@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, User, LogOut, ArrowRight, Workflow, Terminal, Lock } from "lucide-react";
+import { Search, FileText, Settings, CreditCard, Store, LayoutGrid, Home, Rocket, ShieldCheck, Shield, User, LogOut, ArrowRight, Workflow, Terminal, Lock } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import BrandLogo from "./BrandLogo";
 import { useAuthStore } from "../store/authStore";
@@ -26,6 +26,7 @@ const COMMANDS: Command[] = [
   { id: "marketplace", label: "Marketplace", icon: <Store size={16} />, href: "/marketplace", section: "nav", keywords: ["templates", "playbooks"] },
   { id: "billing", label: "Billing", icon: <CreditCard size={16} />, href: "/billing", section: "nav", keywords: ["plans", "subscription", "upgrade"] },
   { id: "settings", label: "Settings", icon: <Settings size={16} />, href: "/settings", section: "nav", keywords: ["preferences", "profile"] },
+  { id: "admin", label: "Admin Ops Console", icon: <Shield size={16} />, href: "/admin", section: "nav", keywords: ["admin", "ops", "llm", "prompt", "health", "optimization"] },
   { id: "login", label: "Sign in / Auth", icon: <Lock size={16} />, href: "/login", section: "nav", keywords: ["login", "auth", "signin", "credentials"] },
   { id: "signup", label: "Create Account / Sign up", icon: <User size={16} />, href: "/signup", section: "nav", keywords: ["register", "signup", "join"] },
   { id: "new-build", label: "New build…", icon: <FileText size={16} />, href: "/projects", section: "action", keywords: ["create", "prompt", "start"] },

@@ -111,10 +111,10 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
       ? [
           {
             id: "admin-ops",
-            to: "/admin-console",
+            to: "/admin",
             label: "Admin Ops",
             icon: Shield,
-            match: (p: string) => p.startsWith("/admin-console"),
+            match: (p: string) => p.startsWith("/admin"),
           },
         ]
       : []),

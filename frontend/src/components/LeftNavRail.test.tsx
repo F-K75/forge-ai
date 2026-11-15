@@ -45,7 +45,7 @@ describe("LeftNavRail Component", () => {
     expect(document.getElementById("rail-nav-marketplace")).toHaveAttribute("href", "/marketplace");
     expect(document.getElementById("rail-nav-billing")).toHaveAttribute("href", "/billing");
     expect(document.getElementById("rail-nav-settings")).toHaveAttribute("href", "/settings");
-    expect(document.getElementById("rail-nav-admin-ops")).toHaveAttribute("href", "/admin-console");
+    expect(document.getElementById("rail-nav-admin-ops")).toHaveAttribute("href", "/admin");
   });
 
   it("collapses from 220px to 56px when clicking the collapse toggle", () => {

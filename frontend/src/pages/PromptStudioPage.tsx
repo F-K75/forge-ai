@@ -241,16 +241,16 @@ export default function PromptStudioPage() {
 
   return (
     <motion.div
-      className="p-8 text-sm text-slate-200"
+      className="p-6 md:p-8 text-sm bg-base text-ink"
       initial={reduceMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
     >
       <div className="flex items-center gap-3">
         <BrandLogo size="md" />
-        <h1 className="text-2xl font-semibold">Prompt Studio</h1>
+        <h1 className="text-2xl font-semibold text-ink">Prompt Studio</h1>
       </div>
-      <p className="mt-2 text-slate-400">
+      <p className="mt-2 text-muted">
         Design prompt templates and preview how agents see them.
       </p>
 

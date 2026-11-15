@@ -96,10 +96,10 @@ export function AppearanceTab() {
   return (
     <div id="settings-appearance-panel" className="space-y-8">
       {/* Visual Theme Selection */}
-      <section className="rounded-sm border-2 border-black bg-white dark:bg-[#18181C] p-6 shadow-brutal-sm space-y-5">
+      <section className="rounded-xl border border-border bg-panel p-6 shadow-m3-1 space-y-5">
         <div>
-          <h2 className="text-sm font-mono font-bold text-ink uppercase tracking-wider flex items-center gap-2">
-            <Monitor size={15} />
+          <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+            <Monitor size={15} className="text-accent" />
             Color Theme
           </h2>
           <p className="text-xs text-muted mt-1">
@@ -118,34 +118,34 @@ export function AppearanceTab() {
                 role="radio"
                 aria-checked={active}
                 onClick={() => handleThemeSelect(item.id)}
-                className={`text-left p-4 rounded-sm border-2 border-black transition-all relative flex flex-col justify-between h-36 ${
+                className={`text-left p-4 rounded-xl border transition-all duration-150 relative flex flex-col justify-between h-36 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   active
-                    ? "bg-brutal-yellow text-black shadow-brutal-sm"
-                    : "bg-white dark:bg-[#121216] text-ink hover:bg-neutral-50 shadow-brutal-xs"
+                    ? "bg-accent-soft border-accent text-ink"
+                    : "bg-panel-alt border-border text-ink hover:border-accent/40"
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2.5">
                     <div
-                      className={`h-8 w-8 rounded-sm border-2 border-black flex items-center justify-center ${
-                        active ? "bg-black text-white" : "bg-neutral-100 dark:bg-[#18181C] text-ink"
+                      className={`h-8 w-8 rounded-lg border flex items-center justify-center ${
+                        active ? "bg-accent text-base border-accent" : "bg-panel border-border text-muted"
                       }`}
                     >
                       <Icon size={16} />
                     </div>
                     <div>
-                      <span className="text-xs font-mono font-bold block">{item.name}</span>
-                      <span className="text-[10px] uppercase font-mono tracking-wider opacity-75">{item.id}</span>
+                      <span className="text-xs font-semibold block text-ink">{item.name}</span>
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-muted">{item.id}</span>
                     </div>
                   </div>
                   {active && (
-                    <span className="h-5 w-5 rounded-sm border-2 border-black bg-black text-white flex items-center justify-center">
+                    <span className="h-5 w-5 rounded-md bg-accent text-base flex items-center justify-center">
                       <Check size={12} strokeWidth={3} />
                     </span>
                   )}
                 </div>
 
-                <p className="text-[11px] leading-relaxed line-clamp-2 mt-2 opacity-90">{item.desc}</p>
+                <p className="text-[11px] leading-relaxed line-clamp-2 mt-2 text-muted">{item.desc}</p>
               </button>
             );
           })}
@@ -153,10 +153,10 @@ export function AppearanceTab() {
       </section>
 
       {/* Code Editor Customization */}
-      <section className="rounded-sm border-2 border-black bg-white dark:bg-[#18181C] p-6 shadow-brutal-sm space-y-6">
+      <section className="rounded-xl border border-border bg-panel p-6 shadow-m3-1 space-y-6">
         <div>
-          <h2 className="text-sm font-mono font-bold text-ink uppercase tracking-wider flex items-center gap-2">
-            <Code2 size={15} />
+          <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+            <Code2 size={15} className="text-accent" />
             Code Editor Preferences
           </h2>
           <p className="text-xs text-muted mt-1">
@@ -166,14 +166,14 @@ export function AppearanceTab() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="space-y-1.5">
-            <label htmlFor="editor-font-select" className="text-xs font-mono font-bold text-ink block uppercase tracking-wider">
+            <label htmlFor="editor-font-select" className="text-xs font-medium text-ink block">
               Font Family
             </label>
             <select
               id="editor-font-select"
               value={prefs.editorFont}
               onChange={(e) => setPrefs((p) => ({ ...p, editorFont: e.target.value }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs font-mono bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
             >
               {CODE_FONTS.map((font) => (
                 <option key={font.value} value={font.value}>
@@ -184,14 +184,14 @@ export function AppearanceTab() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="editor-size-select" className="text-xs font-mono font-bold text-ink block uppercase tracking-wider">
+            <label htmlFor="editor-size-select" className="text-xs font-medium text-ink block">
               Font Size
             </label>
             <select
               id="editor-size-select"
               value={prefs.editorFontSize}
               onChange={(e) => setPrefs((p) => ({ ...p, editorFontSize: Number(e.target.value) }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs font-mono bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
             >
               {[11, 12, 13, 14, 15, 16].map((size) => (
                 <option key={size} value={size}>
@@ -202,14 +202,14 @@ export function AppearanceTab() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="editor-tab-select" className="text-xs font-mono font-bold text-ink block uppercase tracking-wider">
+            <label htmlFor="editor-tab-select" className="text-xs font-medium text-ink block">
               Tab Indentation
             </label>
             <select
               id="editor-tab-select"
               value={prefs.tabSize}
               onChange={(e) => setPrefs((p) => ({ ...p, tabSize: Number(e.target.value) }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs font-mono bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
             >
               <option value={2}>2 Spaces</option>
               <option value={4}>4 Spaces</option>
@@ -219,34 +219,34 @@ export function AppearanceTab() {
 
         {/* Editor Toggles */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-          <label className="flex items-center gap-3 p-3 rounded-sm border-2 border-black bg-white dark:bg-[#121216] cursor-pointer shadow-brutal-xs hover:bg-neutral-50">
+          <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-panel-alt cursor-pointer hover:border-accent/40 transition-colors">
             <input
               type="checkbox"
               checked={prefs.lineNumbers}
               onChange={(e) => setPrefs((p) => ({ ...p, lineNumbers: e.target.checked }))}
-              className="rounded-sm text-black focus:ring-0"
+              className="rounded accent-accent focus:ring-0"
             />
-            <span className="text-xs font-mono font-bold text-ink">Show Line Numbers</span>
+            <span className="text-xs font-medium text-ink">Show Line Numbers</span>
           </label>
 
-          <label className="flex items-center gap-3 p-3 rounded-sm border-2 border-black bg-white dark:bg-[#121216] cursor-pointer shadow-brutal-xs hover:bg-neutral-50">
+          <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-panel-alt cursor-pointer hover:border-accent/40 transition-colors">
             <input
               type="checkbox"
               checked={prefs.minimap}
               onChange={(e) => setPrefs((p) => ({ ...p, minimap: e.target.checked }))}
-              className="rounded-sm text-black focus:ring-0"
+              className="rounded accent-accent focus:ring-0"
             />
-            <span className="text-xs font-mono font-bold text-ink">Editor Minimap</span>
+            <span className="text-xs font-medium text-ink">Editor Minimap</span>
           </label>
 
-          <label className="flex items-center gap-3 p-3 rounded-sm border-2 border-black bg-white dark:bg-[#121216] cursor-pointer shadow-brutal-xs hover:bg-neutral-50">
+          <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-panel-alt cursor-pointer hover:border-accent/40 transition-colors">
             <input
               type="checkbox"
               checked={prefs.wordWrap}
               onChange={(e) => setPrefs((p) => ({ ...p, wordWrap: e.target.checked }))}
-              className="rounded-sm text-black focus:ring-0"
+              className="rounded accent-accent focus:ring-0"
             />
-            <span className="text-xs font-mono font-bold text-ink">Soft Word Wrap</span>
+            <span className="text-xs font-medium text-ink">Soft Word Wrap</span>
           </label>
         </div>
 
@@ -257,27 +257,27 @@ export function AppearanceTab() {
             <span>{prefs.editorFontSize}px • {prefs.editorFont.split(",")[0]}</span>
           </div>
           <div
-            className="rounded-sm bg-neutral-900 text-neutral-100 border-2 border-black p-4 font-mono overflow-x-auto select-none shadow-brutal-xs"
+            className="rounded-lg bg-base text-ink border border-border p-4 font-mono overflow-x-auto select-none"
             style={{
               fontFamily: prefs.editorFont,
               fontSize: `${prefs.editorFontSize}px`,
               lineHeight: "1.6",
             }}
           >
-            <div className="text-neutral-500">// Autonomous agent task execution</div>
+            <div className="text-muted">// Autonomous agent task execution</div>
             <div>
-              <span className="text-brutal-yellow font-bold">async function</span>{" "}
-              <span className="text-brutal-green font-bold">forgeBuild</span>(
-              <span className="text-brutal-pink">spec</span>: AgentPrompt):{" "}
-              <span className="text-brutal-yellow font-bold">Promise</span>&lt;BuildResult&gt; {"{"}
+              <span className="text-accent font-semibold">async function</span>{" "}
+              <span className="text-ok font-semibold">forgeBuild</span>(
+              <span className="text-secondary">spec</span>: AgentPrompt):{" "}
+              <span className="text-accent font-semibold">Promise</span>&lt;BuildResult&gt; {"{"}
             </div>
             <div className="pl-4">
-              <span className="text-brutal-yellow font-bold">const</span> session ={" "}
-              <span className="text-brutal-yellow font-bold">await</span> fleet.deployAgent(
-              <span className="text-teal-300">"architect"</span>);
+              <span className="text-accent font-semibold">const</span> session ={" "}
+              <span className="text-accent font-semibold">await</span> fleet.deployAgent(
+              <span className="text-ok">"architect"</span>);
             </div>
             <div className="pl-4">
-              <span className="text-brutal-yellow font-bold">return</span> session.execute(spec);
+              <span className="text-accent font-semibold">return</span> session.execute(spec);
             </div>
             <div>{"}"}</div>
           </div>
@@ -285,10 +285,10 @@ export function AppearanceTab() {
       </section>
 
       {/* Interface & Accessibility */}
-      <section className="rounded-sm border-2 border-black bg-white dark:bg-[#18181C] p-6 shadow-brutal-sm space-y-4">
+      <section className="rounded-xl border border-border bg-panel p-6 shadow-m3-1 space-y-4">
         <div>
-          <h2 className="text-sm font-mono font-bold text-ink uppercase tracking-wider flex items-center gap-2">
-            <Eye size={15} />
+          <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+            <Eye size={15} className="text-accent" />
             Accessibility & Motion
           </h2>
           <p className="text-xs text-muted mt-1">
@@ -296,18 +296,18 @@ export function AppearanceTab() {
           </p>
         </div>
 
-        <div className="divide-y-2 divide-black">
+        <div className="divide-y divide-border">
           <div className="py-3.5 flex items-center justify-between">
             <div>
-              <span className="text-xs font-mono font-bold text-ink block">UI Density</span>
-              <span className="text-[11px] font-mono text-muted">Compact mode shrinks table rows and toolbar padding.</span>
+              <span className="text-xs font-medium text-ink block">UI Density</span>
+              <span className="text-[11px] text-muted">Compact mode shrinks table rows and toolbar padding.</span>
             </div>
-            <div className="flex items-center gap-1 bg-neutral-100 dark:bg-[#121216] p-1 rounded-sm border-2 border-black text-xs shadow-brutal-xs">
+            <div className="flex items-center gap-1 bg-panel-alt p-1 rounded-lg border border-border text-xs">
               <button
                 type="button"
                 onClick={() => setPrefs((p) => ({ ...p, uiDensity: "comfortable" }))}
-                className={`px-3 py-1 rounded-sm font-mono font-bold transition ${
-                  prefs.uiDensity === "comfortable" ? "bg-brutal-yellow text-black border border-black shadow-brutal-xs" : "text-muted hover:text-ink"
+                className={`px-3 py-1 rounded-md font-medium transition-all ${
+                  prefs.uiDensity === "comfortable" ? "bg-accent-soft text-accent font-semibold" : "text-muted hover:text-ink"
                 }`}
               >
                 Comfortable
@@ -315,8 +315,8 @@ export function AppearanceTab() {
               <button
                 type="button"
                 onClick={() => setPrefs((p) => ({ ...p, uiDensity: "compact" }))}
-                className={`px-3 py-1 rounded-sm font-mono font-bold transition ${
-                  prefs.uiDensity === "compact" ? "bg-brutal-yellow text-black border border-black shadow-brutal-xs" : "text-muted hover:text-ink"
+                className={`px-3 py-1 rounded-md font-medium transition-all ${
+                  prefs.uiDensity === "compact" ? "bg-accent-soft text-accent font-semibold" : "text-muted hover:text-ink"
                 }`}
               >
                 Compact
@@ -326,45 +326,45 @@ export function AppearanceTab() {
 
           <div className="py-3.5 flex items-center justify-between">
             <div>
-              <span className="text-xs font-mono font-bold text-ink block">Reduce Motion & Animations</span>
-              <span className="text-[11px] font-mono text-muted">Minimizes spring transitions and canvas particles.</span>
+              <span className="text-xs font-medium text-ink block">Reduce Motion & Animations</span>
+              <span className="text-[11px] text-muted">Minimizes spring transitions and canvas particles.</span>
             </div>
             <input
               type="checkbox"
               id="pref-reduce-motion"
               checked={prefs.reduceMotion}
               onChange={(e) => setPrefs((p) => ({ ...p, reduceMotion: e.target.checked }))}
-              className="h-4 w-4 rounded-sm text-black border-2 border-black focus:ring-0 cursor-pointer"
+              className="h-4 w-4 rounded accent-accent focus:ring-0 cursor-pointer"
             />
           </div>
 
           <div className="py-3.5 flex items-center justify-between">
             <div>
-              <span className="text-xs font-mono font-bold text-ink flex items-center gap-1.5">
+              <span className="text-xs font-medium text-ink flex items-center gap-1.5">
                 <Volume2 size={13} className="text-muted" />
                 Audio Feedback & Alerts
               </span>
-              <span className="text-[11px] font-mono text-muted">Plays gentle audio notifications when agent builds finish or fail.</span>
+              <span className="text-[11px] text-muted">Plays gentle audio notifications when agent builds finish or fail.</span>
             </div>
             <input
               type="checkbox"
               id="pref-audio-cues"
               checked={prefs.audioCues}
               onChange={(e) => setPrefs((p) => ({ ...p, audioCues: e.target.checked }))}
-              className="h-4 w-4 rounded-sm text-black border-2 border-black focus:ring-0 cursor-pointer"
+              className="h-4 w-4 rounded accent-accent focus:ring-0 cursor-pointer"
             />
           </div>
         </div>
 
-        <div className="pt-4 border-t-2 border-black flex items-center justify-end">
+        <div className="pt-4 border-t border-border flex items-center justify-end">
           <button
             id="appearance-save-btn"
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-sm border-2 border-black bg-brutal-yellow text-black font-mono font-bold text-xs px-5 py-2.5 shadow-brutal-sm hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] transition-all disabled:opacity-50"
+            className="rounded-lg bg-accent text-base font-semibold text-xs px-5 py-2.5 hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 cursor-pointer"
           >
-            {saving ? "UPDATING..." : "SAVE APPEARANCE SETTINGS"}
+            {saving ? "Updating..." : "Save Appearance Settings"}
           </button>
         </div>
       </section>

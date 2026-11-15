@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   CreditCard,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   Check,
   Receipt,
   SlidersHorizontal,
+  Settings,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { AGENT_SPEND } from "../lib/mockData";
@@ -259,70 +261,72 @@ export default function BillingPage() {
   const maxAgentCredits = Math.max(1, ...agentSpendData.map((a) => a.credits));
 
   return (
-    <div id="billing-os-view" className="h-full flex flex-col min-h-0 select-none font-sans text-ink space-y-3">
-      {/* =========================================================================
-          1. TOP OS CONTROL TOOLBAR
-             System accounting status strip and direct tactile actions
-      ========================================================================= */}
-      <div className="p-2.5 sm:p-3 bg-white dark:bg-[#1A1A22] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 font-mono text-xs shrink-0">
+    <div id="billing-os-view" className="h-full flex flex-col min-h-0 select-none font-sans bg-base text-ink space-y-3 p-3 sm:p-5">
+      {/* Top Billing Toolbar */}
+      <div className="p-3 sm:p-4 bg-panel border border-border rounded-xl shadow-m3-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shrink-0">
         {/* Left: System Status Chips */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black text-white dark:bg-white dark:text-black font-black uppercase text-[11px] border border-black dark:border-white">
-            <SlidersHorizontal size={12} strokeWidth={2.5} />
-            <span>SYS_BILLING</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-panel-alt text-ink font-mono font-semibold uppercase text-[11px] border border-border">
+            <SlidersHorizontal size={12} className="text-accent" />
+            <span>Billing &amp; Usage</span>
           </div>
 
-          <span className="flex items-center gap-1 px-2 py-0.5 bg-brutal-yellow text-black border border-black font-black text-[10px] uppercase shadow-[1px_1px_0px_#000]">
-            <ShieldCheck size={11} strokeWidth={2.5} />
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-soft text-accent border border-accent/30 font-mono font-semibold text-[10px] uppercase">
+            <ShieldCheck size={11} />
             <span>{activeTier} TIER</span>
           </span>
 
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-400 text-black border border-black font-black text-[10px] shadow-[1px_1px_0px_#000]">
-            <Zap size={11} strokeWidth={2.5} />
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-ok/15 text-ok border border-ok/30 font-mono font-semibold text-[10px]">
+            <Zap size={11} />
             <span>BALANCE: {creditsRemaining} CR</span>
           </div>
 
           {billingProvider && (
-            <span className="hidden md:inline-flex items-center px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-ink border border-black dark:border-white text-[10px] font-bold uppercase">
+            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-md bg-panel-alt text-muted border border-border font-mono text-[10px] font-medium uppercase">
               GATEWAY: {billingProvider}
             </span>
           )}
         </div>
 
-        {/* Right: Tactile Push-Buttons */}
-        <div className="flex items-center gap-2 font-mono">
+        {/* Right: Actions + Settings Cross-Link */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/settings"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt text-ink border border-border text-xs font-medium hover:border-accent/50 hover:text-accent transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <Settings size={12} aria-hidden="true" />
+            <span>Settings</span>
+          </Link>
+
           <button
             type="button"
             id="billing-topup-btn"
             onClick={() => setCreditModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 bg-brutal-yellow text-black font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0px_#000] hover:brightness-105 active:translate-x-[1px] active:translate-y-[1px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-base font-semibold text-xs hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
           >
-            <Plus size={13} strokeWidth={3} />
-            <span>TOP-UP CREDITS</span>
+            <Plus size={13} />
+            <span>Top-Up Credits</span>
           </button>
 
           <button
             type="button"
             id="billing-portal-btn"
             onClick={handleOpenCustomerPortal}
-            className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-[#202028] text-ink font-bold text-xs border-2 border-black dark:border-white shadow-[2px_2px_0px_#000] hover:bg-neutral-100 dark:hover:bg-[#282834] active:translate-x-[1px] active:translate-y-[1px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt text-ink font-medium text-xs border border-border hover:border-accent/50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
           >
-            <CreditCard size={12} strokeWidth={2.5} />
-            <span>STRIPE PORTAL</span>
+            <CreditCard size={12} />
+            <span>Stripe Portal</span>
             <ArrowUpRight size={11} />
           </button>
         </div>
       </div>
 
-      {/* =========================================================================
-          2. OS TAB SELECTOR
-             Allows instant switching between Plans, Fleet Quotas, and Ledger
-      ========================================================================= */}
+      {/* Tab Selector */}
       <nav
         id="billing-tab-selector"
         role="tablist"
         aria-label="Billing Views"
-        className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 shrink-0 select-none font-mono"
+        className="p-1.5 bg-panel border border-border rounded-xl flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 select-none"
       >
         <button
           type="button"
@@ -330,14 +334,14 @@ export default function BillingPage() {
           role="tab"
           aria-selected={activeTab === "plans"}
           onClick={() => setActiveTab("plans")}
-          className={`shrink-0 px-3 py-1.5 border-2 border-black dark:border-white/80 font-mono text-xs font-black uppercase flex items-center gap-1.5 transition-none active:translate-x-[1px] active:translate-y-[1px] ${
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             activeTab === "plans"
-              ? "bg-brutal-yellow text-black shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
-              : "bg-white dark:bg-[#1E1E28] text-ink hover:bg-neutral-100 dark:hover:bg-[#282834] shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff]"
+              ? "bg-accent-soft text-accent border border-accent/30 font-semibold"
+              : "bg-transparent text-muted border border-transparent hover:bg-panel-alt hover:text-ink"
           }`}
         >
-          <Sparkles size={13} strokeWidth={2.5} />
-          <span>PLANS &amp; TIERS</span>
+          <Sparkles size={13} />
+          <span>Plans &amp; Tiers</span>
         </button>
 
         <button
@@ -346,15 +350,15 @@ export default function BillingPage() {
           role="tab"
           aria-selected={activeTab === "telemetry"}
           onClick={() => setActiveTab("telemetry")}
-          className={`shrink-0 px-3 py-1.5 border-2 border-black dark:border-white/80 font-mono text-xs font-black uppercase flex items-center gap-1.5 transition-none active:translate-x-[1px] active:translate-y-[1px] ${
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             activeTab === "telemetry"
-              ? "bg-brutal-yellow text-black shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
-              : "bg-white dark:bg-[#1E1E28] text-ink hover:bg-neutral-100 dark:hover:bg-[#282834] shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff]"
+              ? "bg-accent-soft text-accent border border-accent/30 font-semibold"
+              : "bg-transparent text-muted border border-transparent hover:bg-panel-alt hover:text-ink"
           }`}
         >
-          <Activity size={13} strokeWidth={2.5} />
-          <span>FLEET SPEND &amp; TELEMETRY</span>
-          <span className="text-[9px] font-black px-1 border border-black bg-emerald-400 text-black">
+          <Activity size={13} />
+          <span>Fleet Spend &amp; Telemetry</span>
+          <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-ok/15 text-ok border border-ok/30">
             {creditsRemaining} CR
           </span>
         </button>
@@ -365,41 +369,38 @@ export default function BillingPage() {
           role="tab"
           aria-selected={activeTab === "invoices"}
           onClick={() => setActiveTab("invoices")}
-          className={`shrink-0 px-3 py-1.5 border-2 border-black dark:border-white/80 font-mono text-xs font-black uppercase flex items-center gap-1.5 transition-none active:translate-x-[1px] active:translate-y-[1px] ${
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             activeTab === "invoices"
-              ? "bg-brutal-yellow text-black shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
-              : "bg-white dark:bg-[#1E1E28] text-ink hover:bg-neutral-100 dark:hover:bg-[#282834] shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff]"
+              ? "bg-accent-soft text-accent border border-accent/30 font-semibold"
+              : "bg-transparent text-muted border border-transparent hover:bg-panel-alt hover:text-ink"
           }`}
         >
-          <Receipt size={13} strokeWidth={2.5} />
-          <span>INVOICES &amp; LEDGER</span>
-          <span className="text-[9px] font-black px-1 border border-black bg-neutral-200 text-black">
+          <Receipt size={13} />
+          <span>Invoices &amp; Ledger</span>
+          <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-panel-alt text-muted border border-border">
             {invoices.length}
           </span>
         </button>
       </nav>
 
-      {/* =========================================================================
-          3. ACTIVE OS STAGE WORKSPACE
-             Renders the active section inside a framed Neubrutalist OS window
-      ========================================================================= */}
+      {/* Active Workspace Panel */}
       <section
         id={`billing-panel-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`tab-btn-${activeTab}`}
-        className="flex-1 min-h-0 bg-white dark:bg-[#181820] border-2 border-black dark:border-white/80 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] flex flex-col overflow-hidden"
+        className="flex-1 min-h-0 bg-panel border border-border rounded-xl shadow-m3-1 flex flex-col overflow-hidden"
       >
         {/* Module Sub-Header Strip */}
-        <div className="h-9 px-3 bg-[#EFECE6] dark:bg-[#22222C] border-b-2 border-black dark:border-white/80 flex items-center justify-between gap-2 shrink-0 font-mono text-xs">
+        <div className="h-10 px-4 bg-panel-alt border-b border-border flex items-center justify-between gap-2 shrink-0 text-xs">
           <div className="flex items-center gap-2 truncate">
-            <span className="font-black text-black dark:text-white uppercase flex items-center gap-1.5">
-              {activeTab === "plans" && <Sparkles size={13} strokeWidth={2.5} />}
-              {activeTab === "telemetry" && <Activity size={13} strokeWidth={2.5} />}
-              {activeTab === "invoices" && <FileText size={13} strokeWidth={2.5} />}
+            <span className="font-semibold text-ink flex items-center gap-1.5">
+              {activeTab === "plans" && <Sparkles size={13} className="text-accent" />}
+              {activeTab === "telemetry" && <Activity size={13} className="text-accent" />}
+              {activeTab === "invoices" && <FileText size={13} className="text-accent" />}
               <span>
-                {activeTab === "plans" && "SUBSCRIPTION_TIERS.CFG"}
-                {activeTab === "telemetry" && "FLEET_QUOTAS.LOG"}
-                {activeTab === "invoices" && "INVOICE_LEDGER.CSV"}
+                {activeTab === "plans" && "Subscription Tiers"}
+                {activeTab === "telemetry" && "Fleet Quotas & Spend"}
+                {activeTab === "invoices" && "Invoice Ledger"}
               </span>
             </span>
             <span className="text-muted text-[11px] hidden sm:inline">
@@ -409,23 +410,23 @@ export default function BillingPage() {
             </span>
           </div>
 
-          <span className="text-[10px] font-mono font-bold text-muted uppercase hidden md:inline shrink-0">
-            SYS:\ACCOUNTING\{activeTab.toUpperCase()}
+          <span className="text-[10px] font-mono font-medium text-muted uppercase hidden md:inline shrink-0">
+            ACCOUNTING / {activeTab.toUpperCase()}
           </span>
         </div>
 
-        {/* Dynamic Section Form Canvas */}
+        {/* Dynamic Section Canvas */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Low Credit Warning Banner (if credits < 50) */}
           {creditsRemaining < 50 && (
-            <div className="mb-6 p-3 bg-brutal-yellow border-2 border-black shadow-[2px_2px_0px_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-black font-mono">
-                <AlertCircle size={18} strokeWidth={2.5} className="shrink-0" />
+            <div className="mb-6 p-3.5 rounded-xl bg-warn/15 border border-warn/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-ink">
+                <AlertCircle size={18} className="text-warn shrink-0" />
                 <div>
-                  <p className="font-black text-xs uppercase">
-                    LOW CREDIT QUOTA: {creditsRemaining} CREDITS REMAINING
+                  <p className="font-semibold text-xs text-ink">
+                    Low credit quota: {creditsRemaining} credits remaining
                   </p>
-                  <p className="text-[11px] font-sans font-medium text-black/90">
+                  <p className="text-[11px] text-muted">
                     Autonomous agent builds will pause if balance reaches zero. Top up to ensure continuity.
                   </p>
                 </div>
@@ -433,52 +434,50 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={() => setCreditModalOpen(true)}
-                className="px-3 py-1 bg-white border-2 border-black text-black font-mono font-black text-xs uppercase shadow-[1px_1px_0px_#000] hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] shrink-0"
+                className="px-3 py-1.5 rounded-lg bg-warn text-base font-semibold text-xs hover:opacity-90 transition-opacity shrink-0 cursor-pointer"
               >
-                REFILL NOW
+                Refill Now
               </button>
             </div>
           )}
 
-          {/* =========================================================================
-              VIEW 1: PLANS & TIERS MATRIX
-          ========================================================================= */}
+          {/* VIEW 1: PLANS & TIERS MATRIX */}
           {activeTab === "plans" && (
             <div className="space-y-6">
               {/* Interval Toggle & Description Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[#F4F0EA] dark:bg-[#202028] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]">
-                <div className="font-mono text-xs">
-                  <span className="font-black text-ink uppercase">BILLING CADENCE: </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-panel-alt border border-border">
+                <div className="text-xs">
+                  <span className="font-semibold text-ink">Billing Cadence: </span>
                   <span className="text-muted">
                     {billingInterval === "annual" ? "Annual (20% off all tiers)" : "Monthly standard"}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1 font-mono">
+                <div className="flex items-center gap-1 bg-panel p-1 rounded-lg border border-border">
                   <button
                     type="button"
                     id="billing-interval-monthly"
                     onClick={() => setBillingInterval("monthly")}
-                    className={`px-3 py-1 text-xs font-black uppercase border-2 border-black transition-none active:translate-x-[1px] active:translate-y-[1px] ${
+                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                       billingInterval === "monthly"
-                        ? "bg-brutal-yellow text-black shadow-[2px_2px_0px_#000]"
-                        : "bg-white dark:bg-[#1E1E28] text-ink shadow-[1px_1px_0px_#000]"
+                        ? "bg-accent-soft text-accent font-semibold"
+                        : "text-muted hover:text-ink"
                     }`}
                   >
-                    MONTHLY
+                    Monthly
                   </button>
                   <button
                     type="button"
                     id="billing-interval-annual"
                     onClick={() => setBillingInterval("annual")}
-                    className={`flex items-center gap-1.5 px-3 py-1 text-xs font-black uppercase border-2 border-black transition-none active:translate-x-[1px] active:translate-y-[1px] ${
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                       billingInterval === "annual"
-                        ? "bg-brutal-yellow text-black shadow-[2px_2px_0px_#000]"
-                        : "bg-white dark:bg-[#1E1E28] text-ink shadow-[1px_1px_0px_#000]"
+                        ? "bg-accent-soft text-accent font-semibold"
+                        : "text-muted hover:text-ink"
                     }`}
                   >
-                    <span>ANNUAL</span>
-                    <span className="px-1 py-0.2 bg-emerald-400 text-black border border-black text-[9px] font-black">
+                    <span>Annual</span>
+                    <span className="px-1.5 py-0.5 rounded bg-ok/15 text-ok text-[9px] font-mono font-semibold">
                       -20%
                     </span>
                   </button>
@@ -501,26 +500,26 @@ export default function BillingPage() {
                     <div
                       key={plan.tier}
                       id={`plan-card-${plan.tier}`}
-                      className={`p-4 bg-white dark:bg-[#1E1E28] border-2 border-black dark:border-white/80 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] flex flex-col justify-between space-y-4 relative ${
-                        isCurrent ? "outline-2 outline-black dark:outline-white" : ""
+                      className={`p-5 rounded-xl bg-panel-alt border flex flex-col justify-between space-y-4 relative shadow-m3-1 ${
+                        isCurrent ? "border-accent ring-1 ring-accent/40" : "border-border"
                       }`}
                     >
                       {/* Plan Header */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-1.5 font-mono">
                           <span
-                            className={`px-2 py-0.5 text-[11px] font-black uppercase border border-black ${
+                            className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase border ${
                               isPro
-                                ? "bg-brutal-yellow text-black"
+                                ? "bg-accent-soft text-accent border-accent/30"
                                 : isEnterprise
-                                ? "bg-black text-white dark:bg-white dark:text-black"
-                                : "bg-neutral-200 dark:bg-neutral-800 text-ink"
+                                ? "bg-panel text-ink border-border"
+                                : "bg-panel text-muted border-border"
                             }`}
                           >
                             {plan.name}
                           </span>
                           {isCurrent && (
-                            <span className="px-1.5 py-0.2 bg-emerald-400 text-black border border-black text-[10px] font-black uppercase">
+                            <span className="px-1.5 py-0.5 rounded bg-ok/15 text-ok border border-ok/30 text-[10px] font-semibold uppercase">
                               ACTIVE
                             </span>
                           )}
@@ -530,24 +529,24 @@ export default function BillingPage() {
                         <div>
                           {plan.custom_pricing ? (
                             <div className="flex items-baseline gap-1 font-mono">
-                              <span className="text-3xl font-black text-ink">Custom</span>
+                              <span className="text-3xl font-bold text-ink">Custom</span>
                             </div>
                           ) : (
                             <div className="flex items-baseline gap-1 font-mono">
-                              <span className="text-3xl font-black text-ink">${displayPrice}</span>
+                              <span className="text-3xl font-bold text-ink">${displayPrice}</span>
                               <span className="text-xs text-muted uppercase">/mo</span>
                             </div>
                           )}
                           {!plan.custom_pricing && billingInterval === "annual" && plan.price_monthly > 0 && (
-                            <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                            <p className="text-[10px] font-mono text-ok font-medium mt-0.5">
                               ${plan.price_annual}/yr billed annually
                             </p>
                           )}
                         </div>
 
                         {/* Credits quota chip */}
-                        <div className="p-1.5 bg-[#F4F0EA] dark:bg-[#252532] border border-black dark:border-white/60 text-xs font-mono font-black text-ink flex items-center gap-1.5">
-                          <Zap size={12} className="text-black dark:text-white shrink-0" />
+                        <div className="p-2 rounded-lg bg-panel border border-border text-xs font-mono font-semibold text-ink flex items-center gap-1.5">
+                          <Zap size={12} className="text-accent shrink-0" />
                           <span>
                             {plan.custom_pricing
                               ? "CUSTOM CREDITS"
@@ -558,13 +557,13 @@ export default function BillingPage() {
                         </div>
 
                         {/* Features checklist */}
-                        <ul className="space-y-2 pt-1 text-xs font-sans text-muted">
+                        <ul className="space-y-2 pt-1 text-xs text-muted">
                           {plan.features.map((feat, idx) => (
-                            <li key={idx} className="flex items-start gap-1.5">
+                            <li key={idx} className="flex items-start gap-2">
                               <Check
                                 size={13}
-                                className="text-black dark:text-white shrink-0 mt-0.5"
-                                strokeWidth={3}
+                                className="text-accent shrink-0 mt-0.5"
+                                strokeWidth={2.5}
                               />
                               <span className="text-ink text-[12px]">{feat}</span>
                             </li>
@@ -572,13 +571,13 @@ export default function BillingPage() {
                         </ul>
                       </div>
 
-                      {/* Select Plan Push-Button */}
-                      <div className="pt-3 border-t-2 border-black/20 dark:border-white/20">
+                      {/* Select Plan Button */}
+                      <div className="pt-3 border-t border-border">
                         {plan.custom_pricing && !isCurrent ? (
                           <a
                             id={`btn-select-plan-${plan.tier}`}
                             href="/settings#support"
-                            className="block w-full py-2 text-center font-mono text-xs font-black uppercase border-2 border-black dark:border-white shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] bg-white dark:bg-[#202028] text-ink hover:bg-neutral-100"
+                            className="block w-full py-2 rounded-lg text-center text-xs font-semibold border border-border bg-panel text-ink hover:border-accent/50 transition-colors"
                           >
                             Contact us
                           </a>
@@ -588,25 +587,25 @@ export default function BillingPage() {
                           id={`btn-select-plan-${plan.tier}`}
                           disabled={isCurrent || pendingPlan === plan.tier}
                           onClick={() => handleSelectPlan(plan.tier)}
-                          className={`w-full py-2 font-mono text-xs font-black uppercase border-2 border-black dark:border-white shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed ${
+                          className={`w-full py-2 rounded-lg text-xs font-semibold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                             isCurrent
-                              ? "bg-neutral-200 dark:bg-neutral-800 text-muted"
+                              ? "bg-panel text-muted border border-border"
                               : isPro
-                              ? "bg-brutal-yellow text-black hover:brightness-105"
-                              : "bg-white dark:bg-[#202028] text-ink hover:bg-neutral-100"
+                              ? "bg-accent text-base hover:opacity-90"
+                              : "bg-panel text-ink border border-border hover:border-accent/50"
                           }`}
                         >
                           {pendingPlan === plan.tier ? (
                             <span className="flex items-center justify-center gap-1.5">
                               <RefreshCw size={12} className="animate-spin" />
-                              <span>PROCESSING...</span>
+                              <span>Processing...</span>
                             </span>
                           ) : isCurrent ? (
-                            "CURRENT TIER"
+                            "Current Tier"
                           ) : plan.tier === "free" ? (
-                            "DOWNGRADE"
+                            "Downgrade"
                           ) : (
-                            `SELECT ${plan.name.toUpperCase()}`
+                            `Select ${plan.name}`
                           )}
                         </button>
                         )}
@@ -618,50 +617,48 @@ export default function BillingPage() {
             </div>
           )}
 
-          {/* =========================================================================
-              VIEW 2: FLEET SPEND & TELEMETRY
-          ========================================================================= */}
+          {/* VIEW 2: FLEET SPEND & TELEMETRY */}
           {activeTab === "telemetry" && (
             <div className="space-y-6">
               {/* Telemetry Stat Gauges */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Gauge 1: Credit Quota */}
-                <div className="p-3.5 bg-white dark:bg-[#1E1E28] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
+                <div className="p-4 rounded-xl bg-panel-alt border border-border shadow-m3-1 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono font-medium text-muted">
                     <span className="flex items-center gap-1">
-                      <Zap size={12} className="text-black dark:text-white" />
+                      <Zap size={12} className="text-accent" />
                       <span>CREDIT BALANCE</span>
                     </span>
-                    <span className="px-1 bg-brutal-yellow text-black border border-black text-[9px] font-black">
+                    <span className="px-1.5 py-0.5 rounded bg-accent-soft text-accent text-[9px] font-semibold">
                       {creditUsagePercent}% USED
                     </span>
                   </div>
-                  <p className="text-2xl font-mono font-black text-ink">
+                  <p className="text-2xl font-mono font-bold text-ink">
                     {creditsRemaining.toLocaleString()}{" "}
                     <span className="text-xs font-normal text-muted">
                       / {totalCredits.toLocaleString()}
                     </span>
                   </p>
-                  <div className="h-2.5 w-full bg-neutral-100 dark:bg-neutral-800 border border-black dark:border-white overflow-hidden">
+                  <div className="h-2 w-full rounded-full bg-panel border border-border overflow-hidden">
                     <div
-                      className="h-full bg-emerald-400 border-r border-black"
+                      className="h-full bg-accent rounded-full"
                       style={{ width: `${100 - creditUsagePercent}%` }}
                     />
                   </div>
                 </div>
 
                 {/* Gauge 2: Autonomous Builds */}
-                <div className="p-3.5 bg-white dark:bg-[#1E1E28] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
+                <div className="p-4 rounded-xl bg-panel-alt border border-border shadow-m3-1 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono font-medium text-muted">
                     <span className="flex items-center gap-1">
-                      <Activity size={12} className="text-black dark:text-white" />
+                      <Activity size={12} className="text-accent" />
                       <span>RUNS COMPLETED</span>
                     </span>
-                    <span className="px-1 bg-cyan-300 text-black border border-black text-[9px] font-black">
+                    <span className="px-1.5 py-0.5 rounded bg-secondary-soft text-secondary text-[9px] font-semibold">
                       30D CYCLE
                     </span>
                   </div>
-                  <p className="text-2xl font-mono font-black text-ink">
+                  <p className="text-2xl font-mono font-bold text-ink">
                     {usage?.builds_count ?? 18}{" "}
                     <span className="text-xs font-normal text-muted">BUILDS</span>
                   </p>
@@ -671,20 +668,18 @@ export default function BillingPage() {
                 </div>
 
                 {/* Gauge 3: Plan Rate */}
-                <div className="p-3.5 bg-white dark:bg-[#1E1E28] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
+                <div className="p-4 rounded-xl bg-panel-alt border border-border shadow-m3-1 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono font-medium text-muted">
                     <span className="flex items-center gap-1">
-                      <DollarSign size={12} className="text-black dark:text-white" />
-                      <span>ACTIVE SUBSCRIPTION</span>
+                      <DollarSign size={12} className="text-accent" />
+                      <span>SUBSCRIPTION</span>
                     </span>
-                    <span className="px-1 bg-neutral-200 dark:bg-neutral-700 text-ink border border-black text-[9px] font-black uppercase">
+                    <span className="px-1.5 py-0.5 rounded bg-panel text-muted border border-border text-[9px] font-semibold uppercase">
                       {billingInterval}
                     </span>
                   </div>
-                  <p className="text-2xl font-mono font-black text-ink">
+                  <p className="text-2xl font-mono font-bold text-ink">
                     {(() => {
-                      // Read from the same plan list as the cards, not a
-                      // second hardcoded copy of the prices.
                       const current = plansToDisplay.find((p) => p.tier === activeTier);
                       if (current?.custom_pricing) return "Custom";
                       return (
@@ -701,15 +696,15 @@ export default function BillingPage() {
                 </div>
 
                 {/* Gauge 4: Runway */}
-                <div className="p-3.5 bg-white dark:bg-[#1E1E28] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
+                <div className="p-4 rounded-xl bg-panel-alt border border-border shadow-m3-1 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono font-medium text-muted">
                     <span className="flex items-center gap-1">
-                      <Calendar size={12} className="text-black dark:text-white" />
+                      <Calendar size={12} className="text-accent" />
                       <span>RUNWAY CYCLE</span>
                     </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 border border-black" />
+                    <span className="w-2 h-2 rounded-full bg-ok" />
                   </div>
-                  <p className="text-2xl font-mono font-black text-ink">
+                  <p className="text-2xl font-mono font-bold text-ink">
                     {LIVE_MODE ? (daysUntilReset === null ? "—" : `${daysUntilReset} DAYS`) : "22 DAYS"}
                   </p>
                   <p className="text-[10px] font-mono text-muted">
@@ -719,11 +714,11 @@ export default function BillingPage() {
               </div>
 
               {/* Fleet Agent Spend Breakdown */}
-              <div className="p-4 bg-white dark:bg-[#1E1E28] border-2 border-black dark:border-white/80 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-black/20 dark:border-white/20 pb-2.5 font-mono text-xs">
-                  <div className="font-black text-ink uppercase flex items-center gap-2">
-                    <Activity size={14} />
-                    <span>{LIVE_MODE ? "AGENT RUNS THIS PERIOD" : "AGENT_COMPUTE_CONSUMPTION.LOG"}</span>
+              <div className="p-5 rounded-xl bg-panel-alt border border-border shadow-m3-1 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3 font-mono text-xs">
+                  <div className="font-semibold text-ink uppercase flex items-center gap-2">
+                    <Activity size={14} className="text-accent" />
+                    <span>{LIVE_MODE ? "AGENT RUNS THIS PERIOD" : "AGENT COMPUTE CONSUMPTION"}</span>
                   </div>
                   <span className="text-muted">
                     CYCLE TOTAL: <strong className="text-ink">{creditsUsed} CREDITS USED</strong>
@@ -745,9 +740,9 @@ export default function BillingPage() {
                     return (
                       <div key={item.agentId} className="space-y-1">
                         <div className="flex items-center justify-between text-xs font-mono">
-                          <div className="flex items-center gap-2 font-black text-ink">
+                          <div className="flex items-center gap-2 font-semibold text-ink">
                             <span
-                              className="h-2.5 w-2.5 border border-black"
+                              className="h-2.5 w-2.5 rounded-full"
                               style={{ backgroundColor: item.hue }}
                             />
                             <span>{item.label}</span>
@@ -755,13 +750,13 @@ export default function BillingPage() {
                               ({shareOfTotal}% OF {LIVE_MODE ? "RUNS" : "BURN"})
                             </span>
                           </div>
-                          <span className="font-black text-ink">
+                          <span className="font-semibold text-ink">
                             {item.credits} {LIVE_MODE ? (item.credits === 1 ? "RUN" : "RUNS") : "CR"}
                           </span>
                         </div>
-                        <div className="h-3 w-full bg-neutral-100 dark:bg-neutral-800 border border-black dark:border-white overflow-hidden">
+                        <div className="h-2.5 w-full rounded-full bg-panel border border-border overflow-hidden">
                           <div
-                            className="h-full border-r border-black"
+                            className="h-full rounded-full"
                             style={{ width: `${pct}%`, backgroundColor: item.hue }}
                           />
                         </div>
@@ -773,29 +768,27 @@ export default function BillingPage() {
             </div>
           )}
 
-          {/* =========================================================================
-              VIEW 3: INVOICES & LEDGER
-          ========================================================================= */}
+          {/* VIEW 3: INVOICES & LEDGER */}
           {activeTab === "invoices" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b-2 border-black/20 dark:border-white/20 pb-2.5 font-mono text-xs">
-                <span className="font-black text-ink uppercase flex items-center gap-1.5">
-                  <FileText size={13} />
-                  <span>TAX_INVOICES &amp; SETTLEMENTS</span>
+              <div className="flex items-center justify-between border-b border-border pb-3 text-xs">
+                <span className="font-semibold text-ink flex items-center gap-1.5">
+                  <FileText size={13} className="text-accent" />
+                  <span>Tax Invoices &amp; Settlements</span>
                 </span>
                 <button
                   type="button"
                   onClick={handleOpenCustomerPortal}
-                  className="flex items-center gap-1 text-ink font-bold hover:underline"
+                  className="flex items-center gap-1 text-accent font-medium hover:underline cursor-pointer"
                 >
-                  <span>UPDATE PAYMENT METHOD</span>
+                  <span>Update Payment Method</span>
                   <ArrowUpRight size={11} />
                 </button>
               </div>
 
-              <div className="overflow-x-auto border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]">
+              <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-left font-mono text-xs">
-                  <thead className="bg-[#EFECE6] dark:bg-[#202028] text-ink border-b-2 border-black dark:border-white/80 font-black uppercase text-[11px]">
+                  <thead className="bg-panel-alt text-muted border-b border-border font-semibold uppercase text-[11px] sticky top-0">
                     <tr>
                       <th className="p-3">INVOICE_ID</th>
                       <th className="p-3">DATE</th>
@@ -805,10 +798,10 @@ export default function BillingPage() {
                       <th className="p-3 text-right">ACTION</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y-2 divide-black/20 dark:divide-white/20 bg-white dark:bg-[#1A1A24]">
+                  <tbody className="divide-y divide-border bg-panel">
                     {invoices.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="p-4 text-center text-xs font-mono text-muted">
+                        <td colSpan={6} className="p-6 text-center text-xs text-muted">
                           No invoices yet.
                         </td>
                       </tr>
@@ -816,14 +809,14 @@ export default function BillingPage() {
                     {invoices.map((inv) => (
                       <tr
                         key={inv.id}
-                        className="hover:bg-brutal-yellow/20 dark:hover:bg-brutal-yellow/10"
+                        className="hover:bg-panel-alt/60 transition-colors"
                       >
-                        <td className="p-3 font-black text-ink">{inv.id}</td>
+                        <td className="p-3 font-semibold text-ink">{inv.id}</td>
                         <td className="p-3 text-muted">{inv.date}</td>
                         <td className="p-3 text-ink">{inv.plan}</td>
-                        <td className="p-3 font-black text-ink">{inv.amount}</td>
+                        <td className="p-3 font-semibold text-ink">{inv.amount}</td>
                         <td className="p-3">
-                          <span className="px-2 py-0.5 bg-emerald-400 text-black border border-black text-[10px] font-black uppercase">
+                          <span className="px-2 py-0.5 rounded bg-ok/15 text-ok border border-ok/30 text-[10px] font-semibold uppercase">
                             {inv.status}
                           </span>
                         </td>
@@ -838,9 +831,9 @@ export default function BillingPage() {
                                 toast.success(`Downloading invoice ${inv.id} PDF...`);
                               }
                             }}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-[#252530] border border-black dark:border-white text-ink text-[11px] font-black uppercase shadow-[1px_1px_0px_#000] hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px]"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-panel-alt border border-border text-ink text-[11px] font-medium hover:border-accent/50 transition-colors cursor-pointer"
                           >
-                            <Download size={11} strokeWidth={2.5} />
+                            <Download size={11} />
                             <span>PDF</span>
                           </button>
                         </td>
@@ -854,9 +847,7 @@ export default function BillingPage() {
         </div>
       </section>
 
-      {/* =========================================================================
-          4. MODAL: ON-DEMAND CREDIT TOP-UP DIALOG (OS SYSTEM WINDOW)
-      ========================================================================= */}
+      {/* MODAL: ON-DEMAND CREDIT TOP-UP DIALOG */}
       {creditModalOpen && (
         <div
           id="credit-topup-modal-backdrop"
@@ -866,19 +857,20 @@ export default function BillingPage() {
             id="credit-topup-modal-window"
             role="dialog"
             aria-labelledby="credit-modal-title"
-            className="w-full max-w-lg border-2 border-black dark:border-white/80 bg-white dark:bg-[#1A1A24] shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_#fff] overflow-hidden flex flex-col font-mono"
+            className="w-full max-w-lg rounded-xl border border-border bg-panel shadow-m3-3 overflow-hidden flex flex-col"
           >
             {/* Modal Titlebar */}
-            <div className="h-10 px-3 bg-brutal-yellow text-black border-b-2 border-black flex items-center justify-between select-none">
-              <div id="credit-modal-title" className="flex items-center gap-2 font-black text-xs uppercase">
-                <Plus size={14} strokeWidth={3} />
-                <span>TOP_UP_CREDITS.SYS</span>
+            <div className="h-11 px-4 bg-panel-alt text-ink border-b border-border flex items-center justify-between select-none">
+              <div id="credit-modal-title" className="flex items-center gap-2 font-semibold text-xs">
+                <Plus size={14} className="text-accent" />
+                <span>Top-Up Credits</span>
               </div>
               <button
                 type="button"
                 id="btn-close-credit-modal"
+                aria-label="Close modal"
                 onClick={() => setCreditModalOpen(false)}
-                className="w-6 h-6 border border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black text-xs active:translate-x-[1px] active:translate-y-[1px]"
+                className="w-7 h-7 rounded-md border border-border bg-panel text-muted hover:text-ink flex items-center justify-center text-xs cursor-pointer"
               >
                 ✕
               </button>
@@ -886,7 +878,7 @@ export default function BillingPage() {
 
             {/* Modal Body */}
             <div className="p-5 space-y-4">
-              <p className="text-xs text-muted font-sans">
+              <p className="text-xs text-muted">
                 Credits are immediately provisioned to your workspace balance and roll over indefinitely across active cycles without expiration.
               </p>
 
@@ -895,34 +887,34 @@ export default function BillingPage() {
                   <div
                     key={pkg.id}
                     id={`pkg-card-${pkg.id}`}
-                    className="p-3 bg-white dark:bg-[#20202C] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] flex flex-col justify-between space-y-3"
+                    className="p-3.5 rounded-xl bg-panel-alt border border-border flex flex-col justify-between space-y-3"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-black text-sm text-ink">
+                        <p className="font-semibold text-sm text-ink font-mono">
                           {pkg.credits.toLocaleString()} CR
                         </p>
-                        <p className="text-[10px] text-muted">
+                        <p className="text-[10px] text-muted font-mono">
                           {pkg.perCredit} / CREDIT
                         </p>
                       </div>
                       {pkg.bonus && (
-                        <span className="px-1.5 py-0.2 bg-emerald-400 text-black border border-black text-[9px] font-black uppercase">
+                        <span className="px-1.5 py-0.5 rounded bg-ok/15 text-ok border border-ok/30 text-[9px] font-mono font-semibold uppercase">
                           {pkg.bonus}
                         </span>
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-black/20 dark:border-white/20 flex items-center justify-between">
-                      <span className="text-base font-black text-ink">${pkg.price}</span>
+                    <div className="pt-2 border-t border-border flex items-center justify-between">
+                      <span className="text-base font-bold text-ink font-mono">${pkg.price}</span>
                       <button
                         type="button"
                         id={`btn-buy-pkg-${pkg.id}`}
                         disabled={purchasingCredit === pkg.id}
                         onClick={() => handleBuyCreditPackage(pkg.id)}
-                        className="px-3 py-1 border-2 border-black bg-brutal-yellow text-black text-xs font-black uppercase shadow-[1px_1px_0px_#000] hover:brightness-105 active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg bg-accent text-base text-xs font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
-                        {purchasingCredit === pkg.id ? "BUYING..." : "PURCHASE"}
+                        {purchasingCredit === pkg.id ? "Buying..." : "Purchase"}
                       </button>
                     </div>
                   </div>
@@ -931,15 +923,15 @@ export default function BillingPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 border-t-2 border-black dark:border-white/80 bg-[#EFECE6] dark:bg-[#202028] flex items-center justify-between text-[11px] text-muted">
-              <span>GATEWAY: SECURE STRIPE CHECKOUT</span>
+            <div className="p-3.5 border-t border-border bg-panel-alt flex items-center justify-between text-[11px] text-muted">
+              <span>Gateway: Secure Stripe Checkout</span>
               <button
                 type="button"
                 id="btn-cancel-credit-modal"
                 onClick={() => setCreditModalOpen(false)}
-                className="px-3 py-1 border border-black dark:border-white bg-white dark:bg-[#1A1A24] text-ink font-bold hover:bg-neutral-100"
+                className="px-3 py-1.5 rounded-lg border border-border bg-panel text-ink font-medium hover:border-accent/50 cursor-pointer"
               >
-                CANCEL
+                Cancel
               </button>
             </div>
           </div>

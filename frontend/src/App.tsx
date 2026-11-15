@@ -31,12 +31,8 @@ const MarketplacePage = lazyWithRetry(() => import("./pages/MarketplacePage"))
 const BillingPage = lazyWithRetry(() => import("./pages/BillingPage"))
 const SettingsPage = lazyWithRetry(() => import("./pages/SettingsPage"))
 const WorkspacePage = lazyWithRetry(() => import("./pages/WorkspacePage"))
-const LLMManagementPage = lazyWithRetry(() => import("./pages/LLMManagementPage"))
-const OptimizationDashboard = lazyWithRetry(() => import("./pages/OptimizationDashboard"))
-const EngineeringHealthPage = lazyWithRetry(() => import("./pages/EngineeringHealthPage"))
-const PromptStudioPage = lazyWithRetry(() => import("./pages/PromptStudioPage"))
 // Step 3: in-shell surfaces
-const AdminConsole = lazyWithRetry(() => import("./pages/AdminConsole"))
+const AdminOpsPage = lazyWithRetry(() => import("./pages/AdminOpsPage"))
 const ProjectHistory = lazyWithRetry(() => import("./pages/ProjectHistory"))
 // AI-native Agile PM layer (Initiatives): vision/PRD -> epics/stories/tasks -> sprints -> board -> releases
 const InitiativesListPage = lazyWithRetry(() => import("./pages/pm/InitiativesListPage"))
@@ -533,13 +529,7 @@ export default function App() {
             />
             <Route
               path="/models"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <LLMManagementPage />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=llm" replace />}
             />
             <Route
               path="/marketplace"
@@ -565,56 +555,36 @@ export default function App() {
                 </Suspense>
               }
             />
+            {/* Unified Admin & AI Ops Console */}
             <Route
-              path="/llm-management"
+              path="/admin"
               element={
                 <AdminRoute>
                   <Suspense fallback={<RouteSkeleton />}>
-                    <LLMManagementPage />
+                    <AdminOpsPage />
                   </Suspense>
                 </AdminRoute>
               }
+            />
+            <Route
+              path="/llm-management"
+              element={<Navigate to="/admin?tab=llm" replace />}
             />
             <Route
               path="/optimization-dashboard"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <OptimizationDashboard />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=optimization" replace />}
             />
             <Route
               path="/engineering-health"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <EngineeringHealthPage />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=health" replace />}
             />
             <Route
               path="/prompt-studio"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <PromptStudioPage />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=prompts" replace />}
             />
-            {/* Step 3: in-shell surfaces */}
             <Route
               path="/admin-console"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <AdminConsole />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=overview" replace />}
             />
             <Route
               path="/project/:projectId"

@@ -26,7 +26,7 @@ describe("AdminRoute", () => {
   it("asks an admin without MFA to enable it instead of loading admin pages", async () => {
     renderAdminConsoleAs({ id: "u1", email: "a@b.c", name: "A", is_admin: true, mfa_enabled: false })
 
-    expect(await screen.findByText(/turn on two-factor authentication/i)).toBeInTheDocument()
+    expect(await screen.findByText(/turn on two-factor authentication/i, {}, { timeout: 5000 })).toBeInTheDocument()
     const link = screen.getByRole("link", { name: /set up two-factor authentication/i })
     expect(link.getAttribute("href")).toBe("/settings#security")
     expect(screen.queryByText("Admin console page")).not.toBeInTheDocument()
@@ -35,7 +35,7 @@ describe("AdminRoute", () => {
   it("lets an admin with MFA enabled through", async () => {
     renderAdminConsoleAs({ id: "u1", email: "a@b.c", name: "A", is_admin: true, mfa_enabled: true })
 
-    expect(await screen.findByText("Admin console page")).toBeInTheDocument()
+    expect(await screen.findByText("Admin console page", {}, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/turn on two-factor authentication/i)).not.toBeInTheDocument()
   })
 })

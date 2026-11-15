@@ -88,46 +88,46 @@ export function ProfileTab() {
   return (
     <div id="settings-profile-panel" className="space-y-8">
       {/* Account Overview Card */}
-      <div className="rounded-sm border-2 border-black bg-white dark:bg-[#18181C] p-6 shadow-brutal-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b-2 border-black">
+      <div className="rounded-xl border border-border bg-panel p-6 shadow-m3-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-border">
           <div className="flex items-center gap-4">
             <div className="relative">
               {form.avatarUrl ? (
                 <img
                   src={form.avatarUrl}
                   alt={form.name}
-                  className="h-16 w-16 rounded-sm border-2 border-black object-cover shadow-brutal-xs"
+                  className="h-16 w-16 rounded-lg border border-border object-cover"
                 />
               ) : (
-                <div className="h-16 w-16 rounded-sm bg-brutal-yellow border-2 border-black text-black flex items-center justify-center font-black text-xl shadow-brutal-xs">
+                <div className="h-16 w-16 rounded-lg bg-accent-soft border border-accent/30 text-accent flex items-center justify-center font-semibold text-xl">
                   {form.name ? form.name.charAt(0).toUpperCase() : "U"}
                 </div>
               )}
-              <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-brutal-green border-2 border-black" title="Online" />
+              <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-ok border-2 border-panel" title="Online" />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-mono font-bold text-ink">{form.name || "Forge User"}</h3>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-mono font-black uppercase bg-brutal-yellow text-black border-2 border-black shadow-brutal-xs">
+                <h3 className="text-base font-semibold text-ink">{form.name || "Forge User"}</h3>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold uppercase bg-accent-soft text-accent border border-accent/30">
                   {user?.plan || "Pro"} Plan
                 </span>
               </div>
               <p className="text-xs text-muted mt-0.5 font-mono">{form.email}</p>
-              <p className="text-xs text-muted mt-1 font-mono">
+              <p className="text-xs text-muted mt-1">
                 {form.role} • {form.organization}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-ink bg-neutral-100 dark:bg-[#121216] border-2 border-black rounded-sm px-4 py-3 shadow-brutal-xs">
+          <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-ink bg-panel-alt border border-border rounded-lg px-4 py-3">
             <div className="flex items-center gap-2">
-              <CreditCard size={14} className="text-current" />
+              <CreditCard size={14} className="text-accent" />
               <span>
-                Credits: <strong className="text-ink font-bold">{user?.credits ?? 612}</strong>
+                Credits: <strong className="text-ink font-semibold">{user?.credits ?? 612}</strong>
               </span>
             </div>
-            <div className="h-4 w-[2px] bg-black" />
+            <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-2">
               <Calendar size={14} className="text-muted" />
               <span>Joined {memberSince}</span>
@@ -138,24 +138,24 @@ export function ProfileTab() {
         {/* User identifier copy row */}
         <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-muted font-mono">
-            <Shield size={13} className="text-ink" />
+            <Shield size={13} className="text-accent" />
             <span>Workspace Account ID:</span>
-            <code className="font-mono text-ink bg-neutral-100 dark:bg-[#121216] px-2 py-0.5 rounded-sm border-2 border-black font-bold">
+            <code className="font-mono text-ink bg-panel-alt px-2 py-0.5 rounded-md border border-border font-medium">
               {user?.id || "usr_forge_default"}
             </code>
           </div>
           <ClipboardCopyButton
             text={user?.id || "usr_forge_default"}
             successMessage="User ID copied"
-            className="rounded-sm border-2 border-black bg-white dark:bg-[#121216] text-ink font-mono font-bold text-xs py-1 px-2.5 h-7 shadow-brutal-xs hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] transition-all self-start sm:self-auto"
+            className="rounded-lg border border-border bg-panel-alt text-ink font-mono font-medium text-xs py-1 px-2.5 h-7 hover:border-accent/50 transition-colors self-start sm:self-auto"
           />
         </div>
       </div>
 
       {/* Main Profile Form */}
-      <form onSubmit={handleSave} className="rounded-sm border-2 border-black bg-white dark:bg-[#18181C] p-6 space-y-6 shadow-brutal-sm">
-        <div className="border-b-2 border-black pb-4">
-          <h2 className="text-sm font-mono font-bold text-ink uppercase tracking-wider">Personal Information</h2>
+      <form onSubmit={handleSave} className="rounded-xl border border-border bg-panel p-6 space-y-6 shadow-m3-1">
+        <div className="border-b border-border pb-4">
+          <h2 className="text-sm font-semibold text-ink">Personal Information</h2>
           <p className="text-xs text-muted mt-1">
             Update your profile identity and developer credentials across Forge AI.
           </p>
@@ -163,23 +163,23 @@ export function ProfileTab() {
 
         {/* Avatar Selection */}
         <div className="space-y-3">
-          <span className="text-xs font-mono font-bold text-ink block uppercase tracking-wider">Profile Photo</span>
+          <span className="text-xs font-medium text-ink block">Profile Photo</span>
           <div className="flex flex-wrap items-center gap-3">
             {AVATAR_PRESETS.map((url, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => setForm((prev) => ({ ...prev, avatarUrl: url }))}
-                className={`relative rounded-sm h-11 w-11 overflow-hidden border-2 border-black transition-all ${
+                className={`relative rounded-lg h-11 w-11 overflow-hidden border transition-all ${
                   form.avatarUrl === url
-                    ? "ring-2 ring-black shadow-brutal-xs scale-105"
-                    : "opacity-80 hover:opacity-100 shadow-brutal-xs"
+                    ? "border-accent ring-2 ring-accent/40 scale-105"
+                    : "border-border opacity-80 hover:opacity-100"
                 }`}
                 title={`Preset avatar ${idx + 1}`}
               >
                 <img src={url} alt={`Avatar preset ${idx + 1}`} className="h-full w-full object-cover" />
                 {form.avatarUrl === url && (
-                  <div className="absolute inset-0 bg-brutal-yellow/60 flex items-center justify-center text-black">
+                  <div className="absolute inset-0 bg-accent/30 flex items-center justify-center text-ink">
                     <Check size={14} strokeWidth={3} />
                   </div>
                 )}
@@ -188,7 +188,7 @@ export function ProfileTab() {
             <button
               type="button"
               onClick={() => setForm((prev) => ({ ...prev, avatarUrl: "" }))}
-              className="px-2.5 py-1 text-xs font-mono font-bold rounded-sm border-2 border-black text-ink hover:bg-brutal-pink hover:text-black transition shadow-brutal-xs"
+              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-border text-muted hover:text-error hover:border-error/40 transition-colors"
             >
               Clear
             </button>
@@ -200,7 +200,7 @@ export function ProfileTab() {
               placeholder="Or paste an image URL (https://...)"
               value={form.avatarUrl}
               onChange={(e) => setForm((prev) => ({ ...prev, avatarUrl: e.target.value }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink placeholder:text-muted/60 shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs font-mono bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
             />
           </div>
         </div>
@@ -208,7 +208,7 @@ export function ProfileTab() {
         {/* Form Inputs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-1.5">
-            <label htmlFor="profile-name-input" className="text-xs font-mono font-bold text-ink flex items-center gap-1.5 uppercase tracking-wider">
+            <label htmlFor="profile-name-input" className="text-xs font-medium text-ink flex items-center gap-1.5">
               <User size={13} className="text-muted" />
               Full Name
             </label>
@@ -218,35 +218,35 @@ export function ProfileTab() {
               required
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
               placeholder="Your Name"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="profile-email-input" className="text-xs font-mono font-bold text-ink flex items-center justify-between uppercase tracking-wider">
+            <label htmlFor="profile-email-input" className="text-xs font-medium text-ink flex items-center justify-between">
               <span>Account Email</span>
-              <span className="text-[10px] font-mono font-bold text-black bg-brutal-green px-1.5 py-0.5 rounded-sm border border-black shadow-brutal-xs">Verified</span>
+              <span className="text-[10px] font-mono font-semibold text-ok bg-ok/15 px-1.5 py-0.5 rounded border border-ok/30">Verified</span>
             </label>
             <input
               id="profile-email-input"
               type="email"
               disabled
               value={form.email}
-              className="w-full text-xs font-mono bg-neutral-100 dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-muted cursor-not-allowed shadow-brutal-xs"
+              className="w-full text-xs font-mono bg-panel-alt/50 border border-border rounded-lg px-3 py-2 text-muted cursor-not-allowed"
             />
-            <p className="text-[11px] font-mono text-muted">Contact security support to change verified account email.</p>
+            <p className="text-[11px] text-muted">Contact security support to change verified account email.</p>
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="profile-role-input" className="text-xs font-mono font-bold text-ink block uppercase tracking-wider">
+            <label htmlFor="profile-role-input" className="text-xs font-medium text-ink block">
               Role / Specialization
             </label>
             <select
               id="profile-role-input"
               value={form.role}
               onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
             >
               <option value="Full Stack Architect">Full Stack Architect</option>
               <option value="Senior Frontend Engineer">Senior Frontend Engineer</option>
@@ -259,7 +259,7 @@ export function ProfileTab() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="profile-org-input" className="text-xs font-mono font-bold text-ink block uppercase tracking-wider">
+            <label htmlFor="profile-org-input" className="text-xs font-medium text-ink block">
               Organization / Team
             </label>
             <input
@@ -267,20 +267,20 @@ export function ProfileTab() {
               type="text"
               value={form.organization}
               onChange={(e) => setForm((prev) => ({ ...prev, organization: e.target.value }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
               placeholder="e.g. Platform Team, ACME Corp"
             />
           </div>
 
           <div className="space-y-1.5 md:col-span-2">
-            <label htmlFor="profile-timezone-input" className="text-xs font-mono font-bold text-ink block uppercase tracking-wider">
+            <label htmlFor="profile-timezone-input" className="text-xs font-medium text-ink block">
               Timezone
             </label>
             <select
               id="profile-timezone-input"
               value={form.timezone}
               onChange={(e) => setForm((prev) => ({ ...prev, timezone: e.target.value }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm px-3 py-2 text-ink shadow-brutal-xs focus:outline-none"
+              className="w-full text-xs bg-panel-alt border border-border rounded-lg px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
             >
               {TIMEZONES.map((tz) => (
                 <option key={tz.value} value={tz.value}>
@@ -288,14 +288,14 @@ export function ProfileTab() {
                 </option>
               ))}
             </select>
-            <p className="text-[11px] font-mono text-muted">Used to schedule automated daily summaries and fleet maintenance windows.</p>
+            <p className="text-[11px] text-muted">Used to schedule automated daily summaries and fleet maintenance windows.</p>
           </div>
 
           <div className="space-y-1.5 md:col-span-2">
-            <label htmlFor="profile-bio-input" className="text-xs font-mono font-bold text-ink flex items-center justify-between uppercase tracking-wider">
+            <label htmlFor="profile-bio-input" className="text-xs font-medium text-ink flex items-center justify-between">
               <span>Developer Bio / Team Instructions</span>
               <span className="text-[10px] text-muted flex items-center gap-1 font-mono">
-                <Sparkles size={11} /> Read by autonomous agents
+                <Sparkles size={11} className="text-accent" /> Read by autonomous agents
               </span>
             </label>
             <textarea
@@ -303,20 +303,20 @@ export function ProfileTab() {
               rows={3}
               value={form.bio}
               onChange={(e) => setForm((prev) => ({ ...prev, bio: e.target.value }))}
-              className="w-full text-xs font-mono bg-white dark:bg-[#121216] border-2 border-black rounded-sm p-3 text-ink placeholder:text-muted/60 shadow-brutal-xs focus:outline-none resize-none"
+              className="w-full text-xs bg-panel-alt border border-border rounded-lg p-3 text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all resize-none"
               placeholder="Provide background information or persistent architectural guidelines for your agents..."
             />
           </div>
         </div>
 
-        <div className="pt-4 border-t-2 border-black flex items-center justify-end gap-3">
+        <div className="pt-4 border-t border-border flex items-center justify-end gap-3">
           <button
             id="profile-save-btn"
             type="submit"
             disabled={saving}
-            className="rounded-sm border-2 border-black bg-brutal-yellow text-black font-mono font-bold text-xs px-5 py-2.5 shadow-brutal-sm hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] transition-all disabled:opacity-50"
+            className="rounded-lg bg-accent text-base font-semibold text-xs px-5 py-2.5 hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 cursor-pointer"
           >
-            {saving ? "SAVING CHANGES..." : "SAVE PROFILE"}
+            {saving ? "Saving changes..." : "Save Profile"}
           </button>
         </div>
       </form>

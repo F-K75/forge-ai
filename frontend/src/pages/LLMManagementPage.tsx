@@ -525,51 +525,48 @@ export default function LLMManagementPage() {
   );
 
   return (
-    <div id="models-os-view" className="h-full flex flex-col min-h-0 select-none font-sans text-ink space-y-3">
-      {/* =========================================================================
-          1. TOP OS CONTROL TOOLBAR
-             System model status strip and physical push-buttons
-      ========================================================================= */}
-      <div className="p-2.5 sm:p-3 bg-white dark:bg-[#1A1A22] border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 font-mono text-xs shrink-0">
+    <div id="models-os-view" className="h-full flex flex-col min-h-0 select-none font-sans bg-base text-ink space-y-3 p-4 sm:p-6">
+      {/* Top Intelligence Control Toolbar */}
+      <div className="p-3 bg-panel border border-border rounded-xl shadow-m3-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 font-mono text-xs shrink-0">
         {/* Left: System Status Chips */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black text-white dark:bg-white dark:text-black font-black uppercase text-[11px] border border-black dark:border-white">
-            <Cpu size={12} strokeWidth={2.5} />
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-panel-alt text-ink font-semibold uppercase text-[11px] border border-border">
+            <Cpu size={12} className="text-accent" />
             <span>SYS_INTELLIGENCE</span>
           </div>
 
-          <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-400 text-black border border-black font-black text-[10px] uppercase shadow-[1px_1px_0px_#000]">
-            <ShieldCheck size={11} strokeWidth={2.5} />
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-ok/15 text-ok border border-ok/30 font-semibold text-[10px] uppercase">
+            <ShieldCheck size={11} />
             <span>{healthyProvidersCount}/{providers.length} GATEWAYS OK</span>
           </span>
 
-          <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 bg-cyan-300 text-black border border-black font-black text-[10px] uppercase shadow-[1px_1px_0px_#000]">
-            <Gauge size={11} strokeWidth={2.5} />
+          <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary-soft text-secondary border border-secondary/30 font-semibold text-[10px] uppercase">
+            <Gauge size={11} />
             <span>{avgLatency}MS P95</span>
           </span>
 
-          <span className="hidden md:flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-ink border border-black dark:border-white text-[10px] font-bold uppercase">
+          <span className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-md bg-panel-alt text-muted border border-border text-[10px] font-medium uppercase">
             <Cpu size={11} />
             <span>{models.length} MODELS</span>
           </span>
 
-          <span className="hidden lg:flex items-center gap-1 px-1.5 py-0.5 bg-brutal-yellow text-black border border-black text-[10px] font-black uppercase shadow-[1px_1px_0px_#000]">
+          <span className="hidden lg:flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-soft text-accent border border-accent/30 text-[10px] font-semibold uppercase">
             <DollarSign size={11} />
             <span>${totalCost.toFixed(2)} / {((totalTokens / 1_000_000).toFixed(1))}M TKNS</span>
           </span>
         </div>
 
-        {/* Right: Tactile Push-Buttons */}
-        <div className="flex items-center gap-2 font-mono">
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 font-sans">
           <button
             type="button"
             id="models-test-fleet-btn"
             disabled={diagnosingAll}
             onClick={handleTestAllProviders}
-            className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-[#202028] text-ink font-bold text-xs border-2 border-black dark:border-white shadow-[2px_2px_0px_#000] hover:bg-neutral-100 dark:hover:bg-[#282834] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt text-ink font-medium text-xs border border-border hover:border-accent/50 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <Activity size={12} className={diagnosingAll ? "animate-spin text-black" : ""} strokeWidth={2.5} />
-            <span>{diagnosingAll ? "TESTING..." : "PING FLEET"}</span>
+            <Activity size={12} className={diagnosingAll ? "animate-spin text-accent" : ""} />
+            <span>{diagnosingAll ? "Testing..." : "Ping Fleet"}</span>
           </button>
 
           <button
@@ -577,10 +574,10 @@ export default function LLMManagementPage() {
             id="models-sync-router-btn"
             disabled={reloading}
             onClick={handleReloadConfig}
-            className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-[#202028] text-ink font-bold text-xs border-2 border-black dark:border-white shadow-[2px_2px_0px_#000] hover:bg-neutral-100 dark:hover:bg-[#282834] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt text-ink font-medium text-xs border border-border hover:border-accent/50 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <RefreshCw size={12} className={reloading ? "animate-spin text-black" : ""} strokeWidth={2.5} />
-            <span>SYNC ROUTER</span>
+            <RefreshCw size={12} className={reloading ? "animate-spin text-accent" : ""} />
+            <span>Sync Router</span>
           </button>
 
           <button
@@ -590,10 +587,10 @@ export default function LLMManagementPage() {
               setPlaygroundOpen(true);
               setTestResponse(null);
             }}
-            className="flex items-center gap-1.5 px-3 py-1 bg-brutal-yellow text-black font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0px_#000] hover:brightness-105 active:translate-x-[1px] active:translate-y-[1px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-base font-semibold text-xs hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Play size={12} fill="currentColor" />
-            <span>PLAYGROUND</span>
+            <span>Playground</span>
           </button>
         </div>
       </div>
@@ -727,12 +724,12 @@ export default function LLMManagementPage() {
         id={`models-panel-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`tab-btn-${activeTab}`}
-        className="flex-1 min-h-0 bg-white dark:bg-[#181820] border-2 border-black dark:border-white/80 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] flex flex-col overflow-hidden"
+        className="flex-1 min-h-0 bg-panel border border-border rounded-xl shadow-m3-1 flex flex-col overflow-hidden"
       >
         {/* Module Sub-Header Strip */}
-        <div className="h-9 px-3 bg-[#EFECE6] dark:bg-[#22222C] border-b-2 border-black dark:border-white/80 flex items-center justify-between gap-2 shrink-0 font-mono text-xs">
+        <div className="h-10 px-4 bg-panel-alt border-b border-border flex items-center justify-between gap-2 shrink-0 font-mono text-xs">
           <div className="flex items-center gap-2 truncate">
-            <span className="font-black text-black dark:text-white uppercase flex items-center gap-1.5">
+            <span className="font-semibold text-ink uppercase flex items-center gap-1.5">
               {activeTab === "catalog" && <Cpu size={13} strokeWidth={2.5} />}
               {activeTab === "routing" && <Sliders size={13} strokeWidth={2.5} />}
               {activeTab === "providers" && <Server size={13} strokeWidth={2.5} />}
