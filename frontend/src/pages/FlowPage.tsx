@@ -476,7 +476,7 @@ export default function FlowPage() {
           </div>
 
           {/* Scenario Selector Strip - Standardized to h-7 (28px) */}
- <div className="pt-2.5 border-t-2 border-black/10 dark:border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 text-xs">
+ <div className="pt-2.5 border-t border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 text-xs">
  <div className="flex items-center gap-1.5 shrink-0">
  <Sparkles size={13} className="text-black dark:text-white" strokeWidth={2.5} />
  <span className="font-black text-black dark:text-white uppercase tracking-wider text-[11px]">SCENARIO PRESET:</span>
@@ -508,13 +508,13 @@ export default function FlowPage() {
             </div>
 
  <div className="flex items-center gap-2 text-[11px] font-mono shrink-0">
- <span className="px-1.5 py-0.5 border border-black dark:border-white/60 bg-neutral-100 dark:bg-[#2A2A36]">
+ <span className="px-1.5 py-0.5 border border-border bg-panel-alt">
  STEPS: <strong className="font-black text-ink">{currentScenario.steps.length}</strong>
               </span>
- <span className="px-1.5 py-0.5 border border-black dark:border-white/60 bg-neutral-100 dark:bg-[#2A2A36]">
+ <span className="px-1.5 py-0.5 border border-border bg-panel-alt">
  EST: <strong className="font-black text-ink">{currentScenario.estimatedRuntime}</strong>
               </span>
- <span className="px-1.5 py-0.5 border border-black dark:border-white/60 bg-emerald-300 dark:bg-emerald-950 text-black dark:text-emerald-300 font-black">
+ <span className="px-1.5 py-0.5 border border-border bg-emerald-300 dark:bg-emerald-950 text-black dark:text-emerald-300 font-black">
                 {currentScenario.tokenSavings}
               </span>
             </div>
@@ -765,7 +765,7 @@ export default function FlowPage() {
                 <Terminal size={12} strokeWidth={2.5} />
                 <span>AGENT LOGS</span>
                 {simLogs.length > 0 && (
- <span className="px-1 border border-black bg-accent text-[#09090B] text-black text-[10px] font-black">
+ <span className="px-1 border border-border bg-accent text-[#09090B] text-[10px] font-black">
                     {simLogs.length}
                   </span>
                 )}
@@ -795,7 +795,7 @@ export default function FlowPage() {
  <span className="font-black text-black dark:text-white uppercase">
                     STEP {currentSimStep.stepNumber}/{currentScenario.steps.length}:
                   </span>
- <strong className="px-1 border border-black bg-white dark:bg-black text-ink">
+ <strong className="px-1 border border-border bg-panel-alt text-ink">
                     [{currentSimStep.agentLabel}]
                   </strong>
  <span className="text-muted truncate">{currentSimStep.action}</span>
@@ -977,7 +977,7 @@ export default function FlowPage() {
                               </span>
  <h3 className="font-black text-xs sm:text-sm text-ink uppercase">{step.action}</h3>
                               <span
- className="font-mono text-[10px] uppercase font-black px-1.5 py-0.5 border border-black"
+ className="font-mono text-[10px] uppercase font-black px-1.5 py-0.5 border border-border"
                                 style={{
  backgroundColor: `${agentMeta?.hue || "#14B8A6"}20`,
  color: agentMeta?.hue || "#14B8A6",
@@ -985,7 +985,7 @@ export default function FlowPage() {
                               >
                                 {step.agentLabel}
                               </span>
- <span className="text-[10px] font-mono font-bold text-muted uppercase border border-black/30 bg-black/5 dark:bg-white/5 px-1 py-0.5">
+ <span className="text-[10px] font-mono font-bold text-muted uppercase border border-border bg-panel-alt px-1 py-0.5">
                                 {step.stage}
                               </span>
                             </div>
@@ -998,7 +998,7 @@ export default function FlowPage() {
  <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[10px] font-mono">
  <span className="font-bold text-muted uppercase">INPUTS:</span>
                               {step.inputs.map((inp, i) => (
- <span key={i} className="px-1.5 py-0.5 border border-black/40 bg-black/5 dark:bg-white/5 text-ink font-medium">
+ <span key={i} className="px-1.5 py-0.5 border border-border bg-panel-alt text-ink font-medium">
                                   {inp}
                                 </span>
                               ))}
@@ -1007,7 +1007,7 @@ export default function FlowPage() {
                         </div>
 
                         {/* Right side: Deliverable chip and Execution Status - Standardized to h-7 */}
- <div className="flex items-center justify-between lg:justify-end gap-2 self-stretch lg:self-auto border-t lg:border-t-0 pt-2 lg:pt-0 border-black/10">
+ <div className="flex items-center justify-between lg:justify-end gap-2 self-stretch lg:self-auto border-t lg:border-t-0 pt-2 lg:pt-0 border-border">
                           <button
  type="button"
                             onClick={() => {
@@ -1036,7 +1036,7 @@ export default function FlowPage() {
                                 RUNNING
                               </span>
                             ) : (
- <span className="h-7 px-2 border border-black/40 bg-neutral-100 dark:bg-[#2A2A36] text-muted font-bold uppercase text-[11px] flex items-center">
+ <span className="h-7 px-2 border border-border bg-panel-alt text-muted font-bold uppercase text-[11px] flex items-center">
                                 PENDING
                               </span>
                             )}
@@ -1063,7 +1063,7 @@ export default function FlowPage() {
                   </p>
                 </div>
  <div className="text-xs font-mono text-muted">
- FILTERED: <strong className="text-ink uppercase font-black px-1 border border-black bg-white dark:bg-black">{selectedStage}</strong>
+ FILTERED: <strong className="text-ink uppercase font-black px-1 border border-border bg-panel-alt">{selectedStage}</strong>
                 </div>
               </div>
 
@@ -1100,7 +1100,7 @@ export default function FlowPage() {
                             </div>
                           </div>
 
- <span className="font-mono text-[10px] font-black px-1.5 py-0.5 border border-black bg-neutral-100 dark:bg-[#2A2A36] text-ink">
+ <span className="font-mono text-[10px] font-black px-1.5 py-0.5 border border-border bg-panel-alt text-ink">
                             {agent.credits} CREDITS
                           </span>
                         </div>
@@ -1117,7 +1117,7 @@ export default function FlowPage() {
                             {agent.tools.map((t, i) => (
                               <span
                                 key={i}
- className="text-[10px] font-mono font-bold px-1.5 py-0.5 border border-black/40 bg-black/5 dark:bg-white/5 text-ink"
+ className="text-[10px] font-mono font-bold px-1.5 py-0.5 border border-border bg-panel-alt text-ink"
                               >
                                 {t}
                               </span>
@@ -1127,7 +1127,7 @@ export default function FlowPage() {
                       </div>
 
                       {/* Card Footer: Metrics and action - Standardized to h-7 */}
- <div className="pt-2.5 border-t-2 border-black/10 flex items-center justify-between text-xs font-mono">
+ <div className="pt-2.5 border-t border-border flex items-center justify-between text-xs font-mono">
  <div className="flex items-center gap-2.5 text-muted text-[11px]">
  <span title="Success Rate">
  <strong className="text-emerald-600 dark:text-emerald-400 font-black">{agent.successRate}%</strong> PASS
@@ -1196,7 +1196,7 @@ export default function FlowPage() {
                     className={`h-7 px-2.5 border border-border font-mono text-[11px] font-black uppercase active:translate-x-[1px] active:translate-y-[1px] ${
                       activeArtifactTab === key
  ? "bg-accent text-[#09090B] text-black shadow-m3"
- : "bg-white dark:bg-[#181820] text-ink hover:bg-neutral-100"
+ : "bg-panel text-ink hover:bg-panel-alt"
                     }`}
                   >
                     {label}
@@ -1242,18 +1242,18 @@ export default function FlowPage() {
             <div
  role="dialog"
  aria-modal="true"
- className="relative z-10 w-full max-w-md h-full bg-[#F5F4F0] dark:bg-[#1C1C24] border-l-2 border-black dark:border-white/80 shadow-m3 flex flex-col justify-between overflow-y-auto font-mono"
+ className="relative z-10 w-full max-w-md h-full bg-panel border-l border-border shadow-m3 flex flex-col justify-between overflow-y-auto font-mono"
             >
               {/* Drawer Title Bar */}
- <div className="h-10 px-4 bg-panel-alt dark:bg-[#22222C] border-b-2 border-black dark:border-white/80 flex items-center justify-between shrink-0">
+ <div className="h-10 px-4 bg-panel-alt border-b border-border flex items-center justify-between shrink-0">
  <div className="flex items-center gap-2">
- <span className="h-2.5 w-2.5 border border-black bg-accent text-[#09090B]" />
+ <span className="h-2.5 w-2.5 border border-border bg-accent text-[#09090B]" />
  <span className="font-black text-xs uppercase text-ink">AGENT_INSPECTOR.EXE</span>
                 </div>
                 <button
  type="button"
                   onClick={() => setSelectedAgent(null)}
- className="h-6 w-6 border border-black bg-white dark:bg-black flex items-center justify-center font-bold hover:bg-neutral-200"
+ className="h-6 w-6 border border-border bg-panel-alt flex items-center justify-center font-bold hover:bg-panel"
  aria-label="Close drawer"
                 >
                   <X size={14} strokeWidth={2.5} />
@@ -1272,10 +1272,10 @@ export default function FlowPage() {
                   <div>
  <h3 className="font-black text-sm text-ink uppercase">{selectedAgent.label}</h3>
  <div className="flex items-center gap-2 mt-1">
- <span className="font-mono text-[9px] uppercase font-black px-1 border border-black bg-neutral-100 dark:bg-black text-ink">
+ <span className="font-mono text-[9px] uppercase font-black px-1 border border-border bg-panel-alt text-ink">
                         STAGE {selectedAgent.stage}
                       </span>
- <span className="font-mono text-[9px] font-black text-ink uppercase px-1 border border-black bg-accent text-[#09090B]">
+ <span className="font-mono text-[9px] font-black uppercase px-1 border border-border bg-accent text-[#09090B]">
                         {selectedAgent.credits} CREDITS/RUN
                       </span>
                     </div>
@@ -1285,13 +1285,13 @@ export default function FlowPage() {
                 {/* Purpose */}
  <div className="space-y-1">
  <span className="font-mono text-[10px] font-black text-muted uppercase">ROLE MISSION</span>
- <p className="text-xs text-ink leading-relaxed border border-border p-2.5 bg-white dark:bg-[#181820]">
+ <p className="text-xs text-ink leading-relaxed border border-border p-2.5 bg-panel-alt">
                     {selectedAgent.purpose}
                   </p>
                 </div>
 
                 {/* Model Engine info */}
- <div className="p-3 border border-border bg-white dark:bg-[#181820] shadow-m3 space-y-2 text-xs font-mono">
+ <div className="p-3 border border-border bg-panel-alt shadow-m3 space-y-2 text-xs font-mono">
  <span className="font-mono text-[10px] font-black text-ink uppercase flex items-center gap-1.5">
                     <Cpu size={12} strokeWidth={2.5} />
                     MODEL & INFERENCE CONFIGURATION
@@ -1323,7 +1323,7 @@ export default function FlowPage() {
                     {selectedAgent.tools.map((tool, i) => (
                       <span
                         key={i}
- className="px-2 py-0.5 border border-black bg-white dark:bg-[#2A2A36] text-[10px] font-black text-ink shadow-m3"
+ className="px-2 py-0.5 border border-border bg-panel-alt text-[10px] font-black text-ink shadow-m3"
                       >
                         {tool}
                       </span>
@@ -1333,7 +1333,7 @@ export default function FlowPage() {
 
                 {/* Inputs & Outputs */}
  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
- <div className="p-2 border border-border bg-white dark:bg-[#181820] space-y-1">
+ <div className="p-2 border border-border bg-panel-alt space-y-1">
  <span className="text-[10px] font-black text-muted uppercase">INPUTS:</span>
  <ul className="space-y-1 text-ink text-[10px]">
                       {selectedAgent.inputs.map((inp, i) => (
@@ -1345,7 +1345,7 @@ export default function FlowPage() {
                     </ul>
                   </div>
 
- <div className="p-2 border border-border bg-white dark:bg-[#181820] space-y-1">
+ <div className="p-2 border border-border bg-panel-alt space-y-1">
  <span className="text-[10px] font-black text-muted uppercase">OUTPUTS:</span>
  <ul className="space-y-1 text-ink text-[10px]">
                       {selectedAgent.outputs.map((out, i) => (
@@ -1368,21 +1368,21 @@ export default function FlowPage() {
               </div>
 
               {/* Bottom Actions - Standardized to h-7 */}
- <div className="p-3 border-t-2 border-black bg-panel-alt dark:bg-[#22222C] space-y-2">
+ <div className="p-3 border-t border-border bg-panel-alt space-y-2">
                 <button
  type="button"
                   onClick={() => {
                     setSelectedAgent(null);
                     handleStartSim();
                   }}
- className="h-7 w-full border border-border bg-accent text-[#09090B] text-black font-mono text-xs font-black uppercase shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
+ className="h-7 w-full border border-border bg-accent text-[#09090B] font-mono text-xs font-black uppercase shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
                 >
                   TEST RUN AGENT IN ISOLATION
                 </button>
                 <button
  type="button"
                   onClick={() => setSelectedAgent(null)}
- className="h-7 w-full border border-border bg-white dark:bg-[#181820] text-ink font-mono text-xs font-black uppercase shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
+ className="h-7 w-full border border-border bg-panel text-ink font-mono text-xs font-black uppercase shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
                 >
                   CLOSE INSPECTOR
                 </button>
@@ -1405,10 +1405,10 @@ export default function FlowPage() {
             <div
  role="dialog"
  aria-modal="true"
- className="relative z-10 w-full max-w-3xl max-h-[85vh] bg-white dark:bg-[#181820] border border-border shadow-m3 flex flex-col overflow-hidden"
+ className="relative z-10 w-full max-w-3xl max-h-[85vh] bg-panel border border-border shadow-m3 flex flex-col overflow-hidden"
             >
               {/* Modal Title bar */}
- <div className="h-9 px-3 bg-panel-alt dark:bg-[#22222C] border-b-2 border-black dark:border-white/80 flex items-center justify-between shrink-0">
+ <div className="h-9 px-3 bg-panel-alt border-b border-border flex items-center justify-between shrink-0">
  <div className="flex items-center gap-2">
                   <FileCode size={13} strokeWidth={2.5} />
  <span className="font-black text-xs text-ink uppercase">{modalArtifactData.title}</span>
@@ -1440,12 +1440,12 @@ export default function FlowPage() {
                 </pre>
               </div>
 
- <div className="h-8 px-3 border-t-2 border-black dark:border-white/80 flex items-center justify-between text-[11px] font-mono bg-panel-alt dark:bg-[#22222C]">
+ <div className="h-8 px-3 border-t border-border flex items-center justify-between text-[11px] font-mono bg-panel-alt">
  <span className="text-muted font-bold uppercase">GENERATED BY AUTONOMOUS AGENT PIPELINE</span>
                 <button
  type="button"
                   onClick={() => setPreviewArtifactModal(null)}
- className="h-6 px-2 border border-black bg-white dark:bg-black text-ink font-black uppercase text-[10px]"
+ className="h-6 px-2 border border-border bg-panel text-ink font-black uppercase text-[10px]"
                 >
                   CLOSE
                 </button>

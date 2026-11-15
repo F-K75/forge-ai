@@ -153,15 +153,15 @@ export function CommandPalette() {
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
-            className="relative w-full max-w-lg rounded-sm bg-white border-3 border-black shadow-brutal-xl overflow-hidden"
+            className="relative w-full max-w-lg rounded-sm bg-panel border border-border shadow-m3-1 overflow-hidden"
              initial={reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -8, scale: 0.98 }}
              animate={{ opacity: 1, y: 0, scale: 1 }}
              exit={reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            <div className="flex items-center gap-2.5 px-4 border-b-2 border-black bg-brutal-cream">
+            <div className="flex items-center gap-2.5 px-4 border-b border-border bg-panel-alt">
               <BrandLogo size="xs" />
-              <Search size={16} className="text-black shrink-0" strokeWidth={2.5} aria-hidden="true" />
+              <Search size={16} className="text-ink shrink-0" strokeWidth={2.5} aria-hidden="true" />
               <input
                 ref={inputRef}
                 type="text"
@@ -182,12 +182,12 @@ export function CommandPalette() {
                   }
                 }}
                 placeholder="Type a command or search…"
-                className="flex-1 bg-transparent py-3.5 text-sm font-bold text-black placeholder:text-muted/60 focus:outline-none"
+                className="flex-1 bg-transparent py-3.5 text-sm font-bold text-ink placeholder:text-muted/60 focus:outline-none"
                 aria-label="Search commands"
                 aria-controls="command-list"
                 aria-activedescendant={filtered[activeIndex] ? `cmd-${filtered[activeIndex].id}` : undefined}
               />
-              <kbd className="hidden sm:inline-flex items-center gap-1 rounded-sm border-2 border-black bg-white px-1.5 py-0.5 text-[10px] font-mono font-bold text-black shadow-brutal-sm">
+              <kbd className="hidden sm:inline-flex items-center gap-1 rounded-sm border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono font-bold text-ink shadow-m3-1">
                 ESC
               </kbd>
             </div>
@@ -195,7 +195,7 @@ export function CommandPalette() {
               id="command-list"
               ref={listRef}
               role="listbox"
-              className="max-h-80 overflow-y-auto p-2.5 bg-white"
+              className="max-h-80 overflow-y-auto p-2.5 bg-panel"
               aria-label="Commands"
             >
               {filtered.length === 0 ? (
@@ -206,7 +206,7 @@ export function CommandPalette() {
                   if (items.length === 0) return null;
                   return (
                     <div key={section.key} className="mb-2 last:mb-0">
-                      <p className="px-3 pt-2 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-black">{section.label}</p>
+                      <p className="px-3 pt-2 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-muted">{section.label}</p>
                       {items.map((cmd) => {
                         const globalIdx = filtered.indexOf(cmd);
                         const isActive = globalIdx === activeIndex;
@@ -219,13 +219,13 @@ export function CommandPalette() {
                             onClick={() => handleSelect(cmd)}
                             onMouseEnter={() => setActiveIndex(globalIdx)}
                             className={[
-                              "flex w-full items-center gap-3 rounded-sm px-3 py-2 text-left text-sm font-bold transition-all border-2",
-                              isActive ? "bg-brutal-yellow text-black border-black shadow-brutal-sm translate-x-1" : "text-black border-transparent hover:bg-neutral-100",
+                              "flex w-full items-center gap-3 rounded-sm px-3 py-2 text-left text-sm font-bold transition-all border",
+                              isActive ? "bg-accent text-[#09090B] border-border shadow-m3-1 translate-x-1" : "text-ink border-transparent hover:bg-panel-alt",
                             ].join(" ")}
                           >
-                            <span className="shrink-0 text-black">{cmd.icon}</span>
+                            <span className="shrink-0">{cmd.icon}</span>
                             <span className="flex-1 truncate">{cmd.label}</span>
-                            {cmd.id === "new-build" && <ArrowRight size={14} className="shrink-0 text-black" strokeWidth={2.5} aria-hidden="true" />}
+                            {cmd.id === "new-build" && <ArrowRight size={14} className="shrink-0" strokeWidth={2.5} aria-hidden="true" />}
                           </button>
                         );
                       })}
@@ -234,10 +234,10 @@ export function CommandPalette() {
                 })
               )}
             </div>
-            <div className="flex items-center justify-between border-t-2 border-black bg-brutal-cream px-4 py-2 text-[11px] font-bold text-black">
+            <div className="flex items-center justify-between border-t border-border bg-panel-alt px-4 py-2 text-[11px] font-bold text-ink">
               <span className="flex items-center gap-2">
                 <BrandLogo size="xs" />
-                <span><kbd className="font-mono bg-white px-1 border border-black rounded-none">↑↓</kbd> to navigate · <kbd className="font-mono bg-white px-1 border border-black rounded-none">↵</kbd> to select</span>
+                <span><kbd className="font-mono bg-panel px-1 border border-border rounded-none">↑↓</kbd> to navigate · <kbd className="font-mono bg-panel px-1 border border-border rounded-none">↵</kbd> to select</span>
               </span>
               <span>{filtered.length} result{filtered.length === 1 ? "" : "s"}</span>
             </div>

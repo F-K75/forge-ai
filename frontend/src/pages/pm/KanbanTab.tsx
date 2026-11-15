@@ -611,7 +611,7 @@ function TaskCard({
               disabled={running}
               aria-label="Run AI agent"
               title="Execute task with Gemini 2.5 Flash agent"
-              className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#000F1D] text-white hover:bg-neutral-800 dark:bg-white dark:text-[#000F1D] dark:hover:bg-neutral-100 shadow-xs hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-ink text-panel hover:opacity-90 shadow-xs hover:shadow transition-all disabled:opacity-50 cursor-pointer"
             >
               {running ? (
                 <Loader2 size={12} className="animate-spin" aria-hidden="true" />
@@ -1572,7 +1572,7 @@ export default function KanbanTab() {
         {/* Title and High-Level Status Row */}
         <div className="flex items-center justify-between gap-4 mb-3.5 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#000F1D] text-white dark:bg-white dark:text-[#000F1D] flex items-center justify-center border border-border shadow-m3-1">
+            <div className="w-10 h-10 rounded-2xl bg-ink text-panel flex items-center justify-center border border-border shadow-m3-1">
               <Layers size={20} strokeWidth={2.5} />
             </div>
             <div>
@@ -1749,7 +1749,7 @@ export default function KanbanTab() {
               onClick={() => setShowArrows(!showArrows)}
               className={`flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border text-xs font-black cursor-pointer transition-all shadow-xs ${
                 showArrows
-                  ? "bg-[#4DA2FE] text-[#000F1D]"
+                  ? "bg-accent text-[#09090B]"
                   : "bg-panel-alt text-muted"
               }`}
               title={showArrows ? "Hide visual dependency blocker arrows" : "Show visual dependency blocker arrows"}
@@ -1784,7 +1784,7 @@ export default function KanbanTab() {
                 onClick={() => setViewMode("grid12")}
                 className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
                   viewMode === "grid12"
-                    ? "bg-[#000F1D] text-white dark:bg-white dark:text-[#000F1D] shadow-xs"
+                    ? "bg-ink text-panel shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
                 title="Strict 12-column aligned responsive grid"
@@ -1798,7 +1798,7 @@ export default function KanbanTab() {
                 onClick={() => setViewMode("lanes")}
                 className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
                   viewMode === "lanes"
-                    ? "bg-[#000F1D] text-white dark:bg-white dark:text-[#000F1D] shadow-xs"
+                    ? "bg-ink text-panel shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
                 title="Horizontal lanes Kanban flow"
@@ -1886,7 +1886,7 @@ export default function KanbanTab() {
                     onClick={() => setColumnPreset(preset.id as any)}
                     className={`px-3 py-1 text-xs font-black rounded-full border transition-all cursor-pointer ${
                       isSelected
-                        ? "border-border bg-[#4DA2FE] text-[#000F1D] shadow-xs"
+                        ? "border-border bg-accent text-[#09090B] shadow-xs"
                         : "border-border bg-panel-alt text-muted hover:text-ink"
                     }`}
                     title={preset.desc}

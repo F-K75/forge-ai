@@ -85,7 +85,7 @@ const synth = new CyberAudioSynth();
  * Standardized industrial corner bracket lines across cards and HUD modules
  */
 function CornerLines({
- color = "border-black/70 dark:border-white/50",
+ color = "border-border",
  size = "w-2.5 h-2.5",
  thickness = "border-t-2 border-l-2",
  inset = "p-0",
@@ -245,20 +245,20 @@ export default function Launch() {
  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-center">
           {/* Left: Industrial Spec Label Badge for Forge System */}
  <div className="md:col-span-3 flex items-center">
- <div className="relative w-full max-w-xs border border-black/80 dark:border-white/30 bg-white/30 dark:bg-black/30 p-2.5 font-mono">
- <CornerLines color="border-black/50 dark:border-white/40" size="w-1.5 h-1.5" />
- <div className="flex items-center justify-between text-[11px] font-black text-black dark:text-white border-b border-black/40 dark:border-white/20 pb-1 mb-1">
+ <div className="relative w-full max-w-xs border border-border bg-white/30 dark:bg-black/30 p-2.5 font-mono">
+ <CornerLines color="border-border" size="w-1.5 h-1.5" />
+ <div className="flex items-center justify-between text-[11px] font-black text-black dark:text-white border-b border-border pb-1 mb-1">
                 <span>Cluster region</span>
  <span className="font-bold text-[#FF5522]">{currentConfig.clusterRegion}</span>
               </div>
  <div className="flex items-center justify-between py-0.5">
  <span className="text-xs font-black tracking-wider text-black dark:text-white">Autonomous engine</span>
- <div className="border border-black/60 dark:border-white/40 px-1.5 py-0.5 text-[9px] font-bold text-[#FF5522]">
+ <div className="border border-border px-1.5 py-0.5 text-[9px] font-bold text-[#FF5522]">
                   v2.4
                 </div>
               </div>
               {/* Barcode Graphic */}
- <div className="pt-1.5 border-t border-black/40 dark:border-white/20 flex items-center justify-between">
+ <div className="pt-1.5 border-t border-border flex items-center justify-between">
  <div className="flex items-center gap-0.5 h-5" aria-hidden="true">
                   {[2, 4, 1, 3, 5, 2, 1, 4, 2, 3, 1, 4, 3, 2, 5, 1, 3].map((w, i) => (
                     <span
@@ -296,8 +296,8 @@ export default function Launch() {
           {/* Right: Agent Swarm Pipeline Load & Core Specs */}
  <div className="md:col-span-4 flex items-center justify-end gap-3 font-mono">
             {/* Pipeline Equalizer */}
- <div className="relative border border-black/80 dark:border-white/30 bg-white/30 dark:bg-black/30 p-2 sm:p-2.5">
- <CornerLines color="border-black/50 dark:border-white/40" size="w-1.5 h-1.5" />
+ <div className="relative border border-border bg-white/30 dark:bg-black/30 p-2 sm:p-2.5">
+ <CornerLines color="border-border" size="w-1.5 h-1.5" />
  <div className="flex items-end gap-1.5 h-10 mb-1 px-1">
                 {pipelineLoads.map((val, idx) => {
  const channelLabels = ["Architecture", "Engineering", "Testing & QA", "Deployment & Ops"];
@@ -318,7 +318,7 @@ export default function Launch() {
                   );
                 })}
               </div>
- <div className="flex items-center justify-between text-[9px] font-black tracking-wider text-black dark:text-white border-t border-black/40 dark:border-white/20 pt-1">
+ <div className="flex items-center justify-between text-[9px] font-black tracking-wider text-black dark:text-white border-t border-border pt-1">
  <span title="Architecture specialist">ARC</span>
  <span title="Engineering specialist">DEV</span>
  <span title="Quality assurance & test suite">QA</span>
@@ -327,22 +327,22 @@ export default function Launch() {
             </div>
 
             {/* Forge Engine Status Box */}
- <div className="relative border border-black/80 dark:border-white/30 bg-white/30 dark:bg-black/30 p-2 sm:p-2.5 min-w-[170px] text-xs">
- <CornerLines color="border-black/50 dark:border-white/40" size="w-1.5 h-1.5" />
- <div className="flex items-center justify-between text-[10px] font-black border-b border-black/40 dark:border-white/20 pb-1 mb-1 text-black dark:text-white">
+ <div className="relative border border-border bg-white/30 dark:bg-black/30 p-2 sm:p-2.5 min-w-[170px] text-xs">
+ <CornerLines color="border-border" size="w-1.5 h-1.5" />
+ <div className="flex items-center justify-between text-[10px] font-black border-b border-border pb-1 mb-1 text-black dark:text-white">
                 <span>{currentConfig.specCode}</span>
  <span className="w-2 h-2 rounded-full bg-[#FF5522] animate-pulse" title="Engine operational" />
               </div>
  <div className="space-y-1">
  <div className="flex items-center justify-between text-[9px]">
  <span className="text-black/70 dark:text-white/70">Agent fleet</span>
- <span className="font-black text-black dark:text-white border border-black/40 dark:border-white/30 px-1 py-0.5">
+ <span className="font-black text-black dark:text-white border border-border px-1 py-0.5">
                     {currentConfig.activeAgents}
                   </span>
                 </div>
  <div className="flex items-center justify-between text-[9px]">
  <span className="text-black/70 dark:text-white/70">Average synthesis</span>
- <span className="font-black text-black dark:text-white border border-black/40 dark:border-white/30 px-1 py-0.5">
+ <span className="font-black text-black dark:text-white border border-border px-1 py-0.5">
                     {currentConfig.avgSynthesisTime}
                   </span>
                 </div>
@@ -357,12 +357,12 @@ export default function Launch() {
       {/* ========================================================================= */}
  <section className="w-full max-w-[1720px] mx-auto px-4 sm:px-8 py-2 z-20">
  <div className="relative border border-border bg-white/70 dark:bg-black/70 backdrop-blur-md p-3 sm:p-4">
- <CornerLines color="border-black dark:border-white/70" size="w-3 h-3" />
+ <CornerLines color="border-border" size="w-3 h-3" />
 
           {/* Main Input Form with Rock-Solid Flex & Alignment */}
  <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-stretch gap-2.5 w-full">
             {/* Lead Prompt Badge */}
- <div className="flex items-center justify-center gap-2 bg-black text-white px-4 py-2.5 border border-black shrink-0">
+ <div className="flex items-center justify-center gap-2 bg-black text-white px-4 py-2.5 border border-border shrink-0">
  <Terminal size={15} className="text-[#FF5522]" strokeWidth={2.5} />
  <label htmlFor="launch-primary-input" className="text-xs font-mono font-black tracking-wider uppercase whitespace-nowrap cursor-pointer">
                 Prompt
@@ -407,7 +407,7 @@ export default function Launch() {
           </form>
 
           {/* Preset Buttons Grid */}
- <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-black/20 dark:border-white/20">
+ <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-border">
  <span className="text-[10px] font-mono font-black uppercase text-black/70 dark:text-white/70 mr-1 select-none">
               Quick templates:
             </span>
@@ -420,7 +420,7 @@ export default function Launch() {
                   setPrompt(stack);
                   inputRef.current?.focus();
                 }}
- className="px-3 py-1 bg-black/5 dark:bg-white/10 hover:bg-[#FF5522] hover:text-black text-black dark:text-white border border-black/50 dark:border-white/30 text-[10px] font-mono font-bold uppercase transition cursor-pointer"
+ className="px-3 py-1 bg-black/5 dark:bg-white/10 hover:bg-[#FF5522] hover:text-black text-black dark:text-white border border-border text-[10px] font-mono font-bold uppercase transition cursor-pointer"
                 title={`Use template: ${stack}`}
               >
                 [{stack}]
@@ -502,7 +502,7 @@ export default function Launch() {
  : "bg-[#FF5522] text-black"
             } relative flex flex-col justify-between p-5 sm:p-6 overflow-hidden border border-border select-none transition-colors duration-500`}
           >
- <CornerLines color="border-black" size="w-3.5 h-3.5" />
+ <CornerLines color="border-border" size="w-3.5 h-3.5" />
 
             {/* Giant Rotated Vertical Number 001 on Right Edge */}
  <div className="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-black text-6xl sm:text-7xl md:text-8xl tracking-tighter text-black select-none pointer-events-none opacity-90 z-20" aria-hidden="true">
@@ -522,7 +522,7 @@ export default function Launch() {
                 <button
  type="button"
                   onClick={handleNextConfig}
- className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/90 hover:bg-white text-black font-mono font-black text-xs uppercase tracking-wider border border-black hover:scale-105 active:scale-95 transition cursor-pointer"
+ className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/90 hover:bg-white text-black font-mono font-black text-xs uppercase tracking-wider border border-border hover:scale-105 active:scale-95 transition cursor-pointer"
  title="Switch to next architecture template"
                 >
  <span className="text-sm">←</span>
@@ -531,12 +531,12 @@ export default function Launch() {
                 <button
  type="button"
                   onClick={handlePrevConfig}
- className="px-2 py-1.5 bg-white/60 hover:bg-white text-black font-mono font-bold text-xs uppercase border border-black transition cursor-pointer"
+ className="px-2 py-1.5 bg-white/60 hover:bg-white text-black font-mono font-bold text-xs uppercase border border-border transition cursor-pointer"
  title="Switch to previous architecture template"
                 >
                   →
                 </button>
- <span className="hidden sm:inline-block px-2.5 py-1 bg-black/15 text-black font-mono font-bold text-[11px] uppercase border border-black/30">
+ <span className="hidden sm:inline-block px-2.5 py-1 bg-black/15 text-black font-mono font-bold text-[11px] uppercase border border-border">
                   {currentConfig.stackName}
                 </span>
               </div>
@@ -548,7 +548,7 @@ export default function Launch() {
  handleSound("click");
  navigate("/build/demo-project");
                 }}
- className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 bg-black text-white font-mono font-black text-xs uppercase tracking-wider hover:bg-white hover:text-black border border-black transition cursor-pointer"
+ className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 bg-black text-white font-mono font-black text-xs uppercase tracking-wider hover:bg-white hover:text-black border border-border transition cursor-pointer"
  title="Open Cloud Workspace IDE"
               >
                 <Terminal size={13} strokeWidth={2.5} />
@@ -566,8 +566,8 @@ export default function Launch() {
             </div>
 
             {/* Bottom Floating Translucent Glass Card */}
- <div className="relative z-20 bg-black/15 backdrop-blur-md border border-black/30 p-3.5 sm:p-4 max-w-[280px]">
- <CornerLines color="border-black/60" size="w-2 h-2" />
+ <div className="relative z-20 bg-black/15 backdrop-blur-md border border-border p-3.5 sm:p-4 max-w-[280px]">
+ <CornerLines color="border-border" size="w-2 h-2" />
  <div className="flex items-baseline gap-2 mb-2">
  <span className="text-2xl sm:text-3xl font-mono font-black text-black leading-none">
                   {currentConfig.tasksResolved}
@@ -576,7 +576,7 @@ export default function Launch() {
               </div>
 
               {/* 7-Day Mini Bar Equalizer Chart & Radial Gauge */}
- <div className="flex items-center justify-between gap-3 pt-2 border-t border-black/20">
+ <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
                 {/* Mini Weekly Bars */}
  <div className="flex items-end gap-1.5 h-7">
                   {currentConfig.barsTasks.map((height, i) => (
@@ -606,7 +606,7 @@ export default function Launch() {
       {/* ========================================================================= */}
       {/* 4. FOOTER SPECIFICATIONS & TELEMETRY                                      */}
       {/* ========================================================================= */}
- <footer className="w-full border-t border-black/80 dark:border-white/20 bg-base dark:bg-[#0F1115] px-4 sm:px-8 py-3 text-xs font-mono">
+ <footer className="w-full border-t border-border bg-base dark:bg-[#0F1115] px-4 sm:px-8 py-3 text-xs font-mono">
  <div className="max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-4">
  <div className="flex items-center gap-4 text-black/70 dark:text-white/70 text-[11px] font-bold">
             <span>Engine: {currentConfig.specCode}</span>
@@ -669,10 +669,10 @@ export default function Launch() {
       {/* ========================================================================= */}
       {menuOpen && (
  <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in">
- <div className="w-full max-w-md bg-base dark:bg-[#12151A] border-l-2 border-black dark:border-white/30 h-full p-6 sm:p-8 flex flex-col justify-between font-mono">
+ <div className="w-full max-w-md bg-base dark:bg-[#12151A] border-l-2 border-border h-full p-6 sm:p-8 flex flex-col justify-between font-mono">
             <div>
               {/* Drawer Header */}
- <div className="flex items-center justify-between border-b border-black dark:border-white/20 pb-4 mb-6">
+ <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
  <div className="flex items-center gap-3">
  <BrandLogo size="xs" />
                   <div>
@@ -690,7 +690,7 @@ export default function Launch() {
                     handleSound();
                     setMenuOpen(false);
                   }}
- className="p-1.5 border border-black dark:border-white/40 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition cursor-pointer"
+ className="p-1.5 border border-border hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition cursor-pointer"
  title="Close navigation drawer"
  aria-label="Close navigation drawer"
                 >
@@ -707,7 +707,7 @@ export default function Launch() {
                     setMenuOpen(false);
  navigate("/projects");
                   }}
- className="w-full flex items-center justify-between p-3 border border-black dark:border-white/30 bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
+ className="w-full flex items-center justify-between p-3 border border-border bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
                 >
  <div className="flex items-center gap-2">
                     <FolderGit2 size={15} />
@@ -722,7 +722,7 @@ export default function Launch() {
                     setMenuOpen(false);
  navigate("/build/demo-project");
                   }}
- className="w-full flex items-center justify-between p-3 border border-black dark:border-white/30 bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
+ className="w-full flex items-center justify-between p-3 border border-border bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
                 >
  <div className="flex items-center gap-2">
                     <Terminal size={15} />
@@ -737,7 +737,7 @@ export default function Launch() {
                     setMenuOpen(false);
  navigate("/initiatives");
                   }}
- className="w-full flex items-center justify-between p-3 border border-black dark:border-white/30 bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
+ className="w-full flex items-center justify-between p-3 border border-border bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
                 >
  <div className="flex items-center gap-2">
                     <Layers size={15} />
@@ -752,7 +752,7 @@ export default function Launch() {
                     setMenuOpen(false);
  navigate("/marketplace");
                   }}
- className="w-full flex items-center justify-between p-3 border border-black dark:border-white/30 bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
+ className="w-full flex items-center justify-between p-3 border border-border bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
                 >
  <div className="flex items-center gap-2">
                     <Sparkles size={15} />
@@ -767,7 +767,7 @@ export default function Launch() {
                     setMenuOpen(false);
  navigate("/flow");
                   }}
- className="w-full flex items-center justify-between p-3 border border-black dark:border-white/30 bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
+ className="w-full flex items-center justify-between p-3 border border-border bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
                 >
  <div className="flex items-center gap-2">
                     <Cpu size={15} />
@@ -782,7 +782,7 @@ export default function Launch() {
                     setMenuOpen(false);
  navigate("/home");
                   }}
- className="w-full flex items-center justify-between p-3 border border-black dark:border-white/30 bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
+ className="w-full flex items-center justify-between p-3 border border-border bg-white/40 dark:bg-black/40 hover:bg-[#FF5522] hover:text-black transition text-left font-black text-xs uppercase cursor-pointer"
                 >
  <div className="flex items-center gap-2">
                     <ExternalLink size={15} />
@@ -793,7 +793,7 @@ export default function Launch() {
               </div>
 
               {/* Hardware / Engine Spec Box in Drawer */}
- <div className="mt-8 border border-black/60 dark:border-white/30 p-4 bg-white/20 dark:bg-black/20 text-xs">
+ <div className="mt-8 border border-border p-4 bg-white/20 dark:bg-black/20 text-xs">
  <div className="font-black mb-2 text-black dark:text-white uppercase tracking-wider">
                   Active runtime: {currentConfig.name}
                 </div>
@@ -806,7 +806,7 @@ export default function Launch() {
               </div>
             </div>
 
- <div className="pt-4 border-t border-black/40 dark:border-white/20 flex items-center justify-between text-[11px]">
+ <div className="pt-4 border-t border-border flex items-center justify-between text-[11px]">
  <span className="font-bold text-black/60 dark:text-white/60">Forge CLI v2.4</span>
               <button
  type="button"

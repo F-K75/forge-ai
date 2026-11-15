@@ -787,7 +787,7 @@ export default function ReviewsListPage() {
                 </button>
               </div>
  <p className="mt-4 font-mono text-[11px] text-muted">
- To enable live orchestration audits, configure the <code className="border border-black/30 dark:border-white/30 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-bold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
+ To enable live orchestration audits, configure the <code className="border border-border bg-panel-alt px-1.5 py-0.5 font-bold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
               </p>
             </div>
           ) : filteredRuns.length === 0 ? (
@@ -961,7 +961,7 @@ export default function ReviewsListPage() {
  <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
- <tbody className="divide-y-2 divide-black dark:divide-white/80">
+ <tbody className="divide-y divide-border">
                   {filteredRuns.map((run) => {
  const isGo = run.consolidated?.recommendation === "GO";
  const isNoGo = run.consolidated?.recommendation === "NO_GO";
