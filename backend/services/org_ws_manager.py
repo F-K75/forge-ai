@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import uuid
 from fastapi import WebSocket
 from starlette.websockets import WebSocketDisconnect
@@ -10,6 +11,8 @@ from core.database import get_db, get_redis
 from core.permissions import has_project_access
 from core.models import User
 from auth import decode_token
+
+logger = logging.getLogger(__name__)
 
 MAX_WS_PAYLOAD_BYTES = 5 * 1024 * 1024
 WS_AUTH_TIMEOUT_SECONDS = 10
@@ -68,33 +71,59 @@ class OrgConnectionManager:
             return
         await self._publish(event.project_id, payload)
 
-    async def start_pubsub_listener(self):
-        redis = await self._get_redis()
-        pubsub = redis.pubsub()
-        await pubsub.psubscribe("org:*")
+    async def _handle_pubsub_message(self, message: dict):
+        if message.get("type") != "pmessage":
+            return
         try:
-            async for message in pubsub.listen():
-                if message.get("type") != "pmessage":
-                    continue
-                try:
-                    channel = message["channel"]
-                    if isinstance(channel, bytes):
-                        channel = channel.decode()
-                    project_id = channel.split(":", 1)[1]
-                    raw = message["data"]
-                    if isinstance(raw, bytes):
-                        raw = raw.decode()
-                    envelope = json.loads(raw)
-                except Exception:
-                    continue
-                if envelope.get("_origin") == self._instance_id:
-                    continue
-                await self._deliver_local(project_id, envelope.get("data", ""))
-        except asyncio.CancelledError:
-            pass
-        finally:
-            await pubsub.punsubscribe("org:*")
-            await pubsub.aclose()
+            channel = message["channel"]
+            if isinstance(channel, bytes):
+                channel = channel.decode()
+            project_id = channel.split(":", 1)[1]
+            raw = message["data"]
+            if isinstance(raw, bytes):
+                raw = raw.decode()
+            envelope = json.loads(raw)
+        except Exception:
+            return
+        if envelope.get("_origin") == self._instance_id:
+            return
+        await self._deliver_local(project_id, envelope.get("data", ""))
+
+    async def start_pubsub_listener(self):
+        while True:
+            pubsub = None
+            try:
+                redis = await self._get_redis()
+                pubsub = redis.pubsub()
+                await pubsub.psubscribe("org:*")
+                if hasattr(pubsub, "get_message"):
+                    while True:
+                        message = await pubsub.get_message(
+                            ignore_subscribe_messages=True, timeout=1.0
+                        )
+                        if message is None:
+                            await asyncio.sleep(0.05)
+                            continue
+                        await self._handle_pubsub_message(message)
+                else:
+                    async for message in pubsub.listen():
+                        await self._handle_pubsub_message(message)
+                    break
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.warning("OrgConnectionManager pubsub error, retrying in 2s: %s", exc)
+                await asyncio.sleep(2.0)
+            finally:
+                if pubsub is not None:
+                    try:
+                        await pubsub.punsubscribe("org:*")
+                    except Exception:
+                        pass
+                    try:
+                        await pubsub.aclose()
+                    except Exception:
+                        pass
 
     def start(self):
         if self._pubsub_task is None or self._pubsub_task.done():

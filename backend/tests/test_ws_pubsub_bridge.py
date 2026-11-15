@@ -157,3 +157,55 @@ async def test_own_published_event_is_not_delivered_twice():
             await listener
         except asyncio.CancelledError:
             pass
+
+
+async def test_pubsub_listeners_survive_timeout_and_use_get_message():
+    """Regression test for Render Redis TimeoutError crash:
+    When Redis has socket_timeout=5, pubsub.listen() raises TimeoutError after 5s
+    of idle time. All three managers (ws_manager, pm_manager, org_manager) must
+    use get_message(timeout=1.0) and survive transient TimeoutErrors without crashing.
+    """
+    from services.pm_ws_manager import PMConnectionManager
+    from services.org_ws_manager import OrgConnectionManager
+
+    class TimeoutOncePubSub:
+        def __init__(self):
+            self.calls = 0
+
+        async def psubscribe(self, pattern):
+            pass
+
+        async def get_message(self, ignore_subscribe_messages=True, timeout=1.0):
+            self.calls += 1
+            if self.calls == 1:
+                raise TimeoutError("Timeout reading from red-xxx:6379")
+            await asyncio.sleep(0.05)
+            return None
+
+        async def punsubscribe(self, pattern):
+            raise TimeoutError("cleanup timeout")
+
+        async def aclose(self):
+            pass
+
+    class TimeoutRedis:
+        def pubsub(self):
+            return TimeoutOncePubSub()
+
+    for mgr_cls in (ConnectionManager, PMConnectionManager, OrgConnectionManager):
+        mgr = mgr_cls()
+
+        async def _get_redis():
+            return TimeoutRedis()
+
+        mgr._get_redis = _get_redis
+        listener = asyncio.create_task(mgr.start_pubsub_listener())
+        try:
+            await asyncio.sleep(0.1)
+            assert not listener.done(), f"{mgr_cls.__name__} listener crashed on TimeoutError"
+        finally:
+            listener.cancel()
+            try:
+                await listener
+            except asyncio.CancelledError:
+                pass
