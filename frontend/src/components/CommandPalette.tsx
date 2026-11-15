@@ -76,8 +76,10 @@ export function CommandPalette() {
     setOpen(false);
   }, [location.pathname]);
 
+  const visibleCommands = COMMANDS.filter((c) => c.id !== "admin" || user?.is_admin === true);
+
   const filtered = query.trim()
-    ? COMMANDS.filter((c) => {
+    ? visibleCommands.filter((c) => {
         const q = query.toLowerCase();
         return (
           c.label.toLowerCase().includes(q) ||
@@ -85,7 +87,7 @@ export function CommandPalette() {
           c.keywords?.some((k) => k.includes(q))
         );
       })
-    : COMMANDS;
+    : visibleCommands;
 
   const handleSelect = (cmd: Command) => {
     if (cmd.id === "logout") {

@@ -531,11 +531,11 @@ export default function FlowPage() {
               <div
                 key={metric.id}
                 id={`metric-${metric.id}`}
- className="p-2.5 border border-border bg-white dark:bg-[#181820] shadow-m3 space-y-1"
+ className="p-2.5 border border-border bg-panel shadow-m3 space-y-1"
               >
  <div className="flex items-center justify-between gap-1">
  <span className="text-[10px] font-mono font-bold text-muted uppercase tracking-wider truncate">{metric.label}</span>
- <div className="h-5 w-5 border border-black dark:border-white flex items-center justify-center bg-black/5 dark:bg-white/5 text-ink shrink-0">
+ <div className="h-5 w-5 border border-border flex items-center justify-center bg-panel-alt text-ink shrink-0">
                     <Icon size={11} strokeWidth={2.5} />
                   </div>
                 </div>
@@ -545,7 +545,7 @@ export default function FlowPage() {
                     {metric.value}
                   </span>
                   {metric.trend && (
- <span className="text-[9px] font-mono font-black border border-black bg-emerald-400 text-black px-1">
+ <span className="text-[9px] font-mono font-black border border-border bg-emerald-400 text-black px-1">
                       {metric.trend}
                     </span>
                   )}
@@ -585,8 +585,8 @@ export default function FlowPage() {
                   onClick={() => setViewMode(id)}
                   className={`h-7 px-3 border border-border font-mono text-xs font-black uppercase flex items-center gap-1.5 transition-none active:translate-x-[1px] active:translate-y-[1px] ${
                     viewMode === id
- ? "bg-accent text-[#09090B] text-black shadow-m3 "
- : "bg-white dark:bg-[#1E1E28] text-ink hover:bg-neutral-100 dark:hover:bg-[#282834] shadow-m3 "
+ ? "bg-accent text-[#09090B] shadow-m3"
+ : "bg-panel text-ink hover:bg-panel-alt shadow-m3"
                   }`}
                 >
                   <Icon size={12} strokeWidth={2.5} />
@@ -597,7 +597,7 @@ export default function FlowPage() {
 
  <div className="text-[11px] font-mono text-muted flex items-center gap-2">
               <span>FILTER STAGE:</span>
- <span className="font-black text-ink uppercase px-1 border border-black bg-neutral-100 dark:bg-[#2A2A36]">
+ <span className="font-black text-ink uppercase px-1 border border-border bg-panel-alt">
                 {selectedStage}
               </span>
             </div>
@@ -612,13 +612,13 @@ export default function FlowPage() {
  onClick={() => setSelectedStage("all")}
               className={`text-left p-2 border border-border transition-none active:translate-x-[1px] active:translate-y-[1px] ${
  selectedStage === "all"
- ? "bg-accent text-[#09090B] text-black shadow-m3 font-black"
- : "bg-white dark:bg-[#181820] text-ink hover:bg-neutral-100 dark:hover:bg-[#22222E] shadow-m3"
+ ? "bg-accent text-[#09090B] shadow-m3 font-black"
+ : "bg-panel text-ink hover:bg-panel-alt shadow-m3"
               }`}
             >
  <div className="flex items-center justify-between">
  <span className="font-mono text-xs font-black">ALL STAGES</span>
- <span className="text-[9px] font-mono font-black px-1 border border-black bg-white dark:bg-black text-ink">
+ <span className="text-[9px] font-mono font-black px-1 border border-border bg-panel-alt text-ink">
                   17 AGENTS
                 </span>
               </div>
@@ -637,18 +637,18 @@ export default function FlowPage() {
                   onClick={() => setSelectedStage(stage.id)}
                   className={`text-left p-2 border border-border transition-none active:translate-x-[1px] active:translate-y-[1px] ${
                     isSelected
- ? "bg-accent text-[#09090B] text-black shadow-m3 font-black"
- : "bg-white dark:bg-[#181820] text-ink hover:bg-neutral-100 dark:hover:bg-[#22222E] shadow-m3"
+ ? "bg-accent text-[#09090B] shadow-m3 font-black"
+ : "bg-panel text-ink hover:bg-panel-alt shadow-m3"
                   }`}
                 >
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-1.5 truncate">
- <span className="h-2 w-2 border border-black dark:border-white shrink-0" style={{ backgroundColor: stage.color }} />
+ <span className="h-2 w-2 border border-border shrink-0" style={{ backgroundColor: stage.color }} />
  <span className="font-mono text-xs font-black truncate">
                         {stage.stepNumber}. {stage.name.toUpperCase()}
                       </span>
                     </div>
- <span className="text-[9px] font-mono font-black px-1 border border-black bg-white dark:bg-black text-ink shrink-0">
+ <span className="text-[9px] font-mono font-black px-1 border border-border bg-panel-alt text-ink shrink-0">
                       {stage.agentIds.length}
                     </span>
                   </div>
@@ -666,7 +666,7 @@ export default function FlowPage() {
         ========================================================================= */}
         <section
  aria-label="Simulation Status Bar"
- className="p-2.5 border border-border bg-panel-alt dark:bg-[#22222C] shadow-m3 space-y-2 font-mono"
+ className="p-2.5 border border-border bg-panel-alt shadow-m3 space-y-2 font-mono"
         >
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
  <div className="flex items-center gap-2 flex-wrap">
@@ -695,7 +695,7 @@ export default function FlowPage() {
  id="sim-step-forward"
  type="button"
                   onClick={handleStepForward}
- className="h-7 px-2 border border-border bg-white dark:bg-[#1E1E28] text-ink font-mono text-xs font-black shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
+ className="h-7 px-2 border border-border bg-panel text-ink font-mono text-xs font-black shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
  title="Step Forward"
                 >
                   <SkipForward size={13} strokeWidth={2.5} />
@@ -704,7 +704,7 @@ export default function FlowPage() {
  id="sim-reset"
  type="button"
                   onClick={handleResetSim}
- className="h-7 px-2 border border-border bg-white dark:bg-[#1E1E28] text-ink font-mono text-xs font-black shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
+ className="h-7 px-2 border border-border bg-panel text-ink font-mono text-xs font-black shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
  title="Reset Run"
                 >
                   <RotateCcw size={13} strokeWidth={2.5} />
@@ -712,8 +712,8 @@ export default function FlowPage() {
               </div>
 
               {/* Speed selector - Standardized to h-7 (28px) */}
- <div className="flex items-center gap-1 font-mono text-xs text-muted border-l-2 border-black/20 pl-2.5">
- <span className="font-bold text-black dark:text-white uppercase text-[10px]">SPEED:</span>
+ <div className="flex items-center gap-1 font-mono text-xs text-muted border-l border-border pl-2.5">
+ <span className="font-bold text-ink uppercase text-[10px]">SPEED:</span>
                 {[1, 2, 4].map((spd) => (
                   <button
                     key={spd}
@@ -721,8 +721,8 @@ export default function FlowPage() {
                     onClick={() => setSimSpeed(spd)}
                     className={`h-7 px-2 border border-border font-mono text-[11px] font-black uppercase active:translate-x-[1px] active:translate-y-[1px] ${
                       simSpeed === spd
- ? "bg-black text-white dark:bg-white dark:text-black shadow-m3"
- : "bg-white dark:bg-[#1E1E28] text-ink hover:bg-neutral-100"
+ ? "bg-accent text-[#09090B] shadow-m3"
+ : "bg-panel text-ink hover:bg-panel-alt"
                     }`}
                   >
                     {spd}X
@@ -733,21 +733,21 @@ export default function FlowPage() {
               {/* Status indicator */}
  <div className="flex items-center gap-2 pl-2 text-xs font-mono">
                 {simPlaying ? (
- <span className="flex items-center gap-1.5 text-black border border-black bg-emerald-400 px-2 py-0.5 font-black text-[10px]">
+ <span className="flex items-center gap-1.5 text-black border border-border bg-emerald-400 px-2 py-0.5 font-black text-[10px]">
  <span className="h-1.5 w-1.5 bg-black animate-ping" />
                     SIMULATION RUNNING
                   </span>
                 ) : simStepIndex >= currentScenario.steps.length - 1 ? (
- <span className="flex items-center gap-1.5 text-black border border-black bg-blue-300 px-2 py-0.5 font-black text-[10px]">
+ <span className="flex items-center gap-1.5 text-black border border-border bg-blue-300 px-2 py-0.5 font-black text-[10px]">
                     <CheckCircle2 size={11} strokeWidth={2.5} />
                     RUN COMPLETED
                   </span>
                 ) : simStepIndex >= 0 ? (
- <span className="text-black border border-black bg-amber-300 px-2 py-0.5 font-black text-[10px]">
+ <span className="text-black border border-border bg-amber-300 px-2 py-0.5 font-black text-[10px]">
                     PAUSED AT STEP {simStepIndex + 1}/{currentScenario.steps.length}
                   </span>
                 ) : (
- <span className="text-muted border border-black/30 bg-white dark:bg-[#1E1E28] px-2 py-0.5 font-bold text-[10px]">
+ <span className="text-muted border border-border bg-panel px-2 py-0.5 font-bold text-[10px]">
                     STANDBY
                   </span>
                 )}
@@ -850,10 +850,10 @@ export default function FlowPage() {
           id={`flow-panel-${viewMode}`}
  role="tabpanel"
           aria-labelledby={`view-tab-${viewMode}`}
- className="bg-white dark:bg-[#181820] border border-border shadow-m3 flex flex-col overflow-hidden font-mono"
+ className="bg-panel border border-border shadow-m3 flex flex-col overflow-hidden font-mono"
         >
           {/* Module Sub-Header Strip */}
- <div className="h-9 px-3 bg-panel-alt dark:bg-[#22222C] border-b-2 border-black dark:border-white/80 flex items-center justify-between gap-2 shrink-0 font-mono text-xs">
+ <div className="h-9 px-3 bg-panel-alt border-b border-border flex items-center justify-between gap-2 shrink-0 font-mono text-xs">
  <div className="flex items-center gap-2 truncate">
  <span className="font-black text-black dark:text-white uppercase flex items-center gap-1.5">
  {viewMode === "graph" && <GitBranch size={13} strokeWidth={2.5} />}
@@ -876,7 +876,7 @@ export default function FlowPage() {
             </div>
 
  <div className="flex items-center gap-2 shrink-0">
- <span className="text-[10px] font-mono font-black px-1.5 py-0.5 border border-black bg-white dark:bg-black text-ink uppercase">
+ <span className="text-[10px] font-mono font-black px-1.5 py-0.5 border border-border bg-panel text-ink uppercase">
                 {viewMode.toUpperCase()}
               </span>
             </div>
@@ -885,7 +885,7 @@ export default function FlowPage() {
           {/* VIEW 1: GRAPH VIEW */}
  {viewMode === "graph" && (
  <div className="flex flex-col">
- <div className="p-2 border-b-2 border-black dark:border-white/80 flex flex-wrap items-center justify-between gap-2 bg-neutral-50 dark:bg-[#1C1C24] text-[11px] font-mono">
+ <div className="p-2 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-panel-alt text-[11px] font-mono">
  <div className="flex items-center gap-2">
  <span className="font-black text-ink uppercase">INTERACTIVE DAG:</span>
  <span className="text-muted">PAN / ZOOM / CLICK NODES TO INSPECT AGENTS</span>
@@ -893,11 +893,11 @@ export default function FlowPage() {
 
  <div className="flex items-center gap-3 text-muted font-bold">
  <span className="flex items-center gap-1">
- <span className="h-2 w-2 border border-black bg-emerald-400" />
+ <span className="h-2 w-2 border border-border bg-emerald-400" />
                     BUILD PIPELINE
                   </span>
  <span className="flex items-center gap-1">
- <span className="h-2 w-2 border border-black bg-purple-400" />
+ <span className="h-2 w-2 border border-border bg-purple-400" />
                     GATEWAY MATRIX
                   </span>
                 </div>

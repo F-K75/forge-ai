@@ -91,7 +91,7 @@ function KpiCard({
   accentColor: string;
 }) {
   return (
- <div className="relative overflow-hidden border border-border bg-white dark:bg-[#181820] p-3 shadow-m3 transition-all">
+ <div className="relative overflow-hidden border border-border bg-panel p-3 shadow-m3 transition-all">
  <div className="flex items-center gap-2.5">
         <span
           className={`flex h-7 w-7 shrink-0 items-center justify-center border border-border ${accentColor} text-black shadow-m3`}
@@ -473,12 +473,12 @@ export default function ReviewsListPage() {
         {/* ========================================================= */}
         <section
  aria-labelledby="initiator-heading"
- className="border border-border bg-white dark:bg-[#181820] p-5 shadow-m3 "
+ className="border border-border bg-panel p-5 shadow-m3"
         >
- <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b-2 border-black dark:border-white/80 pb-3">
+ <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-border pb-3">
             <div>
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border border-border bg-warn/20 text-warn text-black shadow-m3 font-mono text-xs font-black">
+ <span className="flex h-6 w-6 items-center justify-center border border-border bg-warn/20 text-warn shadow-m3 font-mono text-xs font-black">
                   #
                 </span>
  <h2 id="initiator-heading" className="font-mono text-base font-black uppercase text-ink">
@@ -497,8 +497,8 @@ export default function ReviewsListPage() {
  onClick={() => setMode("full")}
                 className={`h-7 px-3 border border-border font-mono text-xs font-black uppercase transition-all ${
  mode === "full"
- ? "bg-black text-white shadow-m3 dark:bg-white dark:text-black "
- : "bg-white dark:bg-[#20202a] text-ink hover:bg-neutral-100 shadow-m3"
+ ? "bg-accent text-[#09090B] shadow-m3"
+ : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                 }`}
               >
                 Full Repository
@@ -508,8 +508,8 @@ export default function ReviewsListPage() {
  onClick={() => setMode("diff")}
                 className={`h-7 px-3 border border-border font-mono text-xs font-black uppercase transition-all ${
  mode === "diff"
- ? "bg-black text-white shadow-m3 dark:bg-white dark:text-black "
- : "bg-white dark:bg-[#20202a] text-ink hover:bg-neutral-100 shadow-m3"
+ ? "bg-accent text-[#09090B] shadow-m3"
+ : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                 }`}
               >
                 Unified Git Diff
@@ -641,7 +641,7 @@ export default function ReviewsListPage() {
                       className={`flex items-start gap-2 border border-border p-2.5 text-left transition-all ${
                         isChecked
                           ? `${agent.color} shadow-m3 text-black -translate-x-0.5 -translate-y-0.5`
- : "bg-white dark:bg-[#181820] opacity-70 hover:opacity-100 shadow-m3"
+ : "bg-panel opacity-70 hover:opacity-100 shadow-m3"
                       }`}
                     >
  <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-white text-black">
@@ -663,7 +663,7 @@ export default function ReviewsListPage() {
         {/* Review Library & Filters Section                          */}
         {/* ========================================================= */}
  <section className="space-y-4">
- <div className="border border-border bg-white dark:bg-[#181820] p-4 shadow-m3 ">
+ <div className="border border-border bg-panel p-4 shadow-m3">
  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               {/* Search input */}
  <div className="relative flex-1">
@@ -703,8 +703,8 @@ export default function ReviewsListPage() {
                     onClick={() => setStatusFilter(f.key)}
                     className={`h-7 px-3 border border-border font-mono text-xs font-black uppercase transition-all ${
                       statusFilter === f.key
- ? "bg-black text-white shadow-m3 dark:bg-white dark:text-black "
- : "bg-white dark:bg-[#20202a] text-ink hover:bg-neutral-100 shadow-m3"
+ ? "bg-accent text-[#09090B] shadow-m3"
+ : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                     }`}
                   >
                     {f.label}
@@ -717,7 +717,7 @@ export default function ReviewsListPage() {
                 <select
                   value={sortKey}
                   onChange={(e) => setSortKey(e.target.value as SortKey)}
- className="h-7 border border-border bg-white dark:bg-[#1E1E28] px-2 font-mono text-xs font-black text-ink shadow-m3 focus:outline-none"
+ className="h-7 border border-border bg-panel-alt px-2 font-mono text-xs font-black text-ink shadow-m3 focus:outline-none"
                 >
  <option value="recent">Sort: Most Recent</option>
  <option value="score-desc">Sort: Highest Score</option>
@@ -732,8 +732,8 @@ export default function ReviewsListPage() {
  onClick={() => setViewMode("grid")}
                     className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "grid"
- ? "bg-black text-white dark:bg-white dark:text-black"
- : "bg-white dark:bg-[#20202a] text-muted hover:text-ink"
+ ? "bg-accent text-[#09090B]"
+ : "bg-panel-alt text-muted hover:text-ink"
                     }`}
  title="Grid View"
                   >
@@ -744,8 +744,8 @@ export default function ReviewsListPage() {
  onClick={() => setViewMode("list")}
                     className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "list"
- ? "bg-black text-white dark:bg-white dark:text-black"
- : "bg-white dark:bg-[#20202a] text-muted hover:text-ink"
+ ? "bg-accent text-[#09090B]"
+ : "bg-panel-alt text-muted hover:text-ink"
                     }`}
  title="Table / List View"
                   >
@@ -758,12 +758,12 @@ export default function ReviewsListPage() {
 
           {/* Audit Items Render */}
           {loading ? (
- <div className="border border-border bg-white dark:bg-[#181820] p-12 text-center shadow-m3">
- <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-black border-t-brutal-yellow mb-3" />
+ <div className="border border-border bg-panel p-12 text-center shadow-m3">
+ <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent mb-3" />
  <div className="font-mono text-sm font-black text-ink">Scanning audit records...</div>
             </div>
           ) : LIVE_MODE && !isConfigured ? (
- <div className="border border-border bg-white dark:bg-[#181820] p-8 md:p-12 text-center shadow-m3 ">
+ <div className="border border-border bg-panel p-8 md:p-12 text-center shadow-m3">
  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-accent text-[#09090B] text-black shadow-m3">
                 <ShieldAlert size={28} strokeWidth={2.5} />
               </div>
@@ -791,7 +791,7 @@ export default function ReviewsListPage() {
               </p>
             </div>
           ) : filteredRuns.length === 0 ? (
- <div className="border border-border bg-white dark:bg-[#181820] p-12 text-center shadow-m3">
+ <div className="border border-border bg-panel p-12 text-center shadow-m3">
  <ShieldAlert size={36} className="mx-auto text-muted mb-3" />
  <h3 className="font-mono text-base font-black uppercase text-ink">No review audits match your filter</h3>
  <p className="mt-1 font-mono text-xs text-muted max-w-sm mx-auto">
@@ -833,11 +833,11 @@ export default function ReviewsListPage() {
  onKeyDown={(e) => e.key === "Enter" && navigate(`/reviews/${run.run_id}`)}
  role="button"
                     tabIndex={0}
- className="flex flex-col justify-between border border-border bg-white dark:bg-[#181820] p-5 shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all cursor-pointer group text-left"
+ className="flex flex-col justify-between border border-border bg-panel p-5 shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all cursor-pointer group text-left"
                   >
                     <div>
                       {/* Top Bar */}
- <div className="flex items-center justify-between gap-2 border-b-2 border-black dark:border-white/80 pb-3">
+ <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
  <div className="flex items-center gap-2">
                           <span
                             className={`border border-border px-2 py-0.5 font-mono text-[10px] font-black uppercase shadow-m3 ${badgeBg}`}
@@ -886,7 +886,7 @@ export default function ReviewsListPage() {
                           </span>
                         </div>
  {typeof score === "number" && (
- <div className="mt-1.5 h-2 w-full overflow-hidden border border-black bg-white">
+ <div className="mt-1.5 h-2 w-full overflow-hidden border border-border bg-panel-alt">
                             <div
                               className={`h-full ${
  score >= 85 ? "bg-ok/20 text-ok" : score >= 70 ? "bg-accent text-[#09090B]" : "bg-error/20 text-error"
@@ -911,7 +911,7 @@ export default function ReviewsListPage() {
                     </div>
 
                     {/* Card Footer Actions */}
- <div className="mt-5 pt-3 border-t-2 border-black dark:border-white/80 flex items-center justify-between">
+ <div className="mt-5 pt-3 border-t border-border flex items-center justify-between">
  <div className="flex items-center gap-1.5 font-mono text-xs font-black">
  <ShieldAlert size={14} className={run.backlog?.length ? "text-error" : "text-ok"} />
                         <span>
@@ -948,9 +948,9 @@ export default function ReviewsListPage() {
             </div>
           ) : (
             /* Dense Table / List View */
- <div className="overflow-x-auto border border-border bg-white dark:bg-[#181820] shadow-m3 ">
+ <div className="overflow-x-auto border border-border bg-panel shadow-m3">
  <table className="w-full text-left font-mono text-xs">
- <thead className="border-b-3 border-black dark:border-white/90 bg-neutral-100 dark:bg-[#121218] text-ink uppercase tracking-wider font-mono font-black">
+ <thead className="border-b border-border bg-panel-alt text-ink uppercase tracking-wider font-mono font-black">
                   <tr>
  <th className="px-4 py-3">Audit ID / Time</th>
  <th className="px-4 py-3">Target Repository</th>
@@ -1056,9 +1056,9 @@ export default function ReviewsListPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 8 }}
               transition={{ duration: 0.18 }}
- className="w-full max-w-2xl border border-border bg-white dark:bg-[#181820] p-6 shadow-m3 max-h-[85vh] flex flex-col font-mono"
+ className="w-full max-w-2xl border border-border bg-panel p-6 shadow-m3 max-h-[85vh] flex flex-col font-mono"
             >
- <div className="flex items-start justify-between border-b-2 border-black dark:border-white/80 pb-3">
+ <div className="flex items-start justify-between border-b border-border pb-3">
                 <div>
  <div className="flex items-center gap-2">
  <span className="border border-border bg-accent text-[#09090B] px-2 py-0.5 font-mono text-xs font-black uppercase shadow-m3 text-black">
@@ -1128,7 +1128,7 @@ export default function ReviewsListPage() {
                 )}
               </div>
 
- <div className="mt-4 pt-3 border-t-2 border-black dark:border-white/80 flex items-center justify-between">
+ <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
                 <button
  type="button"
                   onClick={() => {

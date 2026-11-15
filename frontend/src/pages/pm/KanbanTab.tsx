@@ -1572,7 +1572,7 @@ export default function KanbanTab() {
         {/* Title and High-Level Status Row */}
         <div className="flex items-center justify-between gap-4 mb-3.5 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#000F1D] text-white dark:bg-white dark:text-[#000F1D] flex items-center justify-center border-2 border-[#000F1D] shadow-[2px_2px_0_#000F1D]">
+            <div className="w-10 h-10 rounded-2xl bg-[#000F1D] text-white dark:bg-white dark:text-[#000F1D] flex items-center justify-center border border-border shadow-m3-1">
               <Layers size={20} strokeWidth={2.5} />
             </div>
             <div>
@@ -1613,7 +1613,7 @@ export default function KanbanTab() {
                 setCreateModalColumn("backlog");
                 setIsCreateModalOpen(true);
               }}
-              className="h-9 px-4 rounded-xl bg-[#000F1D] hover:bg-neutral-800 text-white dark:bg-white dark:text-[#000F1D] dark:hover:bg-neutral-100 text-xs font-black shadow-[2px_2px_0_#000F1D] flex items-center gap-1.5 cursor-pointer border-2 border-[#000F1D] transition-transform active:translate-y-0.5"
+              className="h-9 px-4 rounded-xl bg-accent hover:bg-accent/90 text-[#09090B] text-xs font-black shadow-m3-1 flex items-center gap-1.5 cursor-pointer border border-border transition-transform active:translate-y-0.5"
             >
               <Plus size={14} strokeWidth={3} />
               <span>New Task</span>
@@ -1644,7 +1644,7 @@ export default function KanbanTab() {
               }}
               placeholder="Search tasks by keyword, assignee, or priority (P0, P1...)..."
               aria-label="Search tasks by keyword, assignee, or priority"
-              className="h-9 w-full rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] pl-9.5 pr-14 text-xs font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4DA2FE] transition-all shadow-xs"
+              className="h-9 w-full rounded-xl border border-border bg-panel-alt pl-9.5 pr-14 text-xs font-medium text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent transition-all shadow-xs"
             />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {search ? (
@@ -1680,7 +1680,7 @@ export default function KanbanTab() {
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
               aria-label="Filter by priority level"
-              className="h-9 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] px-3 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4DA2FE] cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Priorities</option>
               <option value="p0">P0 - Critical</option>
@@ -1704,7 +1704,7 @@ export default function KanbanTab() {
               value={agentFilter}
               onChange={(e) => setAgentFilter(e.target.value)}
               aria-label="Filter by assignee"
-              className="h-9 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] px-3 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4DA2FE] cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Assignees</option>
               {agents.map((a) => (
@@ -1730,7 +1730,7 @@ export default function KanbanTab() {
               value={sprintFilter}
               onChange={(e) => setSprintFilter(e.target.value)}
               aria-label="Filter by sprint"
-              className="h-9 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-[#181D2A] px-3 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4DA2FE] cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Sprints</option>
               {sprints.map((s) => (
@@ -1747,10 +1747,10 @@ export default function KanbanTab() {
               id="kanban-toggle-arrows-btn"
               type="button"
               onClick={() => setShowArrows(!showArrows)}
-              className={`flex items-center gap-1.5 h-9 px-3 rounded-xl border-2 border-[#000F1D] text-xs font-black cursor-pointer transition-all shadow-xs ${
+              className={`flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border text-xs font-black cursor-pointer transition-all shadow-xs ${
                 showArrows
                   ? "bg-[#4DA2FE] text-[#000F1D]"
-                  : "bg-white dark:bg-[#181D2A] text-slate-700 dark:text-slate-300"
+                  : "bg-panel-alt text-muted"
               }`}
               title={showArrows ? "Hide visual dependency blocker arrows" : "Show visual dependency blocker arrows"}
             >
@@ -1763,10 +1763,10 @@ export default function KanbanTab() {
                 id="kanban-toggle-only-blockers-btn"
                 type="button"
                 onClick={() => setOnlyBlockerArrows(!onlyBlockerArrows)}
-                className={`px-3 h-9 rounded-xl text-xs font-bold border-2 border-[#000F1D] transition-all cursor-pointer shadow-xs ${
+                className={`px-3 h-9 rounded-xl text-xs font-bold border border-border transition-all cursor-pointer shadow-xs ${
                   onlyBlockerArrows
                     ? "bg-red-500 text-white"
-                    : "bg-white dark:bg-[#181D2A] text-slate-700 dark:text-slate-300"
+                    : "bg-panel-alt text-muted"
                 }`}
                 title="Toggle between all dependency arrows or only active blockers"
               >
@@ -1777,7 +1777,7 @@ export default function KanbanTab() {
 
           {/* Layout Grid View Toggle */}
           <div className="flex items-center gap-1 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5">
-            <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-[#000F1D] shadow-xs">
+            <div className="inline-flex p-1 rounded-xl bg-panel-alt border border-border shadow-xs">
               <button
                 id="kanban-view-mode-grid"
                 type="button"
@@ -1815,7 +1815,7 @@ export default function KanbanTab() {
               id="kanban-reset-filters-btn"
               type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border-2 border-[#000F1D] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-black transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-panel-alt hover:bg-panel text-ink text-xs font-black transition-all cursor-pointer shadow-xs"
               title="Reset all filters and search query"
             >
               <RotateCcw size={12} />
@@ -1840,10 +1840,10 @@ export default function KanbanTab() {
                   id={`kanban-priority-chip-${p}`}
                   type="button"
                   onClick={() => setPriorityFilter(priorityFilter === p && p !== "all" ? "all" : p)}
-                  className={`px-3 py-1 text-xs font-black rounded-full border-2 transition-all cursor-pointer ${
+                  className={`px-3 py-1 text-xs font-black rounded-full border transition-all cursor-pointer ${
                     isSelected
-                      ? "border-[#000F1D] bg-[#000F1D] text-white dark:bg-white dark:text-[#000F1D] shadow-xs"
-                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-[#000F1D]"
+                      ? "border-border bg-accent text-[#09090B] shadow-xs"
+                      : "border-border bg-panel-alt text-muted hover:text-ink"
                   }`}
                   title={p === "all" ? "Show all priorities" : `Filter by ${cfg?.badgeText}`}
                 >
@@ -1857,9 +1857,9 @@ export default function KanbanTab() {
               id="kanban-blocked-only-filter-btn"
               type="button"
               onClick={() => setBlockedOnlyFilter(!blockedOnlyFilter)}
-              className={`px-3 py-1 text-xs font-black rounded-full border-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-black rounded-full border flex items-center gap-1.5 transition-all cursor-pointer ${
                 blockedOnlyFilter
-                  ? "border-[#000F1D] bg-red-600 text-white shadow-xs"
+                  ? "border-border bg-red-600 text-white shadow-xs"
                   : "border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100"
               }`}
               title="Show only tasks with unresolved blockers"
@@ -1884,10 +1884,10 @@ export default function KanbanTab() {
                     id={`kanban-column-preset-${preset.id}`}
                     type="button"
                     onClick={() => setColumnPreset(preset.id as any)}
-                    className={`px-3 py-1 text-xs font-black rounded-full border-2 transition-all cursor-pointer ${
+                    className={`px-3 py-1 text-xs font-black rounded-full border transition-all cursor-pointer ${
                       isSelected
-                        ? "border-[#000F1D] bg-[#4DA2FE] text-[#000F1D] shadow-xs"
-                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        ? "border-border bg-[#4DA2FE] text-[#000F1D] shadow-xs"
+                        : "border-border bg-panel-alt text-muted hover:text-ink"
                     }`}
                     title={preset.desc}
                   >
@@ -1944,7 +1944,7 @@ export default function KanbanTab() {
           <button
             type="button"
             onClick={handleResetFilters}
-            className="px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-[#000F1D] text-xs font-black rounded-xl shadow-[2px_2px_0_#000F1D] hover:bg-slate-50 transition-colors cursor-pointer"
+            className="px-4 py-2 bg-panel-alt text-ink border border-border text-xs font-black rounded-xl shadow-m3-1 hover:bg-panel transition-colors cursor-pointer"
           >
             Clear All Filters
           </button>

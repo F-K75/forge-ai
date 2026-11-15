@@ -1,10 +1,8 @@
 import React, { useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   CornerDownLeft,
   Terminal,
-  Volume2,
-  VolumeX,
   ChevronRight,
   X,
   RotateCw,
@@ -13,10 +11,8 @@ import {
   Layers,
   Sparkles,
   ExternalLink,
-  LogIn,
 } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
-import { ThemeToggle } from "../components/ThemeToggle";
 import { ForgeWorkstationVisual, ForgeSwarmVisual } from "../components/CyberpunkVehicleVisual";
 
 // Audio telemetry sound generator via Web Audio API (safe, zero external dependencies)
@@ -194,7 +190,7 @@ export default function Launch() {
   const navigate = useNavigate();
  const [prompt, setPrompt] = useState("");
   const [configIndex, setConfigIndex] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pipelineLoads, setPipelineLoads] = useState([85, 92, 78, 96]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -243,158 +239,7 @@ export default function Launch() {
   return (
  <div className="min-h-screen bg-base dark:bg-[#0F1115] text-[#0A0C0E] dark:text-[#E6EDF3] flex flex-col justify-between selection:bg-[#FF5522] selection:text-white transition-colors font-sans antialiased overflow-x-hidden">
       {/* ========================================================================= */}
-      {/* 1. TOP NAVIGATION BAR (FORGE PLATFORM & TOOLS)                             */}
-      {/* ========================================================================= */}
- <header className="w-full border-b border-black/80 dark:border-white/20 bg-base dark:bg-[#0F1115] z-30">
- <div className="max-w-[1720px] mx-auto flex items-stretch justify-between h-14 sm:h-16">
-          {/* Left: Brand Identity with Official Forge Logo */}
- <div className="flex items-stretch">
-            <Link
- to="/home"
-              onClick={() => handleSound()}
- className="flex items-center gap-3 px-3.5 sm:px-5 border-r border-black/80 dark:border-white/20 bg-white/50 dark:bg-black/40 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors group text-left"
- title="FORGE AI - Autonomous Software Runtime"
-            >
- <BrandLogo size="sm" animated />
- <div className="flex flex-col justify-center">
- <div className="flex items-center gap-2">
- <span className="font-mono font-black text-xs sm:text-sm tracking-wider uppercase leading-none">
-                    FORGE AI
-                  </span>
- <span className="px-1.5 py-0.5 bg-[#FF5522] text-black font-mono font-black text-[9px] uppercase border border-black/80 dark:border-white/40 leading-none">
-                    RUNTIME
-                  </span>
-                </div>
- <div className="flex items-center gap-1.5 mt-1">
- <span className="w-1.5 h-1.5 bg-[#00F59B] rounded-none animate-pulse" />
- <span className="font-mono text-[9px] sm:text-[10px] font-bold tracking-widest text-black/70 dark:text-white/70 group-hover:text-white dark:group-hover:text-black uppercase leading-none">
-                    CLUSTER // V2.4
-                  </span>
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          {/* Center-Right: Segmented Website Navigation Links */}
- <div className="hidden lg:flex items-stretch divide-x divide-black/80 dark:divide-white/20 font-mono text-xs font-black uppercase tracking-wider">
-            <button
- type="button"
-              onClick={() => {
-                handleSound();
- navigate("/projects");
-              }}
- className="px-5 xl:px-6 flex items-center justify-center hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors cursor-pointer"
-            >
-              PROJECTS
-            </button>
-            <button
- type="button"
-              onClick={() => {
-                handleSound();
- navigate("/initiatives");
-              }}
- className="px-5 xl:px-6 flex items-center justify-center hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors cursor-pointer"
-            >
-              INITIATIVES
-            </button>
-            <button
- type="button"
-              onClick={() => {
-                handleSound();
- navigate("/build/demo-project");
-              }}
- className="px-5 xl:px-6 flex items-center justify-center hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors text-[#FF5522] cursor-pointer"
-            >
-              WORKSPACE
-            </button>
-            <button
- type="button"
-              onClick={() => {
-                handleSound();
- navigate("/marketplace");
-              }}
- className="px-5 xl:px-6 flex items-center justify-center hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors cursor-pointer"
-            >
-              MARKETPLACE
-            </button>
-            <button
- type="button"
-              onClick={() => {
-                handleSound();
- navigate("/home");
-              }}
- className="px-5 xl:px-6 flex items-center justify-center hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors cursor-pointer"
-            >
-              DOCS
-            </button>
-          </div>
-
-          {/* Far Right: Tools, Quick Login & System Control Drawer */}
- <div className="flex items-stretch border-l border-black/80 dark:border-white/20">
-            {/* Quick Sign In Button */}
-            <button
- type="button"
-              onClick={() => {
-                handleSound();
- navigate("/login");
-              }}
- className="hidden sm:flex items-center gap-2 px-4 font-mono font-black text-xs uppercase tracking-wider border-r border-black/80 dark:border-white/20 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition cursor-pointer"
- title="Sign in to Forge"
-            >
-              <LogIn size={13} strokeWidth={2.5} />
-              <span>SIGN IN</span>
-            </button>
-
-            {/* Audio Toggle */}
-            <button
- type="button"
-              onClick={() => {
-                const next = !soundEnabled;
-                setSoundEnabled(next);
-                if (next) synth.playClick();
-              }}
- className="px-3 sm:px-4 flex items-center justify-center border-r border-black/80 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/5 transition text-black dark:text-white cursor-pointer"
- title={soundEnabled ? "Mute Cyber Audio Telemetry" : "Unmute Cyber Audio Telemetry"}
-            >
-              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            </button>
-
-            {/* Light / Dark Mode Toggle */}
- <div className="flex items-center px-3 border-r border-black/80 dark:border-white/20">
-              <ThemeToggle compact />
-            </div>
-
-            {/* Minimalist Black Box Hamburger / Close Drawer Button */}
-            <button
- type="button"
-              onClick={() => {
-                handleSound();
-                setMenuOpen((prev) => !prev);
-              }}
-              className={`w-14 sm:w-16 flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                menuOpen
- ? "bg-[#FF5522] text-black"
- : "bg-black text-white hover:bg-[#FF5522] hover:text-black"
-              }`}
- title={menuOpen ? "Close System Control Drawer" : "Toggle System Control Drawer"}
- aria-label={menuOpen ? "Close menu" : "Open menu"}
-            >
-              {menuOpen ? (
-                <X size={20} strokeWidth={2.5} />
-              ) : (
-                <>
- <span className="w-5 h-0.5 bg-current" />
- <span className="w-5 h-0.5 bg-current" />
- <span className="w-5 h-0.5 bg-current" />
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ========================================================================= */}
-      {/* 2. SUB-HEADER TECHNICAL HUD TELEMETRY LAYER (FORGE WORKSPACE SPECS)       */}
+      {/* 1. SUB-HEADER TECHNICAL HUD TELEMETRY LAYER (FORGE WORKSPACE SPECS)       */}
       {/* ========================================================================= */}
  <section className="w-full max-w-[1720px] mx-auto px-4 sm:px-8 py-3 sm:py-4">
  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-center">
