@@ -122,7 +122,7 @@ describe('WorkspacePage (Sui Neo-brutalist redesign)', () => {
     fireEvent.click(filesBtn)
 
     await waitFor(() => {
-      expect(screen.getByText(/FILES_EXPLORER\.SYS/i)).toBeInTheDocument()
+      expect(screen.getByText(/Files Explorer/i)).toBeInTheDocument()
     })
   })
 
@@ -140,7 +140,7 @@ describe('WorkspacePage (Sui Neo-brutalist redesign)', () => {
     fireEvent.click(fleetBtn)
 
     await waitFor(() => {
-      expect(screen.getByText(/LIVING_AGENTS\.SYS/i)).toBeInTheDocument()
+      expect(screen.getByText(/Living Agents/i)).toBeInTheDocument()
     })
   })
 

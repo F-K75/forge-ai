@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import toast from "react-hot-toast";
-import { Bot, RefreshCw } from "lucide-react";
+import { Bot, Boxes, RefreshCw } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { sprintsApi } from "../../lib/pmApi";
 import { LIVE_MODE } from "../../lib/env";
 import { runScrumStandupWithGemini } from "../../lib/geminiPM";
 import { gatewayAgentById, GATEWAY_AGENTS } from "../../lib/gatewayAgents";
+import { Tabs } from "../../components/ui/Tabs";
+import IntegrationsTab from "./IntegrationsTab";
 
 import { BusinessAnalystPane } from "../../components/agentRun/panes/BusinessAnalystPane";
 import { DecisionEnginePane } from "../../components/agentRun/panes/DecisionEnginePane";
@@ -68,6 +70,7 @@ export default function AgentRunsTab() {
 
   const [standup, setStandup] = useState<Record<string, any> | null>(null);
   const [standupLoading, setStandupLoading] = useState(false);
+  const [subSection, setSubSection] = useState<"runs" | "integrations">("runs");
 
   // Navigation & Filter State
   const [viewMode, setViewMode] = useState<AgentRunViewMode>("pipeline");
@@ -252,6 +255,21 @@ export default function AgentRunsTab() {
 
   return (
     <div id="agent-runs-root" className="space-y-6 pb-16 animate-in fade-in duration-200">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <Tabs
+          value={subSection}
+          onChange={(val) => setSubSection(val as typeof subSection)}
+          items={[
+            { value: "runs", label: "Agent Runs", icon: <Bot size={14} /> },
+            { value: "integrations", label: "Connectors", icon: <Boxes size={14} /> },
+          ]}
+        />
+      </div>
+
+      {subSection === "integrations" ? (
+        <IntegrationsTab />
+      ) : (
+        <>
       {/* 1. Executive Telemetry & Progression Header */}
       <AgentRunHeader
         initiative={initiative}
@@ -842,6 +860,8 @@ export default function AgentRunsTab() {
         agentName={payloadModal.agentName}
         payload={payloadModal.payload}
       />
+        </>
+      )}
     </div>
   );
 }

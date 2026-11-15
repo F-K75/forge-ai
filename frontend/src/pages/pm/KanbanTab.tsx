@@ -29,6 +29,10 @@ import {
   Plus,
   Sparkles,
   ChevronRight,
+  Zap,
+  Network,
+  Package,
+  Kanban,
 } from "lucide-react";
 import type { PMTask } from "../../lib/types/api";
 import { usePMStore } from "../../store/pmStore";
@@ -38,6 +42,10 @@ import { executeTaskWithGemini } from "../../lib/geminiPM";
 import { motion, motionVariants } from "../../lib/animations";
 import { TaskDependencyModal } from "../../components/pm/TaskDependencyModal";
 import { DependencyArrowsOverlay } from "../../components/pm/DependencyArrowsOverlay";
+import { Tabs } from "../../components/ui/Tabs";
+import SprintsTab from "./SprintsTab";
+import GraphTab from "./GraphTab";
+import ReleasesTab from "./ReleasesTab";
 
 // Google Agile PM / Engineering Kanban color palette
 export const COLUMNS: {
@@ -1240,6 +1248,7 @@ function CreateTaskModal({
  */
 export default function KanbanTab() {
   const { tasks, sprints, setTaskLocal, addTaskLocal, addExecutionLocal, initiative } = usePMStore();
+  const [boardSubView, setBoardSubView] = useState<"kanban" | "sprints" | "graph" | "releases">("kanban");
   const [sprintFilter, setSprintFilter] = useState<string>("all");
   const [agentFilter, setAgentFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -1536,7 +1545,28 @@ export default function KanbanTab() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-slate-50/50 dark:bg-[#0E1118] font-sans antialiased text-slate-800 dark:text-slate-200">
+    <div className="flex flex-col h-full min-h-0 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <Tabs
+          value={boardSubView}
+          onChange={(val) => setBoardSubView(val as typeof boardSubView)}
+          items={[
+            { value: "kanban", label: "Kanban Board", icon: <Kanban size={14} /> },
+            { value: "sprints", label: "Sprints", icon: <Zap size={14} /> },
+            { value: "graph", label: "Dependency Graph", icon: <Network size={14} /> },
+            { value: "releases", label: "Releases", icon: <Package size={14} /> },
+          ]}
+        />
+      </div>
+
+      {boardSubView === "sprints" ? (
+        <SprintsTab />
+      ) : boardSubView === "graph" ? (
+        <GraphTab />
+      ) : boardSubView === "releases" ? (
+        <ReleasesTab />
+      ) : (
+    <div className="flex flex-col h-full min-h-0 bg-panel rounded-lg border border-border font-sans antialiased text-ink">
       {/* Top Header & Filter Control Bar */}
       <div className="px-4 py-3.5 md:px-6 shrink-0 bg-white dark:bg-[#141824] border-b-2 border-slate-200/80 dark:border-slate-800 shadow-xs">
         {/* Title and High-Level Status Row */}
@@ -2106,6 +2136,8 @@ export default function KanbanTab() {
         sprints={sprints}
         onCreate={handleCreateTask}
       />
+    </div>
+      )}
     </div>
   );
 }

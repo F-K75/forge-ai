@@ -372,23 +372,11 @@ export default function App() {
             }
           />
 
-          {/* Layer 1: Public Marketing & CLI Launchpad */}
+          {/* Layer 1: Public Marketing & Demo Redirect */}
           <Route path="/" element={<RootRoute />} />
           <Route
             path="/demo"
             element={<Navigate to={LIVE_MODE ? "/projects" : "/p/demo-project/workspace"} replace />}
-          />
-          <Route
-            path="/launch"
-            element={
-              <ErrorBoundary>
-                <PublicRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <Launch />
-                  </Suspense>
-                </PublicRoute>
-              </ErrorBoundary>
-            }
           />
 
           {/* Layer 2 & 3: Platform Hub & Project-Scoped Workspaces */}
@@ -511,6 +499,14 @@ export default function App() {
             </Route>
 
             {/* Layer 2: Platform Hub Routes */}
+            <Route
+              path="/launch"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <Launch />
+                </Suspense>
+              }
+            />
             <Route
               path="/projects"
               element={

@@ -13,10 +13,18 @@ import {
   CalendarDays,
   MessageSquare,
   ThumbsUp,
+  Map,
+  Activity,
+  BarChart3,
+  Rocket,
 } from "lucide-react";
 import { usePMStore } from "../../store/pmStore";
 import { initiativesApi } from "../../lib/pmApi";
 import { motion, motionVariants } from "../../lib/animations";
+import { Tabs } from "../../components/ui/Tabs";
+import RoadmapTab from "./RoadmapTab";
+import ActivityTab from "./ActivityTab";
+import AnalyticsTab from "./AnalyticsTab";
 
 function EditableList({
   label,
@@ -237,6 +245,7 @@ function EditableText({
 
 export default function OverviewTab() {
   const { initiative, prd, hydrate } = usePMStore();
+  const [subView, setSubView] = useState<"blueprint" | "roadmap" | "activity" | "analytics">("blueprint");
   const [comments, setComments] = useState<
     Array<{ id: string; comment: string; section: string; user_id: string }>
   >([]);
@@ -368,8 +377,29 @@ export default function OverviewTab() {
   };
 
   return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Tabs
+          value={subView}
+          onChange={(val) => setSubView(val as typeof subView)}
+          items={[
+            { value: "blueprint", label: "Blueprint & PRD", icon: <Rocket size={14} /> },
+            { value: "roadmap", label: "Roadmap", icon: <Map size={14} /> },
+            { value: "activity", label: "Activity", icon: <Activity size={14} /> },
+            { value: "analytics", label: "Analytics", icon: <BarChart3 size={14} /> },
+          ]}
+        />
+      </div>
+
+      {subView === "roadmap" ? (
+        <RoadmapTab />
+      ) : subView === "activity" ? (
+        <ActivityTab />
+      ) : subView === "analytics" ? (
+        <AnalyticsTab />
+      ) : (
     <motion.div
-      className="max-w-7xl mx-auto px-4 md:px-8 py-8 font-sans space-y-10"
+      className="max-w-7xl mx-auto px-4 md:px-8 py-4 font-sans space-y-10"
       variants={motionVariants.staggerContainer}
       initial="hidden"
       animate="visible"
@@ -853,5 +883,7 @@ export default function OverviewTab() {
         </section>
       </div>
     </motion.div>
+      )}
+    </div>
   );
 }
