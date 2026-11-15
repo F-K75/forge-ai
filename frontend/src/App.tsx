@@ -1,6 +1,6 @@
 import { useEffect, useState, Suspense } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams } from "react-router-dom"
 import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
@@ -38,7 +38,6 @@ const PromptStudioPage = lazyWithRetry(() => import("./pages/PromptStudioPage"))
 // Step 3: in-shell surfaces
 const AdminConsole = lazyWithRetry(() => import("./pages/AdminConsole"))
 const ProjectHistory = lazyWithRetry(() => import("./pages/ProjectHistory"))
-const EngineeringOrgPage = lazyWithRetry(() => import("./pages/EngineeringOrgPage"))
 // AI-native Agile PM layer (Initiatives): vision/PRD -> epics/stories/tasks -> sprints -> board -> releases
 const InitiativesListPage = lazyWithRetry(() => import("./pages/pm/InitiativesListPage"))
 const InitiativeLayout = lazyWithRetry(() => import("./pages/pm/InitiativeLayout"))
@@ -242,6 +241,12 @@ function ProjectScopedRedirect({ sub }: { sub: string }) {
   return <Navigate to={projectPath(sub)} replace />
 }
 
+function ParamProjectRedirect({ sub }: { sub: string }) {
+  const { projectId } = useParams<{ projectId: string }>()
+  if (!projectId) return <Navigate to="/projects" replace />
+  return <Navigate to={`/p/${projectId}/${sub}`} replace />
+}
+
 function WorkspaceRedirect() {
   return <ProjectScopedRedirect sub="workspace" />
 }
@@ -405,11 +410,7 @@ export default function App() {
             />
             <Route
               path="/build/:projectId"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <WorkspacePage />
-                </Suspense>
-              }
+              element={<ParamProjectRedirect sub="workspace" />}
             />
 
             {/* Layer 3: Project-Scoped Deep Work Context (/p/:projectId/*) */}
@@ -528,27 +529,11 @@ export default function App() {
             />
             <Route
               path="/files"
-              element={
-                LIVE_MODE ? (
-                  <ProjectScopedRedirect sub="files" />
-                ) : (
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <FilesPage />
-                  </Suspense>
-                )
-              }
+              element={<ProjectScopedRedirect sub="files" />}
             />
             <Route
               path="/history"
-              element={
-                LIVE_MODE ? (
-                  <ProjectScopedRedirect sub="history" />
-                ) : (
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <HistoryPage />
-                  </Suspense>
-                )
-              }
+              element={<ProjectScopedRedirect sub="history" />}
             />
             <Route
               path="/models"
@@ -637,19 +622,11 @@ export default function App() {
             />
             <Route
               path="/project/:projectId"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <ProjectHistory />
-                </Suspense>
-              }
+              element={<ParamProjectRedirect sub="history" />}
             />
             <Route
               path="/project/:projectId/org"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <EngineeringOrgPage />
-                </Suspense>
-              }
+              element={<ParamProjectRedirect sub="agents" />}
             />
             <Route
               path="/reviews"
@@ -669,11 +646,7 @@ export default function App() {
             />
             <Route
               path="/flow"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <FlowPage />
-                </Suspense>
-              }
+              element={<ProjectScopedRedirect sub="agents" />}
             />
             <Route
               path="/initiatives"

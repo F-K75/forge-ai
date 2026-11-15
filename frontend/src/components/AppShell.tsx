@@ -3,8 +3,10 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Bot } from "lucide-react";
 import { AgentFleetGraph } from "./AgentFleetGraph";
 import { CommandPalette } from "./CommandPalette";
-import { OSWindow } from "./OSWindow";
+import { LeftNavRail } from "./LeftNavRail";
 import { TopNavBar } from "./TopNavBar";
+import { Dialog } from "./ui/Dialog";
+import { Button } from "./ui/Button";
 import { useActiveProject } from "../hooks/useActiveProject";
 import { useAuthStore } from "../store/authStore";
 import { LIVE_MODE } from "../lib/env";
@@ -12,18 +14,19 @@ import { LIVE_MODE } from "../lib/env";
 export default function AppShell() {
   const navigate = useNavigate();
   const [showAgentFleet, setShowAgentFleet] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Project context resolution for global shortcuts (shared with TopNavBar)
   const { projectPath } = useActiveProject();
   const user = useAuthStore((st) => st.user);
 
-  // Global Keyboard Shortcuts
+  // Global Keyboard Shortcuts (Alt+1..0, Alt+,, Alt+L, Alt+H)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey) {
         if (e.key === "1") navigate("/projects");
         if (e.key === "2") navigate(projectPath("workspace"));
-        if (e.key === "3") navigate(projectPath("flow"));
+        if (e.key === "3") navigate(projectPath("agents"));
         if (e.key === "4") navigate(projectPath("initiatives"));
         if (e.key === "5") navigate(projectPath("reviews"));
         if (e.key === "6") navigate("/marketplace");
@@ -41,16 +44,23 @@ export default function AppShell() {
   }, [navigate, projectPath]);
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden text-ink select-none font-sans bg-base">
-      {/* Redesigned High-Performance Top Navigation Bar */}
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden text-ink font-sans bg-base">
+      {/* Compact Top Context Bar (56px / h-14) */}
       <TopNavBar
         onOpenAgentFleet={() => setShowAgentFleet(true)}
         activeAgentCount={LIVE_MODE ? undefined : 3}
         creditsBalance={LIVE_MODE ? user?.credits : 1247}
+        mobileNavOpen={mobileNavOpen}
+        onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
       />
 
-      {/* Viewport Canvas Area */}
+      {/* Shell Body: Collapsible Left Rail + Main Content Canvas */}
       <div className="flex-1 min-h-0 relative flex overflow-hidden">
+        <LeftNavRail
+          mobileOpen={mobileNavOpen}
+          onCloseMobile={() => setMobileNavOpen(false)}
+        />
+
         <main
           id="os-desktop-canvas"
           className="flex-1 min-w-0 min-h-0 relative flex flex-col overflow-y-auto bg-base"
@@ -62,34 +72,34 @@ export default function AppShell() {
       {/* Global Command Palette */}
       <CommandPalette />
 
-      {/* Agent Fleet Modal Window */}
-      {showAgentFleet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl h-[520px]">
-            <OSWindow
-              id="os-modal-agent-fleet"
-              title="AGENT_FLEET_MONITOR.SYS"
-              icon={Bot}
-              status="ONLINE · 3 AGENTS"
-              onClose={() => setShowAgentFleet(false)}
-              className="h-full shadow-[8px_8px_0px_0px_#000] dark:shadow-[8px_8px_0px_0px_#fff]"
-              bodyClassName="p-4"
-            >
-              <div className="h-full flex flex-col gap-3 font-mono text-xs">
-                <div className="p-3 bg-[#F4F0EA] dark:bg-[#202028] border-2 border-black dark:border-white/80 flex items-center justify-between">
-                  <span className="font-bold">ACTIVE WORKSPACE TOPOLOGY</span>
-                  <span className="px-2 py-0.5 bg-emerald-400 text-black font-black border border-black text-[10px]">
-                    AUTONOMOUS
-                  </span>
-                </div>
-                <div className="flex-1 border-2 border-black dark:border-white/80 p-2 overflow-hidden bg-white dark:bg-[#15151C]">
-                  <AgentFleetGraph />
-                </div>
-              </div>
-            </OSWindow>
+      {/* Agent Fleet Monitor Dialog */}
+      <Dialog
+        open={showAgentFleet}
+        onOpenChange={setShowAgentFleet}
+        title="Agent Fleet Monitor"
+        description="Active autonomous workspace topology"
+        size="xl"
+        footer={
+          <Button variant="secondary" size="sm" onClick={() => setShowAgentFleet(false)}>
+            Close
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <div className="px-3 py-2 rounded-lg bg-panel-alt border border-border flex items-center justify-between text-xs font-mono">
+            <span className="flex items-center gap-2 font-medium text-ink">
+              <Bot size={14} className="text-accent" />
+              Active Workspace Topology
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-ok/15 text-ok font-semibold text-[11px]">
+              ONLINE · AUTONOMOUS
+            </span>
+          </div>
+          <div className="h-[340px] rounded-lg border border-border p-2 overflow-hidden bg-base">
+            <AgentFleetGraph />
           </div>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 interface UiState {
-  /** @deprecated Kept for persisted localStorage compat; OS shell no longer uses a sidebar. */
+  /** Controls collapsed (56px) vs expanded (220px) state of the LeftNavRail on desktop. */
   sidebarCollapsed: boolean
   toggleSidebar: () => void
   windowMaximized: boolean

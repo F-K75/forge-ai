@@ -2,9 +2,10 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, within, cleanup } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axe } from "vitest-axe";
 import { TopNavBar } from "./TopNavBar";
 
-describe("TopNavBar Redesigned Component", () => {
+describe("TopNavBar Compact Context Bar", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -27,61 +28,32 @@ describe("TopNavBar Redesigned Component", () => {
     );
   };
 
-  it("renders Forge brand identity and active workspace", () => {
+  it("renders Forge brand identity and active workspace breadcrumb", () => {
     renderTopNavBar();
 
-    // Brand
     expect(screen.getByText("FORGE")).toBeInTheDocument();
-    expect(screen.getByText("OS 2.4")).toBeInTheDocument();
 
-    // Active workspace trigger
     const projectBtn = document.getElementById("taskbar-project-switcher-btn");
     expect(projectBtn).toBeInTheDocument();
     expect(projectBtn).toHaveTextContent(/Forge Core Engine/i);
   });
 
-  it("opens and filters the workspace dropdown", () => {
+  it("opens and filters the workspace switcher dropdown", () => {
     renderTopNavBar();
 
     const projectBtn = document.getElementById("taskbar-project-switcher-btn");
     expect(projectBtn).toBeInTheDocument();
     fireEvent.click(projectBtn!);
 
-    // Check popover opened
     const dropdown = document.getElementById("taskbar-project-switcher-dropdown");
     expect(dropdown).toBeInTheDocument();
-    expect(within(dropdown!).getByPlaceholderText(/Filter workspaces.../i)).toBeInTheDocument();
 
-    // Filter projects
     const input = within(dropdown!).getByPlaceholderText(/Filter workspaces.../i);
     fireEvent.change(input, { target: { value: "Engine" } });
     expect(within(dropdown!).getByText("Forge Core Engine")).toBeInTheDocument();
   });
 
-  it("renders primary workflow navigation tabs", () => {
-    renderTopNavBar();
-
-    expect(document.getElementById("taskbar-tab-workspace")).toHaveTextContent("Workspace");
-    expect(document.getElementById("taskbar-tab-projects")).toHaveTextContent("Projects");
-    expect(document.getElementById("taskbar-tab-initiatives")).toHaveTextContent("Initiatives");
-    expect(document.getElementById("taskbar-tab-agents")).toHaveTextContent("Agents");
-    expect(document.getElementById("taskbar-tab-reviews")).toHaveTextContent("Reviews");
-    expect(document.getElementById("taskbar-tab-launchpad")).toHaveTextContent("Launchpad");
-  });
-
-  it("opens the More dropdown with secondary tools", () => {
-    renderTopNavBar();
-
-    const moreBtn = screen.getByRole("button", { name: /More/i });
-    fireEvent.click(moreBtn);
-
-    expect(screen.getByText("Marketplace")).toBeInTheDocument();
-    expect(screen.getByText("Model Studio")).toBeInTheDocument();
-    expect(screen.getByText("Billing & Compute")).toBeInTheDocument();
-    expect(screen.getByText("Admin Console")).toBeInTheDocument();
-  });
-
-  it("triggers agent fleet callback when clicking fleet beacon", () => {
+  it("triggers agent fleet callback when clicking fleet pill", () => {
     const onOpenAgentFleet = vi.fn();
     renderTopNavBar({ onOpenAgentFleet, activeAgentCount: 5 });
 
@@ -102,6 +74,7 @@ describe("TopNavBar Redesigned Component", () => {
 
     const cmdTrigger = document.getElementById("os-terminal-trigger");
     expect(cmdTrigger).toBeInTheDocument();
+    expect(cmdTrigger).toHaveTextContent("⌘K");
   });
 
   it("opens user account menu popover", () => {
@@ -113,17 +86,23 @@ describe("TopNavBar Redesigned Component", () => {
 
     expect(screen.getByText("Account Settings")).toBeInTheDocument();
     expect(screen.getByText("Billing & Subscriptions")).toBeInTheDocument();
+    expect(screen.getByText("Admin Governance")).toBeInTheDocument();
     expect(screen.getByText("Sign Out")).toBeInTheDocument();
   });
 
-  it("toggles the mobile drawer when clicking the hamburger toggle", () => {
-    renderTopNavBar();
+  it("calls onToggleMobileNav when clicking the mobile drawer toggle", () => {
+    const onToggleMobileNav = vi.fn();
+    renderTopNavBar({ onToggleMobileNav, mobileNavOpen: false });
 
     const drawerToggle = screen.getByRole("button", { name: /Toggle Navigation Drawer/i });
+    expect(drawerToggle).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(drawerToggle);
+    expect(onToggleMobileNav).toHaveBeenCalledTimes(1);
+  });
 
-    expect(screen.getByText("Active Workspace")).toBeInTheDocument();
-    expect(screen.getByText("Core Workflow")).toBeInTheDocument();
-    expect(screen.getByText("Ecosystem & Settings")).toBeInTheDocument();
+  it("has no axe accessibility violations", async () => {
+    const { container } = renderTopNavBar({ activeAgentCount: 3, creditsBalance: 1200 });
+    const results = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results).toHaveNoViolations();
   });
 });
