@@ -24,11 +24,11 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
       animate={{ opacity: 1 }}
     >
       <motion.div
-        className="w-16 h-16 rounded-sm border-2 border-black bg-brutal-yellow shadow-brutal flex items-center justify-center mb-5"
-        whileHover={reduceMotion ? {} : { scale: 1.05, rotate: 3 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        className="w-12 h-12 rounded-lg border border-border bg-panel-alt shadow-m3 flex items-center justify-center mb-4"
+        whileHover={reduceMotion ? {} : { scale: 1.04 }}
+        transition={{ duration: 0.15, ease: 'easeInOut' }}
       >
-        <Icon className="w-8 h-8 text-black" aria-hidden="true" />
+        <Icon className="w-6 h-6 text-accent" aria-hidden="true" />
       </motion.div>
       <motion.div
         className="mb-2"
@@ -81,7 +81,7 @@ export function Skeleton({ className, variant = 'rect', animate = true }: Skelet
   return (
     <div
       className={clsx(
-        'bg-panel rounded',
+        'bg-surface-high rounded-md',
         animate && 'animate-shimmer',
         variant === 'text' && 'h-4',
         variant === 'circle' && 'rounded-full',
@@ -97,15 +97,15 @@ export function SkeletonCard({ count = 1 }: { count?: number }) {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="border-2 border-black bg-white rounded-sm p-6 shadow-brutal" aria-hidden="true">
-          <Skeleton className="h-6 w-3/4 mb-3 rounded-none bg-neutral-200" />
-          <Skeleton className="h-4 w-full mb-2 rounded-none bg-neutral-200" />
-          <Skeleton className="h-4 w-5/6 mb-4 rounded-none bg-neutral-200" />
+        <div key={i} className="border border-border bg-panel rounded-lg p-6 shadow-m3" aria-hidden="true">
+          <Skeleton className="h-6 w-3/4 mb-3 rounded-sm bg-surface-high" />
+          <Skeleton className="h-4 w-full mb-2 rounded-sm bg-surface-high" />
+          <Skeleton className="h-4 w-5/6 mb-4 rounded-sm bg-surface-high" />
           <div className="flex gap-2 mb-4">
-            <Skeleton className="h-5 w-16 rounded-sm bg-neutral-200" />
-            <Skeleton className="h-5 w-20 rounded-sm bg-neutral-200" />
+            <Skeleton className="h-5 w-16 rounded-sm bg-surface-high" />
+            <Skeleton className="h-5 w-20 rounded-sm bg-surface-high" />
           </div>
-          <Skeleton className="h-9 w-full rounded-sm bg-neutral-200" />
+          <Skeleton className="h-9 w-full rounded-md bg-surface-high" />
         </div>
       ))}
     </>
@@ -116,11 +116,11 @@ export function SkeletonList({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-3" aria-hidden="true">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-4 rounded-sm border-2 border-black bg-white shadow-brutal-sm">
-          <Skeleton variant="circle" className="w-8 h-8 rounded-sm bg-neutral-200" />
+        <div key={i} className="flex items-center gap-3 p-4 rounded-lg border border-border bg-panel shadow-m3">
+          <Skeleton variant="circle" className="w-8 h-8 rounded-full bg-surface-high" />
           <div className="flex-1">
-            <Skeleton className="h-4 w-32 mb-1 rounded-none bg-neutral-200" />
-            <Skeleton className="h-3 w-24 rounded-none bg-neutral-200" />
+            <Skeleton className="h-4 w-32 mb-1 rounded-sm bg-surface-high" />
+            <Skeleton className="h-3 w-24 rounded-sm bg-surface-high" />
           </div>
         </div>
       ))}

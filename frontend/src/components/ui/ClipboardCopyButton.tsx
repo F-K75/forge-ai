@@ -71,7 +71,7 @@ const DEFAULT_CLASSNAME =
             exit={{ scale: 0, rotate: 90 }}
             transition={{ type: "spring", stiffness: 500, damping: 20 }}
           >
-            <Check className="w-3 h-3 text-emerald-400" />
+            <Check className="w-3 h-3 text-ok" />
           </motion.span>
         ) : (
           <motion.span

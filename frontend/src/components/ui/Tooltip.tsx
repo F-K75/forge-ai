@@ -23,7 +23,7 @@ export function Tooltip({ content, children, side = 'top', className }: TooltipP
       <div
         role="tooltip"
         className={twMerge(clsx(
-          'pointer-events-none absolute z-[60] whitespace-nowrap px-2.5 py-1 text-xs font-bold text-white bg-black border-2 border-black shadow-brutal-sm rounded-none uppercase tracking-wider',
+          'pointer-events-none absolute z-[60] whitespace-nowrap px-2.5 py-1 text-xs font-medium text-ink bg-surface-high border border-border shadow-m3-2 rounded-md',
           sideClasses[side]
         ))}
       >

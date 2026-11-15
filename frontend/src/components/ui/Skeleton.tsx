@@ -15,18 +15,18 @@ export function Skeleton({ variant = 'rect', animate = true, width, height, clas
     <div
       className={twMerge(
         clsx(
-          'bg-panel-alt',
+          'bg-surface-high',
           animate && 'animate-shimmer',
-          variant === 'text' && 'h-4 rounded',
+          variant === 'text' && 'h-4 rounded-sm',
           variant === 'circle' && 'rounded-full',
-          variant === 'rect' && 'rounded-lg',
+          variant === 'rect' && 'rounded-md',
           className
         )
       )}
       style={{
         width: width,
         height: height,
-        borderRadius: variant === 'circle' ? layout.radiusFull : variant === 'text' ? layout.radiusSm : layout.radiusMd,
+        borderRadius: variant === 'circle' ? layout.radiusFull : variant === 'text' ? layout.radiusXs : layout.radiusSm,
         ...style,
       }}
       aria-hidden="true"
@@ -39,7 +39,7 @@ export function SkeletonCard({ count = 1 }: { count?: number }) {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="glass rounded-xl p-6" aria-hidden="true">
+        <div key={i} className="border border-border bg-panel rounded-lg p-6 shadow-m3" aria-hidden="true">
           <Skeleton className="h-6 w-3/4 mb-3" />
           <Skeleton className="h-4 w-full mb-2" />
           <Skeleton className="h-4 w-5/6 mb-4" />
@@ -58,7 +58,7 @@ export function SkeletonList({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-3" aria-hidden="true">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl glass">
+        <div key={i} className="flex items-center gap-3 p-4 rounded-lg border border-border bg-panel">
           <Skeleton variant="circle" className="w-8 h-8" />
           <div className="flex-1">
             <Skeleton className="h-4 w-32 mb-1" />

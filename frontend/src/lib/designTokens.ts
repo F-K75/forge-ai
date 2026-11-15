@@ -1,7 +1,7 @@
 /**
- * Apple × Google Material 3 design tokens for Forge AI.
+ * Unified Developer Workspace design tokens for Forge AI (Linear / Vercel minimal style).
  * Single source of truth for spacing, typography, elevation, motion, radius, and z-index.
- * Colors live as CSS variables in index.css (light / dark / high-contrast).
+ * Semantic colors live as CSS variables in index.css (dark default / light / high-contrast).
  */
 
 export const spacing = {
@@ -37,10 +37,10 @@ export type Space = (typeof space)[keyof typeof space]
 export const radius = {
   none: 0,
   xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 28,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
   full: 9999,
 } as const
 
@@ -60,13 +60,13 @@ export const layout = {
   maxContent: 1440,
   contentPad: 24,
   contentPadLg: 40,
-  navHeight: 64,
-  dockHeight: 64,
+  navHeight: 56,
+  dockHeight: 56,
   radiusXs: 4,
   radiusSm: 8,
   radiusMd: 12,
-  radiusLg: 16,
-  radiusXl: 28,
+  radiusLg: 12,
+  radiusXl: 16,
   radiusFull: 9999,
 } as const
 
@@ -122,16 +122,16 @@ export const motion = {
   duration: {
     instant: 100,
     fast: 150,
-    normal: 220,
-    slow: 320,
-    story: 480,
+    normal: 200,
+    slow: 280,
+    story: 400,
   },
   easing: {
-    standard: 'cubic-bezier(0.2, 0, 0, 1)',
+    standard: 'cubic-bezier(0.4, 0, 0.2, 1)',
     emphasized: 'cubic-bezier(0.2, 0, 0, 1)',
     spring: { type: 'spring' as const, stiffness: 380, damping: 32 },
     softSpring: { type: 'spring' as const, stiffness: 260, damping: 28 },
-    apple: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+    apple: 'cubic-bezier(0.4, 0, 0.2, 1)',
     material: 'cubic-bezier(0.2, 0, 0, 1)',
     decelerate: 'cubic-bezier(0, 0, 0.2, 1)',
     accelerate: 'cubic-bezier(0.4, 0, 1, 1)',
@@ -140,11 +140,11 @@ export const motion = {
 
 export const elevation = {
   0: 'none',
-  1: '0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.30)',
-  2: '0px 2px 6px 2px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.30)',
-  3: '0px 1px 3px 0px rgba(0, 0, 0, 0.30), 0px 4px 8px 3px rgba(0, 0, 0, 0.15)',
-  4: '0px 2px 3px 0px rgba(0, 0, 0, 0.30), 0px 6px 10px 4px rgba(0, 0, 0, 0.15)',
-  5: '0px 4px 4px 0px rgba(0, 0, 0, 0.30), 0px 8px 12px 6px rgba(0, 0, 0, 0.15)',
+  1: '0 1px 2px 0 rgba(0, 0, 0, 0.4)',
+  2: '0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06)',
+  3: '0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+  4: '0 16px 40px -6px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+  5: '0 24px 48px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.12)',
 } as const
 
 export const zIndex = {

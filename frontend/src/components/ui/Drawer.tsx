@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { motion, useReducedMotion } from 'motion/react'
@@ -14,9 +14,9 @@ interface DrawerProps {
 }
 
 const sideClasses: Record<string, string> = {
-  left: 'inset-y-0 left-0 border-r-3 border-black shadow-brutal-xl',
-  right: 'inset-y-0 right-0 border-l-3 border-black shadow-brutal-xl',
-  bottom: 'inset-x-0 bottom-0 border-t-3 border-black shadow-brutal-xl',
+  left: 'inset-y-0 left-0 border-r border-border shadow-m3-3',
+  right: 'inset-y-0 right-0 border-l border-border shadow-m3-3',
+  bottom: 'inset-x-0 bottom-0 border-t border-border shadow-m3-3',
 }
 
 const sizeClasses: Record<string, Record<string, string>> = {
@@ -36,6 +36,15 @@ export function Drawer({
 }: DrawerProps) {
   const reduceMotion = useReducedMotion()
 
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, onOpenChange])
+
   if (!open) return null
 
   const animationVariants = {
@@ -49,17 +58,19 @@ export function Drawer({
   return (
     <div className="fixed inset-0 z-[70] flex">
       <motion.div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
         onClick={() => onOpenChange(false)}
       />
       <motion.div
         role="dialog"
         aria-modal="true"
+        aria-label={title || 'Drawer'}
         className={twMerge(clsx(
-          'relative flex flex-col bg-white text-ink shadow-brutal-xl',
+          'relative flex flex-col bg-panel text-ink shadow-m3-3',
           sideClasses[side],
           sizeClasses[side][size],
           className
@@ -67,24 +78,24 @@ export function Drawer({
         initial={reduceMotion ? { x: 0, y: 0 } : variants.initial}
         animate={{ x: 0, y: 0 }}
         exit={reduceMotion ? { x: 0, y: 0 } : variants.exit}
-        transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
       >
         {title && (
-          <div className="flex items-center justify-between border-b-2 border-black bg-brutal-cream px-6 py-4">
-            <h2 className="text-lg font-black uppercase tracking-tight text-ink">{title}</h2>
+          <div className="flex items-center justify-between border-b border-border bg-panel-alt/60 px-6 py-4">
+            <h2 className="text-base font-semibold tracking-tight text-ink">{title}</h2>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-sm border-2 border-black bg-white text-black transition-colors hover:bg-brutal-yellow active:translate-x-[1px] active:translate-y-[1px]"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-muted transition-colors duration-150 hover:text-ink hover:bg-inlay-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label="Close"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-6 py-4 text-body text-ink">
+        <div className="flex-1 overflow-y-auto px-6 py-4 text-sm text-ink">
           {children}
         </div>
       </motion.div>

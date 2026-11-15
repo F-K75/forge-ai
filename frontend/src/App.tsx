@@ -66,10 +66,14 @@ const queryClient = new QueryClient({
 
 function LoadingSpinner() {
   return (
-    <div className="relative z-50 min-h-[100dvh] bg-[#07070b] flex items-center justify-center">
+    <div
+      role="status"
+      aria-live="polite"
+      className="relative z-50 min-h-[100dvh] bg-base text-ink flex items-center justify-center"
+    >
       <div className="flex flex-col items-center gap-4">
         <BrandLogo size="lg" />
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Booting Forge OS</p>
+        <p className="font-mono text-2xs uppercase tracking-[0.16em] text-muted">Booting Forge OS</p>
       </div>
     </div>
   )
@@ -77,10 +81,14 @@ function LoadingSpinner() {
 
 function RouteSkeleton() {
   return (
-    <div className="relative z-50 min-h-full flex items-center justify-center py-20">
+    <div
+      role="status"
+      aria-live="polite"
+      className="relative z-50 min-h-full bg-base/80 text-ink flex items-center justify-center py-20"
+    >
       <div className="flex flex-col items-center gap-3">
         <BrandLogo size="md" />
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Opening…</p>
+        <p className="font-mono text-2xs uppercase tracking-[0.16em] text-muted">Opening…</p>
       </div>
     </div>
   )
@@ -711,12 +719,12 @@ export default function App() {
           position="bottom-right"
           toastOptions={{
             style: {
-              background: "#1C1C1E",
-              color: "#F5F5F7",
-              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgb(var(--surface-container))",
+              color: "rgb(var(--on-surface))",
+              border: "1px solid rgb(var(--outline) / var(--outline-alpha))",
               fontSize: "14px",
-              borderRadius: "16px",
-              boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
+              borderRadius: "12px",
+              boxShadow: "var(--elevation-3)",
             },
           }}
         />

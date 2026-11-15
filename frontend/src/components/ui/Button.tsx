@@ -14,20 +14,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'border-2 border-black bg-brutal-yellow text-black shadow-brutal font-bold hover:bg-[#2DD4BF] active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
-  secondary: 'border-2 border-black bg-white text-black shadow-brutal font-bold hover:bg-brutal-cream active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
-  tonal: 'border-2 border-black bg-brutal-cyan text-black shadow-brutal font-bold hover:bg-[#54A0FF] active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
-  outlined: 'border-2 border-black bg-white text-black shadow-brutal font-bold hover:bg-brutal-yellow active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-press',
-  ghost: 'border-2 border-transparent hover:border-black bg-transparent text-ink font-bold hover:bg-black/5 active:translate-x-[1px] active:translate-y-[1px]',
-  text: 'bg-transparent text-ink font-bold hover:underline p-0 h-auto border-0 shadow-none',
-  chip: 'border-2 border-black bg-white text-black shadow-brutal-sm font-bold hover:bg-brutal-yellow active:translate-x-[1px] active:translate-y-[1px] active:shadow-none',
+  primary: 'border border-transparent bg-accent text-[#09090B] font-semibold shadow-m3 hover:bg-ember-glow active:brightness-95',
+  secondary: 'border border-border bg-panel-alt text-ink font-medium hover:bg-surface-high hover:border-ink/20 active:bg-surface-high/80',
+  tonal: 'border border-accent/25 bg-accent/15 text-accent font-medium hover:bg-accent/25 active:bg-accent/30',
+  outlined: 'border border-border bg-transparent text-ink font-medium hover:bg-inlay-hover hover:border-ink/25 active:bg-inlay-strong',
+  ghost: 'border border-transparent bg-transparent text-muted font-medium hover:text-ink hover:bg-inlay-hover active:bg-inlay-strong',
+  text: 'bg-transparent text-accent font-medium hover:text-ember-glow hover:underline p-0 h-auto border-0 shadow-none',
+  chip: 'border border-border bg-panel text-ink font-medium hover:border-accent/50 hover:bg-panel-alt active:bg-surface-high',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-9 min-h-[44px] sm:min-h-[36px] sm:h-9 px-3 text-xs',
-  md: 'h-11 min-h-[44px] sm:min-h-[40px] sm:h-10 px-5 text-sm',
-  lg: 'h-12 min-h-[44px] px-7 text-base',
-  icon: 'h-11 w-11 min-h-[44px] min-w-[44px] p-0',
+  sm: 'h-9 min-h-[44px] sm:min-h-[34px] sm:h-8 px-3 text-xs',
+  md: 'h-11 min-h-[44px] sm:min-h-[38px] sm:h-9 px-4 text-sm',
+  lg: 'h-11 min-h-[44px] px-6 text-base',
+  icon: 'h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-[36px] sm:min-w-[36px] p-0',
 }
 
 export function Button({
@@ -47,17 +47,17 @@ export function Button({
     <motion.button
       type={type}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={twMerge(
         clsx(
-          'relative inline-flex cursor-pointer select-none items-center justify-center gap-2 overflow-hidden font-bold transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none rounded-sm',
+          'relative inline-flex cursor-pointer select-none items-center justify-center gap-2 overflow-hidden rounded-md transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none',
           variantClasses[variant],
           sizeClasses[size],
           className
         )
       )}
-      whileHover={reduceMotion || disabled || isText ? {} : { x: -1, y: -1 }}
-      whileTap={reduceMotion || disabled || isText ? {} : { x: 2, y: 2 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+      whileTap={reduceMotion || disabled || loading || isText ? {} : { scale: 0.98 }}
+      transition={{ duration: 0.15, ease: 'easeInOut' }}
       {...(rest as any)}
     >
       {loading && (

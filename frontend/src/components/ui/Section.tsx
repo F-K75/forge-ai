@@ -19,8 +19,8 @@ export function Section({ children, title, description, actions, padding = true,
       {(title || description || actions) && (
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            {title && <h2 className="text-xl font-black uppercase tracking-tight text-ink">{title}</h2>}
-            {description && <p className="mt-1 text-sm text-muted font-medium">{description}</p>}
+            {title && <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>}
+            {description && <p className="mt-1 text-sm text-muted">{description}</p>}
           </div>
           {actions && <div className="shrink-0">{actions}</div>}
         </div>
@@ -67,22 +67,22 @@ export function StatCard({ title, value, change, icon, trend = 'neutral', classN
   return (
     <div
       className={twMerge(clsx(
-        'rounded-sm border-2 border-black bg-white p-5 shadow-brutal transition-all hover:shadow-brutal-lg hover:-translate-x-0.5 hover:-translate-y-0.5',
+        'rounded-lg border border-border bg-panel p-5 shadow-m3 transition-all duration-150 ease-in-out hover:border-ink/20',
         className
       ))}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="font-mono text-xs font-black uppercase tracking-wider text-muted">{title}</p>
-          <p className="mt-2 font-mono text-3xl font-black text-ink tracking-tight">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted">{title}</p>
+          <p className="mt-2 font-mono text-2xl font-semibold tabular-nums text-ink tracking-tight">{value}</p>
           {change && (
-            <p className={clsx('mt-1 text-xs font-mono', trendColors[trend])}>
+            <p className={clsx('mt-1 text-xs font-mono tabular-nums', trendColors[trend])}>
               {change}
             </p>
           )}
         </div>
         {icon && (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border-2 border-black bg-brutal-yellow text-black shadow-brutal-xs">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-accent/25 bg-accent/10 text-accent">
             {icon}
           </div>
         )}

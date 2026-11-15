@@ -13,7 +13,7 @@ export function Tabs({ value, onChange, items, className }: TabsProps) {
   return (
     <div
       role="tablist"
-      className={twMerge(clsx('flex items-center gap-1.5 overflow-x-auto p-1 bg-white border-2 border-black rounded-sm shadow-brutal-sm', className))}
+      className={twMerge(clsx('flex items-center gap-1 overflow-x-auto p-1 bg-panel-alt border border-border rounded-md', className))}
     >
       {items.map((item) => {
         const isActive = item.value === value
@@ -21,15 +21,16 @@ export function Tabs({ value, onChange, items, className }: TabsProps) {
           <button
             key={item.value}
             role="tab"
+            type="button"
             aria-selected={isActive}
             disabled={item.disabled}
             onClick={() => onChange(item.value)}
             className={twMerge(
               clsx(
-                'relative inline-flex items-center gap-2 whitespace-nowrap rounded-sm px-3.5 py-1.5 text-xs font-bold transition-all duration-fast z-10 select-none uppercase tracking-wider',
+                'relative inline-flex items-center gap-2 whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition-all duration-150 ease-in-out z-10 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                 isActive
-                  ? 'bg-brutal-yellow text-black border-2 border-black shadow-brutal-sm'
-                  : 'bg-transparent text-ink hover:bg-black/5 border-2 border-transparent hover:border-black/20',
+                  ? 'bg-panel text-ink border border-border shadow-m3'
+                  : 'bg-transparent text-muted hover:text-ink hover:bg-inlay-hover border border-transparent',
                 item.disabled && 'cursor-not-allowed opacity-50'
               )
             )}

@@ -20,23 +20,24 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           />
           <div
             className={clsx(
-              'h-7 w-12 rounded-sm border-2 border-black bg-white shadow-brutal-sm transition-colors duration-fast',
-              'peer-focus-visible:ring-2 peer-focus-visible:ring-black peer-focus-visible:ring-offset-2',
-              props.checked && 'bg-brutal-yellow'
+              'h-6 w-11 rounded-full border border-border bg-panel-alt transition-colors duration-150 ease-in-out',
+              'peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-base',
+              'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
+              props.checked && 'bg-accent border-accent'
             )}
           >
             <div
               className={clsx(
-                'absolute left-0.5 top-0.5 h-5 w-5 rounded-sm border-2 border-black bg-black transition-transform duration-fast',
-                props.checked ? 'translate-x-5 bg-black' : 'bg-neutral-300'
+                'absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform duration-150 ease-in-out shadow-sm',
+                props.checked ? 'translate-x-5 bg-[#09090B]' : 'bg-muted'
               )}
             />
           </div>
         </div>
         {(label || description) && (
           <div className="flex flex-col gap-0.5">
-            {label && <span className="text-xs font-bold uppercase tracking-wider text-ink">{label}</span>}
-            {description && <span className="text-xs font-medium text-muted">{description}</span>}
+            {label && <span className="text-sm font-medium text-ink">{label}</span>}
+            {description && <span className="text-xs text-muted">{description}</span>}
           </div>
         )}
       </label>
