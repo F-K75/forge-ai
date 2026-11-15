@@ -109,57 +109,71 @@ async def lifespan(app: FastAPI):
     pm_manager.start()
     org_manager.start()
 
-    # Fail fast if Mongo isn't reachable / isn't provisioned correctly.
-    try:
-        from core.database import get_db
-        db = await get_db()
-        await db.command("ping")
-    except Exception:
-        logger.exception("MongoDB startup health check failed")
-        raise
-
-    # Best-effort pre-warm of the DB-backed per-agent LLM overrides so the
-    # first request after a deploy doesn't run with a cold (empty) cache.
-    # Unlike the Mongo ping above, this must never block startup -- if it
-    # fails (e.g. Mongo flaky right at boot), LLMRouter.generate() simply
-    # falls back to YAML/env config until a later refresh (reload endpoint,
-    # or another set_agent_override call) succeeds.
-    try:
-        from core.llm.router import get_llm_router
-        await get_llm_router().config_loader.refresh_db_overrides()
-        await get_llm_router().config_loader.refresh_org_policy_overrides()
-        await get_llm_router().budget_manager.refresh_limits()
-    except Exception:
-        logger.warning("LLM agent override pre-warm failed; continuing with YAML/env config", exc_info=True)
-
     # Register engineering plugins (few-shot injection, context budget tagging,
     # version tracking, metrics annotation) into the prompt_builder pipeline.
     # These run automatically on every prompt_builder.build() call.
     register_engineering_plugins()
 
-    # Best-effort, non-fatal schema/data migrations (DB-002). Each migration is
-    # versioned and recorded in __forge_migrations; a failure is logged and
-    # skipped so it never blocks startup.
-    try:
-        from core.migrations import run_migrations
+    async def _background_startup_init() -> None:
+        """Warm MongoDB, LLM overrides, migrations, and template overlay without
+        blocking Uvicorn from binding $PORT within Render's port-scan timeout."""
+        t0 = time.monotonic()
+        try:
+            from core.database import get_db
+            db = await get_db()
+            await db.command("ping")
+            logger.info("MongoDB startup health check passed in %.2fs", time.monotonic() - t0)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("MongoDB startup health check failed")
+            return
 
-        applied = await run_migrations(db)
-        if applied:
-            logger.info("Ran %d database migration(s)", len(applied))
-    except Exception:
-        logger.warning("Database migrations did not run; continuing", exc_info=True)
+        # Best-effort pre-warm of the DB-backed per-agent LLM overrides so the
+        # first request after a deploy doesn't run with a cold (empty) cache.
+        try:
+            from core.llm.router import get_llm_router
+            await get_llm_router().config_loader.refresh_db_overrides()
+            await get_llm_router().config_loader.refresh_org_policy_overrides()
+            await get_llm_router().budget_manager.refresh_limits()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("LLM agent override pre-warm failed; continuing with YAML/env config", exc_info=True)
 
-    # 8.9: hydrate the Prompt TemplateRegistry overlay from MongoDB so runtime
-    # template edits survive restart and sync across workers. Best-effort.
-    try:
-        from prompt_builder.persistence import load_overlay
-        from prompt_builder.registry import get_template_registry
+        # Best-effort, non-fatal schema/data migrations (DB-002).
+        try:
+            from core.migrations import run_migrations
 
-        await load_overlay(get_template_registry())
-    except Exception:
-        logger.warning("Prompt template overlay load did not complete; continuing", exc_info=True)
+            applied = await run_migrations(db)
+            if applied:
+                logger.info("Ran %d database migration(s)", len(applied))
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("Database migrations did not run; continuing", exc_info=True)
+
+        # 8.9: hydrate the Prompt TemplateRegistry overlay from MongoDB.
+        try:
+            from prompt_builder.persistence import load_overlay
+            from prompt_builder.registry import get_template_registry
+
+            await load_overlay(get_template_registry())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("Prompt template overlay load did not complete; continuing", exc_info=True)
+
+    startup_task = asyncio.create_task(_background_startup_init())
 
     yield
+
+    if not startup_task.done():
+        startup_task.cancel()
+        try:
+            await startup_task
+        except asyncio.CancelledError:
+            pass
 
     # Graceful shutdown: wait for in-flight requests to complete (BE-005)
     logger.info("Shutdown initiated; waiting for in-flight requests to drain...")

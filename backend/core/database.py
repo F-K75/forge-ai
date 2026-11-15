@@ -60,7 +60,7 @@ async def get_db():
                 client = AsyncIOMotorClient(
                     settings.mongodb_url,
                     maxPoolSize=50,
-                    minPoolSize=10,
+                    minPoolSize=1,
                     # INF-008: bounded pool + fast-fail. A request that cannot get
                     # a pooled connection fails fast via waitQueueTimeoutMS rather
                     # than blocking indefinitely, and idle connections are
