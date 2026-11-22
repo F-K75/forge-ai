@@ -4,6 +4,9 @@ const BASE_URL = process.env.FORGE_BASE_URL || 'http://localhost:3000'
 
 export default defineConfig({
   testDir: './tests',
+  // Mocked-backend specs run against the production bundle with their own
+  // config: playwright.mocked.config.ts (npm run test:e2e:mocked).
+  testIgnore: ['**/mocked/**'],
   timeout: 120_000,
   expect: {
     timeout: 15_000,
