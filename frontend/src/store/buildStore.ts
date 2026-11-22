@@ -198,7 +198,7 @@ export const AGENT_LABELS: Record<string, string> = {
   debugger: 'Debugger',
 }
 
-const AGENT_MESSAGE_REASONS: Record<string, string> = {
+export const AGENT_MESSAGE_REASONS: Record<string, string> = {
   budget_exhausted: 'credit budget reached',
   question_limit: 'question limit reached',
   timeout: 'timed out',
