@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta, timezone
 
@@ -239,18 +239,95 @@ class AgentMessageStatus(str, Enum):
     FAILED = "failed"
 
 
+class AgentMessageType(str, Enum):
+    """Collaboration protocol v2 message types
+    (docs/architecture/collaboration-protocol-v2.md §2)."""
+    CLARIFICATION = "clarification"
+    INFORMATION = "information"
+    REVIEW_REQUEST = "review_request"
+    REVIEW_RESPONSE = "review_response"
+    REVISION_REQUEST = "revision_request"
+    FINDING = "finding"
+    DECISION_PROPOSAL = "decision_proposal"
+    ESCALATION = "escalation"
+
+
+class AgentMessageState(str, Enum):
+    """v2 message lifecycle. The legacy ``AgentMessage.status`` is still
+    written alongside it; see ``legacy_status_for`` / ``state_from_legacy``."""
+    QUEUED = "queued"
+    DISPATCHED = "dispatched"
+    COMPLETED = "completed"
+    REJECTED = "rejected"
+    TIMED_OUT = "timed_out"
+    INTERRUPTED = "interrupted"
+    FAILED = "failed"
+
+
+class CollabLane(str, Enum):
+    """Visibility lanes of the collaboration panel (Revision 3 decision E)."""
+    ACTIVITY = "activity"
+    DECISIONS = "decisions"
+    ESCALATIONS = "escalations"
+
+
+_LEGACY_STATUS_FOR_STATE = {
+    AgentMessageState.QUEUED: AgentMessageStatus.PENDING,
+    AgentMessageState.DISPATCHED: AgentMessageStatus.PENDING,
+    AgentMessageState.COMPLETED: AgentMessageStatus.ANSWERED,
+    AgentMessageState.REJECTED: AgentMessageStatus.REJECTED,
+    AgentMessageState.TIMED_OUT: AgentMessageStatus.TIMEOUT,
+    AgentMessageState.INTERRUPTED: AgentMessageStatus.FAILED,
+    AgentMessageState.FAILED: AgentMessageStatus.FAILED,
+}
+
+
+def legacy_status_for(state: "AgentMessageState") -> AgentMessageStatus:
+    """The v1 ``status`` written alongside a v2 ``state``."""
+    return _LEGACY_STATUS_FOR_STATE[AgentMessageState(state)]
+
+
+def state_from_legacy(status: Any, delivery_attempts: int = 0, reason: Optional[str] = None) -> "AgentMessageState":
+    """Map a stored v1 status onto the v2 lifecycle (Revision 1 §4.3)."""
+    status = AgentMessageStatus(status)
+    if status == AgentMessageStatus.PENDING:
+        return AgentMessageState.DISPATCHED if (delivery_attempts or 0) > 0 else AgentMessageState.QUEUED
+    if status == AgentMessageStatus.ANSWERED:
+        return AgentMessageState.COMPLETED
+    if status == AgentMessageStatus.REJECTED:
+        return AgentMessageState.REJECTED
+    if status == AgentMessageStatus.TIMEOUT:
+        return AgentMessageState.TIMED_OUT
+    if reason == "interrupted":
+        return AgentMessageState.INTERRUPTED
+    return AgentMessageState.FAILED
+
+
+class MessageTransition(BaseModel):
+    """One append-only entry of ``AgentMessage.transitions``."""
+    state: AgentMessageState
+    at: datetime = Field(default_factory=utcnow)
+    reason: Optional[str] = None
+
+
 class AgentMessage(BaseModel):
     """One agent-to-agent request/reply exchange, routed and recorded by
     core/agent_communication.py. Persisted on Build.agent_messages so a
     resumed build reuses answered exchanges instead of re-asking (and
-    re-charging) them."""
+    re-charging) them.
+
+    Collaboration protocol v2 extends this model in place: every v2 field has
+    a default, and stored v1 documents (no ``state``/``content``) are mapped
+    on read by ``_upgrade_legacy_document``."""
     message_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     conversation_id: str
     correlation_id: Optional[str] = None
     sender: str
     recipient: str
-    message_type: str = "clarification"
-    question: str
+    message_type: AgentMessageType = AgentMessageType.CLARIFICATION
+    # Legacy alias of ``content``; kept on every payload because v1 clients
+    # reject agent_message_* events without a string ``question``.
+    question: str = ""
     answer: Optional[str] = None
     status: AgentMessageStatus = AgentMessageStatus.PENDING
     # Why a non-answered exchange ended: route_not_allowed, invalid_question,
@@ -267,6 +344,105 @@ class AgentMessage(BaseModel):
     created_at: datetime = Field(default_factory=utcnow)
     resolved_at: Optional[datetime] = None
     duration_ms: Optional[int] = None
+
+    # --- Collaboration protocol v2 (all optional, with defaults) ---
+    protocol_version: int = 1
+    state: AgentMessageState = AgentMessageState.QUEUED
+    subject: Optional[str] = None
+    content: str = ""
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    artifact_refs: List[str] = Field(default_factory=list)
+    parent_message_id: Optional[str] = None
+    lane: CollabLane = CollabLane.ACTIVITY
+    token_usage: Optional[Dict[str, int]] = None
+    provider_request_ids: List[str] = Field(default_factory=list)
+    transitions: List[MessageTransition] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _upgrade_legacy_document(cls, data: Any) -> Any:
+        """Load v1 documents unchanged: derive ``state`` from the stored
+        status, and mirror ``question``/``content`` into each other."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        if data.get("state") is None:
+            try:
+                data["state"] = state_from_legacy(
+                    data.get("status") or AgentMessageStatus.PENDING,
+                    data.get("delivery_attempts") or 0,
+                    data.get("reason"),
+                )
+            except ValueError:
+                data.pop("state", None)
+        question = data.get("question")
+        content = data.get("content")
+        if not content and question:
+            data["content"] = question
+        elif content and not question:
+            data["question"] = content
+        return data
+
+    def set_state(self, state: "AgentMessageState", reason: Optional[str] = None) -> None:
+        """Move to ``state``, keep the legacy ``status`` in sync and append
+        the transition (append-only)."""
+        state = AgentMessageState(state)
+        self.state = state
+        self.status = legacy_status_for(state)
+        self.transitions.append(MessageTransition(state=state, reason=reason))
+
+
+# --- Collaboration protocol v2: blackboard and escalations ---
+
+
+class BlackboardEntryKind(str, Enum):
+    DECISION = "decision"
+    ASSUMPTION = "assumption"
+    OPEN_QUESTION = "open_question"
+    RISK = "risk"
+    CONSTRAINT = "constraint"
+
+
+class BlackboardEntry(BaseModel):
+    """One versioned entry of the build's Decisions lane. Written only by
+    the orchestrator; an existing entry is never overwritten -- a new
+    version supersedes it (``superseded_by``) after an escalation."""
+    entry_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    key: str
+    kind: BlackboardEntryKind = BlackboardEntryKind.DECISION
+    value: str
+    rationale: str = ""
+    owner_agent: str
+    source_message_id: Optional[str] = None
+    version: int = 1
+    created_at: datetime = Field(default_factory=utcnow)
+    superseded_by: Optional[str] = None
+
+
+class EscalationState(str, Enum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+    EXPIRED = "expired"
+
+
+class Escalation(BaseModel):
+    """A disagreement the orchestrator could not settle by itself, resolved
+    by the decision owner or (interactive builds) by the user."""
+    escalation_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    raised_by: str
+    decision_owner: str
+    subject: str
+    detail: str = ""
+    options: List[str] = Field(default_factory=list)
+    conflict: Optional[Dict[str, Any]] = None
+    state: EscalationState = EscalationState.OPEN
+    resolution: Optional[str] = None
+    # "agent:<name>" (decision owner), "user", or "default" (the decision
+    # owner's default after an unanswered gate).
+    resolved_by: Optional[str] = None
+    rationale: Optional[str] = None
+    created_at: datetime = Field(default_factory=utcnow)
+    resolved_at: Optional[datetime] = None
 
 
 class Build(BaseModel):
@@ -288,6 +464,13 @@ class Build(BaseModel):
     interactive: bool = False
     pending_gate: Optional[Dict[str, Any]] = None
     agent_messages: List[AgentMessage] = []
+    # Collaboration protocol v2 (docs/architecture/collaboration-protocol-v2.md).
+    # collab_config is the per-build snapshot taken at the first start; a
+    # resumed build uses it instead of the current settings. None means the
+    # build runs the legacy (v1) protocol.
+    collab_config: Optional[Dict[str, Any]] = None
+    blackboard: List[BlackboardEntry] = []
+    escalations: List[Escalation] = []
     created_at: datetime = Field(default_factory=utcnow)
     completed_at: Optional[datetime] = None
 
@@ -561,6 +744,12 @@ class WSEventType(str, Enum):
     # Agent-to-agent request/reply (core/agent_communication.py).
     AGENT_MESSAGE_REQUEST = "agent_message_request"
     AGENT_MESSAGE_RESPONSE = "agent_message_response"
+
+    # Collaboration protocol v2: Decisions and Escalations lanes
+    # (docs/architecture/collaboration-protocol-v2.md §6).
+    COLLAB_DECISION_RECORDED = "collab_decision_recorded"
+    COLLAB_ESCALATION_OPENED = "collab_escalation_opened"
+    COLLAB_ESCALATION_RESOLVED = "collab_escalation_resolved"
 
 
 class WSEvent(BaseModel):

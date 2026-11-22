@@ -141,6 +141,29 @@ class Settings(BaseSettings):
     developer_clarification_max_questions: int = 3
     agent_message_timeout_seconds: float = 60.0
 
+    # --- Collaboration protocol v2 ---
+    # docs/architecture/collaboration-protocol-v2.md. Off by default: with
+    # the flag off the pipeline runs exactly the legacy Developer -> Architect
+    # clarification flow. These values are snapshotted onto the build
+    # (build.collab_config) at its first start; a resumed build uses its
+    # snapshot, never these settings. Credits per answered message stay
+    # credits_clarification, and the Developer's per-stage question cap stays
+    # developer_clarification_max_questions.
+    collab_protocol_v2: bool = False
+    collab_max_messages_per_build: int = 6
+    collab_message_timeout_s: float = 60.0
+    # Question cap for the Designer and Integration stages.
+    collab_stage_max_questions: int = 2
+    # Length caps for untrusted agent-to-agent content.
+    collab_max_content_chars: int = 1000
+    collab_max_answer_chars: int = 2000
+    # Per-build time budget: collaboration (message delivery, interactive
+    # escalation gates) never runs into the last collab_time_reserve_s of
+    # build_timeout, which the rest of the pipeline needs. An escalation
+    # gate waits at most gate_timeout; with too little time left the
+    # decision owner decides without asking the user.
+    collab_time_reserve_s: float = 120.0
+
     # Pricing Tiers ($USD)
     # Free: 10 credits once at signup, Standard: 100 credits/mo @ $20, Pro: 750 credits/mo @ $50
     # Credit packs available for purchase
