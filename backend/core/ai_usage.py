@@ -32,8 +32,17 @@ MODEL_COSTS = {
     "meta-llama/Llama-3-8b-chat-hf": {"input": 0.0002, "output": 0.0002, "provider": "together"},
     "llama3.2": {"input": 0.0, "output": 0.0, "provider": "ollama"},
     "mistral-small-latest": {"input": 0.0002, "output": 0.0006, "provider": "mistral"},
+    # Retrieval embeddings (retrieval/embeddings.py): input-only pricing.
+    "text-embedding-3-small": {"input": 0.00002, "output": 0.0, "provider": "openai"},
 }
 DEFAULT_MODEL = "claude-sonnet-4-6"
+
+
+def is_priced_model(model: Optional[str]) -> bool:
+    """True when ``model`` has an explicit ``MODEL_COSTS`` entry. Platform
+    budgets (the guardrail L-tier) refuse unpriced models rather than
+    silently pricing them at the default model's rate (§4.6)."""
+    return bool(model) and model in MODEL_COSTS
 
 # Anthropic prompt-cache reads are billed at ~10% of the input rate
 CACHED_INPUT_DISCOUNT = 0.1
@@ -296,7 +305,15 @@ async def track_usage(
     }
     await db.ai_usage.insert_one(record)
 
-    # Fire budget alert check after persisting usage
+    await _fire_budget_alerts(db, user_id, org_id)
+
+    budget = await get_user_budget(user_id, org_id=org_id)
+    record["budget_remaining"] = budget["remaining"]
+    return record
+
+
+async def _fire_budget_alerts(db, user_id: str, org_id: Optional[str]) -> None:
+    """Fire budget alert checks after persisting usage. Best-effort."""
     try:
         user_doc = await db.users.find_one(
             {"id": user_id},
@@ -314,10 +331,6 @@ async def track_usage(
             )
     except Exception:
         logger.exception("Failed to check token budget alerts for user %s", user_id)
-
-    budget = await get_user_budget(user_id, org_id=org_id)
-    record["budget_remaining"] = budget["remaining"]
-    return record
 
 
 async def get_spending_dashboard(days: int = 30, limit: int = 100) -> List[Dict[str, Any]]:
@@ -352,3 +365,154 @@ async def get_spending_dashboard(days: int = 30, limit: int = 100) -> List[Dict[
             }
         )
     return results
+
+
+# --------------------------------------------------------------------------- #
+# Unified per-attempt usage recording (A2; docs/architecture/agent-
+# collaboration-plan.md §6, §7.2, §15.2). One row per provider attempt on
+# every channel, including failed zero-token attempts. Written by
+# core/llm/router.py, gateway/guardrails.py and retrieval/embeddings.py when
+# `settings.unified_usage_recording` is on (legacy `track_usage` otherwise).
+# --------------------------------------------------------------------------- #
+
+USAGE_SCHEMA_VERSION = 2
+
+# UA-5 allow-list: every field an `ai_usage` row may carry. Metadata only --
+# never prompt, completion, message or provider error text (U11). Rows are
+# validated against this set before they are written.
+USAGE_ROW_FIELDS = frozenset({
+    "id", "schema_version", "created_at",
+    # who / what
+    "user_id", "org_id", "project_id", "build_id", "agent",
+    "beneficiary_user_id", "beneficiary_org_id", "beneficiary_project_id",
+    "principal", "platform_principal",
+    # attribution (§15.2)
+    "purpose", "attempt_kind", "operation_id", "dispatch_no", "attempt_seq", "request_id",
+    "outcome", "error_class", "credential", "cost_bearer", "account", "processing_boundary",
+    # provider and tokens
+    "provider", "model", "byok",
+    "prompt_tokens", "completion_tokens", "cached_tokens", "total_tokens", "cost", "latency_ms",
+})
+
+# Legacy `track_usage` rows (schema 1) are a subset of the allow-list.
+LEGACY_USAGE_ROW_FIELDS = frozenset({
+    "id", "user_id", "org_id", "project_id", "build_id", "agent", "model", "provider", "byok",
+    "prompt_tokens", "completion_tokens", "cached_tokens", "total_tokens", "cost", "created_at",
+})
+
+USAGE_OUTCOMES = frozenset({"success", "error", "cache_hit", "denied"})
+
+_ERROR_CLASS_RE = re.compile(r"^[A-Za-z0-9_.:\-]{1,64}$")
+
+
+class UsageRowSchemaError(ValueError):
+    """A usage row carried a field outside the U11 allow-list."""
+
+
+def validate_usage_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    extra = set(row) - USAGE_ROW_FIELDS
+    if extra:
+        raise UsageRowSchemaError(f"ai_usage row carries non-allow-listed fields: {sorted(extra)}")
+    boundary = row.get("processing_boundary")
+    if boundary is not None and set(boundary) - {"credential_mode"}:
+        raise UsageRowSchemaError("ai_usage.processing_boundary may only carry credential_mode")
+    return row
+
+
+def safe_error_class(value: Any) -> Optional[str]:
+    """An error *class* (an identifier such as ``ProviderError`` or
+    ``timeout``), never the exception message: provider messages can echo
+    request content."""
+    if value is None:
+        return None
+    if isinstance(value, BaseException):
+        explicit = getattr(value, "error_class", None)
+        value = explicit if isinstance(explicit, str) else type(value).__name__
+    text = str(value)
+    return text if _ERROR_CLASS_RE.match(text) else "error"
+
+
+async def record_provider_attempt(
+    *,
+    purpose: str,
+    outcome: str,
+    credential: str,
+    account: str,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    principal: str = "user",
+    user_id: Optional[str] = None,
+    beneficiary_user_id: Optional[str] = None,
+    org_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    build_id: Optional[str] = None,
+    agent: Optional[str] = None,
+    operation_id: Optional[str] = None,
+    dispatch_no: Optional[int] = None,
+    attempt_seq: Optional[int] = None,
+    attempt_kind: str = "primary",
+    request_id: Optional[str] = None,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+    cached_tokens: int = 0,
+    error_class: Any = None,
+    credential_mode: Optional[str] = None,
+    latency_ms: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Persist one provider attempt. Platform principals (guardrail, shadow,
+    monitoring, retrieval) are recorded **without** ``user_id``/``org_id``/
+    ``project_id`` -- the customer they ran for is kept in the
+    ``beneficiary_*`` fields -- so no user, org or project budget query ever
+    counts platform-funded spend (UA-3, UA-4)."""
+    if outcome not in USAGE_OUTCOMES:
+        raise ValueError(f"unknown usage outcome {outcome!r}")
+    platform = principal != "user"
+    prompt_tokens = max(0, int(prompt_tokens or 0))
+    completion_tokens = max(0, int(completion_tokens or 0))
+    cached_tokens = max(0, int(cached_tokens or 0))
+    cost = 0.0
+    if prompt_tokens or completion_tokens:
+        cost = calculate_cost(model or DEFAULT_MODEL, prompt_tokens, completion_tokens, cached_tokens=cached_tokens)
+    byok = credential == "byok"
+    record: Dict[str, Any] = {
+        "id": str(uuid.uuid4()),
+        "schema_version": USAGE_SCHEMA_VERSION,
+        "created_at": utcnow(),
+        "user_id": None if platform else user_id,
+        "org_id": None if platform else org_id,
+        "project_id": None if platform else project_id,
+        "beneficiary_user_id": beneficiary_user_id if beneficiary_user_id is not None else user_id,
+        "beneficiary_org_id": org_id,
+        "beneficiary_project_id": project_id,
+        "build_id": build_id,
+        "agent": agent,
+        "principal": principal,
+        "platform_principal": platform,
+        "purpose": purpose,
+        "attempt_kind": attempt_kind,
+        "operation_id": operation_id,
+        "dispatch_no": dispatch_no,
+        "attempt_seq": attempt_seq,
+        "request_id": request_id,
+        "outcome": outcome,
+        "error_class": safe_error_class(error_class),
+        "credential": credential,
+        "cost_bearer": "customer_provider" if byok else "platform",
+        "account": account,
+        "processing_boundary": {"credential_mode": credential_mode} if credential_mode else None,
+        "provider": provider or (get_model_provider(model) if model else None),
+        "model": model,
+        "byok": byok,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "cached_tokens": cached_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+        "cost": round(cost, 6),
+        "latency_ms": round(float(latency_ms), 3) if latency_ms is not None else None,
+    }
+    validate_usage_row(record)
+    db = await get_db()
+    await db.ai_usage.insert_one(record)
+    if not platform and user_id and (prompt_tokens + completion_tokens) > 0:
+        await _fire_budget_alerts(db, user_id, org_id)
+    return record
