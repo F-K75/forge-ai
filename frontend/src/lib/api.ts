@@ -1,4 +1,5 @@
 import axios from "axios"
+import type { BuildDetail, CreateBuildResponse } from "./buildContract"
 
 // Vite env typing fallback (prevents TS error in some toolchains)
 const API_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:8000"
@@ -172,10 +173,15 @@ export const reposApi = {
 
 // Builds
 export const buildsApi = {
-  create: (data: { project_id: string; prompt: string; interactive?: boolean }) =>
+  // Returns {build_id, status} — not {id} (F15).
+  create: (data: { project_id: string; prompt: string; interactive?: boolean }): Promise<CreateBuildResponse> =>
     api.post("/v1/builds/", data).then((r) => r.data),
-  get: (id: string) => api.get(`/v1/builds/${id}`).then((r) => r.data),
-  getFiles: (id: string) => api.get(`/v1/builds/${id}/files`).then((r) => r.data),
+  get: (id: string): Promise<BuildDetail> => api.get(`/v1/builds/${id}`).then((r) => r.data),
+  getFiles: (id: string): Promise<Record<string, string>> => api.get(`/v1/builds/${id}/files`).then((r) => r.data),
+  // Collaboration protocol v2 hydration endpoint (raw; normalized by
+  // lib/collabContract.ts normalizeSnapshot).
+  getCollaboration: (id: string): Promise<unknown> =>
+    api.get(`/v1/builds/${id}/collaboration`).then((r) => r.data),
   rollback: (id: string, version: number) =>
     api.post(`/v1/builds/${id}/rollback/${version}`).then((r) => r.data),
   // Resolves an interactive build's pending gate — see

@@ -577,8 +577,10 @@ export default function WorkspacePage() {
       buildsApi
         .create({ project_id: project.id, prompt: textToSubmit })
         .then((b) => {
-          setBuildId(b.id);
-          startBuild(b.id, textToSubmit);
+          // The create response is {build_id, status}; reading b.id left the
+          // socket subscribed to nothing (F15).
+          startBuild(b.build_id, textToSubmit, b);
+          setBuildId(b.build_id);
           toast.success("Build job dispatched to autonomous agents");
         })
         .catch(() => {

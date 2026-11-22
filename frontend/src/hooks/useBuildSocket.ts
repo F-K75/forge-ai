@@ -1,19 +1,35 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useBuildStore } from '../store/buildStore'
-import { parseWSEvent } from '../lib/wsContract'
+import { parseWSEvent, type AnyWSEvent } from '../lib/wsContract'
 import { api } from '../lib/api'
 import { resolveWsBaseUrl } from '../lib/wsUrl'
+import { confirmTerminalStatus, hydrateBuild } from '../lib/buildSync'
 
 const WS_URL = resolveWsBaseUrl()
 
+export type BuildConnectionStatus = 'offline' | 'connecting' | 'online' | 'error'
+
+const isTerminalBuildEvent = (event: AnyWSEvent) =>
+  (event.type === 'build_complete' || event.type === 'build_failed') &&
+  // Deployment events reuse these types on the same channel.
+  typeof (event.data as { deployment_id?: unknown })?.deployment_id !== 'string'
+
+/**
+ * Follows one build over its WebSocket. On every (re)connect the build is
+ * hydrated from the REST state first; events that arrive meanwhile are held
+ * and applied, in order, on top of that snapshot. Without this a reconnect
+ * (or a reload) showed only whatever events happened to arrive afterwards.
+ */
 export function useBuildSocket(buildId: string | null) {
   const wsRef = useRef<WebSocket | null>(null)
   const generationRef = useRef(0)
   const reconnectAttemptsRef = useRef(0)
   const reconnectTimeoutRef = useRef<number | null>(null)
-  const [connectionStatus, setConnectionStatus] = useState<'offline' | 'connecting' | 'online' | 'error'>('offline')
+  const [connectionStatus, setConnectionStatus] = useState<BuildConnectionStatus>('offline')
 
-  const { handleEvent } = useBuildStore()
+  // A selector, not the whole store: this hook's owner must not re-render
+  // on every streamed token.
+  const handleEvent = useBuildStore((s) => s.handleEvent)
 
   const clearReconnectTimeout = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -42,6 +58,12 @@ export function useBuildSocket(buildId: string | null) {
       const baseDelayMs = 500
       const maxDelayMs = 10_000
 
+      const apply = (event: AnyWSEvent) => {
+        if (generationRef.current !== gen) return
+        handleEvent(event)
+        if (isTerminalBuildEvent(event)) void confirmTerminalStatus(id)
+      }
+
       const connectOnce = async () => {
         if (generationRef.current !== gen) return
 
@@ -50,12 +72,14 @@ export function useBuildSocket(buildId: string | null) {
           const { data } = await api.post('/v1/auth/ws-token')
           wsToken = data.token
         } catch {
-          setConnectionStatus('error')
-          return
+          wsToken = null
         }
 
+        if (generationRef.current !== gen) return
         if (!wsToken) {
           setConnectionStatus('error')
+          // No live channel, but the persisted state can still be shown.
+          void hydrateBuild(id)
           return
         }
 
@@ -66,9 +90,18 @@ export function useBuildSocket(buildId: string | null) {
 
         wsRef.current = ws
 
+        // Events held while this connection's snapshot is being fetched.
+        let buffer: AnyWSEvent[] | null = null
+
         ws.onopen = () => {
           reconnectAttemptsRef.current = 0
           setConnectionStatus('online')
+          const held: AnyWSEvent[] = []
+          buffer = held
+          void hydrateBuild(id).finally(() => {
+            if (buffer === held) buffer = null
+            for (const event of held) apply(event)
+          })
         }
 
         ws.onmessage = (e) => {
@@ -87,7 +120,8 @@ export function useBuildSocket(buildId: string | null) {
 
           if (event.build_id !== id) return
 
-          handleEvent(event)
+          if (buffer) buffer.push(event)
+          else apply(event)
         }
 
         ws.onerror = () => {
@@ -96,12 +130,13 @@ export function useBuildSocket(buildId: string | null) {
 
         ws.onclose = () => {
           wsRef.current = null
-          
+
           if (generationRef.current !== gen) return
 
           const attempt = ++reconnectAttemptsRef.current
           if (attempt > maxAttempts) {
             setConnectionStatus('offline')
+            void hydrateBuild(id)
             return
           }
 

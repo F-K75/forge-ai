@@ -1,12 +1,21 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useBuildSocket } from './useBuildSocket'
+import { useBuildStore } from '../store/buildStore'
 
 vi.mock('../lib/api', () => ({
   api: {
     post: vi.fn(),
   },
 }))
+
+const { sync } = vi.hoisted(() => ({
+  sync: {
+    hydrateBuild: vi.fn(),
+    confirmTerminalStatus: vi.fn(),
+  },
+}))
+vi.mock('../lib/buildSync', () => sync)
 
 const WS_URL = 'ws://localhost:8000'
 
@@ -45,6 +54,9 @@ describe('useBuildSocket', () => {
     MockWebSocket.instances = []
     MockWebSocket.handlers = new Map()
     vi.stubGlobal('WebSocket', MockWebSocket as any)
+    sync.hydrateBuild.mockResolvedValue(true)
+    sync.confirmTerminalStatus.mockResolvedValue(true)
+    useBuildStore.getState().reset()
   })
 
   afterEach(() => {
@@ -93,5 +105,79 @@ describe('useBuildSocket', () => {
     rerender({ id: 'build-2' })
     await act(async () => { await Promise.resolve() })
     expect(firstCloseSpy).toHaveBeenCalled()
+  })
+
+  const event = (type: string, data: unknown, build_id = 'build-1') =>
+    ({ data: JSON.stringify({ type, build_id, version: 1, data }) }) as MessageEvent
+
+  async function openSocket() {
+    const { api } = await import('../lib/api')
+    vi.mocked(api.post).mockResolvedValue({ data: { token: 'tok' } })
+    const hook = renderHook(() => useBuildSocket('build-1'))
+    await act(async () => { await Promise.resolve() })
+    return { hook, ws: MockWebSocket.instances[MockWebSocket.instances.length - 1] }
+  }
+
+  it('hydrates from the REST state on open, holding events until the snapshot is applied', async () => {
+    let finishHydration: (v: boolean) => void = () => {}
+    sync.hydrateBuild.mockImplementationOnce(() => new Promise<boolean>(r => { finishHydration = r }))
+    useBuildStore.getState().attachBuild('build-1')
+    const { ws } = await openSocket()
+    act(() => { ws.onopen?.(new Event('open')) })
+    expect(sync.hydrateBuild).toHaveBeenCalledWith('build-1')
+
+    act(() => { ws.onmessage?.(event('file_update', { delta: { changed: { 'a.ts': '1' }, deleted: [] } })) })
+    // Held: not applied before the snapshot.
+    expect(useBuildStore.getState().files).toEqual({})
+
+    await act(async () => { finishHydration(true); await Promise.resolve(); await Promise.resolve() })
+    expect(useBuildStore.getState().files).toEqual({ 'a.ts': '1' })
+
+    // After the snapshot, events apply directly.
+    act(() => { ws.onmessage?.(event('file_update', { delta: { changed: { 'b.ts': '2' }, deleted: [] } })) })
+    expect(useBuildStore.getState().files).toEqual({ 'a.ts': '1', 'b.ts': '2' })
+  })
+
+  it('re-hydrates on every reconnect', async () => {
+    vi.useFakeTimers()
+    try {
+      const { ws } = await openSocket()
+      act(() => { ws.onopen?.(new Event('open')) })
+      expect(sync.hydrateBuild).toHaveBeenCalledTimes(1)
+      act(() => { ws.onclose?.(new Event('close')) })
+      await act(async () => { await vi.advanceTimersByTimeAsync(600) })
+      const second = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+      expect(second).not.toBe(ws)
+      act(() => { second.onopen?.(new Event('open')) })
+      expect(sync.hydrateBuild).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('confirms a terminal event against the persisted state, but not a deployment event', async () => {
+    const { ws } = await openSocket()
+    await act(async () => { ws.onopen?.(new Event('open')); await Promise.resolve(); await Promise.resolve() })
+    act(() => { ws.onmessage?.(event('build_complete', { deployment_id: 'd1', status: 'live' })) })
+    expect(sync.confirmTerminalStatus).not.toHaveBeenCalled()
+    act(() => { ws.onmessage?.(event('build_complete', { files: {} })) })
+    expect(sync.confirmTerminalStatus).toHaveBeenCalledWith('build-1')
+  })
+
+  it('ignores events for another build', async () => {
+    useBuildStore.getState().attachBuild('build-1')
+    const { ws } = await openSocket()
+    await act(async () => { ws.onopen?.(new Event('open')); await Promise.resolve(); await Promise.resolve() })
+    act(() => { ws.onmessage?.(event('file_update', { delta: { changed: { 'x.ts': '1' }, deleted: [] } }, 'other')) })
+    expect(useBuildStore.getState().files).toEqual({})
+  })
+
+  it('still shows the persisted state when no socket token can be obtained', async () => {
+    const { api } = await import('../lib/api')
+    vi.mocked(api.post).mockRejectedValueOnce(new Error('401'))
+    const { result } = renderHook(() => useBuildSocket('build-1'))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(result.current.connectionStatus).toBe('error')
+    expect(sync.hydrateBuild).toHaveBeenCalledWith('build-1')
   })
 })
