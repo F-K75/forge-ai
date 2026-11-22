@@ -25,6 +25,7 @@ from core.processing_boundary import (
     Purpose,
     coerce_purpose,
     current_boundary,
+    current_build_scope,
     record_guardrail_outcome,
     refresh_boundary,
     reserve_byok_extra_call,
@@ -149,6 +150,16 @@ class AIGateway:
         return await reserve_byok_extra_call(boundary, build_id=request.build_id)
 
     @staticmethod
+    def _policy_org(request: GatewayRequest) -> Optional[str]:
+        """Org whose policy governs this request. Agents do not pass org_id
+        through every call, so under guardrail v2 the build scope's org (the
+        project's) applies; the legacy path keeps reading request.org_id."""
+        if request.org_id or not get_settings().guardrail_v2:
+            return request.org_id
+        scope = current_build_scope()
+        return scope.org_id if scope else None
+
+    @staticmethod
     def _publish_outcome(request: GatewayRequest, outcome: GuardrailOutcome) -> Dict[str, Any]:
         data = outcome.to_dict()
         record_guardrail_outcome(data)
@@ -221,7 +232,7 @@ class AIGateway:
         response = self._to_response(request_id, completion, latency_ms)
         llm_request_duration_seconds.labels(provider=response.provider, model=response.model).observe(latency_ms / 1000)
 
-        policy_config = await self.router.config_loader.load(agent_name=request.agent_name, org_id=request.org_id)
+        policy_config = await self.router.config_loader.load(agent_name=request.agent_name, org_id=self._policy_org(request))
         policy = policy_config.get("policy") or {}
 
         if get_settings().guardrail_v2:
@@ -448,7 +459,7 @@ class AIGateway:
         request_id = str(uuid.uuid4())
         boundary = await self._resolve_boundary(request)
         acct = self._accounting(request, request_id, boundary)
-        policy_config = await self.router.config_loader.load(agent_name=request.agent_name, org_id=request.org_id)
+        policy_config = await self.router.config_loader.load(agent_name=request.agent_name, org_id=self._policy_org(request))
         policy = policy_config.get("policy") or {}
         if get_settings().guardrail_v2:
             async for chunk in self._stream_v2(request, acct, boundary, policy_config, policy, request_id):

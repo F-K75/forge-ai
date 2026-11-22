@@ -1480,7 +1480,7 @@ class LLMRouter:
         from core.llm.screening import run_bounded_screen
 
         try:
-            org_config = await self.config_loader.load(org_id=org_id)
+            org_config = await self.config_loader.load(org_id=org_id or acct.org_id)
             mode = parse_guardrail_policy(org_config.get("policy") or {}).input_mode(acct.boundary)
         except Exception:
             mode = "optional"
