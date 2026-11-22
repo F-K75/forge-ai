@@ -137,6 +137,34 @@ def validate_guardrail_policy(
     return normalized
 
 
+async def org_byok_consent_complete(db, org_id: str) -> bool:
+    """Whether a policy requiring BYOK screening may be saved for ``org_id``:
+    the org has at least one BYOK member and every BYOK member holds an
+    active ``platform_model_processing`` consent. Any lookup failure answers
+    False (the stricter outcome: the save is rejected)."""
+    from core.data_use_consents import SCOPE_PLATFORM_MODEL_PROCESSING, get_active_consents
+    from core.processing_boundary import CredentialMode, credential_mode_for_user_doc
+
+    try:
+        member_ids = []
+        async for member in db.team_members.find({"org_id": org_id}):
+            if member.get("user_id"):
+                member_ids.append(member["user_id"])
+        byok_members = 0
+        for user_id in member_ids:
+            user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "plan": 1, "llm_api_key": 1})
+            if credential_mode_for_user_doc(user_doc) != CredentialMode.BYOK:
+                continue
+            byok_members += 1
+            active = await get_active_consents(db, user_id)
+            if SCOPE_PLATFORM_MODEL_PROCESSING not in active.scopes:
+                return False
+        return byok_members > 0
+    except Exception:
+        logger.warning("BYOK consent check failed for org %s; rejecting", org_id, exc_info=True)
+        return False
+
+
 def guardrail_model_config(config: Mapping[str, Any]) -> Dict[str, Any]:
     """The dedicated L-tier model entry (`guardrail_screen` in the LLM
     config). Never the calling agent's model (F26)."""

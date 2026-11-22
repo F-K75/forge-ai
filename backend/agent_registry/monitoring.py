@@ -281,6 +281,10 @@ class RepositoryMonitor:
                     system_prompt=system_prompt,
                     project_id=project_id,
                     max_tokens=_SPECIALIST_SUGGESTION_MAX_TOKENS,
+                    # Platform channel (A2): recorded under account
+                    # `monitoring` without a user_id; the gateway takes the
+                    # boundary from the project owner (BYOK needs consent).
+                    purpose="monitoring",
                 )
             )
             content = (response.content or "").strip()

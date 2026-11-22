@@ -43,6 +43,7 @@ from agent_registry import get_agent_registry
 from agent_registry.task_router import get_task_router
 from core.feature_flags import is_feature_enabled
 from core.models import Build
+from core.processing_boundary import Purpose, check_platform_model_allowed, current_boundary
 from gateway.models import GatewayRequest
 from gateway.service import get_ai_gateway
 
@@ -65,7 +66,16 @@ def launch_shadow_comparison(
     stage actually calls. Wraps `asyncio.create_task` with the reference-
     retention fix described above so callers don't need to think about task
     lifetime; see `maybe_run_specialist_shadow_comparison` for the full
-    safety contract this task runs under."""
+    safety contract this task runs under.
+
+    Enqueue-point processing-boundary check (§5.2, BY-9): the shadow sends
+    build content to a Forge-credential model, so for a BYOK build it is
+    never even enqueued without `platform_model_processing` consent. The
+    build scope set by tasks/build_tasks.py carries the boundary here."""
+    decision = check_platform_model_allowed(current_boundary(), Purpose.SHADOW)
+    if not decision.allowed:
+        logger.info("specialist_shadow: not enqueued for build %s (%s)", build.id, decision.reason)
+        return
     task = asyncio.create_task(maybe_run_specialist_shadow_comparison(build, blueprint, design, files))
     _inflight_tasks.add(task)
     task.add_done_callback(_inflight_tasks.discard)
@@ -126,7 +136,11 @@ async def maybe_run_specialist_shadow_comparison(
                 # Phase 1's monitoring._post_specialist_suggestion. project_id
                 # is still passed so project-level budget limits still apply.
                 project_id=build.project_id,
+                build_id=build.id,
                 max_tokens=_SHADOW_MAX_TOKENS,
+                # Platform channel: recorded under account `shadow` without
+                # a user_id, and refused for BYOK content without consent.
+                purpose="shadow",
             )
         )
         proposal = (response.content or "").strip()
