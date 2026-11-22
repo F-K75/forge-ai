@@ -18,4 +18,7 @@ export const WS_EVENT_TYPES = {
   gate_resolved: "gate_resolved",
   agent_message_request: "agent_message_request",
   agent_message_response: "agent_message_response",
+  collab_decision_recorded: "collab_decision_recorded",
+  collab_escalation_opened: "collab_escalation_opened",
+  collab_escalation_resolved: "collab_escalation_resolved",
 } as const
