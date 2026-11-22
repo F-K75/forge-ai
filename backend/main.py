@@ -38,6 +38,7 @@ from api.org_llm_policy import router as org_llm_policy_router
 from api.budget import router as budget_router
 from api.retrieval import router as retrieval_router
 from api.engineering import router as engineering_router
+from api.collaboration import router as collaboration_router
 from engineering_plugins import register_engineering_plugins
 from api.v1 import v1_router
 from core.database import close_connections
@@ -351,6 +352,7 @@ app.include_router(org_llm_policy_router)
 app.include_router(budget_router)
 app.include_router(retrieval_router)
 app.include_router(engineering_router)
+app.include_router(collaboration_router)
 
 
 @app.get("/health")
