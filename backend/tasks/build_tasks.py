@@ -12,6 +12,15 @@ from core.metrics import build_outcomes_total, build_duration_seconds, build_cre
 from core.models import Build, BuildStatus, BuildDeadLetter, WSEvent, WSEventType, BuildFile
 from core.orchestrator import BuildCancelled, Orchestrator
 from core.database import get_db
+from core.llm.guardrail_errors import GuardrailBlocked, GuardrailUnavailable
+from core.processing_boundary import (
+    PlatformProcessingDenied,
+    ProcessingBoundary,
+    build_scope,
+    credential_mode_for_user_doc,
+    refresh_boundary,
+    reserve_byok_extra_call,
+)
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager
 
@@ -22,6 +31,53 @@ orchestrator = Orchestrator()
 sandbox = SandboxRunner()
 
 _worker_loop: Optional[asyncio.AbstractEventLoop] = None
+
+# Never retried on any credential: retrying cannot change the outcome
+# (processing boundary refusal, guardrail block, required screen that could
+# not run). The rest of the retry classes (§8.4) arrive with A1.
+_NON_RETRYABLE = (BuildCancelled, PlatformProcessingDenied, GuardrailBlocked, GuardrailUnavailable)
+
+BYOK_NO_AUTO_RETRY = "byok_no_auto_retry"
+BYOK_INTERRUPTED = "byok_interrupted"
+
+
+def _build_boundary(build_doc: dict, user_doc: Optional[dict], user_id: str) -> ProcessingBoundary:
+    """The build's processing boundary: the snapshot taken at admission
+    (api/builds.py), or -- for a build admitted before A2 -- the safe
+    default: the credential mode the orchestrator will use, and no consents
+    (a consent granted after admission never widens a build, BY-7)."""
+    snapshot = ProcessingBoundary.from_doc(build_doc.get("processing_boundary"))
+    if snapshot is not None:
+        return snapshot
+    return ProcessingBoundary(
+        credential_mode=credential_mode_for_user_doc(user_doc),
+        owner_user_id=user_id,
+        policy_version=settings.processing_policy_version,
+        source="default",
+    )
+
+
+def _byok_retry_class(exc: BaseException) -> str:
+    """§8.4 retry class of a failure on a BYOK build: ``transient``,
+    ``model_output`` or ``non_transient``. Only the first two may be retried,
+    and only with `byok_auto_retry` authorization."""
+    from core.ai_usage import BudgetExceeded
+    from core.llm.provider import CircuitBreakerOpen, ProviderError
+    from core.llm.router import _is_retryable_error
+
+    if isinstance(exc, _NON_RETRYABLE) or isinstance(exc, BudgetExceeded):
+        return "non_transient"
+    if isinstance(exc, CircuitBreakerOpen):
+        return "transient"
+    if isinstance(exc, ProviderError):
+        return "transient" if _is_retryable_error(exc) else "non_transient"
+    if isinstance(exc, (asyncio.TimeoutError, TimeoutError, ConnectionError, OSError)):
+        return "transient"
+    if isinstance(exc, ValueError):
+        if "prompt injection" in str(exc).lower():
+            return "non_transient"
+        return "model_output"
+    return "transient"
 
 
 def _run_async(coro):
@@ -106,9 +162,28 @@ def run_build(
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
 
         project_doc = await db.projects.find_one(
-            {"id": project_id, "deleted_at": None}, {"_id": 0, "template": 1}
+            {"id": project_id, "deleted_at": None}, {"_id": 0, "template": 1, "org_id": 1}
         )
         template = project_doc.get("template") if project_doc else None
+        org_id = project_doc.get("org_id") if project_doc else None
+
+        # The processing boundary this build runs under (§5.2). Carried to
+        # every agent, gateway and router call below via the build scope.
+        boundary = _build_boundary(build_doc, user, user_id)
+
+        if boundary.is_byok:
+            # U1 / BY-6: an interrupted BYOK build terminates. A redelivered
+            # task (worker crash, acks_late) that was not an authorized retry
+            # must not re-run anything on the customer's key.
+            claimed = await db.builds.find_one_and_update(
+                {"id": build_id},
+                {"$inc": {"byok_dispatches": 1}},
+                return_document=True,
+            )
+            dispatches = int((claimed or {}).get("byok_dispatches", 1) or 1)
+            authorized = int((claimed or {}).get("byok_authorized_redispatches", 0) or 0)
+            if dispatches > 1 + authorized:
+                return await _terminate_interrupted_byok(db, build, user, reserved_credits)
 
         # If this build_id already has persisted files -- i.e. this is a
         # resumed attempt after a mid-pipeline crash, since build_id is a
@@ -170,6 +245,24 @@ def run_build(
                 ).model_dump()
             )
 
+        scope_cm = build_scope(
+            boundary, build_id=build_id, user_id=user_id, project_id=project_id, org_id=org_id,
+        )
+        scope = scope_cm.__enter__()
+
+        def _guardrail_fields() -> dict:
+            # GR-5/GR-6 at the outcome level: what B2 (quality INCOMPLETE)
+            # and A3 (withheld versions) read. Only written when the gateway
+            # recorded guardrail outcomes for this build.
+            if not scope.guardrail_outcomes:
+                return {}
+            return {"guardrail_report": {
+                "unverified": [o for o in scope.guardrail_outcomes if o.get("unverified")],
+                "withheld": [o for o in scope.guardrail_outcomes if o.get("withheld")],
+                "ltier_calls": sum(int(o.get("ltier_calls") or 0) for o in scope.guardrail_outcomes),
+                "artifacts": len(scope.guardrail_outcomes),
+            }}
+
         try:
             build, files = await orchestrator.run_build(
                 build,
@@ -181,7 +274,7 @@ def run_build(
                 persist_files=persist_files,
                 reserved_credits=reserved_credits,
             )
-            await db.builds.update_one({"id": build_id}, {"$set": build.model_dump()})
+            await db.builds.update_one({"id": build_id}, {"$set": {**build.model_dump(), **_guardrail_fields()}})
 
             if files:
                 await db.build_files.delete_many({"build_id": build_id})
@@ -246,8 +339,27 @@ def run_build(
 
             # A user declining an interactive gate is a decision, not a
             # transient failure — retrying would rerun agents they cancelled.
-            if isinstance(e, BuildCancelled):
+            # Boundary refusals and guardrail blocks cannot change on retry.
+            if isinstance(e, _NON_RETRYABLE):
                 is_final_attempt = True
+
+            # BYOK (U13, X4, BY-4/BY-5): a retry is another billed call on
+            # the customer's key, so it needs `byok_auto_retry` consent and
+            # counts against its N (shared with gateway repairs). Without it
+            # the build fails now and settles; nothing is re-run.
+            failure_reason = None
+            if boundary.is_byok and not is_final_attempt:
+                retry_class = _byok_retry_class(e)
+                current = await refresh_boundary(boundary, db)
+                if retry_class != "non_transient" and await reserve_byok_extra_call(
+                    current, build_id=build_id, db=db,
+                ):
+                    await db.builds.update_one(
+                        {"id": build_id}, {"$inc": {"byok_authorized_redispatches": 1}},
+                    )
+                else:
+                    is_final_attempt = True
+                    failure_reason = BYOK_NO_AUTO_RETRY
 
             # Retry regardless of prior progress: run_build is now
             # resume-aware (see BuildTask's docstring above), so a retry
@@ -269,21 +381,69 @@ def run_build(
                     {"$inc": {"credits": refund}}
                 )
 
-            await db.builds.update_one(
-                {"id": build_id},
-                {"$set": {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}}
-            )
+            failure = {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}
+            if failure_reason == BYOK_NO_AUTO_RETRY:
+                failure["error"] = (
+                    f"{e} (not retried: automatic retries on your own provider key are off)"
+                )
+                failure["failure_reason"] = BYOK_NO_AUTO_RETRY
+            elif isinstance(e, PlatformProcessingDenied):
+                failure["failure_reason"] = e.error_class
+            elif isinstance(e, GuardrailBlocked):
+                failure["failure_reason"] = "blocked_by_guardrail"
+            failure.update(_guardrail_fields())
+            await db.builds.update_one({"id": build_id}, {"$set": failure})
             build_duration_seconds.observe(time.monotonic() - start_time)
             build_outcomes_total.labels(status="failed").inc()
             build_credits_used.observe(used)
             await _dead_letter(
-                "cancelled" if isinstance(e, BuildCancelled) else "exception",
+                "cancelled" if isinstance(e, BuildCancelled) else (failure_reason or "exception"),
                 str(e),
                 self.request.retries,
             )
             raise
+        finally:
+            scope_cm.__exit__(None, None, None)
 
     return _run_async(_run())
+
+
+async def _terminate_interrupted_byok(db, build: Build, user: Optional[dict], reserved_credits: int) -> dict:
+    """BY-6 / U1: a BYOK build whose task was redelivered without an
+    authorized retry (an interruption) terminates and settles: no dispatch 2
+    on any credential, the reservation refunded minus what completed stages
+    already consumed (0 for BYOK)."""
+    used = int(build.credits_used or 0)
+    refund = max(0, reserved_credits - used)
+    if refund and user:
+        await db.users.update_one({"id": build.user_id}, {"$inc": {"credits": refund}})
+    message = (
+        "Build was interrupted and was not re-run automatically on your own provider key"
+    )
+    await db.builds.update_one(
+        {"id": build.id},
+        {"$set": {
+            "status": BuildStatus.FAILED.value,
+            "error": message,
+            "failure_reason": BYOK_INTERRUPTED,
+            "credits_used": used,
+        }},
+    )
+    await db.build_dead_letters.insert_one(
+        BuildDeadLetter(
+            build_id=build.id,
+            user_id=build.user_id,
+            project_id=build.project_id,
+            prompt=build.prompt,
+            error=message,
+            failure_reason=BYOK_INTERRUPTED,
+            retry_count=0,
+            credits_used=used,
+            created_at=build.created_at,
+        ).model_dump()
+    )
+    build_outcomes_total.labels(status="failed").inc()
+    return {"status": "failed", "build_id": build.id, "credits_used": used, "reason": BYOK_INTERRUPTED}
 
 
 @current_app.task(name="backend.tasks.build_tasks.update_build_status")
