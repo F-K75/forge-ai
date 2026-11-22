@@ -20,9 +20,12 @@ import {
   FolderTree,
   RefreshCw,
   X,
+  Users,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useBuildStore } from "../store/buildStore";
+import { useBuildStore, AGENT_ORDER, AGENT_LABELS } from "../store/buildStore";
+import { useCollaborationStore } from "../store/collaborationStore";
+import { useAuthStore } from "../store/authStore";
 import { useBuildSocket } from "../hooks/useBuildSocket";
 import { runMockBuild } from "../lib/mockEmitter";
 import { buildsApi, projectsApi } from "../lib/api";
@@ -35,6 +38,16 @@ import { ForgeCodeSurface } from "../components/forge-os/ForgeCodeSurface";
 import { ForgeVisualSurface } from "../components/forge-os/ForgeVisualSurface";
 import { ForgeDebugSurface } from "../components/forge-os/ForgeDebugSurface";
 import { ForgeDeploySurface } from "../components/forge-os/ForgeDeploySurface";
+import { LivePreviewSurface } from "../components/forge-os/live/LivePreviewSurface";
+import { LiveQaSurface, type QaValidation } from "../components/forge-os/live/LiveQaSurface";
+import { LiveDeploySurface } from "../components/forge-os/live/LiveDeploySurface";
+import { CollaborationPanel } from "../components/collab/CollaborationPanel";
+import { InsufficientCreditsNotice } from "../components/workspace/InsufficientCreditsNotice";
+import { ByokBuildConfirmDialog } from "../components/workspace/ByokBuildConfirmDialog";
+import { parseInsufficientCredits, type InsufficientCredits } from "../lib/insufficientCredits";
+import { BYOK_DISCLOSURE_ENABLED, isByokUser } from "../lib/byokDisclosure";
+// Demo mode only: live mode never synthesizes code in the browser; the
+// backend build is the single source of truth (plan decision C, F24).
 import { synthesizeCodeForPrompt, SynthesizedFile } from "../lib/codeSynthesizer";
 import type { CanvasNode } from "../components/forge-os/ForgeBuildCanvas";
 
@@ -113,7 +126,7 @@ const synth = new CyberAudioSynth();
 /* Types & Constants                                                  */
 /* ------------------------------------------------------------------ */
 
-export type SurfaceMode = "canvas" | "code" | "visual" | "debug" | "agents" | "deploy";
+export type SurfaceMode = "canvas" | "code" | "visual" | "debug" | "agents" | "collab" | "deploy";
 
 interface WorkspaceProject {
   id: string;
@@ -383,6 +396,38 @@ const LIVING_AGENTS_DATA = [
   },
 ];
 
+const LIVE_STATUS_LABELS: Record<string, string> = {
+  idle: "No build yet",
+  running: "Build running",
+  debugging: "Fixing errors",
+  complete: "Build complete",
+  failed: "Build failed",
+};
+
+const LIVE_STATUS_DOT: Record<string, string> = {
+  idle: "bg-faint",
+  running: "bg-info",
+  debugging: "bg-warn",
+  complete: "bg-ok",
+  failed: "bg-error",
+};
+
+function treeFromFiles(files: Record<string, string>): TreeNode[] {
+  return addSynthesizedFilesToTree(
+    [],
+    Object.entries(files).map(([path, content]) => ({ path, content, description: "" }))
+  );
+}
+
+const errorDetail = (err: unknown): string | null => {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (detail && typeof detail === "object" && typeof (detail as { message?: unknown }).message === "string") {
+    return (detail as { message: string }).message;
+  }
+  return null;
+};
+
 export default function WorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -451,11 +496,16 @@ export default function WorkspacePage() {
     if (project?.displayName) return `Build and scale ${project.displayName}`;
     return "Build full-stack workspace application";
   });
-  const [projectFiles, setProjectFiles] = useState<Record<string, string>>(DEFAULT_WORKSPACE_FILES);
-  const [projectTree, setProjectTree] = useState<TreeNode[]>(INITIAL_PROJECT_TREE);
+  // Live mode starts empty and is filled only from the real build (see the
+  // build-store mirrors below); demo mode keeps the showcase content.
+  const [projectFiles, setProjectFiles] = useState<Record<string, string>>(LIVE_MODE ? {} : DEFAULT_WORKSPACE_FILES);
+  const [projectTree, setProjectTree] = useState<TreeNode[]>(LIVE_MODE ? [] : INITIAL_PROJECT_TREE);
   const [activeDagNodes, setActiveDagNodes] = useState<CanvasNode[] | undefined>(undefined);
-  const [logsList, setLogsList] = useState(STREAMING_LOGS);
+  const [logsList, setLogsList] = useState(LIVE_MODE ? [] : STREAMING_LOGS);
   const [isBuilding, setIsBuilding] = useState(false);
+  const [creditShortfall, setCreditShortfall] = useState<InsufficientCredits | null>(null);
+  const [byokConfirmPrompt, setByokConfirmPrompt] = useState<string | null>(null);
+  const [creatingBuild, setCreatingBuild] = useState(false);
 
   // Sync objective with project when project changes
   useEffect(() => {
@@ -484,11 +534,140 @@ export default function WorkspacePage() {
     }
   }, [project]);
 
-  // Global build store
-  const [buildId, setBuildId] = useState<string | null>("build-auth-oauth");
+  // Global build store. Live mode follows a real build only: the one just
+  // created (its build_id) or the project's latest, never a demo id.
+  const [buildId, setBuildId] = useState<string | null>(LIVE_MODE ? null : "build-auth-oauth");
   const startBuild = useBuildStore((s) => s.startBuild);
+  const attachBuild = useBuildStore((s) => s.attachBuild);
   const handleEvent = useBuildStore((s) => s.handleEvent);
-  useBuildSocket(LIVE_MODE ? buildId : null);
+  const liveStatus = useBuildStore((s) => s.status);
+  const liveFiles = useBuildStore((s) => s.files);
+  const liveMessages = useBuildStore((s) => s.messages);
+  const liveAgentStates = useBuildStore((s) => s.agentStates);
+  const liveValidation = useBuildStore((s) => s.validation) as QaValidation | null;
+  const liveDebug = useBuildStore((s) => s.debug);
+  const liveDebugIterations = useBuildStore((s) => s.debugIterations);
+  const liveError = useBuildStore((s) => s.error);
+  const pendingGate = useBuildStore((s) => s.pendingGate);
+  const openEscalations = useCollaborationStore((s) => s.escalations.filter((e) => e.state === "open").length);
+  const user = useAuthStore((s) => s.user);
+  const { connectionStatus } = useBuildSocket(LIVE_MODE ? buildId : null);
+  const escalationPending = pendingGate?.kind === "escalation";
+
+  // Live: a different project must not inherit the previous one's build.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    setBuildId(null);
+    setCreditShortfall(null);
+    useBuildStore.getState().reset();
+  }, [projectId]);
+
+  // Live: follow the project's most recent build, so a reload (or coming
+  // back from another page) shows its persisted state; useBuildSocket
+  // hydrates it from the REST state on connect.
+  useEffect(() => {
+    if (!LIVE_MODE || !project?.id || projectId === "new") return;
+    let cancelled = false;
+    projectsApi
+      .getBuilds(project.id)
+      .then((builds: Array<{ id?: string; prompt?: string }>) => {
+        const latest = Array.isArray(builds) ? builds[0] : undefined;
+        if (cancelled || !latest?.id) return;
+        // A build started meanwhile from this page wins.
+        if (useBuildStore.getState().buildId) return;
+        attachBuild(latest.id, latest.prompt ?? "");
+        setBuildId(latest.id);
+        if (latest.prompt) setActiveGoal(latest.prompt);
+      })
+      .catch(() => {
+        // No builds yet, or a transient error: the workspace stays empty.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id, projectId, attachBuild]);
+
+  // Live: the editor and file tree show the build's files, and nothing else.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    setProjectFiles(liveFiles);
+    setProjectTree(treeFromFiles(liveFiles));
+    const paths = Object.keys(liveFiles);
+    if (paths.length > 0) {
+      setActiveFilePath((cur) => (liveFiles[cur] !== undefined ? cur : paths[0]));
+    }
+  }, [liveFiles]);
+
+  // Live: the log panel narrates the real build.
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    setLogsList(
+      [...liveMessages].reverse().map((m) => ({
+        time: "",
+        agent: m.agent ? AGENT_LABELS[m.agent] ?? String(m.agent) : m.from === "user" ? "You" : "System",
+        message: m.text,
+        level: "info",
+      }))
+    );
+  }, [liveMessages]);
+
+  // Live: "building" follows the persisted status (see buildStore).
+  useEffect(() => {
+    if (!LIVE_MODE) return;
+    setIsBuilding(liveStatus === "running" || liveStatus === "debugging");
+  }, [liveStatus]);
+
+  // An escalation waiting on the user is easy to miss on another surface.
+  const notifiedGate = useRef<string | null>(null);
+  useEffect(() => {
+    if (pendingGate?.kind !== "escalation" || notifiedGate.current === pendingGate.gateId) return;
+    notifiedGate.current = pendingGate.gateId;
+    if (activeSurface !== "collab") {
+      toast(`Decision needed: ${pendingGate.subject ?? "an agent escalated a conflict"}. Open Collaboration to answer.`, {
+        id: "escalation-gate",
+      });
+    }
+  }, [pendingGate, activeSurface]);
+
+  // Live: the canvas shows the real agent pipeline of this build.
+  const liveDagNodes: CanvasNode[] = useMemo(() => {
+    if (!LIVE_MODE) return [];
+    const files = Object.keys(liveFiles);
+    const tiers: Record<string, { tier: number; category: CanvasNode["category"] }> = {
+      architect: { tier: 0, category: "foundation" },
+      business_improver: { tier: 0, category: "foundation" },
+      designer: { tier: 1, category: "shell" },
+      developer: { tier: 2, category: "core" },
+      integration: { tier: 2, category: "core" },
+      pm: { tier: 3, category: "infra" },
+    };
+    return AGENT_ORDER.map((id, i) => {
+      const state = liveAgentStates[id] ?? "idle";
+      const label = AGENT_LABELS[id] ?? id;
+      return {
+        id,
+        label,
+        category: tiers[id]?.category ?? "core",
+        tier: tiers[id]?.tier ?? 2,
+        status: state === "done" ? "done" : state === "active" || state === "debugging" ? "building" : "queued",
+        description:
+          state === "done"
+            ? `${label} finished`
+            : state === "active"
+            ? `${label} is working…`
+            : state === "debugging"
+            ? `${label} is fixing errors…`
+            : liveStatus === "failed"
+            ? "Not run, build failed"
+            : "Waiting",
+        agent: label,
+        files: id === "developer" ? files.slice(0, 6) : [],
+        dependencies: i > 0 ? [AGENT_ORDER[i - 1]] : [],
+        dependants: i < AGENT_ORDER.length - 1 ? [AGENT_ORDER[i + 1]] : [],
+        details: { specs: [] },
+      } satisfies CanvasNode;
+    });
+  }, [liveAgentStates, liveFiles, liveStatus]);
 
   useEffect(() => {
     if (!LIVE_MODE || !projectId) return;
@@ -564,29 +743,55 @@ export default function WorkspacePage() {
     toast.success(`Loaded ${filePath}`);
   };
 
+  // Live: create the backend build and follow it. Nothing is synthesized in
+  // the browser; files, status and messages all come from the build.
+  const createLiveBuild = async (textToSubmit: string) => {
+    if (!project?.id) {
+      toast.error("The project is still loading. Try again in a moment.");
+      return;
+    }
+    setCreatingBuild(true);
+    setCreditShortfall(null);
+    try {
+      const b = await buildsApi.create({ project_id: project.id, prompt: textToSubmit });
+      // The create response is {build_id, status}; reading b.id left the
+      // socket subscribed to nothing (F15).
+      startBuild(b.build_id, textToSubmit, b);
+      setBuildId(b.build_id);
+      setActiveGoal(textToSubmit);
+      setIntentInput("");
+      toast.success("Build started");
+    } catch (err) {
+      const shortfall = parseInsufficientCredits(err);
+      if (shortfall) {
+        setCreditShortfall(shortfall);
+      } else {
+        toast.error(errorDetail(err) ?? "Couldn't start the build. Please try again.");
+      }
+    } finally {
+      setCreatingBuild(false);
+    }
+  };
+
   const handleSubmit = async (promptText?: string) => {
     const textToSubmit = (promptText ?? intentInput).trim();
-    if (!textToSubmit || isBuilding) return;
+    if (!textToSubmit || isBuilding || creatingBuild) return;
 
     handleSound(1050);
+
+    if (LIVE_MODE) {
+      // B1-8: BYOK builds confirm the billing disclosure first.
+      if (BYOK_DISCLOSURE_ENABLED && isByokUser(user)) {
+        setByokConfirmPrompt(textToSubmit);
+        return;
+      }
+      await createLiveBuild(textToSubmit);
+      return;
+    }
+
     setActiveGoal(textToSubmit);
     setIsBuilding(true);
     setIntentInput("");
-
-    if (LIVE_MODE && project?.id) {
-      buildsApi
-        .create({ project_id: project.id, prompt: textToSubmit })
-        .then((b) => {
-          // The create response is {build_id, status}; reading b.id left the
-          // socket subscribed to nothing (F15).
-          startBuild(b.build_id, textToSubmit, b);
-          setBuildId(b.build_id);
-          toast.success("Build job dispatched to autonomous agents");
-        })
-        .catch(() => {
-          toast.error("Failed to start build job");
-        });
-    }
 
     try {
       toast.loading(`Live Gemini swarm synthesizing: "${textToSubmit.slice(0, 32)}..."`, { id: "build-toast" });
@@ -699,6 +904,17 @@ export default function WorkspacePage() {
         },
       },
       {
+        id: "collab",
+        label: "Collaboration",
+        icon: <Users size={14} className="shrink-0" />,
+        isActive: activeSurface === "collab",
+        badge: openEscalations > 0 ? openEscalations : escalationPending ? 1 : undefined,
+        onClick: () => {
+          handleSound();
+          setActiveSurface("collab");
+        },
+      },
+      {
         id: "deploy",
         label: "Deploy",
         icon: <Rocket size={14} className="shrink-0" />,
@@ -718,7 +934,7 @@ export default function WorkspacePage() {
         },
       },
     ];
-  }, [activeSurface, handleSound, navigate]);
+  }, [activeSurface, handleSound, navigate, openEscalations, escalationPending]);
 
   return (
     <div className="relative min-h-screen w-full bg-base p-2 sm:p-3 font-sans antialiased text-ink flex flex-col">
@@ -729,13 +945,27 @@ export default function WorkspacePage() {
           navItems={navItems}
           topRightContent={
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3 text-xs font-mono tabular-nums">
-                <span className="inline-flex items-center gap-1.5 text-ok">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ok" />
-                  Edge Live · Ready
-                </span>
-                <span className="hidden sm:inline text-muted">42/42 Vitest passed</span>
-              </div>
+              {LIVE_MODE ? (
+                <div className="flex items-center gap-3 text-xs font-mono tabular-nums" role="status" aria-live="polite">
+                  <span className="inline-flex items-center gap-1.5 text-ink" data-testid="live-build-status">
+                    <span className={`h-1.5 w-1.5 rounded-full ${LIVE_STATUS_DOT[liveStatus] ?? "bg-faint"}`} aria-hidden="true" />
+                    {buildId ? LIVE_STATUS_LABELS[liveStatus] ?? liveStatus : LIVE_STATUS_LABELS.idle}
+                  </span>
+                  {buildId && connectionStatus !== "online" && (
+                    <span className="hidden sm:inline text-muted" data-testid="live-connection">
+                      {connectionStatus === "connecting" ? "Connecting…" : "Reconnecting…"}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 text-xs font-mono tabular-nums">
+                  <span className="inline-flex items-center gap-1.5 text-ok">
+                    <span className="h-1.5 w-1.5 rounded-full bg-ok" />
+                    Edge Live · Ready
+                  </span>
+                  <span className="hidden sm:inline text-muted">42/42 Vitest passed</span>
+                </div>
+              )}
 
               <div className="flex items-center gap-1.5">
                 <button
@@ -778,6 +1008,7 @@ export default function WorkspacePage() {
                   {activeSurface === "visual" && "Live Preview"}
                   {activeSurface === "debug" && "Vitest Autonomous Assertion Suite"}
                   {activeSurface === "agents" && "Autonomous Multi-Agent Fleet"}
+                  {activeSurface === "collab" && "Agent Collaboration"}
                   {activeSurface === "deploy" && "Edge Deployment"}
                 </span>
 
@@ -798,7 +1029,7 @@ export default function WorkspacePage() {
                 {activeSurface === "canvas" && (
                   <ForgeBuildCanvas
                     buildPrompt={activeGoal}
-                    customNodes={activeDagNodes}
+                    customNodes={LIVE_MODE ? liveDagNodes : activeDagNodes}
                     onSelectNodeFile={(file: string) => {
                       setActiveFilePath(file);
                       setActiveSurface("code");
@@ -807,17 +1038,67 @@ export default function WorkspacePage() {
                   />
                 )}
 
-                {activeSurface === "code" && (
-                  <div className="h-full min-h-[500px]">
-                    <ForgeCodeSurface initialFile={activeFilePath} files={projectFiles} />
+                {activeSurface === "code" &&
+                  (LIVE_MODE && Object.keys(projectFiles).length === 0 ? (
+                    <div className="h-full min-h-[500px] flex items-center justify-center p-8 text-center">
+                      <p className="max-w-sm text-sm text-muted">
+                        {buildId && isBuilding
+                          ? "The build hasn't produced any files yet. They appear here as the agents write them."
+                          : "No files yet. Describe what to build in the command deck below."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="h-full min-h-[500px]">
+                      <ForgeCodeSurface initialFile={activeFilePath} files={projectFiles} />
+                    </div>
+                  ))}
+
+                {activeSurface === "visual" &&
+                  (LIVE_MODE ? (
+                    <LivePreviewSurface files={liveFiles} hasBuild={Boolean(buildId)} buildInProgress={isBuilding} />
+                  ) : (
+                    <ForgeVisualSurface />
+                  ))}
+
+                {activeSurface === "debug" &&
+                  (LIVE_MODE ? (
+                    <LiveQaSurface
+                      buildStatus={liveStatus}
+                      hasBuild={Boolean(buildId)}
+                      validation={liveValidation}
+                      debugIterations={liveDebugIterations}
+                      debugErrors={liveDebug?.errors ?? []}
+                    />
+                  ) : (
+                    <ForgeDebugSurface />
+                  ))}
+
+                {activeSurface === "collab" && <CollaborationPanel />}
+
+                {activeSurface === "agents" && LIVE_MODE && (
+                  <div className="p-5">
+                    <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" aria-label="Agents in this build">
+                      {AGENT_ORDER.map((id) => {
+                        const state = liveAgentStates[id] ?? "idle";
+                        const label =
+                          state === "done" ? "Finished" : state === "active" ? "Working" : state === "debugging" ? "Fixing errors" : buildId ? "Waiting" : "Idle";
+                        return (
+                          <li key={id} className="rounded-xl border border-border bg-panel p-4 shadow-apple flex items-center justify-between gap-3">
+                            <span className="font-display font-semibold text-sm text-ink">{AGENT_LABELS[id] ?? id}</span>
+                            <span className="text-xs font-mono text-muted">{label}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {liveError && liveStatus === "failed" && (
+                      <p className="mt-4 text-xs text-ink" role="alert">
+                        Build failed: {liveError}
+                      </p>
+                    )}
                   </div>
                 )}
 
-                {activeSurface === "visual" && <ForgeVisualSurface />}
-
-                {activeSurface === "debug" && <ForgeDebugSurface />}
-
-                {activeSurface === "agents" && (
+                {activeSurface === "agents" && !LIVE_MODE && (
                   <div className="p-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {LIVING_AGENTS_DATA.map((agent) => (
@@ -842,9 +1123,22 @@ export default function WorkspacePage() {
                   </div>
                 )}
 
-                {activeSurface === "deploy" && <ForgeDeploySurface projectName={projectName} />}
+                {activeSurface === "deploy" &&
+                  (LIVE_MODE ? (
+                    <LiveDeploySurface projectId={project?.id ?? null} buildId={buildId} buildStatus={liveStatus} />
+                  ) : (
+                    <ForgeDeploySurface projectName={projectName} />
+                  ))}
               </div>
             </div>
+
+            {creditShortfall && (
+              <InsufficientCreditsNotice
+                info={creditShortfall}
+                balance={typeof user?.credits === "number" ? user.credits : null}
+                onDismiss={() => setCreditShortfall(null)}
+              />
+            )}
 
             {/* Minimal Bottom Prompt Bar */}
             <div
@@ -920,13 +1214,13 @@ export default function WorkspacePage() {
                 <button
                   type="submit"
                   id="ws-execute-btn"
-                  disabled={!intentInput.trim() || isBuilding}
+                  disabled={!intentInput.trim() || isBuilding || creatingBuild}
                   className="h-10 px-4 rounded-lg bg-accent hover:bg-ember-glow text-white font-sans font-medium text-xs disabled:opacity-40 inline-flex items-center gap-2 shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
-                  {isBuilding ? (
+                  {isBuilding || creatingBuild ? (
                     <>
                       <RefreshCw size={13} className="animate-spin" />
-                      <span>Synthesizing...</span>
+                      <span>{LIVE_MODE ? (creatingBuild ? "Starting..." : "Building...") : "Synthesizing..."}</span>
                     </>
                   ) : (
                     <>
@@ -940,6 +1234,17 @@ export default function WorkspacePage() {
           </div>
         </SuiWindowFrame>
       </div>
+
+      <ByokBuildConfirmDialog
+        open={byokConfirmPrompt !== null}
+        prompt={byokConfirmPrompt ?? ""}
+        onCancel={() => setByokConfirmPrompt(null)}
+        onConfirm={() => {
+          const text = byokConfirmPrompt;
+          setByokConfirmPrompt(null);
+          if (text) void createLiveBuild(text);
+        }}
+      />
 
       {/* Files Explorer Modal */}
       {filesExplorerOpen && (

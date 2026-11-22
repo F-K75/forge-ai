@@ -17,7 +17,7 @@ vi.mock('../lib/api', () => ({
     create: vi.fn().mockResolvedValue({ id: 'proj-new', name: 'New Project', description: 'New description' }),
   },
   buildsApi: {
-    create: vi.fn().mockResolvedValue({ id: 'build-123' }),
+    create: vi.fn().mockResolvedValue({ build_id: 'build-123', status: 'pending' }),
   },
 }))
 
