@@ -1,4 +1,4 @@
-# Agent Collaboration & Continuous Quality: Plan (Revision 2, amended)
+# Agent Collaboration & Continuous Quality: Plan (Revision 3)
 
 **Status:** planning document only. It authorizes no production code changes,
 implementation PRs or merges.
@@ -8,1076 +8,1258 @@ implementation PRs or merges.
 | Revision | Commit | Content |
 |---|---|---|
 | 1 | `f6eaa2d` | Audit |
-| 2 | `3047b82` | First set of owner decisions; implementation proposal |
-| 2, amended (this document) | n/a | Decisions **C2, C4, C5, C7, C8, C9** approved; reservation formula approved subject to accounting verification; four-PR split approved; promotion thresholds set; Foundation A ledger specification and failure matrix added; new findings F25–F27; two corrections to Revision 2 (§2.4) |
+| 2 | `3047b82` | First owner decisions |
+| 2, amended | `0e2710d` | Accounting decisions C2, C4, C5, C7, C8, C9 and the Foundation A ledger specification |
+| 3 (this document) | n/a | Owner dispositions for U1–U13, C1, C3, C6, C10, C12b, C13b–e and C14. P0 treatment of output guardrails, the BYOK privacy boundary and artifact integrity. MongoDB transactions with CI on a replica set. Fail-closed validation. New findings F28–F29 |
 
-**Scope:** the production build path (`backend/tasks/build_tasks.py` →
-`backend/core/orchestrator.py`). Line references are to commit `3351bbd`.
+**Scope:** the production build path. Line references are to commit `3351bbd`.
 
-**Guiding principle (owner):** *Forge AI must become better at engineering
-without becoming worse at financial predictability.* For every model call we
-must know who paid, why it happened, and whether the work it produced was
-usable.
+**Owner direction for this phase:** prove the work is correct, account for every
+operation, preserve every artifact, and never put customer data or money at
+risk. Universal messaging and shadow reviews come **after** the foundations.
 
 ### Contents
 
 | § | Section |
 |---|---|
-| 1 | Decisions of record |
-| 2 | Evidence: reconciliation, ledger trace, findings F16–F27, corrections |
-| 3 | Revised architecture |
-| 4 | Accounting model and the ten accounting rules |
-| 5 | Unified usage ledger: every provider channel |
-| 6 | **Foundation A ledger specification**: stages, state machines, write protocols, reservation, settlement, recovery, reconstruction |
-| 7 | **Failure-state transition matrix** |
-| 8 | Reservation formula, funding sources and quotas (C2, C4, C5) |
-| 9 | **Four-PR breakdown and explicit dependencies** |
-| 10 | Database model changes |
-| 11 | **Tests**: regression, concurrency, recovery, exhaustive accounting |
-| 12 | Shadow review: budget and privacy controls (C7) |
-| 13 | Promotion criteria for blocking reviews |
-| 14 | Migration and rollback |
-| 15 | **Unresolved decisions**, listed separately |
-| A, B | Appendices: agent map; Revision 1 audit, condensed |
+| 1 | Decision register |
+| 2 | P0 findings and new evidence |
+| 3 | Architecture and data-flow diagrams |
+| 4 | **Guardrail execution model (v2)** |
+| 5 | **BYOK data flow and privacy boundary** |
+| 6 | Provider cost inventory |
+| 7 | Accounting model and rules |
+| 8 | Foundation A ledger specification |
+| 9 | **Artifact integrity: staged versions and atomic publication** |
+| 10 | **MongoDB transaction requirements** |
+| 11 | **Fail-closed validation** |
+| 12 | Failure-state transition matrix |
+| 13 | Reservation formula and quotas |
+| 14 | PR breakdown and dependencies |
+| 15 | Database model changes |
+| 16 | **Acceptance tests** |
+| 17 | Shadow review, adjudication and promotion |
+| 18 | **Migration and rollback requirements** |
+| 19 | **Contradictions and remaining decisions** (listed separately) |
+| A | Appendix: findings index |
 
 ---
 
-## 1. Decisions of record
+## 1. Decision register
 
-| ID | Decision | Status | Where it is applied |
+Status values: **Approved** (owner decision), **Defined** (specified by this
+revision to satisfy an owner requirement; listed in §19 where confirmation is
+useful), **Open** (§19).
+
+### 1.1 Architecture and product decisions
+
+| ID | Decision | Status | Section |
 |---|---|---|---|
-| A (funding) | **User-funded generation** and **platform-funded shadow reviews** as separate models. Reserve the worst case, never exceed it, refund the unused part, reject what cannot be funded, never absorb overruns silently | Approved | §4, §6, §8 |
-| B (quality) | Execution status is separate from quality status. A failed quality check must not trigger a full refund, a duplicate run, a Celery retry or artifact loss. Unresolved critical findings block acceptance | Approved | §9 (B2), §10 |
-| C (single source) | The backend is the single source of truth; fix `build_id`; remove Gemini generation from live mode; demo mode only behind an explicit flag | Approved | §9 (B1) |
-| D (shadow first) | Exactly one edge, Architect → Developer: shadow, platform-funded, non-blocking, evidence-referenced, no revisions | Approved | §12, §13 |
-| E (visibility) | Activity, Decisions and Escalations lanes, plus an expandable timeline; the escalation triggers listed | Approved | §3.4 |
-| F (agents) | Business Model review last and non-blocking; QA after the framework; Security agent high priority after the foundation; static analysis as early as possible; universal communication capability with orchestrator-decided interactions | Approved | §3, §9 (C) |
-| **C2** | Exempt build-related model calls from the *interactive* daily token budget, **replaced by**: per-build token and credit ceilings, plan-specific daily build limits, org/project/agent USD limits, provider rate limits, and complete tracking of every call (classifiers, repairs, retries, fallbacks). Builds must not become an unrestricted route around usage controls | **Approved with controls** | §8.4. The exemption may only be switched on once its replacement controls are live (U4, U5) |
-| **C4** | BYOK builds reserve 0 Forge credits. Track provider usage separately; never switch silently to Forge's key; no Forge credits for calls billed to the customer's provider; platform security and infrastructure budgets kept separate | **Approved** | §4.3, §6.8, §8.2 |
-| **C5** | The free first build includes Developer clarification (≤ 3 questions, under the configurable limit). Forge funds it within a defined free-build allowance. No surprise deductions; hard token and execution limits stay | **Approved** | §8.2 |
-| **C8** | No Forge credits are charged for failed provider calls, or for operations that produce no usable, persisted output. Completed stages are chargeable at disclosed prices. Failed-call costs on Forge credentials are recorded and absorbed by the platform. BYOK providers may bill customers for failed requests, which Forge cannot reverse: this must be disclosed, and retries must never switch credentials silently | **Approved** | §4.4 rules 2–3, §6.1, §6.7 |
-| **C9** | Exactly one platform-funded recovery attempt for an interrupted *mandatory* stage. Persist an interruption marker; preserve completed stages; no duplicate charges; record both attempts separately; if recovery fails, terminate and settle; no unlimited Celery retries. **BYOK exception:** never switch silently to a platform credential, and a platform-funded retry on a different credential needs explicit user authorization | **Approved with BYOK exception** | §6.8. BYOK default: terminate (U1) |
-| **C7** | Human adjudication on **internal builds only**; external builds only with explicit opt-in. Redact credentials and sensitive data; minimum necessary material; access logged (who, which build, when); retention and deletion defined; AI review and human adjudication have **separate** policies; never use ordinary customer builds for human review silently | **Approved** | §12.3 |
-| Formula | `max_build_cost` = 27 with current settings is the configured maximum, derived from prices, retry policy, clarification limits and enabled paths, **never hard-coded**. Reservation and settlement must be atomic and idempotent. A test must exercise every permitted combination | **Approved subject to accounting verification** | §8.1, §11.4 |
-| Accounting workstream | Unified usage ledger: no provider call may be invisible to financial accounting. Platform-funded specialist reviews get their own identity and records. Shadow limits of **$0.20 per build and $100 per month** are initial, configurable values | **Approved** | §5, §12 |
-| C11 | Four PRs: A (P0), B1 (P0), B2 (P1), C (P1). A and B1 developed independently, with their integration validated before merging. B2 after the execution and artifact foundation. Shadow reviews only after budget, accounting and privacy controls are operational | **Approved** | §9 |
-| C13 (thresholds) | ≥ 50 representative builds; ≥ 100 adjudicated blocking findings; ≥ 95% blocking precision; ≥ 90% recall **per defect category**; 100% critical regression detection. **Plus:** report confidence intervals and per-category sample sizes; blocking is never activated just because a sample count was reached | **Approved** | §13 |
+| A | User-funded generation and platform-funded reviews are separate funding models; reserve the worst case; refund the rest exactly once; never absorb overruns silently | Approved (Rev 2) | §7, §13 |
+| B | Execution status is separate from quality status | Approved (Rev 2) | §11 |
+| C | The backend is the single source of truth; no Gemini generation in live mode | Approved (Rev 2) | §14 (B1) |
+| D | Exactly one shadow edge first: Architect → Developer | Approved (Rev 2) | §17 |
+| E | Activity, Decisions and Escalations visibility lanes | Approved (Rev 2) | Phase 2 |
+| F | Security agent high priority; static analysis early; universal communication capability under orchestrator control | Approved (Rev 2) | §14 |
+| C2 | Exempt build calls from the interactive daily budget, **replaced by** per-build and per-agent ceilings, plan daily build limits, USD limits, rate limits and full tracking. **Implementation blocked until U4 and U5 are configured and validated** | Approved with controls | §13.3 |
+| C4 | BYOK reserves 0 credits; no silent switch to Forge keys; separate provider accounting | Approved | §5 |
+| C5 | Free first build includes ≤ 3 clarifications within a defined free-build allowance | Approved (see §19, X3) | §13 |
+| C7 | Human adjudication on internal or opt-in builds only; redaction; minimum material; access logging; retention | Approved | §17.3 |
+| C8 | No credits for failed operations or operations with no usable, persisted output; BYOK billing disclosed | Approved | §7, §8 |
+| C9 | One platform-funded recovery for an interrupted mandatory stage; BYOK exception | Approved | §8.6 |
+| C11 | Four foundation PRs: A, B1, B2, C | Approved (A split proposed, §19 X14) | §14 |
+| C13 | 50 builds; 100 adjudicated blocking findings; 95% precision; 90% recall per category; 100% critical suite; confidence intervals and per-category sizes reported; never auto-activated | Approved | §17.4 |
+| Formula | `max_build_cost` derived from settings (27 today), never hard-coded | Approved, subject to the EX-1 proof | §13 |
 
----
+### 1.2 Dispositions in this revision
 
-## 2. Evidence
+| ID | Approved disposition | Applied as | Section |
+|---|---|---|---|
+| **U1** | A BYOK interrupted build terminates; no automatic platform-key fallback | Recovery for BYOK = terminate and settle; completed stages kept | §8.6 |
+| **U2** | No platform-key processing of BYOK content without explicit opt-in | `ProcessingBoundary`, enforced at one choke point, covering output guardrails, injection classifier, retrieval embeddings, fallback providers, recovery dispatch, specialist shadow, shadow reviews and monitoring | §5 |
+| **U3** | Incremental deterministic guardrails, bounded LLM screening, separate budget | Guardrail v2 | §4 |
+| **U4** | Keep the existing daily limits until plan-specific build limits are configured | `build_token_exemption` stays **off**; the 10,000-token free-plan safeguard stays | §13.3 |
+| **U5** | Per-build **and per-agent** token ceilings before the C2 exemption is activated | Per-build meters and per-operation ceilings | §13.3 |
+| **U6** | A genuine no-op debug pass is uncharged if it produces no usable persisted result | Usability predicate for `debug#k` | §8.1 |
+| **U7** | Sonnet-class shadow reviewer, 20k input tokens, at most $0.20 per review | Startup-validated cost envelope | §17.1 |
+| **U8** | AI shadow reviews only on internal or opted-in builds initially | Eligibility rule | §17.2 |
+| **U9** | Clearly disclose that BYOK providers may bill for failed requests and retries | Disclosure (draft copy in §5.6) | §5.6 |
+| **U10** | Transactions for multi-document financial operations; CI on the production replica-set topology | Transaction catalogue; CI and local `rs0` | §10 |
+| **U11** | No raw provider payload retention by default; usage metadata 90 days | Journal retention aligned with this (X1) | §8.5, §15 |
+| **U12** | Human and AI adjudication restricted to internal or opted-in builds pending privacy review | Consent scopes | §17.3 |
+| **U13** | One bounded repair attempt for unusable platform-funded output; BYOK retries need explicit authorization | Retry classes by credential (X4) | §8.4 |
+| **C1** | Introduce `quality_status = INCOMPLETE` | Quality states | §11 |
+| **C3** | Question generation is included in the Developer stage price; actual usage recorded separately | `question_pass` priced 0, recorded | §8.1, §13 |
+| **C6** | Follow-up builds are child builds with `parent_build_id`; previously accepted artifacts are never mutated | Parent manifest reference (X9) | §9.5 |
+| **C10** | Persist canonical build execution state; UI status derived from persisted transitions, never from transient Celery state | `build_status` plus `execution_transitions` | §15.1 |
+| **C12b** | Initial platform shadow-review budget $100 per month | Budget (call cap, X5) | §17.1 |
+| **C13b** | A separate critical regression suite, mandatory on every PR, apart from extended evaluations | CI policy (X2) | §16.9 |
+| **C13c** | 24 h staging with zero ledger mismatches and no unexplained stuck builds | Foundation exit and promotion precondition (X6) | §14.3 |
+| **C13d** | Automatically demote a failing blocking category back to shadow | Demotion triggers (X11) | §17.4 |
+| **C13e** | ≥ 100 labelled positive examples per defect category, with confidence intervals | Per-category gate (X10) | §17.4 |
+| **C14** | The platform pays for mandatory quality reviews; no surprise per-review charge; an exhausted review budget yields INCOMPLETE, never success | Mandatory-review budget; fail-closed (X8) | §11, §17 |
 
-### 2.1 Reconciling "7 versus 5"
+### 1.3 Defined by this revision (owner requirement 9, fail-closed)
 
-Both numbers are correct; they measure different things.
-
-At the clarification decision point, `credits_used` = 12 (architect 3 + business
-model 2 + designer 2 + developer 5).
-
-| Quantity | Formula | Value |
+| ID | Definition | Section |
 |---|---|---|
-| Remaining reservation | 17 − 12 | **5** |
-| Worst-case mandatory spend still ahead | PM 1 + 3 × (debug 2 + PM 1) | 10 (12 with integrations) |
-| Code's `credit_ceiling` (`orchestrator.py:544`) | 17 − 10; an absolute cap on `credits_used` | **7** |
-| Headroom for optional spend | 7 − 12 | **−5** |
-
-The reservation was already 5 credits short of the pipeline's own worst case,
-the same 5 by which a full debug loop overruns (22 − 17).
-
-### 2.2 Stage-by-stage ledger trace
-
-Measured with the real `Orchestrator` and stub agents. Charges happen at
-`_start_agent`, before the LLM call.
-
-| Scenario | Reserved | Final `credits_used` | Result |
-|---|---|---|---|
-| S1 happy path, no integrations | 17 | 13 | ok |
-| S2 happy path, integrations | 17 | 15 | ok |
-| S3 full debug loop | 17 | 22 | **+5 over** |
-| S4 full debug loop + integrations | 17 | 24 | **+7 over** |
-| S5 S4 + 3 answered clarifications | 40 | **27** | the configured maximum |
-| S6 non-transient developer failure × 4 attempts | 17 | 27 | **refund 0, no code produced, 4 steps left RUNNING** |
-
-### 2.3 Findings
-
-F1–F15 are in Appendix B; F16–F24 were added in Revision 2; F25–F27 are new in
-this amendment. *Measured* means reproduced with throwaway probes that are not
-committed; everything else is from reading the code.
-
-| # | Finding | Evidence | Fixed in |
-|---|---|---|---|
-| F16 | **Platform-funded calls leave no usage record.** The router writes `ai_usage` only when `user_id` is set (`core/llm/router.py:1166-1210`). The specialist shadow (`core/specialist_shadow.py`) and the repository monitor (`agent_registry/monitoring.py:277`) omit it, and the injection classifier calls the provider directly (`router.py:1223-1275`). Separately, `asyncio.create_task` inside a Celery task only progresses while a later task runs that worker's loop (`build_tasks.py:27-40`) | code | A |
-| F17 | **The daily token budget can stop an admitted build halfway.** The developer call alone pre-authorizes ~8,978 tokens against the free plan's 10,000. The max configured path needs ≥ 59,396 *output* tokens (≥ 105,568 with one repair per structured operation) | measured | A (C2 controls) |
-| F18 | **Every exception is retried**, even non-transient ones (`build_tasks.py:243-262`). Combined with F13 this produces S6 | measured | A |
-| F19 | **Settlement isn't idempotent**: a bare `$inc` refund (`build_tasks.py:193-200`) can repeat on redelivery. **Nothing sweeps orphaned builds.** The production Celery broker is a Redis instance with `allkeys-lru` (`docker-compose.prod.yml:61, 197`), so queued tasks can be evicted | code | A |
-| F20 | Deployment accepts any build (`api/deployments.py:132-136`) | code | B2 |
-| F21 | Prices and reservation logic are duplicated in four places; the `tech_stack` multiplier is dead | code | A |
-| F22 | Build status is never set to RUNNING. A retryable failure persists FAILED and emits `build_failed` before the build resumes | code | A |
-| F23 | Uncharged provider calls: interactive clarify, question pass, structured-output repair, router retries and fallbacks, classifier, shadow | code | A (§5) |
-| F24 | A production frontend has no `/api/gemini/synthesize-code` (dev-only Vite plugin); live mode charges a backend build that the UI never shows | code | B1 |
-| **F25** | **`persist_files` deletes before it inserts.** It does `delete_many` then `insert_many` (`build_tasks.py:150-156`, again at `:186-191`). A crash between the two leaves the build with **no files**. Resume then sees "developer SUCCESS, no files" and regenerates, which re-charges under today's F13 | code | A |
-| **F26** | **Output-guardrail LLM screens are the largest invisible cost.** `AIGateway.stream` re-screens the *accumulated* text every 400 characters (`gateway/service.py:22-30, 246-266`). `GuardrailsEngine._check_with_llm` calls the provider directly (`gateway/guardrails.py:114`) with the **calling agent's own model**, because `config/llm.yaml` gives each agent an override that the loader merges (`core/llm/config.py:72-75`), and `guardrails_enabled` defaults to true. Measured with the committed config and the real engine: **one 32,000-character Developer stream makes 73 screens on `claude-opus-4.8`, ~302,776 input tokens, ≈ $4.63, all unrecorded.** That is ~7× the Developer call itself (~$0.65). Architect: 14 screens, ≈ $0.21. Guardrail screens use Forge's providers even on BYOK requests | measured (token heuristic; confirm against provider invoices) | A records it; policy is U3 |
-| **F27** | **Failed provider attempts are never recorded.** `_record_usage` returns when tokens ≤ 0 (`router.py:1180`), and the exception paths `continue` without recording (`router.py:566-600`) | code | A |
-
-### 2.4 Corrections to Revision 2
-
-1. **F12 ("no Mongo transactions")** is true of the *code* only. Production and
-   staging run a replica set (`replicaSet=rs0`: `docker-compose.prod.yml:56,
-   168`; `docker-compose.staging.yml:25`), so transactions are available there.
-   Local docker-compose and CI's real-Mongo job (`ci.yml:372-383`) are standalone, so
-   transactions are not available in dev and test. Foundation A therefore keeps
-   single-document guarded updates (U10).
-2. **Shadow cost.** Revision 2's worst case undercounted the repair call, which
-   resends the whole conversation plus the rejected output and the schema
-   (`gateway/service.py:131-155`). Recomputed: 24k input tokens costs **$0.218**
-   worst case with one repair and one guardrail screen. To honour the approved
-   **$0.20** cap, the input limit becomes **20,000 tokens (worst case $0.194)**
-   on a Sonnet-class model (§12.1, U7).
+| FC-def | Every mandatory validation that cannot complete yields `quality_status = INCOMPLETE`, never `PASSED`. Artifacts are kept. Deploying or sharing requires an explicit, audited override (X15) | §11 |
 
 ---
 
-## 3. Revised architecture
+## 2. P0 findings and new evidence
+
+### 2.1 The three P0 issues
+
+| # | Issue | Evidence | Fix |
+|---|---|---|---|
+| **F26** | **Output guardrails.** `AIGateway.stream` re-screens the *whole accumulated prefix* every 400 characters (`gateway/service.py:22-30, 246-266`). It uses the **calling agent's own model**, because `GuardrailsEngine._check_with_llm` loads the agent's config (`gateway/guardrails.py:78-114`, `core/llm/config.py:72-75`), and the provider is called directly with no usage record. Measured with the committed config: one 32,000-character Developer stream makes **73 calls on `claude-opus-4.8`, about 303k input tokens, ≈ $4.63**. Worst case per build is ≈ **$5.72 across 139 calls** (§6) | measured | A2 (§4) |
+| **F26-B** | **BYOK privacy.** Guardrail screens run on Forge's providers even for BYOK requests: the gateway never consults `request.byok` before screening | `gateway/service.py:117-123, 203-266` | A2 (§5) |
+| **F25** | **Artifact integrity.** `persist_files` runs `delete_many` and then `insert_many` (`tasks/build_tasks.py:150-156, 186-191`). A crash in between leaves a build with no files | code | A3 (§9) |
+
+### 2.2 New findings in Revision 3
+
+| # | Finding | Evidence | Severity | Fix |
+|---|---|---|---|---|
+| **F28** | **Context retrieval embeds build content with Forge's OpenAI key and searches across tenants.** Every context-engineered agent call (`agents/base.py:193-200` → `context_engineer/retriever.py:159-164, 209-214, 245-249`) calls `SemanticRetriever.retrieve(task, …)` **without `org_id` or `project_id`**. When `OPENAI_API_KEY` is set, that embeds the task text (blueprint, design, files) via `api.openai.com` with Forge's key (`retrieval/embeddings.py`), **including for BYOK builds**, with no usage record. `index.search` filters by tenant only when ids are passed (`retrieval/index.py:74-77`), so results come from **all organizations' indexed sources**. Today only opaque SHA-256 chunk ids reach the prompt: knowledge-base text goes into `project_state.extra`, which the template doesn't render (`prompt_builder/templates/base.py:26-83`). The cross-tenant exposure is therefore latent, not active | code; whether `OPENAI_API_KEY` is set in production is not visible in the repo (`docker-compose.prod.yml:38` passes it through, defaulting to empty) | P0 for the BYOK boundary when the key is set; P1 latent cross-tenant | A2: disable retrieval in the build path until it is tenant-scoped and boundary-checked |
+| **F29** | **Both LLM safety tiers fail open.** `_check_with_llm` and `_check_injection_with_llm` return "not blocked" on any error (`gateway/guardrails.py:78-128`, `router.py:1223-1233`). Under the owner's fail-closed rule, a *required* screen that cannot run must not count as passing | code | P1 | A2 (§4.5) |
+| F29-b | **The injection classifier is inactive with the committed config**: there is no `injection-check` override in `config/llm.yaml`, and `_check_injection_with_llm` returns early without one. A database override can enable it, in which case it runs on **every** provider call over all user-role content, BYOK included | code | Conditional | A2 governs it like L-tier (§4.6) |
+| F29-c | **BYOK repair calls are automatic.** The gateway's structured-output repair calls the router again with the same `byok` (`gateway/service.py:131-155`), which is a second billed call on the customer's key. The BYOK router path itself has no retries or fallbacks (`router.py:658-720`) | code | P1 under U13 | A2 (§8.4) |
+
+### 2.3 Earlier findings still open
+
+F1–F27 are summarized in Appendix A. Their fixes are mapped to the PRs in §14.
+
+---
+
+## 3. Architecture and data-flow diagrams
 
 ### 3.1 Principles
 
-1. **`core/orchestrator.py` is the only control flow.** New modules are services
-   it calls.
-2. **Two ledgers, never mixed.**
-   - The **credit ledger** records customer ↔ Forge: reservations, charges and
-     refunds.
-   - The **provider-cost ledger** records who paid a provider for each attempt.
-   - Every provider attempt belongs to a ledger *operation*. No provider call
-     exists outside an operation or a named platform account.
-3. **Charge only usable, persisted output.** An operation is charged exactly
-   once, when its output is validated, persisted, and committed in one
-   single-document write.
-4. **Single writer per build.** A lease plus a fencing token guarantee one live
-   attempt. Every write is conditional on the token.
-5. **Artifacts are immutable.** Recovery never deletes completed work.
-6. **Quality never changes execution or money.**
+1. `core/orchestrator.py` is the only control flow.
+2. **Two ledgers, never mixed:**
+   - the **credit ledger** (customer ↔ Forge);
+   - the **provider-cost ledger** (payer ↔ provider), with one row per provider
+     attempt.
+3. **One processing boundary per build**, snapshotted at admission. Every
+   platform-model call checks it first.
+4. **Charge only usable, persisted output**, at most once per `stage_key`.
+5. **Artifacts are immutable versions.** Publication is an atomic pointer switch.
+6. **Multi-document money moves happen only in transactions.** Single-document
+   state changes are guarded atomic updates.
+7. **Fail closed.** Validation that could not run never counts as passed.
 
-### 3.2 Components
+### 3.2 Build data flow
 
-| Component | Module | PR |
-|---|---|---|
-| Price table, `max_build_cost()`, `pricing_version` | `core/pricing.py` (new) | A |
-| Build ledger: operations, dispatches, ceiling, commit protocol | `core/build_ledger.py` (new) | A |
-| Lease and fencing; orphan sweeper; reconciliation job | `tasks/build_tasks.py`, `tasks/maintenance_tasks.py` (new) | A |
-| Reservation and settlement protocols | `core/credit_settlement.py` (new) | A |
-| Provider response journal | `gateway/service.py` + collection | A |
-| Unified usage recording: every provider attempt, every channel | `core/ai_usage.py`, `core/llm/router.py`, `gateway/guardrails.py`, `gateway/service.py` | A |
-| Build quotas: token meters, daily build counter, operation binding for the C2 exemption | `core/build_quotas.py` (new), `core/llm/router.py` | A |
-| Build subscription, hydration, state-only persistence, 402 and BYOK disclosure UI | frontend, `tasks/build_tasks.py` | B1 |
-| Artifacts and blobs, prompt versions, designer schema, `Finding` and evidence verifier, PM on evidence, `core/quality.py`, deploy guard | see §9 | B2 |
-| Static security analysis (report-only) | `sandbox/static_security.py` (new) | C |
-| Platform budgets, consent, access log, redaction, adjudication UI | `core/platform_budgets.py`, `core/data_use.py`, admin UI | S0 |
-| Shadow review runner (Celery queue `shadow`) | `tasks/review_tasks.py` | S1 |
-| Protocol v2, capability registry, route policy, blackboard, visibility | `core/agent_communication.py`, `core/build_artifacts.py` | Phase 2 |
+```mermaid
+flowchart TD
+  U[User] -->|POST /builds| API[API: admission]
+  API -->|T1 transaction: users debit, build insert,<br/>credit_transactions reserve, usage_counters| DB[(MongoDB rs0)]
+  API -->|apply_async after commit| BR[(Redis broker<br/>noeviction)]
+  BR --> W[Celery worker<br/>lease + fencing token]
+  W --> O[Orchestrator]
+  O -->|W1–W7 guarded single-doc writes| L[(Build doc: ledger,<br/>execution transitions,<br/>active manifest)]
+  O --> AG[Agent]
+  AG --> GW[AI Gateway<br/>operation context +<br/>ProcessingBoundary]
+  GW --> DT[Deterministic guardrails<br/>incremental]
+  GW --> RT[Router]
+  RT -->|credential = forge| FP[Forge providers]
+  RT -->|credential = byok| BP[Customer's provider]
+  GW -->|≤ 1 per artifact, if policy requires<br/>and the boundary allows| LT[L-tier screen<br/>Haiku-class, Forge key]
+  RT --> AU[(ai_usage: one row per provider attempt)]
+  LT --> AU
+  GW --> J[(Journal, until commit)]
+  O -->|blobs + staged manifest| AS[(Artifact store)]
+  O -->|atomic publish + ledger commit| L
+  W -->|T2 transaction: settle| DB
+  W -->|emit on state change| WS[WebSocket]
+  WS --> FE[Frontend]
+  FE -->|hydrate on every connect| API
+```
 
-### 3.3 Phases
+### 3.3 Settlement and reconciliation flow
 
-| Phase | Contents | Exit criterion |
-|---|---|---|
-| 1. Foundation reliability | A, B1, B2, C | §11 suites green. The staging soak shows zero reconciliation anomalies (§6.9) |
-| 2. Universal communication | Protocol v2, capability registry, default-deny routes, blackboard, visibility and escalations, funded clarifications | Clarifications run on metered builds; every message authorized, persisted and hydrated |
-| 3. Peer review | S0, S1 (shadow), adjudication, labelled set, critical suite; then blocking review **only after §13 and explicit owner approval** | §13 |
-| 4. Engineering collaboration | Security agent (first), QA, Integration, Business Model (non-blocking), user escalations | Each edge passes its own §13 gate |
-| 5. Continuous improvement | Retrospectives, evaluations, approval-gated prompt promotion | Regression evaluation is mandatory |
-
-### 3.4 Visibility model (decision E, Phase 2)
-
-Records carry `visibility ∈ {internal, activity, decision, escalation}`.
-
-| Lane | Shows |
-|---|---|
-| Activity | Agent state chips |
-| Decisions | Accepted clarifications, resolved disagreements with rationale |
-| Escalations | Action cards for the user |
-| Timeline (collapsed) | Everything `internal` |
-
-When no user can answer, escalations resolve conservatively:
-
-| Trigger | Resolution |
-|---|---|
-| Technical disagreement | Decision owner |
-| Ambiguity | Architect's default, recorded as an Assumption |
-| Security or permission | Deny |
-| Additional spend | **Never auto-approved**; that work is skipped |
-| Scope change | Reject |
-
-**Shadow findings are never shown to users.**
+```mermaid
+sequenceDiagram
+  participant W as Worker or sweeper
+  participant B as builds
+  participant T as credit_transactions
+  participant Us as users
+  W->>B: fence (attempt_token = mine, or CAS to swept)
+  W->>W: consumed = Σ COMPLETED op credits
+  Note over W,Us: T2 transaction (snapshot read, majority write)
+  W->>T: insert {build_id, kind: settle, amount} (unique)
+  W->>Us: $inc credits + (reserved − consumed)
+  W->>B: $set settlement, funding.state = SETTLED (filter settlement = null)
+  Note over W,Us: commit, or abort with no effect
+  W->>W: emit credits_update
+```
 
 ---
 
-## 4. Accounting model
+## 4. Guardrail execution model (v2)
 
-### 4.1 Hierarchy
+### 4.1 Goals (owner decision U3)
 
-```
-Build
- └─ Operation   (one billable unit of work, stage_key e.g. "developer", "pm#2", "clarification#1")
-     └─ Dispatch     (1 = original; 2 = the single C9 recovery dispatch)
-         └─ Provider attempt   (primary, retry, model/provider fallback, structured repair,
-                                injection classifier, output guardrail screen, cache hit)
-```
+1. Deterministic guardrails run **incrementally**, at linear cost.
+2. **No repeated full-prefix LLM screening.**
+3. **At most one bounded, lower-cost LLM screen per artifact**, and only when
+   policy requires it.
+4. A **separate guardrail budget**, with every call recorded.
+5. **No platform-key LLM screening of BYOK content without explicit consent.**
+6. **Fail closed** when a *required* screen cannot complete.
 
-- **Credits** live on Operations, and are charged at most once per `stage_key`.
-- **Provider cost** lives on Provider attempts, which are `ai_usage` rows keyed
-  by `(operation_id, dispatch_no, attempt_seq)`.
+### 4.2 Tiers
 
-### 4.2 Funding sources (credit ledger)
-
-| Source | Customer credits | Typical use |
-|---|---|---|
-| `user_credits` | Reserved up front; charged per completed operation; unused part refunded | Metered builds on Forge credentials |
-| `byok` | 0 reserved, 0 charged (C4) | Customer's own provider key |
-| `free_grant` | 0 reserved; operations counted in credit-equivalents against the free-build allowance (C5) | First build |
-
-### 4.3 Provider-cost accounts (who pays the provider)
-
-| Account | Credential | Cost bearer | Examples |
-|---|---|---|---|
-| `generation` | Forge | Platform. Revenue comes from the credit ledger | Every attempt of a `user_credits` operation, including failed, retried, fallback and repair attempts |
-| `customer_provider` | BYOK | **Customer's provider account** | Every attempt of a `byok` operation, including failed ones (C8 disclosure) |
-| `free_grant` | Forge | Platform | Attempts of `free_grant` operations |
-| `recovery` | Forge | Platform | The C9 recovery dispatch |
-| `failure_absorbed` | Forge | Platform | Report view over `generation`/`free_grant` attempts of operations that ended uncharged (C8); not a separate write |
-| `guardrail` | Forge | Platform (security budget) | Injection classifier, output-guardrail screens, on any build including BYOK (C4: kept separate) |
-| `shadow` | Forge | Platform (pilot budget) | Shadow reviews, specialist shadow |
-| `monitoring` | Forge | Platform (infrastructure) | Repository monitor suggestions |
-| `interactive` | Forge or BYOK | Platform or customer | Non-build LLM features (still under the daily token budget) |
-
-### 4.4 The ten accounting rules: mechanisms and proofs
-
-| # | Rule (owner) | Mechanism | Proven by |
-|---|---|---|---|
-| 1 | Reserve the calculated worst-case user-funded cost before starting | `max_build_cost()` from settings; reservation protocol R1–R6 (§6.4) before dispatch | EX-1, CT-1, CT-9 |
-| 2 | Record every provider attempt, including failures | One `ai_usage` row per provider attempt with `outcome`, written in `finally` paths (classifier, guardrail, repair, retries, fallbacks, cache hits); zero-token rows allowed | RG-F27, RG-F26, EX-3 |
-| 3 | Charge only successfully completed, usable agent operations | Commit protocol W1–W7 (§6.3): usability predicate (§6.1), then persist, then CAS commit. `credits > 0` only on COMPLETED | EX-1, RT-3 |
-| 4 | Refund unused reservations exactly once | Settlement protocol S1–S6 (§6.5): guarded `settle:<build_id>` key on the user document | CT-2, CT-3, RT-7 |
-| 5 | Recover interrupted mandatory stages at most once, under the approved funding policy | §6.8: `dispatch_no ≤ 2`; dispatch 2 is account `recovery`; BYOK default terminate | RT-1…RT-5 |
-| 6 | Keep platform and customer expenditure separate | Funding source on operations; `account` and `cost_bearer` on every attempt; per-build `provider_cost_summary` split by account | RG-acc, EX-3 |
-| 7 | Every build and settlement is reconstructable from the ledger | `reconcile_build()` with invariants I-1…I-12 (§6.9); nightly job; read-only admin endpoint | RC-1, EX (asserted in every run) |
-| 8 | A retry never consumes additional customer credits silently | Charge per `stage_key` at most once (I-4); FAILED and INTERRUPTED operations are uncharged; recovery is platform-funded | EX-2, RT-2, CT-4 |
-| 9 | Daily quotas and build quotas are separate | The interactive daily budget is skipped only for calls bound to a live ledger operation; build token meters and the daily build counter are separate controls (§8.4) | RG-F17, CT-6 |
-| 10 | Completed artifacts are preserved during failure recovery | Safe file persistence (F25), immutable artifacts (B2), recovery never deletes; `files_hash` checks across recovery | RT-6, RG-F25 |
-
----
-
-## 5. Unified usage ledger: every provider channel
-
-| Channel | Code path | Recorded today? | Account / bearer after A | Linked to |
+| Tier | What | When | Cost | BYOK |
 |---|---|---|---|---|
-| Normal agent call (generate) | `agents/base.py:308,370` → `gateway/service.py:79` → `router.py:555` | success only | `generation` / `customer_provider` / `free_grant` | operation, dispatch |
-| Normal agent call (stream) | `gateway/service.py:213` → `router.py:900,1037` | success only (finalize) | same | operation, dispatch |
-| Clarification answers and question pass | via `BaseAgent.run` | success only, not linked | operation's funding | `clarification#i`, `question_pass` |
-| Interactive architect clarify | via `BaseAgent.run` | success only | operation's funding | `architect_clarify` |
-| Structured-output repair | `gateway/service.py:145` → `router.generate` | success only, not linked | same as the repaired operation | same operation, `attempt_kind=repair` |
-| Router retries | `router.py:542-600` | **no** for failures (F27) | same | `attempt_kind=retry` |
-| Model and provider fallbacks | `router.py:424-600` | **no** for failures | same | `attempt_kind=fallback` |
-| BYOK calls | `router.py:658-720` (`_generate_byok`) | success only, `byok=true` | `customer_provider` | operation; `credential=byok` |
-| Injection classifier | `router.py:1223-1275` (`provider.chat_completion` direct) | **never** | `guardrail` (platform) | operation of the guarded request |
-| Output guardrail screens | `gateway/guardrails.py:114`, per window on streams | **never** (F26) | `guardrail` (platform) | operation, `attempt_kind=output_guardrail` |
-| Response-cache hit | `router.py:493-510` | no (no provider call) | `cache_hit`, zero cost | operation (needed for reconstruction) |
-| Specialist shadow | `core/specialist_shadow.py:119` (no `user_id`) | **never** | `shadow` | platform principal + `beneficiary_user_id` |
-| Shadow reviews (new) | `tasks/review_tasks.py` | n/a | `shadow` | shadow operation |
-| Repository monitor | `agent_registry/monitoring.py:277` (no `user_id`) | **never** | `monitoring` | platform principal |
-| LLM test endpoint | `api/llm.py:59` | success only | `interactive` | n/a (not a build) |
+| **D-tier** (deterministic) | Phrase and pattern rules with today's obfuscation-resistant normalization (`_strip_obfuscation`: NFKC, invisible characters, homoglyphs). Incremental: each window is scanned with a **tail overlap of `L` characters**, where `L` ≥ the longest normalized pattern + 32, so a phrase split across a window boundary is still found. Total work O(n) | Every stream window and every non-streamed response | No provider call | Always (Forge-side code, no model) |
+| **L-tier** (LLM) | One classification call per **artifact** (an operation's final output), with input capped at `guardrail_llm_max_input_tokens` (default 8,000). Uses a **policy-configured model** (default Haiku-class), never the agent's own model | Only when the artifact policy says `llm_screen: required` or `optional`, the boundary allows it, and the budget reservation succeeds | ≈ $0.0065 per artifact at the cap (Haiku pricing) | Only with consent scope `platform_model_processing` (§5) |
+| **Input D-tier** | `_contains_prompt_injection` (today's deterministic detector) | Every provider call | No provider call | Always |
+| **Input L-tier** | The LLM injection classifier, today inactive by config (F29-b) | Only if explicitly enabled; then **once per operation**, not per provider attempt, retry or repair; input capped | Recorded under account `guardrail` | Only with consent |
 
-**Rule.** After A, a provider call with no `ai_usage` row is a defect. Test
-RG-acc patches every provider adapter's `chat_completion`/`stream_completion`
-with a counter and asserts *counted calls == recorded attempts* across a full
-stub build, including guardrail windows, classifier, repairs and fallbacks.
+### 4.3 Streaming release semantics
 
----
-
-## 6. Foundation A ledger specification
-
-### 6.1 Stage-by-stage ledger
-
-| `stage_key` | Mandatory | Price (setting) | Usable output: the commit predicate | Persisted **before** commit | Max dispatches | DISPATCHED with no journal on resume | Max per build |
-|---|---|---|---|---|---|---|---|
-| `architect_clarify` (interactive) | no | 0 (part of architect) | JSON list (may be empty) | Questions stored on the operation | 1 | INTERRUPTED; proceed without questions | 1 |
-| `architect` | yes | `credits_architect` (3) | Schema-valid blueprint | `AgentStep.output` | 2 | C9 recovery | 1 |
-| `business_model` | yes | `credits_business_model` (2) | Schema-valid | `build.business_model` + step output | 2 | C9 recovery | 1 |
-| `designer` | yes | `credits_designer` (2) | Parseable JSON (schema-valid once B2 lands) | step output | 2 | C9 recovery | 1 |
-| `question_pass` | no | `credits_question_pass` (C3; default 0) | JSON list ≤ Q | Questions as QUEUED messages | 1 | INTERRUPTED; no clarifications | 1 |
-| `clarification#i` | no | `credits_clarification` (1) | Non-empty answer | `agent_messages[i]` | 1 | INTERRUPTED, never re-sent (today's guarantee) | Q (3) |
-| `developer` | yes | `credits_developer` (5) | ≥ 1 parsed file | `build_files` via the safe write order (F25) | 2 | C9 recovery | 1 |
-| `integration` | if `blueprint.integrations` | `credits_integration` (2) | Schema-valid | `build_files` | 2 | C9 recovery | 1 |
-| `pm#k`, k = 0…N | yes | `credits_pm` (1) | Schema-valid validation | step output | 2 | C9 recovery | N + 1 (4) |
-| `debug#k`, k = 1…N | yes (in loop) | `credits_debug` (2) | Schema-valid **and ≥ 1 changed file** (U6) | `build_files` | 2 | C9 recovery | N (3) |
-| CSP, sandbox, moderation, static security | n/a | 0 | n/a | report | n/a | Re-run (deterministic, free) | n/a |
-
-**Overheads inside an operation** (never charged separately, always recorded):
-structured repair (≤ 1 per dispatch), router retries and fallbacks,
-injection-classifier calls, output-guardrail screens. Hard cap:
-`max_provider_attempts_per_dispatch` (engineering default 4: primary + up to 2
-retries or fallbacks + 1 repair; guardrail and classifier calls are counted
-separately under the platform token meter).
-
-### 6.2 State machines
-
-```
-Operation:  AUTHORIZED ─▶ DISPATCHED ─▶ COMPLETED            (charged once)
-                │             ├────────▶ FAILED               (uncharged: provider error, unusable output,
-                │             │                                 non-transient policy error)
-                │             └────────▶ INTERRUPTED          (outcome unknown; marker persisted)
-                │                          └─(mandatory, Forge credential)─▶ DISPATCHED (dispatch 2, account=recovery)
-                └────────────────────────▶ REFUSED            (ceiling/quota; no provider call)
-
-Dispatch:   STARTED ─▶ COMPLETED | FAILED | INTERRUPTED       (each recorded separately; C9)
-
-Funding:    RESERVING ─▶ RESERVED ─▶ SETTLED
-                 │            └────▶ RELEASED                 (dispatch failed or lost; full refund)
-                 └──────────────▶ ABORTED                     (no money moved)
-
-Build execution: PENDING ─▶ RUNNING ─▶ COMPLETED | FAILED     (stored `status`: pending/running/debugging/
-                                                                success/failed; `build_status` derived, C10)
+```mermaid
+flowchart LR
+  C[provider chunk] --> D{D-tier on window<br/>+ overlap}
+  D -->|hit| X[stop stream; artifact rejected;<br/>operation FAILED blocked_by_guardrail; uncharged]
+  D -->|clean| R[release chunk to agent<br/>and WS as a *preview*]
+  R --> E{artifact complete?}
+  E -->|no| C
+  E -->|yes| P{artifact policy}
+  P -->|none| S[stage version → publish]
+  P -->|L-tier required/optional| Bd{boundary allows?<br/>BYOK needs consent}
+  Bd -->|no| N[record not_permitted;<br/>required → quality INCOMPLETE]
+  Bd -->|yes| Bu{budget reservation<br/>per build + monthly}
+  Bu -->|exhausted| N2[record budget_exhausted;<br/>required → INCOMPLETE]
+  Bu -->|ok| LT[one bounded L-tier call]
+  LT -->|safe| S
+  LT -->|blocked| X2[version rejected; previous version stays active;<br/>WS artifact_withheld; uncharged]
+  LT -->|error/timeout/invalid| N3[required → INCOMPLETE<br/>optional → skipped]
+  N --> S2[stage → publish as unverified]
+  N2 --> S2
+  N3 --> S2
 ```
 
-### 6.3 Commit protocol for one operation
+- Streamed text before the final verdict is a **preview**. It becomes a
+  published artifact only after publication.
+- An L-tier block withdraws the preview (`artifact_withheld` event) and never
+  publishes the version.
+- Policy may instead set `stream_mode: buffer_until_screened` for an artifact
+  kind; then no preview is released before the L-tier verdict.
 
-`T` is the attempt's fencing token. Every build-document write filters on
-`{id, attempt_token: T}`.
+Which artifact kinds require L-tier, whether partial coverage is acceptable, and
+whether previews may precede the verdict are open questions (X12).
 
-| Step | Write | Crash after this step leads to |
-|---|---|---|
-| W1 Authorize | Ceiling and quota check in memory (single writer under lease); `$push` the operation `AUTHORIZED` with price and `stage_key` | Resume finds AUTHORIZED: no provider call happened, so it dispatches normally (not a recovery) |
-| W2 Dispatch marker | `$set` the operation `DISPATCHED`, `$push` dispatch `{dispatch_no, account, credential, started_at}` | Resume finds DISPATCHED: W4 decides |
-| W3 Provider attempts | One `ai_usage` row per attempt, success or failure, at attempt end | Rows are append-only; the reconciler links them |
-| W4 Journal | On the final usable response: upsert `llm_response_journal{operation_id, dispatch_no}` **before** returning to the agent | Journal present: reuse it, with no provider call |
-| W5 Validate | Apply the §6.1 predicate. Unusable output leads to W7 | n/a |
-| W6 Persist output | Idempotent writes (safe file order; step output; message) | The journal path re-persists identical output |
-| W7 Commit (CAS) | **One `$set`**: operation `COMPLETED` (or `FAILED`), `credits = price` (or 0), dispatch resolved, `credits_used = Σ credits`, `AgentStep` outcome, `request_ids`. Filter adds `ledger.$[op].status = DISPATCHED` | Done. A matched count of 0 means fenced off: abort without charging |
+### 4.4 Default policy shipped in A2 (until X12 is decided)
 
-### 6.4 Reservation protocol (exactly once)
-
-| Step | Action | Crash after this step |
-|---|---|---|
-| R1 | Compute `quote = max_build_cost(config)` and the funding snapshot (BYOK key present → `byok`; unclaimed grant → `free_grant`; else `user_credits`) | Nothing written |
-| R2 | Insert the build with `funding = {state: RESERVING, source, reserved_credits, max_cost, breakdown, pricing_version}` | Sweeper: RESERVING with no `reserve:` key → ABORTED, build failed `admission_incomplete` |
-| R3 | `user_credits`: `update_one({id: uid, credits ≥ quote, credit_ops ≠ "reserve:"+bid}, {$inc: {credits: −quote}, $push: {credit_ops: {$each: ["reserve:"+bid], $slice: −500}}})`. 0 matched → re-read: key present means already reserved (idempotent), otherwise 402 and the build ABORTED. `free_grant`: `update_one({id, free_build_used ≠ true}, {$set: {free_build_used: true, free_build_id: bid}})`. `byok`: no-op | Sweeper: RESERVING **with** the key → release (S-protocol with consumed = 0) → RELEASED |
-| R4 | Build `funding.state = RESERVED`; upsert `credit_transactions{build_id, kind: reserve}` | Sweeper: RESERVED, no lease, older than `dispatch_timeout` → RELEASED (covers broker loss) |
-| R5 | `run_build.apply_async` | Same as R4 |
-| R6 | Dispatch exception → release (S-protocol, consumed = 0); `free_grant` rollback `update_one({id, free_build_id: bid}, {$unset: …, $set: {free_build_used: false}})` | Idempotent |
-
-### 6.5 Settlement protocol (exactly once)
-
-Settlement runs at a terminal state, from the worker, the sweeper or a dispatch
-failure.
-
-| Step | Action |
-|---|---|
-| S1 | Fence: the worker holds the lease, or the sweeper has CAS-set `attempt_token = "swept:<uuid>"`. After S1 no operation can commit |
-| S2 | `consumed = Σ ledger[].credits` (COMPLETED only); `refund = reserved_credits − consumed`; assert `0 ≤ consumed ≤ reserved`. A violation raises a page alert, refunds 0, and records `settlement.anomaly`; by construction it cannot happen |
-| S3 | `update_one({id: uid, credit_ops ≠ "settle:"+bid}, {$inc: {credits: refund}, $push: {credit_ops: {$each: ["settle:"+bid], $slice: −500}}})`. The key is written even when the refund is 0 |
-| S4 | `update_one({id: bid, settlement: null}, {$set: {settlement: {consumed, refunded, settled_at, provider_cost_summary}, "funding.state": SETTLED}})` |
-| S5 | Upsert `credit_transactions{build_id, kind: settle, amount: refund}` |
-| S6 | Emit `credits_update` |
-
-- **Crash between S3 and S4:** the re-run skips S3 (key present) and completes
-  S4–S6.
-- **Concurrent settlers:** S3's guard admits exactly one `$inc`. Both compute the
-  same `consumed`, because the ledger is fenced at S1.
-- **Residual risk:** the idempotency window is the last 500 credit operations
-  per user. A settlement retry would have to arrive after 500 newer credit
-  operations *and* still find `settlement: null`. The nightly reconciler (§6.9)
-  detects it; production transactions are the long-term alternative (U10).
-
-### 6.6 Lease, fencing and duplicate delivery
-
-| Step | Action |
-|---|---|
-| L1 Acquire at attempt start | `update_one({id, settlement: null, "funding.state": RESERVED, $or: [{lease_expires_at: null}, {lease_expires_at: {$lt: now}}]}, {$set: {attempt_token: T, lease_expires_at: now + 90 s, status: "running"}})` |
-| L1, 0 matched | If settled → acknowledge, no-op. If another lease is live → acknowledge, exit (`duplicate_delivery_suppressed` metric) |
-| L2 Heartbeat | A background task renews the lease every 30 s, filtered on `T` |
-| L3 Fencing | Every write filters on `T`. A write that matches 0 documents raises `AttemptSuperseded`: stop, no charge, no retry |
-| L4 Sweeper | Every 5 min, beat. Lease expired by more than 120 s and build not terminal: if `recovery_enqueues == 0`, CAS-increment it and enqueue a resume (the interrupted operation follows §6.8); otherwise fence, set FAILED (`orphaned`), and settle. Also handles RESERVING and RESERVED-undispatched (§6.4) |
-
-### 6.7 Retry classification (fixes F18)
-
-| Class | Errors | Celery |
-|---|---|---|
-| Transient | Provider 5xx, 408/429, timeouts after router exhaustion; `CircuitBreakerOpen`; Mongo `AutoReconnect`/network timeouts; Redis connection errors; customer-provider 429 (same key, disclosed) | Retry, max 3, 60 s countdown. Operation FAILED (uncharged) each time; resume uses a new operation for the same `stage_key` |
-| Model-output | Schema-invalid after repair; unusable output (§6.1) | **1** retry per `stage_key`, platform-absorbed (U13), then non-transient |
-| Non-transient | `BudgetLimitExceeded` (USD limits), quota refusal (§8.4), `PolicyViolation`, prompt-injection rejection, ceiling refusal, BYOK 401/403, `SoftTimeLimitExceeded`, `BuildCancelled`, `AttemptSuperseded` | No retry. Build FAILED (or COMPLETED + quality if code exists, per §7). Settle |
-
-### 6.8 Recovery policy (C9), including the BYOK exception
-
-Recovery applies when, on resume or after a sweeper re-enqueue, an operation
-is DISPATCHED with **no** journal entry.
-
-| Case | Action | Customer credits | Provider cost |
+| Artifact kind | D-tier | L-tier | Stream mode |
 |---|---|---|---|
-| Journal present (any funding) | Reuse it; W5–W7; **no provider call** | Price once, if usable | Original dispatch only |
-| Optional operation | Dispatch → INTERRUPTED; operation INTERRUPTED; continue without it | 0 | Dispatch 1 cost (if any) recorded as unknown |
-| Mandatory, `user_credits` or `free_grant` | Dispatch 1 → INTERRUPTED (marker persisted); **dispatch 2** under account `recovery` on the **same Forge credential** | Price once, if dispatch 2 is usable | Dispatch 1 unknown; dispatch 2 platform-funded. Both recorded separately |
-| Mandatory, dispatch 2 also interrupted or failed | Operation FAILED; build terminates (FAILED, or COMPLETED + quality per §7); settle; **no further Celery retries for this operation** | 0 for this operation | Both dispatches recorded |
-| Mandatory, `byok` | **Default (U1): terminate.** Operation INTERRUPTED; build FAILED (`interrupted_byok`); completed stages and files kept; settle (0 reserved). **Never** a silent switch to a Forge credential. The alternatives in U1 (`same_key_once`, or `platform_with_authorization` via an explicit user action) are implemented only once decided | 0 | Dispatch 1 on the customer's account, recorded |
+| All agent outputs (architect, business model, designer, developer, integration, PM, debug, clarification answers) | required | **off** (no LLM screening by default) | preview after D-tier |
+| Organizations with a policy override | required | `required` or `optional` per org policy (existing `policy` config block) | per org policy |
 
-### 6.9 Reconstruction and reconciliation
+With the default, a full Developer stream makes **0** guardrail LLM calls
+(today: 73). An org that requires L-tier gets **≤ 1 call per artifact** (≈ 16 per
+max-path build, worst case ≈ $0.05).
 
-`reconcile_build(build_id)` is pure and read-only. It runs nightly over builds
-settled in the last 48 hours and on demand from an admin endpoint. It checks:
+### 4.5 Failure handling (fail-closed, F29)
 
-| # | Invariant |
-|---|---|
-| I-1 | The `credit_transactions` reserve row equals `funding.reserved_credits`, and `credit_ops` contains `reserve:<bid>` (for `user_credits`) |
-| I-2 | `consumed = Σ op.credits ≤ reserved_credits` (for `free_grant`: ≤ `max_cost`) |
-| I-3 | `refunded = reserved − consumed`; exactly one `settle:<bid>` key; one settle row |
-| I-4 | At most one charged operation per `stage_key` |
-| I-5 | Every COMPLETED operation has ≥ 1 successful provider attempt (or a journal reuse) under its `(operation_id, dispatch_no)` |
-| I-6 | Every `ai_usage` row with this `build_id` maps to an existing operation or a named platform account. **No orphan provider calls** |
-| I-7 | `dispatch_no ≤ 2` for mandatory operations, `≤ 1` for optional ones; `dispatch_no = 2` ⇒ `account = recovery` and the same credential as dispatch 1 |
-| I-8 | `byok` builds: 0 credits, every generation attempt `credential = byok`, no `generation` account rows |
-| I-9 | No AgentStep remains RUNNING once the build is terminal |
-| I-10 | Files of every COMPLETED file-producing operation still exist (by `files_hash`) |
-| I-11 | `provider_cost_summary` totals equal Σ `ai_usage.cost` grouped by account |
-| I-12 | Funding state is consistent with execution: terminal build ⇒ SETTLED or RELEASED |
+| Situation | Required L-tier | Optional L-tier |
+|---|---|---|
+| Provider error, timeout or unparseable verdict | Version published **unverified**; `quality_status = INCOMPLETE` (`guardrail_unverified`); never accepted | Recorded as `skipped`; no quality effect |
+| Guardrail budget exhausted (per build or monthly) | Same as above; alert on the budget | Recorded as `skipped` |
+| Boundary does not allow it (BYOK without consent) | Same as above. **Policy must not require L-tier for BYOK builds without consent**: A2 validates org policies and rejects that combination at save time, so BYOK builds are never forced INCOMPLETE by configuration | Recorded as `not_permitted` |
+| D-tier raises (code fault) | Operation FAILED, uncharged; artifact not published | n/a |
 
-`ai_usage` keeps its 90-day TTL. The **permanent** financial record is the build
-ledger, `credit_transactions` and `settlement.provider_cost_summary` (U11).
+### 4.6 Budget and accounting
+
+- **Account `guardrail`**, recorded in `ai_usage` with `purpose` set to
+  `guardrail_output` or `guardrail_input`, plus `operation_id` and `attempt_seq`.
+- **Budgets** live in `platform_budgets`, with an atomic reservation before each
+  call (single-document guarded update):
+  - `guardrail_monthly_usd` (value open, X12);
+  - `guardrail_per_build_usd` (default: 16 artifacts × the per-call worst case,
+    ≈ $0.11).
+- The guardrail model must have an explicit `MODEL_COSTS` entry. Startup
+  validation refuses an unpriced model.
+
+### 4.7 Cost comparison
+
+| | Today (committed config) | v2 default | v2 with L-tier required on every artifact |
+|---|---|---|---|
+| LLM guardrail calls, max-path build | 139 | **0** | ≤ 16 |
+| Worst-case guardrail cost per build | ≈ $5.72 | **$0.00** | ≈ $0.05 |
+| Model | the agent's own (Opus for Architect and Developer) | n/a | Haiku-class (policy) |
+| Recorded | no | yes | yes |
 
 ---
 
-## 7. Failure-state transition matrix
+## 5. BYOK data flow and privacy boundary
 
-Notation: Op = operation, D = dispatch, CR = customer credits.
+### 5.1 Boundary rule (U2, C4, U1, U13)
 
-| Scenario | Detection | Ledger transitions | CR | Provider-cost records | Celery | Build → quality | Artifacts | Settlement and user event |
+> For a BYOK build, customer content (prompt, blueprint, design, files,
+> messages) may be sent **only** to the customer's own provider, using the
+> customer's key. Forge infrastructure may store and process it with
+> deterministic code (storage, D-tier guardrails, moderation patterns, static
+> analysis, sandbox compile). **No Forge-credential model call may receive it**
+> unless the owner holds an active `platform_model_processing` consent captured
+> before the build started. **No additional billed call on the customer's key**
+> (repair, retry, recovery) happens without explicit authorization.
+
+```mermaid
+flowchart LR
+  subgraph CUST["Customer provider boundary"]
+    BP[Customer's provider<br/>customer key]
+  end
+  subgraph FORGE_INFRA["Forge infrastructure (deterministic only)"]
+    ST[(Storage: builds, blobs, manifests)]
+    DT[D-tier guardrails · moderation · static analysis · sandbox]
+  end
+  subgraph FORGE_MODELS["Forge-credential models (blocked by default for BYOK)"]
+    LT[Output L-tier screen]
+    IC[Injection LLM classifier]
+    EM[Retrieval embeddings]
+    FB[Fallback providers / recovery dispatch]
+    SR[Shadow review · specialist shadow]
+    MON[Repository monitor]
+  end
+  Content[Customer content] -->|generation| BP
+  Content --> ST
+  Content --> DT
+  Content -. only with platform_model_processing consent .-> LT
+  Content -. only with consent .-> IC
+  Content -. blocked in build path (F28) .-> EM
+  Content -. never (U1) .-> FB
+  Content -. only internal or opt-in (U8) .-> SR
+  Content -. only with consent .-> MON
+```
+
+### 5.2 Enforcement: one choke point
+
+- A `ProcessingBoundary` value is computed at admission and snapshotted on the
+  build:
+
+  ```
+  {credential_mode: forge | byok,
+   consents: [platform_model_processing?, ai_quality_review?, human_quality_review?],
+   policy_version}
+  ```
+
+  It travels in every `GatewayRequest`.
+- `assert_platform_model_allowed(boundary, purpose)` is the **only** way to reach
+  a Forge-credential model.
+- It is called by:
+  - the router's platform path;
+  - `GuardrailsEngine` (L-tier);
+  - the injection classifier;
+  - `retrieval.embeddings`;
+  - the shadow and specialist-shadow enqueue points;
+  - the repository monitor;
+  - the recovery dispatcher.
+- Default for `byok`: **deny**.
+- **This check is unconditional code, not a feature flag**, so no rollback can
+  re-enable platform processing of BYOK content (§18).
+
+### 5.3 Every platform-model path and its BYOK rule
+
+| Path | Today on BYOK builds | After A2 |
+|---|---|---|
+| Output L-tier guardrail | **Forge provider, agent's model (Opus), unrecorded** (F26-B) | Denied without consent; D-tier only |
+| Injection LLM classifier | Inactive by config; if enabled, runs on Forge providers for BYOK requests | Denied without consent |
+| Retrieval embeddings in context assembly | **Forge OpenAI key when `OPENAI_API_KEY` is set**, unscoped (F28) | Disabled in the build path for everyone until tenant-scoped; then denied for BYOK without consent |
+| Router fallback providers | Not used for BYOK (`router.py:374-406`) | Unchanged; asserted by test |
+| Response cache | Bypassed for BYOK (`router.py:374-385`) | Unchanged; asserted |
+| Recovery dispatch (C9) | n/a | Never on a Forge credential (U1: terminate) |
+| Structured-output repair | **Automatic second call on the customer's key** (F29-c) | Off unless authorized (U13, X4) |
+| Celery retry | Automatic, on the customer's key | Off unless authorized (U13, X4) |
+| Specialist shadow (`core/specialist_shadow.py`) | Flag-gated (default off); would use Forge providers on BYOK content | Denied without consent |
+| Shadow review | n/a | Excluded unless internal or opted in (U8) **and** `platform_model_processing` consent |
+| Repository monitor | Forge provider, no `user_id` | Boundary taken from the project owner; denied for BYOK owners without consent |
+
+### 5.4 Consent model
+
+| Scope | Allows | Granted | Revoked |
+|---|---|---|---|
+| `platform_model_processing` | Forge-credential guardrail, classifier and retrieval calls over this user's BYOK content | Explicit opt-in screen, versioned to policy text | Immediately: narrows running builds at their next operation; **grants apply only to builds admitted afterwards** |
+| `ai_quality_review` | Shadow AI review of this user's builds (U8) | Explicit opt-in | Immediately; queued reviews dropped |
+| `human_quality_review` | Human adjudication (C7, U12) | Explicit opt-in | Immediately; excerpts purged |
+| `byok_auto_retry` | Up to N automatic repairs or retries on the customer's key (X4) | Explicit opt-in with N chosen | Immediately |
+
+Consents are stored in `data_use_consents` and snapshotted into
+`build.processing_boundary`.
+
+### 5.5 BYOK accounting
+
+- Every attempt on the customer's key is recorded with `credential = byok`,
+  `cost_bearer = customer_provider` and 0 credits. The UI shows it separately as
+  "billed by your provider".
+- Platform calls on a BYOK build (only with consent) use account `guardrail`,
+  `cost_bearer = platform`.
+- A missing or invalid key at run time makes the operation FAILED
+  (`byok_unavailable`): no retry, no switch, build terminates and settles.
+
+### 5.6 Disclosure (U9), draft copy for product and legal approval
+
+> **Using your own API key.** Requests Forge sends with your key are billed by
+> your provider, including requests that fail. Forge does not charge credits for
+> them and cannot refund provider charges. Forge never switches to its own key
+> during your build. Automatic retries and repairs on your key are off unless you
+> turn them on, and Forge's own models will not process your content unless you
+> opt in.
+
+Placement: the BYOK settings page (before saving a key) and the build-start
+confirmation for BYOK builds. Implemented in B1; ships only once the copy is
+approved.
+
+---
+
+## 6. Provider cost inventory
+
+### 6.1 Calls per build, by channel
+
+| Channel | Per-build calls (max path) | Model | Recorded today | Account after A |
+|---|---|---|---|---|
+| Agent primary calls | 16 (incl. 3 answers, 4 PM, 3 debug) | per `config/llm.yaml` | success only | `generation` / `free_grant` / `customer_provider` |
+| Structured-output repairs | ≤ 1 per structured operation (≤ 10) | same as the agent | success only, unlinked | same operation, `attempt_kind = repair` |
+| Router retries and fallbacks | ≤ `max_attempts` (2) × chain | fallback chain | failures never (F27) | same operation |
+| **Output guardrail screens** | **139 today** → 0 default / ≤ 16 | **agent's model today** → Haiku-class | **never** | `guardrail` |
+| Injection classifier | 0 (inactive); if enabled, every provider call | config | never | `guardrail` (once per operation) |
+| Retrieval embeddings | 2 per context-engineered call when `OPENAI_API_KEY` is set (FILE_CONTENT + KNOWLEDGE_BASE sources) | `text-embedding-3-small` (no `MODEL_COSTS` entry) | never | disabled in the build path (A2) |
+| Recovery dispatch | ≤ 1 per mandatory operation | same as the agent | n/a | `recovery` |
+| Specialist shadow | ≤ 1 (flag off) | specialist config | never | `shadow` |
+| Shadow review | ≤ 2 (review + repair) | Sonnet-class | n/a | `shadow` |
+| Repository monitor | outside builds | role config | never | `monitoring` |
+
+### 6.2 Worst-case output-guardrail cost per build today
+
+`MODEL_COSTS` prices; 3.86 characters per token, from the measured Developer
+stream.
+
+| Operation | Path | Model | Screens today | Today $ | v2 with L-tier required $ | Primary output $ (for scale) |
+|---|---|---|---|---|---|---|
+| architect_clarify | stream | Opus | 5 | 0.03 | 0.001 | 0.04 |
+| architect blueprint | generate | Opus | 1 | 0.06 | 0.003 | 0.31 |
+| business_model | generate | Haiku | 1 | 0.00 | 0.003 | 0.01 |
+| designer | stream | Sonnet | 29 | 0.15 | 0.003 | 0.04 |
+| question_pass | stream | Opus | 5 | 0.03 | 0.001 | 0.04 |
+| clarification answers × 3 | stream | Opus | 12 | 0.07 | 0.001 | 0.09 |
+| **developer** | stream | Opus | **78** | **4.95** | 0.007 | 0.60 |
+| integration | generate | Sonnet | 1 | 0.02 | 0.005 | 0.09 |
+| pm × 4 | generate | Sonnet | 4 | 0.03 | 0.007 | 0.12 |
+| debug × 3 | generate | Opus | 3 | 0.37 | 0.020 | 1.84 |
+| **Total** | n/a | n/a | **139** | **≈ 5.72** | **≈ 0.05** | 3.19 (output only) |
+
+Estimates use the repository's token heuristic; confirm against provider
+invoices.
+
+---
+
+## 7. Accounting model and rules
+
+Unchanged from Revision 2 (amended) §4 except where noted.
+
+### 7.1 Hierarchy
+
+Build → Operation (`stage_key`, charged at most once) → Dispatch (≤ 2; dispatch
+2 is the C9 recovery, never for BYOK) → Provider attempt (`ai_usage` row:
+primary, retry, fallback, repair, guardrail, classifier, cache hit).
+
+### 7.2 Funding sources and accounts
+
+| Funding source | Customer credits |
+|---|---|
+| `user_credits` | Reserved, charged per completed operation |
+| `byok` | 0 |
+| `free_grant` | 0; counted against the allowance |
+
+| Account | Cost bearer |
+|---|---|
+| `generation` | Platform; revenue from the credit ledger |
+| `customer_provider` | Customer's provider |
+| `free_grant` | Platform |
+| `recovery` | Platform |
+| `guardrail` | Platform security budget |
+| `shadow` | Platform pilot budget |
+| `mandatory_review` | Platform (C14) |
+| `monitoring` | Platform |
+| `interactive` | Non-build features |
+
+`failure_absorbed` is a report view over uncharged operations' attempts.
+
+### 7.3 The ten accounting rules
+
+The mechanisms and proofs are those of Revision 2 (amended) §4.4, with these
+changes:
+
+| Rule | Change in Revision 3 |
+|---|---|
+| 1 (reserve before start) | Transaction T1 |
+| 4 (refund exactly once) | Transaction T2 with a unique `credit_transactions(build_id, kind)`. **Replaces the capped `credit_ops` idempotency array** |
+| 5 (one recovery) | BYOK terminates (U1) |
+| 6 (separate expenditure) | Adds accounts `mandatory_review` and `guardrail` with their own budgets |
+| 8 (no silent extra credits) | BYOK: no automatic extra billed calls (U13) |
+| 10 (preserve artifacts) | Staged versions plus atomic publication (§9) |
+
+---
+
+## 8. Foundation A ledger specification
+
+### 8.1 Stage-by-stage ledger
+
+| `stage_key` | Mandatory | Price | Usable output (commit predicate) | Persisted before commit | Max dispatches (Forge / BYOK) | Max per build |
+|---|---|---|---|---|---|---|
+| `architect_clarify` (interactive) | no | 0 (part of architect) | JSON list | on the operation | 1 / 1 | 1 |
+| `architect` | yes | `credits_architect` | schema-valid blueprint | step output (+ artifact, B2) | 2 / 1 | 1 |
+| `business_model` | yes | `credits_business_model` | schema-valid | `business_model` + step output | 2 / 1 | 1 |
+| `designer` | yes | `credits_designer` | parseable JSON (schema in B2) | step output | 2 / 1 | 1 |
+| `question_pass` | no | **0: included in the Developer price (C3)**; usage recorded | JSON list ≤ Q | queued messages | 1 / 1 | 1 |
+| `clarification#i` | no | `credits_clarification` | non-empty answer | `agent_messages[i]` | 1 / 1 | Q |
+| `developer` | yes | `credits_developer` | ≥ 1 file; manifest validates (§9) | blobs + staged manifest; **published in the commit write** | 2 / 1 | 1 |
+| `integration` | conditional | `credits_integration` | schema-valid; manifest validates | blobs + staged manifest | 2 / 1 | 1 |
+| `pm#k` | yes | `credits_pm` | schema-valid validation | step output | 2 / 1 | N + 1 |
+| `debug#k` | yes | `credits_debug` | schema-valid **and the manifest differs from the active one (U6: a genuine no-op is uncharged)** | blobs + staged manifest | 2 / 1 | N |
+
+### 8.2 State machines
+
+```
+Operation: AUTHORIZED → DISPATCHED → COMPLETED (charged once)
+                          ├→ FAILED       (uncharged: provider error, unusable output,
+                          │                 guardrail block, policy error)
+                          └→ INTERRUPTED  (marker persisted)
+                                └→ dispatch 2 (Forge credential, mandatory only, account=recovery)
+           AUTHORIZED → REFUSED (ceiling, quota or budget; no provider call)
+Funding:   RESERVED → SETTLED | RELEASED  (T1 makes admission atomic; there is no RESERVING state)
+Execution: PENDING → RUNNING → COMPLETED | FAILED   (canonical `build_status` + persisted transitions, C10)
+Quality:   PENDING → PASSED | PASSED_WITH_WARNINGS | NEEDS_REVISION | BLOCKED | INCOMPLETE (C1)
+```
+
+### 8.3 Commit protocol (single document; fencing token `T`)
+
+| Step | Action |
+|---|---|
+| W1 | Authorize: ceiling, quota and boundary check; `$push` the operation AUTHORIZED |
+| W2 | `$set` DISPATCHED plus the dispatch record, **before** the provider call |
+| W3 | One `ai_usage` row per provider attempt (success or failure) |
+| W4 | Journal the final usable response |
+| W5 | Validate (usability predicate; D-tier; manifest validation) |
+| W6 | Write output: blobs plus a **staged** manifest; step output; messages (idempotent) |
+| W7 | **One `$set`:** operation COMPLETED or FAILED, `credits`, `credits_used`, `active_manifest_version` (for file-producing operations), the execution transition, and `AgentStep` outcome. Filtered on `T` and `ledger.$[op].status = DISPATCHED` |
+
+The crash analysis per step is as in Revision 2 (amended) §6.3. Additionally, a
+crash between W6 and W7 leaves a staged manifest that was never published, so
+the previous active version stays valid (§9).
+
+### 8.4 Retry classes by credential (U13)
+
+| Class | Forge credential | BYOK credential |
+|---|---|---|
+| Transient (provider 5xx, 408/429, timeouts, circuit open, Mongo/Redis connectivity) | Celery retry ≤ 3; each failed operation uncharged | **No automatic retry**: terminate and settle, unless `byok_auto_retry` is authorized (X4). Interactive builds may show a gate `kind = authorize_retry` |
+| Model output (schema-invalid after repair; unusable) | **1 bounded repair** inside the dispatch (the gateway repair), platform-absorbed if it fails; then 1 Celery retry per `stage_key`; then non-transient | **No automatic repair** (the repair call is disabled for BYOK requests); terminate unless authorized |
+| Non-transient (USD limit, quota, policy, injection rejection, ceiling, key 401/403, soft time limit, cancel, superseded) | No retry | No retry |
+
+### 8.5 Journal and retention (U11)
+
+- `llm_response_journal` holds a usable response only **between W4 and W7**. It
+  is deleted right after W7 commits, with a TTL of 24 h as a backstop.
+- Unusable or blocked outputs are never journaled.
+- No other raw provider payload is retained.
+- `ai_usage` keeps metadata (tokens, cost, ids, outcome), never content, for
+  90 days.
+
+See X1 for why this needs confirmation.
+
+### 8.6 Recovery (C9, U1)
+
+| Case | Action |
+|---|---|
+| Journal present (any credential) | Reuse it; no provider call; charged once if usable |
+| Optional operation | INTERRUPTED; continue without it; uncharged |
+| Mandatory, Forge credential | Dispatch 2 under account `recovery` (same Forge credential); charged once if usable; if dispatch 2 fails, terminate and settle |
+| Mandatory, **BYOK** | **Terminate** (`interrupted_byok`), settle (0); completed stages and the active manifest kept; no Forge or customer re-dispatch |
+
+### 8.7 Lease, fencing and the sweeper
+
+Unchanged from Revision 2 (amended) §6.6:
+
+- lease of 90 s, heartbeat every 30 s;
+- a write matching 0 documents raises `AttemptSuperseded`;
+- the sweeper resumes once (Forge credential only), otherwise fails and settles;
+- it also releases builds that are RESERVED but were never dispatched (broker
+  loss).
+
+---
+
+## 9. Artifact integrity: staged versions and atomic publication
+
+### 9.1 Rule
+
+Write the new version, validate it, then atomically switch the active manifest.
+**Never delete or overwrite the last valid version before its replacement is
+committed.**
+
+### 9.2 Model
+
+| Element | Content |
+|---|---|
+| `build_file_blobs` | Immutable, content-addressed per build: `(build_id, sha256)` unique; `content`, `size` |
+| `build_manifests` | `(build_id, version)` unique. `{parent_version, entries: {path: sha256}, producer: {operation_id, stage_key}, state: staged \| published \| superseded \| rejected, validation: {...}, created_at}` |
+| Build document | `active_manifest_version`: the single pointer every reader follows |
+
+### 9.3 Publication sequence
+
+```mermaid
+sequenceDiagram
+  participant O as Orchestrator (lease T)
+  participant Bl as build_file_blobs
+  participant M as build_manifests
+  participant B as builds
+  O->>Bl: upsert blobs for new or changed paths (idempotent by sha256)
+  O->>M: insert version v+1, state = staged
+  O->>O: validate (every blob present and hash matches; path rules; size caps; ≥ 1 file; D-tier passed)
+  alt valid
+    O->>B: W7 single $set: active_manifest_version = v+1, ledger commit (filter T, DISPATCHED)
+    O->>M: v+1 published, v superseded (derivable; best-effort)
+  else invalid or guardrail-blocked
+    O->>M: v+1 rejected
+    Note over O,B: active_manifest_version unchanged (v stays valid)
+  end
+```
+
+**Validation rules:**
+
+- paths are relative POSIX, with no `..`, no leading `/` and no NUL;
+- at most `max_files` files and `max_total_bytes` in total;
+- every entry resolves to a blob whose sha256 matches;
+- file-producing operations need ≥ 1 file;
+- debug versions must differ from their parent to be chargeable (U6).
+
+### 9.4 Readers and the legacy projection
+
+- **Readers switch to the manifest before writers change.** This is a two-phase
+  rollout (§18):
+  - `GET /builds/{id}/files`;
+  - deployments (`api/deployments.py:454-503, 654`);
+  - `tasks/pm_tasks.py:181`;
+  - GDPR export (`api/gdpr.py:92`);
+  - rollback (`api/builds.py:359-406`);
+  - the follow-up/amend flow (`api/builds.py:264-286`);
+  - resume (`tasks/build_tasks.py:122-127`).
+- The `build_files` collection becomes a **derived projection** of the active
+  manifest. It is updated after publication by upserting first and deleting
+  stale paths second (**never delete-all**), and kept for one release for
+  external readers. Builds without a manifest (legacy) are read from
+  `build_files`.
+- Superseded versions are kept until the build's retention TTL (90 days). GDPR
+  deletion removes all versions.
+
+### 9.5 Child builds (C6)
+
+- A follow-up build is a child with `parent_build_id` and
+  `parent_manifest_version`. It starts from that **immutable** manifest and
+  publishes its own versions.
+- The parent's artifacts are never mutated. Rollback becomes a child build
+  whose first version copies a chosen ancestor manifest (no file rewriting).
+- The Celery task receives `parent_build_id` and the manifest version instead of
+  the full `existing_files` dictionary. Today that dictionary travels through
+  the Redis broker as task arguments (`api/builds.py:219-229`), which adds broker
+  memory pressure (relevant to F19).
+- Parent selection is X9.
+
+---
+
+## 10. MongoDB transaction requirements (U10)
+
+### 10.1 Topology
+
+| Environment | Today | Required |
+|---|---|---|
+| Production | `mongo:7`, replica set `rs0`, keyFile + auth (`docker-compose.prod.yml:156-168`) | Unchanged |
+| Staging | `rs0` (`docker-compose.staging.yml:25`) | Unchanged |
+| CI `mongo-integration` | Standalone `mongo:7.0` service (`ci.yml:372-383`) | **Single-node `rs0`, Mongo 7, keyFile + auth as in production** |
+| CI other jobs using Mongo | Standalone | Same as above |
+| Local docker-compose | Standalone (`docker-compose.yml:111-121`) | Single-node `rs0` with an init step |
+
+**CI implementation note.** GitHub Actions service containers cannot override
+the container command, so `--replSet` cannot be passed through `services:`. The
+job therefore starts Mongo in a step:
+
+1. `docker run -d … mongo:7.0 --replSet rs0 --bind_ip_all --keyFile …`;
+2. run `rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})`;
+3. wait for `PRIMARY`;
+4. connect with `…?replicaSet=rs0&authSource=admin`.
+
+**A guard test fails the job** if `hello.setName != "rs0"` (TX-6), so the
+transactional tests can never silently run on a standalone server.
+
+**Production startup guard.** Financial paths (`ledger_v2`) refuse to start if
+the server is not a replica-set member: fail closed (TX-5).
+
+### 10.2 Multi-document financial operations: transactions required
+
+| ID | Operation | Documents in the transaction | Idempotency |
+|---|---|---|---|
+| **T1** | Admission and reservation | `users` (guarded `$inc −R`, `credits ≥ R`; or the free-grant claim with `free_build_id`), `builds` (insert with `funding.state = RESERVED`, boundary snapshot), `credit_transactions` (insert `reserve`), `usage_counters` (guarded daily-build `$inc`) | Unique `credit_transactions(build_id, kind)`; unique `builds.id`. A retried request with the same idempotency key finds the existing build |
+| **T2** | Settlement | `credit_transactions` (insert `settle`), `users` (`$inc +refund`), `builds` (`$set settlement`, `funding.state = SETTLED`, filter `settlement: null`) | Unique `(build_id, settle)` |
+| **T3** | Release (dispatch failure, orphan, undispatched) | As T2 with `consumed = 0`, kind `release`; free-grant rollback (`users` filter `free_build_id = bid`) | Unique `(build_id, release)` |
+| **T4** | Platform budget settlement (S0/S1) | `platform_budgets` (`reserved −est`, `spent +actual`), `shadow_reviews` (status, cost) | Unique `shadow_reviews.id`; settled flag |
+| **T5** | Mandatory-review budget settlement (Phase 3 enforcement) | `platform_budgets`, the review record | as T4 |
+
+`credit_transactions` writes outside T1–T3 are forbidden.
+
+### 10.3 Single-document operations: guarded atomic updates
+
+| ID | Operation | Document |
+|---|---|---|
+| G1 | Ledger W1, W2, W7 (including `credits_used` and the manifest pointer) | `builds` |
+| G2 | Lease acquire, heartbeat, fencing | `builds` |
+| G3 | Token meters (per build, per operation) | `builds` |
+| G4 | Guardrail and shadow budget *reservation* (`$inc reserved_usd` with `$expr reserved + spent + est ≤ limit`) | `platform_budgets` |
+| G5 | Consent grant or revoke | `data_use_consents` |
+| G6 | Manifest state transitions | `build_manifests` |
+
+### 10.4 Transaction rules
+
+1. Use `session.with_transaction(callback)`. The callback **must be idempotent**,
+   because the driver retries on `TransientTransactionError` and
+   `UnknownTransactionCommitResult`.
+2. Read concern `snapshot`, write concern `majority`, read preference `primary`.
+3. **No provider calls, broker calls or other network I/O inside a transaction.**
+   Celery dispatch happens after T1 commits; a failure triggers T3.
+4. Keep transactions short: target < 1 s, hard bound well under
+   `transactionLifetimeLimitSeconds` (60 s).
+5. Collections and indexes are pre-created at startup (`_ensure_indexes`),
+   never implicitly inside a transaction.
+6. A duplicate-key error on the idempotency index aborts the transaction and
+   is treated as "already applied". The caller re-reads the state.
+7. Write conflicts with a concurrent guarded update (e.g. T2 versus a late W7)
+   abort one side, and the driver retries. T2 always runs after fencing, so a
+   late W7 matches 0 documents.
+8. **Testing seam.** `core/db_tx.py: run_financial_txn(fn)`.
+   - Unit tests with fake collections exercise the logic but **cannot prove
+     atomicity**.
+   - Atomicity, concurrency and fault behaviour are proven only in the `rs0`
+     `mongo-integration` job (TX-*, CT-*).
+
+---
+
+## 11. Fail-closed validation
+
+**Rule.** If a mandatory validation cannot complete:
+
+- quality becomes `INCOMPLETE`, with `incomplete_stages` naming it;
+- the build is **never** marked accepted;
+- artifacts are kept (decision B; §9);
+- money moves only as the ledger says (no refund or retry triggered by quality).
+
+| Validation | Mandatory? | Cannot complete because | Result |
+|---|---|---|---|
+| PM final acceptance | always | ceiling refusal; provider failure after retries; unusable output; timeout; BYOK terminated before PM | `INCOMPLETE` (execution COMPLETED if a published manifest exists, otherwise FAILED) |
+| Deterministic checks (moderation, CSP, sandbox compile) | always | scanner error or timeout | `INCOMPLETE` |
+| D-tier guardrail | always | code fault | Operation FAILED (uncharged); version not published |
+| L-tier guardrail | per policy (§4.4) | not permitted, budget exhausted, error | Required: `INCOMPLETE`, version published as `unverified`. Optional: recorded as skipped |
+| Mandatory review (after promotion) | per promoted category | **review budget exhausted (C14)**, timeout, invalid output | `INCOMPLETE`; never silently skipped |
+| Static security (Foundation C) | report-only | error | Recorded as skipped; no quality effect until a rule is promoted |
+| Evidence verification | per finding | quote or locator not resolvable | The finding cannot block; no `INCOMPLETE` |
+| Token ceiling | per build and per operation | reached during validation | `INCOMPLETE` |
+
+**Acceptance and distribution.**
+
+| Quality status | Accepted? | Deploy or share |
+|---|---|---|
+| `PASSED`, `PASSED_WITH_WARNINGS` | yes | allowed |
+| `NEEDS_REVISION`, `INCOMPLETE`, `BLOCKED` | no | requires an explicit, audited user override (X15) |
+
+A blocking verdict from a *required* L-tier screen is never overridable: the
+version is not published.
+
+---
+
+## 12. Failure-state transition matrix
+
+Rows 1–9 are those of Revision 2 (amended) §7, with the credential-specific
+changes shown. Rows 10–17 are new.
+
+| # | Scenario | Ledger / dispatch | Credits | Provider-cost record | Retry | Execution → quality | Artifacts | Settlement / event |
 |---|---|---|---|---|---|---|---|---|
-| **1 Normal completion** | Usable response | Op AUTHORIZED → DISPATCHED → COMPLETED; D1 COMPLETED | +price, once | Attempt rows (`generation`/`free_grant`/`customer_provider`), plus guardrail rows (`guardrail`) | none | Continues; at the end COMPLETED → quality per B2 rules | Persisted before commit | At the end: S-protocol; `credits_update` |
-| **2a Provider failure, recovered in router** | Retry or fallback succeeds | As 1 | +price once | Failed attempts recorded with `outcome=error`; the successful one recorded | none | As 1 | As 1 | As 1 |
-| **2b Provider failure, router exhausted (transient)** | Exception after the attempt cap | Op FAILED (`provider_error`); D1 FAILED | 0 | All attempts recorded; cost (if any) under the operation's account, uncharged (`failure_absorbed` view; BYOK: customer's provider) | **Retry** (≤ 3) | RUNNING kept; `agent_update` "recovering"; `retry_scheduled_until` set | Kept | None yet |
-| **2c Unusable output** | Predicate fails (e.g. 0 files) | Op FAILED (`unusable_output`) | 0 | Recorded; absorbed | 1 retry per `stage_key` (U13) | As 2b | Earlier files kept | None yet |
-| **3 Non-transient failure** | §6.7 classes; soft time limit | Op FAILED or REFUSED; in-flight D marked FAILED (`cancelled` for time limit) | 0 for this operation | Recorded | **None** | No code yet → **FAILED**. Code exists and the failure is in validation → **COMPLETED**, quality `incomplete` (C1) or `needs_revision` | Kept | S-protocol; `build_failed` or `build_complete` with quality |
-| **4 Celery retry (resume)** | New task attempt | L1 acquires a new lease `T'`; completed operations skipped (I-4); the failed `stage_key` gets a new operation | Unchanged by the retry itself | New operation's attempts recorded | Counted toward ≤ 3 | RUNNING | Completed stages reused | None until terminal |
-| **5a Worker interruption, journal present** | DISPATCHED + journal on resume | D1 COMPLETED (from journal); Op COMPLETED | +price once | No new provider call | Redelivery or sweeper resume | RUNNING | Re-persisted idempotently | n/a |
-| **5b Interruption, no journal, mandatory, Forge credential** | DISPATCHED, no journal | D1 INTERRUPTED (marker) → D2 (`recovery`) → Op COMPLETED or FAILED | +price once if D2 usable; else 0 | D1 unknown; D2 recorded as `recovery` | Resume; **no further retries for this operation if D2 fails** | RUNNING, or terminate as 3 if D2 fails | Kept | Settle on terminate |
-| **5c Interruption, no journal, mandatory, BYOK** | As 5b | D1 INTERRUPTED; Op INTERRUPTED (default U1) | 0 | D1 on the customer's account | None | **FAILED** (`interrupted_byok`) | Kept | Settle (0); user told the build stopped and that no credential was switched |
-| **5d Interruption, optional operation** | DISPATCHED clarification | D1 INTERRUPTED; Op INTERRUPTED | 0 | D1 unknown | Resume continues | RUNNING | n/a | n/a |
-| **6a Duplicate delivery while a live attempt holds the lease** | L1 matches 0, lease live | none | 0 | none | Acknowledge and exit | unchanged | unchanged | none |
-| **6b Duplicate delivery after settlement** | L1 matches 0, settled | none | 0 | none | Acknowledge, no-op | unchanged | unchanged | none |
-| **6c Duplicate delivery after lease expiry** | L1 succeeds | Treated as 5a–5d | as 5 | as 5 | n/a | as 5 | as 5 | as 5 |
-| **6d Stale writer after fencing** | Write matches 0 | No commit | 0 | Its provider attempts recorded (account per credential), uncharged | Task exits (`AttemptSuperseded`) | n/a | n/a | n/a |
-| **7a Reservation exhaustion, optional operation** | W1 ceiling | Op REFUSED | 0 | none | none | Continues | n/a | n/a |
-| **7b Exhaustion, mandatory, before code** | W1 ceiling | Op REFUSED | 0 | none | None (non-transient) | **FAILED** (`ceiling`). Configuration-drift alert: the formula should make this impossible | Kept | S-protocol |
-| **7c Exhaustion, mandatory, after code** | W1 ceiling (e.g. `debug#3`) | Op REFUSED | 0 | none | None | **COMPLETED**, quality `incomplete` or `needs_revision`, with `incomplete_stages` | Kept | S-protocol |
-| **8 Refund and settlement** | Terminal state or sweeper | Funding RESERVED → SETTLED (or RESERVING/RESERVED → RELEASED) | +refund **exactly once** | `provider_cost_summary` written | n/a | n/a | n/a | `credits_update`. Crashes and concurrent settlers handled by S3/S4 (§6.5) |
-| **9a BYOK execution, normal** | Funding `byok` | As 1, with `credits = 0` | **0** | `customer_provider` for generation; `guardrail` and other platform rows separate | As 1 | As 1 | As 1 | Settle (0 reserved, 0 refunded); provider usage shown separately |
-| **9b BYOK key missing or invalid at run time** | `_resolve_byok` returns None, or a provider 401 | Op FAILED (`byok_unavailable`) | 0 | Attempt recorded on the customer's account (if sent) | None | FAILED | Kept | Settle; message: "Your provider key is unavailable; Forge did not use its own key" |
+| 1 | Normal completion | Op COMPLETED; manifest published in W7 | +price once | attempts under the operation's account; guardrail rows under `guardrail` | none | continues → per §11 | new version active | at end: T2 |
+| 2a | Provider failure recovered in the router (Forge) | as 1 | +price once | failed attempts recorded | none | as 1 | as 1 | as 1 |
+| 2b | Provider failure, router exhausted (Forge) | Op FAILED | 0 | recorded; `failure_absorbed` | Celery ≤ 3 | RUNNING; `agent_update` | previous version active | none yet |
+| 2b′ | Same on **BYOK** | Op FAILED | 0 | `customer_provider` | **none** unless `byok_auto_retry` | **FAILED** (`byok_transient_no_authorization`); quality `INCOMPLETE` if code exists | kept | T2 (0); message names the provider error and that no retry or switch occurred |
+| 2c | Unusable output (Forge) | repair ≤ 1 in dispatch; then Op FAILED | 0 | recorded; absorbed | 1 Celery retry per `stage_key` | as 2b | kept | none yet |
+| 2c′ | Unusable output (**BYOK**) | **no repair**; Op FAILED | 0 | `customer_provider` | none unless authorized | FAILED or COMPLETED + `INCOMPLETE` | kept | T2 (0) |
+| 3 | Non-transient failure | Op FAILED or REFUSED | 0 | recorded | none | no code: FAILED; code: COMPLETED + `INCOMPLETE` | kept | T2 |
+| 4 | Celery retry (Forge) | new lease; completed ops skipped; new op for the failed `stage_key` | unchanged | recorded | counted | RUNNING | reused | none |
+| 5a | Interruption, journal present | Op COMPLETED from the journal | +price once | no new call | resume | RUNNING | published at W7 | n/a |
+| 5b | Interruption, no journal, mandatory, Forge | D1 INTERRUPTED → D2 (`recovery`) | +price once if D2 usable | D2 `recovery` | resume once | RUNNING, or terminate if D2 fails | active version kept | T2 on terminate |
+| 5c | Interruption, mandatory, **BYOK** | Op INTERRUPTED | 0 | D1 on the customer's account | none (U1) | **FAILED** (`interrupted_byok`) | kept | T2 (0) |
+| 5d | Interruption, optional op | Op INTERRUPTED | 0 | D1 unknown | continue | RUNNING | n/a | n/a |
+| 6a–6d | Duplicate delivery / stale writer | lease and fencing (unchanged) | 0 | stale attempts recorded, uncharged | ack / exit | unchanged | unchanged | none |
+| 7a–7c | Reservation exhaustion | Op REFUSED | 0 | none | none | optional: continue; mandatory before code: FAILED; after code: COMPLETED + `INCOMPLETE` | kept | T2 |
+| 8 | Settlement | T2 (exactly once; concurrent settlers serialize on the unique index) | +refund once | `provider_cost_summary` | n/a | n/a | n/a | `credits_update` |
+| 9a | BYOK normal | as 1, credits 0 | 0 | `customer_provider`; no Forge-model rows without consent | none automatic | as 1 | as 1 | T2 (0) |
+| 9b | BYOK key unavailable | Op FAILED (`byok_unavailable`) | 0 | if sent, customer | none | FAILED | kept | T2 (0) |
+| **10** | **Guardrail D-tier hit mid-stream** | stream stopped; Op FAILED (`blocked_by_guardrail`) | 0 | attempts recorded | none (non-transient) | if a previous version exists: COMPLETED + `BLOCKED`; else FAILED | **previous version stays active**; new version rejected | T2; `artifact_withheld` |
+| **11** | **Required L-tier blocks** | Op FAILED (`blocked_by_guardrail`) | 0 | L-tier row `guardrail` | none | as 10 | as 10 | as 10 |
+| **12** | **Required L-tier cannot run** (budget, error, not permitted) | Op COMPLETED (output usable) | +price once | `guardrail` row (or `not_permitted` record) | none | COMPLETED + `INCOMPLETE` (`guardrail_unverified`) | version published **unverified** | T2 |
+| **13** | **BYOK build, policy requests L-tier, no consent** | prevented at policy save (§4.5); at run time recorded `not_permitted` | as 1 | none from Forge models | n/a | as 1 (D-tier only) | as 1 | as 1 |
+| **14** | **Crash during artifact publication** | staged manifest never published, or published by W7 | as W7 | n/a | resume | RUNNING | **active = the last valid version, never empty** | n/a |
+| **15** | **T1 or T2 transaction aborted** (transient, write conflict, unknown commit) | driver retries the idempotent callback; a duplicate key means already applied | exactly once | n/a | n/a | n/a | n/a | consistent; reconciliation verifies |
+| **16** | **Mandatory review budget exhausted** (after promotion) | review op REFUSED | 0 (platform-funded anyway) | none | none | COMPLETED + `INCOMPLETE` (`review_budget_exhausted`) | kept | T2; budget alert |
+| **17** | **Financial path on a non-replica-set server** | startup refuses `ledger_v2` (fail closed) | n/a | n/a | n/a | admission rejected with a service error | n/a | no money moves |
 
 ---
 
-## 8. Reservation formula, funding and quotas
+## 13. Reservation formula and quotas
 
-### 8.1 Formula (approved, subject to the EX-1 proof)
+### 13.1 Formula (unchanged; C3 applied)
 
 ```
-max_build_cost = p_arch + p_bm + p_des + p_dev + p_int + p_pm        # one pass of every stage
-               + N × (p_dbg + p_pm)                                  # configured debug loop
-               + [Q > 0] × (p_qpass + Q × p_clar)                    # clarification bundle
-               + V × p_rev                                           # production revisions (0 until enforcement)
+max_build_cost = p_arch + p_bm + p_des + p_dev + p_int + p_pm
+               + N × (p_dbg + p_pm)
+               + [Q > 0] × Q × p_clar          # question generation included in p_dev (C3)
+               + V × p_rev                     # 0 until a blocking review edge exists
 ```
 
-| Symbol | Meaning | Current value |
+- **Current value: 15 + 9 + 3 + 0 = 27.** It is derived from settings and
+  stored with `breakdown` and `pricing_version`.
+- `credits_question_pass` is removed. The `question_pass` operation has price 0,
+  and its usage is recorded under the Developer bundle.
+- Retries, repairs, guardrails and recovery add 0 customer credits.
+
+### 13.2 Funding at admission
+
+| Funding | Reserved | Ceiling |
 |---|---|---|
-| p_arch … p_dbg | Stage prices from `core/config.py` | 3, 2, 2, 5, 2, 1, 2 |
-| N | `MAX_DEBUG_ITERATIONS` | 3 |
-| Q | `developer_clarification_max_questions`, when clarifications are enabled in the build's `collab_config` | 3 |
-| p_clar | `credits_clarification` | 1 |
-| p_qpass | `credits_question_pass` (C3) | 0 |
-| V | Revision cycles × enabled blocking edges | 0 |
+| `user_credits` | `max_build_cost` (402 with required, available and breakdown when insufficient) | reservation |
+| `byok` | 0 | operation and token ceilings; no automatic extra billed calls |
+| `free_grant` | 0 | free-build allowance = `max_build_cost` credit-equivalents (including ≤ 3 clarifications, C5) + token ceilings + `build_timeout` |
 
-- **Current value: 15 + 9 + (0 + 3) + 0 = 27.**
-- Retries, repairs, fallbacks and recovery add **0 customer credits** by rule
-  (§4.4 rules 3 and 8), so they do not appear in the formula. EX-2 proves they
-  never move `consumed`.
-- `breakdown` and `pricing_version` are stored on every build.
+### 13.3 Quotas (C2 controls, U4, U5)
 
-### 8.2 Funding sources at admission (C4, C5)
-
-| Funding | Admission | Reserved | Ceiling during the run | Notes |
-|---|---|---|---|---|
-| `user_credits` | `credits ≥ max_build_cost`, else **402** `{required, available, breakdown, pricing_version}` | `max_build_cost` | Reservation | Typical build consumes 13, refunds 14 |
-| `byok` | Key present at admission (snapshot) | **0** | Operation count plus per-build token meters; no credits | Never falls back to Forge providers (router guarantee kept, test RG-C4). Platform guardrail calls recorded under `guardrail` |
-| `free_grant` | First build (atomic claim with `free_build_id`) | **0** | **Free-build allowance = `max_build_cost` credit-equivalents** (27 today, including ≤ 3 clarifications) **plus** the per-build token meters and `build_timeout` | Platform-funded, account `free_grant`; no deductions |
-
-### 8.3 Effect with current settings
-
-| | Today | After A |
+| Control | Applies to | State in A |
 |---|---|---|
-| Metered admission threshold | 17 | 27 |
-| S1 consumed / refunded | 13 / 4 | 13 / 14 |
-| S4 | user pays 17; platform absorbs 7 silently | user pays 24; 3 refunded |
-| S6 | user pays 17 for nothing | single attempt; pays 7 (completed stages only) |
-| Balance 17–26 | can start | 402 with an explanation |
-| BYOK | reserves 17, refunds all | reserves 0 |
-| Free first build | reserves 0; clarifications impossible (F1); likely blocked by the daily budget (F17) | reserves 0; ≤ 3 clarifications; exempt from the interactive budget once U4/U5 controls are live |
-
-### 8.4 Quotas: daily versus build-specific (C2 controls)
-
-| Control | Scope | Applies to | Enforcement point | Value |
-|---|---|---|---|---|
-| Interactive daily token budget | User or org, per plan | Non-build LLM calls | `check_budget` (existing) | Existing (10k / 100k / 500k / 2M) |
-| **Build exemption** from the above | Per call | **Only** calls carrying an `operation_id` that is AUTHORIZED or DISPATCHED on a non-terminal build owned by the caller, with a valid lease token. Anything else is not exempt | Gateway verifies the binding before the router skips `check_budget` | n/a |
-| Per-build credit ceiling | Build | `user_credits` operations | W1 | Reservation |
-| Free-build allowance | Build | `free_grant` | W1 | `max_build_cost` credit-equivalents |
-| **Per-build token meters** | Build | `generation` meter (generation, `free_grant`, `customer_provider`) and `platform` meter (`recovery`, `guardrail`) | Gateway: atomic guarded `$inc` of `inflight` before each attempt, settled to actuals after | **U5** (plan values). The floor is derived from the max path (≥ 59,396 output tokens; startup validation rejects a ceiling below it) |
-| Provider attempts per dispatch | Dispatch | Router loop | Router hard cap | Engineering default 4 |
-| **Plan daily build limit** | User and org per day | Admission | `usage_counters` guarded `$inc` at R2 | **U4** |
-| USD limits (org, project, agent) | Existing `BudgetManager` | Forge-credential calls | Router (existing) | Existing |
-| Provider rate limits | User and platform principals | All calls, including BYOK and builds | Router `_check_rate_limit` (existing) | Existing |
-| Platform security budget | Monthly | `guardrail` | `platform_budgets` | **U3** |
-| Shadow budget | Per build and monthly | `shadow` | `platform_budgets` + preflight | $0.20 / $100 (approved, initial) |
-
-**The C2 exemption ships behind flag `build_token_exemption`.** It may only be
-enabled once the U4 and U5 values are set and the token meters and daily build
-counter are live. Until then free-plan builds stay subject to F17.
+| Interactive daily token budget (10k / 100k / 500k / 2M) | **All calls, builds included, until U4 and U5 are live** | **Unchanged.** The free-plan 10,000-token safeguard stays in force (consequence for C5: X3) |
+| `build_token_exemption` | Calls bound to a live ledger operation | **Built, flag off.** Enabling requires (a) U4 values configured, (b) U5 per-build and per-agent ceilings configured, (c) acceptance tests QT-1…QT-5 green on staging |
+| Per-build token meters | `generation` and `platform` | Built and recorded; ceilings configurable; no limit until set |
+| **Per-agent (per-operation) token ceilings** (U5) | each `stage_key` | Built. Ceiling = (input cap + `max_tokens`) × max provider attempts per dispatch × max dispatches; values configurable |
+| Plan daily build limits (U4) | admission (`usage_counters`, inside T1) | Built; no limit until configured |
+| USD limits (org, project, agent) | Forge-credential calls | Existing |
+| Provider rate limits | all calls | Existing |
+| Guardrail budget | `guardrail` | New (§4.6) |
+| Shadow budget | `shadow` | $0.20 per review, $100 per month (§17) |
+| Mandatory-review budget | `mandatory_review` | Value open (X8) |
 
 ---
 
-## 9. Four-PR breakdown and explicit dependencies
+## 14. PR breakdown and dependencies
 
-### 9.1 Dependency graph and merge protocol
+### 14.1 Foundation A as a milestone of three PRs (proposal X14)
+
+The approved PR "A" covers six areas: financial correctness, provider
+accounting, recovery, BYOK isolation, guardrails and artifact integrity. To keep
+reviews small, I propose delivering it as three PRs inside the A milestone. A2
+carries the largest immediate cost and privacy reduction and touches no
+billing code.
+
+| PR | Scope | Fixes |
+|---|---|---|
+| **A2: provider accounting, guardrail v2, BYOK isolation** (first) | Unified usage recording (every provider attempt, every channel, platform principals, `purpose`); guardrail v2 (§4); `ProcessingBoundary` choke point (§5) and `data_use_consents` (`platform_model_processing`, `byok_auto_retry`); disable build-path retrieval embeddings; no automatic BYOK repair; `platform_budgets` for `guardrail`; fail-closed L-tier semantics; policy-save validation | F16, F23, F26, F26-B, F27, F28, F29, F29-b, F29-c |
+| **A1: ledger, transactions, recovery** | `core/pricing.py`; T1/T2/T3 transactions; CI and local `rs0`; startup topology guard; ledger operations W1–W7; retry classes by credential; journal (§8.5); lease, fencing, sweeper; canonical `build_status` + transitions (C10); quotas (meters, per-operation ceilings, daily counter; exemption flag off); gate time budget; broker `noeviction`; reconciliation | F1, F2, F13, F14, F17 (controls), F18, F19, F21, F22 |
+| **A3: artifact integrity** | Blobs and manifests; validation; atomic publication in W7; readers switched first; `build_files` as a derived projection; child builds (C6) | F25, C6 |
+
+### 14.2 Dependency graph
 
 ```mermaid
 graph LR
-  A["A · billing, reservation,<br/>idempotency, recovery (P0)"]
+  A2["A2 · accounting, guardrail v2,<br/>BYOK isolation (P0)"]
+  A1["A1 · ledger, transactions,<br/>recovery, CI rs0 (P0)"]
+  A3["A3 · staged artifacts,<br/>atomic publication (P0)"]
   B1["B1 · single source of truth (P0)"]
-  IV{{"A+B1 integration validation<br/>combined branch: full CI, Playwright,<br/>staging soak, reconciliation = 0 anomalies"}}
-  M["merge A, then B1<br/>(B1 rebased and re-validated)"]
+  IV{{"A1+A3+B1 integration validation<br/>combined branch · full CI on rs0 · Playwright ·<br/>24 h staging soak: 0 ledger mismatches,<br/>0 unexplained stuck builds (C13c)"}}
   C["C · static security,<br/>report-only (P1)"]
-  B2["B2 · artifacts, prompt versions,<br/>designer schema, evidence, quality (P1)"]
-  S0["S0 · shadow controls:<br/>platform budgets, consent,<br/>access log, redaction"]
-  S1["S1 · shadow review runner<br/>(flag off)"]
+  B2["B2 · JSON artifacts, prompt versions,<br/>designer schema, PM evidence, quality (P1)"]
+  S0["S0 · shadow controls: consent scopes,<br/>access log, redaction, adjudication UI"]
+  S1["S1 · shadow runner (flag off)"]
   P2["Phase 2 · communication protocol"]
-  A --> IV
+  A2 --> A1
+  A1 --> A3
+  A1 --> IV
+  A3 --> IV
   B1 --> IV
-  IV --> M
-  M --> B2
-  M -. ordering only .-> C
+  IV --> B2
+  A1 -. ordering .-> C
   B2 --> S0
-  M --> S0
   S0 --> S1
   B2 --> P2
 ```
 
-| PR | Hard dependencies | Ordering or soft | Validation before merge |
-|---|---|---|---|
-| **A** | none | Shares `tasks/build_tasks.py` (`emit`) with B1 | A+B1 integration branch (below) |
-| **B1** | none | Renders A's 402 payload when present (tolerant of its absence) | A+B1 integration branch |
-| A+B1 integration | both PRs approved | n/a | An `integration/foundation-a-b1` branch merging both: full backend and frontend CI, the Playwright live-build and reconnect specs against `vite build`, the `mongo-integration` job with CT-1…CT-10, and a staging soak (≥ 24 h of synthetic builds across funding sources) with **0** reconciliation anomalies. Then merge A, rebase B1, re-run CI, merge B1 |
-| **C** | A merged (avoids orchestrator conflicts; C makes no provider calls) | Independent of B1 and B2 | Standard CI + `test_static_security.py` |
-| **B2** | A and B1 merged | Integrates C's findings into the unified `Finding` if C landed first; otherwise C adopts `Finding` | Standard CI + schema-compatibility fixtures |
-| **S0** | A, B2 | C7 controls must be operational (§12.3) | CT-7, privacy tests PV-1…PV-6 |
-| **S1** | S0, B2 | Flag stays off until U7 and U8 are decided | Shadow tests SH-1…SH-8 |
-
-### 9.2 Foundation A (backend only, P0)
-
-| # | Change | Fixes |
+| PR | Hard dependencies | Merge gate |
 |---|---|---|
-| A1 | `core/pricing.py`, the single price table; `api/builds.py` and `api/admin.py` use it; dead `tech_stack` multiplier removed | F1, F2, F21 |
-| A2 | Funding snapshot; reservation protocol R1–R6; `free_build_id`; 402 payload | Reservation persistence and atomicity |
-| A3 | Ledger operations and dispatches; commit protocol W1–W7; `_complete_agent` targets `operation_id` | F13, stuck RUNNING steps, C8 |
-| A4 | Hard ceiling at W1; graceful stop (§7, rows 7a–7c) | F2 |
-| A5 | Response journal; recovery policy §6.8 (BYOK default terminate, U1) | C9 |
-| A6 | Retry classification §6.7 | F18 |
-| A7 | Settlement protocol S1–S6; terminal-state short-circuit | F19 |
-| A8 | Status lifecycle; lease, heartbeat and fencing (§6.6); `agent_update` instead of `build_failed` before a retry | F22 |
-| A9 | Sweeper: resume once, otherwise fail and settle; RESERVING/RESERVED-undispatched release | F19 |
-| A10 | **Unified usage recording (§5):** every provider attempt (failures, retries, fallbacks, repairs, classifier, guardrail screens, cache hits, monitor, specialist shadow) with `operation_id`, `dispatch_no`, `attempt_seq`, `attempt_kind`, `outcome`, `credential`, `cost_bearer`, `account`. Platform principals instead of a missing `user_id`. `get_user_budget` excludes platform accounts | F16, F23, F26 (record only), F27 |
-| A11 | Build quotas: operation-bound exemption (flag off until U4/U5), token meters, daily build counter | F17, C2 |
-| A12 | Gate time budget | F14 |
-| A13 | Broker on a `noeviction` Redis database | F19 |
-| A14 | Safe `persist_files`: upsert changed paths first, then delete stale ones; never delete everything and re-insert | F25 |
-| A15 | `reconcile_build()`, nightly reconciliation, read-only admin endpoint | Rule 7 |
-| A16 | GDPR export/delete and retention for the new collections | n/a |
+| A2 | none | Its own acceptance tests (§16.1–§16.3), plus a 24 h staging soak showing guardrail calls per build ≤ artifacts and 0 Forge-model calls on BYOK builds |
+| A1 | A2 (operation ids are attached to the usage rows A2 records) | Integration validation with A3 and B1 |
+| A3 | A1 (publication happens in the W7 commit) | Integration validation |
+| B1 | none (developed in parallel) | Integration validation |
+| Integration validation | A1, A3 and B1 approved | Combined branch, rs0 CI, Playwright live-build and reconnect specs, 24 h staging soak with 0 mismatches and 0 unexplained stuck builds. Then merge A1 → A3 → B1, re-validating after each rebase |
+| C | A1 merged (orchestrator conflicts only) | §16.8 |
+| B2 | A1, A3, B1 merged | §16.7 |
+| S0 | B2; C7 privacy review status known | privacy tests (PV-*) |
+| S1 | S0; flag off until enabled by the owner | shadow tests (SH-*) |
 
-**Out of scope for A:** frontend, quality, artifacts, communication protocol,
-any change to guardrail *behaviour* (U3).
+### 14.3 Foundation exit criterion (C13c)
 
-### 9.3 Foundation B1 (P0)
-
-| # | Change | Fixes |
-|---|---|---|
-| B1-1 | Typed `CreateBuildResponse`; the workspace uses `build_id`; no hard-coded demo id in live mode | F15 |
-| B1-2 | No `synthesizeCodeForPrompt` in live mode; demo only when `!LIVE_MODE && VITE_DEMO_SYNTHESIS === "true"` | F15, F24, decision C |
-| B1-3 | Hydration on mount and every reconnect (subscribe, buffer, snapshot, replay) | F4 |
-| B1-4 | `emit` persists only state changes; tokens broadcast-only | F3 |
-| B1-5 | Derived `build_status` in `GET /builds/{id}` (C10) | decision B |
-| B1-6 | 402 explanation UI (required, available, breakdown); BYOK disclosure copy (wording U9). The copy renders only once the U9 wording is approved | decisions A, C8 |
-
-### 9.4 Foundation B2 (P1)
-
-Unchanged from Revision 2:
-
-- artifact store and blobs;
-- resume from artifacts;
-- prompt version registry (content hash, `$setOnInsert`, so an unchanged prompt
-  never creates a new version);
-- `DESIGN_SYSTEM_SCHEMA`;
-- stream parse failure becomes a failed operation;
-- tautological harness evaluation removed;
-- unified `Finding` and the deterministic evidence verifier;
-- PM on evidence;
-- `core/quality.py`: PM exhausted gives COMPLETED + `needs_revision`; an open
-  verified critical finding gives `blocked`;
-- deploy guard;
-- GDPR and retention.
-
-### 9.5 Foundation C (P1)
-
-Unchanged from Revision 2:
-
-- `bandit` on generated Python (subprocess, timeout, parse-only);
-- curated JS/TS rules plus moderation's secret rules;
-- report attached to validation;
-- 0 credits, no LLM;
-- **report-only**; per-rule promotion only after measurement.
+All §16 suites green, plus a 24 h staging run with **zero ledger mismatches**
+(reconciliation invariants I-1…I-12) and **no unexplained stuck builds**: every
+non-terminal build older than `build_timeout` + 15 min must have a recorded
+reason.
 
 ---
 
-## 10. Database model changes
+## 15. Database model changes
 
-All additions are optional with defaults; old code ignores them.
+These are the changes relative to Revision 2 (amended) §10.
 
-### 10.1 `builds`
+### 15.1 `builds`
 
-```python
-class FundingSource(str, Enum): USER_CREDITS="user_credits"; BYOK="byok"; FREE_GRANT="free_grant"
-class FundingState(str, Enum):  RESERVING="reserving"; RESERVED="reserved"; SETTLED="settled"
-                                RELEASED="released"; ABORTED="aborted"
-class OperationStatus(str, Enum): AUTHORIZED; DISPATCHED; COMPLETED; FAILED; INTERRUPTED; REFUSED
-class DispatchStatus(str, Enum):  STARTED; COMPLETED; FAILED; INTERRUPTED
+| Change | Detail | PR |
+|---|---|---|
+| Add | `build_status` (canonical: `pending/running/completed/failed`) and `execution_transitions[]` `{from, to, at, reason, attempt_token}`, written in the same `$set` as the state change. The legacy `status` is kept in sync in that same write for one release (C10) | A1 |
+| Add | `processing_boundary {credential_mode, consents[], policy_version}` (snapshot) | A2 |
+| Add | `active_manifest_version`, `parent_build_id`, `parent_manifest_version` | A3 |
+| Add | `token_meters` per build and `operation_token_ceilings` per `stage_key` | A1 |
+| Change | `funding.state` ∈ {RESERVED, SETTLED, RELEASED} (no RESERVING; T1 is atomic) | A1 |
+| Change | `quality.status` gains `INCOMPLETE` (C1); `quality.incomplete_stages`; `quality.unverified_versions` | B2 (A1 writes `incomplete_stages` for ceiling and budget stops) |
+| Keep | `ledger[]` (with `dispatches[]`), `settlement` (with `provider_cost_summary`), `attempt_token`, `lease_expires_at`, `recovery_enqueues`, `retry_scheduled_until`, `collab_config`, `error` | A1 |
 
-class Dispatch(BaseModel):
-    dispatch_no: int                       # 1 original, 2 = C9 recovery
-    account: str                           # generation | free_grant | customer_provider | recovery
-    credential: str                        # forge | byok
-    status: DispatchStatus
-    journaled: bool = False
-    request_ids: List[str] = []
-    error_class: Optional[str] = None
-    started_at: datetime; resolved_at: Optional[datetime] = None
-
-class LedgerOperation(BaseModel):
-    operation_id: str                      # f"{build_id}:{stage_key}:{seq}"
-    stage_key: str                         # architect | pm#2 | clarification#1 | ...
-    seq: int
-    agent: AgentType
-    mandatory: bool
-    funding_source: FundingSource
-    price: int                             # from pricing table at W1
-    credits: int = 0                       # > 0 only when COMPLETED
-    status: OperationStatus
-    reason: Optional[str] = None           # provider_error | unusable_output | ceiling | quota | interrupted | ...
-    dispatches: List[Dispatch] = []
-    retry_of: Optional[str] = None         # previous operation_id for the same stage_key
-    authorized_at: datetime; resolved_at: Optional[datetime] = None
-
-class BuildFunding(BaseModel):
-    source: FundingSource
-    state: FundingState
-    reserved_credits: int                  # debited from the user (0 for byok / free_grant)
-    max_cost: int                          # max_build_cost(); the free-grant allowance for free_grant
-    breakdown: Dict[str, int]
-    pricing_version: str
-    byok_provider: Optional[str] = None    # provider name only (no URL, no key)
-
-class TokenMeter(BaseModel):
-    ceiling: int; consumed: int = 0; inflight: int = 0
-
-class BuildSettlement(BaseModel):
-    consumed: int; refunded: int; settled_at: datetime
-    provider_cost_summary: Dict[str, Dict[str, float]]   # account -> {tokens, cost_usd, attempts}
-    anomaly: Optional[str] = None
-
-# Build: additions
-schema_version: int = 1                    # 2 = ledger build
-funding: Optional[BuildFunding] = None
-ledger: List[LedgerOperation] = []         # bounded ~30
-settlement: Optional[BuildSettlement] = None
-attempt_token: Optional[str] = None
-lease_expires_at: Optional[datetime] = None
-recovery_enqueues: int = 0                 # sweeper resumes (≤ 1)
-retry_scheduled_until: Optional[datetime] = None
-token_meters: Dict[str, TokenMeter] = {}   # "generation", "platform"
-collab_config: Optional[Dict[str, Any]] = None
-quality: BuildQuality = BuildQuality()     # B2 (Revision 2 definition; `incomplete` pending C1)
-error: Optional[str] = None
-```
-
-- **Indexes:** `(status, lease_expires_at)`; `("funding.state", created_at)`.
-- **`AgentStep`** gains `operation_id`, `outcome`, `prompt_ref`, `model`,
-  `provider`, `request_ids`, `usage`, `artifact_id` (Revision 2 §5.2).
-
-### 10.2 Existing collections
+### 15.2 Other collections
 
 | Collection | Change | PR |
 |---|---|---|
-| `users` | `credit_ops: List[str]` (capped 500, idempotency keys `reserve:`/`settle:`); `free_build_id: Optional[str]`; `is_internal: bool = False` (admin-set; C7) | A (S0 for `is_internal`) |
-| `ai_usage` | `operation_id`, `dispatch_no`, `attempt_seq`, `attempt_kind` (primary/retry/fallback/repair/injection_classifier/output_guardrail/cache_hit), `outcome` (success/error/timeout/aborted/cache_hit), `error_class`, `credential` (forge/byok), `cost_bearer` (platform/customer_provider), `account` (§4.3), `request_id`, `principal` (user id or `platform:<account>`), `beneficiary_user_id`. Zero-token rows allowed. Indexes `(operation_id)`, `(account, created_at)`, `(build_id)`. A missing `account` on legacy rows is read as `generation` | A |
-| `budget_limits` | Defence-in-depth AGENT MONTHLY limit for the shadow agent name | S0 (data) |
-| `feature_flags` | Keys in §14.2 | per PR |
-
-### 10.3 New collections
-
-| Collection | PR | Key fields | Indexes / retention |
-|---|---|---|---|
-| `llm_response_journal` | A | `operation_id`, `dispatch_no`, `build_id`, `content`, `structured`, `usage`, `expires_at` | unique `(operation_id, dispatch_no)`; TTL 7 days |
-| `credit_transactions` | A | `user_id`, `build_id`, `kind` (reserve/settle/release), `amount`, `funding_source`, `created_at` | unique `(build_id, kind)`; **no TTL** |
-| `usage_counters` | A | `scope` (user/org), `scope_id`, `day`, `builds` | unique `(scope, scope_id, day)`; TTL 7 days |
-| `build_artifacts`, `build_file_blobs`, `prompt_versions` | B2 | as in Revision 2 | as in Revision 2 |
-| `platform_budgets` | S0 | `account`, `period` (YYYY-MM), `limit_usd`, `reserved_usd`, `spent_usd`, `max_calls`, `calls` | unique `(account, period)`; no TTL |
-| `data_use_consents` | S0 | `user_id`, `scope` (`human_quality_review` / `ai_quality_review`), `policy_version`, `granted_at`, `revoked_at` | unique `(user_id, scope, policy_version)` |
-| `adjudication_access_log` | S0 | `adjudicator_id`, `build_id`, `artifact_id`, `fields`, `purpose`, `at` | append-only; TTL 1 year (as `audit_logs`) |
-| `adjudication_excerpts` | S0 | `finding_id`, `build_id`, `redacted_excerpt`, `redaction_report`, `expires_at` | TTL 90 days (U12) |
-| `shadow_reviews`, `finding_adjudications` | S1 | as in Revision 2, plus `principal`, `consent_basis` (`internal`/`opt_in`) | as in Revision 2 |
-
-All new collections are covered by GDPR export and delete in the PR that
-creates them. `credit_transactions` is anonymized (`user_id` hashed) on deletion
-rather than removed, because it is a financial record.
+| `users` | **Remove** the Revision 2 `credit_ops` proposal (replaced by transactions). Keep `free_build_id`. `is_internal` (S0) | A1 |
+| `ai_usage` | Add `purpose` (`generation`, `repair`, `retry`, `fallback`, `guardrail_output`, `guardrail_input`, `retrieval_embedding`, `recovery`, `shadow`, `monitoring`, `cache_hit`), `processing_boundary.credential_mode`, `operation_id`, `dispatch_no`, `attempt_seq`, `outcome`, `error_class`, `credential`, `cost_bearer`, `account`, `request_id`, `principal`, `beneficiary_user_id`. **Metadata only, never content (U11)**. TTL 90 days (existing) | A2 |
+| `credit_transactions` | Unique `(build_id, kind)`; written only inside T1–T3; no TTL | A1 |
+| `llm_response_journal` | TTL **24 h**; deleted after W7; usable outputs only | A1 |
+| `usage_counters` | Written inside T1 | A1 |
+| `platform_budgets` | Accounts `guardrail`, `shadow`, `mandatory_review`; G4 reservation | A2 (guardrail), S0 (shadow), Phase 3 (mandatory_review) |
+| `data_use_consents` | Scopes `platform_model_processing`, `byok_auto_retry` (A2); `ai_quality_review`, `human_quality_review` (S0) | A2, S0 |
+| `build_file_blobs`, `build_manifests` | New (§9). TTL 90 days, aligned with `build_files`; GDPR export and delete | A3 |
+| `build_files` | Becomes a derived projection (safe order); kept one release | A3 |
+| `semantic_chunks` | No schema change; build-path retrieval disabled (A2). Re-enabling requires mandatory `org_id` and `project_id` scoping in `SemanticRetriever.retrieve` | A2 |
 
 ---
 
-## 11. Tests
+## 16. Acceptance tests
 
-Backend tests use the stub-agent harness **with the real reservation formula**.
-**FI** is a reusable fault injector that raises at the N-th persisted write
-(build doc, journal, user doc, `credit_transactions`), for every N, then
-resumes.
+All IDs are mandatory for the PR shown. Backend tests use the stub-agent
+harness with the **real** reservation formula. Tests marked *rs0* run in the
+`mongo-integration` job on a replica set. **FI** = fault injection at the N-th
+persisted write, for every N.
 
-### 11.1 Regression tests per issue
+### 16.1 Guardrail v2 (A2)
 
-| ID | Issue | Test (file::name) | PR |
-|---|---|---|---|
-| RG-F1 | Clarifications at the real reservation | `test_build_ledger.py::test_clarifications_run_at_real_reservation` | A |
-| RG-F2 | Overrun | `test_build_ledger.py::test_no_path_exceeds_reservation` (via EX-1) | A |
-| RG-F13 | Re-charge / RUNNING | `test_build_ledger.py::test_resume_does_not_recharge`, `::test_no_running_step_after_terminal` | A |
-| RG-F16 | Platform calls invisible | `test_usage_attribution.py::test_platform_principals_recorded` (specialist shadow, monitor) | A |
-| RG-F17 | Daily budget vs build | `test_quotas.py::test_free_plan_build_completes_with_exemption`, `::test_exemption_requires_live_operation_binding`, `::test_exemption_flag_off_keeps_daily_budget` | A |
-| RG-F18 | Retry classes | `test_build_tasks_retry.py::test_classification` (parametrized over §6.7), `::test_s6_pays_completed_stages_only` | A |
-| RG-F19 | Settlement and sweeper | covered by CT-2, CT-3, CT-5, CT-9 | A |
-| RG-F21 | Single price source | `test_pricing.py::test_single_price_source` | A |
-| RG-F22 | Lifecycle | `test_build_tasks_retry.py::test_running_status_and_no_build_failed_before_retry` | A |
-| RG-F25 | File persistence | `test_persist_files.py::test_crash_mid_persist_never_loses_files` (FI between upsert and delete) | A |
-| RG-F26 | Guardrail screens recorded | `test_usage_attribution.py::test_every_guardrail_window_recorded` (73-window stream fixture), `::test_guardrail_on_byok_is_platform_guardrail_account` | A |
-| RG-F27 | Failed attempts recorded | `test_usage_attribution.py::test_failed_retry_and_fallback_attempts_recorded` | A |
-| RG-acc | **No invisible provider call** | `test_usage_attribution.py::test_provider_calls_equal_recorded_attempts`: patched adapters count calls across a full stub build | A |
-| RG-C4 | BYOK | `test_funding.py::test_byok_reserves_zero`, `::test_byok_never_uses_forge_provider` (router fallback chain empty), `::test_byok_failed_calls_recorded_customer_provider` | A |
-| RG-C5 | Free build | `test_funding.py::test_free_grant_allows_three_clarifications`, `::test_free_grant_allowance_and_token_meter_enforced`, `::test_free_grant_attributed_platform` | A |
-| RG-C8 | Usability | `test_build_ledger.py::test_unusable_output_uncharged` (0 files, schema-invalid, zero-change debug per U6) | A |
-| RG-C9 | Recovery | see RT-1…RT-5 | A |
-| RG-F14 | Gates | `test_config.py::test_gate_budget_fits_build_timeout` | A |
-| RG-F3, F4, F15, F24 | B1 items | as in Revision 2 (`WorkspacePage.test.tsx`, Playwright `live-build.spec.ts`, `buildStore.test.ts`, `test_emit_persistence.py`) | B1 |
-| RG-B1-402 | Admission UI | `WorkspacePage.test.tsx`: "402 shows required, available and breakdown" | B1 |
-| RG-F5, F6, F7, F9, F20; decision B | B2 items | as in Revision 2 | B2 |
-| RG-compat | Old documents | `test_schema_compat.py::test_v1_builds_load_resume_settle` | A, B2 |
-
-### 11.2 Concurrency tests (real Mongo, `mongo-integration` CI job)
-
-| ID | Scenario | Asserts |
+| ID | Test | Pass criterion |
 |---|---|---|
-| CT-1 | 20 concurrent `POST /builds` for a user whose balance funds k builds | Exactly k reserved; balance = initial − k × R; never negative |
-| CT-2 | Worker + sweeper + duplicate task settle the same build concurrently (`asyncio.gather` × 10) | One refund; one `settle:` key; one settle row; balance exact |
-| CT-3 | 10 builds of one user settle simultaneously | Final balance = initial − Σ consumed |
-| CT-4 | Two attempts race for the lease of the same build | Exactly one proceeds; the other exits; only `T`'s writes persist; one charge per `stage_key` |
-| CT-5 | Sweeper vs a live heartbeat; sweeper vs a stalled worker | Live: sweeper no-op. Stalled: fenced; the worker's next commit matches 0 and it aborts uncharged |
-| CT-6 | Concurrent token-meter reservations near the ceiling | `consumed + inflight ≤ ceiling` always |
-| CT-7 | 50 concurrent shadow preflights near the monthly limit | `reserved_usd + spent_usd ≤ limit_usd`; `calls ≤ max_calls` |
-| CT-8 | 10 concurrent first-build requests | Exactly one `free_grant`; others `user_credits` or 402 |
-| CT-9 | Crash at each of R2, R3 and R4, then the sweeper | Converges: correct balance; build ABORTED or RELEASED |
-| CT-10 | `credit_ops` cap boundary | Idempotent within 500; reconciler flags a synthetic beyond-window duplicate |
+| GR-1 | `test_guardrail_v2.py::test_dtier_incremental_linear` | Characters scanned ≤ stream length + overlap × windows; no full-prefix rescans |
+| GR-2 | `::test_dtier_detects_phrase_split_across_windows` (plain and obfuscated: homoglyph, zero-width, spacing) | Detected in 100% of boundary positions |
+| GR-3 | `::test_developer_stream_makes_zero_llm_screens_by_default` (32,000-char fixture) | **0** LLM guardrail calls (today: 73) |
+| GR-4 | `::test_required_policy_makes_at_most_one_screen_per_artifact` | ≤ 1 call per artifact; input ≤ `guardrail_llm_max_input_tokens`; model == policy model ≠ agent model |
+| GR-5 | `::test_required_screen_failure_is_incomplete_not_pass` (error, timeout, garbage verdict, budget exhausted) | `quality = INCOMPLETE`, `guardrail_unverified`; never `PASSED` |
+| GR-6 | `::test_llm_block_withholds_version_previous_stays_active` | New version rejected; `active_manifest_version` unchanged; `artifact_withheld` emitted; op uncharged |
+| GR-7 | `::test_every_guardrail_call_recorded` | `ai_usage` rows == calls; account `guardrail`; `operation_id` set |
+| GR-8 | `::test_guardrail_budget_atomic` *(rs0)* | 50 concurrent reservations: `reserved + spent ≤ limit` |
+| GR-9 | `::test_policy_rejects_required_ltier_for_byok_without_consent` | Policy save rejected |
+| GR-10 | `::test_cost_regression_guard` | Guardrail calls per max-path stub build ≤ number of artifacts (16) |
 
-### 11.3 Recovery tests (stub harness + FI)
+### 16.2 BYOK isolation (A2)
 
-| ID | Scenario | Asserts |
+| ID | Test | Pass criterion |
 |---|---|---|
-| RT-1 | Interrupt every mandatory operation, journal present | 0 extra provider calls; charged once |
-| RT-2 | Interrupt every mandatory operation, no journal, Forge credential | D2 `recovery`; both dispatches recorded; charged once; I-7 |
-| RT-3 | Same, D2 also fails | Operation FAILED; no third dispatch; terminate; settle; completed stages charged only |
-| RT-4 | BYOK interruption | Terminate (default U1); 0 Forge-provider attempts; settled |
-| RT-5 | Interrupt every optional operation | Never re-dispatched; uncharged |
-| RT-6 | Any failure after the developer | Files of completed stages intact (I-10) |
-| RT-7 | FI at every write of settlement | Exactly-once refund |
-| RT-8 | Celery retries exhausted | ≤ 3 retries; then terminal; no RUNNING steps |
-| RT-9 | Soft time limit mid-stream | Dispatch `cancelled`; uncharged; settled |
-| RT-10 | Redelivery of a settled build | No agent call, no event, no refund |
+| BY-1 | `test_byok_boundary.py::test_no_forge_model_call_on_byok_build` | Every Forge provider adapter, the OpenAI embeddings URL (httpx transport), the guardrail L-tier and the classifier patched to raise. A full BYOK stub build makes **0** such calls on every channel |
+| BY-2 | `::test_boundary_check_is_unconditional` | With every guardrail, retrieval and shadow flag in every state, including the rollback state, BY-1 still holds |
+| BY-3 | `::test_no_automatic_repair_on_customer_key` | Schema-invalid BYOK response → exactly 1 customer-key call; op FAILED; build settles at 0 |
+| BY-4 | `::test_no_celery_retry_without_authorization` | Transient BYOK error → `self.retry` not called; build FAILED with reason |
+| BY-5 | `::test_authorized_retries_bounded` | With `byok_auto_retry = N`: ≤ N extra calls, recorded `customer_provider` |
+| BY-6 | `::test_interruption_terminates` | No dispatch 2 on any credential; settled at 0 (U1) |
+| BY-7 | `::test_consent_snapshot_semantics` | A grant mid-build does not widen the running build; a revocation narrows it at the next operation |
+| BY-8 | `::test_byok_usage_attribution` | Generation rows `credential = byok`, `cost_bearer = customer_provider`, 0 credits |
+| BY-9 | `::test_shadow_and_specialist_shadow_never_enqueued_for_byok_without_consent` | n/a |
+| BY-10 | `test_retrieval_scoping.py::test_build_path_retrieval_disabled` and `::test_retrieve_requires_org_and_project` | n/a |
 
-### 11.4 Exhaustive accounting acceptance test (owner's "every permitted combination")
+### 16.3 Unified usage accounting (A2)
 
-| Matrix | Dimensions | Runs |
+| ID | Test | Pass criterion |
 |---|---|---|
-| **EX-1 base matrix** | funding {user_credits, byok, free_grant} × clarifications (q = 0…3 questions, each {answered, failed, timed out, interrupted}: Σ 4^q = 85) × integrations {0, 1} × PM/debug sequences (pass at pass 0–3 or never, each debug usable/unusable: 23) | 3 × 85 × 2 × 23 = **11,730** |
-| **EX-2 fault matrix** | every operation position of the max path (~20) × fault {transient × 1, 2, 3; model-output; non-transient; interrupt with journal; interrupt without journal → D2 ok / D2 fails; duplicate delivery} (9) × funding (3) × 4 base paths (min, max, max without integrations, all clarifications failing) | **2,160** |
-| **EX-3 credit-neutral overheads** | Seeded random (standard library `random`, fixed seeds; no new dependency) over repairs, router retries, fallbacks, guardrail windows and cache hits | **2,000** |
+| UA-1 | `test_usage_attribution.py::test_provider_calls_equal_recorded_attempts` | Patched adapters count calls across a full build (repairs, retries, fallbacks, guardrails, classifier when enabled) == `ai_usage` rows |
+| UA-2 | `::test_failed_attempts_recorded` | Zero-token error rows present with `outcome = error` |
+| UA-3 | `::test_platform_principals_recorded` | Specialist shadow and monitor rows recorded without `user_id` |
+| UA-4 | `::test_platform_usage_excluded_from_user_daily_budget` | n/a |
+| UA-5 | `::test_no_content_in_usage_rows` | Schema allow-list: no prompt or completion text fields (U11) |
 
-**Every run asserts I-1…I-12 and:**
+### 16.4 Ledger, transactions and recovery (A1)
 
-- `consumed ≤ reserved`, or ≤ allowance for `free_grant`;
-- `consumed` equals the closed-form price of the COMPLETED usable operations;
-- overheads never change `consumed`;
-- BYOK `consumed = 0`;
-- termination within the static call bound.
+| ID | Test | Pass criterion |
+|---|---|---|
+| EX-1 | Base matrix (funding × clarification outcomes × integrations × PM/debug sequences; 11,730 runs) | `consumed ≤ reserved` (or allowance); `consumed` = closed-form price of COMPLETED usable ops; BYOK = 0; I-1…I-12 hold. PR CI: stratified 5% + the full max path; nightly: all |
+| EX-2 | Fault matrix (op position × fault × credential; 2,160 runs) | Same assertions + §12 row semantics |
+| EX-3 | Credit-neutral overheads (seeded; 2,000) | Overheads never change `consumed` |
+| TX-1 | `test_tx_admission.py` *(rs0)*: FI inside T1 at every statement | All four documents written, or none |
+| TX-2 | `test_tx_settlement.py` *(rs0)*: worker + sweeper + duplicate × 10 concurrently | Exactly one settle row; balance exact |
+| TX-3 | *(rs0)*: settlement racing a late W7 | Late W7 matches 0; `consumed` excludes it |
+| TX-4 | *(rs0)*: simulated `UnknownTransactionCommitResult` (connection drop at commit) | No double refund |
+| TX-5 | `test_topology_guard.py` | `ledger_v2` refuses to start on standalone; admission returns a service error; no money moves |
+| TX-6 | CI step | The `mongo-integration` job fails if `hello.setName != "rs0"` |
+| CT-1…CT-10 | *(rs0)* concurrency suite from Revision 2 (amended) §11.2, with CT-10 replaced by TX-4 | as specified there |
+| RT-1…RT-10 | Recovery suite from Revision 2 (amended) §11.3, with **RT-4 = BYOK terminate**, plus RT-11: BYOK journal-present interruption commits from the journal with no customer-key call | as specified |
+| LC-1 | `test_execution_state.py::test_canonical_state_and_transitions` | Every state change persisted with a transition; the UI status derived from it; no `running` without a lease; no `failed` emitted before a retry (C10, F22) |
+| QT-1…QT-5 | `test_quotas.py` | QT-1: exemption flag off keeps the daily budget. QT-2: an exemption call without a live operation binding is rejected. QT-3: per-build meter atomic *(rs0)*. QT-4: per-operation ceiling refusal → op REFUSED, `INCOMPLETE` if validation. QT-5: daily build limit inside T1 *(rs0)* |
 
-**CI placement:** PR CI runs a fixed stratified 5% subset plus every EX-2 row
-for the max path. Nightly runs the full matrices. The EX-1 runtime will be
-measured; if it exceeds 10 minutes, it moves to nightly only.
+### 16.5 Artifact integrity (A3)
+
+| ID | Test | Pass criterion |
+|---|---|---|
+| AR-1 | `test_artifact_publication.py`: FI at every step (blob upsert, manifest insert, W7, projection) | `active_manifest_version` is always the last valid complete version; a build never has zero files once a version was published |
+| AR-2 | `::test_invalid_manifest_rejected` (missing blob, hash mismatch, `..`, absolute path, NUL, empty, oversize) | Rejected; previous version active |
+| AR-3 | `::test_stale_attempt_cannot_publish` *(rs0)* | Fenced W7 matches 0 |
+| AR-4 | `::test_readers_follow_active_manifest` | Files API, deployments, `pm_tasks`, GDPR export, rollback, amend flow, resume; legacy builds fall back to `build_files` |
+| AR-5 | `::test_child_build_never_mutates_parent` (C6) | The parent manifest hash is unchanged after the child completes or fails |
+| AR-6 | `::test_retention_and_gdpr_cover_all_versions` | n/a |
+| AR-7 | `::test_noop_debug_uncharged` (U6) | Identical manifest → op FAILED `no_change`, 0 credits, counts toward N |
+
+### 16.6 B1
+
+The Revision 2 tests:
+
+- `WorkspacePage` subscribes to the `build_id` from the create response;
+- live mode never calls `synthesizeCodeForPrompt`;
+- Playwright live-build and reconnect specs against `vite build`;
+- `buildStore` hydration;
+- no build-document write per token.
+
+New:
+
+- **B1-7**: the UI status comes from persisted `build_status` and transitions,
+  never from WS event order alone;
+- **B1-8**: the BYOK disclosure renders before a key is saved and at BYOK build
+  start, once the copy is approved;
+- **B1-9**: a 402 response shows the required amount, the available amount and
+  the breakdown.
+
+### 16.7 B2
+
+The Revision 2 tests (prompt versions, designer schema, PM evidence, deploy
+guard), plus:
+
+- FC-1…FC-8: one per row of §11 → `INCOMPLETE`, never accepted;
+- FC-9: deploy or share of `NEEDS_REVISION`, `INCOMPLETE` or `BLOCKED` requires
+  an audited override;
+- FC-10: a required L-tier block is not overridable.
+
+### 16.8 C
+
+`test_static_security.py`: seeded fixtures per rule; bandit timeout handled; 0
+provider calls; report-only (no quality change beyond warnings).
+
+### 16.9 Critical regression suite policy (C13b)
+
+| Layer | When | How |
+|---|---|---|
+| Deterministic critical checks (static security rules, moderation, deterministic guardrails, fixture apps) | **every PR** (required check) | No provider calls |
+| Review critical suite, *replay mode* | **every PR** once a review edge exists | Recorded model outputs (pinned to prompt hash and model); verifies parsing, evidence verification and gating logic |
+| Review critical suite, *live* (3/3 runs per case) | Required before merge for any PR touching review or guardrail prompts, models or policy; nightly on `main` | The existing manual, approval-gated `llm-validation.yml` pattern, so secrets are never exposed to PR CI (X2) |
+| Extended evaluations (labelled set, recall per category) | Nightly and before promotion | Billed; budget account `shadow` |
 
 ---
 
-## 12. Shadow review: budget and privacy controls
+## 17. Shadow review, adjudication and promotion
 
-### 12.1 Budget configuration (approved $0.20 and $100; initial, configurable)
+### 17.1 Budget (U7, C12b; values preserved)
 
-| Setting | Value | Enforcement |
-|---|---|---|
-| `SHADOW_REVIEW_PER_BUILD_USD_CAP` | **$0.20** | Startup validation: `worst_case(model, input cap, output cap, 1 repair, 1 guardrail screen) ≤ cap`, else the feature refuses to enable. Preflight estimate per review. Post-call breach counted |
-| `SHADOW_REVIEW_MAX_INPUT_TOKENS` | **20,000** (derived from the cap: worst case $0.194 on Sonnet-class pricing) | Deterministic file selection; truncation recorded |
-| `SHADOW_REVIEW_MAX_OUTPUT_TOKENS` | 2,000 | Request |
-| `SHADOW_REVIEW_MODEL` | **Sonnet-class** (`MODEL_COSTS` entry required). An Opus-class model (the production Architect's) costs ≈ $0.97 worst case and cannot fit the cap (U7) | Startup validation |
-| `SHADOW_REVIEW_MONTHLY_USD_BUDGET` | **$100** (≥ 515 worst-case reviews) | `platform_budgets` atomic reservation: guarded `$inc reserved_usd` by the worst case before the call; reconciled to actual after. Plus the `budget_limits` AGENT MONTHLY limit as defence in depth |
-| `SHADOW_REVIEW_MONTHLY_MAX_CALLS` | 1,000 (C12b, unresolved) | `platform_budgets.calls` |
-| `SHADOW_REVIEW_MAX_CALLS_PER_BUILD` | 2 (review + ≤ 1 repair); 0 retries; no fallbacks (router config for the agent name) | Router hard cap |
-| `SHADOW_REVIEW_TIMEOUT_SECONDS` | 90 per call; task soft limit 240 s | Task |
-| `SHADOW_REVIEW_SAMPLE_RATE` | 0.25, stratified to fill §13.1 quotas | Enqueue |
-| Eligibility | **Internal builds, or builds whose owner has an active `ai_quality_review` consent; BYOK builds excluded** (U2, U8) | Enqueue |
-| Execution | Celery queue `shadow`, dedicated worker, concurrency 1; principal `platform:shadow`; never the user's concurrency lease, rate limit or daily budget | Router |
-| Revisions and discussion | **None.** Results are never emitted to the user's WebSocket | By construction |
-
-### 12.2 AI review policy (separate from human adjudication, per C7)
-
-- AI shadow reviews process build content with Forge's provider, under the
-  eligibility rule above.
-- Findings are stored in `shadow_reviews`, with retention following build data
-  (90 days).
-- AI review of ordinary customer builds beyond internal and opt-in is
-  **unresolved (U8)**. It is not enabled.
-
-### 12.3 Human adjudication controls (C7, approved)
-
-| Control | Implementation (S0) | Test |
-|---|---|---|
-| Internal builds only by default | `users.is_internal` (admin-set, audited) | PV-1: a non-internal, non-consented build is never queued for adjudication |
-| External builds by explicit opt-in | `data_use_consents{scope: human_quality_review}`, versioned to the policy text; revocation purges excerpts | PV-2: revocation deletes `adjudication_excerpts` and blocks new access |
-| Redaction | Excerpts are produced only through a redactor: moderation secret rules, the bandit secret checks, env-var value masking, emails and URLs with credentials. `redaction_report` stored | PV-3: seeded secrets never appear in excerpts |
-| Minimum material | An adjudicator sees the finding, the evidence excerpt (±20 lines) and the relevant blueprint fragment. The full prompt or artifact needs an "expand" action that is logged with a purpose | PV-4: default view contains no full artifact |
-| Access logging | `adjudication_access_log` for every view or expand (who, which build and artifact, which fields, when, purpose) | PV-5: every adjudication API read writes one row |
-| Retention and deletion | Excerpts 90 days after adjudication; access log 1 year; labels kept and anonymized; GDPR deletion removes excerpts and anonymizes labels | PV-6: retention and GDPR tests |
-| Policy text | Human review is not described in `PRIVACY_POLICY.md` §3. External opt-in stays disabled until the policy and the user disclosure are reviewed (legal; tracked as U12) | n/a |
-
-### 12.4 Shadow tests (S1)
-
-| ID | Asserts |
+| Setting | Value |
 |---|---|
-| SH-1 | The user is never charged |
-| SH-2 | The platform key is used and BYOK builds are excluded |
-| SH-3 | Per-build cap enforced, plus startup validation |
-| SH-4 | Monthly dollar and call budgets hold under concurrency (CT-7) |
-| SH-5 | 0 retries, 0 revisions |
-| SH-6 | Nothing is broadcast to the user |
-| SH-7 | Excluded from the user's daily budget, concurrency and rate limits |
-| SH-8 | Enqueued on the `shadow` queue, never via `create_task` |
+| Per review (= per build; one review per build) | **≤ $0.20**, startup-validated worst case (review + ≤ 1 repair + its guardrail handling) |
+| Reviewer model | **Sonnet-class** with a `MODEL_COSTS` entry |
+| Input cap | **20,000 tokens** (worst case $0.194) |
+| Output cap | 2,000 tokens |
+| Monthly budget | **$100** (`platform_budgets.shadow`) |
+| Monthly call cap | 1,000 (X5) |
+| Retries | 0 |
+| Revisions | none |
+| Execution | Celery queue `shadow`; principal `platform:shadow` |
 
----
+### 17.2 Eligibility (U8)
 
-## 13. Promotion criteria for blocking reviews
+Internal builds (`users.is_internal`), or owners with `ai_quality_review` consent.
 
-Approved thresholds, applied **per edge and per exact configuration**
-(`prompt content_hash`, `model`):
+BYOK builds additionally need `platform_model_processing` consent, because the
+reviewer is a Forge-credential model (U2).
 
-| Criterion | Minimum |
+### 17.3 Adjudication (C7, U12)
+
+Unchanged from Revision 2 (amended) §12.3:
+
+- internal or opt-in only;
+- redaction;
+- minimum material (finding, ±20-line excerpt, blueprint fragment);
+- logged "expand" action;
+- `adjudication_access_log`, kept 1 year;
+- excerpts deleted after 90 days;
+- external opt-in disabled until the privacy review completes.
+
+### 17.4 Promotion and demotion
+
+Promotion uses the approved thresholds (§1.1 C13), applied **per category**:
+
+| Criterion | Requirement |
 |---|---|
-| Representative real builds (stratified as in Revision 2 §10.1; internal or opt-in only, C7) | 50 |
-| Adjudicated blocking-eligible findings (critical or high, `evidence_verified = true`; two blind adjudicators, a third on disagreement) | 100 |
-| Blocking-finding precision | 95% |
-| Recall, **per defect category**, on the labelled set | 90% |
-| Critical regression suite (3/3 runs per case) | 100% |
-| Budget compliance (0 user charges, 0 user-budget tokens, 0 retries or revisions, cap and monthly budget held) | 100% |
+| Labelled positive examples per category | **≥ 100** (C13e) |
+| Recall per category | **≥ 90%**, with its Wilson 95% interval reported (at n = 100, observed 90% gives a lower bound ≈ 0.83) |
+| Precision | ≥ 95% on ≥ 100 adjudicated blocking-eligible findings |
+| Critical suite | 100% (live, 3/3) |
+| Budget compliance | 100% |
+| Staging | 24 h staging gate (C13c) |
+| Activation | Requires recorded owner approval; never automatic on reaching a count |
 
-**Reporting requirements (owner addition).** The promotion report must show:
+**Automatic demotion (C13d).** A blocking category returns to shadow
+automatically, with the flag flip recorded, on:
 
-- every rate with its **Wilson 95% confidence interval**;
-- **per-category sample sizes** for precision (adjudicated blocking-eligible
-  findings) and recall (labelled defects);
-- `cannot_determine` rates;
-- skipped, timeout and invalid-output rates.
+- (a) any live critical-suite regression;
+- (b) rolling-window adjudicated precision below 95%;
+- (c) any budget-cap breach;
+- (d) timeout rate above the threshold.
 
-Why sample sizes matter (Wilson lower bounds at exactly the threshold):
+The window sizes and the timeout threshold are X11. Re-promotion requires the
+full §17.4 evidence again.
 
-| n per category | 90% recall, lower bound | 95% precision, lower bound |
-|---|---|---|
-| 20 | 0.70 | 0.76 |
-| 30 | 0.74 | n/a |
-| 40 | n/a | 0.84 |
-| 50 | 0.79 | n/a |
-| 60 | n/a | 0.86 |
-| 100 | 0.83 | 0.89 |
-
-**Category-level gating.**
-
-- Blocking is enabled **per finding category**, not per edge as a whole.
-- A category may block only if it meets every threshold *on its own* and has at
-  least the minimum per-category sample (C13e, unresolved). A category that
-  doesn't stays advisory: recorded, shown to admins, never blocking.
-
-**Activation.**
-
-- Meeting the thresholds makes a category **eligible**. It is not enabled.
-- Enabling it requires a recorded owner approval of the promotion report.
-  Reaching a sample count never enables anything automatically.
-
-**Changes after promotion.**
-
-- Any prompt or model change re-runs the labelled set and the critical suite
-  before the new configuration may block.
-- Post-promotion demotion rules (C13d) and operational readiness thresholds
-  (C13c) are still to be confirmed.
+**Funding (C14).** Mandatory reviews are platform-funded (account
+`mandatory_review`; budget X8). An exhausted budget yields `INCOMPLETE` (§11,
+row 16). Review-triggered *revisions* remain user-funded production work within
+the reservation (decision A; X8 asks for confirmation).
 
 ---
 
-## 14. Migration and rollback
+## 18. Migration and rollback requirements
 
-### 14.1 Rules
+### 18.1 Requirements that apply to every PR
 
-- Additive data only.
-- Per-build snapshots (`schema_version`, `funding`, `collab_config`) fixed at
-  creation.
-- Builds in flight at deploy time (`schema_version = 1`) finish on the legacy
-  path. That path stays in code for one release after `ledger_v2` reaches 100%.
+1. **Additive data; per-build snapshots.** `schema_version`, `funding`,
+   `processing_boundary`, `collab_config` and `pricing_version` are fixed at
+   admission.
+2. **Readers before writers.** Code that reads a new representation (manifest,
+   `build_status`, new usage fields) is deployed and verified *before* the code
+   that writes it is enabled. Writer flags can be turned off without breaking
+   readers.
+3. **Non-rollbackable safety properties.**
+   - The BYOK processing boundary (§5.2) and the "never delete the last valid
+     version" rule are **unconditional code, not flags**.
+   - Rolling back any PR must keep them. A rollback that cannot keep them is
+     not permitted; fix forward.
+4. **In-flight builds** finish on the path they started on.
 
-### 14.2 Flags (fail-closed)
+### 18.2 Per-PR rollback
 
-| Flag | PR | Off means |
-|---|---|---|
-| `ledger_v2` | A | Legacy charging and 17-credit reservation for new builds |
-| `unified_usage_recording` | A | Legacy recording. Recommended **on** at deploy: it is record-only |
-| `build_token_exemption` | A | Build calls stay under the interactive daily budget. **Stays off until U4 and U5 are set** |
-| `live_single_source` | B1 | Release timing only |
-| `artifacts_v1`, `pm_evidence_v2`, `quality_status_v1` | B2 | Legacy behaviour |
-| `static_security_report` | C | Scanner not run |
-| `shadow_review_architect_developer` | S1 | No shadow reviews |
-
-### 14.3 Release order
-
-| Step | Release | Notes |
-|---|---|---|
-| 1 | A+B1 integration validation (§9.1) | n/a |
-| 2 | Deploy A with `ledger_v2` off and `unified_usage_recording` on | Watch the new platform-cost dashboards: F26's guardrail spend becomes visible, which may prompt a U3 decision |
-| 3 | `ledger_v2` on for internal accounts → 10% → 100% | Watch: reconciliation anomalies (target 0); 402 rate (release note for balances of 17–26); settlements == terminal builds |
-| 4 | B1 frontend, then the backend `emit` change | n/a |
-| 5 | C on | Report-only |
-| 6 | B2 | Frontend first, then the flags in order |
-| 7 | S0, then S1 with its flag off until U7 and U8 are decided | n/a |
-
-### 14.4 Rollback
-
-| PR | Procedure | Data left behind |
-|---|---|---|
-| A | `ledger_v2` off → drain v2 builds (they settle with their stored `reserved_credits`, the same value as the Celery argument) → revert if needed. `unified_usage_recording` can be turned off independently | Ledger, funding, `credit_transactions`, `credit_ops`: kept for audit. The broker policy (A13) stays |
-| B1 | Revert the frontend deploy; the backend `emit` change is independent | none |
-| B2 | Flags off in reverse order | Builds already marked `completed + needs_revision` stay correct under decision B |
-| C | Flag off | n/a |
-| S0 / S1 | Flag off; stop the `shadow` worker | Shadow records and adjudications kept (C7 retention applies) |
-
----
-
-## 15. Unresolved decisions (not assumed approved)
-
-Each has the default that will be implemented until it is decided. A default
-never relaxes a financial or privacy control.
-
-### 15.1 Carried over from Revision 2
-
-| ID | Question | Interim default | Affects |
+| PR | Flags | Rollback procedure | Must remain after rollback |
 |---|---|---|---|
-| C1 | Add `incomplete` as a quality state? | Not added. Until decided, validation that could not finish is recorded as `needs_revision` with reason `validation_incomplete` and **never** accepted | B2 |
-| C3 | Price of the Developer's question-generation call | 0 extra credits (`credits_question_pass = 0`); cost recorded | A |
-| C6 | Follow-up builds amend from which build? | Unchanged: latest `success`/COMPLETED build, as today | B2 |
-| C10 | `build_status` as a derived API field over the stored `status` | Implemented as derived; the stored value is unchanged | B1 |
-| C12b | Monthly shadow call cap | 1,000 | S1 |
-| C13b | Split the critical suite (architecture cases for the Architect edge; security cases for the combined gate and the Security edge) | Not split; all 15 cases required of the edge | §13 |
-| C13c | Operational readiness thresholds (p95 ≤ 60 s, timeouts ≤ 2%, invalid output ≤ 2%) | Reported, not gating | §13 |
-| C13d | Automatic demotion after promotion | None automatic; the owner flips the flag manually | §13 |
-| C13e | Minimum per-category sample sizes | None; every category stays advisory until set | §13 |
-| C14 | Who pays for reviews once they block | Not enforced until decided | Phase 3 enforcement |
+| A2 | `guardrail_v2`, `unified_usage_recording`, `build_path_retrieval` (default **off**) | `guardrail_v2` off → the legacy windowed screens, **still subject to the BYOK boundary** (no L-tier on BYOK without consent) and recorded. `unified_usage_recording` off → legacy recording | BYOK boundary; build-path retrieval stays disabled; consent records |
+| A1 | `ledger_v2`, `build_token_exemption` (off) | `ledger_v2` off → new builds legacy; v2 builds drain and settle through T2 (their stored `reserved_credits` equals the Celery argument) | rs0 topology in CI and local; the `credit_transactions` unique index; the broker `noeviction` policy |
+| A3 | `manifest_publication` | Off → writes go to `build_files` using the **safe order** (upsert, then delete stale; never delete-all). Readers keep reading manifests for builds that have one | Manifest readers; existing manifests and blobs |
+| B1 | `live_single_source` | Revert the frontend deploy | Backend state-only persistence (independent) |
+| B2 | `artifacts_v1`, `pm_evidence_v2`, `quality_status_v1` | Flags off in reverse order | Builds already marked `completed + needs_revision/incomplete` stay as recorded |
+| C | `static_security_report` | Off | n/a |
+| S0 / S1 | `shadow_review_architect_developer` | Off; stop the `shadow` worker | Consent and access-log records; retention rules |
 
-### 15.2 New in this amendment
+### 18.3 Release order
 
-| ID | Question | Interim default | Affects |
-|---|---|---|---|
-| U1 | BYOK interrupted mandatory stage: terminate, re-dispatch once on the **same** customer key, or a platform-funded retry after explicit user authorization (and the resume UX for it) | **Terminate** and settle; completed stages kept | A |
-| U2 | Can platform-credential calls process BYOK build content? Today: output-guardrail screens and the injection classifier. Proposed: shadow reviews | Guardrail and classifier behaviour unchanged (now recorded under `guardrail`); BYOK builds **excluded** from shadow reviews | A, S1 |
-| U3 | Output-guardrail policy (F26): model (today the agent's own, Opus for Architect and Developer), windowing (re-screens accumulated text every 400 characters), monthly security budget | **Record only; no behaviour change** in A | A dashboards |
-| U4 | Plan-specific daily build limits (values) | Counter built, **no limit**; `build_token_exemption` stays off | A |
-| U5 | Per-build token ceilings (generation and platform meters, per plan) | Meters built and recorded, ceiling = derived floor × 2; exemption off | A |
-| U6 | Is a debug iteration that changes no files "unusable" (uncharged) under C8? | **Uncharged**, still counts toward `MAX_DEBUG_ITERATIONS` | A |
-| U7 | Shadow reviewer model under the $0.20 cap (Sonnet-class fits at 20k input; Opus-class needs ≈ $1.00) | Sonnet-class; the S1 flag stays off until decided | S1 |
-| U8 | AI shadow-review eligibility for ordinary customer builds (separate from human adjudication) | Internal and `ai_quality_review` opt-in only | S1 |
-| U9 | BYOK failed-call billing disclosure: wording and placement | Copy not shipped; no BYOK behaviour depends on it | B1 |
-| U10 | Settlement atomicity: guarded single-document updates (works everywhere) vs Mongo transactions (production and staging only today) | Guarded single-document updates | A |
-| U11 | Retention of provider-attempt detail beyond `ai_usage`'s 90-day TTL | Permanent `provider_cost_summary` per build; detail 90 days | A |
-| U12 | Consent specifics: who counts as "internal", opt-in granularity, redaction standard, excerpt retention (90 days?), access-log retention (1 year?); legal review of `PRIVACY_POLICY.md` | External opt-in disabled until reviewed; internal only | S0 |
-| U13 | Retries for unusable model output (schema-invalid or empty) | One Celery retry per `stage_key`, platform-absorbed, then non-transient | A |
-
-**Blocking Foundation A:** none. Every item above has a safe default. U4 and U5
-block only *enabling* the C2 exemption, so free-plan builds stay subject to F17
-until they are decided.
+| Step | Release | Watch |
+|---|---|---|
+| 1 | A2: deploy readers and recording | Expect visible guardrail spend; confirm `OPENAI_API_KEY` status in production (F28) |
+| 2 | `guardrail_v2` on: internal → 10% → 100% | Guardrail calls per build; D-tier hit rate; false blocks |
+| 3 | A1: CI and local rs0 first, then deploy with `ledger_v2` off | n/a |
+| 4 | `ledger_v2` on: internal → 10% → 100% | Reconciliation mismatches (target 0); 402 rate |
+| 5 | A3: readers, then `manifest_publication` on | n/a |
+| 6 | B1 frontend | n/a |
+| 7 | The 24 h staging gate (§14.3) over the combined state | n/a |
+| 8 | C, then B2, then S0/S1 | n/a |
+| 9 | `build_token_exemption` on | Only after U4 and U5 values are configured and QT-1…QT-5 pass on staging |
 
 ---
 
-## Appendix A: agent map
+## 19. Contradictions and remaining decisions
 
-Unchanged from Revision 2.
+These are listed separately and **not assumed approved**. Each has an interim
+default that never relaxes a financial or privacy control.
 
-| Agent | Position | LLM calls | Output | Credits |
-|---|---|---|---|---|
-| `ArchitectAgent` | Stage 1 | `clarify()`, `blueprint()`, `answer()` | `ARCHITECT_BLUEPRINT_SCHEMA` | 3 |
-| `BusinessModelAgent` | Stage 2 | `improve()` | `BUSINESS_MODEL_SCHEMA` (consumed by no one, F11) | 2 |
-| `DesignerAgent` | Stage 3 | `design()` | no schema (F9) | 2 |
-| `DeveloperAgent` | Stage 4 | `identify_questions()`, `generate_files()`, `patch_files()` | `{files}` | 5 |
-| `IntegrationAgent` | Stage 5, if integrations | `integrate()` | `INTEGRATION_SCHEMA` | 2 |
-| `PMAgent` | Stage 7 and debug loop | `validate()` | `PM_VALIDATION_SCHEMA` | 1 per pass |
-| Debugger (`patch_files`) | Debug loop ≤ 3 | `patch_files()` | `{files}` | 2 |
+| ID | Issue | Why it needs a decision | Interim default |
+|---|---|---|---|
+| **X1** | **U11 vs the provider response journal.** "No raw provider payload retention" conflicts with A1's journal, which stores the usable response so a crash between receiving and committing it doesn't force a second paid call | Without a journal, every such crash costs a recovery dispatch (Forge), or terminates a BYOK build | Journal kept **only until the operation commits** (deleted at W7; 24 h TTL backstop); usable outputs only; the same content becomes the artifact anyway |
+| **X2** | **C13b "critical suite on every PR" vs the billed-LLM trust boundary.** Live review runs need provider secrets, which `llm-validation.yml` deliberately never exposes to PR CI | Live 3/3 × 15 cases per PR also costs ≈ $9 at the shadow envelope | Every PR: deterministic plus replay-mode critical suite (required check). Live runs required before merge only for PRs touching review or guardrail prompts, models or policy (manual, approved workflow), plus nightly |
+| **X3** | **C5 vs U4.** With the 10,000-token free-plan daily budget still applied to builds (U4), the free first build likely cannot pass the Developer stage at all (F17: its call alone pre-authorizes ~8,978 tokens), with or without clarifications | C5 is not deliverable until U4 and U5 ship and the exemption is enabled | Accept the sequencing: C5 delivered when `build_token_exemption` is enabled. Alternative: an interim exemption scoped to `free_grant` builds only, once U5 ceilings exist |
+| **X4** | **What counts as "explicit authorization" for BYOK retries (U13)?** Strictly, BYOK builds become single-shot per operation: one transient provider error or invalid JSON ends the build. U9's disclosure mentions retries | n/a | No automatic BYOK retries or repairs. A standing account-level `byok_auto_retry` (N chosen by the user) is built but off; interactive builds may also show a per-build `authorize_retry` gate |
+| **X5** | **C12b** asked about the monthly shadow *call* cap; the disposition restated the $100 budget | n/a | Keep the 1,000-call cap as a secondary bound |
+| **X6** | **C13c** asked about review operational thresholds (latency, timeouts, invalid output); the disposition set the 24 h staging gate | n/a | Staging gate adopted. Review latency and timeout thresholds are reported, not gating; a timed-out mandatory review → `INCOMPLETE` |
+| **X7** | The Revision 2 C13b sub-question (which critical cases apply to the Architect edge vs the combined gate) was not addressed | n/a | All 15 cases required of the Architect edge (stricter) |
+| **X8** | **C14 budget and scope.** The size of the `mandatory_review` budget is open. When it is exhausted, **every** build becomes `INCOMPLETE`: correct, but an availability risk. Also confirm that review-triggered *revisions* stay user-funded (decision A), while reviews are platform-funded | n/a | No blocking review is enabled until the budget is set. Revisions stay user-funded within the reservation |
+| **X9** | **C6 parent selection.** Which build is the parent: latest COMPLETED regardless of quality, latest accepted, or user-chosen? B2 makes PM-exhausted builds COMPLETED + `NEEDS_REVISION`, which today's selector (`status == success`) would start choosing | n/a | Latest COMPLETED build regardless of quality; the child inherits the parent's open findings as context. Explicit user choice later |
+| **X10** | **C13e** fixes 100 labelled positives for recall; the per-category *precision* minimum and any lower-bound threshold are unstated | n/a | A category blocks only if it also has ≥ 100 adjudicated blocking-eligible findings of its own; lower bounds reported, no lower-bound threshold |
+| **X11** | **C13d demotion triggers**: window size for rolling precision and the timeout threshold | n/a | Rolling 100 enforced decisions per category; timeout rate > 5% |
+| **X12** | **Guardrail policy contents (U3)**: which artifact kinds require L-tier; whether partial coverage (artifact > input cap) is acceptable; whether previews may stream before the L-tier verdict (today every 400-character window is LLM-screened before release); the `guardrail_monthly_usd` value; the L-tier model | Defaulting L-tier off reduces LLM-based coverage relative to today, by design (U3). That is a security-policy choice | D-tier on everything; L-tier off by default and on per org policy; previews after D-tier; Haiku-class model; monthly budget unset (L-tier cannot run until set) |
+| **X13** | **LLM screening for BYOK via the customer's own key** (customer-billed, no platform processing) as an alternative to consent | It is an additional billed call on the customer's key (U13) | Not offered; BYOK gets D-tier only unless `platform_model_processing` consent exists |
+| **X14** | **Splitting Foundation A into A2, A1 and A3**, with A2 merging ahead of the A+B1 integration validation | Modifies the approved four-PR structure | Proposed in §14; A2 touches no billing or `emit` code |
+| **X15** | **Deploy and share gating under fail-closed.** Today any build can be deployed. Proposed: `NEEDS_REVISION`, `INCOMPLETE` and `BLOCKED` require an audited override; a required L-tier block is never overridable | User-visible behaviour change | As proposed, shipping with B2 |
+| **X16** | **Operational verification: is `OPENAI_API_KEY` set in production?** If yes, F28 is active today: BYOK content is sent to OpenAI on Forge's key, and unscoped cross-tenant search runs on every build | Determines whether to treat F28 as an incident (customer notification and policy review) | A2 disables build-path retrieval regardless |
 
-`QAAgent`, `SecurityAgent`, `DevOpsAgent` and `ResearchAgent` are not called (F10).
+**Parameters to sign off before the corresponding flag is enabled** (values, not
+policy):
 
-## Appendix B: Revision 1 audit, condensed
-
-**Execution path.**
-
-1. `POST /builds/` reserves credits and dispatches `run_build`.
-2. `emit` writes state on every event and publishes over Redis pub/sub.
-3. The orchestrator runs: Architect → Business Model → Designer → Developer (+
-   clarifications) → Integration → checks → PM ⇄ Debugger (≤ 3).
-4. The task refunds `reserved − used`.
-
-**Existing communication** (`core/agent_communication.py`): route allow-list,
-question limit, credit ceiling, timeout, delivery marker before the paid call,
-and charge plus status in one write. 21 + 2 tests, passing.
-
-**F1–F15:**
-
-| # | Summary |
+| Parameter | Unblocks |
 |---|---|
-| F1 | Clarifications dormant at 17 credits |
-| F2 | Overrun to 22 / 24 |
-| F3 | Per-token document rewrites |
-| F4 | No rehydration |
-| F5 | Tautological harness evaluation |
-| F6 | Per-call in-memory prompt "versions" |
-| F7 | PM previews only |
-| F8 | Agent content inlined unmarked |
-| F9 | Designer schema missing; silent empty files |
-| F10 | Specialist agents unused |
-| F11 | Business Model output unused downstream |
-| F12 | No transactions in code (see correction §2.4) |
-| F13 | Resume re-charge and dangling RUNNING step |
-| F14 | Gate time exceeds build timeout |
-| F15 | `b.id` vs `build_id` |
+| U4 plan daily build limits | `build_token_exemption` |
+| U5 per-build and per-agent token ceilings | `build_token_exemption` |
+| `guardrail_monthly_usd` | L-tier for any org |
+| `mandatory_review` monthly budget | Blocking reviews |
+| `guardrail_llm_max_input_tokens` | n/a (default 8,000) |
+| Lease, heartbeat and sweeper timings | n/a (90 s / 30 s / 5 min) |
 
-**Probes.** F1, F2, F13, F17, F26 and the §2.2 traces (S1–S6) were reproduced
-with throwaway probes driving the real code paths. The probes are not committed;
-§11 makes each one permanent.
+---
+
+## Appendix A: findings index
+
+| # | Summary | Fixed in |
+|---|---|---|
+| F1 | Clarifications dormant at 17 credits | A1 |
+| F2 | Stage charges exceed the reservation | A1 |
+| F3 | Per-token build-document rewrites | B1 |
+| F4 | No rehydration | B1 |
+| F5 | Tautological harness evaluation | B2 |
+| F6 | Per-call in-memory prompt "versions" | B2 |
+| F7 | PM sees 500-character previews | B2 |
+| F8 | Agent content inlined unmarked | Phase 2 |
+| F9 | Designer has no schema; silent empty files | B2 |
+| F10 | Specialist agents unused | Phase 4 |
+| F11 | Business Model output unused downstream | Phase 4 |
+| F12 | No transactions in code (production supports them) | A1 |
+| F13 | Resume re-charges a stage and leaves RUNNING steps | A1 |
+| F14 | Gate waits exceed the build timeout | A1 |
+| F15 | `b.id` vs `build_id` | B1 |
+| F16 | Platform calls unrecorded | A2 |
+| F17 | Daily token budget stops admitted builds | A1 controls; exemption gated |
+| F18 | Every exception retried | A1 |
+| F19 | Settlement not idempotent; no sweeper; evictable broker | A1 |
+| F20 | Any build deployable | B2 |
+| F21 | Duplicated price tables | A1 |
+| F22 | Status never RUNNING; `build_failed` before retry | A1 |
+| F23 | Uncharged provider channels | A2 |
+| F24 | Gemini path in production frontend | B1 |
+| F25 | Delete-then-insert files | A3 |
+| F26 | 73-call Opus guardrail screening per Developer stream | A2 |
+| F26-B | Guardrails on Forge keys for BYOK | A2 |
+| F27 | Failed attempts unrecorded | A2 |
+| F28 | Build-path retrieval embeds BYOK content with Forge's OpenAI key; unscoped cross-tenant search | A2 |
+| F29 | LLM safety tiers fail open | A2 |
+| F29-b | Injection classifier inactive by config | A2 |
+| F29-c | Automatic BYOK repair calls | A2 |
+
+**Probes.** F1, F2, F13, F17 and F26, and the ledger traces S1–S6, were
+reproduced with throwaway probes driving the real code. The §6 costs are
+computed from `MODEL_COSTS`, `config/llm.yaml` and the agents' `max_tokens`. No
+probe is committed; §16 makes each one a permanent test.
