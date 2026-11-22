@@ -2,14 +2,33 @@
 // (core/models.py) so the two sides can't drift apart — see
 // backend/scripts/export_ws_events.py.
 import { WS_EVENT_TYPES } from './generated/wsEvents'
+import {
+  COLLAB_EVENT_TYPES,
+  MESSAGE_STATES,
+  isCollabEventType,
+  legacyStatusToState,
+  normalizeEntry,
+  normalizeEscalation,
+  stateToLegacyStatus,
+  type BlackboardEntry,
+  type CollabEventType,
+  type CollabLane,
+  type Escalation,
+  type MessageState,
+  type MessageTransition,
+} from './collabContract'
 
-export { WS_EVENT_TYPES }
+export { WS_EVENT_TYPES, COLLAB_EVENT_TYPES }
 
 export type WSEventType = (typeof WS_EVENT_TYPES)[keyof typeof WS_EVENT_TYPES]
 
+/** Every build event this client understands: the generated enum plus the
+ * collaboration protocol v2 events (lib/collabContract.ts). */
+export type BuildEventType = WSEventType | CollabEventType
+
 export type WSTimestamp = string
 
-export type WSEventBase<TType extends WSEventType, TData> = {
+export type WSEventBase<TType extends BuildEventType, TData> = {
   type: TType
   build_id: string
   data: TData
@@ -45,10 +64,23 @@ export type BuildCompleteEvent = WSEventBase<
 // before it even starts) until the user responds via POST
 // /builds/{id}/gate, or gate_timeout_seconds elapses and the backend
 // auto-approves. See backend/core/orchestrator.py's _wait_for_gate.
-export type GateRequestEvent = WSEventBase<
-  'gate_request',
-  { gate_id: string; stage: string; agent: string; kind: 'approval' | 'questions'; questions: string[]; timeout_seconds: number; requested_at: string }
->
+// Protocol v2 adds kind "escalation", answered with action "answers" and
+// answers[0] = the chosen option.
+export type GateKind = 'approval' | 'questions' | 'escalation'
+export interface GateRequestData {
+  gate_id: string
+  stage: string
+  agent: string
+  kind: GateKind
+  questions: string[]
+  timeout_seconds: number
+  requested_at: string
+  escalation_id?: string
+  subject?: string
+  detail?: string
+  options?: string[]
+}
+export type GateRequestEvent = WSEventBase<'gate_request', GateRequestData>
 export type GateResolvedEvent = WSEventBase<
   'gate_resolved',
   { gate_id: string; stage: string; agent: string; action: string; auto: boolean }
@@ -56,6 +88,7 @@ export type GateResolvedEvent = WSEventBase<
 // Agent-to-agent request/reply, routed by the backend orchestrator (see
 // backend/core/agent_communication.py). One request event when a question
 // is recorded, one response event when it is answered or turned away.
+// Protocol v2 keeps the legacy keys and adds the v2 ones (optional here).
 export type AgentMessageStatus = 'pending' | 'answered' | 'rejected' | 'timeout' | 'failed'
 export interface AgentMessageData {
   message_id: string
@@ -75,6 +108,15 @@ export interface AgentMessageData {
   created_at?: string
   resolved_at?: string | null
   duration_ms?: number | null
+  // Protocol v2
+  protocol_version?: number
+  state?: MessageState
+  lane?: CollabLane
+  subject?: string | null
+  content?: string
+  payload?: unknown
+  parent_message_id?: string | null
+  transitions?: MessageTransition[]
 }
 export type AgentMessageRequestEvent = WSEventBase<'agent_message_request', AgentMessageData>
 export type AgentMessageResponseEvent = WSEventBase<'agent_message_response', AgentMessageData>
@@ -83,6 +125,9 @@ export type StreamTokenEvent = WSEventBase<'stream_token', { agent?: string; tok
 export type DebugStartEvent = WSEventBase<'debug_start', { iteration?: number; errors?: any }>
 export type CreditsUpdateEvent = WSEventBase<'credits_update', { credits_used?: number }>
 export type ErrorEvent = WSEventBase<'error', { error?: string; agent?: string }>
+export type CollabDecisionRecordedEvent = WSEventBase<'collab_decision_recorded', { entry: BlackboardEntry }>
+export type CollabEscalationOpenedEvent = WSEventBase<'collab_escalation_opened', { escalation: Escalation }>
+export type CollabEscalationResolvedEvent = WSEventBase<'collab_escalation_resolved', { escalation: Escalation }>
 
 export type AnyWSEvent =
   | BuildStartEvent
@@ -102,6 +147,9 @@ export type AnyWSEvent =
   | DebugStartEvent
   | CreditsUpdateEvent
   | ErrorEvent
+  | CollabDecisionRecordedEvent
+  | CollabEscalationOpenedEvent
+  | CollabEscalationResolvedEvent
 
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -112,8 +160,60 @@ function isString(value: unknown): value is string {
   return typeof value === 'string'
 }
 
-export function isValidBuildEventType(t: unknown): t is WSEventType {
-  return typeof t === 'string' && Object.values(WS_EVENT_TYPES).includes(t as any)
+export function isValidBuildEventType(t: unknown): t is BuildEventType {
+  return (typeof t === 'string' && Object.values(WS_EVENT_TYPES).includes(t as any)) || isCollabEventType(t)
+}
+
+const LEGACY_STATUSES: readonly string[] = ['pending', 'answered', 'rejected', 'timeout', 'failed']
+
+/**
+ * Accepts both message shapes: v1 (`question` + `status`) and v2, which may
+ * carry `content` and `state` instead. The result always has the legacy
+ * `question` and `status` filled in, so v1 consumers keep working.
+ */
+function normalizeAgentMessageData(data: Record<string, unknown>): AgentMessageData | null {
+  if (!isString(data.message_id) || !isString(data.sender) || !isString(data.recipient)) return null
+  const question = isString(data.question) ? data.question : isString(data.content) ? data.content : null
+  if (question === null) return null
+  const state = (MESSAGE_STATES as readonly string[]).includes(data.state as string)
+    ? (data.state as MessageState)
+    : null
+  let status: AgentMessageStatus
+  if (isString(data.status) && LEGACY_STATUSES.includes(data.status)) status = data.status as AgentMessageStatus
+  else if (state) status = stateToLegacyStatus(state)
+  else return null
+  return {
+    ...data,
+    conversation_id: isString(data.conversation_id) ? data.conversation_id : '',
+    message_type: isString(data.message_type) ? data.message_type : 'clarification',
+    question,
+    status,
+    state: state ?? legacyStatusToState(status, data.delivery_attempts, data.reason),
+    credits_charged: typeof data.credits_charged === 'number' ? data.credits_charged : 0,
+  } as AgentMessageData
+}
+
+function normalizeGateRequest(data: Record<string, unknown>): GateRequestData | null {
+  if (!isString(data.gate_id)) return null
+  const kind: GateKind = data.kind === 'questions' || data.kind === 'escalation' ? data.kind : 'approval'
+  const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter(isString) : [])
+  const gate: GateRequestData = {
+    ...data,
+    gate_id: data.gate_id,
+    stage: isString(data.stage) ? data.stage : '',
+    agent: isString(data.agent) ? data.agent : '',
+    kind,
+    questions: strings(data.questions),
+    timeout_seconds: typeof data.timeout_seconds === 'number' ? data.timeout_seconds : 0,
+    requested_at: isString(data.requested_at) ? data.requested_at : '',
+  }
+  if (kind === 'escalation') {
+    gate.escalation_id = isString(data.escalation_id) ? data.escalation_id : undefined
+    gate.subject = isString(data.subject) ? data.subject : undefined
+    gate.detail = isString(data.detail) ? data.detail : undefined
+    gate.options = strings(data.options)
+  }
+  return gate
 }
 
 /**
@@ -167,23 +267,22 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
     case WS_EVENT_TYPES.build_complete:
       if (!isRecord(data)) return null
       return raw as BuildCompleteEvent
-    case WS_EVENT_TYPES.gate_request:
-      if (!isRecord(data) || !isString((data as any).gate_id) || !isString((data as any).agent)) return null
-      return raw as GateRequestEvent
+    case WS_EVENT_TYPES.gate_request: {
+      const gate = isRecord(data) ? normalizeGateRequest(data) : null
+      if (!gate) return null
+      return { ...raw, data: gate } as GateRequestEvent
+    }
     case WS_EVENT_TYPES.gate_resolved:
       if (!isRecord(data) || !isString((data as any).gate_id)) return null
       return raw as GateResolvedEvent
     case WS_EVENT_TYPES.agent_message_request:
-    case WS_EVENT_TYPES.agent_message_response:
-      if (
-        !isRecord(data) ||
-        !isString((data as any).message_id) ||
-        !isString((data as any).sender) ||
-        !isString((data as any).recipient) ||
-        !isString((data as any).question) ||
-        !isString((data as any).status)
-      ) return null
-      return raw as AgentMessageRequestEvent | AgentMessageResponseEvent
+    case WS_EVENT_TYPES.agent_message_response: {
+      // Relaxed for protocol v2: `content`/`state` are accepted in place of
+      // `question`/`status` (which v2 still sends, for older clients).
+      const message = isRecord(data) ? normalizeAgentMessageData(data) : null
+      if (!message) return null
+      return { ...raw, data: message } as AgentMessageRequestEvent | AgentMessageResponseEvent
+    }
     case WS_EVENT_TYPES.build_failed:
       if (!isRecord(data)) return null
       return raw as BuildFailedEvent
@@ -199,9 +298,19 @@ export function parseWSEvent(raw: unknown): AnyWSEvent | null {
     case WS_EVENT_TYPES.error:
       if (!isRecord(data)) return null
       return raw as ErrorEvent
+    case COLLAB_EVENT_TYPES.collab_decision_recorded: {
+      const entry = isRecord(data) ? normalizeEntry(data.entry) : null
+      if (!entry) return null
+      return { ...raw, data: { entry } } as CollabDecisionRecordedEvent
+    }
+    case COLLAB_EVENT_TYPES.collab_escalation_opened:
+    case COLLAB_EVENT_TYPES.collab_escalation_resolved: {
+      const escalation = isRecord(data) ? normalizeEscalation(data.escalation) : null
+      if (!escalation) return null
+      return { ...raw, data: { escalation } } as CollabEscalationOpenedEvent | CollabEscalationResolvedEvent
+    }
     default:
       return null
   }
 
 }
-

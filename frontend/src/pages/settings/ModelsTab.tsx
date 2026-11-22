@@ -4,6 +4,8 @@ import { toast } from "react-hot-toast";
 import { authApi } from "../../lib/api";
 import { LIVE_MODE } from "../../lib/env";
 import { useAuthStore } from "../../store/authStore";
+import { BYOK_DISCLOSURE_ENABLED } from "../../lib/byokDisclosure";
+import { ByokDisclosure } from "../../components/byok/ByokDisclosure";
 import type { ModelPreferences } from "./types";
 
 const POPULAR_MODELS = {
@@ -242,6 +244,8 @@ export function ModelsTab() {
         {/* Credentials Form for BYOK */}
         {provider !== "forge" && (
           <form onSubmit={handleSave} className="space-y-5 pt-4 border-t border-border-soft">
+            {/* B1-8: shown before a key is entered and saved (plan §5.6). */}
+            {BYOK_DISCLOSURE_ENABLED && <ByokDisclosure />}
             <div className="space-y-1.5">
               <label htmlFor="model-api-key-input" className="text-xs font-medium text-ink flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
