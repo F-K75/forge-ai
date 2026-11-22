@@ -13,7 +13,6 @@ Uses the stub-agent pattern of test_agent_communication.py. The
 endpoint is covered in test_collaboration_api.py.
 """
 
-import asyncio
 import json
 
 import pytest
