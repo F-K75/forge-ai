@@ -1,0 +1,135 @@
+# Collaboration protocol v2: shared contract
+
+**Status:** implementation contract for the parallel work on agent
+collaboration (backend) and the collaboration panel (frontend). It extends
+`core/agent_communication.py`; there is no second orchestration engine. The
+background and rationale are in `agent-collaboration-plan.md` (Revision 1 §4.2–§4.5,
+Phases 1, 2 and 4; Revision 3 decisions B, D, E and F).
+
+## 1. Flag and snapshot
+
+| Item | Value |
+|---|---|
+| Setting | `collab_protocol_v2: bool = False` in `core/config.py` (env `COLLAB_PROTOCOL_V2`) |
+| Snapshot | At build start the orchestrator writes `build.collab_config = {"protocol_version": 2, "routes": [...], "limits": {...}}`. A resumed build uses its snapshot, never the current setting |
+| Off | Behaviour is identical to today: only Developer → Architect clarifications, same events, same charges. Every existing test keeps passing |
+
+## 2. Message (extends `AgentMessage` in place)
+
+All new fields are optional with defaults, so stored v1 documents still load.
+
+| Field | Type | Notes |
+|---|---|---|
+| `message_type` | `clarification` (default) · `information` · `review_request` · `review_response` · `revision_request` · `finding` · `decision_proposal` · `escalation` | |
+| `state` | `queued` · `dispatched` · `completed` · `rejected` · `timed_out` · `interrupted` · `failed` | v2 lifecycle. Legacy `status` is still written, mapped per Revision 1 §4.3 |
+| `subject`, `content`, `payload`, `artifact_refs`, `parent_message_id` | | `content` mirrors `question` |
+| `lane` | `activity` · `decisions` · `escalations` | |
+| `token_usage`, `provider_request_ids` | | Filled when available |
+| `transitions` | `[{state, at, reason}]` | Append-only |
+
+## 3. Routes
+
+Default deny. A route is `(sender, recipient, message_type)`. The sender is
+always the stage the orchestrator is running, never chosen by a model. With
+v2 on, the initial table is:
+
+| Sender | Recipient | Type | Why |
+|---|---|---|---|
+| developer | architect | clarification | Existing route |
+| developer | designer | clarification | Second real route (Rev 1 P1-8) |
+| integration | architect | clarification | Integration contracts |
+| designer | architect | clarification | Structure questions |
+
+Limits per build (settings, snapshotted): `collab_max_messages_per_build`
+(default 6), `collab_message_timeout_s`, credit cost per answered question as
+today, never beyond the reservation ceiling. BYOK: unmetered credits, limits
+still apply.
+
+## 4. Decisions lane: blackboard
+
+`build.blackboard: list[BlackboardEntry]`, written only by the orchestrator.
+
+```json
+{
+  "entry_id": "uuid",
+  "key": "data.amount_representation",
+  "kind": "decision | assumption | open_question | risk | constraint",
+  "value": "Store amounts as integer cents",
+  "rationale": "string",
+  "owner_agent": "architect",
+  "source_message_id": "uuid | null",
+  "version": 1,
+  "created_at": "iso8601",
+  "superseded_by": null
+}
+```
+
+- An answered clarification becomes a `decision` entry. Downstream agents get
+  the decisions from the blackboard instead of an ad hoc kwarg.
+- The same `key` with a different `value` **never overwrites**: it opens an
+  escalation.
+
+## 5. Escalations lane
+
+`build.escalations: list[Escalation]`
+
+```json
+{
+  "escalation_id": "uuid",
+  "raised_by": "developer",
+  "decision_owner": "architect",
+  "subject": "string",
+  "detail": "string",
+  "options": ["string"],
+  "conflict": {"key": "...", "existing_value": "...", "proposed_value": "..."},
+  "state": "open | resolved | expired",
+  "resolution": "string | null",
+  "resolved_by": "agent:architect | user | default",
+  "rationale": "string | null",
+  "created_at": "iso8601",
+  "resolved_at": "iso8601 | null"
+}
+```
+
+- **Non-interactive builds:** the decision owner (architect owns structure and
+  data, designer owns UI) resolves it; the result is recorded with a rationale.
+- **Interactive builds:** a gate with `kind = "escalation"` is raised through
+  the existing `Orchestrator._wait_for_gate`. Its data carries
+  `escalation_id`, `subject`, `detail` and `options`. The user answers with the
+  existing `POST /builds/{id}/gate` and `action = "answers"`, `answers[0]` =
+  the chosen option. On gate timeout, the decision owner resolves it
+  (`resolved_by = "default"`).
+
+## 6. Events
+
+| Event | Data |
+|---|---|
+| `agent_message_request`, `agent_message_response` (existing) | Legacy keys kept (`question`, `answer`, `status`, `credits_used`) plus `protocol_version: 2`, `message_type`, `state`, `lane`, `subject`, `payload`, `parent_message_id` |
+| `collab_decision_recorded` (new) | `{"entry": BlackboardEntry}` |
+| `collab_escalation_opened` (new) | `{"escalation": Escalation}` |
+| `collab_escalation_resolved` (new) | `{"escalation": Escalation}` |
+| `gate_request` (existing) | `kind = "escalation"` adds `escalation_id`, `subject`, `detail`, `options` |
+
+The Activity lane is the existing agent lifecycle events plus message events.
+`frontend/src/lib/generated/wsEvents.ts` is regenerated by
+`backend/scripts/export_ws_events.py`; it is never edited by hand.
+
+## 7. Hydration endpoint
+
+`GET /builds/{build_id}/collaboration` (same access check as the other build
+endpoints):
+
+```json
+{
+  "protocol_version": 1,
+  "messages": [],
+  "decisions": [],
+  "escalations": [],
+  "budget": {"credits_used": 0, "reserved_credits": 0, "messages_used": 0, "max_messages": 0}
+}
+```
+
+Legacy builds return `protocol_version: 1`, their messages and empty
+decisions and escalations. The client hydrates on every (re)connect, then
+applies events, de-duplicating by id and never moving a record back to an
+earlier state.
