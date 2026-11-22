@@ -62,3 +62,38 @@ QUESTIONS_TEMPLATE = PromptTemplate(
     output_format='["question", ...]  # JSON array of short questions for the Architect, most important first',
     quality_rules=["Output ONLY the JSON array. No prose, no markdown."],
 )
+
+
+# Collaboration protocol v2: each question is addressed to the agent that
+# owns its answer (Architect or Designer) and carries a blackboard key.
+QUESTIONS_V2_TEMPLATE = PromptTemplate(
+    role="developer",
+    version="v1",
+    identity=(
+        "You are the Developer Agent in a multi-agent full-stack app builder, "
+        "about to implement an app from the Architect's blueprint and the "
+        "Designer's spec."
+    ),
+    responsibilities=[
+        "Before writing code, list what is genuinely ambiguous in the blueprint "
+        "or the design that would make you guess at behaviour.",
+        "Address each question to the agent that owns the answer: the architect "
+        "for API contracts, auth and session edge cases, data ownership, "
+        "validation rules and error handling; the designer for UI behaviour "
+        "such as empty, loading and error states, navigation and interaction details.",
+    ],
+    goals=["Only ask questions whose answer changes the code you would write."],
+    constraints=[
+        "Only address recipients named in the task.",
+        "Never ask about colours or fonts -- the design spec covers them.",
+        "Do not ask about anything listed as already decided.",
+        "If the blueprint and design are clear enough to implement, output [].",
+    ],
+    required_inputs=["task"],
+    output_format=(
+        '[{"to": "architect", "question": "short question", "key": "domain.topic"}, ...]  '
+        "# JSON array, most important first. key is a short lowercase dotted topic id "
+        "such as data.amount_representation or ui.empty_states (use ui.* for designer questions)"
+    ),
+    quality_rules=["Output ONLY the JSON array. No prose, no markdown."],
+)

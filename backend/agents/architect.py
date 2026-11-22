@@ -1,5 +1,6 @@
 from agents.base import BaseAgent
 from agents.structured_schemas import ARCHITECT_BLUEPRINT_SCHEMA
+from core.collaboration import render_decisions_block, untrusted_block
 from core.models import AgentType
 from typing import Optional
 import json
@@ -64,17 +65,37 @@ class ArchitectAgent(BaseAgent):
             org_id=org_id,
         )
 
-    async def answer(self, question: str, blueprint: dict, design: Optional[dict] = None, user_id: str = None, build_id: str = None, project_id: str = None, org_id: str = None) -> str:
+    async def answer(
+        self,
+        question: str,
+        blueprint: dict,
+        design: Optional[dict] = None,
+        user_id: str = None,
+        build_id: str = None,
+        project_id: str = None,
+        org_id: str = None,
+        asker: Optional[str] = None,
+        decisions: Optional[list] = None,
+    ) -> str:
         """Answer another agent's clarifying question about this build's
         blueprint. Routed here only by core/agent_communication.py -- agents
         never call this directly -- which owns authorization, timeouts,
         credit accounting and persistence. Raises on LLM failure or an empty
-        answer so the caller can record the exchange as failed."""
+        answer so the caller can record the exchange as failed.
+
+        asker / decisions (collaboration protocol v2): which agent asked --
+        its question is then passed as untrusted data -- and the blackboard's
+        decisions so far, so the answer stays consistent with them."""
         context = f"Blueprint:\n{json.dumps(blueprint, indent=2)}"
         if design:
             context += f"\n\nDesign:\n{json.dumps(design, indent=2)}"
+        if asker:
+            context += render_decisions_block(decisions or [], "Decisions already recorded for this build (stay consistent with them):")
+            content = f"{context}\n\nQuestion from the {asker.capitalize()}:\n{untrusted_block(asker, question)}"
+        else:
+            content = f"{context}\n\nQuestion from the Developer:\n{question}"
         response = await self.run(
-            [{"role": "user", "content": f"{context}\n\nQuestion from the Developer:\n{question}"}],
+            [{"role": "user", "content": content}],
             max_tokens=400,
             user_id=user_id,
             build_id=build_id,
