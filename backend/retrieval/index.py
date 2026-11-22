@@ -66,13 +66,15 @@ class SemanticIndex:
         keyword_filter: Optional[str] = None,
         min_score: float = 0.0,
     ) -> List[RetrievedChunk]:
+        # Tenant scope is mandatory (F28): without an org_id the candidate
+        # set would span every organization's indexed sources.
+        if not org_id:
+            raise ValueError("SemanticIndex.search requires org_id")
         collection = await self._collection()
 
-        query: Dict[str, Any] = {}
+        query: Dict[str, Any] = {"org_id": org_id}
         if source_types:
             query["source_type"] = {"$in": [st.value for st in source_types]}
-        if org_id:
-            query["org_id"] = org_id
         if project_id:
             query["project_id"] = project_id
         if keyword_filter:

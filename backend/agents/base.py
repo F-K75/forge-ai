@@ -256,6 +256,12 @@ class BaseAgent:
             include_file_contents=True,
             max_files=10,
         )
+        # Agent context assembly is the build path (F28): semantic retrieval
+        # here stays off unless `build_path_retrieval` is on, and is always
+        # scoped to the build's org and project (BY-10).
+        from core.processing_boundary import current_build_scope
+
+        scope = current_build_scope()
         ctx = await self.context_assembler.assemble(
             role=self.prompt_role or "unknown",
             task=task,
@@ -263,6 +269,9 @@ class BaseAgent:
             user_request=user_request,
             previous_outputs=previous_outputs or {},
             extra_state=project_state,
+            org_id=scope.org_id if scope else None,
+            project_id=scope.project_id if scope else None,
+            build_path=True,
         )
         return ctx
 
