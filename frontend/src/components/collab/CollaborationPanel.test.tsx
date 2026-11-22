@@ -208,4 +208,48 @@ describe('CollaborationPanel: protocol v2', () => {
     expect(within(screen.getByRole('region', { name: /Decisions/ })).getByText('Propose: use cents')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: /Activity/ })).queryByText('Propose: use cents')).not.toBeInTheDocument()
   })
+
+  it('shows a superseded decision as replaced inside its new version, not as a duplicate', () => {
+    v2()
+    const base = {
+      key: 'data.amount_representation',
+      kind: 'decision',
+      rationale: null,
+      owner_agent: 'architect',
+      source_message_id: null,
+      created_at: '2026-11-22T10:00:03',
+    }
+    send('collab_decision_recorded', { entry: { ...base, entry_id: 'e1', value: 'Integer cents', version: 1, superseded_by: null } })
+    // The backend re-sends the old entry with superseded_by set, then the new version.
+    send('collab_decision_recorded', { entry: { ...base, entry_id: 'e1', value: 'Integer cents', version: 1, superseded_by: 'e2' } })
+    send('collab_decision_recorded', {
+      entry: { ...base, entry_id: 'e2', value: 'Decimal strings', version: 2, owner_agent: 'user', created_at: '2026-11-22T10:00:09', superseded_by: null },
+    })
+    render(<CollaborationPanel />)
+    const lane = screen.getByRole('region', { name: /Decisions/ })
+    const cards = within(lane).getAllByTestId('collab-decision')
+    expect(cards).toHaveLength(1)
+    expect(within(cards[0]).getByText('Decimal strings')).toBeInTheDocument()
+    const replaced = within(cards[0]).getByRole('list', { name: 'Replaced versions' })
+    expect(replaced).toHaveTextContent('Integer cents')
+    expect(replaced).toHaveTextContent('v1')
+  })
+
+  it("can leave the decision to the decision owner (plain approve)", async () => {
+    v2()
+    send('collab_escalation_opened', { escalation })
+    send('gate_request', gate)
+    mocks.respondToGate.mockResolvedValue({ status: 'ok' })
+    render(<CollaborationPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'Let Architect decide' }))
+    await waitFor(() => expect(mocks.respondToGate).toHaveBeenCalledWith('b1', { gate_id: 'g1', action: 'approve' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Left it to Architect')
+  })
+
+  it('explains the v2 refusal reasons', () => {
+    v2()
+    send('agent_message_response', { ...message, message_id: 'r1', status: 'rejected', state: 'rejected', answer: null, reason: 'message_limit', protocol_version: 2 })
+    render(<CollaborationPanel />)
+    expect(screen.getByText(/No answer — message limit reached/)).toBeInTheDocument()
+  })
 })

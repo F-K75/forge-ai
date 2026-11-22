@@ -170,7 +170,47 @@ function StepItem({ step, buildEnded }: { step: StepRecord; buildEnded: boolean 
   );
 }
 
-function DecisionItem({ e }: { e: BlackboardEntry }) {
+/** A current entry and the earlier versions it replaced (newest first). */
+interface DecisionChain {
+  entry: BlackboardEntry;
+  replaced: BlackboardEntry[];
+}
+
+/**
+ * The backend re-sends a superseded entry with `superseded_by` set, then the
+ * new version. Group each chain under its newest entry so a replacement
+ * reads as one decision that changed, not as two decisions.
+ */
+function decisionChains(entries: BlackboardEntry[]): DecisionChain[] {
+  const byId = new Map(entries.map((e) => [e.entry_id, e]));
+  const predecessors = new Map<string, BlackboardEntry[]>();
+  for (const e of entries) {
+    if (e.superseded_by && byId.has(e.superseded_by)) {
+      predecessors.set(e.superseded_by, [...(predecessors.get(e.superseded_by) ?? []), e]);
+    }
+  }
+  // Heads: not superseded, or superseded by an entry that hasn't arrived yet.
+  const heads = entries.filter((e) => !e.superseded_by || !byId.has(e.superseded_by));
+  return heads.map((entry) => {
+    const replaced: BlackboardEntry[] = [];
+    const seen = new Set([entry.entry_id]);
+    let frontier = predecessors.get(entry.entry_id) ?? [];
+    while (frontier.length > 0) {
+      const next: BlackboardEntry[] = [];
+      for (const p of [...frontier].sort((a, b) => b.version - a.version)) {
+        if (seen.has(p.entry_id)) continue;
+        seen.add(p.entry_id);
+        replaced.push(p);
+        next.push(...(predecessors.get(p.entry_id) ?? []));
+      }
+      frontier = next;
+    }
+    return { entry, replaced };
+  });
+}
+
+function DecisionItem({ e, replaced = [] }: { e: BlackboardEntry; replaced?: BlackboardEntry[] }) {
+  // Only an entry whose replacement hasn't arrived yet is shown as superseded on its own.
   const superseded = Boolean(e.superseded_by);
   return (
     <li className={`rounded-lg border border-border p-3 text-xs ${superseded ? "bg-base/50" : "bg-panel-alt/60"}`} data-testid="collab-decision">
@@ -186,8 +226,25 @@ function DecisionItem({ e }: { e: BlackboardEntry }) {
       {e.rationale && <p className="mt-1 whitespace-pre-wrap text-muted">{e.rationale}</p>}
       <p className="mt-2 text-[11px] text-muted">
         {e.owner_agent ? `Owner: ${agentLabel(e.owner_agent)}` : null}
-        {superseded && <span className="font-medium text-ink">{e.owner_agent ? " · " : ""}Superseded</span>}
+        {superseded && <span className="font-medium text-ink">{e.owner_agent ? " · " : ""}Replaced</span>}
       </p>
+      {replaced.length > 0 && (
+        <div className="mt-2 border-t border-border pt-2">
+          <p className="text-[11px] font-medium text-ink">Replaces</p>
+          <ul className="mt-1 space-y-1" aria-label="Replaced versions">
+            {replaced.map((r) => (
+              <li key={r.entry_id} className="text-[11px] text-muted">
+                <span className="line-through decoration-muted">{r.value}</span>
+                <span>
+                  {" "}
+                  (v{r.version}
+                  {r.owner_agent ? `, ${agentLabel(r.owner_agent)}` : ""})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </li>
   );
 }
@@ -195,7 +252,8 @@ function DecisionItem({ e }: { e: BlackboardEntry }) {
 interface EscalationItemProps {
   e: Escalation;
   gate: PendingGate | null;
-  onAnswer: (gate: PendingGate, option: string) => void;
+  /** `option` null = accept the decision owner's recommendation (action "approve"). */
+  onAnswer: (gate: PendingGate, option: string | null) => void;
   sending: string | null;
   sent: string | null;
 }
@@ -240,7 +298,9 @@ function EscalationItem({ e, gate, onAnswer, sending, sent }: EscalationItemProp
         <div className="mt-3">
           {sent ? (
             <p className="text-ink" role="status">
-              Sent “{sent}”. Waiting for the build to continue…
+              {sent === OWNER_CHOICE
+                ? `Left it to ${agentLabel(e.decision_owner)}. Waiting for the build to continue…`
+                : `Sent “${sent}”. Waiting for the build to continue…`}
             </p>
           ) : (
             <>
@@ -260,6 +320,14 @@ function EscalationItem({ e, gate, onAnswer, sending, sent }: EscalationItemProp
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                disabled={sending !== null}
+                onClick={() => onAnswer(gate, null)}
+                className="mt-2 text-xs font-medium text-accent underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {sending === OWNER_CHOICE ? "Sending…" : `Let ${agentLabel(e.decision_owner ?? gate.agent)} decide`}
+              </button>
             </>
           )}
         </div>
@@ -325,6 +393,9 @@ function byTime<T>(list: T[], at: (t: T) => string | null): T[] {
   return chronological(list.map((item) => ({ item, at: timeOf(at(item)) }))).map((x) => x.item);
 }
 
+/** Marks the "let the decision owner decide" answer in local UI state. */
+const OWNER_CHOICE = "\u0000owner";
+
 const errorStatus = (err: unknown) => (err as { response?: { status?: number } })?.response?.status;
 
 export function CollaborationPanel() {
@@ -364,16 +435,24 @@ export function CollaborationPanel() {
     return [...byTime(list.filter((e) => e.state === "open"), (e) => e.created_at), ...byTime(list.filter((e) => e.state !== "open"), (e) => e.created_at)];
   }, [escalations, escalationGate]);
 
-  const answer = async (gate: PendingGate, option: string) => {
+  // answers[0] = the chosen option resolves it as the user's decision; a
+  // plain approve accepts the decision owner's recommendation.
+  const answer = async (gate: PendingGate, option: string | null) => {
     if (!buildId) return;
-    setSending({ gateId: gate.gateId, option });
+    const marker = option ?? OWNER_CHOICE;
+    setSending({ gateId: gate.gateId, option: marker });
     try {
       if (LIVE_MODE) {
-        await buildsApi.respondToGate(buildId, { gate_id: gate.gateId, action: "answers", answers: [option] });
+        await buildsApi.respondToGate(
+          buildId,
+          option === null
+            ? { gate_id: gate.gateId, action: "approve" }
+            : { gate_id: gate.gateId, action: "answers", answers: [option] },
+        );
       } else {
-        resolveMockGate(gate.gateId, { action: "answers", answers: [option] });
+        resolveMockGate(gate.gateId, option === null ? { action: "approve" } : { action: "answers", answers: [option] });
       }
-      setSent({ gateId: gate.gateId, option });
+      setSent({ gateId: gate.gateId, option: marker });
     } catch (err) {
       const code = errorStatus(err);
       toast.error(code === 409 ? "This decision has already been made." : "Couldn’t send your answer. Please try again.");
@@ -395,7 +474,10 @@ export function CollaborationPanel() {
   }
 
   const decisionsLaneItems = chronological(
-    decisions.map((e) => ({ at: timeOf(e.created_at), node: <DecisionItem key={e.entry_id} e={e} /> })),
+    decisionChains(decisions).map(({ entry, replaced }) => ({
+      at: timeOf(entry.created_at),
+      node: <DecisionItem key={entry.entry_id} e={entry} replaced={replaced} />,
+    })),
     laneMessages("decisions").map((m) => ({ at: timeOf(m.created_at), node: <MessageItem key={m.message_id} m={m} /> })),
   );
   const escalationMessages = laneMessages("escalations");

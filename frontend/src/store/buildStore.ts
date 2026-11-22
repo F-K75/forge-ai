@@ -206,6 +206,9 @@ export const AGENT_MESSAGE_REASONS: Record<string, string> = {
   invalid_question: 'empty question',
   empty_answer: 'no answer returned',
   interrupted: 'interrupted by a restart',
+  // Protocol v2 refusals (backend core/collaboration.py)
+  message_limit: 'message limit reached',
+  time_budget: 'out of time for this build',
 }
 
 function agentMessageState(m: AgentMessageData): MessageState {
