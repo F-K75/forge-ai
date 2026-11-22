@@ -3,7 +3,8 @@ import json
 import logging
 import time
 import uuid
-from typing import Awaitable, Callable, Optional
+from dataclasses import dataclass
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from agents.architect import ArchitectAgent
 from agents.designer import DesignerAgent
@@ -12,10 +13,12 @@ from agents.integration import IntegrationAgent
 from agents.pm import PMAgent
 from agents.business_model import BusinessModelAgent
 from agent_registry import get_agent_registry
+from core import collaboration as collab
 from core.agent_communication import CommunicationPolicy, InProcessAgentCommunication
+from core.collaboration import AGENT_CAPABILITIES, CollabConfig
 from core.models import (
-    AgentMessageStatus, Build, BuildStatus, AgentStep, AgentType, WSEvent,
-    WSEventType, PlanTier, utcnow,
+    AgentMessage, AgentMessageStatus, Build, BuildStatus, AgentStep, AgentType,
+    Escalation, EscalationState, WSEvent, WSEventType, PlanTier, utcnow,
 )
 from core.specialist_shadow import launch_shadow_comparison
 from core.config import get_settings
@@ -60,6 +63,24 @@ _AGENT_TYPE_ROLE_DEPARTMENT = {
 class BuildCancelled(Exception):
     """User declined an interactive gate. Distinct from generic failures so
     tasks/build_tasks.py never auto-retries a build the user chose to stop."""
+
+
+# An interactive escalation gate shorter than this is not worth showing; the
+# decision owner decides instead (resolved_by = "default").
+_MIN_ESCALATION_GATE_SECONDS = 10.0
+
+
+@dataclass
+class _CollabRun:
+    """Per-build, per-attempt state of collaboration protocol v2. Never
+    stored on the Orchestrator, which is a singleton shared by every
+    concurrent build."""
+
+    config: CollabConfig
+    byok_active: bool
+    reserved_credits: Optional[int]
+    # time.monotonic() at which this attempt's build_timeout runs out.
+    deadline: float
 
 
 class Orchestrator:
@@ -132,6 +153,10 @@ class Orchestrator:
                 build_id=build.id,
                 data={"project_id": build.project_id}
             ))
+
+            # Collaboration protocol v2: None means the legacy flow (flag off,
+            # or a build that started without a v2 snapshot).
+            collab_run = await self._start_collaboration(build, byok_active, reserved_credits)
 
             # --- 1. ARCHITECT ---
             architect_recovered, blueprint = self._try_recover_json(build, AgentType.ARCHITECT)
@@ -230,7 +255,13 @@ class Orchestrator:
                 logger.info("Build %s: resuming -- designer already SUCCESS, skipping.", build.id)
             else:
                 await self._start_agent(build, AgentType.DESIGNER, emit, skip_credits=byok_active)
-                design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
+                design_kwargs = {}
+                if collab_run is not None:
+                    await self._run_stage_clarifications(
+                        build, collab_run, AgentType.DESIGNER, emit, blueprint=blueprint,
+                    )
+                    design_kwargs = self._decisions_kwargs(build)
+                design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id, **design_kwargs)
                 await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design))
 
                 await emit(WSEvent(
@@ -275,11 +306,21 @@ class Orchestrator:
                         data={"agent": "developer", "token": chunk}
                     ))
 
-                clarifications = await self._run_developer_clarifications(
-                    build, blueprint, design, emit,
-                    byok_active=byok_active, reserved_credits=reserved_credits,
-                )
-                extra_kwargs = {"clarifications": clarifications} if clarifications else {}
+                if collab_run is not None:
+                    # v2: questions may go to the Architect or the Designer;
+                    # answers land on the blackboard, and the Developer gets
+                    # the blackboard's decisions instead of `clarifications`.
+                    await self._run_stage_clarifications(
+                        build, collab_run, AgentType.DEVELOPER, emit,
+                        blueprint=blueprint, design=design,
+                    )
+                    extra_kwargs = self._decisions_kwargs(build)
+                else:
+                    clarifications = await self._run_developer_clarifications(
+                        build, blueprint, design, emit,
+                        byok_active=byok_active, reserved_credits=reserved_credits,
+                    )
+                    extra_kwargs = {"clarifications": clarifications} if clarifications else {}
                 files_result = await self.developer.generate_files(
                     blueprint, design, stream_callback=stream_token, existing_files=existing_files,
                     user_id=build.user_id, build_id=build.id, project_id=build.project_id,
@@ -338,7 +379,14 @@ class Orchestrator:
                     logger.info("Build %s: resuming -- integration already SUCCESS, skipping.", build.id)
                 else:
                     await self._start_agent(build, AgentType.INTEGRATION, emit, skip_credits=byok_active)
-                    int_result = await self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
+                    integration_kwargs = {}
+                    if collab_run is not None:
+                        await self._run_stage_clarifications(
+                            build, collab_run, AgentType.INTEGRATION, emit,
+                            blueprint=blueprint, design=design, integrations=integrations,
+                        )
+                        integration_kwargs = self._decisions_kwargs(build)
+                    int_result = await self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id, **integration_kwargs)
                     files.update(int_result.get("files", {}))
                     await persist_files(files)
                     await self._complete_agent(
@@ -441,6 +489,7 @@ class Orchestrator:
                 patched = await self.developer.patch_files(
                     files, "\n".join(errors), blueprint,
                     user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                    **(self._decisions_kwargs(build) if collab_run is not None else {}),
                 )
                 files.update(patched.get("files", {}))
                 await persist_files(files)
@@ -516,10 +565,20 @@ class Orchestrator:
         (when the blueprint has any), the first PM pass, and every remaining
         debug iteration (debugger + PM re-validation) up to
         MAX_DEBUG_ITERATIONS."""
+        return Orchestrator._worst_case_cost_after(build, blueprint, AgentType.DEVELOPER)
+
+    @staticmethod
+    def _worst_case_cost_after(build: Build, blueprint: dict, stage: AgentType) -> int:
+        """Most the stages after ``stage`` (whose own charge has already been
+        taken by _start_agent) can still charge, debug loop included. The
+        same set-aside rule as the legacy clarification policy, applied to
+        the Designer, Developer and Integration question passes."""
         remaining_debug = max(0, MAX_DEBUG_ITERATIONS - build.debug_iterations)
         cost = settings.credits_pm + remaining_debug * (settings.credits_debug + settings.credits_pm)
-        if blueprint.get("integrations"):
+        if stage in (AgentType.DESIGNER, AgentType.DEVELOPER) and blueprint.get("integrations"):
             cost += settings.credits_integration
+        if stage == AgentType.DESIGNER:
+            cost += settings.credits_developer
         return cost
 
     def _clarification_policy(
@@ -634,6 +693,398 @@ class Orchestrator:
             if m.status == AgentMessageStatus.ANSWERED and m.answer
         ]
 
+    # ------------------------------------------------------------------ #
+    # Collaboration protocol v2 (docs/architecture/collaboration-protocol-v2.md)
+    # ------------------------------------------------------------------ #
+
+    async def _start_collaboration(
+        self, build: Build, byok_active: bool, reserved_credits: Optional[int]
+    ) -> Optional[_CollabRun]:
+        """Decide which protocol this build runs, from its snapshot.
+
+        A first attempt (no steps recorded yet) with the flag on takes the
+        snapshot and persists it before anything else happens; if that write
+        fails the build runs the legacy protocol. A resumed build always uses
+        its snapshot -- or, without one, the legacy protocol -- whatever the
+        current setting says. Never raises."""
+        snapshot = build.collab_config
+        if snapshot is None:
+            if build.agents or not settings.collab_protocol_v2:
+                return None
+            build.collab_config = collab.build_collab_snapshot(settings, reserved_credits)
+            if not await self._persist_collab_state(build):
+                logger.warning("Build %s: could not persist the collaboration snapshot; running protocol v1.", build.id)
+                build.collab_config = None
+                return None
+            snapshot = build.collab_config
+        config = CollabConfig.from_snapshot(snapshot)
+        if config is None:
+            return None
+        return _CollabRun(
+            config=config,
+            byok_active=byok_active,
+            reserved_credits=reserved_credits,
+            deadline=time.monotonic() + settings.build_timeout,
+        )
+
+    async def _persist_collab_state(self, build: Build) -> bool:
+        """Write the snapshot and the Decisions/Escalations lanes. The task's
+        emit() persists agent_messages and credits but not these, so lane
+        events are persisted here before they are broadcast. Never raises."""
+        try:
+            db = await get_db()
+            await db.builds.update_one(
+                {"id": build.id},
+                {"$set": {
+                    "collab_config": build.collab_config,
+                    "blackboard": [e.model_dump() for e in build.blackboard],
+                    "escalations": [x.model_dump() for x in build.escalations],
+                }},
+            )
+            return True
+        except Exception:
+            logger.warning("Build %s: persisting collaboration state failed.", build.id, exc_info=True)
+            return False
+
+    @staticmethod
+    def _decisions_kwargs(build: Build) -> dict:
+        decisions = collab.decisions_for_prompt(build)
+        return {"decisions": decisions} if decisions else {}
+
+    def _pipeline_agents(self) -> Dict[str, Any]:
+        return {
+            "architect": self.architect,
+            "designer": self.designer,
+            "developer": self.developer,
+            "integration": self.integration,
+            "pm": self.pm,
+            "business_improver": self.business_model,
+        }
+
+    def _collab_responders(self, build: Build) -> Dict[str, Callable]:
+        """Responders registered from AGENT_CAPABILITIES, never ad hoc. Each
+        gets orchestrator-selected, build-scoped context only, plus the
+        blackboard's current decisions so its answer stays consistent."""
+        agents = self._pipeline_agents()
+        responders: Dict[str, Callable] = {}
+        for name, capability in AGENT_CAPABILITIES.items():
+            if not (capability.routable and capability.answers and capability.responder):
+                continue
+            method = getattr(agents.get(name), capability.responder, None)
+            if method is None:
+                continue
+
+            async def responder(question: str, context: dict, _method=method) -> Any:
+                return await _method(
+                    question, context.get("blueprint"), context.get("design"),
+                    asker=context.get("asker"),
+                    decisions=collab.decisions_for_prompt(build),
+                    user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                )
+
+            responders[name] = responder
+        return responders
+
+    def _collab_policy(self, build: Build, run: _CollabRun, blueprint: dict, stage: AgentType) -> CommunicationPolicy:
+        """Today's accounting semantics under the snapshot's limits: each
+        answered message costs the per-question credit cost, only out of
+        reservation headroom the rest of the pipeline provably cannot need;
+        BYOK is unmetered but still limited."""
+        ceiling: Optional[int]
+        if run.byok_active:
+            ceiling = None
+        else:
+            ceiling = (run.reserved_credits or 0) - self._worst_case_cost_after(build, blueprint, stage)
+        return CommunicationPolicy(
+            max_questions=run.config.max_messages,
+            credit_cost=run.config.credit_cost,
+            credit_ceiling=ceiling,
+            timeout_seconds=run.config.message_timeout_s,
+            max_question_chars=run.config.max_content_chars,
+            protocol_version=collab.PROTOCOL_VERSION,
+            routes=run.config.routes,
+            max_answer_chars=run.config.max_answer_chars,
+            deadline=run.deadline - run.config.time_reserve_s,
+        )
+
+    def _collab_comms(self, build: Build, emit: Callable, policy: CommunicationPolicy) -> InProcessAgentCommunication:
+        async def persist_lanes() -> None:
+            await self._persist_collab_state(build)
+
+        return InProcessAgentCommunication(
+            build, emit,
+            responders=self._collab_responders(build),
+            policy=policy,
+            capabilities=AGENT_CAPABILITIES,
+            persist_lanes=persist_lanes,
+        )
+
+    async def _identify_stage_questions(
+        self,
+        build: Build,
+        stage: AgentType,
+        limit: int,
+        recipients: List[str],
+        blueprint: dict,
+        design: Optional[dict],
+        integrations: Optional[list],
+    ) -> Any:
+        ids = {"user_id": build.user_id, "build_id": build.id, "project_id": build.project_id}
+        decisions = collab.decisions_for_prompt(build)
+        if stage == AgentType.DEVELOPER:
+            return await self.developer.identify_questions(
+                blueprint, design, limit, recipients=recipients, decisions=decisions, **ids,
+            )
+        if stage == AgentType.DESIGNER:
+            return await self.designer.identify_questions(
+                blueprint, limit, recipients=recipients, decisions=decisions, **ids,
+            )
+        if stage == AgentType.INTEGRATION:
+            return await self.integration.identify_questions(
+                integrations or [], blueprint, limit, recipients=recipients, decisions=decisions, **ids,
+            )
+        return []
+
+    async def _run_stage_clarifications(
+        self,
+        build: Build,
+        run: _CollabRun,
+        stage: AgentType,
+        emit: Callable,
+        blueprint: dict,
+        design: Optional[dict] = None,
+        integrations: Optional[list] = None,
+    ) -> None:
+        """v2 question pass for ``stage`` (Designer, Developer, Integration).
+
+        The stage proposes ``{to, question, key}`` items; the sender is the
+        stage itself, set here. Every question is recorded before any is
+        delivered; the router authorizes each against the snapshot's route
+        table. Answers become blackboard decisions; a conflicting answer
+        opens an escalation. On resume, messages this stage already recorded
+        are reused (answered ones without a new charge) and no fresh
+        question pass runs.
+
+        Never raises, except BuildCancelled (the user cancelled an
+        escalation gate): the build continues with whatever was decided."""
+        sender = stage.value
+        cap = run.config.stage_question_cap(sender)
+        recipients = run.config.recipients_for(sender)
+        if cap <= 0 or not recipients:
+            return
+        policy = self._collab_policy(build, run, blueprint, stage)
+        if policy.max_questions <= 0:
+            return
+        comms = self._collab_comms(build, emit, policy)
+        context = {"blueprint": blueprint, "design": design}
+
+        try:
+            messages = comms.messages_from(sender)
+            if not messages:
+                limit = min(cap, policy.max_questions - comms.delivered_count())
+                time_left = (policy.deadline or 0) - time.monotonic()
+                if limit <= 0 or time_left < 1:
+                    return
+                if not policy.can_afford(build.credits_used):
+                    logger.info(
+                        "Build %s: skipping %s clarifications -- no reservation headroom "
+                        "(reserved=%s, used=%s, ceiling=%s).",
+                        build.id, sender, run.reserved_credits, build.credits_used, policy.credit_ceiling,
+                    )
+                    return
+                try:
+                    raw = await asyncio.wait_for(
+                        self._identify_stage_questions(build, stage, limit, recipients, blueprint, design, integrations),
+                        timeout=min(policy.timeout_seconds, time_left),
+                    )
+                except Exception:
+                    logger.warning("Build %s: %s question pass failed; continuing without clarifications.", build.id, sender, exc_info=True)
+                    return
+                proposals = collab.normalize_question_proposals(raw, recipients[0], run.config.max_content_chars)[:limit]
+                if not proposals:
+                    return
+
+                await emit(WSEvent(
+                    type=WSEventType.AGENT_UPDATE,
+                    build_id=build.id,
+                    data={"agent": sender, "message": f"Asking {len(proposals)} clarifying question{'s' if len(proposals) != 1 else ''}"},
+                ))
+                conversation_id = str(uuid.uuid4())
+                refs = ["blueprint"] + (["design"] if design else [])
+                messages = []
+                for proposal in proposals:
+                    key = proposal["key"] or collab.fallback_key(proposal["question"], proposal["to"])
+                    messages.append(await comms.submit(
+                        sender, proposal["to"], proposal["question"],
+                        conversation_id=conversation_id, subject=key,
+                        payload={"decision_key": key}, artifact_refs=refs,
+                    ))
+            else:
+                logger.info("Build %s: resuming -- reusing %d recorded %s message(s).", build.id, len(messages), sender)
+
+            for message in messages:
+                await comms.resolve(message, context)
+                await self._apply_answer_to_blackboard(build, run, comms, emit, message)
+        except BuildCancelled:
+            raise
+        except Exception:
+            logger.warning("Build %s: %s clarification phase failed; continuing with answers so far.", build.id, sender, exc_info=True)
+
+    async def _apply_answer_to_blackboard(
+        self,
+        build: Build,
+        run: _CollabRun,
+        comms: InProcessAgentCommunication,
+        emit: Callable,
+        message: AgentMessage,
+    ) -> None:
+        """An answered clarification becomes a ``decision`` entry. The same
+        key with a different value never overwrites: it opens an escalation.
+        Idempotent, so a resumed build can replay it for every reused
+        message."""
+        if message.status != AgentMessageStatus.ANSWERED or not message.answer:
+            return
+        if collab.entry_for_message(build, message.message_id) is not None:
+            return
+        escalation = collab.escalation_for_message(build, message.message_id)
+        if escalation is not None:
+            if escalation.state == EscalationState.OPEN:
+                await self._settle_escalation(build, run, comms, emit, escalation)
+            return
+
+        key = collab.normalize_key(message.payload.get("decision_key")) or collab.fallback_key(message.question, message.recipient)
+        existing = collab.active_entry(build, key)
+        if existing is None:
+            await comms.record_decision(
+                key, message.answer, owner_agent=message.recipient,
+                rationale=collab.clean_text(f"Answer to the {message.sender}'s clarification: {message.question}", 600),
+                source_message_id=message.message_id,
+            )
+            return
+        if collab.same_value(existing.value, message.answer):
+            return
+
+        owner = collab.decision_owner_for(key)
+        escalation = await comms.escalate(
+            raised_by=message.sender,
+            decision_owner=owner,
+            subject=f"Conflicting decisions for {key}",
+            detail=(
+                f"Recorded by the {existing.owner_agent}: {existing.value}\n"
+                f"New answer from the {message.recipient} to the {message.sender}'s question "
+                f"\"{message.question}\": {message.answer}"
+            ),
+            options=[existing.value, message.answer],
+            conflict={
+                "key": key,
+                "existing_value": existing.value,
+                "proposed_value": message.answer,
+                "existing_entry_id": existing.entry_id,
+                "proposed_by": message.recipient,
+                "source_message_id": message.message_id,
+            },
+        )
+        await self._settle_escalation(build, run, comms, emit, escalation)
+
+    def _escalation_gate_wait(self, run: _CollabRun) -> Optional[float]:
+        """How long an escalation gate may wait: at most the snapshot's gate
+        timeout, and never into the time the rest of the pipeline needs.
+        None when that leaves too little to be worth asking."""
+        remaining = run.deadline - time.monotonic() - run.config.time_reserve_s
+        wait = min(run.config.escalation_gate_timeout_s, remaining)
+        return wait if wait >= _MIN_ESCALATION_GATE_SECONDS else None
+
+    async def _settle_escalation(
+        self,
+        build: Build,
+        run: _CollabRun,
+        comms: InProcessAgentCommunication,
+        emit: Callable,
+        escalation: Escalation,
+    ) -> None:
+        """Resolve an open escalation. Non-interactive builds: the decision
+        owner decides, with a recorded rationale. Interactive builds: the
+        user is asked through an ``escalation`` gate; if the gate times out
+        (or there is no time left to ask) the decision owner's default
+        applies (``resolved_by = "default"``). A resolution that changes the
+        value adds a new blackboard version superseding the old entry; the
+        escalation and the blackboard change are persisted in one write."""
+        conflict = escalation.conflict or {}
+        key = conflict.get("key")
+        existing = collab.entry_by_id(build, conflict.get("existing_entry_id"))
+        if existing is None or existing.superseded_by is not None:
+            existing = collab.active_entry(build, key) if key else None
+        proposed = conflict.get("proposed_value") or (escalation.options[-1] if escalation.options else "")
+        owner = escalation.decision_owner
+        default_value, default_rationale = collab.owner_default_resolution(
+            owner, existing, proposed, conflict.get("proposed_by"),
+        )
+        resolution, resolved_by, rationale = default_value, f"agent:{owner}", default_rationale
+
+        if build.interactive:
+            wait = self._escalation_gate_wait(run)
+            if wait is None:
+                resolved_by = "default"
+                rationale = f"{default_rationale} There was not enough time left in the build to ask you."
+            else:
+                try:
+                    response = await self._wait_for_gate(
+                        build, emit, stage=escalation.raised_by, agent=owner, kind="escalation",
+                        timeout_seconds=wait,
+                        extra={
+                            "escalation_id": escalation.escalation_id,
+                            "subject": escalation.subject,
+                            "detail": escalation.detail,
+                            "options": list(escalation.options),
+                        },
+                    )
+                except BuildCancelled:
+                    collab.close_escalation(
+                        escalation, EscalationState.EXPIRED, None, None,
+                        "The build was cancelled before this escalation was resolved.",
+                    )
+                    await comms.publish_lanes(resolved=[escalation])
+                    raise
+                resolution, resolved_by, rationale = await self._escalation_gate_outcome(
+                    run, escalation, response, default_value, default_rationale,
+                )
+
+        changed = []
+        if key and (existing is None or not collab.same_value(resolution, existing.value)):
+            source = conflict.get("source_message_id") if collab.same_value(resolution, proposed) else None
+            entry = collab.add_entry(
+                build, key, resolution, "user" if resolved_by == "user" else owner,
+                rationale=rationale, source_message_id=source, supersedes=existing,
+            )
+            changed = ([existing] if existing else []) + [entry]
+        collab.close_escalation(escalation, EscalationState.RESOLVED, resolution, resolved_by, rationale)
+        await comms.publish_lanes(entries=changed, resolved=[escalation])
+
+    @staticmethod
+    async def _escalation_gate_outcome(
+        run: _CollabRun,
+        escalation: Escalation,
+        response: dict,
+        default_value: str,
+        default_rationale: str,
+    ) -> Tuple[str, str, str]:
+        """(resolution, resolved_by, rationale) from an escalation gate's
+        response: ``answers[0]`` is the chosen option (free text is accepted
+        as the user's own value, screened like any other content); a plain
+        approve accepts the decision owner's recommendation; an unanswered
+        gate falls back to the decision owner (``default``)."""
+        if response.get("auto"):
+            return default_value, "default", f"{default_rationale} No answer arrived before the gate timed out."
+        answers = response.get("answers") or []
+        chosen = answers[0].strip() if answers and isinstance(answers[0], str) else ""
+        if response.get("action") == "answers" and chosen:
+            match = next((o for o in escalation.options if collab.same_value(o, chosen)), None)
+            if match is None:
+                match, _ = await collab.screen_text(chosen, run.config.max_answer_chars)
+            if match:
+                return match, "user", "Chosen by the user."
+        return default_value, "user", f"The user accepted the decision owner's recommendation. {default_rationale}"
+
     async def _emit_output(self, build: Build, agent: str, emit: Callable, output) -> None:
         """Structured (already-parsed) agent output for the workspace's center
         panel — AgentStep.output carries the same data as a JSON string, but
@@ -655,10 +1106,17 @@ class Orchestrator:
         agent: str,
         kind: str = "approval",
         questions: Optional[list] = None,
+        timeout_seconds: Optional[float] = None,
+        extra: Optional[dict] = None,
     ) -> dict:
         """Pause an interactive build until the user responds via
         POST /builds/{build_id}/gate (which writes pending_gate.response),
         the gate times out (auto-approve), or the user cancels.
+
+        timeout_seconds overrides settings.gate_timeout (escalation gates use
+        it to stay inside the build's time budget); extra adds kind-specific
+        data to the gate, e.g. an escalation's id, subject, detail and
+        options.
 
         Polling the build document — rather than waiting on an in-process
         signal — keeps this working across processes: the API server that
@@ -679,20 +1137,23 @@ class Orchestrator:
             return {"action": "approve", "auto": True}
 
         db = await get_db()
+        timeout = settings.gate_timeout if timeout_seconds is None else timeout_seconds
         gate = {
             "gate_id": str(uuid.uuid4()),
             "stage": stage,
             "agent": agent,
             "kind": kind,
             "questions": questions or [],
-            "timeout_seconds": settings.gate_timeout,
+            "timeout_seconds": timeout,
             "requested_at": utcnow().isoformat(),
         }
+        for field_name, value in (extra or {}).items():
+            gate.setdefault(field_name, value)
         await db.builds.update_one({"id": build.id}, {"$set": {"pending_gate": gate}})
         await emit(WSEvent(type=WSEventType.GATE_REQUEST, build_id=build.id, data=gate))
 
         response: dict = {"action": "approve", "auto": True}
-        deadline = time.monotonic() + settings.gate_timeout
+        deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             doc = await db.builds.find_one({"id": build.id}, {"_id": 0, "pending_gate": 1})
             pending = (doc or {}).get("pending_gate") or {}
