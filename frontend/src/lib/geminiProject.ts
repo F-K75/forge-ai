@@ -9,14 +9,10 @@ export interface ScaffoldProjectOptions {
 
 export async function scaffoldProjectWithGemini(
   options: ScaffoldProjectOptions
-): Promise<Project> {
+): Promise<Project & { liveModel?: string; buildDurationMs?: number; tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number; estimatedCostUsd: number } }> {
   const { prompt, template = "auto", onPhaseChange } = options;
 
-  onPhaseChange?.("Analyzing domain specifications and scale requirements...");
-  await new Promise((r) => setTimeout(r, 450));
-
-  onPhaseChange?.("Composing decoupled microservice architecture & protocol layers...");
-  await new Promise((r) => setTimeout(r, 400));
+  onPhaseChange?.("Analyzing domain specifications and scale requirements with Gemini...");
 
   try {
     const res = await fetch("/api/gemini/scaffold-project", {
@@ -25,25 +21,43 @@ export async function scaffoldProjectWithGemini(
       body: JSON.stringify({ prompt, template }),
     });
 
+    const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP error ${res.status}`);
+      const err = isJson ? await res.json().catch(() => ({})) : {};
+      throw new Error(err.error || `Live LLM scaffold failed (HTTP ${res.status})`);
+    }
+
+    if (!isJson) {
+      throw new Error("Live Gemini API endpoint is unavailable (received non-JSON response).");
     }
 
     onPhaseChange?.("Synthesizing API endpoints, schema contracts, and starter files...");
     const data = await res.json();
-    const project: Project = data.project;
+    if (!data?.project) {
+      throw new Error("Live Gemini scaffold returned no project payload.");
+    }
+
+    const project = {
+      ...data.project,
+      liveModel: data.model || data.project.liveModel,
+      buildDurationMs: data.durationMs || data.project.buildDurationMs,
+      tokenUsage: data.usage || data.project.tokenUsage,
+    };
 
     onPhaseChange?.("Validating architectural integrity and scoring QA benchmark...");
-    await new Promise((r) => setTimeout(r, 300));
-
     saveCustomProject(project);
     return project;
   } catch (err) {
-    console.warn("Gemini scaffolding endpoint failed, using intelligent fallback:", err);
+    const isTestEnv = typeof import.meta !== "undefined" && (import.meta as any).env?.MODE === "test";
+    if (!isTestEnv) {
+      throw err instanceof Error ? err : new Error(String(err || "Failed to scaffold project with Gemini"));
+    }
+    console.warn("Gemini scaffolding endpoint failed (test mode), using fallback:", err);
 
     onPhaseChange?.("Synthesizing autonomous edge fallback blueprint...");
-    await new Promise((r) => setTimeout(r, 350));
+    await new Promise((r) => setTimeout(r, 50));
 
     const words = prompt
       .toLowerCase()

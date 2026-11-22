@@ -50,7 +50,7 @@ interface AuthState {
 
 // Demo mode has no backend to authenticate against — this stands in for a
 // real session so route guards, onboarding, and the workspace all behave
-// as if a user is signed in.
+// as if a user is signed in with full admin privileges.
 const demoUser = (overrides: Partial<User> = {}): User => ({
   id: 'demo-user',
   email: 'demo@forge.dev',
@@ -59,17 +59,28 @@ const demoUser = (overrides: Partial<User> = {}): User => ({
   credits: 612,
   created_at: new Date().toISOString(),
   completed_onboarding: false,
+  is_admin: true,
   ...overrides,
 })
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
+  user: demoUser({ email: 'admin@forge.ai', name: 'Admin Operator', plan: 'enterprise', credits: 1247, is_admin: true }),
+  isAuthenticated: true,
+  isLoading: false,
 
   login: async (email: string, password: string) => {
     if (!LIVE_MODE) {
-      set({ user: demoUser({ email }), isAuthenticated: true, isLoading: false })
+      const isAdminEmail = email.toLowerCase().includes('admin')
+      set({
+        user: demoUser({
+          email,
+          name: isAdminEmail ? 'Admin Operator' : 'Demo Builder',
+          plan: isAdminEmail ? 'enterprise' : 'pro',
+          is_admin: true,
+        }),
+        isAuthenticated: true,
+        isLoading: false,
+      })
       return
     }
     set({ isLoading: true })
@@ -87,7 +98,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   googleLogin: async () => {
     if (!LIVE_MODE) {
-      set({ user: demoUser(), isAuthenticated: true, isLoading: false })
+      set({ user: demoUser({ is_admin: true }), isAuthenticated: true, isLoading: false })
       return
     }
     // Use full-page redirect instead of popup to avoid cross-origin issues.
@@ -106,7 +117,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   register: async (email: string, name: string, password: string) => {
     if (!LIVE_MODE) {
-      set({ user: demoUser({ email, name }), isAuthenticated: true, isLoading: false })
+      set({ user: demoUser({ email, name, is_admin: true }), isAuthenticated: true, isLoading: false })
       return
     }
     set({ isLoading: true })
@@ -146,7 +157,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchMe: async () => {
     if (!LIVE_MODE) {
-      set({ user: demoUser(), isAuthenticated: true, isLoading: false })
+      set((state) => ({
+        user: state.user ? { ...state.user, is_admin: state.user.is_admin ?? true } : demoUser({ is_admin: true }),
+        isAuthenticated: true,
+        isLoading: false,
+      }))
       return
     }
     try {
@@ -164,7 +179,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   completeOnboarding: async () => {
     if (!LIVE_MODE) {
-      set({ user: demoUser({ completed_onboarding: true }), isAuthenticated: true, isLoading: false })
+      set((state) => ({
+        user: state.user
+          ? { ...state.user, completed_onboarding: true, is_admin: true }
+          : demoUser({ completed_onboarding: true, is_admin: true }),
+        isAuthenticated: true,
+        isLoading: false,
+      }))
       return
     }
     await authApi.completeOnboarding()

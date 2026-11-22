@@ -1,6 +1,5 @@
 import { type LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
-import { motion, useReducedMotion } from 'motion/react'
 import { Button, Heading } from './index'
 
 interface EmptyStateProps {
@@ -12,51 +11,35 @@ interface EmptyStateProps {
   className?: string
 }
 
-export function EmptyState({ icon: Icon, title, description, primaryAction, secondaryAction, className }: EmptyStateProps) {
-  const reduceMotion = useReducedMotion()
-
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  primaryAction,
+  secondaryAction,
+  className,
+}: EmptyStateProps) {
   return (
-    <motion.div
-      className={clsx('flex flex-col items-center justify-center py-16 text-center', className)}
+    <div
+      className={clsx('flex flex-col items-center justify-center py-14 px-6 text-center', className)}
       role="status"
       aria-live="polite"
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
     >
-      <motion.div
-        className="w-12 h-12 rounded-lg border border-border bg-panel-alt shadow-m3 flex items-center justify-center mb-4"
-        whileHover={reduceMotion ? {} : { scale: 1.04 }}
-        transition={{ duration: 0.15, ease: 'easeInOut' }}
-      >
-        <Icon className="w-6 h-6 text-accent" aria-hidden="true" />
-      </motion.div>
-      <motion.div
-        className="mb-2"
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Heading level="h3">{title}</Heading>
-      </motion.div>
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-panel-alt text-muted">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <div className="mb-1.5">
+        <Heading level="h4">{title}</Heading>
+      </div>
       {description && (
-        <motion.div
-          className="mb-6 max-w-sm"
-          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <Heading level="body">{description}</Heading>
-        </motion.div>
+        <p className="mb-5 max-w-sm text-sm text-muted leading-relaxed">
+          {description}
+        </p>
       )}
       {(primaryAction || secondaryAction) && (
-        <motion.div
-          className="flex items-center gap-3"
-          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <div className="flex items-center gap-2.5">
           {primaryAction && (
-            <Button variant="primary" onClick={primaryAction.onClick}>
+            <Button variant="primary" size="sm" onClick={primaryAction.onClick}>
               {primaryAction.label}
             </Button>
           )}
@@ -65,9 +48,9 @@ export function EmptyState({ icon: Icon, title, description, primaryAction, seco
               {secondaryAction.label}
             </Button>
           )}
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   )
 }
 
@@ -81,11 +64,11 @@ export function Skeleton({ className, variant = 'rect', animate = true }: Skelet
   return (
     <div
       className={clsx(
-        'bg-surface-high rounded-md',
+        'bg-panel-alt',
         animate && 'animate-shimmer',
-        variant === 'text' && 'h-4',
+        variant === 'text' && 'h-4 rounded',
         variant === 'circle' && 'rounded-full',
-        variant === 'rect' && 'rounded-lg',
+        variant === 'rect' && 'rounded-md',
         className
       )}
       aria-hidden="true"
@@ -97,15 +80,15 @@ export function SkeletonCard({ count = 1 }: { count?: number }) {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="border border-border bg-panel rounded-lg p-6 shadow-m3" aria-hidden="true">
-          <Skeleton className="h-6 w-3/4 mb-3 rounded-sm bg-surface-high" />
-          <Skeleton className="h-4 w-full mb-2 rounded-sm bg-surface-high" />
-          <Skeleton className="h-4 w-5/6 mb-4 rounded-sm bg-surface-high" />
-          <div className="flex gap-2 mb-4">
-            <Skeleton className="h-5 w-16 rounded-sm bg-surface-high" />
-            <Skeleton className="h-5 w-20 rounded-sm bg-surface-high" />
+        <div key={i} className="rounded-lg border border-border bg-panel p-5" aria-hidden="true">
+          <Skeleton className="mb-3 h-5 w-2/3" />
+          <Skeleton className="mb-2 h-3.5 w-full" />
+          <Skeleton className="mb-4 h-3.5 w-5/6" />
+          <div className="mb-4 flex gap-2">
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-20" />
           </div>
-          <Skeleton className="h-9 w-full rounded-md bg-surface-high" />
+          <Skeleton className="h-9 w-full" />
         </div>
       ))}
     </>
@@ -114,13 +97,16 @@ export function SkeletonCard({ count = 1 }: { count?: number }) {
 
 export function SkeletonList({ count = 5 }: { count?: number }) {
   return (
-    <div className="space-y-3" aria-hidden="true">
+    <div className="space-y-2.5" aria-hidden="true">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-4 rounded-lg border border-border bg-panel shadow-m3">
-          <Skeleton variant="circle" className="w-8 h-8 rounded-full bg-surface-high" />
+        <div
+          key={i}
+          className="flex items-center gap-3 rounded-lg border border-border bg-panel p-4"
+        >
+          <Skeleton variant="circle" className="h-8 w-8" />
           <div className="flex-1">
-            <Skeleton className="h-4 w-32 mb-1 rounded-sm bg-surface-high" />
-            <Skeleton className="h-3 w-24 rounded-sm bg-surface-high" />
+            <Skeleton className="mb-1.5 h-3.5 w-36" />
+            <Skeleton className="h-3 w-24" />
           </div>
         </div>
       ))}

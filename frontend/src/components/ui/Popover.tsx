@@ -1,8 +1,7 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { motion, useReducedMotion } from 'motion/react'
-import { layout } from '../../lib/designTokens'
 
 interface PopoverProps {
   open?: boolean
@@ -27,7 +26,6 @@ export function Popover({
   trigger,
   children,
   side = 'bottom',
-  align = 'center',
   className,
 }: PopoverProps) {
   const reduceMotion = useReducedMotion()
@@ -43,18 +41,18 @@ export function Popover({
           />
           <motion.div
             role="menu"
-            className={twMerge(clsx(
-              'absolute z-[60] min-w-[200px] border border-border bg-panel text-ink shadow-m3-2 rounded-lg overflow-hidden',
-              sideClasses[side]
-            ))}
-            initial={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }}
+            className={twMerge(
+              clsx(
+                'absolute z-[60] min-w-[200px] overflow-hidden rounded-lg border border-border bg-panel shadow-apple-lg',
+                sideClasses[side]
+              )
+            )}
+            initial={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.15, ease: 'easeInOut' }}
+            exit={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.14, ease: [0.2, 0, 0, 1] }}
           >
-            <div className="py-1.5">
-              {children}
-            </div>
+            <div className="py-1">{children}</div>
           </motion.div>
         </>
       )}

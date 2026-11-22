@@ -1,9 +1,7 @@
-import type { HTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react'
+import type { InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react'
 import { forwardRef } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { motion, useReducedMotion } from 'motion/react'
-import { layout } from '../../lib/designTokens'
 
 interface BaseInputProps {
   label?: string
@@ -26,29 +24,31 @@ type InputFieldProps = InputProps | TextareaProps
 
 const InputComponent = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputFieldProps>(
   ({ label, hint, error, leftIcon, rightIcon, fullWidth = true, className, id, ...props }, ref) => {
-    const reduceMotion = useReducedMotion()
     const inputId = id || props.name
     const hasError = Boolean(error)
     const isTextarea = props.as === 'textarea'
 
+    const baseFieldClasses = clsx(
+      'w-full rounded-md border border-border bg-panel px-3.5 text-sm text-ink outline-none transition-all duration-fast placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accent/20',
+      leftIcon && 'pl-10',
+      rightIcon && 'pr-10',
+      hasError && 'border-error focus:border-error focus:ring-error/20',
+      props.disabled && 'cursor-not-allowed bg-panel-alt opacity-60'
+    )
+
     return (
-      <motion.div
-        className={clsx('flex flex-col gap-1.5', fullWidth && 'w-full', className)}
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      >
+      <div className={twMerge(clsx('flex flex-col gap-1.5', fullWidth && 'w-full', className))}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className="text-xs font-medium text-muted tracking-wide"
-          >
+          <label htmlFor={inputId} className="text-xs font-medium text-ink">
             {label}
           </label>
         )}
         <div className="relative">
           {leftIcon && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden="true">
+            <span
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+              aria-hidden="true"
+            >
               {leftIcon}
             </span>
           )}
@@ -58,16 +58,8 @@ const InputComponent = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputF
               id={inputId}
               aria-invalid={hasError}
               aria-describedby={hasError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
-              className={clsx(
-                'w-full rounded-md border border-border bg-panel px-3.5 py-2.5 text-sm text-ink outline-none transition-all duration-150 ease-in-out placeholder:text-faint hover:border-ink/20 focus:border-accent focus:bg-panel-alt focus:ring-2 focus:ring-accent/25',
-                leftIcon && 'pl-10',
-                rightIcon && 'pr-10',
-                hasError && 'border-error focus:border-error focus:ring-error/25',
-                props.disabled && 'cursor-not-allowed bg-panel-alt opacity-50',
-                className
-              )}
-              style={{ borderRadius: layout.radiusSm, minHeight: 120 }}
-              {...props as TextareaHTMLAttributes<HTMLTextAreaElement>}
+              className={clsx(baseFieldClasses, 'min-h-[112px] py-2.5 resize-y')}
+              {...(props as TextareaHTMLAttributes<HTMLTextAreaElement>)}
             />
           ) : (
             <input
@@ -75,20 +67,12 @@ const InputComponent = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputF
               id={inputId}
               aria-invalid={hasError}
               aria-describedby={hasError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
-              className={clsx(
-                'h-11 sm:h-10 w-full rounded-md border border-border bg-panel px-3.5 py-2 text-sm text-ink outline-none transition-all duration-150 ease-in-out placeholder:text-faint hover:border-ink/20 focus:border-accent focus:bg-panel-alt focus:ring-2 focus:ring-accent/25',
-                leftIcon && 'pl-10',
-                rightIcon && 'pr-10',
-                hasError && 'border-error focus:border-error focus:ring-error/25',
-                props.disabled && 'cursor-not-allowed bg-panel-alt opacity-50',
-                className
-              )}
-              style={{ borderRadius: layout.radiusSm }}
-              {...props as InputHTMLAttributes<HTMLInputElement>}
+              className={clsx(baseFieldClasses, 'h-10 py-2')}
+              {...(props as InputHTMLAttributes<HTMLInputElement>)}
             />
           )}
           {rightIcon && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">
               {rightIcon}
             </span>
           )}
@@ -99,18 +83,11 @@ const InputComponent = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputF
           </p>
         )}
         {hasError && (
-          <motion.p
-            id={`${inputId}-error`}
-            role="alert"
-            className="text-xs text-error"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-          >
+          <p id={`${inputId}-error`} role="alert" className="text-xs font-medium text-error">
             {error}
-          </motion.p>
+          </p>
         )}
-      </motion.div>
+      </div>
     )
   }
 )

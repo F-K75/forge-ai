@@ -13,19 +13,19 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-panel-alt text-ink border border-border',
-  accent: 'bg-accent/15 text-accent border border-accent/25',
-  success: 'bg-ok/15 text-ok border border-ok/25',
-  warning: 'bg-warn/15 text-warn border border-warn/25',
-  error: 'bg-error/15 text-error border border-error/25',
-  info: 'bg-info/15 text-info border border-info/25',
-  outlined: 'bg-transparent text-muted border border-border',
+  default: 'bg-panel-alt text-muted border-border',
+  accent: 'bg-accent/10 text-accent border-accent/20',
+  success: 'bg-ok/10 text-ok border-ok/20',
+  warning: 'bg-warn/10 text-warn border-warn/20',
+  error: 'bg-error/10 text-error border-error/20',
+  info: 'bg-info/10 text-info border-info/20',
+  outlined: 'bg-transparent text-muted border-border',
 }
 
 const sizeClasses: Record<BadgeSize, string> = {
-  sm: 'px-2 py-0.5 text-[11px]',
-  md: 'px-2.5 py-0.5 text-xs',
-  lg: 'px-3 py-1 text-sm',
+  sm: 'px-1.5 py-0.5 text-[11px]',
+  md: 'px-2 py-0.5 text-xs',
+  lg: 'px-2.5 py-1 text-xs',
 }
 
 export function Badge({
@@ -40,7 +40,7 @@ export function Badge({
     <span
       className={twMerge(
         clsx(
-          'inline-flex items-center gap-1.5 rounded-sm font-medium tracking-wide select-none transition-colors duration-150',
+          'inline-flex items-center gap-1.5 rounded-md border font-medium select-none whitespace-nowrap',
           variantClasses[variant],
           sizeClasses[size],
           className

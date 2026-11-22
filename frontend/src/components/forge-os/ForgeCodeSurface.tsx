@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Editor, { DiffEditor } from "@monaco-editor/react";
-import { FileCode2, Copy, Check, Split, GitCompare, RotateCcw } from "lucide-react";
+import { FileCode2, Copy, Check, GitCompare } from "lucide-react";
 
 interface ForgeCodeSurfaceProps {
   initialFile?: string;
@@ -8,10 +8,10 @@ interface ForgeCodeSurfaceProps {
 }
 
 const DEFAULT_FILES: Record<string, string> = {
- "src/api/auth.ts": `import { Hono } from 'hono';
+  "src/api/auth.ts": `import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { sign, verify } from 'hono/jwt';
+import { sign } from 'hono/jwt';
 
 const auth = new Hono();
 
@@ -23,8 +23,8 @@ const OAuthSchema = z.object({
 
 // Handle OAuth 2.1 authorization code exchange with PKCE
 auth.post('/oauth/callback', zValidator('json', OAuthSchema), async (c) => {
-  const { provider, code, codeVerifier } = c.req.valid('json');
-  
+  const { code, codeVerifier } = c.req.valid('json');
+
   // Exchange code for tokens
   const tokenResponse = await fetch(\`https://oauth2.googleapis.com/token\`, {
     method: 'POST',
@@ -45,7 +45,7 @@ auth.post('/oauth/callback', zValidator('json', OAuthSchema), async (c) => {
 
 export default auth;`,
 
- "src/api/checkout.ts": `import Stripe from 'stripe';
+  "src/api/checkout.ts": `import Stripe from 'stripe';
 import { Hono } from 'hono';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -71,7 +71,7 @@ billing.post('/create-session', async (c) => {
 
 export default billing;`,
 
- "src/db/schema.sql": `-- Forge Core Database Schema (PostgreSQL)
+  "src/db/schema.sql": `-- Forge Core Database Schema (PostgreSQL)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS users (
@@ -96,8 +96,17 @@ CREATE INDEX idx_subscriptions_user ON subscriptions(user_id);
 CREATE INDEX idx_users_email ON users(email);`,
 };
 
+function detectLanguage(path: string): string {
+  if (path.endsWith(".sql")) return "sql";
+  if (path.endsWith(".json")) return "json";
+  if (path.endsWith(".css")) return "css";
+  if (path.endsWith(".html")) return "html";
+  if (path.endsWith(".md")) return "markdown";
+  return "typescript";
+}
+
 export function ForgeCodeSurface({
- initialFile = "src/api/auth.ts",
+  initialFile = "src/api/auth.ts",
   files = DEFAULT_FILES,
 }: ForgeCodeSurfaceProps) {
   const [activePath, setActivePath] = useState(initialFile);
@@ -111,7 +120,8 @@ export function ForgeCodeSurface({
   }, [initialFile, files]);
 
   const fileKeys = Object.keys(files);
- const content = files[activePath] || files[fileKeys[0]] || "";
+  const content = files[activePath] || files[fileKeys[0]] || "";
+  const language = detectLanguage(activePath);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(content);
@@ -120,26 +130,30 @@ export function ForgeCodeSurface({
   };
 
   return (
- <div className="h-full flex flex-col bg-[#0A0B0E] overflow-hidden select-none font-mono">
+    <div className="h-full flex flex-col bg-[#0B0F19] overflow-hidden select-none">
       {/* Editor Top Bar with File Tabs */}
- <div className="h-10 px-3 border-b-2 border-black dark:border-white/80 bg-panel-alt dark:bg-[#1A1A22] flex items-center justify-between gap-2">
+      <div className="h-11 px-3 border-b border-border bg-panel-alt flex items-center justify-between gap-3 shrink-0">
         {/* Tabs */}
- <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
           {fileKeys.map((p) => {
             const isActive = p === activePath;
- const filename = p.split("/").pop();
+            const filename = p.split("/").pop();
             return (
               <button
                 key={p}
- type="button"
+                type="button"
                 onClick={() => setActivePath(p)}
-                className={`h-7 px-2.5 border border-border text-[11px] font-mono uppercase font-black flex items-center gap-1.5 whitespace-nowrap active:translate-x-[1px] active:translate-y-[1px] ${
+                title={p}
+                className={`h-8 px-2.5 rounded-md text-xs font-mono font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                   isActive
- ? "bg-accent text-[#09090B] text-black shadow-m3 "
- : "bg-white dark:bg-[#252530] text-ink shadow-m3 hover:bg-neutral-100 dark:hover:bg-[#2C2C38]"
+                    ? "bg-panel text-ink border border-border shadow-apple"
+                    : "text-muted hover:text-ink hover:bg-panel/60 border border-transparent"
                 }`}
               >
-                <FileCode2 size={12} strokeWidth={2.5} />
+                <FileCode2
+                  size={13}
+                  className={isActive ? "text-accent shrink-0" : "text-faint shrink-0"}
+                />
                 <span>{filename}</span>
               </button>
             );
@@ -147,34 +161,34 @@ export function ForgeCodeSurface({
         </div>
 
         {/* Action Controls */}
- <div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
- type="button"
+            type="button"
             onClick={() => setIsDiffMode(!isDiffMode)}
-            className={`h-7 px-2 border border-border font-mono text-[10px] font-black uppercase flex items-center gap-1 shadow-m3 active:translate-x-[1px] active:translate-y-[1px] ${
+            className={`h-8 px-2.5 rounded-md border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
               isDiffMode
- ? "bg-[#00F0FF] text-black"
- : "bg-white dark:bg-[#252530] text-ink hover:bg-accent text-[#09090B] hover:text-black"
+                ? "bg-accent text-white border-accent"
+                : "bg-panel text-ink border-border hover:bg-panel-alt"
             }`}
           >
-            <GitCompare size={11} strokeWidth={2.5} />
-            <span>DIFF</span>
+            <GitCompare size={13} />
+            <span>Diff</span>
           </button>
 
           <button
- type="button"
+            type="button"
             onClick={handleCopy}
- className="h-7 px-2 bg-white dark:bg-[#252530] text-ink hover:bg-accent text-[#09090B] hover:text-black border border-border font-mono text-[10px] font-black uppercase flex items-center gap-1 shadow-m3 active:translate-x-[1px] active:translate-y-[1px]"
+            className="h-8 px-2.5 rounded-md border border-border bg-panel text-ink hover:bg-panel-alt text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
           >
             {copied ? (
               <>
- <Check size={11} strokeWidth={3} className="text-emerald-500" />
-                <span>COPIED</span>
+                <Check size={13} className="text-ok" />
+                <span>Copied</span>
               </>
             ) : (
               <>
-                <Copy size={11} strokeWidth={2.5} />
-                <span>COPY</span>
+                <Copy size={13} className="text-muted" />
+                <span>Copy</span>
               </>
             )}
           </button>
@@ -182,39 +196,41 @@ export function ForgeCodeSurface({
       </div>
 
       {/* Editor Viewport */}
- <div className="flex-1 relative bg-[#07080A]">
+      <div className="flex-1 relative bg-[#0B0F19]">
         {isDiffMode ? (
           <DiffEditor
- height="100%"
- original={content.replace(/sessionJwt/g, "rawJwt").slice(0, -50)}
+            height="100%"
+            original={content.replace(/sessionJwt/g, "rawJwt").slice(0, -50)}
             modified={content}
- language={activePath.endsWith(".sql") ? "sql" : "typescript"}
- theme="vs-dark"
+            language={language}
+            theme="vs-dark"
             options={{
               minimap: { enabled: false },
-              fontSize: 12.5,
- lineNumbers: "on",
+              fontSize: 13,
+              lineNumbers: "on",
               readOnly: true,
               scrollBeyondLastLine: false,
- fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+              padding: { top: 14, bottom: 14 },
             }}
           />
         ) : (
           <Editor
- height="100%"
+            height="100%"
             path={activePath}
             value={content}
- language={activePath.endsWith(".sql") ? "sql" : "typescript"}
- theme="vs-dark"
+            language={language}
+            theme="vs-dark"
             options={{
               minimap: { enabled: false },
-              fontSize: 12.5,
- lineNumbers: "on",
+              fontSize: 13,
+              lineNumbers: "on",
               readOnly: false,
               scrollBeyondLastLine: false,
- fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
- cursorBlinking: "smooth",
- renderLineHighlight: "all",
+              fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+              cursorBlinking: "smooth",
+              renderLineHighlight: "all",
+              padding: { top: 14, bottom: 14 },
             }}
           />
         )}

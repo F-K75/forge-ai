@@ -60,17 +60,17 @@ export default function App() {
   const [pipeline, setPipeline] = useState(['Architect', 'Developer', 'QA']);
 
   return (
-    <div className="min-h-screen bg-white text-black p-8 font-sans">
-      <header className="flex items-center justify-between pb-6 border-b-2 border-black">
-        <h1 className="font-mono text-2xl font-bold tracking-tight">Forge Workspace</h1>
-        <span className="px-2.5 py-1 text-xs font-mono font-bold rounded-sm bg-brutal-green text-black border-2 border-black shadow-brutal-xs">
+    <div className="min-h-screen bg-base text-ink p-8 font-sans">
+      <header className="flex items-center justify-between pb-6 border-b border-border">
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Forge Workspace</h1>
+        <span className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-ok">
           Agent Fleet Active
         </span>
       </header>
       <main className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         {pipeline.map((agent) => (
-          <div key={agent} className="p-5 rounded-sm bg-white border-2 border-black shadow-brutal-sm">
-            <h3 className="font-mono font-bold text-sm text-ink">{agent}</h3>
+          <div key={agent} className="p-5 rounded-xl bg-panel border border-border shadow-apple">
+            <h3 className="font-display font-semibold text-sm text-ink">{agent}</h3>
             <p className="text-xs font-sans text-muted mt-1">Autonomous worker initialized with frontier model weights.</p>
           </div>
         ))}
@@ -560,9 +560,9 @@ export default function FilesPage() {
 
   if (LIVE_MODE && !activeFile) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
-        <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Files</h1>
-        <p className="max-w-md text-sm text-neutral-500">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center bg-base text-ink">
+        <h1 className="font-display text-xl font-semibold text-ink">Files</h1>
+        <p className="max-w-md text-sm text-muted">
           {liveFilesState === "loading"
             ? "Loading files…"
             : liveFilesState === "error"
@@ -575,7 +575,7 @@ export default function FilesPage() {
           <button
             type="button"
             onClick={() => navigate(`/p/${filesProjectId}/workspace`)}
-            className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-neutral-900"
+            className="h-9 rounded-lg bg-accent hover:bg-ember-glow px-4 text-xs font-medium text-white transition-colors cursor-pointer"
           >
             Open workspace
           </button>
@@ -586,35 +586,35 @@ export default function FilesPage() {
 
   return (
     <motion.div
-      className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6"
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 text-ink"
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* 1. Header Section */}
-      <header className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-black dark:border-white/80 pb-5">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <BrandLogo size="md" />
-              <h1 className="font-mono text-2xl sm:text-3xl font-black uppercase tracking-wider text-ink">
-                codebase &amp; virtual files
+      <header className="space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <BrandLogo size="sm" />
+              <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
+                Codebase &amp; Virtual Files
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border-2 border-black bg-brutal-yellow text-black text-[11px] font-black uppercase shadow-[2px_2px_0px_#000]">
-                <GitBranch size={12} className="text-black" strokeWidth={2.5} />
-                branch: main
+              <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
+                <GitBranch size={13} className="text-accent" />
+                main
               </span>
             </div>
-            <p className="mt-1 text-xs sm:text-sm font-mono text-muted">
-              Inspect, modify, and create workspace files with live syntax validation and AST tree indexing.
+            <p className="text-sm text-muted">
+              Inspect, modify, and create workspace files with live syntax validation and AST indexing.
             </p>
           </div>
 
           {/* Header Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <input
               type="file"
               ref={fileInputRef}
@@ -626,143 +626,121 @@ export default function FilesPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-xs font-mono font-bold text-ink hover:bg-neutral-100 dark:hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] transition shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
-              <Upload size={13} className="text-ink" strokeWidth={2.5} />
+              <Upload size={13} className="text-muted" />
               <span>Upload</span>
             </button>
 
             <button
               type="button"
               onClick={handleExportAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-xs font-mono font-bold text-ink hover:bg-neutral-100 dark:hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] transition shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
-              <Download size={13} className="text-ink" strokeWidth={2.5} />
+              <Download size={13} className="text-muted" />
               <span>Export All</span>
             </button>
 
             <button
               type="button"
               onClick={() => setNewFileModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-black bg-brutal-yellow text-black text-xs font-mono font-black uppercase hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000]"
+              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
-              <Plus size={14} strokeWidth={2.5} />
+              <Plus size={14} />
               <span>New File</span>
             </button>
 
             <button
               type="button"
-              onClick={() => navigate("/workspace")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-none border-2 border-black bg-black dark:bg-white text-white dark:text-black text-xs font-mono font-black uppercase hover:bg-neutral-800 dark:hover:bg-neutral-200 transition shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              onClick={() =>
+                navigate(filesProjectId ? `/p/${filesProjectId}/workspace` : "/workspace")
+              }
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel-alt hover:bg-base text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <span>Workspace</span>
-              <ExternalLink size={12} strokeWidth={2.5} />
+              <ExternalLink size={12} className="text-muted" />
             </button>
           </div>
         </div>
 
-        {/* 2. Telemetry KPI Strip */}
+        {/* 2. KPI Summary Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Total Files */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <FileCode2 size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <FileCode2 size={14} className="text-accent" />
                 Virtual Files
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-none bg-brutal-cyan text-black font-black uppercase border border-black">
-                Active
-              </span>
+              <span className="font-mono text-[11px] text-ok">Synced</span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink">
-              {virtualFiles.length}{" "}
-              <span className="text-xs font-bold text-muted uppercase">files</span>
+            <p className="font-mono text-2xl font-semibold text-ink tabular-nums">
+              {virtualFiles.length}
             </p>
-            <p className="text-[10px] font-mono text-muted">
-              Synchronized with memory store
-            </p>
+            <p className="text-xs text-muted">In active workspace store</p>
           </div>
 
-          {/* Lines of Code */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <Code2 size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <Code2 size={14} className="text-accent" />
                 Code Volume
               </span>
-              <span className="text-[10px] font-mono font-black uppercase text-emerald-600 dark:text-emerald-400">
-                Live
-              </span>
+              <span className="font-mono text-[11px] text-muted">LOC</span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink">
-              {totalLOC.toLocaleString()}{" "}
-              <span className="text-xs font-bold text-muted uppercase">LOC</span>
+            <p className="font-mono text-2xl font-semibold text-ink tabular-nums">
+              {totalLOC.toLocaleString()}
             </p>
-            <p className="text-[10px] font-mono text-muted">
-              Across all virtual modules
-            </p>
+            <p className="text-xs text-muted">Across all virtual modules</p>
           </div>
 
-          {/* Size in KB */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <Layers size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <Layers size={14} className="text-accent" />
                 Bundle Footprint
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-none bg-brutal-green text-black font-black uppercase border border-black">
-                Clean
-              </span>
+              <span className="font-mono text-[11px] text-ok">Clean</span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink">
-              {totalSizeFormatted}{" "}
-              <span className="text-xs font-bold text-muted uppercase">KB</span>
+            <p className="font-mono text-2xl font-semibold text-ink tabular-nums">
+              {totalSizeFormatted} <span className="text-xs font-normal text-muted">KB</span>
             </p>
-            <p className="text-[10px] font-mono text-muted">
-              Zero dependency bloat
-            </p>
+            <p className="text-xs text-muted">Zero dependency bloat</p>
           </div>
 
-          {/* Language Stack */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-ok" />
                 Language Engine
               </span>
-              <span className="text-[10px] font-mono font-black uppercase px-1.5 py-0.2 rounded-none border border-black bg-brutal-yellow text-black">
-                TS 5.4
-              </span>
+              <span className="font-mono text-[11px] text-muted">TS 5.4</span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink truncate">
+            <p className="font-display text-2xl font-semibold text-ink truncate">
               TypeScript
             </p>
-            <p className="text-[10px] font-mono text-muted">
-              Monaco LS syntax checking
-            </p>
+            <p className="text-xs text-muted">Monaco LS syntax checking</p>
           </div>
         </div>
       </header>
 
-      {/* 3. Drag and Drop Overlay Warning if dragging */}
+      {/* 3. Drag and Drop Banner */}
       {isDraggingOver && (
-        <div className="p-4 rounded-none border-2 border-dashed border-black bg-brutal-yellow text-center font-mono font-black text-sm uppercase shadow-[3px_3px_0px_#000] text-black">
+        <div className="p-4 rounded-xl border border-dashed border-accent bg-accent-soft text-center text-sm font-medium text-accent">
           Drop code files here to import directly into the virtual filesystem
         </div>
       )}
 
-      {/* 4. Main IDE-Grade Stage */}
-      <div className="min-h-[620px] grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] shadow-[4px_4px_0px_#000] dark:shadow-[4px_4px_0px_#fff] overflow-hidden">
-        {/* Left: Directory Tree & File List */}
-        <aside className="border-r-2 border-black dark:border-white/80 flex flex-col bg-neutral-50 dark:bg-[#141419] min-h-[580px]">
-          {/* Tree Header & Search */}
-          <div className="p-3 border-b-2 border-black dark:border-white/80 space-y-2.5 bg-white dark:bg-[#181820]">
-            <div className="flex items-center justify-between text-xs font-mono font-bold">
-              <span className="flex items-center gap-1.5 text-ink font-black tracking-wider uppercase">
-                <Folder size={14} className="text-black dark:text-white" strokeWidth={2.5} />
-                <span>EXPLORER</span>
+      {/* 4. Main Two-Pane IDE Workbench */}
+      <div className="min-h-[620px] grid grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] rounded-xl border border-border bg-panel shadow-apple overflow-hidden">
+        {/* Left: Directory Tree & File Explorer */}
+        <aside className="border-b md:border-b-0 md:border-r border-border flex flex-col bg-panel-alt min-h-[420px] md:min-h-[580px]">
+          <div className="p-3 border-b border-border space-y-2.5 bg-panel">
+            <div className="flex items-center justify-between text-xs">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+                <Folder size={14} className="text-accent" />
+                <span>Explorer</span>
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-none bg-neutral-100 dark:bg-neutral-800 border border-black dark:border-white/40 text-ink font-bold">
+              <span className="font-mono text-[11px] text-muted tabular-nums">
                 {filteredFiles.length} files
               </span>
             </div>
@@ -775,30 +753,31 @@ export default function FilesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Filter files or text..."
-                className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink placeholder-muted/60 pl-8 pr-7 py-1.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none focus:bg-brutal-yellow/10"
+                className="w-full h-8 bg-panel-alt text-xs text-ink placeholder:text-faint pl-8 pr-7 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted hover:text-black dark:hover:text-white"
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted hover:text-ink cursor-pointer"
                 >
-                  <X size={12} strokeWidth={2.5} />
+                  <X size={12} />
                 </button>
               )}
             </div>
 
-            {/* Language filter pills */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[10px] font-mono font-bold">
+            {/* Language Filter Segment */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar text-[11px]">
               {(["all", "typescript", "json", "css"] as const).map((lang) => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => setLanguageFilter(lang)}
-                  className={`px-2 py-0.5 rounded-none border-2 transition uppercase font-black ${
+                  className={`px-2 py-1 rounded-md font-medium uppercase transition-colors cursor-pointer ${
                     languageFilter === lang
-                      ? "bg-brutal-yellow text-black border-black shadow-[1px_1px_0px_#000]"
-                      : "bg-white dark:bg-[#141419] text-muted border-black/40 dark:border-white/40 hover:border-black dark:hover:border-white hover:text-ink"
+                      ? "bg-accent text-white"
+                      : "text-muted hover:text-ink hover:bg-panel-alt"
                   }`}
                 >
                   {lang === "typescript" ? "TS/TSX" : lang}
@@ -807,8 +786,8 @@ export default function FilesPage() {
             </div>
           </div>
 
-          {/* Directory Tree Hierarchy */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-3 font-mono text-xs">
+          {/* Directory Tree */}
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 font-mono text-xs">
             {Object.entries(foldersMap).map(([folder, filesInFolder]) => {
               const visibleFiles = filesInFolder.filter((f) =>
                 filteredFiles.some((ff) => ff.path === f.path)
@@ -818,68 +797,72 @@ export default function FilesPage() {
               const isCollapsed = !!collapsedFolders[folder];
 
               return (
-                <div key={folder} className="space-y-1">
-                  {/* Folder Row */}
+                <div key={folder} className="space-y-0.5">
                   <button
                     type="button"
                     onClick={() => toggleFolder(folder)}
-                    className="w-full flex items-center justify-between px-2 py-1 text-left rounded-none text-muted hover:text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition font-bold"
+                    className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-md text-muted hover:text-ink hover:bg-panel transition-colors font-medium cursor-pointer"
                   >
                     <span className="flex items-center gap-1.5 truncate">
                       {isCollapsed ? (
-                        <Folder size={13} className="text-black dark:text-white" strokeWidth={2} />
+                        <Folder size={13} className="text-muted shrink-0" />
                       ) : (
-                        <FolderOpen size={13} className="text-black dark:text-white" strokeWidth={2} />
+                        <FolderOpen size={13} className="text-accent shrink-0" />
                       )}
                       <span className="truncate">{folder}/</span>
                     </span>
-                    <span className="text-[10px] text-muted">
+                    <span className="text-[11px] text-faint tabular-nums">
                       {visibleFiles.length}
                     </span>
                   </button>
 
-                  {/* Files inside folder */}
                   {!isCollapsed && (
-                    <div className="pl-3 space-y-0.5 border-l-2 border-black/30 dark:border-white/30 ml-2">
+                    <div className="pl-3 space-y-0.5 border-l border-border ml-2.5">
                       {visibleFiles.map((file) => {
                         const isActive = file.path === selectedPath;
                         return (
                           <div
                             key={file.path}
-                            className={`group w-full flex items-center justify-between px-2 py-1.5 rounded-none transition ${
+                            className={`group w-full flex items-center justify-between px-2 py-1.5 rounded-md transition-colors ${
                               isActive
-                                ? "bg-brutal-yellow text-black border-2 border-black font-black shadow-[2px_2px_0px_#000]"
-                                : "text-muted hover:text-ink hover:bg-white dark:hover:bg-[#181820]"
+                                ? "bg-accent-soft text-accent font-medium"
+                                : "text-muted hover:text-ink hover:bg-panel"
                             }`}
                           >
                             <button
                               type="button"
                               onClick={() => setSelectedPath(file.path)}
-                              className="flex items-center gap-1.5 truncate text-left flex-1 min-w-0"
+                              className="flex items-center gap-1.5 truncate text-left flex-1 min-w-0 cursor-pointer"
                             >
-                              <FileCode2 size={13} className={isActive ? "text-black shrink-0" : "text-muted shrink-0"} />
+                              <FileCode2
+                                size={13}
+                                className={isActive ? "text-accent shrink-0" : "text-faint shrink-0"}
+                              />
                               <span className="truncate">{file.name}</span>
                               {file.isDirty && (
-                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" title="Unsaved changes" />
+                                <span
+                                  className="h-1.5 w-1.5 rounded-full bg-warn shrink-0"
+                                  title="Unsaved changes"
+                                />
                               )}
                             </button>
 
                             <div className="flex items-center gap-1 shrink-0 ml-1">
-                              <span className="text-[10px] opacity-70 group-hover:hidden">
+                              <span className="text-[10px] text-faint tabular-nums group-hover:hidden">
                                 {file.size}
                               </span>
 
-                              {/* Action buttons on hover */}
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDownloadFile(file);
                                 }}
-                                className="hidden group-hover:inline-flex p-1 rounded-none hover:bg-black/10 dark:hover:bg-white/10 text-ink"
+                                className="hidden group-hover:inline-flex p-1 rounded hover:bg-base text-muted hover:text-ink cursor-pointer"
                                 title="Download file"
+                                aria-label={`Download ${file.name}`}
                               >
-                                <Download size={11} strokeWidth={2.5} />
+                                <Download size={12} />
                               </button>
 
                               <button
@@ -889,10 +872,11 @@ export default function FilesPage() {
                                   setFileToDelete(file);
                                   setDeleteConfirmOpen(true);
                                 }}
-                                className="hidden group-hover:inline-flex p-1 rounded-none hover:bg-rose-500 hover:text-white text-muted"
+                                className="hidden group-hover:inline-flex p-1 rounded hover:bg-error/10 hover:text-error text-muted cursor-pointer"
                                 title="Delete file"
+                                aria-label={`Delete ${file.name}`}
                               >
-                                <Trash2 size={11} strokeWidth={2.5} />
+                                <Trash2 size={12} />
                               </button>
                             </div>
                           </div>
@@ -905,21 +889,21 @@ export default function FilesPage() {
             })}
           </div>
 
-          {/* Bottom Dropzone & New File trigger */}
-          <div className="p-2.5 border-t-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] space-y-2">
+          {/* Bottom Explorer Actions */}
+          <div className="p-3 border-t border-border bg-panel space-y-2">
             <button
               type="button"
               onClick={() => setNewFileModalOpen(true)}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-neutral-800 text-ink hover:bg-neutral-200 dark:hover:bg-neutral-700 transition shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff]"
+              className="w-full h-8 flex items-center justify-center gap-1.5 px-3 text-xs font-medium rounded-lg border border-border bg-panel-alt text-ink hover:bg-base transition-colors cursor-pointer"
             >
-              <FilePlus size={13} strokeWidth={2.5} />
+              <FilePlus size={13} className="text-accent" />
               <span>Create New File</span>
             </button>
 
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-black/40 dark:border-white/40 hover:border-black dark:hover:border-white rounded-none p-2 text-center text-[10px] font-mono text-muted hover:text-ink cursor-pointer bg-neutral-50 dark:bg-[#141419] transition"
+              className="w-full border border-dashed border-border hover:border-accent rounded-lg py-2 px-2 text-center text-[11px] text-muted hover:text-ink cursor-pointer bg-base/40 transition-colors"
             >
               Drag &amp; drop files or click to upload
             </button>
@@ -927,48 +911,45 @@ export default function FilesPage() {
         </aside>
 
         {/* Right: Monaco Editor Stage */}
-        <main className="flex flex-col min-h-0 bg-white dark:bg-[#181820]">
+        <main className="flex flex-col min-h-0 bg-panel">
           {/* Breadcrumb & Editor Actions Toolbar */}
-          <div className="flex flex-wrap items-center justify-between px-4 py-2 border-b-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] gap-2">
-            {/* File Path info */}
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <span className="text-muted">{activeFile.folder} /</span>
-              <span className="font-bold text-ink">{activeFile.name}</span>
+          <div className="flex flex-wrap items-center justify-between px-4 py-2.5 border-b border-border bg-panel-alt gap-2">
+            <div className="flex items-center gap-2.5 text-xs font-mono min-w-0">
+              <span className="text-muted truncate">{activeFile.folder} /</span>
+              <span className="font-semibold text-ink truncate">{activeFile.name}</span>
 
-              <span className="text-[10px] px-2 py-0.5 rounded-none bg-white dark:bg-[#181820] border-2 border-black dark:border-white/80 font-black uppercase text-ink shadow-[1px_1px_0px_#000]">
-                {activeFile.language}
-              </span>
+              <span className="text-[11px] text-muted uppercase">{activeFile.language}</span>
 
-              <span className="text-[11px] text-muted hidden sm:inline">
-                {activeFile.lines} lines • {activeFile.size}
+              <span className="text-[11px] text-faint hidden sm:inline tabular-nums">
+                {activeFile.lines} lines · {activeFile.size}
               </span>
 
               {isDirty && (
-                <span className="text-[10px] font-mono font-black uppercase px-1.5 py-0.5 rounded-none bg-rose-500 text-white border border-black animate-pulse">
-                  ● Unsaved
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-warn">
+                  <span className="h-1.5 w-1.5 rounded-full bg-warn" />
+                  Unsaved
                 </span>
               )}
             </div>
 
-            {/* Editor Action Buttons */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={handleCopy}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff]"
+                className="h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 title="Copy code to clipboard"
               >
-                {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} className="text-muted" />}
                 <span>{copied ? "Copied" : "Copy"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleDownloadFile(activeFile)}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff]"
+                className="h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 title="Download this file"
               >
-                <Download size={12} strokeWidth={2.5} />
+                <Download size={13} className="text-muted" />
                 <span>Download</span>
               </button>
 
@@ -976,16 +957,16 @@ export default function FilesPage() {
                 type="button"
                 disabled={!isDirty}
                 onClick={handleSave}
-                className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] transition shadow-[2px_2px_0px_#000] disabled:opacity-50 disabled:shadow-none"
+                className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors disabled:opacity-45 cursor-pointer"
               >
-                <Save size={13} strokeWidth={2.5} />
+                <Save size={13} />
                 <span>Save</span>
               </button>
             </div>
           </div>
 
           {/* Monaco Code Editor Canvas */}
-          <div className="flex-1 min-h-[460px] relative">
+          <div className="flex-1 min-h-[480px] relative bg-[#0B0F19]">
             <Editor
               height="100%"
               language={activeFile.language}
@@ -994,12 +975,12 @@ export default function FilesPage() {
                 setCurrentContent(value || "");
                 setIsDirty(true);
               }}
-              theme="vs"
+              theme="vs-dark"
               options={{
                 readOnly: false,
                 minimap: { enabled: false },
                 fontSize: 13,
-                fontFamily: "var(--font-mono, monospace)",
+                fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                 lineNumbers: "on",
                 scrollBeyondLastLine: false,
                 wordWrap: "on",
@@ -1012,17 +993,17 @@ export default function FilesPage() {
           </div>
 
           {/* Status Bar */}
-          <footer className="px-4 py-1.5 border-t-2 border-black dark:border-white/80 bg-neutral-50 dark:bg-[#141419] text-[11px] font-mono text-muted flex flex-wrap items-center justify-between">
-            <div className="flex items-center gap-3">
+          <footer className="px-4 py-2 border-t border-border bg-panel-alt text-[11px] font-mono text-muted flex flex-wrap items-center justify-between gap-2 tabular-nums">
+            <div className="flex items-center gap-4">
               <span>Lines: {currentContent.split("\n").length}</span>
               <span>Characters: {currentContent.length}</span>
               <span>UTF-8</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <span>Spaces: 2</span>
-              <span>Language: {activeFile.language}</span>
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                <ShieldCheck size={11} strokeWidth={2.5} />
+              <span className="capitalize">{activeFile.language}</span>
+              <span className="inline-flex items-center gap-1 text-ok font-medium">
+                <ShieldCheck size={12} />
                 AST Valid
               </span>
             </div>
@@ -1033,33 +1014,36 @@ export default function FilesPage() {
       {/* 5. Create File Modal */}
       <AnimatePresence>
         {newFileModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-md rounded-none border-3 border-black dark:border-white bg-white dark:bg-[#181820] shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_#fff] overflow-hidden flex flex-col"
-              initial={{ scale: 0.95, opacity: 0 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Create Virtual File"
+              className="w-full max-w-md rounded-xl border border-border bg-panel shadow-apple-lg overflow-hidden flex flex-col"
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b-2 border-black bg-brutal-yellow">
-                <div className="flex items-center gap-2 font-mono font-black uppercase text-sm text-black">
-                  <FilePlus size={16} strokeWidth={2.5} />
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-panel-alt">
+                <div className="flex items-center gap-2 font-display font-semibold text-sm text-ink">
+                  <FilePlus size={16} className="text-accent" />
                   <span>Create Virtual File</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setNewFileModalOpen(false)}
-                  className="p-1 rounded-none border-2 border-black bg-white text-black hover:bg-neutral-100 shadow-[1px_1px_0px_#000]"
+                  aria-label="Close modal"
+                  className="w-7 h-7 rounded-md border border-border bg-panel text-muted hover:text-ink flex items-center justify-center transition-colors cursor-pointer"
                 >
-                  <X size={15} strokeWidth={2.5} />
+                  <X size={14} />
                 </button>
               </div>
 
-              {/* Modal Body */}
               <div className="p-5 space-y-4">
                 <div className="space-y-1.5">
-                  <label htmlFor="file-path-input" className="font-mono text-xs font-black uppercase text-muted">
-                    File Path (with directory)
+                  <label htmlFor="file-path-input" className="text-xs font-medium text-ink block">
+                    File Path
                   </label>
                   <input
                     id="file-path-input"
@@ -1067,22 +1051,25 @@ export default function FilesPage() {
                     value={newFilePath}
                     onChange={(e) => setNewFilePath(e.target.value)}
                     placeholder="e.g. src/components/Dashboard.tsx"
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none focus:bg-brutal-yellow/10 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    className="w-full h-9 bg-panel-alt text-xs font-mono text-ink px-3 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                   />
-                  <p className="text-[10px] font-mono text-muted">
-                    Supports .tsx, .ts, .json, .css, .html, .py, etc.
+                  <p className="text-[11px] text-muted">
+                    Supports .tsx, .ts, .json, .css, .html, .py, and .sql
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="file-template-select" className="font-mono text-xs font-black uppercase text-muted">
+                  <label
+                    htmlFor="file-template-select"
+                    className="text-xs font-medium text-ink block"
+                  >
                     Boilerplate Template
                   </label>
                   <select
                     id="file-template-select"
                     value={newFileTemplate}
                     onChange={(e) => setNewFileTemplate(e.target.value as any)}
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    className="w-full h-9 bg-panel-alt text-xs text-ink px-3 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
                   >
                     <option value="component">React Functional Component (.tsx)</option>
                     <option value="service">TypeScript Service Class (.ts)</option>
@@ -1092,12 +1079,11 @@ export default function FilesPage() {
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-4 border-t-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] flex items-center justify-end gap-2">
+              <div className="px-5 py-3.5 border-t border-border bg-panel-alt flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setNewFileModalOpen(false)}
-                  className="px-3.5 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000]"
+                  className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1105,9 +1091,9 @@ export default function FilesPage() {
                   type="button"
                   disabled={!newFilePath.trim()}
                   onClick={handleCreateFile}
-                  className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] transition shadow-[2px_2px_0px_#000] disabled:opacity-50"
+                  className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors disabled:opacity-45 cursor-pointer"
                 >
-                  <Plus size={13} strokeWidth={2.5} />
+                  <Plus size={13} />
                   <span>Create File</span>
                 </button>
               </div>
@@ -1119,45 +1105,52 @@ export default function FilesPage() {
       {/* 6. Delete File Confirmation Modal */}
       <AnimatePresence>
         {deleteConfirmOpen && fileToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-sm rounded-none border-3 border-black dark:border-white bg-white dark:bg-[#181820] shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_#fff] overflow-hidden flex flex-col"
-              initial={{ scale: 0.95, opacity: 0 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Confirm File Deletion"
+              className="w-full max-w-sm rounded-xl border border-border bg-panel shadow-apple-lg overflow-hidden flex flex-col"
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
-              <div className="p-4 border-b-2 border-black bg-rose-500 text-white font-mono font-black uppercase text-sm flex items-center justify-between">
-                <span>Confirm File Deletion</span>
+              <div className="px-5 py-4 border-b border-border bg-panel-alt flex items-center justify-between">
+                <span className="font-display font-semibold text-sm text-ink">
+                  Confirm File Deletion
+                </span>
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmOpen(false)}
-                  className="p-1 rounded-none text-white hover:bg-black/20"
+                  aria-label="Close modal"
+                  className="w-7 h-7 rounded-md border border-border bg-panel text-muted hover:text-ink flex items-center justify-center cursor-pointer"
                 >
-                  <X size={15} strokeWidth={2.5} />
+                  <X size={14} />
                 </button>
               </div>
 
-              <div className="p-5 space-y-2 font-mono">
-                <p className="text-sm text-ink font-bold">
-                  Are you sure you want to delete <strong className="text-rose-600 dark:text-rose-400">{fileToDelete.path}</strong>?
+              <div className="p-5 space-y-2">
+                <p className="text-sm text-ink">
+                  Delete <strong className="font-mono text-error">{fileToDelete.path}</strong>?
                 </p>
                 <p className="text-xs text-muted">
                   This file will be permanently removed from the virtual codebase memory.
                 </p>
               </div>
 
-              <div className="p-3 border-t-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] flex items-center justify-end gap-2">
+              <div className="px-5 py-3.5 border-t border-border bg-panel-alt flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmOpen(false)}
-                  className="px-3.5 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000]"
+                  className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleDeleteFile}
-                  className="px-4 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-rose-500 text-white hover:bg-rose-600 transition shadow-[2px_2px_0px_#000]"
+                  className="h-8 px-4 text-xs font-medium rounded-lg bg-error text-white hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Delete File
                 </button>

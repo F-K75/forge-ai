@@ -13,38 +13,84 @@ export interface SynthesisResult {
   dagNodes: CanvasNode[];
   logs: Array<{ time: string; agent: string; message: string; level: "info" | "success" | "warn" | "error" }>;
   summary: string;
+  live?: boolean;
+  model?: string;
+  durationMs?: number;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+  };
+}
+
+export interface SynthesizeOptions {
+  mode?: "synthesis" | "refactor" | "test" | "debug";
+  projectName?: string;
+  existingFiles?: string[];
 }
 
 export async function synthesizeCodeForPrompt(
   prompt: string,
-  _currentFiles?: Record<string, string>
+  currentFiles?: Record<string, string>,
+  options?: SynthesizeOptions
 ): Promise<SynthesisResult> {
   const trimmed = prompt.trim();
   const lower = trimmed.toLowerCase();
 
-  // Try server-side Gemini endpoint first
+  // Call live server-side Gemini endpoint
   try {
     const res = await fetch("/api/gemini/synthesize-code", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: trimmed }),
+      body: JSON.stringify({
+        prompt: trimmed,
+        mode: options?.mode || "synthesis",
+        projectName: options?.projectName || "",
+        existingFiles: options?.existingFiles || (currentFiles ? Object.keys(currentFiles).slice(0, 20) : []),
+      }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data.files) && data.files.length > 0) {
-        return {
-          prompt: trimmed,
-          primaryFile: data.primaryFile || data.files[0].path,
-          files: data.files,
-          dagNodes: data.dagNodes || generateFallbackDagNodes(trimmed),
-          logs: data.logs || generateFallbackLogs(trimmed),
-          summary: data.summary || `Synthesized code for ${trimmed}`,
-        };
-      }
+    const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+
+    if (!res.ok) {
+      const errData = isJson ? await res.json().catch(() => ({})) : {};
+      throw new Error(errData?.error || `Live LLM synthesis failed (HTTP ${res.status})`);
     }
-  } catch (e) {
-    console.warn("Server-side synthesis fallback triggered:", e);
+
+    if (!isJson) {
+      throw new Error("Live Gemini API endpoint is unavailable (received non-JSON response). Restart dev server.");
+    }
+
+    const data = await res.json();
+    if (data && Array.isArray(data.files) && data.files.length > 0) {
+      return {
+        prompt: trimmed,
+        primaryFile: data.primaryFile || data.files[0].path,
+        files: data.files,
+        dagNodes: Array.isArray(data.dagNodes) && data.dagNodes.length > 0
+          ? data.dagNodes
+          : generateFallbackDagNodes(trimmed),
+        logs: Array.isArray(data.logs) && data.logs.length > 0
+          ? data.logs
+          : generateFallbackLogs(trimmed),
+        summary: data.summary || `Synthesized code for ${trimmed}`,
+        live: Boolean(data.live),
+        model: data.model,
+        durationMs: data.durationMs,
+        usage: data.usage,
+      };
+    }
+
+    throw new Error("Live LLM returned an empty file set. Please refine your prompt and try again.");
+  } catch (e: any) {
+    // Only use local mock synthesis inside automated Vitest JSDOM test runs where relative /api/* URLs have no server
+    const isTestEnv = typeof import.meta !== "undefined" && (import.meta as any).env?.MODE === "test";
+    if (!isTestEnv) {
+      throw e instanceof Error ? e : new Error(String(e || "Live LLM synthesis failed"));
+    }
+    console.warn("Server-side synthesis fallback triggered (test mode):", e);
   }
 
   // Resilient Domain Fallback

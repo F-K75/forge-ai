@@ -1,6 +1,7 @@
 import type { Plugin, ViteDevServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { handleLiveScaffoldProject, handleLiveSynthesizeCode } from './liveBuildHandlers';
 
 export interface AIUsageRecord {
   id: string;
@@ -108,11 +109,11 @@ export interface GeminiCallResult {
   durationMs: number;
 }
 
-// Resilient caller that cycles through valid models, tracks authentic token metadata, and retries transient 503/429 spikes
-async function callGeminiResilient(
+// Live caller returning full response text, model, token usage, and latency; throws real upstream error on failure
+async function callGeminiLive(
   ai: GoogleGenAI,
   prompt: string,
-  config: { responseMimeType?: string; temperature?: number } = {},
+  config: { responseMimeType?: string; systemInstruction?: string } = {},
   options?: {
     candidateModels?: string[];
     timeoutMs?: number;
@@ -121,36 +122,46 @@ async function callGeminiResilient(
     projectId?: string;
     initiativeId?: string;
   }
-): Promise<string | null> {
+): Promise<GeminiCallResult> {
   const candidateModels = options?.candidateModels || [
-    'gemini-3.8-flash',
+    'gemini-4-hydrogen',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest',
-    'gemini-2.5-flash',
   ];
-  const timeoutMs = options?.timeoutMs || 8000;
+  const timeoutMs = options?.timeoutMs || 45000;
   const operation = options?.operation || 'general_completion';
   const startTime = Date.now();
+  let lastError: Error | null = null;
 
   const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T> =>
     Promise.race([
       p,
-      new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout calling Gemini API')), ms)),
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout calling Gemini API after ${Math.round(ms / 1000)}s`)), ms)),
     ]);
 
-  for (const model of candidateModels) {
+  for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
+    const model = candidateModels[mIdx];
+    const hasFallback = mIdx < candidateModels.length - 1;
+    const perModelTimeout = hasFallback ? Math.min(timeoutMs, 15000) : timeoutMs;
+
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
+        const reqConfig: Record<string, any> = {
+          responseMimeType: config.responseMimeType || 'application/json',
+        };
+        if (model === 'gemini-4-hydrogen') {
+          reqConfig.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+        }
+        if (config.systemInstruction) {
+          reqConfig.systemInstruction = config.systemInstruction;
+        }
+
         const response = await withTimeout(
           ai.models.generateContent({
             model,
             contents: prompt,
-            config: {
-              responseMimeType: config.responseMimeType || 'application/json',
-              temperature: config.temperature ?? 0.2,
-            },
+            config: reqConfig,
           }),
-          timeoutMs
+          perModelTimeout
         );
         const text = response.text?.trim();
         if (text) {
@@ -161,7 +172,6 @@ async function callGeminiResilient(
           const totalTokens = usageMeta?.totalTokenCount || (promptTokens + completionTokens);
           const cost = calculateCost(model, promptTokens, completionTokens);
 
-          // Record authentic usage into telemetry ledger
           recordAiUsage({
             requestId: `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
             operation,
@@ -176,10 +186,22 @@ async function callGeminiResilient(
             durationMs,
           });
 
-          return text;
+          return {
+            text,
+            model,
+            usage: {
+              promptTokens,
+              completionTokens,
+              totalTokens,
+              estimatedCostUsd: cost,
+            },
+            durationMs,
+          };
         }
+        lastError = new Error(`Model ${model} returned an empty response.`);
       } catch (err: any) {
-        const msg = String(err?.message || '');
+        const msg = String(err?.message || err || 'Unknown Gemini API error');
+        lastError = err instanceof Error ? err : new Error(msg);
         const isTransient =
           msg.includes('429') ||
           msg.includes('503') ||
@@ -189,15 +211,43 @@ async function callGeminiResilient(
           msg.includes('overloaded');
 
         if (attempt === 1 && isTransient) {
-          await new Promise((resolve) => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 600));
           continue;
         }
-        // Try next candidate model
         break;
       }
     }
   }
-  return null;
+
+  throw lastError || new Error('All Gemini models failed to respond.');
+}
+
+// Resilient caller that cycles through valid models, tracks authentic token metadata, and retries transient 503/429 spikes
+async function callGeminiResilient(
+  ai: GoogleGenAI,
+  prompt: string,
+  config: { responseMimeType?: string; temperature?: number; systemInstruction?: string } = {},
+  options?: {
+    candidateModels?: string[];
+    timeoutMs?: number;
+    operation?: string;
+    agent?: string;
+    projectId?: string;
+    initiativeId?: string;
+  }
+): Promise<string | null> {
+  try {
+    const result = await callGeminiLive(
+      ai,
+      prompt,
+      { responseMimeType: config.responseMimeType, systemInstruction: config.systemInstruction },
+      options
+    );
+    return result.text;
+  } catch (err: any) {
+    console.error(`[geminiPlugin] ${options?.operation || 'general_completion'} failed:`, err?.message || err);
+    return null;
+  }
 }
 
 function synthesizeDomainRawPlan(
@@ -878,8 +928,28 @@ export function geminiPlugin(): Plugin {
             sendJson(res, 200, {
               status: 'ok',
               provider: 'Google Gemini',
-              model: 'gemini-3.8-flash',
+              model: 'gemini-4-hydrogen',
               live_mode: true,
+            });
+            return;
+          }
+
+          if (url === '/api/gemini/synthesize-code' && req.method === 'POST') {
+            await handleLiveSynthesizeCode(ai, req, res, {
+              parseRequestBody,
+              sendJson,
+              cleanAndParseJson,
+              callGeminiLive,
+            });
+            return;
+          }
+
+          if (url === '/api/gemini/scaffold-project' && req.method === 'POST') {
+            await handleLiveScaffoldProject(ai, req, res, {
+              parseRequestBody,
+              sendJson,
+              cleanAndParseJson,
+              callGeminiLive,
             });
             return;
           }
@@ -956,7 +1026,7 @@ export function geminiPlugin(): Plugin {
                 : audioBase64;
 
               const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3.5-transcribe',
                 contents: [
                   {
                     role: 'user',

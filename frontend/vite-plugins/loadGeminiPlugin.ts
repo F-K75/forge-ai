@@ -6,8 +6,6 @@ export interface ResolveGeminiPluginOptions {
   loader?: () => Promise<{ geminiPlugin: () => PluginOption }>
 }
 
-const GEMINI_PLUGIN_MODULE = './geminiPlugin'
-
 /**
  * Resolves the optional Gemini dev-server middleware plugin.
  *
@@ -25,7 +23,7 @@ export async function resolveGeminiPlugin(
     command = 'serve',
     mode = 'development',
     loader = () =>
-      import(/* @vite-ignore */ GEMINI_PLUGIN_MODULE).then((m) => ({
+      import('./geminiPlugin').then((m) => ({
         geminiPlugin: m.geminiPlugin,
       })),
   } = options
@@ -38,8 +36,10 @@ export async function resolveGeminiPlugin(
   try {
     const { geminiPlugin } = await loader()
     return geminiPlugin()
-  } catch {
-    // Graceful fallback when @google/genai or geminiPlugin is unavailable
+  } catch (err) {
+    if (mode !== 'test') {
+      console.warn('[forge-gemini-live-plugin] Failed to load Gemini dev middleware:', err)
+    }
     return null
   }
 }

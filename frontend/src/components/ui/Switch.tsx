@@ -11,7 +11,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({ label, description, className, ...props }, ref) => {
     return (
       <label className={twMerge(clsx('flex items-start gap-3 cursor-pointer select-none', className))}>
-        <div className="relative mt-0.5">
+        <div className="relative mt-0.5 shrink-0">
           <input
             ref={ref}
             type="checkbox"
@@ -20,16 +20,17 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           />
           <div
             className={clsx(
-              'h-6 w-11 rounded-full border border-border bg-panel-alt transition-colors duration-150 ease-in-out',
+              'h-5 w-9 rounded-full border transition-colors duration-fast',
               'peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-base',
-              'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
-              props.checked && 'bg-accent border-accent'
+              props.checked
+                ? 'border-accent bg-accent'
+                : 'border-border bg-surface-high'
             )}
           >
             <div
               className={clsx(
-                'absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform duration-150 ease-in-out shadow-sm',
-                props.checked ? 'translate-x-5 bg-[#09090B]' : 'bg-muted'
+                'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-xs transition-transform duration-fast',
+                props.checked ? 'translate-x-4' : 'translate-x-0'
               )}
             />
           </div>

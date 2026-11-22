@@ -193,8 +193,8 @@ export default function ProjectHistory() {
 
   if (LIVE_MODE && !selected) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-faint">
-        {rawBuilds === null ? "Loading build history" : "No builds yet for this project."}
+      <div className="flex h-full min-h-[60vh] items-center justify-center bg-base text-sm text-muted">
+        {rawBuilds === null ? "Loading build history…" : "No builds yet for this project."}
       </div>
     );
   }
@@ -202,44 +202,43 @@ export default function ProjectHistory() {
   const nodes = buildNodes(selected);
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden">
-      {/* Left: build timeline */}
+    <div className="flex h-full min-h-[calc(100vh-56px)] overflow-hidden bg-base text-ink">
+      {/* Left: Build Timeline Sidebar */}
       <motion.aside
         aria-label="Build history"
-        className="w-80 shrink-0 overflow-y-auto flex flex-col glass-strong"
-        initial={reduceMotion ? false : { opacity: 0, x: -16 }}
+        className="w-80 shrink-0 overflow-y-auto flex flex-col bg-panel border-r border-border"
+        initial={reduceMotion ? false : { opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
       >
-        {/* Project header */}
-        <div className="px-5 py-4 border-b border-border shrink-0">
-          <div className="flex items-center gap-2 mb-0.5">
+        {/* Project Header */}
+        <div className="px-5 py-4 border-b border-border shrink-0 space-y-1">
+          <div className="flex items-center gap-2">
             <span
               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                projectLive ? "bg-accent" : "bg-faint"
+                projectLive ? "bg-ok" : "bg-faint"
               }`}
               aria-label={projectLive ? "Live" : "Idle"}
             />
-            <span className="font-mono text-sm font-medium text-ink">
+            <span className="font-display text-sm font-semibold text-ink truncate">
               {projectName}
             </span>
           </div>
-          <p className="text-xs text-muted pl-3.5">
-            {builds.length} builds ·{" "}
-            {projectLive ? "live" : "idle"}
+          <p className="text-xs font-mono text-muted pl-3.5 tabular-nums">
+            {builds.length} builds · {projectLive ? "live" : "idle"}
           </p>
           <Link
             to={`/project/${projectId}/org`}
-            className="text-xs text-muted hover:text-ink pl-3.5 mt-1 inline-block"
+            className="text-xs text-accent hover:underline pl-3.5 pt-0.5 inline-block"
           >
             Engineering org →
           </Link>
         </div>
 
-        {/* Build list */}
+        {/* Build List */}
         <motion.nav
           aria-label="Builds"
-          className="flex-1 p-2 overflow-y-auto"
+          className="flex-1 p-2.5 space-y-1 overflow-y-auto"
           variants={reduceMotion ? undefined : motionVariants.staggerContainer}
           initial={reduceMotion ? false : "hidden"}
           animate="visible"
@@ -252,30 +251,26 @@ export default function ProjectHistory() {
                 onClick={() => setSelectedId(build.id)}
                 aria-current={isSelected ? "true" : undefined}
                 className={[
-                  "w-full text-left px-3 py-3 border-l-2 mb-0.5 transition-colors motion-reduce:transition-none",
-                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40",
+                  "w-full text-left px-3 py-2.5 rounded-lg border transition-colors duration-150 motion-reduce:transition-none cursor-pointer",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
                   isSelected
-                    ? "border-ink bg-panel-alt"
-                    : "border-transparent hover:bg-panel-alt",
+                    ? "bg-accent-soft border-accent/40 text-ink"
+                    : "border-transparent hover:bg-panel-alt text-ink",
                 ].join(" ")}
                 variants={motionVariants.staggerItem}
               >
-                <p className="text-sm font-medium text-ink truncate mb-1.5">
+                <p className="text-sm font-medium text-ink truncate mb-1">
                   {build.label}
                 </p>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="flex items-center gap-1 text-xs text-muted">
-                    <Clock size={10} aria-hidden="true" />
+                <div className="flex items-center gap-3 flex-wrap text-xs font-mono tabular-nums text-muted">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={11} aria-hidden="true" />
                     {build.time}
                   </span>
-                  {build.qaScore !== null && (
-                    <span className="font-mono text-[10px] text-muted">
-                      QA {build.qaScore}
-                    </span>
-                  )}
+                  {build.qaScore !== null && <span>QA {build.qaScore}</span>}
                   {build.debugLoops > 0 && (
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-warn/10 text-warn">
-                      <RefreshCw size={9} aria-hidden="true" />
+                    <span className="inline-flex items-center gap-1 text-warn">
+                      <RefreshCw size={10} aria-hidden="true" />
                       {build.debugLoops}
                     </span>
                   )}
@@ -286,143 +281,142 @@ export default function ProjectHistory() {
         </motion.nav>
       </motion.aside>
 
-      {/* Right: build detail */}
+      {/* Right: Build Detail Stage */}
       <motion.main
         className="flex-1 overflow-y-auto p-6 md:p-8 bg-base"
-        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="font-display text-xl font-medium tracking-tight text-ink">
-              {selected.label}
-            </h2>
-            <StatusPill status={selected.status} />
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {LIVE_MODE && (
-              <motion.button
-                type="button"
-                onClick={handleRollback}
-                disabled={rollingBack}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
-                {...presets.button}
-              >
-                <RefreshCw size={12} aria-hidden="true" />
-                {rollingBack ? "Rolling back" : "Roll back to this version"}
-              </motion.button>
-            )}
-            {LIVE_MODE && (
-              <motion.button
-                type="button"
-                onClick={handleViewDiff}
-                disabled={diffLoading}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border text-xs text-ink hover:bg-panel-alt active:scale-[0.98] transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
-                {...presets.button}
-              >
-                <GitBranch size={12} aria-hidden="true" />
-                {diffLoading ? "Loading" : "View diff"}
-              </motion.button>
-            )}
-          </div>
-        </div>
-
-        {/* Diff panel */}
-        <AnimatePresence>
-          {diff && (
-            <motion.div
-              key="diff-panel"
-              className="mb-9 glass rounded-lg p-5"
-              role="region"
-              aria-label="Changed files"
-              initial={reduceMotion ? false : { opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              {/* A short summary announcement, not the full file list -- making
-                  the whole region aria-live would read every filename aloud
-                  the instant a large diff loads. */}
-              <span role="status" aria-live="polite" className="sr-only">
-                 {diff.added.length + diff.modified.length + diff.removed.length === 0
-                   ? "No file changes from the previous build"
-                   : `Diff loaded: ${diff.added.length + diff.modified.length + diff.removed.length} changed files`}
-              </span>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs uppercase tracking-[0.14em] text-muted">Changed files</h3>
-                <button
+        <div className="max-w-4xl space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-border">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink">
+                {selected.label}
+              </h1>
+              <StatusPill status={selected.status} />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {LIVE_MODE && (
+                <motion.button
                   type="button"
-                  onClick={() => setDiff(null)}
-                  className="text-xs text-muted hover:text-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 rounded"
+                  onClick={handleRollback}
+                  disabled={rollingBack}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-panel-alt transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50 cursor-pointer"
+                  {...presets.button}
                 >
-                  Close
-                </button>
-              </div>
-              {diff.added.length === 0 && diff.modified.length === 0 && diff.removed.length === 0 ? (
-                 <p className="text-xs text-faint">No file changes from the previous build.</p>
-              ) : (
-                <ul className="space-y-1 font-mono text-xs">
-                  {diff.added.map((f) => (
-                    <li key={`a-${f}`} className="text-ok">+ {f}</li>
-                  ))}
-                  {diff.modified.map((f) => (
-                    <li key={`m-${f}`} className="text-warn">~ {f}</li>
-                  ))}
-                  {diff.removed.map((f) => (
-                    <li key={`r-${f}`} className="text-error">− {f}</li>
-                  ))}
-                </ul>
+                  <RefreshCw size={12} aria-hidden="true" />
+                  {rollingBack ? "Rolling back…" : "Roll back to this version"}
+                </motion.button>
               )}
+              {LIVE_MODE && (
+                <motion.button
+                  type="button"
+                  onClick={handleViewDiff}
+                  disabled={diffLoading}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-accent hover:bg-ember-glow text-xs font-medium text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50 cursor-pointer"
+                  {...presets.button}
+                >
+                  <GitBranch size={12} aria-hidden="true" />
+                  {diffLoading ? "Loading…" : "View diff"}
+                </motion.button>
+              )}
+            </div>
+          </div>
+
+          {/* Diff Panel */}
+          <AnimatePresence>
+            {diff && (
+              <motion.div
+                key="diff-panel"
+                className="rounded-xl border border-border bg-panel p-5 shadow-apple"
+                role="region"
+                aria-label="Changed files"
+                initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                <span role="status" aria-live="polite" className="sr-only">
+                  {diff.added.length + diff.modified.length + diff.removed.length === 0
+                    ? "No file changes from the previous build"
+                    : `Diff loaded: ${diff.added.length + diff.modified.length + diff.removed.length} changed files`}
+                </span>
+                <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-border">
+                  <h3 className="text-xs font-semibold text-ink">Changed files</h3>
+                  <button
+                    type="button"
+                    onClick={() => setDiff(null)}
+                    className="text-xs text-muted hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+                {diff.added.length === 0 && diff.modified.length === 0 && diff.removed.length === 0 ? (
+                  <p className="text-xs text-muted">No file changes from the previous build.</p>
+                ) : (
+                  <ul className="space-y-1 font-mono text-xs">
+                    {diff.added.map((f) => (
+                      <li key={`a-${f}`} className="text-ok">+ {f}</li>
+                    ))}
+                    {diff.modified.map((f) => (
+                      <li key={`m-${f}`} className="text-warn">~ {f}</li>
+                    ))}
+                    {diff.removed.map((f) => (
+                      <li key={`r-${f}`} className="text-error">− {f}</li>
+                    ))}
+                  </ul>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Summary KPI Strip */}
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-4 gap-3"
+            variants={reduceMotion ? undefined : motionVariants.staggerContainer}
+            initial={reduceMotion ? false : "hidden"}
+            animate="visible"
+          >
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-border bg-panel shadow-apple overflow-hidden">
+              <SummaryChip label="QA score" value={selected.qaScore !== null ? String(selected.qaScore) : "—"} />
             </motion.div>
-          )}
-        </AnimatePresence>
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-border bg-panel shadow-apple overflow-hidden">
+              <SummaryChip label="Files changed" value={String(selected.filesChanged)} />
+            </motion.div>
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-border bg-panel shadow-apple overflow-hidden">
+              <SummaryChip
+                label="Credits"
+                value={String(selected.credits)}
+                icon={<Zap size={12} className="text-accent" aria-hidden="true" />}
+              />
+            </motion.div>
+            <motion.div variants={motionVariants.staggerItem} className="rounded-xl border border-border bg-panel shadow-apple overflow-hidden">
+              <SummaryChip
+                label="Debug loops"
+                value={String(selected.debugLoops)}
+                warn={selected.debugLoops > 0}
+              />
+            </motion.div>
+          </motion.div>
 
-        {/* Summary chips */}
-        <motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border mb-9"
-          variants={reduceMotion ? undefined : motionVariants.staggerContainer}
-          initial={reduceMotion ? false : "hidden"}
-          animate="visible"
-        >
-          <motion.div variants={motionVariants.staggerItem}>
-            <SummaryChip label="QA score" value={selected.qaScore !== null ? String(selected.qaScore) : "—"} />
-          </motion.div>
-          <motion.div variants={motionVariants.staggerItem}>
-            <SummaryChip label="Files changed" value={String(selected.filesChanged)} />
-          </motion.div>
-          <motion.div variants={motionVariants.staggerItem}>
-            <SummaryChip
-              label="Credits"
-              value={String(selected.credits)}
-              icon={<Zap size={11} className="text-faint" aria-hidden="true" />}
-            />
-          </motion.div>
-          <motion.div variants={motionVariants.staggerItem}>
-            <SummaryChip
-              label="Debug loops"
-              value={String(selected.debugLoops)}
-              warn={selected.debugLoops > 0}
-            />
-          </motion.div>
-        </motion.div>
-
-        {/* Pipeline run */}
-        <motion.section
-          aria-label="Agent pipeline run"
-          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-        >
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted mb-5">
-            <span className="w-6 h-px bg-muted/50" aria-hidden="true" />
-            Pipeline run
-          </div>
-          <div className="max-w-xs">
-            <AgentPipeline nodes={nodes} />
-          </div>
-        </motion.section>
+          {/* Pipeline Run */}
+          <motion.section
+            aria-label="Agent pipeline run"
+            className="rounded-xl border border-border bg-panel p-5 shadow-apple"
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05, ease: "easeOut" }}
+          >
+            <h3 className="font-display text-sm font-semibold text-ink mb-4">
+              Agent Pipeline Run
+            </h3>
+            <div className="max-w-sm">
+              <AgentPipeline nodes={nodes} />
+            </div>
+          </motion.section>
+        </div>
       </motion.main>
     </div>
   );

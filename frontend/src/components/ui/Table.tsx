@@ -45,12 +45,16 @@ export function Table({
   ...rest
 }: TableProps) {
   return (
-    <div className={twMerge(clsx('w-full overflow-x-auto border border-border bg-panel shadow-m3 rounded-lg', className))}>
+    <div
+      className={twMerge(
+        clsx('w-full overflow-x-auto rounded-lg border border-border bg-panel', className)
+      )}
+    >
       <table
         className={twMerge(
           clsx(
             'w-full border-collapse text-left text-sm tabular-nums',
-            striped && '[&_tbody>tr:nth-child(even)]:bg-inlay-subtle'
+            striped && '[&_tbody>tr:nth-child(even)]:bg-panel-alt/50'
           )
         )}
         {...rest}
@@ -59,10 +63,10 @@ export function Table({
         {loading && (
           <tbody className="divide-y divide-border">
             {Array.from({ length: loadingRows }).map((_, rIdx) => (
-              <tr key={rIdx} className="animate-pulse">
+              <tr key={rIdx}>
                 {Array.from({ length: loadingCols }).map((_, cIdx) => (
-                  <td key={cIdx} className="px-4 py-3 border-r border-border-soft last:border-r-0">
-                    <div className="h-4 bg-surface-high rounded-xs w-3/4" />
+                  <td key={cIdx} className="px-4 py-3">
+                    <div className="h-4 w-3/4 rounded bg-panel-alt animate-shimmer" />
                   </td>
                 ))}
               </tr>
@@ -88,7 +92,7 @@ export function TableHeader({ children, sticky = true, className, ...rest }: Tab
     <thead
       className={twMerge(
         clsx(
-          'border-b border-border bg-panel-alt/95 backdrop-blur-sm',
+          'border-b border-border bg-panel-alt/80',
           sticky && 'sticky top-0 z-10',
           className
         )
@@ -106,7 +110,7 @@ export function TableBody({ children, striped = false, className, ...rest }: Tab
       className={twMerge(
         clsx(
           'divide-y divide-border',
-          striped && '[&>tr:nth-child(even)]:bg-inlay-subtle',
+          striped && '[&>tr:nth-child(even)]:bg-panel-alt/50',
           className
         )
       )}
@@ -122,9 +126,9 @@ export function TableRow({ children, selected = false, striped = false, classNam
     <tr
       className={twMerge(
         clsx(
-          'transition-colors duration-150 ease-in-out',
-          selected ? 'bg-accent/10 font-medium' : 'hover:bg-inlay-hover',
-          striped && 'even:bg-inlay-subtle',
+          'transition-colors duration-fast',
+          selected ? 'bg-accent/5' : 'hover:bg-panel-alt/60',
+          striped && 'even:bg-panel-alt/40',
           className
         )
       )}
@@ -142,7 +146,9 @@ export function TableCell({ children, header = false, className, ...rest }: Tabl
       className={twMerge(
         clsx(
           'px-4 py-3 text-sm',
-          header ? 'font-medium uppercase tracking-wider text-xs text-muted border-r border-border-soft last:border-r-0' : 'text-ink font-normal border-r border-border-soft last:border-r-0',
+          header
+            ? 'text-xs font-medium text-muted'
+            : 'text-ink',
           className
         )
       )}

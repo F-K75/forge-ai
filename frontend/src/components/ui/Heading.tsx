@@ -40,17 +40,17 @@ const elementFor: Record<HeadingLevel, ElementType> = {
 }
 
 const toneFor: Record<HeadingLevel, string> = {
-  display: 'font-display text-ink',
-  h1: 'font-display text-ink',
-  h2: 'font-display text-ink',
+  display: 'font-display text-ink [text-wrap:balance]',
+  h1: 'font-display text-ink [text-wrap:balance]',
+  h2: 'font-display text-ink [text-wrap:balance]',
   h3: 'font-display text-ink',
   h4: 'font-display text-ink font-semibold',
   h5: 'font-display text-ink font-semibold',
   h6: 'font-display text-ink font-semibold',
   bodyLg: 'text-ink',
   body: 'text-muted',
-  caption: 'text-muted text-xs tracking-normal',
-  label: 'font-medium uppercase tracking-widest text-muted',
+  caption: 'text-muted text-xs',
+  label: 'text-xs font-medium uppercase tracking-wider text-muted',
   section: 'font-display text-ink',
 }
 

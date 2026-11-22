@@ -1,33 +1,33 @@
 import { useState } from "react";
-import { Play, RotateCcw, CheckCircle2, AlertCircle, Clock, Terminal, Shield, Check, Filter } from "lucide-react";
+import { RotateCcw, CheckCircle2, Clock, Terminal } from "lucide-react";
 
 interface TestCase {
   id: string;
   name: string;
- suite: "Auth" | "Billing" | "Database" | "Edge";
+  suite: "Auth" | "Billing" | "Database" | "Edge";
   duration: string;
- status: "passed" | "running" | "failed";
+  status: "passed" | "running" | "failed";
   assertion: string;
 }
 
 const TESTS: TestCase[] = [
- { id: "t-1", name: "OAuth PKCE code verifier SHA-256 match", suite: "Auth", duration: "12ms", status: "passed", assertion: "expect(crypto.subtle.digest).toBeValidSHA256()" },
- { id: "t-2", name: "Session token expires after 7 days", suite: "Auth", duration: "8ms", status: "passed", assertion: "expect(session.expiresAt - session.createdAt).toBe(604800000)" },
- { id: "t-3", name: "CSRF token rejected on origin mismatch", suite: "Auth", duration: "14ms", status: "passed", assertion: "expect(response.status).toBe(403)" },
- { id: "t-4", name: "Stripe checkout session idempotency key", suite: "Billing", duration: "19ms", status: "passed", assertion: "expect(stripe.checkout.sessions.create).toBeCalledWithIdempotency()" },
- { id: "t-5", name: "Webhook rejects unsigned payload", suite: "Billing", duration: "11ms", status: "passed", assertion: "expect(verifyWebhookSignature).toThrow('InvalidSignature')" },
- { id: "t-6", name: "Subscription downgrade retains access till period_end", suite: "Billing", duration: "16ms", status: "passed", assertion: "expect(tier.activeUntilPeriodEnd).toBe(true)" },
- { id: "t-7", name: "PostgreSQL foreign key cascade on user delete", suite: "Database", duration: "24ms", status: "passed", assertion: "expect(remainingTokens.count).toBe(0)" },
- { id: "t-8", name: "Connection pool auto-reconnects on drop", suite: "Database", duration: "9ms", status: "passed", assertion: "expect(pool.totalConnections).toBeGreaterThanOrEqual(1)" },
- { id: "t-9", name: "Edge cold start latency < 25ms", suite: "Edge", duration: "18ms", status: "passed", assertion: "expect(measuredLatency).toBeLessThan(25)" },
- { id: "t-10", name: "Automated TLS 1.3 cipher suite negotiation", suite: "Edge", duration: "11ms", status: "passed", assertion: "expect(tls.cipher).toContain('TLS_AES_128_GCM_SHA256')" },
+  { id: "t-1", name: "OAuth PKCE code verifier SHA-256 match", suite: "Auth", duration: "12ms", status: "passed", assertion: "expect(crypto.subtle.digest).toBeValidSHA256()" },
+  { id: "t-2", name: "Session token expires after 7 days", suite: "Auth", duration: "8ms", status: "passed", assertion: "expect(session.expiresAt - session.createdAt).toBe(604800000)" },
+  { id: "t-3", name: "CSRF token rejected on origin mismatch", suite: "Auth", duration: "14ms", status: "passed", assertion: "expect(response.status).toBe(403)" },
+  { id: "t-4", name: "Stripe checkout session idempotency key", suite: "Billing", duration: "19ms", status: "passed", assertion: "expect(stripe.checkout.sessions.create).toBeCalledWithIdempotency()" },
+  { id: "t-5", name: "Webhook rejects unsigned payload", suite: "Billing", duration: "11ms", status: "passed", assertion: "expect(verifyWebhookSignature).toThrow('InvalidSignature')" },
+  { id: "t-6", name: "Subscription downgrade retains access till period_end", suite: "Billing", duration: "16ms", status: "passed", assertion: "expect(tier.activeUntilPeriodEnd).toBe(true)" },
+  { id: "t-7", name: "PostgreSQL foreign key cascade on user delete", suite: "Database", duration: "24ms", status: "passed", assertion: "expect(remainingTokens.count).toBe(0)" },
+  { id: "t-8", name: "Connection pool auto-reconnects on drop", suite: "Database", duration: "9ms", status: "passed", assertion: "expect(pool.totalConnections).toBeGreaterThanOrEqual(1)" },
+  { id: "t-9", name: "Edge cold start latency < 25ms", suite: "Edge", duration: "18ms", status: "passed", assertion: "expect(measuredLatency).toBeLessThan(25)" },
+  { id: "t-10", name: "Automated TLS 1.3 cipher suite negotiation", suite: "Edge", duration: "11ms", status: "passed", assertion: "expect(tls.cipher).toContain('TLS_AES_128_GCM_SHA256')" },
 ];
 
 export function ForgeDebugSurface() {
- const [filter, setFilter] = useState<"all" | "Auth" | "Billing" | "Database" | "Edge">("all");
+  const [filter, setFilter] = useState<"all" | "Auth" | "Billing" | "Database" | "Edge">("all");
   const [isRunning, setIsRunning] = useState(false);
 
- const filteredTests = filter === "all" ? TESTS : TESTS.filter((t) => t.suite === filter);
+  const filteredTests = filter === "all" ? TESTS : TESTS.filter((t) => t.suite === filter);
 
   const handleRerun = () => {
     setIsRunning(true);
@@ -35,92 +35,90 @@ export function ForgeDebugSurface() {
   };
 
   return (
- <div className="h-full flex flex-col bg-panel-alt dark:bg-[#0D0D12] overflow-hidden select-none font-mono text-ink">
+    <div className="h-full flex flex-col bg-base overflow-hidden select-none text-ink">
       {/* Test Suite Header */}
- <div className="h-10 px-3 border-b-2 border-black dark:border-white/80 bg-panel-alt dark:bg-[#1A1A22] flex items-center justify-between text-xs gap-2 shrink-0">
- <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
- <span className="flex items-center gap-1 font-mono text-black bg-emerald-400 border border-border font-black text-[10px] uppercase px-2 h-7 shadow-m3 whitespace-nowrap">
-            <CheckCircle2 size={11} strokeWidth={3} /> 42/42 PASSED (142MS)
+      <div className="h-11 px-4 border-b border-border bg-panel-alt flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
+          <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-ok whitespace-nowrap tabular-nums">
+            <CheckCircle2 size={14} />
+            42/42 Passed · 142ms
           </span>
 
- <div className="flex items-center gap-1 font-mono text-[10px]">
- {(["all", "Auth", "Billing", "Database", "Edge"] as const).map((s) => (
+          <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel">
+            {(["all", "Auth", "Billing", "Database", "Edge"] as const).map((s) => (
               <button
                 key={s}
- type="button"
+                type="button"
                 onClick={() => setFilter(s)}
-                className={`h-7 px-2 border border-border uppercase font-black transition-none active:translate-x-[1px] active:translate-y-[1px] ${
+                className={`h-7 px-2.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                   filter === s
- ? "bg-accent text-[#09090B] text-black shadow-m3"
- : "bg-white dark:bg-[#252530] text-ink shadow-m3 hover:bg-neutral-100"
+                    ? "bg-accent text-white"
+                    : "text-muted hover:text-ink"
                 }`}
               >
-                {s}
+                {s === "all" ? "All" : s}
               </button>
             ))}
           </div>
         </div>
 
- <div className="flex items-center gap-1.5 shrink-0">
-          <button
- type="button"
-            disabled={isRunning}
-            onClick={handleRerun}
- className="h-7 px-2.5 bg-accent text-[#09090B] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black text-black border border-border font-mono text-[10px] font-black uppercase flex items-center gap-1 shadow-m3 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
-          >
- <RotateCcw size={10} strokeWidth={3} className={isRunning ? "animate-spin" : ""} />
- <span>{isRunning ? "RUNNING..." : "RE-RUN SUITE"}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={isRunning}
+          onClick={handleRerun}
+          className="h-8 px-3 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+        >
+          <RotateCcw size={12} className={isRunning ? "animate-spin" : ""} />
+          <span>{isRunning ? "Running…" : "Re-run Suite"}</span>
+        </button>
       </div>
 
       {/* Test Runner Results List */}
- <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2">
-        {filteredTests.map((test) => (
-          <div
-            key={test.id}
- className="p-2.5 border border-border bg-white dark:bg-[#1A1A24] shadow-m3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-          >
- <div className="flex items-start sm:items-center gap-2 min-w-0">
- <span className="shrink-0 w-4 h-4 bg-emerald-400 text-black border border-black flex items-center justify-center text-[10px] font-black">
-                ✓
-              </span>
- <div className="min-w-0">
- <div className="flex items-center gap-2 flex-wrap">
- <span className="font-bold text-ink text-xs">{test.name}</span>
- <span className="text-[9px] font-mono font-black uppercase bg-panel-alt dark:bg-[#2A2A36] border border-black dark:border-white/60 px-1.5 py-0.2">
-                    {test.suite}
-                  </span>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="rounded-xl border border-border bg-panel overflow-hidden divide-y divide-border">
+          {filteredTests.map((test) => (
+            <div
+              key={test.id}
+              className="px-4 py-3 hover:bg-panel-alt/60 transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <CheckCircle2 size={15} className="text-ok shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="font-medium text-sm text-ink">{test.name}</span>
+                    <span className="text-[11px] font-mono text-muted">
+                      {test.suite}
+                    </span>
+                  </div>
+                  <p className="font-mono text-xs text-muted truncate mt-0.5">
+                    {test.assertion}
+                  </p>
                 </div>
- <p className="font-mono text-[10px] text-muted truncate mt-0.5">
-                  {test.assertion}
-                </p>
+              </div>
+
+              <div className="flex items-center gap-4 shrink-0 self-end sm:self-auto font-mono text-xs tabular-nums">
+                <span className="inline-flex items-center gap-1 text-muted">
+                  <Clock size={12} /> {test.duration}
+                </span>
+                <span className="text-ok font-medium">Passed</span>
               </div>
             </div>
+          ))}
+        </div>
 
- <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto text-[10px] font-mono">
- <span className="flex items-center gap-1 text-muted">
-                <Clock size={10} /> {test.duration}
-              </span>
- <span className="px-1.5 py-0.5 bg-emerald-400 text-black border border-black font-black text-[9px] uppercase">
-                PASSED
-              </span>
-            </div>
-          </div>
-        ))}
-
-        {/* Live Terminal Output Console */}
- <div className="mt-3 p-3 bg-[#0C0D10] text-[#E0E0E0] border border-border shadow-m3 font-mono text-[10px] space-y-1">
- <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/20 text-[9px] uppercase tracking-wider text-neutral-400">
- <span className="flex items-center gap-1 text-[#00F0FF] font-black">
-              <Terminal size={11} strokeWidth={2.5} /> TERMINAL_TEST_RUNNER
+        {/* Console Output */}
+        <div className="rounded-xl border border-border bg-[#0B0F19] text-slate-200 p-4 font-mono text-xs space-y-1.5">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-[11px] text-slate-400">
+            <span className="inline-flex items-center gap-1.5 text-slate-200 font-medium">
+              <Terminal size={13} className="text-accent" />
+              Vitest Runner Output
             </span>
-            <span>VITEST 2.1.8 · NODE V20.18</span>
+            <span className="tabular-nums">Vitest 2.1.8 · Node v20.18</span>
           </div>
- <p className="text-emerald-400 font-bold">✓ 42 tests passed in 10 test files</p>
- <p className="text-neutral-400">  Time: 142ms total (11ms setup, 131ms execution)</p>
- <p className="text-neutral-400">  Snapshots: 0 failed, 12 passed</p>
- <p className="text-emerald-400">  Coverage: 98.4% statements, 96.1% branches</p>
+          <p className="text-emerald-400">✓ 42 tests passed across 10 test files</p>
+          <p className="text-slate-400 tabular-nums">  Duration: 142ms total (11ms setup, 131ms execution)</p>
+          <p className="text-slate-400 tabular-nums">  Snapshots: 0 failed, 12 passed</p>
+          <p className="text-emerald-400 tabular-nums">  Coverage: 98.4% statements, 96.1% branches</p>
         </div>
       </div>
     </div>

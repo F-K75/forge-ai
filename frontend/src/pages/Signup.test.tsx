@@ -38,8 +38,8 @@ describe('Signup Page', () => {
     expect(screen.getByLabelText('Email')).toBeTruthy()
     expect(screen.getByLabelText('Password')).toBeTruthy()
     expect(screen.getByLabelText('Confirm password')).toBeTruthy()
-    expect(screen.getByText(/SIGNUP_GATEWAY\.SH/i)).toBeTruthy()
-    expect(screen.getByText(/AUTONOMOUS ENGINE DISPATCH/i)).toBeTruthy()
+    expect(screen.getByText(/Create your account/i)).toBeTruthy()
+    expect(screen.getByText(/Autonomous Engine Dispatch/i)).toBeTruthy()
   })
 
   it('shows validation errors on empty submit', async () => {

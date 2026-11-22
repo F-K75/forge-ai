@@ -35,8 +35,8 @@ import { ChartTooltip } from "../components/charts/ChartTooltip"
 import { colorForIndex } from "../components/charts/palette"
 import { pivotAiUsageByDate } from "../lib/chartTransforms"
 
-const AXIS_COLOR = "#5A5A6B" // tailwind.config.ts `faint`
-const GRID_COLOR = "#22222E" // tailwind.config.ts `border`
+const AXIS_COLOR = "#64748B" // cool slate axis tick ink
+const GRID_COLOR = "rgba(148, 163, 184, 0.18)" // hairline studio chart grid
 
 interface AdminUser {
   id: string
@@ -431,9 +431,9 @@ export default function AdminConsole() {
                     type="monotone"
                     dataKey="revenue"
                     name="Revenue"
-                    stroke="#E8823C"
-                    fill="#E8823C"
-                    fillOpacity={0.15}
+                    stroke="#2563EB"
+                    fill="#2563EB"
+                    fillOpacity={0.14}
                     strokeWidth={2}
                   />
                 </AreaChart>

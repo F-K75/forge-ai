@@ -1,8 +1,7 @@
-import { useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { motion, useReducedMotion } from 'motion/react'
-import { layout } from '../../lib/designTokens'
 
 interface DialogProps {
   open: boolean
@@ -34,25 +33,15 @@ export function Dialog({
 }: DialogProps) {
   const reduceMotion = useReducedMotion()
 
-  useEffect(() => {
-    if (!open) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onOpenChange(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, onOpenChange])
-
   if (!open) return null
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <motion.div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-950/55"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
         onClick={() => onOpenChange(false)}
       />
       <motion.div
@@ -60,32 +49,33 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={title ? 'dialog-title' : undefined}
         aria-describedby={description ? 'dialog-desc' : undefined}
-        className={twMerge(clsx(
-          'relative w-full bg-panel text-ink border border-border p-6 shadow-m3-3 rounded-lg',
-          sizeClasses[size],
-          className
-        ))}
-        style={{ borderRadius: layout.radiusLg }}
-        initial={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+        className={twMerge(
+          clsx(
+            'relative w-full rounded-xl border border-border bg-panel p-6 shadow-apple-float',
+            sizeClasses[size],
+            className
+          )
+        )}
+        initial={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.97, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
-        transition={{ duration: 0.18, ease: 'easeInOut' }}
+        exit={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
       >
         {title && (
-          <h2 id="dialog-title" className="text-lg font-semibold tracking-tight text-ink mb-1">
+          <h2 id="dialog-title" className="font-display text-lg font-semibold tracking-tight text-ink">
             {title}
           </h2>
         )}
         {description && (
-          <p id="dialog-desc" className="text-sm text-muted mb-4">
+          <p id="dialog-desc" className="mt-1 text-sm text-muted">
             {description}
           </p>
         )}
-        <div className="text-sm text-ink">
+        <div className={clsx('text-sm text-ink', (title || description) && 'mt-4')}>
           {children}
         </div>
         {footer && (
-          <div className="mt-6 flex items-center justify-end gap-3">
+          <div className="mt-6 flex items-center justify-end gap-2.5 border-t border-border pt-4">
             {footer}
           </div>
         )}

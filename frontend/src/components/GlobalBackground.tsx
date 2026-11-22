@@ -1,19 +1,17 @@
-import { useEffect, useRef } from "react";
-
 export default function GlobalBackground() {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden select-none" aria-hidden="true">
-      {/* Retro desktop base color & crisp dot grid */}
-      <div className="absolute inset-0 bg-[#EAE6DF] dark:bg-[#0F1014] transition-colors duration-150" />
+    <div
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden select-none bg-base transition-colors duration-200"
+      aria-hidden="true"
+    >
+      {/* Subtle directional studio skylight wash */}
       <div
-        className="absolute inset-0 opacity-40 dark:opacity-25"
+        className="absolute inset-0 opacity-70 dark:opacity-100"
         style={{
-          backgroundImage: "radial-gradient(#000000 1.2px, transparent 1.2px)",
-          backgroundSize: "20px 20px",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37, 99, 235, 0.06), transparent 70%)",
         }}
       />
-      {/* Subtle retro screen corner vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.06)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
     </div>
   );
 }

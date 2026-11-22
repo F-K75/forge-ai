@@ -227,7 +227,7 @@ const INITIAL_HISTORY_ITEMS: HistoryItem[] = [
     project: "forge-core",
     traceSteps: [
       { title: "Scanned color token collisions", duration: "3.2s", status: "done", details: "Detected low-contrast text on gray surfaces in dark mode" },
-      { title: "Standardized Neubrutalist border tokens", duration: "4.5s", status: "done", details: "Applied border-2 border-black with shadow-brutal-sm consistency" },
+      { title: "Standardized hairline surface tokens", duration: "4.5s", status: "done", details: "Applied 1px border-border hairlines with single-elevation shadow-apple consistency" },
       { title: "Verified WCAG AA contrast ratio", duration: "4.1s", status: "done", details: "All text elements verified >4.5:1 against respective backgrounds" },
       { title: "Visual regression verification", duration: "3.0s", status: "done", details: "Generated snapshot diffs with 0 unintended shifts" }
     ],
@@ -239,7 +239,7 @@ const INITIAL_HISTORY_ITEMS: HistoryItem[] = [
     logs: [
       "[INFO] Design token linter started: run-980",
       "[AGENT:DESIGNER] Auditing 18 pages for border-contrast fidelity",
-      "[REFACTOR] Updated theme surfaces to pure brutalist token scale",
+      "[REFACTOR] Updated theme surfaces to Precision Studio token scale",
       "[A11Y] WCAG AA compliance: 100% across all pages",
       "[GIT] Commit 991ad34 verified"
     ]
@@ -436,139 +436,124 @@ export default function HistoryPage() {
 
   return (
     <motion.div
-      className="max-w-6xl mx-auto px-3 sm:px-6 py-6 space-y-8"
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 text-ink"
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
     >
       {/* 1. Header Section */}
-      <header className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-black dark:border-white/80 pb-5">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <BrandLogo size="md" />
-              <h1 className="font-mono text-2xl sm:text-3xl font-black uppercase tracking-wider text-ink">
-                history &amp; agent runs
+      <header className="space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <BrandLogo size="sm" />
+              <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
+                History &amp; Agent Runs
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border-2 border-black bg-brutal-green text-black text-[11px] font-black uppercase shadow-[2px_2px_0px_#000]">
-                <ShieldCheck size={12} className="text-black" strokeWidth={2.5} />
-                Audit Trail Verified
+              <span className="inline-flex items-center gap-1.5 font-mono text-xs text-ok">
+                <ShieldCheck size={13} />
+                Audit verified
               </span>
             </div>
-            <p className="mt-1 text-xs sm:text-sm font-mono text-muted">
+            <p className="text-sm text-muted">
               Immutable execution timeline, code diffs, LLM reasoning traces, and commit snapshots.
             </p>
           </div>
 
-          {/* Quick Header Actions */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Header Actions */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-xs font-mono font-bold text-ink hover:bg-neutral-100 dark:hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] transition shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
-              <RefreshCw size={13} className={isRefreshing ? "animate-spin text-ink" : "text-ink"} strokeWidth={2.5} />
+              <RefreshCw
+                size={13}
+                className={isRefreshing ? "animate-spin text-accent" : "text-muted"}
+              />
               <span>Sync</span>
             </button>
 
             <button
               type="button"
               onClick={handleExportAudit}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-xs font-mono font-bold text-ink hover:bg-neutral-100 dark:hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] transition shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
-              <Download size={13} className="text-ink" strokeWidth={2.5} />
+              <Download size={13} className="text-muted" />
               <span>Export Audit</span>
             </button>
 
             <button
               type="button"
               onClick={() => setNewRunModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-black bg-brutal-yellow text-black text-xs font-mono font-black uppercase hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000]"
+              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
-              <Play size={13} fill="currentColor" />
+              <Play size={12} fill="currentColor" />
               <span>Trigger Run</span>
             </button>
           </div>
         </div>
 
-        {/* 2. Top Telemetry KPI Strip */}
+        {/* 2. KPI Summary Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Total Executions */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <Activity size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <Activity size={14} className="text-accent" />
                 Completed Runs
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-none bg-brutal-green text-black font-black uppercase border border-black">
-                100% Pass
-              </span>
+              <span className="font-mono text-[11px] text-ok">100% pass</span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink">
-              {totalRuns}{" "}
-              <span className="text-xs font-bold text-muted uppercase">builds</span>
+            <p className="font-mono text-2xl font-semibold text-ink tabular-nums">
+              {totalRuns}
             </p>
-            <p className="text-[10px] font-mono text-muted">
-              Zero build breakages recorded
-            </p>
+            <p className="text-xs text-muted">Zero build breakages recorded</p>
           </div>
 
-          {/* Average Turnaround */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <Clock size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock size={14} className="text-accent" />
                 Avg Turnaround
               </span>
-              <span className="text-[10px] font-mono font-black uppercase text-emerald-600 dark:text-emerald-400">
-                Fast
-              </span>
+              <span className="font-mono text-[11px] text-ok">Fast</span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink">
+            <p className="font-mono text-2xl font-semibold text-ink tabular-nums">
               {avgDuration}s
             </p>
-            <p className="text-[10px] font-mono text-muted">
-              From prompt to verified git commit
-            </p>
+            <p className="text-xs text-muted">Prompt to verified git commit</p>
           </div>
 
-          {/* Files Committed */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <FileCode size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <FileCode size={14} className="text-accent" />
                 Files Modified
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-none bg-brutal-cyan text-black font-black uppercase border border-black">
-                {totalFiles} files
+              <span className="font-mono text-[11px] text-muted tabular-nums">
+                {totalFiles} total
               </span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink">
-              {totalFiles}{" "}
-              <span className="text-xs font-bold text-muted uppercase">touched</span>
+            <p className="font-mono text-2xl font-semibold text-ink tabular-nums">
+              {totalFiles}
             </p>
-            <p className="text-[10px] font-mono text-muted">
-              Across workspace branches
-            </p>
+            <p className="text-xs text-muted">Across workspace branches</p>
           </div>
 
-          {/* Code Diff Volume */}
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3.5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-muted">
-              <span className="flex items-center gap-1.5">
-                <GitCommit size={13} className="text-black dark:text-white" strokeWidth={2.5} />
+          <div className="rounded-xl border border-border bg-panel p-4 shadow-apple space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <GitCommit size={14} className="text-accent" />
                 Code Velocity
               </span>
-              <span className="text-[10px] font-mono font-black uppercase text-emerald-600 dark:text-emerald-400">
-                +{totalAdded}
-              </span>
+              <span className="font-mono text-[11px] text-ok tabular-nums">+{totalAdded}</span>
             </div>
-            <p className="text-xl sm:text-2xl font-mono font-black text-ink">
-              <span className="text-emerald-600 dark:text-emerald-400">+{totalAdded}</span>{" "}
-              <span className="text-rose-500 text-base">-{totalDeleted}</span>
+            <p className="font-mono text-2xl font-semibold tabular-nums">
+              <span className="text-ok">+{totalAdded}</span>{" "}
+              <span className="text-error text-lg">-{totalDeleted}</span>
             </p>
-            <p className="text-[10px] font-mono text-muted">
+            <p className="text-xs text-muted tabular-nums">
               Net +{totalAdded - totalDeleted} lines added
             </p>
           </div>
@@ -578,39 +563,40 @@ export default function HistoryPage() {
       {/* 3. Filter and Search Bar */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Search box */}
+          {/* Search Input */}
           <div className="relative flex-1 max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by prompt, commit hash (7e92ab4), or ID..."
-              className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink placeholder-muted/60 pl-9 pr-3 py-2 rounded-none border-2 border-black dark:border-white/80 focus:outline-none focus:bg-brutal-yellow/10 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by prompt, commit hash, or run ID..."
+              className="w-full h-9 bg-panel text-xs text-ink placeholder:text-faint pl-9 pr-8 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-muted hover:text-black dark:hover:text-white"
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-muted hover:text-ink cursor-pointer"
               >
-                <X size={13} strokeWidth={2.5} />
+                <X size={13} />
               </button>
             )}
           </div>
 
-          {/* Status & Agent Filters */}
+          {/* Filters & View Switcher */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Status filter */}
-            <div className="flex items-center gap-1 bg-white dark:bg-[#141419] p-1 rounded-none border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]">
-              {(["all", "success", "failed"] as const).map(tab => (
+            {/* Status Filter */}
+            <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel">
+              {(["all", "success", "failed"] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setFilterStatus(tab)}
-                  className={`px-2.5 py-1 text-xs font-mono font-black rounded-none uppercase transition ${
+                  className={`h-7 px-2.5 text-xs font-medium capitalize rounded-md transition-colors cursor-pointer ${
                     filterStatus === tab
-                      ? "bg-brutal-yellow text-black border-2 border-black shadow-[1px_1px_0px_#000]"
+                      ? "bg-accent text-white"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -619,41 +605,48 @@ export default function HistoryPage() {
               ))}
             </div>
 
-            {/* Agent filter dropdown */}
+            {/* Agent Filter */}
             <select
+              aria-label="Filter by agent"
               value={filterAgent}
-              onChange={e => setFilterAgent(e.target.value)}
-              className="bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink px-2.5 py-1.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] cursor-pointer"
+              onChange={(e) => setFilterAgent(e.target.value)}
+              className="h-8 bg-panel text-xs font-medium text-ink px-3 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <option value="all">All Agents</option>
-              {AGENTS.map(agent => (
+              {AGENTS.map((agent) => (
                 <option key={agent.id} value={agent.id}>
                   {agent.label}
                 </option>
               ))}
             </select>
 
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-white dark:bg-[#141419] p-1 rounded-none border-2 border-black dark:border-white/80 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]">
+            {/* View Mode Switcher */}
+            <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel">
               <button
                 type="button"
                 onClick={() => setViewMode("cards")}
-                className={`p-1 rounded-none transition ${
-                  viewMode === "cards" ? "bg-brutal-yellow text-black border-2 border-black" : "text-muted hover:text-ink"
+                className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+                  viewMode === "cards"
+                    ? "bg-accent text-white"
+                    : "text-muted hover:text-ink"
                 }`}
-                title="Detailed Timeline view"
+                title="Timeline view"
+                aria-label="Timeline view"
               >
-                <LayoutList size={14} strokeWidth={2.5} />
+                <LayoutList size={14} />
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode("table")}
-                className={`p-1 rounded-none transition ${
-                  viewMode === "table" ? "bg-brutal-yellow text-black border-2 border-black" : "text-muted hover:text-ink"
+                className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-accent text-white"
+                    : "text-muted hover:text-ink"
                 }`}
-                title="Dense Commit Table view"
+                title="Table view"
+                aria-label="Table view"
               >
-                <TableIcon size={14} strokeWidth={2.5} />
+                <TableIcon size={14} />
               </button>
             </div>
           </div>
@@ -661,11 +654,13 @@ export default function HistoryPage() {
 
         {/* 4. Timeline Presentation */}
         {filteredItems.length === 0 ? (
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-12 text-center shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-3">
-            <Clock size={32} className="mx-auto text-muted" />
-            <h3 className="font-mono text-base font-black uppercase text-ink">No execution runs match your filter</h3>
-            <p className="text-xs font-mono text-muted max-w-sm mx-auto">
-              Try resetting your search query or switching the status/agent filter to display recorded history.
+          <div className="rounded-xl border border-border bg-panel p-12 text-center shadow-apple space-y-3">
+            <Clock size={28} className="mx-auto text-muted" />
+            <h3 className="font-display text-base font-semibold text-ink">
+              No execution runs match your filter
+            </h3>
+            <p className="text-xs text-muted max-w-sm mx-auto">
+              Reset your search query or switch the status and agent filters to view recorded history.
             </p>
             <button
               type="button"
@@ -674,114 +669,97 @@ export default function HistoryPage() {
                 setFilterStatus("all");
                 setFilterAgent("all");
               }}
-              className="px-4 py-2 rounded-none border-2 border-black bg-brutal-yellow text-xs font-mono font-black uppercase text-black hover:bg-[#2DD4BF] transition shadow-[2px_2px_0px_#000]"
+              className="h-8 px-4 rounded-lg bg-accent hover:bg-ember-glow text-xs font-medium text-white transition-colors cursor-pointer"
             >
               Reset Filters
             </button>
           </div>
         ) : viewMode === "cards" ? (
-          /* DETAILED CARDS VIEW */
-          <div className="space-y-3.5">
-            {filteredItems.map(item => {
-              const agentMeta = AGENTS.find(a => a.id === item.agentId);
+          <div className="space-y-3">
+            {filteredItems.map((item) => {
+              const agentMeta = AGENTS.find((a) => a.id === item.agentId);
               const AgentIcon = agentMeta?.icon || Bot;
 
               return (
                 <div
                   key={item.id}
-                  className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-4 sm:p-5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] hover:shadow-[5px_5px_0px_#000] dark:hover:shadow-[5px_5px_0px_#fff] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                  className="rounded-xl border border-border bg-panel p-4 sm:p-5 shadow-apple hover:border-accent/50 transition-colors duration-150 flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
-                  {/* Left Column: Status, Title, Prompt & Metadata */}
+                  {/* Left: Metadata, Title, Prompt & Diff Summary */}
                   <div className="space-y-2.5 flex-1 min-w-0">
-                    {/* Top strip: Run ID, Commit, Status, Agent, Duration */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-black text-ink px-1.5 py-0.5 rounded-none bg-neutral-100 dark:bg-neutral-800 border border-black dark:border-white/40">
-                        {item.id}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-mono tabular-nums">
+                      <span className="font-semibold text-ink">{item.id}</span>
 
-                      {/* Commit with copy */}
                       <button
                         type="button"
                         onClick={(e) => handleCopyCommit(item.commit, e)}
-                        className="flex items-center gap-1 font-mono text-xs text-muted hover:text-ink px-1.5 py-0.5 rounded-none bg-neutral-50 dark:bg-[#141419] hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-black/40 dark:border-white/40 transition font-bold"
-                        title="Click to copy commit SHA"
+                        className="inline-flex items-center gap-1 text-muted hover:text-accent transition-colors cursor-pointer"
+                        title="Copy commit SHA"
                       >
-                        <GitCommit size={12} strokeWidth={2.5} />
+                        <GitCommit size={12} />
                         <span>{item.commit}</span>
                         {copiedCommit === item.commit ? (
-                          <Check size={11} className="text-emerald-600 font-bold" />
+                          <Check size={11} className="text-ok" />
                         ) : (
                           <Copy size={11} className="opacity-60" />
                         )}
                       </button>
 
-                      {/* Agent Badge */}
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none border-2 border-black text-[11px] font-mono font-black uppercase text-black"
-                        style={{ backgroundColor: agentMeta?.hue || "#2DD4BF" }}
-                      >
+                      <span className="inline-flex items-center gap-1 text-accent font-sans font-medium">
                         <AgentIcon size={12} />
                         <span>{item.agent}</span>
                       </span>
 
-                      {/* Status */}
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-mono font-black uppercase border border-black ${
-                        item.status === "success" ? "bg-brutal-green text-black" : "bg-rose-500 text-white"
-                      }`}>
-                        {item.status === "success" ? <CheckCircle2 size={11} strokeWidth={2.5} /> : <AlertCircle size={11} strokeWidth={2.5} />}
+                      <span
+                        className={`inline-flex items-center gap-1 font-sans font-medium capitalize ${
+                          item.status === "success" ? "text-ok" : "text-error"
+                        }`}
+                      >
+                        {item.status === "success" ? (
+                          <CheckCircle2 size={12} />
+                        ) : (
+                          <AlertCircle size={12} />
+                        )}
                         {item.status}
                       </span>
 
-                      <span className="text-[11px] font-mono text-muted">
-                        • {item.duration}
-                      </span>
-
-                      <span className="text-[11px] font-mono text-muted hidden sm:inline">
-                        • {item.model}
-                      </span>
+                      <span className="text-muted">{item.duration}</span>
+                      <span className="text-faint hidden sm:inline">{item.model}</span>
                     </div>
 
-                    {/* Title */}
-                    <h3 className="font-mono text-sm sm:text-base font-black text-ink group-hover:text-amber-500 transition">
+                    <h3 className="font-display text-base font-semibold text-ink">
                       {item.title}
                     </h3>
 
-                    {/* Prompt snippet */}
-                    <p className="text-xs font-mono text-muted line-clamp-2 bg-neutral-50 dark:bg-[#141419] p-2 rounded-none border-2 border-black/20 dark:border-white/20">
-                      &gt; {item.prompt}
+                    <p className="text-xs font-mono text-muted line-clamp-2 bg-panel-alt px-3 py-2 rounded-lg border border-border">
+                      {item.prompt}
                     </p>
 
-                    {/* Diff & Trace Summary Strip */}
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono pt-1 text-muted">
-                      <span className="flex items-center gap-1 font-bold">
-                        <FileCode size={12} className="text-black dark:text-white" strokeWidth={2} />
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-muted tabular-nums">
+                      <span className="inline-flex items-center gap-1">
+                        <FileCode size={12} />
                         <span>{item.filesChanged} files modified</span>
                       </span>
-
-                      <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                        +{item.linesAdded}
+                      <span className="text-ok font-medium">+{item.linesAdded}</span>
+                      <span className="text-error font-medium">-{item.linesDeleted}</span>
+                      <span>·</span>
+                      <span className="font-sans">
+                        Project: <strong className="text-ink font-medium">{item.project}</strong>
                       </span>
-
-                      <span className="text-rose-500 font-black">
-                        -{item.linesDeleted}
-                      </span>
-
-                      <span>•</span>
-                      <span>Project: <strong className="text-ink">{item.project}</strong></span>
-                      <span>•</span>
-                      <span>{item.time}</span>
+                      <span>·</span>
+                      <span className="font-sans">{item.time}</span>
                     </div>
                   </div>
 
-                  {/* Right Column: Inspect & Re-run Action Buttons */}
-                  <div className="flex items-center gap-2 self-start md:self-center shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-black/20 dark:border-white/20 w-full md:w-auto justify-end">
+                  {/* Right: Actions */}
+                  <div className="flex items-center gap-2 self-start md:self-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border w-full md:w-auto justify-end">
                     <button
                       type="button"
                       onClick={(e) => handleRerun(item, e)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-100 dark:hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] transition shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                      className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg border border-border bg-panel-alt text-ink hover:bg-base transition-colors cursor-pointer"
                       title="Re-run this prompt"
                     >
-                      <RotateCcw size={12} className="text-ink" strokeWidth={2.5} />
+                      <RotateCcw size={12} className="text-muted" />
                       <span>Re-run</span>
                     </button>
 
@@ -791,9 +769,9 @@ export default function HistoryPage() {
                         setSelectedRun(item);
                         setInspectModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] transition shadow-[2px_2px_0px_#000]"
+                      className="h-8 inline-flex items-center gap-1.5 px-3.5 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors cursor-pointer"
                     >
-                      <Eye size={13} strokeWidth={2.5} />
+                      <Eye size={13} />
                       <span>Inspect</span>
                     </button>
                   </div>
@@ -802,58 +780,65 @@ export default function HistoryPage() {
             })}
           </div>
         ) : (
-          /* DENSE TABLE VIEW */
-          <div className="overflow-x-auto rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff]">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-neutral-100 dark:bg-[#141419] text-ink border-b-2 border-black dark:border-white/80 font-black uppercase text-[11px]">
+          /* Dense Commit Table View */
+          <div className="overflow-x-auto rounded-xl border border-border bg-panel shadow-apple">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-panel-alt text-muted border-b border-border font-medium">
                 <tr>
-                  <th className="p-3">Run ID</th>
-                  <th className="p-3">Agent</th>
-                  <th className="p-3">Title &amp; Directive</th>
-                  <th className="p-3">Commit</th>
-                  <th className="p-3">Duration</th>
-                  <th className="p-3">Diff</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Actions</th>
+                  <th className="px-4 py-3">Run ID</th>
+                  <th className="px-4 py-3">Agent</th>
+                  <th className="px-4 py-3">Title &amp; Directive</th>
+                  <th className="px-4 py-3">Commit</th>
+                  <th className="px-4 py-3">Duration</th>
+                  <th className="px-4 py-3">Diff</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y-2 divide-black dark:divide-white/30 font-medium">
-                {filteredItems.map(item => (
-                  <tr key={item.id} className="hover:bg-brutal-yellow/15 transition">
-                    <td className="p-3 font-bold text-ink">{item.id}</td>
-                    <td className="p-3">
-                      <span className="font-bold text-ink">{item.agent}</span>
-                      <div className="text-[10px] text-muted">{item.model}</div>
+              <tbody className="divide-y divide-border font-mono tabular-nums">
+                {filteredItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-panel-alt/50 transition-colors duration-150"
+                  >
+                    <td className="px-4 py-3 font-medium text-ink">{item.id}</td>
+                    <td className="px-4 py-3 font-sans">
+                      <div className="font-medium text-ink">{item.agent}</div>
+                      <div className="text-[11px] font-mono text-muted">{item.model}</div>
                     </td>
-                    <td className="p-3 max-w-sm truncate">
-                      <div className="font-bold text-ink truncate">{item.title}</div>
-                      <div className="text-[10px] text-muted truncate">{item.prompt}</div>
+                    <td className="px-4 py-3 max-w-sm font-sans">
+                      <div className="font-medium text-ink truncate">{item.title}</div>
+                      <div className="text-[11px] text-muted truncate">{item.prompt}</div>
                     </td>
-                    <td className="p-3">
+                    <td className="px-4 py-3">
                       <button
                         type="button"
                         onClick={(e) => handleCopyCommit(item.commit, e)}
-                        className="hover:underline flex items-center gap-1 text-ink font-bold"
+                        className="hover:text-accent inline-flex items-center gap-1 text-ink cursor-pointer"
                       >
-                        <GitCommit size={11} strokeWidth={2.5} />
+                        <GitCommit size={12} className="text-muted" />
                         {item.commit}
                       </button>
                     </td>
-                    <td className="p-3 text-muted">{item.duration}</td>
-                    <td className="p-3 font-bold">
-                      <span className="text-emerald-600 dark:text-emerald-400">+{item.linesAdded}</span>{" "}
-                      <span className="text-rose-500">-{item.linesDeleted}</span>
+                    <td className="px-4 py-3 text-muted">{item.duration}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <span className="text-ok">+{item.linesAdded}</span>{" "}
+                      <span className="text-error">-{item.linesDeleted}</span>
                     </td>
-                    <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-none bg-brutal-green text-black border border-black text-[10px] font-black uppercase">
+                    <td className="px-4 py-3 font-sans">
+                      <span
+                        className={`font-medium capitalize ${
+                          item.status === "success" ? "text-ok" : "text-error"
+                        }`}
+                      >
                         {item.status}
                       </span>
                     </td>
-                    <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
+                    <td className="px-4 py-3 text-right space-x-1.5 whitespace-nowrap font-sans">
                       <button
                         type="button"
                         onClick={(e) => handleRerun(item, e)}
-                        className="px-2 py-1 text-[11px] font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#141419] text-ink hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                        className="h-7 px-2.5 text-xs font-medium rounded-md border border-border bg-panel-alt text-ink hover:bg-base transition-colors cursor-pointer"
                       >
                         Re-run
                       </button>
@@ -863,7 +848,7 @@ export default function HistoryPage() {
                           setSelectedRun(item);
                           setInspectModalOpen(true);
                         }}
-                        className="px-2 py-1 text-[11px] font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] transition shadow-[1px_1px_0px_#000]"
+                        className="h-7 px-2.5 text-xs font-medium rounded-md bg-accent hover:bg-ember-glow text-white transition-colors cursor-pointer"
                       >
                         Inspect
                       </button>
@@ -876,146 +861,147 @@ export default function HistoryPage() {
         )}
       </section>
 
-      {/* 5. Detailed Inspection Modal */}
+      {/* 5. Detailed Execution Trace Inspector Modal */}
       <AnimatePresence>
         {inspectModalOpen && selectedRun && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-3xl rounded-none border-3 border-black dark:border-white bg-white dark:bg-[#181820] shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_#fff] overflow-hidden flex flex-col max-h-[90vh]"
-              initial={{ scale: 0.95, opacity: 0 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Inspect Execution Trace ${selectedRun.id}`}
+              className="w-full max-w-3xl rounded-xl border border-border bg-panel shadow-apple-lg overflow-hidden flex flex-col max-h-[90vh]"
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b-2 border-black bg-brutal-yellow">
-                <div className="flex items-center gap-2.5 font-mono font-black uppercase text-sm text-black">
-                  <Terminal size={16} strokeWidth={2.5} />
-                  <span>Inspect Execution Trace: {selectedRun.id}</span>
-                  <span className="px-1.5 py-0.2 rounded-none bg-white text-black border border-black text-[10px] font-bold">
-                    {selectedRun.commit}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-panel-alt">
+                <div className="flex items-center gap-2.5 text-sm">
+                  <Terminal size={16} className="text-accent" />
+                  <span className="font-display font-semibold text-ink">
+                    Execution Trace · {selectedRun.id}
                   </span>
+                  <span className="font-mono text-xs text-muted">{selectedRun.commit}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setInspectModalOpen(false)}
-                  className="p-1 rounded-none border-2 border-black bg-white text-black hover:bg-neutral-100 shadow-[1px_1px_0px_#000]"
+                  aria-label="Close trace inspector"
+                  className="w-7 h-7 rounded-md border border-border bg-panel text-muted hover:text-ink flex items-center justify-center cursor-pointer"
                 >
-                  <X size={15} strokeWidth={2.5} />
+                  <X size={14} />
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
-                {/* Run Overview Box */}
-                <div className="p-4 rounded-none bg-neutral-50 dark:bg-[#141419] border-2 border-black dark:border-white/80 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-black/20 dark:border-white/20 pb-2">
-                    <span className="font-mono text-sm font-black text-ink uppercase">
+              <div className="p-5 overflow-y-auto space-y-5">
+                {/* Run Overview */}
+                <div className="p-4 rounded-xl bg-panel-alt border border-border space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-border">
+                    <span className="font-display text-sm font-semibold text-ink">
                       {selectedRun.title}
                     </span>
-                    <span className="px-2 py-0.5 rounded-none bg-brutal-green text-black border border-black text-[10px] font-mono font-black uppercase">
+                    <span
+                      className={`text-xs font-medium capitalize ${
+                        selectedRun.status === "success" ? "text-ok" : "text-error"
+                      }`}
+                    >
                       {selectedRun.status}
                     </span>
                   </div>
 
                   <p className="text-xs font-mono text-muted">
-                    Directive: &quot;{selectedRun.prompt}&quot;
+                    Directive: &ldquo;{selectedRun.prompt}&rdquo;
                   </p>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[11px] font-mono text-muted">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-xs font-mono text-muted tabular-nums">
                     <div>
-                      <span>Agent: </span>
-                      <strong className="text-ink">{selectedRun.agent}</strong>
+                      <span className="block text-[11px] font-sans">Agent</span>
+                      <strong className="text-ink font-sans font-medium">{selectedRun.agent}</strong>
                     </div>
                     <div>
-                      <span>Model: </span>
-                      <strong className="text-ink">{selectedRun.model}</strong>
+                      <span className="block text-[11px] font-sans">Model</span>
+                      <strong className="text-ink font-medium">{selectedRun.model}</strong>
                     </div>
                     <div>
-                      <span>Duration: </span>
-                      <strong className="text-ink">{selectedRun.duration}</strong>
+                      <span className="block text-[11px] font-sans">Duration</span>
+                      <strong className="text-ink font-medium">{selectedRun.duration}</strong>
                     </div>
                     <div>
-                      <span>Diff: </span>
-                      <strong className="text-emerald-600 dark:text-emerald-400">+{selectedRun.linesAdded}</strong> / <strong className="text-rose-500">-{selectedRun.linesDeleted}</strong>
+                      <span className="block text-[11px] font-sans">Diff</span>
+                      <strong className="text-ok">+{selectedRun.linesAdded}</strong>{" "}
+                      <strong className="text-error">-{selectedRun.linesDeleted}</strong>
                     </div>
                   </div>
                 </div>
 
                 {/* Step Trace Progression */}
                 <div className="space-y-2.5">
-                  <h4 className="font-mono text-xs font-black uppercase text-ink flex items-center gap-2">
-                    <Layers size={14} className="text-black dark:text-white" strokeWidth={2.5} />
-                    Agent Autonomous Step Trace
+                  <h4 className="text-xs font-semibold text-ink flex items-center gap-2">
+                    <Layers size={14} className="text-accent" />
+                    Agent Step Trace
                   </h4>
-                  <div className="space-y-2">
+                  <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
                     {selectedRun.traceSteps.map((step, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-none border-2 border-black dark:border-white/40 bg-white dark:bg-[#181820] flex items-start gap-3 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                        className="p-3 bg-panel flex items-start gap-3"
                       >
-                        <span className="h-5 w-5 rounded-none border-2 border-black bg-brutal-green flex items-center justify-center text-black text-[10px] font-black shrink-0 mt-0.5">
-                          ✓
-                        </span>
+                        <CheckCircle2 size={15} className="text-ok shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-xs font-black text-ink">
-                              {step.title}
-                            </span>
-                            <span className="font-mono text-[10px] text-muted">
+                            <span className="text-xs font-medium text-ink">{step.title}</span>
+                            <span className="font-mono text-[11px] text-muted tabular-nums">
                               {step.duration}
                             </span>
                           </div>
-                          <p className="text-[11px] font-mono text-muted mt-0.5">
-                            {step.details}
-                          </p>
+                          <p className="text-xs text-muted mt-0.5">{step.details}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Files Modified List */}
+                {/* Modified Files */}
                 <div className="space-y-2.5">
-                  <h4 className="font-mono text-xs font-black uppercase text-ink flex items-center gap-2">
-                    <FileCode size={14} className="text-black dark:text-white" strokeWidth={2.5} />
+                  <h4 className="text-xs font-semibold text-ink flex items-center gap-2">
+                    <FileCode size={14} className="text-accent" />
                     Modified Files ({selectedRun.filesList.length})
                   </h4>
-                  <div className="divide-y-2 divide-black dark:divide-white/30 border-2 border-black dark:border-white/80 rounded-none overflow-hidden font-mono text-xs">
+                  <div className="divide-y divide-border border border-border rounded-xl overflow-hidden font-mono text-xs tabular-nums">
                     {selectedRun.filesList.map((file, idx) => (
                       <div
                         key={idx}
-                        className="p-2.5 bg-white dark:bg-[#181820] hover:bg-neutral-50 dark:hover:bg-[#141419] flex items-center justify-between gap-3 font-bold"
+                        className="px-3.5 py-2.5 bg-panel hover:bg-panel-alt flex items-center justify-between gap-3"
                       >
                         <span className="text-ink truncate">{file.path}</span>
-                        <div className="flex items-center gap-2 shrink-0 text-[11px]">
-                          <span className="text-emerald-600 dark:text-emerald-400">+{file.added}</span>
-                          <span className="text-rose-500">-{file.deleted}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-ok">+{file.added}</span>
+                          <span className="text-error">-{file.deleted}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Console Log Output */}
+                {/* Stdout Logs */}
                 <div className="space-y-2">
-                  <h4 className="font-mono text-xs font-black uppercase text-ink flex items-center gap-2">
-                    <Terminal size={14} className="text-black dark:text-white" strokeWidth={2.5} />
-                    Agent Stdout Logs
+                  <h4 className="text-xs font-semibold text-ink flex items-center gap-2">
+                    <Terminal size={14} className="text-accent" />
+                    Agent Output Logs
                   </h4>
-                  <pre className="p-3 rounded-none border-2 border-black bg-neutral-900 text-neutral-100 font-mono text-xs leading-relaxed max-h-44 overflow-y-auto whitespace-pre-wrap">
+                  <pre className="p-3.5 rounded-xl border border-border bg-[#0B0F19] text-slate-200 font-mono text-xs leading-relaxed max-h-44 overflow-y-auto whitespace-pre-wrap">
                     {selectedRun.logs.join("\n")}
                   </pre>
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-3 sm:p-4 border-t-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] flex items-center justify-between">
+              <div className="px-5 py-3.5 border-t border-border bg-panel-alt flex flex-wrap items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={(e) => handleCopyCommit(selectedRun.commit, e)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 shadow-[1px_1px_0px_#000]"
+                  className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-mono rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 >
-                  <GitCommit size={13} strokeWidth={2.5} />
+                  <GitCommit size={13} className="text-muted" />
                   <span>Copy SHA ({selectedRun.commit})</span>
                 </button>
 
@@ -1026,15 +1012,15 @@ export default function HistoryPage() {
                       setInspectModalOpen(false);
                       navigate("/workspace");
                     }}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000]"
+                    className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                   >
-                    <ExternalLink size={12} strokeWidth={2.5} />
+                    <ExternalLink size={12} className="text-muted" />
                     <span>Workspace</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setInspectModalOpen(false)}
-                    className="px-3.5 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000]"
+                    className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                   >
                     Close
                   </button>
@@ -1044,9 +1030,9 @@ export default function HistoryPage() {
                       setInspectModalOpen(false);
                       handleRerun(selectedRun);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] transition shadow-[2px_2px_0px_#000]"
+                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors cursor-pointer"
                   >
-                    <RotateCcw size={12} strokeWidth={2.5} />
+                    <RotateCcw size={12} />
                     <span>Re-run Directive</span>
                   </button>
                 </div>
@@ -1056,44 +1042,47 @@ export default function HistoryPage() {
         )}
       </AnimatePresence>
 
-      {/* 6. Trigger New Run Modal */}
+      {/* 6. Dispatch New Run Modal */}
       <AnimatePresence>
         {newRunModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-lg rounded-none border-3 border-black dark:border-white bg-white dark:bg-[#181820] shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_#fff] overflow-hidden flex flex-col"
-              initial={{ scale: 0.95, opacity: 0 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Dispatch Autonomous Agent Run"
+              className="w-full max-w-lg rounded-xl border border-border bg-panel shadow-apple-lg overflow-hidden flex flex-col"
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b-2 border-black bg-brutal-yellow">
-                <div className="flex items-center gap-2 font-mono font-black uppercase text-sm text-black">
-                  <Play size={16} fill="currentColor" />
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-panel-alt">
+                <div className="flex items-center gap-2 font-display font-semibold text-sm text-ink">
+                  <Play size={14} className="text-accent" fill="currentColor" />
                   <span>Dispatch Autonomous Agent Run</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setNewRunModalOpen(false)}
-                  className="p-1 rounded-none border-2 border-black bg-white text-black hover:bg-neutral-100 shadow-[1px_1px_0px_#000]"
+                  aria-label="Close modal"
+                  className="w-7 h-7 rounded-md border border-border bg-panel text-muted hover:text-ink flex items-center justify-center cursor-pointer"
                 >
-                  <X size={15} strokeWidth={2.5} />
+                  <X size={14} />
                 </button>
               </div>
 
-              {/* Modal Body */}
               <div className="p-5 space-y-4">
                 <div className="space-y-1.5">
-                  <label htmlFor="agent-select" className="font-mono text-xs font-black uppercase text-muted">
+                  <label htmlFor="agent-select" className="text-xs font-medium text-ink block">
                     Assign Agent Lead
                   </label>
                   <select
                     id="agent-select"
                     value={newRunAgent}
-                    onChange={e => setNewRunAgent(e.target.value as any)}
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    onChange={(e) => setNewRunAgent(e.target.value as any)}
+                    className="w-full h-9 bg-panel-alt text-xs text-ink px-3 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
                   >
-                    {AGENTS.map(agent => (
+                    {AGENTS.map((agent) => (
                       <option key={agent.id} value={agent.id}>
                         {agent.label} ({agent.credits} credits/run)
                       </option>
@@ -1102,30 +1091,36 @@ export default function HistoryPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="prompt-directive" className="font-mono text-xs font-black uppercase text-muted">
+                  <label htmlFor="prompt-directive" className="text-xs font-medium text-ink block">
                     Prompt Directive
                   </label>
                   <textarea
                     id="prompt-directive"
                     rows={4}
                     value={newRunPrompt}
-                    onChange={e => setNewRunPrompt(e.target.value)}
+                    onChange={(e) => setNewRunPrompt(e.target.value)}
                     placeholder="e.g. Implement resilient exponential backoff for GitHub push API errors and add unit test harness..."
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono text-ink p-3 rounded-none border-2 border-black dark:border-white/80 focus:outline-none focus:bg-brutal-yellow/10 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    className="w-full bg-panel-alt text-xs font-mono text-ink p-3 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                   />
-                  <div className="flex items-center gap-1.5 pt-1">
-                    <span className="text-[10px] font-mono text-muted">Quick templates:</span>
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <span className="text-[11px] text-muted">Quick templates:</span>
                     <button
                       type="button"
-                      onClick={() => setNewRunPrompt("Audit dependencies and upgrade patch versions with zero regression checks")}
-                      className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-none border border-black bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-ink"
+                      onClick={() =>
+                        setNewRunPrompt(
+                          "Audit dependencies and upgrade patch versions with zero regression checks"
+                        )
+                      }
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-md border border-border bg-panel-alt hover:bg-base text-ink transition-colors cursor-pointer"
                     >
                       Audit
                     </button>
                     <button
                       type="button"
-                      onClick={() => setNewRunPrompt("Add rate-limiting token bucket middleware to /api routes")}
-                      className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-none border border-black bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-ink"
+                      onClick={() =>
+                        setNewRunPrompt("Add rate-limiting token bucket middleware to /api routes")
+                      }
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-md border border-border bg-panel-alt hover:bg-base text-ink transition-colors cursor-pointer"
                     >
                       Rate Limiter
                     </button>
@@ -1133,16 +1128,13 @@ export default function HistoryPage() {
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-4 border-t-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] flex items-center justify-between">
-                <span className="text-[10px] font-mono text-muted">
-                  Consumes 5 credits on completion
-                </span>
+              <div className="px-5 py-3.5 border-t border-border bg-panel-alt flex items-center justify-between gap-2">
+                <span className="text-xs text-muted">Consumes 5 credits on completion</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setNewRunModalOpen(false)}
-                    className="px-3.5 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000]"
+                    className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1150,16 +1142,16 @@ export default function HistoryPage() {
                     type="button"
                     disabled={triggeringRun || !newRunPrompt.trim()}
                     onClick={handleCreateNewRun}
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] transition shadow-[2px_2px_0px_#000] disabled:opacity-50"
+                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors disabled:opacity-45 cursor-pointer"
                   >
                     {triggeringRun ? (
                       <>
-                        <RefreshCw size={12} className="animate-spin" strokeWidth={2.5} />
-                        <span>Synthesizing...</span>
+                        <RefreshCw size={12} className="animate-spin" />
+                        <span>Synthesizing…</span>
                       </>
                     ) : (
                       <>
-                        <Send size={12} strokeWidth={2.5} />
+                        <Send size={12} />
                         <span>Dispatch Run</span>
                       </>
                     )}
