@@ -254,6 +254,10 @@ async def _ensure_indexes(db):
             # (processing boundary snapshot) and on every consent change.
             db.data_use_consents.create_index([("user_id", 1)]),
         ]
+        # S0: adjudication excerpts (TTL 90 d), access log (TTL 1 y), labels.
+        from core.adjudication import adjudication_index_coroutines
+
+        index_coroutines.extend(adjudication_index_coroutines(db))
 
         results = await asyncio.gather(*index_coroutines, return_exceptions=True)
 

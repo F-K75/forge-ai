@@ -441,3 +441,156 @@ def test_pv3_redactor_env_files_and_cut_private_keys():
     head_only = PEM.rsplit("\n", 1)[0]
     assert_no_seeded_secret(redact_text(tail_only).text)
     assert_no_seeded_secret(redact_text(head_only).text)
+
+
+# --------------------------------------------------------------------------- #
+# Excerpts, queueing (PV-1, PV-3)
+# --------------------------------------------------------------------------- #
+
+BLUEPRINT = {
+    "app_name": "Invoice Hub",
+    "description": "Private customer notes for " + EMAIL,
+    "pages": [
+        {"name": "Settings", "route": "/settings", "description": "secret plans", "components": ["SettingsForm"]},
+        {"name": "Dashboard", "route": "/", "components": ["Chart"]},
+    ],
+    "api_endpoints": [
+        {"method": "POST", "path": "/api/settings", "auth_required": True, "description": "save settings"},
+        {"method": "GET", "path": "/api/invoices", "auth_required": True},
+    ],
+    "data_models": [{"name": "Invoice", "fields": [{"name": "total", "type": "number"}]}],
+    "features": ["billing"],
+    "integrations": ["stripe"],
+    "auth_required": True,
+}
+SOURCE_PATH = "app/settings.py"
+SOURCE = seeded_source()
+FINDING_LINE = 31  # first seeded line
+
+
+def _finding(finding_id="f1", build_id="b1", **extra):
+    return {
+        "finding_id": finding_id, "build_id": build_id, "file": SOURCE_PATH, "line": FINDING_LINE,
+        "rule_or_category": "secret-aws-access-key-id",
+        "message": f"Hardcoded key {AWS_KEY_ID} found; contact {EMAIL}",
+        **extra,
+    }
+
+
+def seeded_db(*, internal=True, owner="u1", build_id="b1", byok=False, created_at=None, **collections):
+    import json as _json
+
+    build = _build(build_id, owner, byok=byok, created_at=created_at)
+    build["prompt"] = f"Build an invoice app. My key is {STRIPE_LIVE}"
+    build["agents"] = [{"agent": "architect", "status": "completed", "output": _json.dumps(BLUEPRINT)}]
+    return make_db(
+        users=[{"id": owner, "email": f"{owner}@x.test", "is_internal": internal}],
+        builds=[build],
+        build_files=[{"id": "file-1", "build_id": build_id, "path": SOURCE_PATH, "content": SOURCE}],
+        **collections,
+    )
+
+
+@pytest.mark.asyncio
+async def test_pv1_non_internal_non_consented_build_is_never_queued(monkeypatch):
+    from core.adjudication import enqueue_finding_for_adjudication
+
+    for flag in (False, True):
+        set_flags(monkeypatch, external_adjudication_opt_in=flag)
+        db = seeded_db(internal=False)
+        assert await enqueue_finding_for_adjudication(db, _finding()) is None
+        assert db.adjudication_excerpts.docs == []
+
+    # External with consent but the flag off (U12): still never queued.
+    set_flags(monkeypatch, external_adjudication_opt_in=True)
+    db = seeded_db(internal=False, created_at=utcnow() + timedelta(seconds=5))
+    await grant_consent(db, user_id="u1", scope=SCOPE_HUMAN_QUALITY_REVIEW)
+    set_flags(monkeypatch, external_adjudication_opt_in=False)
+    assert await enqueue_finding_for_adjudication(db, _finding()) is None
+    assert db.adjudication_excerpts.docs == []
+
+    # Same build with the flag on: queued on the opt-in basis.
+    set_flags(monkeypatch, external_adjudication_opt_in=True)
+    doc = await enqueue_finding_for_adjudication(db, _finding())
+    assert doc and doc["consent_basis"] == "opt_in"
+
+    # Internal: queued on the internal basis, flag or not.
+    set_flags(monkeypatch, external_adjudication_opt_in=False)
+    db = seeded_db(internal=True)
+    doc = await enqueue_finding_for_adjudication(db, _finding())
+    assert doc["consent_basis"] == "internal" and len(db.adjudication_excerpts.docs) == 1
+
+
+@pytest.mark.asyncio
+async def test_pv3_seeded_secrets_never_appear_in_excerpts():
+    from core.adjudication import enqueue_finding_for_adjudication
+
+    db = seeded_db()
+    doc = await enqueue_finding_for_adjudication(db, _finding())
+    assert_no_seeded_secret(db.adjudication_excerpts.docs)
+    assert_no_seeded_secret(doc)
+    report = doc["redaction_report"]
+    assert report["total"] > 0 and report["fields"]["redacted_excerpt"]["total"] > 0
+    assert report["fields"]["finding.message"]["counts"] == {"email": 1, "secret-aws-access-key-id": 1}
+    # The redacted text still shows the code around the finding.
+    assert "line_29 = 29" in doc["redacted_excerpt"]
+
+
+@pytest.mark.asyncio
+async def test_excerpt_is_minimum_material():
+    from core.adjudication import EXCERPT_TTL, enqueue_finding_for_adjudication
+
+    db = seeded_db()
+    finding = _finding(severity="high", full_prompt="should never be stored")
+    doc = await enqueue_finding_for_adjudication(db, finding)
+    # ±20 lines around the finding, nothing more.
+    assert (doc["excerpt_start_line"], doc["excerpt_end_line"]) == (FINDING_LINE - 20, FINDING_LINE + 20)
+    assert doc["redacted_excerpt"].count("\n") == 40
+    # Only the minimal finding keys are stored.
+    assert set(doc["finding"]) == {"finding_id", "build_id", "file", "line", "rule_or_category", "message"}
+    # A blueprint fragment, not the blueprint: related page and endpoint only.
+    fragment = doc["blueprint_fragment"]
+    assert [p["name"] for p in fragment["pages"]] == ["Settings"]
+    assert [e["path"] for e in fragment["api_endpoints"]] == ["/api/settings"]
+    assert "description" not in fragment and "features" not in fragment and "app_name" not in fragment
+    assert "data_models" not in fragment
+    assert doc["expires_at"] - doc["created_at"] == EXCERPT_TTL
+    # Idempotent per finding.
+    again = await enqueue_finding_for_adjudication(db, finding)
+    assert again["id"] == doc["id"] and len(db.adjudication_excerpts.docs) == 1
+
+
+def test_finding_schema_is_validated():
+    from core.adjudication import FindingError, normalize_finding
+
+    with pytest.raises(FindingError):
+        normalize_finding({"build_id": "b1", "rule_or_category": "x"})
+    out = normalize_finding({"finding_id": "f", "build_id": "b", "rule_or_category": "r", "line": "0", "extra": 1})
+    assert out == {"finding_id": "f", "build_id": "b", "rule_or_category": "r", "file": None, "line": None,
+                   "message": None}
+
+
+@pytest.mark.asyncio
+async def test_s0_indexes_include_ttls():
+    from core.adjudication import adjudication_index_coroutines
+
+    calls = []
+
+    class _Coll:
+        def __init__(self, name):
+            self.name = name
+
+        async def create_index(self, *args, **kwargs):
+            calls.append((self.name, args, kwargs))
+
+    class _DB:
+        def __getattr__(self, name):
+            return _Coll(name)
+
+    for coro in adjudication_index_coroutines(_DB()):
+        await coro
+    ttl = {(name, a[0]): kw["expireAfterSeconds"] for name, a, kw in calls if "expireAfterSeconds" in kw}
+    assert ttl == {("adjudication_excerpts", "expires_at"): 0,
+                   ("adjudication_access_log", "at"): 365 * 24 * 3600}
+    assert ("adjudication_excerpts", ("finding_id",), {"unique": True}) in calls
+    assert ("shadow_reviews", ("id",), {"unique": True}) in calls
