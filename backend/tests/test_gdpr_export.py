@@ -58,6 +58,8 @@ class FakeDB:
         "security_events", "sessions", "sprint_retros", "sprint_reviews",
         "sprints", "standups", "stories", "subscriptions", "support_tickets",
         "tasks", "team_members", "tech_debt_summaries", "users", "webhooks",
+        # S0 (PV-6)
+        "adjudication_excerpts", "data_use_consents",
     }
 
     def __init__(self, seed):

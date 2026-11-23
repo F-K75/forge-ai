@@ -48,6 +48,11 @@ celery_app.conf.beat_schedule = {
         "task": "backend.tasks.onboarding_tasks.send_onboarding_emails",
         "schedule": crontab(minute=17),
     },
+    # S0 (PV-6): adjudication retention backstop and label anonymization.
+    "adjudication-retention-daily": {
+        "task": "backend.tasks.adjudication_tasks.run_adjudication_retention",
+        "schedule": crontab(hour=3, minute=41),
+    },
 }
 
 celery_app.conf.task_serializer = "json"
@@ -56,6 +61,7 @@ celery_app.conf.result_serializer = "json"
 import tasks.build_tasks  # noqa: E402,F401 - registers tasks on this app instance
 import tasks.pm_tasks  # noqa: E402,F401 - registers tasks on this app instance
 import tasks.onboarding_tasks  # noqa: E402,F401 - registers tasks on this app instance
+import tasks.adjudication_tasks  # noqa: E402,F401 - registers tasks on this app instance
 
 
 @task_prerun.connect

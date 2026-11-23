@@ -72,6 +72,17 @@ class Collection:
         self.operations.append((self.name, "update_many", deepcopy(query), count))
         return DeleteResult(count)
 
+    async def update_one(self, query, update, upsert=False):
+        for document in self.documents:
+            if _matches(document, query):
+                document.update(update["$set"])
+                self.operations.append((self.name, "update_one", deepcopy(query), 1))
+                return DeleteResult(1)
+        if upsert:
+            self.documents.append({**query, **update["$set"]})
+        self.operations.append((self.name, "update_one", deepcopy(query), 0))
+        return DeleteResult(0)
+
 
 class FakeDB:
     COLLECTIONS = {
@@ -84,6 +95,9 @@ class FakeDB:
         "security_events", "sessions", "sprint_retros", "sprint_reviews",
         "sprints", "standups", "stories", "subscriptions", "support_tickets",
         "tasks", "team_members", "tech_debt_summaries", "users", "webhooks",
+        # S0 (PV-6)
+        "adjudication_excerpts", "finding_adjudications", "adjudication_access_log",
+        "data_use_consents",
     }
 
     def __init__(self, seed):

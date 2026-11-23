@@ -11,6 +11,8 @@ from core.models import User, utcnow
 from core.database import get_db
 from core.config import get_settings
 from core.audit import record_audit_log
+from core.adjudication import gdpr_erase_user_adjudication_data, gdpr_export_user_adjudication_data
+from core.data_use_consents import anonymize_user_consents
 from api.auth import get_current_user
 from api.growth import send_email
 
@@ -138,6 +140,13 @@ async def _collect_user_data(db, user: User) -> Dict[str, Any]:
         "organizations": await db.organizations.find(
             {"owner_id": user.id}, {"_id": 0}
         ).to_list(None),
+        # S0 (PV-6): every data-use consent, active or revoked, with its
+        # policy version, and the redacted adjudication excerpts of the
+        # user's builds.
+        "data_use_consents": await db.data_use_consents.find(
+            {"user_id": user.id}, {"_id": 0}
+        ).to_list(None),
+        **await gdpr_export_user_adjudication_data(db, user.id),
     }
     return export
 
@@ -265,6 +274,16 @@ async def delete_user_data_cascade(db, user_id: str, email: str) -> Dict[str, in
     counts["build_files"] = (
         await db.build_files.delete_many({"build_id": {"$in": build_ids}})
     ).deleted_count
+    # S0 (PV-6): excerpts of the user's builds are removed and labels on them
+    # anonymized (labels are kept for review statistics); the consent history
+    # is kept but re-keyed to the same anonymized id as the audit logs.
+    s0_anonymized_id = "deleted:" + hashlib.sha256(user_id.encode()).hexdigest()[:16]
+    counts.update(await gdpr_erase_user_adjudication_data(
+        db, user_id=user_id, build_ids=build_ids, anonymized_id=s0_anonymized_id,
+    ))
+    counts["data_use_consents_anonymized"] = await anonymize_user_consents(
+        db, user_id=user_id, anonymized_id=s0_anonymized_id,
+    )
     counts["messages"] = (
         await db.messages.delete_many(
             {"$or": [{"user_id": user_id}, {"project_id": {"$in": project_ids}}]}

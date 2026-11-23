@@ -758,3 +758,111 @@ async def test_pv2_access_is_rechecked_on_every_read(monkeypatch):
     db.users.docs[0]["is_internal"] = True
     await set_user_internal(db, user_id="u1", is_internal=False, actor=_admin())
     assert db.adjudication_excerpts.docs == []
+
+
+# --------------------------------------------------------------------------- #
+# Retention and GDPR (PV-6)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_pv6_retention_excerpts_90_days_access_log_1_year_labels_anonymized(monkeypatch):
+    from core.adjudication import (
+        list_queue, record_access, run_adjudication_retention, submit_label, view_item,
+    )
+
+    db = seeded_db()
+    item = await _queued(db)
+    await submit_label(db, adjudicator_id="admin-1", item_id=item["id"], verdict="true_positive", notes="ok")
+    created = item["created_at"]
+
+    # Day 89: everything still there.
+    counts = await run_adjudication_retention(db, now=created + timedelta(days=89))
+    assert counts == {"excerpts_deleted": 0, "access_log_deleted": 0, "labels_anonymized": 0}
+    assert len(db.adjudication_excerpts.docs) == 1
+
+    # Past 90 days: unreadable even before the TTL monitor runs...
+    later = created + timedelta(days=90, seconds=1)
+    with pytest.raises(Exception) as exc:
+        await view_item(db, adjudicator_id="admin-1", item_id=item["id"], now=later)
+    assert getattr(exc.value, "status_code", None) == 404
+    assert (await list_queue(db, adjudicator_id="admin-1", status="labelled", now=later))["items"] == []
+    # ...then deleted by the sweep; the label is kept but anonymized.
+    counts = await run_adjudication_retention(db, now=later)
+    assert counts["excerpts_deleted"] == 1 and counts["labels_anonymized"] == 1
+    assert db.adjudication_excerpts.docs == []
+    [label] = db.finding_adjudications.docs
+    assert label["verdict"] == "true_positive" and label["anonymized"] is True
+    assert label["owner_user_id"] is None and label["notes"] is None
+    assert label["build_id"].startswith("anon:") and label["finding_id"].startswith("anon:")
+    assert label["rule_or_category"] == "secret-aws-access-key-id"
+
+    # Access log: kept for a year, then removed.
+    old = await record_access(db, adjudicator_id="admin-1", action="view", now=created - timedelta(days=366))
+    counts = await run_adjudication_retention(db, now=created + timedelta(days=91))
+    assert counts["access_log_deleted"] == 1
+    assert old["id"] not in {r["id"] for r in db.adjudication_access_log.docs}
+    assert len(db.adjudication_access_log.docs) >= 3  # this year's rows stay
+
+
+@pytest.mark.asyncio
+async def test_pv6_gdpr_delete_removes_excerpts_and_anonymizes_labels(monkeypatch, external_flag):
+    from api.gdpr import delete_user_data_cascade
+    from core.adjudication import record_access, submit_label
+
+    db = seeded_db(internal=True)
+    db.users.docs.append({"id": "admin-1", "email": "a@forge.test"})
+    item = await _queued(db)
+    await submit_label(db, adjudicator_id="admin-1", item_id=item["id"], verdict="false_positive",
+                       notes="looks fine")
+    await grant_consent(db, user_id="u1", scope=SCOPE_AI_QUALITY_REVIEW)
+    # The user also adjudicated someone else's finding (as an adjudicator).
+    db.finding_adjudications.docs.append({"id": "l-own", "finding_id": "x", "adjudicator_id": "u1",
+                                          "owner_user_id": "u9", "build_id": "b9", "verdict": "uncertain"})
+    await record_access(db, adjudicator_id="u1", action="view", build_id="b9")
+
+    counts = await delete_user_data_cascade(db, "u1", "u1@x.test")
+
+    assert db.adjudication_excerpts.docs == []
+    assert counts["adjudication_excerpts"] == 1 and counts["finding_adjudications_anonymized"] == 1
+    by_id = {label["id"]: label for label in db.finding_adjudications.docs}
+    anonymized = next(label for i, label in by_id.items() if i != "l-own")
+    assert anonymized["verdict"] == "false_positive" and anonymized["anonymized"] is True
+    assert anonymized["owner_user_id"] is None and anonymized["build_id"].startswith("anon:")
+    assert anonymized["notes"] is None
+    # Where the user acted as an adjudicator, their id is replaced.
+    assert by_id["l-own"]["adjudicator_id"].startswith("deleted:")
+    assert all(r["adjudicator_id"] != "u1" for r in db.adjudication_access_log.docs)
+    # Consent history kept, but no longer keyed to the user.
+    assert await list_consents(db, "u1") == []
+    [consent] = db.data_use_consents.docs
+    assert consent["user_id"].startswith("deleted:") and consent["scope"] == SCOPE_AI_QUALITY_REVIEW
+    assert "u1" not in consent["_id"]
+    # Idempotent retry.
+    await delete_user_data_cascade(db, "u1", "u1@x.test")
+    assert len(db.data_use_consents.docs) == 1
+
+
+@pytest.mark.asyncio
+async def test_pv6_gdpr_export_includes_consents(external_flag):
+    from api.gdpr import _collect_user_data
+
+    db = seeded_db(internal=True)
+    await _queued(db)
+    await grant_consent(db, user_id="u1", scope=SCOPE_HUMAN_QUALITY_REVIEW)
+    await grant_consent(db, user_id="u1", scope=SCOPE_AI_QUALITY_REVIEW)
+    await revoke_consent(db, user_id="u1", scope=SCOPE_AI_QUALITY_REVIEW)
+
+    class _User:
+        id = "u1"
+        email = "u1@x.test"
+
+    export = await _collect_user_data(db, _User())
+    consents = {c["scope"]: c for c in export["data_use_consents"]}
+    assert set(consents) == {SCOPE_HUMAN_QUALITY_REVIEW, SCOPE_AI_QUALITY_REVIEW}
+    assert consents[SCOPE_AI_QUALITY_REVIEW]["revoked_at"] is not None
+    assert consents[SCOPE_HUMAN_QUALITY_REVIEW]["policy_version"] == "2026-11"
+    # The excerpts of the user's builds (internal basis survives the
+    # human_quality_review revocation path) are exported redacted.
+    assert len(export["adjudication_excerpts"]) == 1
+    assert_no_seeded_secret(export["adjudication_excerpts"])

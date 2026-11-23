@@ -180,6 +180,26 @@ async def revoke_consent(db, *, user_id: str, scope: str, revoked_by: Optional[s
     return bool(getattr(result, "modified_count", 0))
 
 
+async def anonymize_user_consents(db, *, user_id: str, anonymized_id: str) -> int:
+    """GDPR account deletion: keep the consent history (scope, policy
+    version, dates) but re-key it to ``anonymized_id``, since the user id
+    is part of each document's ``_id``. Idempotent (upsert, then delete)."""
+    coll = getattr(db, COLLECTION)
+    docs = await coll.find({"user_id": user_id}).to_list(None)
+    now = utcnow()
+    for doc in docs:
+        moved = {k: v for k, v in doc.items() if k != "_id"}
+        moved["user_id"] = anonymized_id
+        for key in ("granted_by", "revoked_by"):
+            if moved.get(key) == user_id:
+                moved[key] = anonymized_id
+        moved["anonymized_at"] = now
+        await coll.update_one({"_id": _consent_id(anonymized_id, str(doc.get("scope")))}, {"$set": moved}, upsert=True)
+    if docs:
+        await coll.delete_many({"user_id": user_id})
+    return len(docs)
+
+
 async def list_consents(db, user_id: str) -> List[Dict[str, Any]]:
     docs: List[Dict[str, Any]] = []
     async for doc in db[COLLECTION].find({"user_id": user_id}):

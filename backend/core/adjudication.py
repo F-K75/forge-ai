@@ -665,6 +665,81 @@ async def purge_user_excerpts(db, user_id: str, *, basis: Optional[str] = None) 
 
 
 # --------------------------------------------------------------------------- #
+# Retention and GDPR (PV-6)
+# --------------------------------------------------------------------------- #
+
+
+def _anon_token() -> str:
+    return "anon:" + uuid.uuid4().hex[:16]
+
+
+async def _anonymize_labels(db, query: Dict[str, Any], now) -> int:
+    """Strip every link from matching labels to a build, finding or owner,
+    keeping the verdict, category, adjudicator and dates (precision
+    statistics). Each label gets its own random tokens, so the unique
+    ``(finding_id, adjudicator_id)`` index still holds."""
+    labels = _coll(db, LABELS)
+    docs = await labels.find(query, {"_id": 0, "id": 1}).to_list(None)
+    for doc in docs:
+        await labels.update_one({"id": doc["id"]}, {"$set": {
+            "build_id": _anon_token(),
+            "finding_id": _anon_token(),
+            "owner_user_id": None,
+            "notes": None,
+            "anonymized": True,
+            "anonymized_at": now,
+        }})
+    return len(docs)
+
+
+async def anonymize_expired_labels(db, *, now=None) -> int:
+    """Labels are kept, but anonymized once their excerpt's retention
+    (90 days) has passed."""
+    now = now or utcnow()
+    return await _anonymize_labels(
+        db, {"anonymized": {"$ne": True}, "created_at": {"$lt": now - LABEL_ANONYMIZE_AFTER}}, now,
+    )
+
+
+async def run_adjudication_retention(db, *, now=None) -> Dict[str, int]:
+    """Daily sweep (``tasks.adjudication_tasks``). The TTL indexes delete
+    expired excerpts and access-log rows on their own; this is the
+    backstop for both and the only path that anonymizes labels."""
+    now = now or utcnow()
+    excerpts = await _coll(db, EXCERPTS).delete_many({"expires_at": {"$lt": now}})
+    log = await _coll(db, ACCESS_LOG).delete_many({"at": {"$lt": now - ACCESS_LOG_TTL}})
+    return {
+        "excerpts_deleted": int(getattr(excerpts, "deleted_count", 0) or 0),
+        "access_log_deleted": int(getattr(log, "deleted_count", 0) or 0),
+        "labels_anonymized": await anonymize_expired_labels(db, now=now),
+    }
+
+
+async def gdpr_erase_user_adjudication_data(
+    db, *, user_id: str, build_ids: Iterable[str], anonymized_id: str, now=None,
+) -> Dict[str, int]:
+    """Account deletion: remove the excerpts of the user's builds, anonymize
+    the labels on them, and replace the user's id where they acted as an
+    adjudicator (labels and access log, as ``audit_logs`` actors are)."""
+    now = now or utcnow()
+    ids = list(build_ids or [])
+    owned = {"$or": [{"owner_user_id": user_id}, {"build_id": {"$in": ids}}]}
+    excerpts = await _coll(db, EXCERPTS).delete_many(owned)
+    labels = await _anonymize_labels(db, owned, now)
+    await _coll(db, LABELS).update_many({"adjudicator_id": user_id}, {"$set": {"adjudicator_id": anonymized_id}})
+    await _coll(db, ACCESS_LOG).update_many({"adjudicator_id": user_id}, {"$set": {"adjudicator_id": anonymized_id}})
+    return {"adjudication_excerpts": int(getattr(excerpts, "deleted_count", 0) or 0),
+            "finding_adjudications_anonymized": labels}
+
+
+async def gdpr_export_user_adjudication_data(db, user_id: str) -> Dict[str, List[Dict[str, Any]]]:
+    """The (already redacted) excerpts of the user's builds."""
+    return {
+        "adjudication_excerpts": await _coll(db, EXCERPTS).find({"owner_user_id": user_id}, {"_id": 0}).to_list(None),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Indexes
 # --------------------------------------------------------------------------- #
 
