@@ -507,7 +507,7 @@ async def record_provider_attempt(
         "completion_tokens": completion_tokens,
         "cached_tokens": cached_tokens,
         "total_tokens": prompt_tokens + completion_tokens,
-        "cost": round(cost, 6),
+        "cost": round(cost, 9),  # per-attempt costs (embeddings) can be < 1e-6
         "latency_ms": round(float(latency_ms), 3) if latency_ms is not None else None,
     }
     validate_usage_row(record)

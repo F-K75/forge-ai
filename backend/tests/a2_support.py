@@ -271,6 +271,12 @@ def patch_infra(monkeypatch, db: FakeDB) -> None:
         return None
 
     monkeypatch.setattr(LLMRouter, "_check_rate_limit", _no_rate_limit)
+    # The limiter's in-process fallback holds asyncio primitives bound to
+    # whichever event loop first used them (the Celery task runs on its own
+    # worker loop); give each test a fresh limiter.
+    import core.llm.concurrency as concurrency
+
+    monkeypatch.setattr(concurrency, "_concurrency_limiter", None)
     import logging
 
     for name in ("core.llm.rate_limiter", "core.llm.concurrency", "core.llm.circuit_breaker"):
@@ -351,10 +357,12 @@ def chunked(text: str, size: int = 37) -> List[str]:
 BYOK_TEST_KEY = "customer-owned-test-key"
 
 
-def make_user(*, byok: bool, user_id: str = "u1") -> Dict[str, Any]:
+def make_user(*, byok: bool, user_id: str = "u1", plan: str = "enterprise") -> Dict[str, Any]:
+    """Forge users default to the enterprise plan so a max-path build fits
+    the daily token budget (U4 keeps that budget on builds)."""
     from core.encryption import encrypt_field
 
-    user = {"id": user_id, "credits": 1000, "plan": "free", "email": "u@example.test", "name": "U"}
+    user = {"id": user_id, "credits": 1000, "plan": plan, "email": "u@example.test", "name": "U"}
     if byok:
         user.update({"plan": "pro", "llm_api_key": encrypt_field(BYOK_TEST_KEY), "llm_provider": "anthropic"})
     return user
