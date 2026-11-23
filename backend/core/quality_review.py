@@ -15,7 +15,8 @@ Three pieces live here:
   admission snapshot narrowed to what is active now. Human adjudication
   (C7, U12): internal by default; external only with
   ``human_quality_review`` **and** ``settings.external_adjudication_opt_in``
-  (off until the privacy review completes).
+  (off until the privacy review completes). No platform model is involved,
+  so the BYOK boundary does not apply; the redactor and the access log do.
 - Consent revocation effects (``on_consent_revoked``, called by
   ``core.data_use_consents.revoke_consent``): ``human_quality_review``
   purges the owner's adjudication excerpts; ``ai_quality_review`` drops the
