@@ -385,8 +385,9 @@ async def test_shadow_and_specialist_shadow_never_enqueued_for_byok_without_cons
     real_create_task = asyncio.create_task
 
     def spy_create_task(coro, *a, **k):
-        created.append(coro)
-        return real_create_task(coro, *a, **k)
+        task = real_create_task(coro, *a, **k)
+        created.append(task)
+        return task
 
     async def _flag_off(key):
         return False
@@ -406,7 +407,7 @@ async def test_shadow_and_specialist_shadow_never_enqueued_for_byok_without_cons
     with build_scope(ProcessingBoundary(credential_mode=CredentialMode.FORGE)):
         shadow_module.launch_shadow_comparison(build, {}, {}, {})
     assert len(created) == 2
-    await asyncio.gather(*list(shadow_module._inflight_tasks))
+    await asyncio.gather(*created)
 
     # Shadow reviews (S0) are not built yet; their consent scope is
     # enforced by the same check (purpose `shadow`).

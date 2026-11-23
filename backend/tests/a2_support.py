@@ -522,6 +522,11 @@ class StubBuildHarness:
                 return ""
 
         monkeypatch.setattr(build_tasks_module, "sandbox", _Sandbox())
+        # Run on a private event loop: advancing the shared worker loop would
+        # also run tasks other test modules left pending on it.
+        import asyncio
+
+        monkeypatch.setattr(build_tasks_module, "_worker_loop", asyncio.new_event_loop())
         self.build_tasks = build_tasks_module
 
     def run(self, *, retries: int = 0, reserved: int = 100):
