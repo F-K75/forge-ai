@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import asyncio
 import itertools
-import json
 
 import pytest
 
@@ -34,7 +33,6 @@ from tests.a2_support import (
     byok_responder_for,
     make_build,
     make_user,
-    op_marker,
     patch_infra,
     set_flags,
 )

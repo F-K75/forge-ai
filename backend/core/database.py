@@ -253,6 +253,32 @@ async def _ensure_indexes(db):
             # A2: data-use consents are looked up by user at admission
             # (processing boundary snapshot) and on every consent change.
             db.data_use_consents.create_index([("user_id", 1)]),
+            # --- A1: build ledger (plan §10.4 rule 5, §15.2) ---
+            # The idempotency key of every money move (T1 reserve, T2
+            # settle, T3 release): at most one row per (build, kind). Kept
+            # whatever the ledger_v2 flag says (§18.2). No TTL: a financial
+            # record.
+            db.credit_transactions.create_index(
+                [("build_id", 1), ("kind", 1)], unique=True, name="credit_txn_build_kind_unique",
+            ),
+            db.credit_transactions.create_index([("user_id", 1), ("created_at", -1)]),
+            # Daily build counter, incremented inside T1 (U4, QT-5).
+            db.usage_counters.create_index(
+                [("scope", 1), ("scope_id", 1), ("day", 1)], unique=True, name="usage_counter_unique",
+            ),
+            db.usage_counters.create_index("expires_at", expireAfterSeconds=0, name="usage_counter_ttl"),
+            # Provider response journal: one usable response per dispatch,
+            # deleted at W7; the TTL is the 24 h backstop (§8.5, X1).
+            db.llm_response_journal.create_index(
+                [("operation_id", 1), ("dispatch_no", 1)], unique=True, name="journal_dispatch_unique",
+            ),
+            db.llm_response_journal.create_index("expires_at", expireAfterSeconds=0, name="journal_ttl"),
+            # Sweeper scans: expired leases and never-dispatched reservations.
+            db.builds.create_index([("funding.state", 1), ("lease_expires_at", 1)]),
+            db.builds.create_index([("funding.state", 1), ("created_at", 1)]),
+            # Reconciliation (I-5, I-6, I-11) reads a build's attempts.
+            db.ai_usage.create_index([("build_id", 1)]),
+            db.ai_usage.create_index([("operation_id", 1)]),
         ]
         # S0: adjudication excerpts (TTL 90 d), access log (TTL 1 y), labels.
         from core.adjudication import adjudication_index_coroutines

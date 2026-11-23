@@ -25,6 +25,7 @@ from core.models import (
 )
 from core.orchestrator import Orchestrator, MAX_DEBUG_ITERATIONS
 from core.database import get_db
+from core import execution_state
 from core.processing_boundary import snapshot_boundary
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager, authenticate_websocket_token
@@ -167,6 +168,12 @@ async def create_build(
                 "idempotent": True,
             }
 
+    if settings.ledger_v2:
+        # A1 (plan §10.2 T1, §13.2): admission and reservation in one
+        # transaction, priced by core/pricing.py. With the flag off,
+        # everything below runs exactly as before.
+        return await _create_build_ledger(req, request, current_user, db)
+
     # Credit reservation (atomic) to prevent concurrent deduction race.
     estimated_credits = sum(CREDIT_COSTS.values()) * (
         len(project.get("tech_stack", {})) + 1
@@ -254,6 +261,7 @@ async def create_build(
             status=BuildStatus.PENDING,
             interactive=req.interactive,
         )
+        execution_state.admit(build)
 
         # Omit idempotency_key entirely when unset rather than writing null --
         # the unique index on (user_id, idempotency_key) is only partial over
@@ -293,11 +301,12 @@ async def create_build(
             # The row exists but no worker will ever pick it up; leaving it
             # "pending" makes the UI show a build that never progresses and
             # trips the duplicate-build guard on the next attempt.
+            execution_state.set_status(build, BuildStatus.FAILED, reason="dispatch_failed")
             await db.builds.update_one(
                 {"id": build_inserted_id},
                 {
                     "$set": {
-                        "status": BuildStatus.FAILED.value,
+                        **execution_state.state_fields(build),
                         "error": "Build could not be dispatched to a worker",
                         "completed_at": utcnow(),
                     }
@@ -319,7 +328,181 @@ async def create_build(
             )
         raise
 
-    return {"build_id": build.id, "status": build.status}
+    return {"build_id": build.id, "status": build.status, "build_status": build.build_status}
+
+
+def _ledger_insufficient_detail(quote, available: int) -> dict:
+    """402 body on the ledger path: the reservation is ``max_build_cost``
+    and its breakdown, which sums to ``required`` (B1-9)."""
+    return {
+        "code": "insufficient_credits",
+        "message": "Insufficient credits",
+        "required": quote.max_cost,
+        "available": available,
+        "breakdown": [{"label": line["label"], "credits": line["credits"], "key": line["key"]}
+                      for line in quote.breakdown_lines()],
+        "pricing_version": quote.pricing_version,
+    }
+
+
+async def _create_build_ledger(
+    req: CreateBuildRequest,
+    request: Request,
+    current_user: User,
+    db,
+) -> dict:
+    """T1 admission (ledger_v2). The user debit (or free-grant claim), the
+    build insert with ``funding.state = RESERVED``, the ``reserve`` row in
+    ``credit_transactions`` and the daily build counter are written in one
+    transaction, or not at all. The Celery task is enqueued only after it
+    commits; if that fails, T3 releases the reservation."""
+    from core import credit_ledger, pricing
+    from core.credit_ledger import FundingSource
+    from core.db_tx import AlreadyApplied, LedgerUnavailable, ensure_ledger_topology
+
+    try:
+        await ensure_ledger_topology(db)
+    except LedgerUnavailable:
+        # TX-5 / §12 row 17: fail closed. No money moves, no build exists.
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": LedgerUnavailable.code,
+                "message": "Builds are temporarily unavailable. Please try again later.",
+            },
+        )
+
+    # Read-only checks first: nothing has been reserved yet.
+    thirty_seconds_ago = utcnow() - timedelta(seconds=30)
+    recent_build = await db.builds.find_one(
+        {
+            "project_id": req.project_id,
+            "user_id": current_user.id,
+            "status": {"$in": [BuildStatus.PENDING.value, BuildStatus.RUNNING.value, BuildStatus.DEBUGGING.value]},
+            "created_at": {"$gte": thirty_seconds_ago},
+        },
+        {"_id": 0},
+    )
+    if recent_build:
+        raise HTTPException(
+            status_code=429,
+            detail="A build is already in progress for this project. Please wait.",
+        )
+
+    quote = pricing.quote_from_settings(settings)
+    build = Build(
+        project_id=req.project_id,
+        user_id=current_user.id,
+        prompt=sanitize_prompt(req.prompt),
+        idempotency_key=req.idempotency_key,
+        status=BuildStatus.PENDING,
+        interactive=req.interactive,
+    )
+    execution_state.admit(build)
+    build_dict = build.model_dump()
+    if build_dict.get("idempotency_key") is None:
+        build_dict.pop("idempotency_key", None)
+
+    user_doc = await db.users.find_one(
+        {"id": current_user.id},
+        {"_id": 0, "plan": 1, "llm_api_key": 1, "credits": 1, "free_build_used": 1},
+    ) or {}
+    boundary = await snapshot_boundary(db, current_user.id, user_doc=user_doc)
+    build_dict["processing_boundary"] = boundary.to_doc()
+
+    if boundary.is_byok:
+        source = FundingSource.BYOK
+    elif not user_doc.get("free_build_used"):
+        source = FundingSource.FREE_GRANT
+    else:
+        source = FundingSource.USER_CREDITS
+    plan = getattr(user_doc.get("plan"), "value", user_doc.get("plan")) or getattr(current_user.plan, "value", current_user.plan)
+    daily_limit = (settings.plan_daily_build_limits or {}).get(str(plan))
+
+    admission = None
+    while admission is None:
+        try:
+            admission = await credit_ledger.admit_build(
+                db, build_doc=build_dict, source=source, quote=quote, daily_build_limit=daily_limit,
+            )
+        except credit_ledger.FreeGrantTaken:
+            # A concurrent request claimed the grant first (CT-8).
+            source = FundingSource.USER_CREDITS
+        except credit_ledger.InsufficientCredits:
+            balance = await db.users.find_one({"id": current_user.id}, {"_id": 0, "credits": 1}) or {}
+            raise HTTPException(
+                status_code=402,
+                detail=_ledger_insufficient_detail(quote, int(balance.get("credits") or 0)),
+            )
+        except credit_ledger.DailyBuildLimitReached as exc:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "code": "daily_build_limit",
+                    "message": f"Daily build limit reached ({exc.limit} builds per day on your plan).",
+                    "limit": exc.limit,
+                },
+            )
+        except AlreadyApplied:
+            # Same build id or idempotency key committed already: a retried
+            # request. Return what exists; nothing moved this time.
+            existing = None
+            if req.idempotency_key:
+                existing = await db.builds.find_one(
+                    {"user_id": current_user.id, "idempotency_key": req.idempotency_key}, {"_id": 0},
+                )
+            if existing is None:
+                existing = await db.builds.find_one({"id": build.id}, {"_id": 0})
+            if existing is None:
+                raise
+            return {
+                "build_id": existing["id"],
+                "status": existing.get("status", BuildStatus.PENDING),
+                "build_status": existing.get("build_status"),
+                "idempotent": True,
+            }
+
+    if source == FundingSource.USER_CREDITS:
+        try:
+            balance = await db.users.find_one({"id": current_user.id}, {"_id": 0, "credits": 1, "plan": 1}) or {}
+            await check_and_send_credit_alerts(db, current_user.id, balance.get("plan", "free"),
+                                               int(balance.get("credits") or 0))
+        except Exception:
+            logger.warning("credit alert check failed for %s", current_user.id, exc_info=True)
+
+    try:
+        conversation_history, existing_files = await _get_prior_build_context(db, req.project_id)
+        run_build.apply_async(
+            args=(
+                build.id,
+                req.project_id,
+                current_user.id,
+                admission.reserved,
+                conversation_history,
+                existing_files,
+            ),
+            headers={"correlation_id": request.headers.get("X-Request-ID", "-")},
+        )
+    except Exception as exc:
+        logger.error("Build %s dispatch failed: %r", build.id, exc)
+        # T3: the task was never enqueued; release the whole reservation
+        # (and the free grant) and mark the build failed in the same write.
+        await credit_ledger.release_build(
+            db, build.id, reason="dispatch_failed",
+            terminal_update=execution_state.transition_update(
+                build.build_status, BuildStatus.FAILED, reason="dispatch_failed",
+                extra_set={"error": "Build could not be dispatched to a worker", "completed_at": utcnow()},
+            ),
+        )
+        raise
+
+    return {
+        "build_id": build.id,
+        "status": build.status,
+        "build_status": build.build_status,
+        "funding": source.value,
+        "reserved_credits": admission.reserved,
+    }
 
 
 async def _get_prior_build_context(db, project_id: str):
@@ -452,6 +635,7 @@ async def rollback_build(
         status=BuildStatus.SUCCESS,
         completed_at=utcnow(),
     )
+    execution_state.admit(rollback_build_record, reason="rollback")
     await db.builds.insert_one(rollback_build_record.model_dump())
 
     if files_dict:

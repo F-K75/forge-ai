@@ -141,6 +141,19 @@ async def lifespan(app: FastAPI):
             logger.exception("MongoDB startup health check failed")
             return
 
+        if settings.ledger_v2:
+            # A1 (plan §10.1, TX-5): the ledger needs transactions, so it
+            # refuses to run unless MongoDB is a replica-set member.
+            # Admission re-checks and answers 503 until it is; no money
+            # moves on a standalone server.
+            from core.db_tx import LedgerUnavailable, ensure_ledger_topology
+
+            try:
+                topology = await ensure_ledger_topology(db)
+                logger.info("ledger_v2 enabled on replica set %s", topology.set_name)
+            except LedgerUnavailable:
+                logger.critical("ledger_v2 refused to start: MongoDB is not a replica set")
+
         # Best-effort pre-warm of the DB-backed per-agent LLM overrides so the
         # first request after a deploy doesn't run with a cold (empty) cache.
         try:

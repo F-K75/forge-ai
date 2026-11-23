@@ -289,6 +289,18 @@ async def delete_user_data_cascade(db, user_id: str, email: str) -> Dict[str, in
             {"$or": [{"user_id": user_id}, {"project_id": {"$in": project_ids}}]}
         )
     ).deleted_count
+    # A1 ledger collections (plan §15.2). The journal holds build content
+    # for at most 24 h; the daily build counter is per user.
+    journal = getattr(db, "llm_response_journal", None)
+    if journal is not None:
+        counts["llm_response_journal"] = (
+            await journal.delete_many({"build_id": {"$in": build_ids}})
+        ).deleted_count
+    usage_counters = getattr(db, "usage_counters", None)
+    if usage_counters is not None:
+        counts["usage_counters"] = (
+            await usage_counters.delete_many({"scope": "user", "scope_id": user_id})
+        ).deleted_count
 
     counts["sprint_artifacts"] = await _delete_many(
         db, ("standups", "sprint_reviews", "sprint_retros"),
@@ -356,6 +368,12 @@ async def delete_user_data_cascade(db, user_id: str, email: str) -> Dict[str, in
     await db.feature_flags.update_many(
         {"updated_by": user_id}, {"$set": {"updated_by": None}}
     )
+    # credit_transactions is a financial record: anonymized, never deleted.
+    credit_transactions = getattr(db, "credit_transactions", None)
+    if credit_transactions is not None:
+        await credit_transactions.update_many(
+            {"user_id": user_id}, {"$set": {"user_id": anonymized_id}}
+        )
     counts["users"] = (await db.users.delete_one({"id": user_id})).deleted_count
     return counts
 

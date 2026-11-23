@@ -8,7 +8,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?replicaSet=rs0&authSource=admin
       - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379
       - SANDBOX_HOST=sandbox
       - JWT_SECRET=${JWT_SECRET:?}
@@ -48,7 +48,7 @@ services:
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?authSource=admin
+      - MONGODB_URL=mongodb://forge:${MONGO_PASSWORD:?}@mongo:27017/forge?replicaSet=rs0&authSource=admin
       - REDIS_URL=redis://:${REDIS_PASSWORD:?}@redis:6379
       - JWT_SECRET=${JWT_SECRET:?}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:?}
@@ -108,20 +108,43 @@ services:
           cpus: '0.25'
           memory: 256M
 
+  # Single-node replica set rs0 with keyFile + auth, as in production
+  # (plan §10.1, U10): the build ledger's money moves are MongoDB
+  # transactions, which a standalone server does not support (ledger_v2
+  # refuses to run on one). The healthcheck initiates the set on first
+  # start and reports healthy once this node is PRIMARY. The member is
+  # registered as mongo:27017, so a client on the host machine (not in this
+  # network) connects with
+  #   mongodb://forge:<password>@localhost:27017/forge?authSource=admin&directConnection=true
   mongo:
     image: mongo:7
     ports:
       - "27017:27017"
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        if [ ! -f /data/db/.mongo-keyfile ]; then
+          openssl rand -base64 756 > /data/db/.mongo-keyfile
+          chmod 400 /data/db/.mongo-keyfile
+          chown mongodb:mongodb /data/db/.mongo-keyfile
+        fi
+        exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/db/.mongo-keyfile
     environment:
       MONGO_INITDB_ROOT_USERNAME: forge
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?}
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      test:
+        - CMD-SHELL
+        - >
+          mongosh --quiet -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD"
+          --authenticationDatabase admin
+          --eval 'try { if (rs.status().myState !== 1) quit(1); } catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo:27017"}]}); quit(1); }'
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 20s
     deploy:
       resources:

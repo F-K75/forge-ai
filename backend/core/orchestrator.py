@@ -22,6 +22,12 @@ from core.models import (
 )
 from core.specialist_shadow import launch_shadow_comparison
 from core.processing_boundary import current_boundary
+from core import build_ledger
+from core.build_ledger import (
+    LedgerCommsHooks, LedgerRefused, OperationSkipped, RecoveryExhausted, UnusableOutput,
+    current_ledger_run,
+)
+from core.quotas import QuotaRefused
 from core.config import get_settings
 from core.database import get_db
 from sandbox.moderation import scan_code
@@ -34,7 +40,8 @@ from harness.models import TestCase, TestSuite
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-MAX_DEBUG_ITERATIONS = 3
+# N of the reservation formula (core/pricing.py); 3 with the shipped settings.
+MAX_DEBUG_ITERATIONS = settings.max_debug_iterations
 
 # Best-effort harness evaluation after each agent step.
 ENABLE_LOOP_ENGINEERING = True
@@ -65,6 +72,27 @@ _AGENT_TYPE_ROLE_DEPARTMENT = {
 class BuildCancelled(Exception):
     """User declined an interactive gate. Distinct from generic failures so
     tasks/build_tasks.py never auto-retries a build the user chose to stop."""
+
+
+# --- A1 usability predicates (plan §8.1, W5): what counts as usable output ---
+
+
+def _usable_dict(result: Any) -> bool:
+    """Schema-valid structured output: a JSON object."""
+    return isinstance(result, dict)
+
+
+def _usable_files(result: Any) -> bool:
+    """The Developer must produce at least one file."""
+    return isinstance(result, dict) and isinstance(result.get("files"), dict) and bool(result["files"])
+
+
+def _changes_files(result: Any, current: Dict[str, str]) -> bool:
+    """U6: a debug pass is usable only if it changes the active files; a
+    genuine no-op is uncharged (and still counts toward N)."""
+    if not isinstance(result, dict) or not isinstance(result.get("files"), dict):
+        return False
+    return any(current.get(path) != content for path, content in result["files"].items())
 
 
 # An interactive escalation gate shorter than this is not worth showing; the
@@ -178,12 +206,16 @@ class Orchestrator:
                         build_id=build.id,
                         data={"agent": "architect", "message": "Reviewing your idea for open questions"}
                     ))
-                    questions = await self.architect.clarify(
-                        build.prompt,
-                        user_id=build.user_id,
-                        build_id=build.id,
-                        project_id=build.project_id,
-                        template=template,
+                    questions = await self._optional_call(
+                        build, "architect_clarify", AgentType.ARCHITECT,
+                        lambda: self.architect.clarify(
+                            build.prompt,
+                            user_id=build.user_id,
+                            build_id=build.id,
+                            project_id=build.project_id,
+                            template=template,
+                        ),
+                        usable=lambda r: isinstance(r, list), default=[],
                     )
                     if questions:
                         response = await self._wait_for_gate(
@@ -202,15 +234,21 @@ class Orchestrator:
                                 "content": "Answers to the architect's clarifying questions:\n\n" + "\n\n".join(qa),
                             })
 
-                blueprint = await self.architect.blueprint(
-                    build.prompt,
-                    conversation_history=conversation_history,
-                    user_id=build.user_id,
-                    build_id=build.id,
-                    project_id=build.project_id,
-                    template=template,
+                blueprint = await self._stage_call(
+                    build, "architect", AgentType.ARCHITECT,
+                    lambda: self.architect.blueprint(
+                        build.prompt,
+                        conversation_history=conversation_history,
+                        user_id=build.user_id,
+                        build_id=build.id,
+                        project_id=build.project_id,
+                        template=template,
+                    ),
+                    usable=_usable_dict,
                 )
-                await self._complete_agent(build, AgentType.ARCHITECT, emit, output=json.dumps(blueprint))
+                self._note_integrations(blueprint)
+                await self._complete_agent(build, AgentType.ARCHITECT, emit, output=json.dumps(blueprint),
+                                           stage_key="architect")
 
                 await emit(WSEvent(
                     type=WSEventType.AGENT_UPDATE,
@@ -228,6 +266,8 @@ class Orchestrator:
                 await self._wait_for_gate(build, emit, stage="architect", agent="architect")
 
             resume_ok = architect_recovered
+            if architect_recovered:
+                self._note_integrations(blueprint)
 
             # --- 2. BUSINESS MODEL ---
             bm_recovered, business_model = (resume_ok and self._try_recover_json(build, AgentType.BUSINESS_IMPROVER)) or (False, None)
@@ -236,10 +276,15 @@ class Orchestrator:
                 build.business_model = business_model
             else:
                 await self._start_agent(build, AgentType.BUSINESS_IMPROVER, emit, skip_credits=byok_active)
-                business_model = await self.business_model.improve(build.prompt, blueprint=blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
+                business_model = await self._stage_call(
+                    build, "business_model", AgentType.BUSINESS_IMPROVER,
+                    lambda: self.business_model.improve(build.prompt, blueprint=blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id),
+                    usable=_usable_dict,
+                )
                 build.business_model = business_model
                 await self._complete_agent(
-                    build, AgentType.BUSINESS_IMPROVER, emit, output=json.dumps(business_model)
+                    build, AgentType.BUSINESS_IMPROVER, emit, output=json.dumps(business_model),
+                    stage_key="business_model", extra_set={"business_model": business_model},
                 )
 
                 await emit(WSEvent(
@@ -265,8 +310,13 @@ class Orchestrator:
                         build, collab_run, AgentType.DESIGNER, emit, blueprint=blueprint,
                     )
                     design_kwargs = self._decisions_kwargs(build)
-                design = await self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id, **design_kwargs)
-                await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design))
+                design = await self._stage_call(
+                    build, "designer", AgentType.DESIGNER,
+                    lambda: self.designer.design(blueprint, user_id=build.user_id, build_id=build.id, project_id=build.project_id, **design_kwargs),
+                    usable=_usable_dict,
+                )
+                await self._complete_agent(build, AgentType.DESIGNER, emit, output=json.dumps(design),
+                                           stage_key="designer")
 
                 await emit(WSEvent(
                     type=WSEventType.AGENT_UPDATE,
@@ -325,10 +375,14 @@ class Orchestrator:
                         byok_active=byok_active, reserved_credits=reserved_credits,
                     )
                     extra_kwargs = {"clarifications": clarifications} if clarifications else {}
-                files_result = await self.developer.generate_files(
-                    blueprint, design, stream_callback=stream_token, existing_files=existing_files,
-                    user_id=build.user_id, build_id=build.id, project_id=build.project_id,
-                    **extra_kwargs,
+                files_result = await self._stage_call(
+                    build, "developer", AgentType.DEVELOPER,
+                    lambda: self.developer.generate_files(
+                        blueprint, design, stream_callback=stream_token, existing_files=existing_files,
+                        user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                        **extra_kwargs,
+                    ),
+                    usable=_usable_files,
                 )
                 files.update(files_result.get("files", {}))
                 await persist_files(files)
@@ -336,7 +390,8 @@ class Orchestrator:
                 await self._complete_agent(
                     build, AgentType.DEVELOPER, emit,
                     output=f"Generated {len(files)} files",
-                    files_changed=list(files_result.get("files", {}).keys())
+                    files_changed=list(files_result.get("files", {}).keys()),
+                    stage_key="developer",
                 )
 
                 await emit(WSEvent(
@@ -390,25 +445,36 @@ class Orchestrator:
                             blueprint=blueprint, design=design, integrations=integrations,
                         )
                         integration_kwargs = self._decisions_kwargs(build)
-                    int_result = await self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id, **integration_kwargs)
-                    files.update(int_result.get("files", {}))
-                    await persist_files(files)
-                    await self._complete_agent(
-                        build, AgentType.INTEGRATION, emit,
-                    output=int_result.get("instructions", ""),
-                        files_changed=list(int_result.get("files", {}).keys())
-                    )
+                    try:
+                        int_result = await self._stage_call(
+                            build, "integration", AgentType.INTEGRATION,
+                            lambda: self.integration.integrate(integrations, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id, **integration_kwargs),
+                            usable=_usable_dict,
+                        )
+                    except (LedgerRefused, QuotaRefused) as exc:
+                        # 7c: refused after the code exists -> INCOMPLETE.
+                        await self._stop_incomplete(build, "integration", exc, emit)
+                        int_result = None
+                    if int_result is not None:
+                        files.update(int_result.get("files", {}))
+                        await persist_files(files)
+                        await self._complete_agent(
+                            build, AgentType.INTEGRATION, emit,
+                            output=int_result.get("instructions", ""),
+                            files_changed=list(int_result.get("files", {}).keys()),
+                            stage_key="integration",
+                        )
 
-                    await emit(WSEvent(
-                        type=WSEventType.AGENT_UPDATE,
-                        build_id=build.id,
-                        data={"agent": "integration", "message": "Integration complete"},
-                    ))
+                        await emit(WSEvent(
+                            type=WSEventType.AGENT_UPDATE,
+                            build_id=build.id,
+                            data={"agent": "integration", "message": "Integration complete"},
+                        ))
 
-                    await self._emit_output(
-                        build, "integration", emit,
-                        {"instructions": int_result.get("instructions", "")},
-                    )
+                        await self._emit_output(
+                            build, "integration", emit,
+                            {"instructions": int_result.get("instructions", "")},
+                        )
 
 
             # --- CONTENT SECURITY POLICY (generated apps) ---
@@ -443,34 +509,50 @@ class Orchestrator:
             # getting a fresh MAX_DEBUG_ITERATIONS budget on every retry.
             iteration = build.debug_iterations
             validation = {}
-            while True:
-                await self._start_agent(build, AgentType.PM, emit, skip_credits=byok_active)
-                validation = await self.pm.validate(blueprint, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id)
-                await self._complete_agent(
-                    build, AgentType.PM, emit,
-                    output=json.dumps(validation)
+            # A1: the ledger build's quote fixes N; legacy builds use the
+            # module bound (the same setting).
+            ledger_run = current_ledger_run()
+            max_debug = ledger_run.debug_iterations if ledger_run is not None else MAX_DEBUG_ITERATIONS
+            incomplete = False
+            if ledger_run is not None and iteration > 0:
+                incomplete = await self._resume_debug_pass(
+                    build, ledger_run, iteration, files, blueprint, emit, persist_files, collab_run,
                 )
-                await self._evaluate_agent_output(build.id, "pm", json.dumps(validation), emit)
-                await self._emit_output(build, "pm", emit, validation)
+            while not incomplete:
+                pm_key = f"pm#{iteration}"
+                recovered = self._recover_stage_output(build, pm_key)
+                if recovered is not None:
+                    # Committed by an earlier attempt: reuse it, no new call.
+                    validation = recovered
+                else:
+                    await self._start_agent(build, AgentType.PM, emit, skip_credits=byok_active)
+                    try:
+                        validation = await self._stage_call(
+                            build, pm_key, AgentType.PM,
+                            lambda: self.pm.validate(blueprint, files, user_id=build.user_id, build_id=build.id, project_id=build.project_id),
+                            usable=_usable_dict,
+                        )
+                    except (LedgerRefused, QuotaRefused) as exc:
+                        # 7c / QT-4: the code exists, the validation cannot
+                        # run -> COMPLETED with the stage INCOMPLETE.
+                        await self._stop_incomplete(build, pm_key, exc, emit)
+                        incomplete = True
+                        break
+                    await self._complete_agent(
+                        build, AgentType.PM, emit,
+                        output=json.dumps(validation),
+                        stage_key=pm_key,
+                    )
+                    await self._evaluate_agent_output(build.id, "pm", json.dumps(validation), emit)
+                    await self._emit_output(build, "pm", emit, validation)
 
-                errors = list(sandbox_errors)
+                errors = self._validation_errors(validation, sandbox_errors)
                 sandbox_errors = []
-                if not validation.get("passed", True):
-                    errors.extend(
-                        f"Missing feature: {f}"
-                        for f in (validation.get("missing_features") or [])
-                    )
-                    errors.extend(
-                        f"[{i.get('severity', '?')}] {i.get('file', '?')}: {i.get('description', '')}"
-                        for i in (validation.get("issues") or [])
-                    )
-                    if not errors:
-                        errors = ["PM validation failed"]
 
                 if not errors:
                     break
 
-                if iteration >= MAX_DEBUG_ITERATIONS:
+                if iteration >= max_debug:
                     build.status = BuildStatus.FAILED
                     await emit(WSEvent(
                         type=WSEventType.BUILD_FAILED,
@@ -490,28 +572,21 @@ class Orchestrator:
                 ))
 
                 await self._start_agent(build, AgentType.DEBUGGER, emit, skip_credits=byok_active)
-                patched = await self.developer.patch_files(
-                    files, "\n".join(errors), blueprint,
-                    user_id=build.user_id, build_id=build.id, project_id=build.project_id,
-                    **(self._decisions_kwargs(build) if collab_run is not None else {}),
-                )
-                files.update(patched.get("files", {}))
-                await persist_files(files)
-                await self._complete_agent(
-                    build, AgentType.DEBUGGER, emit,
-                    output=f"Patched {len(patched.get('files', {}))} files",
-                    files_changed=list(patched.get("files", {}).keys())
-                )
-
-                await emit(WSEvent(
-                    type=WSEventType.FILE_UPDATE,
-                    build_id=build.id,
-                    data={"delta": {"changed": patched.get("files", {}), "deleted": []}, "debug_iteration": iteration}
-                ))
+                if await self._debug_pass(
+                    build, f"debug#{iteration}", iteration, files, errors, blueprint, emit, persist_files, collab_run,
+                ):
+                    incomplete = True
+                    break
 
             # --- 8. DONE ---
             build.status = BuildStatus.SUCCESS
             build.completed_at = utcnow()
+            if ledger_run is not None and ledger_run.incomplete_stages:
+                # A1 records which stages a ceiling or quota stopped; the
+                # quality status itself is B2's (§11, §15.1).
+                build.quality = ledger_run.quality_fields(build.quality).get("quality")
+                validation = dict(validation or {})
+                validation["incomplete_stages"] = list(ledger_run.incomplete_stages)
 
             # Attach the final (post-debug-loop) moderation + CSP reports so
             # users see any non-blocking warnings even when blocking issues were
@@ -540,6 +615,24 @@ class Orchestrator:
 
 
         except Exception as e:
+            if current_ledger_run() is not None:
+                # A1 (F22, LC-1): the task decides whether a retry follows;
+                # `failed` is persisted and `build_failed` emitted only for a
+                # terminal failure. No step stays RUNNING (I-9).
+                for step in build.agents:
+                    if step.status == BuildStatus.RUNNING:
+                        step.status = BuildStatus.FAILED
+                        step.completed_at = utcnow()
+                        step.error = str(e)[:500]
+                        step.outcome = step.outcome or "failed"
+                        if step.agent_profile_id:
+                            try:
+                                await self._agent_registry.record_task_result(
+                                    build.project_id, step.agent_profile_id, success=False,
+                                )
+                            except Exception:
+                                logger.debug("Agent registry record_task_result failed", exc_info=True)
+                raise
             build.status = BuildStatus.FAILED
             for step in build.agents:
                 if step.status == BuildStatus.RUNNING and step.agent_profile_id:
@@ -566,6 +659,241 @@ class Orchestrator:
 
 
         return build, files
+
+    # ------------------------------------------------------------------ #
+    # A1 build ledger (core/build_ledger.py). Every helper below is a
+    # plain call when the build is not a ledger build (flag off, or a
+    # build admitted before ledger_v2).
+    # ------------------------------------------------------------------ #
+
+    async def _dispatch(
+        self,
+        build: Build,
+        stage_key: str,
+        agent_type: Optional[AgentType],
+        call: Callable[[], Awaitable[Any]],
+        *,
+        usable: Optional[Callable[[Any], bool]] = None,
+        mandatory: Optional[bool] = None,
+        commit: bool = False,
+        on_unusable: str = "raise",
+    ) -> Tuple[Any, Optional["build_ledger.OpHandle"]]:
+        """One ledger operation around ``call``: W1/W2 (``begin``), the call
+        inside A2's ``operation_scope``, W5 (``usable``), W4 (journal), then
+        either W7 now (``commit``) or the handle is left pending for
+        ``_complete_agent``. A journaled response from an interrupted
+        attempt is used instead of calling again.
+
+        Returns ``(result, handle)``; ``handle`` is None for a legacy build
+        and for unusable output with ``on_unusable="no_change"``."""
+        run = current_ledger_run()
+        if run is None:
+            return await call(), None
+        handle = await run.begin(
+            stage_key, agent=agent_type.value if agent_type is not None else None, mandatory=mandatory,
+        )
+        if handle is None:
+            raise OperationSkipped(stage_key)
+        if handle.journaled:
+            result = handle.journal_result
+        else:
+            with handle.scope():
+                try:
+                    result = await call()
+                except (Exception, asyncio.CancelledError) as exc:
+                    # Not other BaseExceptions: a process that is dying
+                    # (SystemExit, KeyboardInterrupt) writes nothing more; the
+                    # open dispatch is what recovery reads (§8.6).
+                    await run.fail_from_exception(handle, exc)
+                    if handle.dispatch_no >= 2 and isinstance(exc, Exception) and not isinstance(
+                        exc, (build_ledger.AttemptSuperseded, LedgerRefused, QuotaRefused)
+                    ):
+                        # RT-3: the recovery dispatch failed; no third one.
+                        raise RecoveryExhausted(stage_key) from exc
+                    raise
+        # A journaled result passed W5 before it was journaled (unusable
+        # output is never journaled), so it is not re-judged against state
+        # its own W6 may already have changed.
+        if usable is not None and not handle.journaled and not usable(result):
+            if on_unusable == "no_change":
+                await run.fail(handle, "no_change")
+                return result, None
+            await run.fail(handle, "unusable_output")
+            raise UnusableOutput(stage_key)
+        await run.journal(handle, result)
+        if commit:
+            build.credits_used = run.consumed + run.charge_for(handle)
+            await run.commit(handle)
+            build.credits_used = run.consumed
+        else:
+            run.pending[stage_key] = handle
+        return result, handle
+
+    async def _stage_call(self, build: Build, stage_key: str, agent_type: AgentType,
+                          call: Callable[[], Awaitable[Any]], *, usable=None) -> Any:
+        result, _ = await self._dispatch(build, stage_key, agent_type, call, usable=usable)
+        return result
+
+    async def _optional_call(self, build: Build, stage_key: str, agent_type: Optional[AgentType],
+                             call: Callable[[], Awaitable[Any]], *, usable=None, default: Any = None) -> Any:
+        """An optional, separately recorded operation (question passes, the
+        interactive clarify; price 0, C3): committed at once; interrupted
+        on a previous attempt -> skipped with ``default``."""
+        try:
+            result, _ = await self._dispatch(
+                build, stage_key, agent_type, call, usable=usable, mandatory=False, commit=True,
+            )
+        except (OperationSkipped, UnusableOutput):
+            return default
+        return result
+
+    def _ledger_hooks(self, build: Build) -> Optional[LedgerCommsHooks]:
+        run = current_ledger_run()
+        return LedgerCommsHooks(run, build) if run is not None and run.build_id == build.id else None
+
+    def _build_filter(self, build: Build) -> Dict[str, Any]:
+        """A ledger build's writes are fenced on the attempt's token."""
+        run = current_ledger_run()
+        if run is not None and run.build_id == build.id:
+            return run.fence()
+        return {"id": build.id}
+
+    @staticmethod
+    def _note_integrations(blueprint: Any) -> None:
+        run = current_ledger_run()
+        if run is not None and isinstance(blueprint, dict):
+            run.integrations = bool(blueprint.get("integrations"))
+
+    @staticmethod
+    def _recover_stage_output(build: Build, stage_key: str) -> Optional[dict]:
+        """The committed output of ``stage_key`` from an earlier attempt
+        (PM passes restart from validation on resume; reuse, do not
+        re-run and re-charge)."""
+        run = current_ledger_run()
+        op = run.completed(stage_key) if run is not None else None
+        if op is None:
+            return None
+        for step in build.agents:
+            if step.operation_id == op["operation_id"] and step.status == BuildStatus.SUCCESS:
+                try:
+                    value = json.loads(step.output)
+                except (TypeError, ValueError):
+                    return None
+                return value if isinstance(value, dict) else None
+        return None
+
+    async def _stop_incomplete(self, build: Build, stage_key: str, exc: Exception, emit: Callable) -> None:
+        """7c / QT-4: a mandatory stage refused after the code exists. The
+        build completes with the stage recorded as incomplete; nothing is
+        charged for it."""
+        reason = getattr(exc, "reason", None) or type(exc).__name__
+        run = current_ledger_run()
+        if run is not None:
+            run.record_incomplete(stage_key, reason)
+        for step in build.agents:
+            if step.status == BuildStatus.RUNNING:
+                step.status = BuildStatus.FAILED
+                step.completed_at = utcnow()
+                step.error = f"refused: {reason}"
+                step.outcome = "refused"
+        logger.warning("Build %s: %s refused (%s); completing with the stage incomplete", build.id, stage_key, reason)
+        await emit(WSEvent(
+            type=WSEventType.AGENT_UPDATE,
+            build_id=build.id,
+            data={"agent": "orchestrator", "message": f"Skipped {stage_key}: {reason}", "incomplete": stage_key},
+        ))
+
+    @staticmethod
+    def _validation_errors(validation: dict, sandbox_errors: List[str]) -> List[str]:
+        errors = list(sandbox_errors)
+        if not validation.get("passed", True):
+            errors.extend(
+                f"Missing feature: {f}"
+                for f in (validation.get("missing_features") or [])
+            )
+            errors.extend(
+                f"[{i.get('severity', '?')}] {i.get('file', '?')}: {i.get('description', '')}"
+                for i in (validation.get("issues") or [])
+            )
+            if not errors:
+                errors = ["PM validation failed"]
+        return errors
+
+    async def _debug_pass(
+        self,
+        build: Build,
+        debug_key: str,
+        iteration: int,
+        files: dict,
+        errors: List[str],
+        blueprint: dict,
+        emit: Callable,
+        persist_files: Callable,
+        collab_run: Optional[_CollabRun],
+    ) -> bool:
+        """One debug pass (``debug#k``). Returns True when a ceiling or
+        quota refused it (the loop stops; the stage is incomplete)."""
+        snapshot = dict(files)
+        try:
+            patched, handle = await self._dispatch(
+                build, debug_key, AgentType.DEBUGGER,
+                lambda: self.developer.patch_files(
+                    files, "\n".join(errors), blueprint,
+                    user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                    **(self._decisions_kwargs(build) if collab_run is not None else {}),
+                ),
+                usable=lambda r: _changes_files(r, snapshot),
+                on_unusable="no_change",
+            )
+        except (LedgerRefused, QuotaRefused) as exc:
+            await self._stop_incomplete(build, debug_key, exc, emit)
+            return True
+        patched = patched if isinstance(patched, dict) else {}
+        files.update(patched.get("files", {}))
+        await persist_files(files)
+        no_change = current_ledger_run() is not None and handle is None
+        await self._complete_agent(
+            build, AgentType.DEBUGGER, emit,
+            output=("No changes" if no_change else f"Patched {len(patched.get('files', {}))} files"),
+            files_changed=list(patched.get("files", {}).keys()),
+            stage_key=debug_key,
+            outcome="no_change" if no_change else None,
+        )
+
+        await emit(WSEvent(
+            type=WSEventType.FILE_UPDATE,
+            build_id=build.id,
+            data={"delta": {"changed": patched.get("files", {}), "deleted": []}, "debug_iteration": iteration}
+        ))
+        return False
+
+    async def _resume_debug_pass(
+        self,
+        build: Build,
+        run: "build_ledger.LedgerRun",
+        iteration: int,
+        files: dict,
+        blueprint: dict,
+        emit: Callable,
+        persist_files: Callable,
+        collab_run: Optional[_CollabRun],
+    ) -> bool:
+        """Resume inside the debug loop: ``debug#k`` an earlier attempt left
+        open (or failed, before its retry) runs again with the errors of the
+        PM pass before it, instead of being silently dropped."""
+        debug_key = f"debug#{iteration}"
+        _, op = run.latest(debug_key)
+        if op is None or op.get("status") in ("completed", "refused") or op.get("reason") == "no_change":
+            return False
+        # Open (interrupted) -> journal or recovery dispatch; failed on the
+        # previous attempt (the Celery retry is for it) -> a new operation
+        # for the same stage_key (§12 row 4).
+        previous = self._recover_stage_output(build, f"pm#{iteration - 1}") or {}
+        errors = self._validation_errors(previous, []) if previous else ["Resume the interrupted debug pass"]
+        await self._start_agent(build, AgentType.DEBUGGER, emit)
+        return await self._debug_pass(
+            build, debug_key, iteration, files, errors, blueprint, emit, persist_files, collab_run,
+        )
 
     @staticmethod
     def _worst_case_cost_after_developer(build: Build, blueprint: dict) -> int:
@@ -614,6 +942,7 @@ class Orchestrator:
             credit_cost=settings.credits_clarification,
             credit_ceiling=ceiling,
             timeout_seconds=settings.agent_message_timeout_seconds,
+            ledger=self._ledger_hooks(build),
         )
 
     async def _run_developer_clarifications(
@@ -663,12 +992,18 @@ class Orchestrator:
                     )
                     return []
                 try:
-                    questions = await asyncio.wait_for(
-                        self.developer.identify_questions(
-                            blueprint, design, policy.max_questions,
-                            user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                    # C3: question generation is a recorded operation priced
+                    # 0 (included in the Developer price).
+                    questions = await self._optional_call(
+                        build, "question_pass:developer", AgentType.DEVELOPER,
+                        lambda: asyncio.wait_for(
+                            self.developer.identify_questions(
+                                blueprint, design, policy.max_questions,
+                                user_id=build.user_id, build_id=build.id, project_id=build.project_id,
+                            ),
+                            timeout=policy.timeout_seconds,
                         ),
-                        timeout=policy.timeout_seconds,
+                        usable=lambda r: isinstance(r, list), default=[],
                     )
                 except Exception:
                     logger.warning("Build %s: developer question pass failed; continuing without clarifications.", build.id, exc_info=True)
@@ -742,7 +1077,7 @@ class Orchestrator:
         try:
             db = await get_db()
             await db.builds.update_one(
-                {"id": build.id},
+                self._build_filter(build),
                 {"$set": {
                     "collab_config": build.collab_config,
                     "blackboard": [e.model_dump() for e in build.blackboard],
@@ -813,6 +1148,7 @@ class Orchestrator:
             routes=run.config.routes,
             max_answer_chars=run.config.max_answer_chars,
             deadline=run.deadline - run.config.time_reserve_s,
+            ledger=self._ledger_hooks(build),
         )
 
     def _collab_comms(self, build: Build, emit: Callable, policy: CommunicationPolicy) -> InProcessAgentCommunication:
@@ -901,9 +1237,13 @@ class Orchestrator:
                     )
                     return
                 try:
-                    raw = await asyncio.wait_for(
-                        self._identify_stage_questions(build, stage, limit, recipients, blueprint, design, integrations),
-                        timeout=min(policy.timeout_seconds, time_left),
+                    raw = await self._optional_call(
+                        build, f"question_pass:{sender}", stage,
+                        lambda: asyncio.wait_for(
+                            self._identify_stage_questions(build, stage, limit, recipients, blueprint, design, integrations),
+                            timeout=min(policy.timeout_seconds, time_left),
+                        ),
+                        usable=lambda r: r is not None, default=None,
                     )
                 except Exception:
                     logger.warning("Build %s: %s question pass failed; continuing without clarifications.", build.id, sender, exc_info=True)
@@ -1146,6 +1486,13 @@ class Orchestrator:
 
         db = await get_db()
         timeout = settings.gate_timeout if timeout_seconds is None else timeout_seconds
+        run = current_ledger_run()
+        if run is not None and run.build_id == build.id:
+            # A1 (F14): on the ledger path a gate never waits into the time
+            # the rest of the pipeline needs; with too little left it
+            # auto-approves at once instead of letting the soft time limit
+            # fail a build whose stages are all paid for.
+            timeout = max(0.0, min(timeout, run.deadline - time.monotonic() - settings.collab_time_reserve_s))
         gate = {
             "gate_id": str(uuid.uuid4()),
             "stage": stage,
@@ -1157,7 +1504,7 @@ class Orchestrator:
         }
         for field_name, value in (extra or {}).items():
             gate.setdefault(field_name, value)
-        await db.builds.update_one({"id": build.id}, {"$set": {"pending_gate": gate}})
+        await db.builds.update_one(self._build_filter(build), {"$set": {"pending_gate": gate}})
         await emit(WSEvent(type=WSEventType.GATE_REQUEST, build_id=build.id, data=gate))
 
         response: dict = {"action": "approve", "auto": True}
@@ -1170,7 +1517,7 @@ class Orchestrator:
                 break
             await asyncio.sleep(settings.gate_poll_interval)
 
-        await db.builds.update_one({"id": build.id}, {"$set": {"pending_gate": None}})
+        await db.builds.update_one(self._build_filter(build), {"$set": {"pending_gate": None}})
         await emit(WSEvent(
             type=WSEventType.GATE_RESOLVED,
             build_id=build.id,
@@ -1264,7 +1611,9 @@ class Orchestrator:
         step = AgentStep(agent=agent_type, status=BuildStatus.RUNNING, started_at=utcnow())
         step.agent_profile_id = await self._resolve_agent_profile(build, agent_type)
         build.agents.append(step)
-        if not skip_credits:
+        # A1: a ledger build is charged at W7 for usable, persisted output
+        # only (core/build_ledger.py), never when a stage starts.
+        if not skip_credits and current_ledger_run() is None:
             credit_map = {
                 AgentType.ARCHITECT: settings.credits_architect,
                 AgentType.DESIGNER: settings.credits_designer,
@@ -1331,6 +1680,9 @@ class Orchestrator:
         emit: Callable,
         output: str = "",
         files_changed: list = None,
+        stage_key: Optional[str] = None,
+        extra_set: Optional[Dict[str, Any]] = None,
+        outcome: Optional[str] = None,
     ):
         completed_step = None
         for step in build.agents:
@@ -1341,6 +1693,22 @@ class Orchestrator:
                 step.files_changed = files_changed or []
                 completed_step = step
                 break
+
+        run = current_ledger_run()
+        handle = run.pending.get(stage_key) if (run is not None and stage_key) else None
+        if completed_step is not None and run is not None:
+            completed_step.outcome = outcome or ("completed" if handle is not None else completed_step.outcome)
+        if handle is not None:
+            # W7: the operation outcome, its credits, credits_used and the
+            # step outcome in one fenced write.
+            if completed_step is not None:
+                completed_step.operation_id = handle.operation_id
+            build.credits_used = run.consumed + run.charge_for(handle)
+            await run.commit(handle, extra_set={
+                "agents": [a.model_dump() for a in build.agents],
+                **(extra_set or {}),
+            })
+            build.credits_used = run.consumed
 
         if completed_step and completed_step.agent_profile_id:
             try:

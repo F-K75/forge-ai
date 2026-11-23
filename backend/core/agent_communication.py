@@ -47,6 +47,7 @@ the seam a broker-backed implementation would replace later.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 import uuid
@@ -92,6 +93,11 @@ _LEGACY_PAYLOAD_FIELDS = frozenset({
     "duration_ms",
 })
 
+def _is_fenced(exc: BaseException) -> bool:
+    """An attempt that lost its lease must stop, not record a failure."""
+    return type(exc).__name__ == "AttemptSuperseded"
+
+
 # Below this much time left in the build's budget, a v2 message is not sent.
 _MIN_DELIVERY_SECONDS = 1.0
 _MAX_SUBJECT_CHARS = 200
@@ -116,12 +122,19 @@ class CommunicationPolicy:
     max_answer_chars: Optional[int] = None
     # time.monotonic() after which no v2 message is delivered.
     deadline: Optional[float] = None
+    # A1 ledger builds: core.build_ledger.LedgerCommsHooks. Each
+    # reply-expecting message is then its own ledger operation, authorized
+    # out of the reservation's headroom and charged at W7 only for a
+    # non-empty answer; ``credit_ceiling``/``credit_cost`` are not used.
+    ledger: Optional[Any] = None
 
     @property
     def v2(self) -> bool:
         return self.protocol_version >= 2
 
     def can_afford(self, credits_used: int) -> bool:
+        if self.ledger is not None:
+            return self.ledger.can_afford()
         if self.credit_ceiling is None:
             return True
         return credits_used + self.credit_cost <= self.credit_ceiling
@@ -370,6 +383,16 @@ class InProcessAgentCommunication(AgentCommunication):
         if message.status != AgentMessageStatus.PENDING:
             return message
 
+        ledger = self.policy.ledger
+        if ledger is not None and message.delivery_attempts > 0:
+            # A1: a message an earlier attempt dispatched. An answer
+            # journaled before the crash is committed (charged once, no new
+            # call); otherwise its operation is closed INTERRUPTED (§8.6) and
+            # the message is closed below without re-sending it.
+            journaled = await ledger.recover(message)
+            if journaled:
+                return await self._complete_answer(message, journaled, None)
+
         if self.delivered_count() >= self.policy.max_questions:
             reason = "message_limit" if self.policy.v2 else "question_limit"
             return await self._reject(message, reason)
@@ -402,6 +425,11 @@ class InProcessAgentCommunication(AgentCommunication):
             if timeout < _MIN_DELIVERY_SECONDS:
                 return await self._reject(message, "time_budget")
 
+        if ledger is not None and await ledger.authorize(message) is None:
+            # W1 refused (no headroom left after the mandatory worst case),
+            # or an interrupted operation: no provider call.
+            return await self._reject(message, "budget_exhausted")
+
         message.delivery_attempts += 1
         message.delivery_started_at = utcnow()
         message.set_state(AgentMessageState.DISPATCHED)
@@ -423,13 +451,21 @@ class InProcessAgentCommunication(AgentCommunication):
             call_context = dict(context, asker=message.sender, message_id=message.message_id,
                                 message_type=message.message_type.value)
         started = time.monotonic()
+        scope = ledger.scope(message) if ledger is not None else contextlib.nullcontext()
         try:
-            reply = await asyncio.wait_for(responder(message.question, call_context), timeout=timeout)
+            with scope:
+                reply = await asyncio.wait_for(responder(message.question, call_context), timeout=timeout)
         except asyncio.TimeoutError:
+            if ledger is not None:
+                await ledger.fail(message, "timeout")
             self._close(message, AgentMessageState.TIMED_OUT, reason="timeout", started=started)
             await self._emit_response(message)
             return message
         except Exception as exc:  # responder failure must not fail the build
+            if ledger is not None:
+                if _is_fenced(exc):
+                    raise
+                await ledger.fail(message, "responder_error")
             logger.warning(
                 "Build %s: %s failed to answer %s's question: %s",
                 self.build.id, message.recipient, message.sender, exc,
@@ -446,15 +482,31 @@ class InProcessAgentCommunication(AgentCommunication):
         else:
             answer = (answer or "").strip()
         if not answer:
+            if ledger is not None:
+                await ledger.fail(message, "empty_answer")
             self._close(message, AgentMessageState.FAILED, reason="empty_answer", started=started)
             await self._emit_response(message)
             return message
 
-        cost = 0 if self.policy.credit_ceiling is None else self.policy.credit_cost
+        if ledger is not None:
+            await ledger.journal(message, answer)
+        return await self._complete_answer(message, answer, started)
+
+    async def _complete_answer(self, message: AgentMessage, answer: str, started: Optional[float]) -> AgentMessage:
+        """Record an answered message and charge it: on a ledger build in the
+        W7 write of its operation (with the message itself), otherwise on
+        ``build.credits_used`` as before."""
+        ledger = self.policy.ledger
         message.answer = answer
-        message.credits_charged = cost
-        self.build.credits_used += cost
-        self._close(message, AgentMessageState.COMPLETED, started=started)
+        if ledger is not None:
+            message.credits_charged = ledger.charge(message)
+            self._close(message, AgentMessageState.COMPLETED, started=started)
+            message.credits_charged = await ledger.commit(message)
+        else:
+            cost = 0 if self.policy.credit_ceiling is None else self.policy.credit_cost
+            message.credits_charged = cost
+            self.build.credits_used += cost
+            self._close(message, AgentMessageState.COMPLETED, started=started)
         await self._emit_response(message)
         return message
 

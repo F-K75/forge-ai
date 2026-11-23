@@ -37,6 +37,33 @@ _CONCURRENT_LIMITS = CONCURRENT_LIMITS
 
 logger = logging.getLogger(__name__)
 
+
+
+async def _enforce_byok_ceilings(user_id: Optional[str], messages: list, extra_system: str, max_tokens: int) -> None:
+    """A1 (§13.2): a BYOK call skips the daily budget (not Forge's spend) but
+    a call bound to a ledger operation still honours the configured
+    per-operation and per-build token ceilings (U5). No-op otherwise."""
+    from core import quotas
+
+    binding = quotas.live_binding(user_id)
+    if binding is None:
+        return
+    all_text = "\n".join(
+        str(m.get("content", "")) for m in messages if isinstance(m.get("content"), str)
+    ) + (extra_system or "")
+    binding.check(estimate_tokens(all_text) + (max_tokens or 0))
+
+
+async def _enforce_call_budget(user_id: str, estimated: int, org_id: Optional[str]) -> None:
+    """The daily token budget, plus A1's per-operation and per-build token
+    ceilings for a call bound to a live ledger operation, and the C2
+    ``build_token_exemption`` (off by default; core/quotas.py). With no
+    ceiling configured and the exemption off this is exactly
+    ``check_budget``."""
+    from core import quotas
+
+    await quotas.enforce_call_budget(user_id, estimated, org_id, check_budget)
+
 # High-precision phrases that indicate an attempt to override the system
 # prompt. Kept deliberately narrow to avoid flagging legitimate build
 # requests; pattern-based detection is a deterministic backstop, not a
@@ -399,6 +426,7 @@ class LLMRouter:
             # but the daily budget check is skipped since it isn't Forge's
             # spend. Fleet circuit-breaker counters are also skipped so BYOK
             # traffic cannot trip (or heal) shared provider keys.
+            await _enforce_byok_ceilings(user_id, sanitized_messages, extra_system, max_tokens)
             plan = await self._resolve_plan(user_id)
             lease_id: Optional[str] = None
             if user_id:
@@ -502,7 +530,7 @@ class LLMRouter:
                 if isinstance(m.get("content"), str)
             ) + extra_system
             estimated = estimate_tokens(all_text) + max_tokens  # include estimated output
-            await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+            await _enforce_call_budget(user_id, estimated, org_id)
 
         # Org/project/agent dollar budgets, layered on top of the per-user
         # daily token budget above. May reorder model_chain cheapest-first
@@ -978,6 +1006,7 @@ class LLMRouter:
 
         if byok:
             # BYOK: no fleet CB recording; still enforce concurrency leases.
+            await _enforce_byok_ceilings(user_id, sanitized_messages, extra_system, max_tokens)
             plan = await self._resolve_plan(user_id)
             lease_id: Optional[str] = None
             if user_id:
@@ -1095,7 +1124,7 @@ class LLMRouter:
                 str(m.get("content", "")) for m in sanitized_messages if isinstance(m.get("content"), str)
             ) + extra_system
             estimated = estimate_tokens(all_text) + max_tokens
-            await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+            await _enforce_call_budget(user_id, estimated, org_id)
 
         model_chain, budget_check = await self.budget_manager.enforce(
             org_id=org_id,

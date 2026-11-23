@@ -463,6 +463,7 @@ async def test_guardrail_budget_atomic():
     reason="rs0: needs a real single-node replica set (set FORGE_RS0_MONGODB_URL); "
            "the in-memory double above proves the guarded-update logic, not server atomicity",
 )
+@pytest.mark.rs0
 @pytest.mark.asyncio
 async def test_guardrail_budget_atomic_rs0():
     from motor.motor_asyncio import AsyncIOMotorClient

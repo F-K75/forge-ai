@@ -3,15 +3,18 @@
 import asyncio
 import logging
 import time
+import uuid
+from datetime import timedelta
 from typing import Optional
 from celery.exceptions import SoftTimeLimitExceeded
 from celery_app import celery_app as current_app
 from core.config import get_settings
 from core.security import request_id_var
 from core.metrics import build_outcomes_total, build_duration_seconds, build_credits_used
-from core.models import Build, BuildStatus, BuildDeadLetter, WSEvent, WSEventType, BuildFile
+from core.models import Build, BuildStatus, BuildDeadLetter, WSEvent, WSEventType, BuildFile, utcnow
 from core.orchestrator import BuildCancelled, Orchestrator
 from core.database import get_db
+from core import execution_state
 from core.llm.guardrail_errors import GuardrailBlocked, GuardrailUnavailable
 from core.processing_boundary import (
     PlatformProcessingDenied,
@@ -21,6 +24,17 @@ from core.processing_boundary import (
     refresh_boundary,
     reserve_byok_extra_call,
 )
+from core.build_ledger import (
+    AttemptSuperseded,
+    ByokInterrupted,
+    LedgerRefused,
+    LedgerRun,
+    RecoveryExhausted,
+    UnusableOutput,
+    ledger_scope,
+)
+from core.credit_ledger import LEDGER_SCHEMA_VERSION, settle_build
+from core.quotas import QuotaRefused
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager
 
@@ -158,6 +172,13 @@ def run_build(
         if not build_doc:
             raise ValueError(f"Build {build_id} not found")
 
+        if build_doc.get("schema_version") == LEDGER_SCHEMA_VERSION:
+            # A1: a build admitted through T1 finishes on the ledger path,
+            # whatever ledger_v2 says now (§18.1 rule 4).
+            return await _run_ledger_build(
+                self, db, build_id, project_id, user_id, conversation_history, existing_files, start_time,
+            )
+
         build = Build(**build_doc)
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
 
@@ -202,11 +223,17 @@ def run_build(
         effective_existing_files = resumed_files if resumed_files else existing_files
 
         async def emit(event: WSEvent) -> None:
+            if event.type == WSEventType.STREAM_TOKEN:
+                # F3: a token changes no persisted state; only state-changing
+                # events write the build document.
+                await manager.emit(event)
+                return
+            execution_state.sync(build)
             await db.builds.update_one(
                 {"id": build_id},
                 {
                     "$set": {
-                        "status": build.status,
+                        **execution_state.state_fields(build),
                         "agents": [a.model_dump() for a in build.agents],
                         "credits_used": build.credits_used,
                         "business_model": build.business_model,
@@ -274,6 +301,7 @@ def run_build(
                 persist_files=persist_files,
                 reserved_credits=reserved_credits,
             )
+            execution_state.sync(build)
             await db.builds.update_one({"id": build_id}, {"$set": {**build.model_dump(), **_guardrail_fields()}})
 
             if files:
@@ -323,9 +351,14 @@ def run_build(
                     {"$inc": {"credits": refund}}
                 )
 
+            execution_state.set_status(build, BuildStatus.FAILED, reason="timeout")
             await db.builds.update_one(
                 {"id": build_id},
-                {"$set": {"status": BuildStatus.FAILED.value, "error": "Build exceeded maximum allowed time", "credits_used": used}}
+                {"$set": {
+                    **execution_state.state_fields(build),
+                    "error": "Build exceeded maximum allowed time",
+                    "credits_used": used,
+                }}
             )
             build_duration_seconds.observe(time.monotonic() - start_time)
             build_outcomes_total.labels(status="timeout").inc()
@@ -381,7 +414,11 @@ def run_build(
                     {"$inc": {"credits": refund}}
                 )
 
-            failure = {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}
+            execution_state.set_status(
+                build, BuildStatus.FAILED,
+                reason=failure_reason or ("cancelled" if isinstance(e, BuildCancelled) else "exception"),
+            )
+            failure = {**execution_state.state_fields(build), "error": str(e), "credits_used": used}
             if failure_reason == BYOK_NO_AUTO_RETRY:
                 failure["error"] = (
                     f"{e} (not retried: automatic retries on your own provider key are off)"
@@ -420,10 +457,11 @@ async def _terminate_interrupted_byok(db, build: Build, user: Optional[dict], re
     message = (
         "Build was interrupted and was not re-run automatically on your own provider key"
     )
+    execution_state.set_status(build, BuildStatus.FAILED, reason=BYOK_INTERRUPTED)
     await db.builds.update_one(
         {"id": build.id},
         {"$set": {
-            "status": BuildStatus.FAILED.value,
+            **execution_state.state_fields(build),
             "error": message,
             "failure_reason": BYOK_INTERRUPTED,
             "credits_used": used,
@@ -446,16 +484,402 @@ async def _terminate_interrupted_byok(db, build: Build, user: Optional[dict], re
     return {"status": "failed", "build_id": build.id, "credits_used": used, "reason": BYOK_INTERRUPTED}
 
 
+# --------------------------------------------------------------------------- #
+# A1: the ledger path (builds admitted through T1, schema_version 2)
+# --------------------------------------------------------------------------- #
+
+# Never retried on any credential (§8.4 "Non-transient").
+_LEDGER_NON_TRANSIENT = _NON_RETRYABLE + (
+    LedgerRefused, QuotaRefused, ByokInterrupted, RecoveryExhausted, AttemptSuperseded,
+)
+
+
+def _ledger_retry_class(exc: BaseException) -> str:
+    """§8.4 retry class: ``transient``, ``model_output`` or
+    ``non_transient``. Reuses A2's classifier for provider errors."""
+    from core.llm.budget_manager import BudgetLimitExceeded
+
+    if isinstance(exc, _LEDGER_NON_TRANSIENT) or isinstance(exc, (BudgetLimitExceeded, SoftTimeLimitExceeded)):
+        return "non_transient"
+    if isinstance(exc, UnusableOutput):
+        return "model_output"
+    return _byok_retry_class(exc)
+
+
+def _ledger_failure_reason(exc: BaseException) -> str:
+    if isinstance(exc, ByokInterrupted):
+        return BYOK_INTERRUPTED
+    if isinstance(exc, RecoveryExhausted):
+        return "recovery_failed"
+    if isinstance(exc, LedgerRefused):
+        return exc.reason
+    if isinstance(exc, QuotaRefused):
+        return "quota"
+    if isinstance(exc, PlatformProcessingDenied):
+        return exc.error_class
+    if isinstance(exc, GuardrailBlocked):
+        return "blocked_by_guardrail"
+    if isinstance(exc, BuildCancelled):
+        return "cancelled"
+    if isinstance(exc, UnusableOutput):
+        return "unusable_output"
+    return "exception"
+
+
+async def _ledger_retry_decision(task, db, run: LedgerRun, boundary: ProcessingBoundary,
+                                 exc: BaseException) -> tuple:
+    """(retry?, failure_reason). Forge: transient -> Celery retry (<= 3);
+    model output -> one retry per stage_key, then non-transient. BYOK: no
+    automatic retry unless `byok_auto_retry` authorizes it, counted with
+    A2's BYOK dispatch counters (U13, X4)."""
+    retry_class = _ledger_retry_class(exc)
+    if retry_class == "non_transient":
+        return False, _ledger_failure_reason(exc)
+    max_retries = task.retry_kwargs.get("max_retries", 0)
+    if task.request.retries >= max_retries:
+        return False, "retries_exhausted"
+    if boundary.is_byok:
+        current = await refresh_boundary(boundary, db)
+        if await reserve_byok_extra_call(current, build_id=run.build_id, db=db):
+            await db.builds.update_one({"id": run.build_id}, {"$inc": {"byok_authorized_redispatches": 1}})
+            return True, None
+        return False, BYOK_NO_AUTO_RETRY
+    if retry_class == "model_output":
+        stage_key = getattr(exc, "stage_key", None) or (run.last_failure[0] if run.last_failure else None)
+        failures = [op for _, op in run.ops_for(stage_key or "")
+                    if op.get("status") == "failed" and op.get("reason") == "unusable_output"]
+        if len(failures) > settings.ledger_model_output_retries_per_stage:
+            return False, "model_output_exhausted"
+    return True, None
+
+
+async def _persist_files_safe(db, run: LedgerRun, build_id: str, current_files: dict) -> None:
+    """Write the build's files in the safe order: upsert every path, then
+    delete stale paths. Never delete-all, so the last written version is
+    never lost to a crash (F25; A3 replaces this with manifests)."""
+    if not current_files:
+        return
+    await run.assert_live()
+    now = utcnow()
+    for path, content in current_files.items():
+        await db.build_files.update_one(
+            {"build_id": build_id, "path": path},
+            {
+                "$set": {"content": content, "updated_at": now},
+                "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": now},
+            },
+            upsert=True,
+        )
+    await db.build_files.delete_many({"build_id": build_id, "path": {"$nin": list(current_files)}})
+
+
+async def _ledger_dead_letter(db, build: Build, reason: str, error: str, retries: int) -> None:
+    await db.build_dead_letters.insert_one(
+        BuildDeadLetter(
+            build_id=build.id,
+            user_id=build.user_id,
+            project_id=build.project_id,
+            prompt=build.prompt,
+            error=error,
+            failure_reason=reason,
+            retry_count=retries,
+            credits_used=int(build.credits_used or 0),
+            created_at=build.created_at,
+        ).model_dump()
+    )
+
+
+async def _ledger_settle_and_notify(db, run: LedgerRun, build: Build) -> dict:
+    settlement = await settle_build(db, run.build_id, fence_token=run.token)
+    user_doc = await db.users.find_one({"id": build.user_id}, {"_id": 0, "credits": 1})
+    await manager.emit(WSEvent(
+        type=WSEventType.CREDITS_UPDATE,
+        build_id=build.id,
+        data={
+            "credits_used": run.consumed,
+            "remaining": int((user_doc or {}).get("credits", 0)),
+            "refunded": settlement.refunded,
+        },
+    ))
+    return {"applied": settlement.applied, "consumed": settlement.consumed, "refunded": settlement.refunded}
+
+
+async def _ledger_terminate(db, run: LedgerRun, build: Build, *, reason: str, error: str,
+                            extra: Optional[dict] = None) -> dict:
+    """Terminal failure: close what is open, persist ``failed`` (the only
+    place a ledger build becomes failed, so never before a retry; F22),
+    settle through T2 and only then tell the client."""
+    await run.close_all_open(reason)
+    for step in build.agents:
+        if step.status == BuildStatus.RUNNING:
+            step.status = BuildStatus.FAILED
+            step.completed_at = utcnow()
+            step.error = error[:500]
+            step.outcome = step.outcome or "failed"
+    execution_state.set_status(build, BuildStatus.FAILED, reason=reason, attempt_token=run.token)
+    build.credits_used = run.consumed
+    await run.finalize({"$set": {
+        **execution_state.state_fields(build),
+        "agents": [a.model_dump() for a in build.agents],
+        "agent_messages": [m.model_dump() for m in build.agent_messages],
+        "credits_used": run.consumed,
+        "error": error,
+        "failure_reason": reason,
+        "completed_at": utcnow(),
+        **run.quality_fields(build.quality),
+        **(extra or {}),
+    }})
+    result = await _ledger_settle_and_notify(db, run, build)
+    await manager.emit(WSEvent(type=WSEventType.BUILD_FAILED, build_id=build.id,
+                               data={"error": error, "failure_reason": reason}))
+    build_outcomes_total.labels(status="failed").inc()
+    build_credits_used.observe(run.consumed)
+    return result
+
+
+async def _byok_resume_from_journal(run: LedgerRun) -> bool:
+    """RT-11: a redelivered BYOK build may continue only if the interrupted
+    attempt left an operation whose usable response is journaled (and no
+    other open one): that operation commits from the journal with no
+    customer-key call. Every other interruption terminates (U1), exactly as
+    A2's dispatch counter decides on the legacy path."""
+    open_ops = [op for op in run.ledger if op.get("status") in ("authorized", "dispatched")]
+    if not open_ops:
+        return False
+    for op in open_ops:
+        dispatches = op.get("dispatches") or []
+        if not dispatches:
+            return False
+        found, _ = await run.journal_lookup(op["operation_id"], int(dispatches[-1].get("dispatch_no") or 1))
+        if not found:
+            return False
+    return True
+
+
+async def _run_ledger_build(task, db, build_id: str, project_id: str, user_id: str,
+                            conversation_history: Optional[list], existing_files: Optional[dict],
+                            start_time: float) -> dict:
+    """run_build for a ledger build (§3.2): lease and fencing token, ledger
+    operations W1-W7 inside the orchestrator, retry classes by credential,
+    and settlement through T2 exactly once."""
+    acquired = await LedgerRun.acquire(db, build_id)
+    if acquired.run is None:
+        # RT-10 / 6a / 6b: settled, released, or another attempt holds a
+        # live lease. Acknowledge: no agent call, no event, no refund.
+        logger.info("Build %s: ledger task not run (%s)", build_id, acquired.outcome)
+        return {"status": "noop", "build_id": build_id, "reason": acquired.outcome}
+    run = acquired.run
+    build = Build(**acquired.doc)
+    for step in build.agents:
+        # F13 / I-9: a step an earlier attempt left RUNNING ended with that
+        # attempt; the stage re-runs (or recovers) as a new step.
+        if step.status == BuildStatus.RUNNING:
+            step.status = BuildStatus.FAILED
+            step.outcome = step.outcome or "interrupted"
+            step.error = step.error or "The attempt running this step was interrupted"
+            step.completed_at = step.completed_at or utcnow()
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    project_doc = await db.projects.find_one(
+        {"id": project_id, "deleted_at": None}, {"_id": 0, "template": 1, "org_id": 1}
+    )
+    template = project_doc.get("template") if project_doc else None
+    org_id = project_doc.get("org_id") if project_doc else None
+    boundary = _build_boundary(acquired.doc, user, user_id)
+
+    try:
+        if boundary.is_byok:
+            # U1 / BY-6, with A2's dispatch counters: a redelivered BYOK task
+            # that was not an authorized retry terminates; nothing re-runs on
+            # the customer's key.
+            claimed = await db.builds.find_one_and_update(
+                {"id": build_id}, {"$inc": {"byok_dispatches": 1}}, return_document=True,
+            )
+            dispatches = int((claimed or {}).get("byok_dispatches", 1) or 1)
+            authorized = int((claimed or {}).get("byok_authorized_redispatches", 0) or 0)
+            journal_resumes = int((claimed or {}).get("byok_journal_resumes", 0) or 0)
+            redelivered = dispatches > 1 + authorized + journal_resumes
+            if redelivered and await _byok_resume_from_journal(run):
+                await db.builds.update_one({"id": build_id}, {"$inc": {"byok_journal_resumes": 1}})
+                redelivered = False
+            if redelivered:
+                result = await _ledger_terminate(
+                    db, run, build, reason=BYOK_INTERRUPTED,
+                    error="Build was interrupted and was not re-run automatically on your own provider key",
+                )
+                return {"status": "failed", "build_id": build_id, "reason": BYOK_INTERRUPTED, **result}
+    except AttemptSuperseded:
+        return {"status": "superseded", "build_id": build_id}
+
+    resumed_files: Optional[dict] = None
+    existing_build_files = await db.build_files.find(
+        {"build_id": build_id}, {"_id": 0, "path": 1, "content": 1}
+    ).to_list(None)
+    if existing_build_files:
+        resumed_files = {f["path"]: f["content"] for f in existing_build_files}
+    effective_existing_files = resumed_files if resumed_files else existing_files
+
+    async def emit(event: WSEvent) -> None:
+        if event.type == WSEventType.STREAM_TOKEN:
+            await manager.emit(event)
+            return
+        execution_state.sync(build, attempt_token=run.token)
+        await run.write({"$set": {
+            **execution_state.state_fields(build),
+            "agents": [a.model_dump() for a in build.agents],
+            "credits_used": build.credits_used,
+            "business_model": build.business_model,
+            "agent_messages": [m.model_dump() for m in build.agent_messages],
+            "debug_iterations": build.debug_iterations,
+        }})
+        await manager.emit(event)
+
+    async def persist_files(current_files: dict) -> None:
+        await _persist_files_safe(db, run, build_id, current_files)
+
+    scope_cm = build_scope(boundary, build_id=build_id, user_id=user_id, project_id=project_id, org_id=org_id)
+    scope = scope_cm.__enter__()
+
+    def _guardrail_fields() -> dict:
+        if not scope.guardrail_outcomes:
+            return {}
+        return {"guardrail_report": {
+            "unverified": [o for o in scope.guardrail_outcomes if o.get("unverified")],
+            "withheld": [o for o in scope.guardrail_outcomes if o.get("withheld")],
+            "ltier_calls": sum(int(o.get("ltier_calls") or 0) for o in scope.guardrail_outcomes),
+            "artifacts": len(scope.guardrail_outcomes),
+        }}
+
+    run.start_heartbeat()
+    try:
+        with ledger_scope(run):
+            try:
+                build, files = await orchestrator.run_build(
+                    build,
+                    emit=emit,
+                    sandbox_runner=sandbox,
+                    conversation_history=conversation_history,
+                    existing_files=effective_existing_files,
+                    template=template,
+                    persist_files=persist_files,
+                    reserved_credits=run.reserved,
+                )
+                await run.close_all_open("abandoned")
+                build.credits_used = run.consumed
+                execution_state.sync(build, attempt_token=run.token)
+                await run.finalize({"$set": {
+                    **build.model_dump(),
+                    **_guardrail_fields(),
+                    **run.quality_fields(build.quality),
+                    "credits_used": run.consumed,
+                }})
+                if files:
+                    await _persist_files_safe_unfenced(db, build_id, files)
+                settlement = await _ledger_settle_and_notify(db, run, build)
+                build_duration_seconds.observe(time.monotonic() - start_time)
+                status = "success" if build.status == BuildStatus.SUCCESS else "failed"
+                build_outcomes_total.labels(status=status).inc()
+                build_credits_used.observe(run.consumed)
+                return {"status": status, "build_id": build_id, "credits_used": run.consumed, **settlement}
+
+            except AttemptSuperseded:
+                # 6d: another attempt or the sweeper owns the build. Stop:
+                # no charge, no retry, no settlement, no event.
+                logger.warning("Build %s: attempt superseded; exiting without side effects", build_id)
+                return {"status": "superseded", "build_id": build_id}
+
+            except SoftTimeLimitExceeded:
+                logger.exception("Build %s exceeded soft time limit of %s", build_id, settings.build_timeout)
+                await _ledger_terminate(db, run, build, reason="timeout",
+                                        error="Build exceeded maximum allowed time", extra=_guardrail_fields())
+                build_duration_seconds.observe(time.monotonic() - start_time)
+                await _ledger_dead_letter(db, build, "timeout", "Build exceeded maximum allowed time",
+                                          task.request.retries)
+                raise
+
+            except Exception as e:
+                retry, reason = await _ledger_retry_decision(task, db, run, boundary, e)
+                if retry:
+                    countdown = task.retry_kwargs.get("countdown", 60)
+                    await run.close_all_open("retry")
+                    await run.release_for_retry(
+                        utcnow() + timedelta(seconds=countdown),
+                        extra_set={
+                            "agents": [a.model_dump() for a in build.agents],
+                            "agent_messages": [m.model_dump() for m in build.agent_messages],
+                            "credits_used": run.consumed,
+                        },
+                    )
+                    # The build stays `running`; the client is told it is
+                    # recovering, never that it failed (F22).
+                    await manager.emit(WSEvent(
+                        type=WSEventType.AGENT_UPDATE, build_id=build_id,
+                        data={"agent": "orchestrator", "message": "Recovering from an error; retrying shortly"},
+                    ))
+                    raise task.retry(exc=e, countdown=countdown, max_retries=task.retry_kwargs.get("max_retries", 0))
+                error = str(e)
+                if reason == BYOK_NO_AUTO_RETRY:
+                    error = f"{e} (not retried: automatic retries on your own provider key are off)"
+                await _ledger_terminate(db, run, build, reason=reason, error=error, extra=_guardrail_fields())
+                build_duration_seconds.observe(time.monotonic() - start_time)
+                await _ledger_dead_letter(db, build, reason, error, task.request.retries)
+                raise
+    finally:
+        await run.stop_heartbeat()
+        scope_cm.__exit__(None, None, None)
+
+
+async def _persist_files_safe_unfenced(db, build_id: str, current_files: dict) -> None:
+    """The final files write after the attempt's final fenced write (which
+    already proved this attempt owned the build): same safe order."""
+    now = utcnow()
+    for path, content in current_files.items():
+        await db.build_files.update_one(
+            {"build_id": build_id, "path": path},
+            {
+                "$set": {"content": content, "updated_at": now},
+                "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": now},
+            },
+            upsert=True,
+        )
+    await db.build_files.delete_many({"build_id": build_id, "path": {"$nin": list(current_files)}})
+
+
+@current_app.task(name="backend.tasks.build_tasks.sweep_ledger")
+def sweep_ledger() -> dict:
+    """Celery beat (every ``ledger_sweeper_interval_seconds``): resume an
+    orphaned ledger build once, otherwise fail and settle it; release
+    reservations no worker ever picked up (core/ledger_sweeper.py)."""
+    from core import ledger_sweeper
+
+    def enqueue(doc: dict) -> None:
+        run_build.apply_async(
+            args=(doc["id"], doc["project_id"], doc["user_id"],
+                  int((doc.get("funding") or {}).get("reserved_credits") or 0), None, None),
+            headers={"correlation_id": "ledger-sweeper"},
+        )
+
+    async def _sweep():
+        db = await get_db()
+        return await ledger_sweeper.sweep(db, enqueue=enqueue)
+
+    return _run_async(_sweep())
+
+
 @current_app.task(name="backend.tasks.build_tasks.update_build_status")
 def update_build_status(build_id: str, status: str, error: Optional[str] = None) -> dict:
     """Update build status in database."""
 
     async def _update():
         db = await get_db()
-        update_doc = {"status": status}
-        if error:
-            update_doc["error"] = error
-        await db.builds.update_one({"id": build_id}, {"$set": update_doc})
+        current = await db.builds.find_one({"id": build_id}, {"_id": 0, "status": 1, "build_status": 1}) or {}
+        previous = current.get("build_status") or (
+            execution_state.canonical_for(current["status"]) if current.get("status") else None
+        )
+        extra = {"error": error} if error else {}
+        await db.builds.update_one(
+            {"id": build_id},
+            execution_state.transition_update(previous, status, reason="status_update", extra_set=extra),
+        )
         return {"status": "updated"}
 
     return _run_async(_update())

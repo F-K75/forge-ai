@@ -6,9 +6,10 @@ one attempt at running it (dispatch 2 is the C9 recovery); every provider
 call made while it runs (primary, retry, fallback, repair, guardrail,
 classifier, cache hit) is one *attempt* and one `ai_usage` row.
 
-A1 creates operations (W1/W2) and will enter ``operation_scope`` around each
-dispatch; until then rows carry ``operation_id = None`` and are tied together
-by the gateway ``request_id`` instead. Nothing here decides money.
+A1 creates operations (W1/W2, core/build_ledger.py) and the orchestrator
+enters ``operation_scope`` around each dispatch of a ledger build; rows of a
+legacy build carry ``operation_id = None`` and are tied together by the
+gateway ``request_id`` instead. Nothing here decides money.
 """
 
 from __future__ import annotations
@@ -24,6 +25,10 @@ class OperationContext:
     operation_id: Optional[str]
     dispatch_no: Optional[int] = None
     stage_key: Optional[str] = None
+    # Provider-cost account the ledger assigned to this dispatch (§7.2):
+    # ``free_grant`` for a free-grant build, ``recovery`` for the C9
+    # dispatch 2. None means the default for the credential.
+    account: Optional[str] = None
     _attempt_seq: int = 0
     # Once-per-operation memo of the input classifier verdict, keyed by a
     # digest of the screened user content (F29-b: once per operation, not
@@ -46,8 +51,9 @@ def operation_scope(
     *,
     dispatch_no: Optional[int] = None,
     stage_key: Optional[str] = None,
+    account: Optional[str] = None,
 ) -> Iterator[OperationContext]:
-    ctx = OperationContext(operation_id=operation_id, dispatch_no=dispatch_no, stage_key=stage_key)
+    ctx = OperationContext(operation_id=operation_id, dispatch_no=dispatch_no, stage_key=stage_key, account=account)
     token = _operation.set(ctx)
     try:
         yield ctx
