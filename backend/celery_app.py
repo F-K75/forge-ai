@@ -48,6 +48,13 @@ celery_app.conf.beat_schedule = {
         "task": "backend.tasks.onboarding_tasks.send_onboarding_emails",
         "schedule": crontab(minute=17),
     },
+    # A1 (plan §8.7): orphaned ledger builds and lost reservations. A no-op
+    # when there are no ledger builds in flight; safe with several beats
+    # because every action is a guarded update.
+    "ledger-sweeper": {
+        "task": "backend.tasks.build_tasks.sweep_ledger",
+        "schedule": float(settings.ledger_sweeper_interval_seconds),
+    },
 }
 
 celery_app.conf.task_serializer = "json"

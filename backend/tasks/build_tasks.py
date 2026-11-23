@@ -637,6 +637,25 @@ async def _ledger_terminate(db, run: LedgerRun, build: Build, *, reason: str, er
     return result
 
 
+async def _byok_resume_from_journal(run: LedgerRun) -> bool:
+    """RT-11: a redelivered BYOK build may continue only if the interrupted
+    attempt left an operation whose usable response is journaled (and no
+    other open one): that operation commits from the journal with no
+    customer-key call. Every other interruption terminates (U1), exactly as
+    A2's dispatch counter decides on the legacy path."""
+    open_ops = [op for op in run.ledger if op.get("status") in ("authorized", "dispatched")]
+    if not open_ops:
+        return False
+    for op in open_ops:
+        dispatches = op.get("dispatches") or []
+        if not dispatches:
+            return False
+        found, _ = await run.journal_lookup(op["operation_id"], int(dispatches[-1].get("dispatch_no") or 1))
+        if not found:
+            return False
+    return True
+
+
 async def _run_ledger_build(task, db, build_id: str, project_id: str, user_id: str,
                             conversation_history: Optional[list], existing_files: Optional[dict],
                             start_time: float) -> dict:
@@ -677,7 +696,12 @@ async def _run_ledger_build(task, db, build_id: str, project_id: str, user_id: s
             )
             dispatches = int((claimed or {}).get("byok_dispatches", 1) or 1)
             authorized = int((claimed or {}).get("byok_authorized_redispatches", 0) or 0)
-            if dispatches > 1 + authorized:
+            journal_resumes = int((claimed or {}).get("byok_journal_resumes", 0) or 0)
+            redelivered = dispatches > 1 + authorized + journal_resumes
+            if redelivered and await _byok_resume_from_journal(run):
+                await db.builds.update_one({"id": build_id}, {"$inc": {"byok_journal_resumes": 1}})
+                redelivered = False
+            if redelivered:
                 result = await _ledger_terminate(
                     db, run, build, reason=BYOK_INTERRUPTED,
                     error="Build was interrupted and was not re-run automatically on your own provider key",
@@ -818,6 +842,27 @@ async def _persist_files_safe_unfenced(db, build_id: str, current_files: dict) -
             upsert=True,
         )
     await db.build_files.delete_many({"build_id": build_id, "path": {"$nin": list(current_files)}})
+
+
+@current_app.task(name="backend.tasks.build_tasks.sweep_ledger")
+def sweep_ledger() -> dict:
+    """Celery beat (every ``ledger_sweeper_interval_seconds``): resume an
+    orphaned ledger build once, otherwise fail and settle it; release
+    reservations no worker ever picked up (core/ledger_sweeper.py)."""
+    from core import ledger_sweeper
+
+    def enqueue(doc: dict) -> None:
+        run_build.apply_async(
+            args=(doc["id"], doc["project_id"], doc["user_id"],
+                  int((doc.get("funding") or {}).get("reserved_credits") or 0), None, None),
+            headers={"correlation_id": "ledger-sweeper"},
+        )
+
+    async def _sweep():
+        db = await get_db()
+        return await ledger_sweeper.sweep(db, enqueue=enqueue)
+
+    return _run_async(_sweep())
 
 
 @current_app.task(name="backend.tasks.build_tasks.update_build_status")

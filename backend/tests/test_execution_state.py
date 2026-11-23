@@ -145,3 +145,69 @@ def test_state_fields_always_in_sync(legacy, canonical):
     fields = execution_state.state_fields(build)
     assert fields["build_status"] == canonical
     assert execution_state.canonical_for(fields["status"]) == fields["build_status"]
+
+
+# --------------------------------------------------------------------------- #
+# LC-1 on the ledger path
+# --------------------------------------------------------------------------- #
+
+
+def _ui_status(doc):
+    """frontend/src/lib/buildContract.ts readPersistedStatus: build_status,
+    else the last transition, else the legacy status."""
+    if doc.get("build_status") in ("pending", "running", "completed", "failed"):
+        return doc["build_status"]
+    if doc.get("execution_transitions"):
+        return doc["execution_transitions"][-1]["to"]
+    return execution_state.canonical_for(doc.get("status"))
+
+
+@pytest.mark.parametrize("failures,final", [
+    ({"designer": [TimeoutError("slow")]}, "completed"),
+    ({"designer": [ConnectionError("reset")] * 4}, "failed"),
+])
+def test_canonical_state_and_transitions(monkeypatch, failures, final):
+    """LC-1 (C10, F22): every state change is persisted with a transition
+    in the same write as the legacy status; the UI status derived from the
+    persisted state matches it at every write; ``running`` only under a
+    lease token; no ``failed`` (and no ``build_failed``) before a retry."""
+    from tests.ledger_harness import LedgerHarness, Script
+
+    h = LedgerHarness(monkeypatch, script=Script(integrations=False, failures=failures))
+    snapshots = []
+    builds = h.db.builds
+    real_update, real_fau = builds.update_one, builds.find_one_and_update
+
+    async def update_one(query, update, **kw):
+        result = await real_update(query, update, **kw)
+        if builds.docs:
+            snapshots.append(dict(builds.docs[0]))
+        return result
+
+    async def find_one_and_update(query, update, **kw):
+        result = await real_fau(query, update, **kw)
+        if builds.docs:
+            snapshots.append(dict(builds.docs[0]))
+        return result
+
+    monkeypatch.setattr(builds, "update_one", update_one)
+    monkeypatch.setattr(builds, "find_one_and_update", find_one_and_update)
+    h.run_to_end()
+
+    for doc in snapshots:
+        transitions = doc["execution_transitions"]
+        # The legacy status, build_status and the last transition agree.
+        assert execution_state.canonical_for(doc["status"]) == doc["build_status"] == transitions[-1]["to"]
+        assert _ui_status(doc) == doc["build_status"]
+        if doc["build_status"] == "running":
+            assert doc.get("attempt_token") and transitions[-1]["attempt_token"]
+    transitions = h.doc["execution_transitions"]
+    assert transitions[0]["from"] is None and transitions[0]["to"] == "pending"
+    for prev, nxt in zip(transitions, transitions[1:]):
+        assert nxt["from"] == prev["to"] != nxt["to"]
+    assert transitions[-1]["to"] == final
+    # `failed` appears at most once, as the terminal state, after the
+    # last retry; build_failed is emitted only then.
+    assert [t["to"] for t in transitions].count("failed") == (1 if final == "failed" else 0)
+    assert h.event_types().count("build_failed") == (1 if final == "failed" else 0)
+    assert len(h.retries) == (1 if final == "completed" else 3)

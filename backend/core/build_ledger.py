@@ -350,7 +350,9 @@ class LedgerRun:
         ``consumed`` from a closed ledger (§3.3 "fence")."""
         final = f"final:{self.token}"
         update = copy.deepcopy(update)
-        update.setdefault("$set", {}).update({"attempt_token": final, "lease_expires_at": None})
+        update.setdefault("$set", {}).update({
+            "attempt_token": final, "lease_expires_at": None, "finalized_at": utcnow(),
+        })
         await self.write(update)
         self.token = final
 

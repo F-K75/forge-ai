@@ -700,7 +700,10 @@ class Orchestrator:
             with handle.scope():
                 try:
                     result = await call()
-                except BaseException as exc:
+                except (Exception, asyncio.CancelledError) as exc:
+                    # Not other BaseExceptions: a process that is dying
+                    # (SystemExit, KeyboardInterrupt) writes nothing more; the
+                    # open dispatch is what recovery reads (§8.6).
                     await run.fail_from_exception(handle, exc)
                     if handle.dispatch_no >= 2 and isinstance(exc, Exception) and not isinstance(
                         exc, (build_ledger.AttemptSuperseded, LedgerRefused, QuotaRefused)
@@ -708,7 +711,10 @@ class Orchestrator:
                         # RT-3: the recovery dispatch failed; no third one.
                         raise RecoveryExhausted(stage_key) from exc
                     raise
-        if usable is not None and not usable(result):
+        # A journaled result passed W5 before it was journaled (unusable
+        # output is never journaled), so it is not re-judged against state
+        # its own W6 may already have changed.
+        if usable is not None and not handle.journaled and not usable(result):
             if on_unusable == "no_change":
                 await run.fail(handle, "no_change")
                 return result, None
