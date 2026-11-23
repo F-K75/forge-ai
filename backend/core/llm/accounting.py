@@ -141,9 +141,13 @@ class AttemptAccounting:
             return "monitoring"
         if self.purpose == Purpose.RECOVERY:
             return "recovery"
+        # A1: the ledger names the account of a dispatch -- `free_grant` for
+        # a free-grant build, `recovery` for the C9 dispatch 2 (§7.2).
+        op_account = self.operation.account if self.operation is not None else None
+        if self.build_id and op_account in ("free_grant", "recovery"):
+            return op_account
         # Generation channel and build-path retrieval: `generation` inside a
-        # build, `interactive` for non-build features (§7.2). A1 refines
-        # `free_grant` once funding is on the operation.
+        # build, `interactive` for non-build features (§7.2).
         return "generation" if self.build_id else "interactive"
 
     def attempt_purpose(self, attempt_kind: str) -> str:
@@ -173,6 +177,18 @@ class AttemptAccounting:
         """Write one `ai_usage` row for an attempt. No-op unless unified
         recording is on (or ``force``). Never raises: a usage-write failure
         must not fail the call it describes, but it is logged."""
+        if self.build_id and (prompt_tokens or completion_tokens):
+            # A1 (G3): meter the attempt on the build's token meters whether
+            # or not unified recording is on; a no-op outside a ledger build.
+            try:
+                from core.quotas import record_attempt_tokens
+
+                await record_attempt_tokens(
+                    int(prompt_tokens or 0) + int(completion_tokens or 0),
+                    account=self.account_for(credential=credential),
+                )
+            except Exception:
+                logger.debug("token meter update failed", exc_info=True)
         if not (force or unified_recording_enabled()):
             return None
         from core.ai_usage import record_provider_attempt

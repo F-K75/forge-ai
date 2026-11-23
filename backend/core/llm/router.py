@@ -37,6 +37,18 @@ _CONCURRENT_LIMITS = CONCURRENT_LIMITS
 
 logger = logging.getLogger(__name__)
 
+
+
+async def _enforce_call_budget(user_id: str, estimated: int, org_id: Optional[str]) -> None:
+    """The daily token budget, plus A1's per-operation and per-build token
+    ceilings for a call bound to a live ledger operation, and the C2
+    ``build_token_exemption`` (off by default; core/quotas.py). With no
+    ceiling configured and the exemption off this is exactly
+    ``check_budget``."""
+    from core import quotas
+
+    await quotas.enforce_call_budget(user_id, estimated, org_id, check_budget)
+
 # High-precision phrases that indicate an attempt to override the system
 # prompt. Kept deliberately narrow to avoid flagging legitimate build
 # requests; pattern-based detection is a deterministic backstop, not a
@@ -502,7 +514,7 @@ class LLMRouter:
                 if isinstance(m.get("content"), str)
             ) + extra_system
             estimated = estimate_tokens(all_text) + max_tokens  # include estimated output
-            await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+            await _enforce_call_budget(user_id, estimated, org_id)
 
         # Org/project/agent dollar budgets, layered on top of the per-user
         # daily token budget above. May reorder model_chain cheapest-first
@@ -1095,7 +1107,7 @@ class LLMRouter:
                 str(m.get("content", "")) for m in sanitized_messages if isinstance(m.get("content"), str)
             ) + extra_system
             estimated = estimate_tokens(all_text) + max_tokens
-            await check_budget(user_id, estimated_tokens=estimated, org_id=org_id)
+            await _enforce_call_budget(user_id, estimated, org_id)
 
         model_chain, budget_check = await self.budget_manager.enforce(
             org_id=org_id,
