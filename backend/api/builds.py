@@ -54,6 +54,50 @@ CREDIT_COSTS = {
 }
 
 
+_STAGE_LABELS = {
+    "architect": "Architect",
+    "business_model": "Business model",
+    "designer": "Designer",
+    "developer": "Developer",
+    "integration": "Integration",
+    "pm": "PM acceptance",
+    "debug": "Debug pass",
+}
+
+
+def _insufficient_credits_detail(required: int, available: int, stack_multiplier: int) -> dict:
+    """402 body for a failed reservation: what the build needs, what the
+    account has, and how the reservation is made up, so the client can
+    explain the shortfall instead of a bare "Insufficient credits".
+
+    The breakdown always sums to ``required``: either the per-stage prices
+    (times the tech-stack multiplier) or, when the debug-loop ceiling is the
+    larger figure, that ceiling as a single line.
+    """
+    stage_total = sum(CREDIT_COSTS.values()) * stack_multiplier
+    if required == stage_total:
+        breakdown = [
+            {
+                "label": _STAGE_LABELS.get(stage, stage.replace("_", " ").capitalize())
+                + (f" × {stack_multiplier}" if stack_multiplier > 1 else ""),
+                "credits": cost * stack_multiplier,
+            }
+            for stage, cost in CREDIT_COSTS.items()
+        ]
+    else:
+        breakdown = [{
+            "label": f"Debug loop ceiling ({MAX_DEBUG_ITERATIONS} passes)",
+            "credits": required,
+        }]
+    return {
+        "code": "insufficient_credits",
+        "message": "Insufficient credits",
+        "required": required,
+        "available": available,
+        "breakdown": breakdown,
+    }
+
+
 class CreateBuildRequest(BaseModel):
     project_id: str
     prompt: str = Field(..., max_length=50000)
@@ -160,7 +204,17 @@ async def create_build(
             return_document=True,
         )
         if not reserved:
-            raise HTTPException(status_code=402, detail="Insufficient credits")
+            balance = await db.users.find_one(
+                {"id": current_user.id}, {"_id": 0, "credits": 1}
+            ) or {}
+            raise HTTPException(
+                status_code=402,
+                detail=_insufficient_credits_detail(
+                    required=max_credits,
+                    available=int(balance.get("credits") or 0),
+                    stack_multiplier=len(project.get("tech_stack", {})) + 1,
+                ),
+            )
 
     await check_and_send_credit_alerts(
         db, current_user.id, reserved.get("plan", "free"), reserved["credits"]

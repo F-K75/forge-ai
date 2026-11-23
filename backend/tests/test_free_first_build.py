@@ -67,7 +67,14 @@ def test_second_build_is_metered_again(monkeypatch):
     r = _post(_client(monkeypatch, db, user, run_build))
 
     assert r.status_code == 402
-    assert r.json()["detail"] == "Insufficient credits"
+    detail = r.json()["detail"]
+    assert detail["code"] == "insufficient_credits"
+    assert detail["message"] == "Insufficient credits"
+    assert detail["available"] == 5
+    assert detail["required"] > 5
+    # B1-9: the breakdown explains the reservation and sums to it.
+    assert sum(line["credits"] for line in detail["breakdown"]) == detail["required"]
+    assert all(line["label"] for line in detail["breakdown"])
     assert run_build.calls == []
     assert db.users.docs[0]["credits"] == 5
 
