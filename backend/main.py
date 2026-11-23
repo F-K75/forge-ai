@@ -116,6 +116,15 @@ async def lifespan(app: FastAPI):
     # These run automatically on every prompt_builder.build() call.
     register_engineering_plugins()
 
+    if settings.guardrail_v2:
+        # A2 (plan §4.6): the L-tier screen must run on an explicitly priced
+        # model. Refuse to start rather than discover it per build, when the
+        # screen would silently stay unverified.
+        from core.llm.config import LLMConfigLoader
+        from core.llm.guardrail_policy import validate_guardrail_model_config
+
+        validate_guardrail_model_config(await LLMConfigLoader().load())
+
     async def _background_startup_init() -> None:
         """Warm MongoDB, LLM overrides, migrations, and template overlay without
         blocking Uvicorn from binding $PORT within Render's port-scan timeout."""

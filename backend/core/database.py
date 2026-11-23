@@ -250,6 +250,9 @@ async def _ensure_indexes(db):
             db.monitoring_findings.create_index([("id", 1)], unique=True),
             # Prompt Template Registry overlay (8.9) -- unique (role, version)
             db.prompt_templates.create_index([("role", 1), ("version", 1)], unique=True),
+            # A2: data-use consents are looked up by user at admission
+            # (processing boundary snapshot) and on every consent change.
+            db.data_use_consents.create_index([("user_id", 1)]),
         ]
 
         results = await asyncio.gather(*index_coroutines, return_exceptions=True)

@@ -21,6 +21,7 @@ from core.models import (
     Escalation, EscalationState, WSEvent, WSEventType, PlanTier, utcnow,
 )
 from core.specialist_shadow import launch_shadow_comparison
+from core.processing_boundary import current_boundary
 from core.config import get_settings
 from core.database import get_db
 from sandbox.moderation import scan_code
@@ -1224,7 +1225,14 @@ class Orchestrator:
         """Pro+ users with a stored BYOK key skip credit costs (see the
         pricing page's "Bring your own key" perk) -- agents/base.py's
         _resolve_client does the equivalent check to pick which API key an
-        LLM call actually uses; this mirrors it for the credit ledger."""
+        LLM call actually uses; this mirrors it for the credit ledger.
+
+        Inside a build, the processing boundary snapshotted at admission is
+        authoritative (§5.2, BY-7): a key added or removed mid-build must
+        not change how this build is charged or which credential it uses."""
+        boundary = current_boundary()
+        if boundary is not None:
+            return boundary.is_byok
         try:
             db = await get_db()
             user_doc = await db.users.find_one(

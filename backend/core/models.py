@@ -476,6 +476,18 @@ class Build(BaseModel):
     # the static_security_report flag was off for this build. Never affects
     # status, quality or credits.
     static_security: Optional[Dict[str, Any]] = None
+    # A2 (plan §5, §15.1): the processing boundary snapshotted at admission
+    # (api/builds.py) and the guardrail outcome written at completion
+    # (tasks/build_tasks.py). Declared so they survive Build(**doc) and the
+    # completion $set writes them back unchanged.
+    processing_boundary: Optional[Dict[str, Any]] = None
+    guardrail_report: Optional[Dict[str, Any]] = None
+    failure_reason: Optional[str] = None
+    # Deliberately NOT declared: byok_dispatches and
+    # byok_authorized_redispatches. tasks/build_tasks.py changes them with
+    # $inc directly in Mongo, and the completion path $sets the whole model,
+    # so a declared field would write back a stale count and could let a
+    # redelivered BYOK task run again on the customer's key (U1, BY-6).
     created_at: datetime = Field(default_factory=utcnow)
     completed_at: Optional[datetime] = None
 
