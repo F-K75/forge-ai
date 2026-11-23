@@ -235,3 +235,118 @@ def test_is_internal_route_requires_admin_and_users_cannot_set_it():
     # Neither the self-service profile update nor the User model carries it.
     assert "is_internal" not in UpdateProfileRequest.model_fields
     assert "is_internal" not in User.model_fields
+
+
+# --------------------------------------------------------------------------- #
+# Eligibility (§17.2 U8, U2; §17.3 C7, U12)
+# --------------------------------------------------------------------------- #
+
+_BOOLS = (False, True)
+_MATRIX = [
+    (internal, byok, ai_c, human_c, pmp_c, flag)
+    for internal in _BOOLS for byok in _BOOLS for ai_c in _BOOLS
+    for human_c in _BOOLS for pmp_c in _BOOLS for flag in _BOOLS
+]
+
+
+@pytest.mark.parametrize("internal,byok,ai_consent,human_consent,pmp_consent,flag", _MATRIX)
+def test_eligibility_matrix(internal, byok, ai_consent, human_consent, pmp_consent, flag):
+    from core.quality_review import decide_review_eligibility
+
+    consents = {
+        s for s, on in (
+            (SCOPE_AI_QUALITY_REVIEW, ai_consent),
+            (SCOPE_HUMAN_QUALITY_REVIEW, human_consent),
+            (SCOPE_PLATFORM_MODEL_PROCESSING, pmp_consent),
+        ) if on
+    }
+    ai, human = decide_review_eligibility(
+        is_internal=internal, credential_mode="byok" if byok else "forge",
+        consents=consents, external_adjudication_opt_in=flag,
+    )
+    # AI: internal or opted in; BYOK additionally needs platform processing
+    # consent, internal owners included (U2 is unconditional).
+    expect_ai = (internal or ai_consent) and (not byok or pmp_consent)
+    assert ai.allowed is expect_ai
+    if expect_ai:
+        assert ai.basis == ("internal" if internal else "opt_in")
+    elif byok and not pmp_consent:
+        assert ai.reason == "byok_without_platform_model_processing_consent"
+    # Human: internal by default; external only with consent AND the flag.
+    expect_human = internal or (human_consent and flag)
+    assert human.allowed is expect_human
+    if expect_human:
+        assert human.basis == ("internal" if internal else "opt_in")
+    elif not flag:
+        assert human.reason == "external_adjudication_disabled"
+
+
+def _build(build_id="b1", owner="u1", *, byok=False, consents=(), created_at=None):
+    return {
+        "id": build_id, "user_id": owner, "project_id": "p1",
+        "created_at": created_at or utcnow(),
+        "processing_boundary": {
+            "credential_mode": "byok" if byok else "forge",
+            "consents": list(consents), "policy_version": "2026-11", "owner_user_id": owner,
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_evaluate_eligibility_counts_only_consents_granted_before_admission(external_flag):
+    from core.quality_review import evaluate_review_eligibility
+
+    db = make_db(users=[{"id": "u1"}])
+    old_build = _build("old", created_at=utcnow() - timedelta(days=1))
+    await grant_consent(db, user_id="u1", scope=SCOPE_AI_QUALITY_REVIEW)
+    await grant_consent(db, user_id="u1", scope=SCOPE_HUMAN_QUALITY_REVIEW)
+    new_build = _build("new", created_at=utcnow() + timedelta(seconds=1))
+
+    old = await evaluate_review_eligibility(db, old_build)
+    assert not old.ai_review.allowed and not old.human_adjudication.allowed
+    new = await evaluate_review_eligibility(db, new_build)
+    assert new.ai_review.allowed and new.ai_review.basis == "opt_in"
+    assert new.human_adjudication.allowed and new.human_adjudication.basis == "opt_in"
+
+    # Revocation applies immediately, also to builds admitted under consent.
+    await revoke_consent(db, user_id="u1", scope=SCOPE_HUMAN_QUALITY_REVIEW)
+    new = await evaluate_review_eligibility(db, new_build)
+    assert new.ai_review.allowed and not new.human_adjudication.allowed
+
+
+@pytest.mark.asyncio
+async def test_evaluate_eligibility_byok_uses_snapshot_narrowed_to_active(external_flag):
+    from core.quality_review import evaluate_review_eligibility
+
+    db = make_db(users=[{"id": "u1", "is_internal": True}])
+    await grant_consent(db, user_id="u1", scope=SCOPE_PLATFORM_MODEL_PROCESSING)
+    # Granted, but not in the admission snapshot: the grant never widens.
+    no_snapshot_consent = _build("b-a", byok=True, consents=(), created_at=utcnow() + timedelta(seconds=1))
+    assert not (await evaluate_review_eligibility(db, no_snapshot_consent)).ai_review.allowed
+    with_consent = _build("b-b", byok=True, consents=(SCOPE_PLATFORM_MODEL_PROCESSING,))
+    result = await evaluate_review_eligibility(db, with_consent)
+    assert result.ai_review.allowed and result.ai_review.basis == "internal"
+    assert result.credential_mode == "byok"
+    # Revoked now: the snapshot narrows (BY-7).
+    await revoke_consent(db, user_id="u1", scope=SCOPE_PLATFORM_MODEL_PROCESSING)
+    assert not (await evaluate_review_eligibility(db, with_consent)).ai_review.allowed
+    # Human adjudication involves no platform model: internal still allowed.
+    assert (await evaluate_review_eligibility(db, with_consent)).human_adjudication.allowed
+
+
+@pytest.mark.asyncio
+async def test_evaluate_eligibility_fails_closed():
+    from core.quality_review import evaluate_review_eligibility
+
+    db = make_db(users=[{"id": "u1", "is_internal": True}], builds=[{"id": "legacy", "user_id": "u1"}])
+    # No boundary snapshot (pre-A2): treated as BYOK without consent.
+    legacy = await evaluate_review_eligibility(db, "legacy")
+    assert legacy.credential_mode == "byok" and not legacy.ai_review.allowed
+    assert legacy.human_adjudication.allowed  # internal rule; no model involved
+    missing = await evaluate_review_eligibility(db, "nope")
+    assert not missing.ai_review.allowed and missing.ai_review.reason == "build_not_found"
+    orphan = await evaluate_review_eligibility(db, _build("b9", owner="ghost"))
+    assert not orphan.human_adjudication.allowed and orphan.human_adjudication.reason == "owner_not_found"
+    # A user flag that is anything but literal True is not internal.
+    db.users.docs[0]["is_internal"] = "yes"
+    assert not (await evaluate_review_eligibility(db, _build("b8"))).human_adjudication.allowed

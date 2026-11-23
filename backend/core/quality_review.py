@@ -194,7 +194,7 @@ def decide_review_eligibility(
     )
     decision = check_platform_model_allowed(boundary, Purpose.SHADOW)
     if not decision.allowed:
-        ai = _deny(f"byok_{decision.reason}" if not decision.reason.startswith("byok") else decision.reason)
+        ai = _deny("byok_without_platform_model_processing_consent")
     elif internal:
         ai = EligibilityDecision(True, BASIS_INTERNAL, "internal_owner")
     elif SCOPE_AI_QUALITY_REVIEW in scopes:
