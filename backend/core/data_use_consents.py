@@ -10,9 +10,17 @@ A2 owns two scopes:
   customer's own key (X4). N is chosen by the user and capped by
   ``settings.byok_auto_retry_max_cap``.
 
-``ai_quality_review`` and ``human_quality_review`` belong to S0; the store
-accepts them so S0 does not need a schema change, but nothing in A2 reads
-them.
+S0 owns two more (§5.4, §17.2, §17.3; Revision 2 amended §12.3):
+
+- ``ai_quality_review``: shadow AI review of this user's builds (U8).
+  Revoking it drops their queued reviews immediately.
+- ``human_quality_review``: human adjudication of this user's builds (C7,
+  U12). Revoking it purges their adjudication excerpts immediately and
+  blocks new access. While ``settings.external_adjudication_opt_in`` is off
+  (until the privacy review completes) no grant is accepted and none counts.
+
+The revocation effects live in ``core.quality_review`` and run inside
+``revoke_consent``, so every revocation path gets them.
 
 One document per (user, scope), keyed by a deterministic ``_id`` so a grant
 or revoke is a single-document guarded update (G5, §10.3) and concurrent
@@ -21,8 +29,10 @@ revoke: ``revoked_at`` is set and the history is kept (§18.2: "consent
 records" must survive a rollback).
 
 A consent only counts while it is active *and* was captured against the
-current ``settings.processing_policy_version``; a material change to the
-policy text therefore requires re-consent.
+current policy text version of its scope (``policy_version_for``): A2's
+scopes use ``settings.processing_policy_version``; each S0 scope has its own
+version, so a change to the human-review text (expected after the privacy
+review) requires re-consent for that scope only.
 """
 
 from __future__ import annotations
@@ -44,11 +54,37 @@ SCOPE_AI_QUALITY_REVIEW = "ai_quality_review"
 SCOPE_HUMAN_QUALITY_REVIEW = "human_quality_review"
 
 A2_SCOPES = frozenset({SCOPE_PLATFORM_MODEL_PROCESSING, SCOPE_BYOK_AUTO_RETRY})
-KNOWN_SCOPES = A2_SCOPES | {SCOPE_AI_QUALITY_REVIEW, SCOPE_HUMAN_QUALITY_REVIEW}
+S0_SCOPES = frozenset({SCOPE_AI_QUALITY_REVIEW, SCOPE_HUMAN_QUALITY_REVIEW})
+KNOWN_SCOPES = A2_SCOPES | S0_SCOPES
 
 
 class ConsentError(ValueError):
     """Invalid consent request (unknown scope, bad N, missing user)."""
+
+
+class ConsentUnavailable(ConsentError):
+    """The scope exists but cannot be granted now (external human
+    adjudication before the privacy review, U12)."""
+
+
+def policy_version_for(scope: str) -> str:
+    """The policy text version a consent for ``scope`` must be captured
+    against to count."""
+    settings = get_settings()
+    if scope == SCOPE_AI_QUALITY_REVIEW:
+        return settings.ai_quality_review_policy_version
+    if scope == SCOPE_HUMAN_QUALITY_REVIEW:
+        return settings.human_quality_review_policy_version
+    return settings.processing_policy_version
+
+
+def scope_grantable(scope: str) -> bool:
+    """Whether ``scope`` can be granted (and counts) now.
+    ``human_quality_review`` is unavailable while external adjudication is
+    disabled (U12)."""
+    if scope == SCOPE_HUMAN_QUALITY_REVIEW:
+        return bool(get_settings().external_adjudication_opt_in)
+    return scope in KNOWN_SCOPES
 
 
 @dataclass(frozen=True)
@@ -99,13 +135,15 @@ async def grant_consent(
     if not user_id:
         raise ConsentError("user_id is required")
     _validate_scope(scope)
+    if not scope_grantable(scope):
+        raise ConsentUnavailable(f"{scope} cannot be granted until the privacy review completes")
     n = _validate_max_retries(scope, max_retries)
     now = utcnow()
     doc = {
         "user_id": user_id,
         "scope": scope,
         "max_retries": n,
-        "policy_version": policy_version or get_settings().processing_policy_version,
+        "policy_version": policy_version or policy_version_for(scope),
         "granted_at": now,
         "granted_by": granted_by or user_id,
         "revoked_at": None,
@@ -121,13 +159,24 @@ async def grant_consent(
 
 async def revoke_consent(db, *, user_id: str, scope: str, revoked_by: Optional[str] = None) -> bool:
     """Revoke immediately. Running builds narrow at their next operation
-    (see ``core.processing_boundary.refresh_boundary``)."""
+    (see ``core.processing_boundary.refresh_boundary``).
+
+    For the S0 scopes the revocation effects (``ai_quality_review``: queued
+    reviews dropped; ``human_quality_review``: excerpts purged) run after
+    the consent is marked revoked, on every call, a repeated revoke
+    included: they are idempotent, so retrying a revoke whose effects
+    failed completes them. Their errors propagate; the consent is already
+    revoked, so eligibility denies new access either way."""
     _validate_scope(scope)
     now = utcnow()
     result = await db[COLLECTION].update_one(
         {"_id": _consent_id(user_id, scope), "revoked_at": None},
         {"$set": {"revoked_at": now, "revoked_by": revoked_by or user_id, "updated_at": now}},
     )
+    if scope in S0_SCOPES:
+        from core.quality_review import on_consent_revoked
+
+        await on_consent_revoked(db, user_id=user_id, scope=scope)
     return bool(getattr(result, "modified_count", 0))
 
 
@@ -140,18 +189,25 @@ async def list_consents(db, user_id: str) -> List[Dict[str, Any]]:
     return docs
 
 
+def consent_counts(doc: Dict[str, Any], *, policy_version: Optional[str] = None) -> bool:
+    """Whether one stored consent document counts now: a known scope that
+    can currently be held, not revoked, and captured against its scope's
+    current policy text (or ``policy_version`` when given)."""
+    scope = doc.get("scope")
+    if scope not in KNOWN_SCOPES or not scope_grantable(scope):
+        return False
+    if doc.get("revoked_at") is not None:
+        return False
+    return doc.get("policy_version") == (policy_version or policy_version_for(scope))
+
+
 def active_from_docs(docs: List[Dict[str, Any]], *, policy_version: Optional[str] = None) -> ActiveConsents:
-    version = policy_version or get_settings().processing_policy_version
     scopes = set()
     retry_max = 0
     for doc in docs:
-        if doc.get("revoked_at") is not None:
-            continue
-        if doc.get("policy_version") != version:
+        if not consent_counts(doc, policy_version=policy_version):
             continue
         scope = doc.get("scope")
-        if scope not in KNOWN_SCOPES:
-            continue
         if scope == SCOPE_BYOK_AUTO_RETRY:
             try:
                 n = int(doc.get("max_retries") or 0)

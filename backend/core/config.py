@@ -310,6 +310,25 @@ class Settings(BaseSettings):
     static_security_report: bool = False
     static_security_bandit_timeout_s: float = 20.0
 
+    # --- S0: shadow-review and human-adjudication privacy controls -------
+    # (docs/architecture/agent-collaboration-plan.md §5.4, §17; Revision 2
+    # amended §12.3). External (non-internal) human adjudication stays off
+    # until the privacy review completes (U12): while this is False no
+    # `human_quality_review` grant is accepted and none counts.
+    external_adjudication_opt_in: bool = False
+    # Policy text versions the S0 consents are captured against; bumping one
+    # requires re-consent for that scope only (A2's scopes keep
+    # `processing_policy_version`).
+    ai_quality_review_policy_version: str = "2026-11"
+    human_quality_review_policy_version: str = "2026-11"
+    # Platform budget account `shadow` (§17.1, C12b, X5): monthly USD budget,
+    # secondary monthly provider-call cap, and the per-review worst case
+    # (review + at most one repair) reserved before each review.
+    shadow_monthly_usd: float = 100.0
+    shadow_monthly_call_cap: int = 1000
+    shadow_review_max_usd: float = 0.20
+    shadow_review_max_calls: int = 2
+
     # --- A2: provider accounting, guardrail v2, BYOK isolation ------------
     # (docs/architecture/agent-collaboration-plan.md §4, §5, §15.2, §18.2).
     # Rollout flags. All default off; see §18.2 for what each rollback
