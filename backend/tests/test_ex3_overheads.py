@@ -64,12 +64,10 @@ def _run(monkeypatch, forge):
     db, _, _ = _ledger_build(monkeypatch)
     harness = StubBuildHarness(monkeypatch, db=db, forge=forge, pm_failures=1)
 
-    async def no_sleep(*a, **k):
-        return None
-
-    import core.llm.router as router_module
-
-    monkeypatch.setattr(router_module.asyncio, "sleep", no_sleep, raising=False)
+    # No backoff between router retries (never patch asyncio.sleep: the
+    # lease heartbeat sleeps on the same loop).
+    config = harness.loader._config
+    harness.loader._config = {**config, "retry": {**(config.get("retry") or {}), "backoff_seconds": 0}}
     result = harness.run(reserved=0)
     loop = asyncio.new_event_loop()
     report = loop.run_until_complete(reconcile_build(db, "build-1"))
