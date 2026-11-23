@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { authApi } from "../../lib/api";
 import { LIVE_MODE } from "../../lib/env";
 import { useAuthStore } from "../../store/authStore";
+import { DataUseConsentsSection } from "./DataUseConsentsSection";
 
 export function PrivacyTab() {
   const { user, logout } = useAuthStore();
@@ -122,6 +123,9 @@ export function PrivacyTab() {
           </button>
         </div>
       </section>
+
+      {/* Data-use consents (BYOK processing, quality reviews) */}
+      <DataUseConsentsSection />
 
       {/* Local Storage & Cache Management */}
       <section className="rounded-xl border border-border bg-panel p-6 shadow-sm space-y-5">

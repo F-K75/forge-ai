@@ -8,6 +8,7 @@ vi.mock("./LLMManagementPage", () => ({ default: () => <div data-testid="mock-ll
 vi.mock("./PromptStudioPage", () => ({ default: () => <div data-testid="mock-prompt-studio">PromptStudio View</div> }));
 vi.mock("./OptimizationDashboard", () => ({ default: () => <div data-testid="mock-optimization">Optimization View</div> }));
 vi.mock("./EngineeringHealthPage", () => ({ default: () => <div data-testid="mock-health">EngineeringHealth View</div> }));
+vi.mock("./AdjudicationPage", () => ({ default: () => <div data-testid="mock-adjudication">Adjudication View</div> }));
 
 // Live mode for App-level redirect tests
 vi.mock("../lib/env", () => ({ LIVE_MODE: true, IS_PUBLIC_DEMO: false, PUBLIC_DEMO_APP_URL: "" }));
@@ -48,6 +49,10 @@ describe("AdminOpsPage", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /Engineering Health/i }));
     expect(screen.getByTestId("mock-health")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Adjudication/i }));
+    expect(screen.getByTestId("mock-adjudication")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Adjudication/i })).toHaveAttribute("aria-selected", "true");
   });
 
   it("supports ?tab= deep linking and falls back to Overview for unknown tabs", () => {

@@ -5,6 +5,7 @@ import {
   TerminalSquare,
   Gauge,
   Activity,
+  ClipboardCheck,
   Shield,
   type LucideIcon,
 } from "lucide-react";
@@ -13,8 +14,9 @@ import LLMManagementPage from "./LLMManagementPage";
 import PromptStudioPage from "./PromptStudioPage";
 import OptimizationDashboard from "./OptimizationDashboard";
 import EngineeringHealthPage from "./EngineeringHealthPage";
+import AdjudicationPage from "./AdjudicationPage";
 
-export type AdminOpsTabId = "overview" | "llm" | "prompts" | "optimization" | "health";
+export type AdminOpsTabId = "overview" | "llm" | "prompts" | "optimization" | "health" | "adjudication";
 
 interface AdminOpsTab {
   id: AdminOpsTabId;
@@ -53,6 +55,12 @@ export const ADMIN_OPS_TABS: AdminOpsTab[] = [
     label: "Engineering Health",
     description: "CI pipelines, test coverage, and runtime diagnostics",
     icon: Activity,
+  },
+  {
+    id: "adjudication",
+    label: "Adjudication",
+    description: "Label review findings on internal and opted-in builds (access logged)",
+    icon: ClipboardCheck,
   },
 ];
 
@@ -140,6 +148,7 @@ export default function AdminOpsPage() {
         {activeTab === "prompts" && <PromptStudioPage />}
         {activeTab === "optimization" && <OptimizationDashboard />}
         {activeTab === "health" && <EngineeringHealthPage />}
+        {activeTab === "adjudication" && <AdjudicationPage />}
       </main>
     </div>
   );
