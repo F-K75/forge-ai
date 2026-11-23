@@ -105,6 +105,12 @@ def make_stub_agents(script: Script):
             script.hit("designer")
             return {"theme": "default"}
 
+        async def identify_questions(self, *a, **k):
+            return []
+
+        async def answer(self, question, *a, **k):
+            return await Architect().answer(question, *a, **k)
+
     class Developer:
         async def identify_questions(self, *a, **k):
             script.hit("question_pass")
@@ -127,6 +133,9 @@ def make_stub_agents(script: Script):
             return {"files": {"main.py": files.get("main.py")}}
 
     class Integration:
+        async def identify_questions(self, *a, **k):
+            return []
+
         async def integrate(self, *a, **k):
             script.hit("integration")
             return {"files": {"stripe.py": "# stripe"}, "instructions": "set the key"}
@@ -161,7 +170,7 @@ class LedgerHarness:
         self.funding = FundingSource(funding)
         self.db = db or LedgerFakeDB()
         patch_ledger_infra(monkeypatch, self.db)
-        set_flags(monkeypatch, ledger_v2=True, collab_protocol_v2=False, **(flags or {}))
+        set_flags(monkeypatch, **{"ledger_v2": True, "collab_protocol_v2": False, **(flags or {})})
         asyncio.run(self.db.credit_transactions.create_index([("build_id", 1), ("kind", 1)], unique=True))
         asyncio.run(self.db.llm_response_journal.create_index([("operation_id", 1), ("dispatch_no", 1)],
                                                               unique=True))
@@ -219,8 +228,10 @@ class LedgerHarness:
             "credential_mode": "byok" if self.funding == FundingSource.BYOK else "forge",
             "consents": [], "policy_version": "2026-11", "byok_auto_retry_max": 0, "owner_user_id": "u1",
         }
+        # Priced at admission from the settings in force then, as the API does.
+        self.quote = quote_from_settings()
         self.admission = self.loop.run_until_complete(
-            credit_ledger.admit_build(self.db, build_doc=doc, source=self.funding, quote=QUOTE)
+            credit_ledger.admit_build(self.db, build_doc=doc, source=self.funding, quote=self.quote)
         )
 
     # -- running ---------------------------------------------------------- #

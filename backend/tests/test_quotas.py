@@ -118,6 +118,25 @@ def test_per_operation_ceiling_refuses_before_the_call(monkeypatch):
     assert err.value.reason == "operation_token_ceiling" and budget.calls == []
 
 
+def test_byok_calls_skip_the_daily_budget_but_honour_ceilings(monkeypatch):
+    """§13.2: BYOK reserves 0 and is not Forge's spend, but a bound call is
+    still held to the per-operation ceiling (U5)."""
+    from core.llm import router
+
+    set_flags(monkeypatch, operation_token_ceilings={"developer": 50})
+    db, loop, run = _run()
+
+    async def call(text):
+        handle = await run.begin("developer")
+        with ledger_scope(run), handle.scope():
+            await router._enforce_byok_ceilings("u1", [{"role": "user", "content": text}], "", 10)
+
+    with pytest.raises(quotas.QuotaRefused):
+        loop.run_until_complete(call("x" * 2_000))
+    # Unbound (no ledger build): never refused here.
+    loop.run_until_complete(router._enforce_byok_ceilings("u1", [{"role": "user", "content": "x" * 2_000}], "", 10))
+
+
 def test_build_ceiling_refuses_at_w1(monkeypatch):
     """U5 per-build ceiling: once the generation meter cannot fit the
     operation's ceiling, W1 refuses it (no provider call)."""

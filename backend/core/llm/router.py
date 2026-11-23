@@ -39,6 +39,21 @@ logger = logging.getLogger(__name__)
 
 
 
+async def _enforce_byok_ceilings(user_id: Optional[str], messages: list, extra_system: str, max_tokens: int) -> None:
+    """A1 (§13.2): a BYOK call skips the daily budget (not Forge's spend) but
+    a call bound to a ledger operation still honours the configured
+    per-operation and per-build token ceilings (U5). No-op otherwise."""
+    from core import quotas
+
+    binding = quotas.live_binding(user_id)
+    if binding is None:
+        return
+    all_text = "\n".join(
+        str(m.get("content", "")) for m in messages if isinstance(m.get("content"), str)
+    ) + (extra_system or "")
+    binding.check(estimate_tokens(all_text) + (max_tokens or 0))
+
+
 async def _enforce_call_budget(user_id: str, estimated: int, org_id: Optional[str]) -> None:
     """The daily token budget, plus A1's per-operation and per-build token
     ceilings for a call bound to a live ledger operation, and the C2
@@ -411,6 +426,7 @@ class LLMRouter:
             # but the daily budget check is skipped since it isn't Forge's
             # spend. Fleet circuit-breaker counters are also skipped so BYOK
             # traffic cannot trip (or heal) shared provider keys.
+            await _enforce_byok_ceilings(user_id, sanitized_messages, extra_system, max_tokens)
             plan = await self._resolve_plan(user_id)
             lease_id: Optional[str] = None
             if user_id:
@@ -990,6 +1006,7 @@ class LLMRouter:
 
         if byok:
             # BYOK: no fleet CB recording; still enforce concurrency leases.
+            await _enforce_byok_ceilings(user_id, sanitized_messages, extra_system, max_tokens)
             plan = await self._resolve_plan(user_id)
             lease_id: Optional[str] = None
             if user_id:
