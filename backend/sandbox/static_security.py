@@ -422,13 +422,19 @@ _PY_CORS_CREDENTIALS = (
 )
 
 
+# Credentials must be enabled within this many lines of the any-origin
+# setting: one cors({...}) object, one add_middleware(...) call, or adjacent
+# setHeader calls.
+_CORS_PROXIMITY_LINES = 8
+
+
 def _cors_wildcard_credentials(content: str, lines: List[str], lang: str) -> Iterable[int]:
     origin_patterns, credential_patterns = (
         (_PY_CORS_ANY_ORIGIN, _PY_CORS_CREDENTIALS) if lang == LANG_PY
         else (_JS_CORS_ANY_ORIGIN, _JS_CORS_CREDENTIALS)
     )
     origin_lines: List[int] = []
-    has_credentials = False
+    credential_lines: List[int] = []
     for number, line in enumerate(lines, start=1):
         if _is_comment_line(line, lang):
             continue
@@ -436,9 +442,10 @@ def _cors_wildcard_credentials(content: str, lines: List[str], lang: str) -> Ite
         if any(p.search(capped) for p in origin_patterns):
             origin_lines.append(number)
         if any(p.search(capped) for p in credential_patterns):
-            has_credentials = True
-    if has_credentials:
-        yield from origin_lines
+            credential_lines.append(number)
+    for number in origin_lines:
+        if any(abs(number - c) <= _CORS_PROXIMITY_LINES for c in credential_lines):
+            yield number
 
 
 # --- child_process with an interpolated command ---
