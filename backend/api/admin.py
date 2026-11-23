@@ -64,6 +64,9 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str] = None
     stripe_customer_id: Optional[str] = None
     created_at: datetime
+    # S0: internal account (builds eligible for shadow review and human
+    # adjudication by default). Set only via PUT /admin/users/{id}/internal.
+    is_internal: bool = False
 
 
 class UserUpdateRequest(BaseModel):
@@ -1066,4 +1069,30 @@ async def toggle_user_admin(
     await db.audit_logs.insert_one(audit_log.model_dump())
 
     return {"user_id": user_id, "is_admin": req.is_admin, "unchanged": False}
+
+
+class InternalToggleRequest(BaseModel):
+    is_internal: bool
+    reason: Optional[str] = None
+
+
+@router.put("/users/{user_id}/internal", status_code=status.HTTP_200_OK)
+async def set_user_internal_flag(
+    user_id: str,
+    req: InternalToggleRequest,
+    request: Request,
+    admin: User = Depends(admin_required),
+) -> Dict[str, Any]:
+    """S0 (plan §17.2, §17.3): mark an account internal. Admin-only; every
+    change writes one audit-log entry (core.quality_review)."""
+    from core.quality_review import set_user_internal
+
+    db = await get_db()
+    try:
+        result = await set_user_internal(
+            db, user_id=user_id, is_internal=req.is_internal, actor=admin, request=request, reason=req.reason,
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"user_id": user_id, "is_internal": result["is_internal"], "unchanged": not result["changed"]}
 

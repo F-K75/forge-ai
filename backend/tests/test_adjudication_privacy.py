@@ -170,3 +170,68 @@ async def test_revoking_ai_quality_review_drops_queued_reviews_and_calls_s1_hook
     # The consent record is kept, revoked (§18.2).
     [record] = await list_consents(db, "u1")
     assert record["revoked_at"] is not None
+
+
+# --------------------------------------------------------------------------- #
+# users.is_internal: admin-set only, audited
+# --------------------------------------------------------------------------- #
+
+
+def _admin(user_id="admin-1"):
+    from core.models import User
+
+    return User(id=user_id, email=f"{user_id}@forge.test", name="Admin", is_admin=True)
+
+
+def _request():
+    from starlette.requests import Request
+
+    return Request({"type": "http", "method": "PUT", "path": "/", "headers": [(b"user-agent", b"pytest")],
+                    "client": ("10.0.0.9", 1234), "query_string": b""})
+
+
+@pytest.mark.asyncio
+async def test_is_internal_change_is_admin_only_and_audited(monkeypatch):
+    import api.admin as admin_api
+
+    db = make_db(users=[{"id": "u1", "email": "u1@x.test"}, {"id": "admin-1", "email": "a@forge.test"}])
+
+    async def fake_get_db():
+        return db
+
+    monkeypatch.setattr(admin_api, "get_db", fake_get_db)
+    req = admin_api.InternalToggleRequest(is_internal=True, reason="staff account")
+    out = await admin_api.set_user_internal_flag("u1", req, _request(), admin=_admin())
+    assert out == {"user_id": "u1", "is_internal": True, "unchanged": False}
+    assert db.users.docs[0]["is_internal"] is True
+    [entry] = db.audit_logs.docs
+    assert entry["action"] == "grant_internal" and entry["resource_id"] == "u1"
+    assert entry["actor_id"] == "admin-1" and entry["ip_address"] == "10.0.0.9"
+    assert entry["changes"]["is_internal"] == {"old": False, "new": True}
+
+    # A no-op writes no audit entry; every real change writes exactly one.
+    out = await admin_api.set_user_internal_flag("u1", req, _request(), admin=_admin())
+    assert out["unchanged"] is True and len(db.audit_logs.docs) == 1
+    out = await admin_api.set_user_internal_flag(
+        "u1", admin_api.InternalToggleRequest(is_internal=False), _request(), admin=_admin(),
+    )
+    assert out["unchanged"] is False and db.users.docs[0]["is_internal"] is False
+    assert [e["action"] for e in db.audit_logs.docs] == ["grant_internal", "revoke_internal"]
+
+    with pytest.raises(Exception) as exc:
+        await admin_api.set_user_internal_flag("nobody", req, _request(), admin=_admin())
+    assert getattr(exc.value, "status_code", None) == 404
+
+
+def test_is_internal_route_requires_admin_and_users_cannot_set_it():
+    import inspect
+
+    import api.admin as admin_api
+    from api.auth import UpdateProfileRequest
+    from core.models import User
+
+    sig = inspect.signature(admin_api.set_user_internal_flag)
+    assert sig.parameters["admin"].default.dependency is admin_api.admin_required
+    # Neither the self-service profile update nor the User model carries it.
+    assert "is_internal" not in UpdateProfileRequest.model_fields
+    assert "is_internal" not in User.model_fields
