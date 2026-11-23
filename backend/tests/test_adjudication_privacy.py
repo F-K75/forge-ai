@@ -350,3 +350,94 @@ async def test_evaluate_eligibility_fails_closed():
     # A user flag that is anything but literal True is not internal.
     db.users.docs[0]["is_internal"] = "yes"
     assert not (await evaluate_review_eligibility(db, _build("b8"))).human_adjudication.allowed
+
+
+# --------------------------------------------------------------------------- #
+# Redactor (PV-3)
+# --------------------------------------------------------------------------- #
+
+# Runtime-assembled secret-shaped values (never real credentials).
+AWS_KEY_ID = "AKIA" + "IOSFODNN7" + "EXAMPLE"
+AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/" + "bPxRfiCYEXAMPLEKEY"
+STRIPE_LIVE = "sk_" + "live_" + "4eC39HqLyjWDarjtT1zdp7dc"
+GOOGLE_KEY = "AIza" + "SyA1234567890" + "abcdefghijklmnopqrstuv"
+SLACK_TOKEN = "xoxb-" + "1234567890-" + "abcdefghijkl"
+GITHUB_PAT = "ghp_" + "0123456789abcdef" + "ABCDEF0123456789abcd"
+JWT = "eyJhbGciOiJIUzI1NiJ9" + ".eyJzdWIiOiIxMjM0NTY3ODkwIn0" + ".dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+PEM_BODY = "MIIEowIBAAKCAQEAseededkeymaterial0001"
+PEM = "-----BEGIN RSA " + "PRIVATE KEY-----\n" + PEM_BODY + "\nQ2xvc2VkS2V5TWF0ZXJpYWw=\n-----END RSA " + "PRIVATE KEY-----"
+DB_PASSWORD = "hunter2" + "Pa55word"
+ENV_SECRET = "env" + "SeedValue" + "9876"
+EMAIL = "jane.doe" + "@customer-corp.example"
+PLAIN_PASSWORD = "correct horse " + "battery staple"
+FALLBACK_KEY = "fallback" + "Literal" + "Key42"
+QUERY_TOKEN = "qs" + "Token" + "7788"
+
+SEEDED_SECRETS = [
+    AWS_KEY_ID, AWS_SECRET, STRIPE_LIVE, GOOGLE_KEY, SLACK_TOKEN, GITHUB_PAT, JWT, PEM_BODY,
+    DB_PASSWORD, ENV_SECRET, EMAIL, PLAIN_PASSWORD, FALLBACK_KEY, QUERY_TOKEN, "Q2xvc2VkS2V5TWF0ZXJpYWw=",
+]
+
+
+def seeded_source(lines_before=30, lines_after=30) -> str:
+    """A generated file with secrets around line ``lines_before + 1``."""
+    body = [
+        f'AWS_ACCESS_KEY_ID = "{AWS_KEY_ID}"',
+        f'aws_secret_access_key = "{AWS_SECRET}"',
+        f'stripe.api_key = "{STRIPE_LIVE}"',
+        f'maps = "{GOOGLE_KEY}"  # google',
+        f'slack = "{SLACK_TOKEN}"',
+        f'gh = "{GITHUB_PAT}"',
+        f'headers = {{"Authorization": "Bearer {JWT}"}}',
+        PEM,
+        f'DATABASE_URL = "postgres://admin:{DB_PASSWORD}@db.internal:5432/app"',
+        f"export SESSION_SECRET={ENV_SECRET}",
+        f'support = "{EMAIL}"',
+        f'password = "{PLAIN_PASSWORD}"',
+        f'key = os.getenv("PAYMENT_KEY", "{FALLBACK_KEY}")',
+        f'url = "https://api.example.com/v1/items?token={QUERY_TOKEN}&page=2"',
+    ]
+    before = [f"line_{i} = {i}" for i in range(lines_before)]
+    after = [f"tail_{i} = {i}" for i in range(lines_after)]
+    return "\n".join(before + body + after)
+
+
+def assert_no_seeded_secret(obj):
+    import json
+
+    dumped = json.dumps(obj, default=str)
+    for secret in SEEDED_SECRETS:
+        assert secret not in dumped, f"seeded secret leaked: {secret[:6]}..."
+
+
+def test_pv3_redactor_masks_every_seeded_secret_and_reports_without_values():
+    from core.redaction import redact_text
+
+    source = seeded_source()
+    result = redact_text(source, path="app/settings.py")
+    assert_no_seeded_secret(result.text)
+    assert_no_seeded_secret(result.report)
+    assert result.text.count("\n") == source.count("\n")  # line numbers preserved
+    counts = result.report["counts"]
+    for rule in ("secret-aws-access-key-id", "secret-stripe-live-secret-key", "secret-google-api-key",
+                 "secret-slack-token", "secret-github-personal-access-token", "jwt", "private-key", "url-credentials",
+                 "env-value", "email", "secret-literal", "url-secret-param"):
+        assert counts.get(rule), f"rule {rule} did not fire: {counts}"
+    assert result.report["total"] == sum(counts.values())
+    # Ordinary code stays readable.
+    assert "line_3 = 3" in result.text and "tail_7 = 7" in result.text
+
+
+def test_pv3_redactor_env_files_and_cut_private_keys():
+    from core.redaction import redact_text
+
+    env = f"DATABASE_URL=postgres://u:{DB_PASSWORD}@h/db\nSTRIPE_KEY = {STRIPE_LIVE}\nENV TOKEN {ENV_SECRET}\n"
+    out = redact_text(env, path="deploy/.env.production").text
+    assert_no_seeded_secret(out)
+    compose = f"services:\n  api:\n    environment:\n      PAYMENT_KEY: {FALLBACK_KEY}\n      - SESSION_SECRET={ENV_SECRET}\n"
+    assert_no_seeded_secret(redact_text(compose, path="docker-compose.yml").text)
+    # A window that cuts a key block (only one marker visible) is redacted too.
+    tail_only = PEM.split("\n", 1)[1]
+    head_only = PEM.rsplit("\n", 1)[0]
+    assert_no_seeded_secret(redact_text(tail_only).text)
+    assert_no_seeded_secret(redact_text(head_only).text)
