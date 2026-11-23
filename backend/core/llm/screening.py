@@ -125,7 +125,7 @@ async def run_bounded_screen(
                 provider.chat_completion(model=model, messages=messages, max_tokens=max_output_tokens),
                 timeout=timeout_seconds,
             )
-        except asyncio.TimeoutError as exc:
+        except asyncio.TimeoutError:
             await accounting.record(
                 outcome="error", credential="forge", provider=provider_name, model=model,
                 error_class="timeout", latency_ms=(time.perf_counter() - started) * 1000,
