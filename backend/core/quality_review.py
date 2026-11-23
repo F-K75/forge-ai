@@ -35,7 +35,10 @@ by a human under the internal rule, but never AI-reviewed.
 ``pending`` before the reviewer runs), ``consent_basis`` (``internal`` /
 ``opt_in``, from ``ReviewEligibility.ai_review.basis``). S1 must also call
 ``evaluate_review_eligibility`` again when a queued review is dequeued,
-because a Celery message cannot be recalled.
+because a Celery message cannot be recalled, and must leave the queued
+statuses with a guarded update (``{id, status: queued}`` -> ``running``) so
+a concurrent drop and a starting review exclude each other. Budget hooks:
+``core.shadow_budget.reserve_shadow_review`` / ``settle_shadow_review``.
 """
 
 from __future__ import annotations
@@ -337,14 +340,27 @@ def _basis_filter(basis: Optional[str]) -> Dict[str, Any]:
 async def drop_queued_shadow_reviews(
     db, user_id: str, *, basis: Optional[str] = None, reason: str = "consent_revoked",
 ) -> int:
-    """Drop ``user_id``'s shadow reviews that have not started. ``basis``
-    limits the drop to ``internal`` or ``not_internal`` reviews; None drops
-    all."""
-    query = {"owner_user_id": user_id, "status": {"$in": list(QUEUED_REVIEW_STATUSES)}, **_basis_filter(basis)}
-    result = await db[SHADOW_REVIEWS].update_many(
-        query, {"$set": {"status": REVIEW_STATUS_DROPPED, "dropped_reason": reason, "dropped_at": utcnow()}},
-    )
-    return int(getattr(result, "modified_count", 0) or 0)
+    """Drop ``user_id``'s shadow reviews that have not started. Each is
+    settled at zero cost through T4 (``core.shadow_budget``), so a budget
+    reservation it holds is released exactly once. ``basis`` limits the
+    drop to ``internal`` or ``not_internal`` reviews; None drops all."""
+    from core.shadow_budget import settle_shadow_review
+
+    query = {
+        "owner_user_id": user_id,
+        "status": {"$in": list(QUEUED_REVIEW_STATUSES)},
+        "settled": {"$ne": True},
+        **_basis_filter(basis),
+    }
+    docs = await db[SHADOW_REVIEWS].find(query, {"_id": 0, "id": 1}).to_list(None)
+    dropped = 0
+    for doc in docs:
+        result = await settle_shadow_review(
+            db, review_id=doc["id"], actual_usd=0.0, actual_calls=0, status=REVIEW_STATUS_DROPPED,
+            extra={"dropped_reason": reason, "dropped_at": utcnow()}, only_if_status=QUEUED_REVIEW_STATUSES,
+        )
+        dropped += int(result.applied)
+    return dropped
 
 
 async def on_consent_revoked(db, *, user_id: str, scope: str) -> Dict[str, int]:

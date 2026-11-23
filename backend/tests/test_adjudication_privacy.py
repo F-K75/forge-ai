@@ -866,3 +866,176 @@ async def test_pv6_gdpr_export_includes_consents(external_flag):
     # human_quality_review revocation path) are exported redacted.
     assert len(export["adjudication_excerpts"]) == 1
     assert_no_seeded_secret(export["adjudication_excerpts"])
+
+
+# --------------------------------------------------------------------------- #
+# Shadow budget account and T4 settlement (§17.1, C12b, X5)
+# --------------------------------------------------------------------------- #
+
+
+def _month_doc(db):
+    from core.platform_budgets import month_period
+
+    return next(d for d in db.platform_budgets.docs if d["_id"] == f"shadow:{month_period()}")
+
+
+@pytest.mark.asyncio
+async def test_shadow_budget_defaults_match_the_plan():
+    from core.config import get_settings
+
+    s = get_settings()
+    assert (s.shadow_monthly_usd, s.shadow_monthly_call_cap) == (100.0, 1000)
+    assert (s.shadow_review_max_usd, s.shadow_review_max_calls) == (0.20, 2)
+    assert s.external_adjudication_opt_in is False
+
+
+@pytest.mark.asyncio
+async def test_shadow_budget_usd_cap(monkeypatch):
+    from core.shadow_budget import reserve_shadow_review, settle_shadow_review
+
+    set_flags(monkeypatch, shadow_monthly_usd=1.0, shadow_monthly_call_cap=1000)
+    db = make_db()
+    results = [await reserve_shadow_review(db, review_id=f"r{i}") for i in range(7)]
+    assert [r.ok for r in results] == [True] * 5 + [False] * 2
+    assert {r.reason for r in results if not r.ok} == {"budget_exhausted"}
+    doc = _month_doc(db)
+    assert doc["reserved_micros"] == 1_000_000 and doc["calls_reserved"] == 10
+    # Settling at the true cost frees the difference, exactly once.
+    result = await settle_shadow_review(db, review_id="r0", actual_usd=0.05, actual_calls=1)
+    assert result.applied and result.calls == 1
+    again = await settle_shadow_review(db, review_id="r0", actual_usd=0.05, actual_calls=1)
+    assert not again.applied and again.reason == "already_settled"
+    doc = _month_doc(db)
+    assert (doc["reserved_micros"], doc["spent_micros"]) == (800_000, 50_000)
+    assert (doc["calls_reserved"], doc["calls"]) == (8, 1)
+    # 0.15 freed is less than one review's worst case: still refused.
+    assert not (await reserve_shadow_review(db, review_id="r-new")).ok
+    await settle_shadow_review(db, review_id="r1", actual_usd=0.05, actual_calls=1)
+    assert (await reserve_shadow_review(db, review_id="r-new")).ok  # 0.30 freed
+    assert not (await reserve_shadow_review(db, review_id="r-new2")).ok
+    doc = _month_doc(db)
+    assert doc["reserved_micros"] + doc["spent_micros"] <= doc["limit_micros"]
+
+
+@pytest.mark.asyncio
+async def test_shadow_budget_call_cap(monkeypatch):
+    from core.shadow_budget import reserve_shadow_review, settle_shadow_review, shadow_budget_status
+
+    set_flags(monkeypatch, shadow_monthly_usd=100.0, shadow_monthly_call_cap=5)
+    db = make_db()
+    results = [await reserve_shadow_review(db, review_id=f"r{i}") for i in range(3)]
+    # 2 calls reserved per review: the third would make 6 > 5.
+    assert [r.ok for r in results] == [True, True, False]
+    assert results[2].reason == "call_cap_exhausted"
+    await settle_shadow_review(db, review_id="r0", actual_usd=0.1, actual_calls=1)
+    status = await shadow_budget_status(db)
+    assert (status["calls"], status["calls_reserved"], status["max_calls"]) == (1, 2, 5)
+    assert (await reserve_shadow_review(db, review_id="r3")).ok  # 1 + 2 + 2 = 5
+    assert not (await reserve_shadow_review(db, review_id="r4")).ok
+    doc = _month_doc(db)
+    assert doc["calls"] + doc["calls_reserved"] <= doc["max_calls"]
+
+
+@pytest.mark.asyncio
+async def test_shadow_reservation_is_idempotent_and_recorded_for_t4():
+    from core.shadow_budget import reserve_shadow_review, settle_shadow_review
+
+    db = make_db(shadow_reviews=[{"id": "r1", "build_id": "b1", "owner_user_id": "u1", "status": "queued",
+                                  "consent_basis": "opt_in"}])
+    first = await reserve_shadow_review(db, review_id="r1")
+    second = await reserve_shadow_review(db, review_id="r1")
+    assert first.ok and second.ok and second.doc_ids == first.doc_ids
+    assert _month_doc(db)["reserved_micros"] == 200_000  # reserved once
+    [review] = db.shadow_reviews.docs
+    assert review["status"] == "queued" and review["budget_reservation"]["calls"] == 2
+    # Settlement reads the stored reservation (no process memory needed).
+    result = await settle_shadow_review(db, review_id="r1", actual_usd=0.12, actual_calls=2, status="completed")
+    assert result.applied
+    review = db.shadow_reviews.docs[0]
+    assert review["settled"] is True and review["cost_usd"] == 0.12 and review["status"] == "completed"
+    doc = _month_doc(db)
+    assert (doc["reserved_micros"], doc["spent_micros"], doc["calls"], doc["calls_reserved"]) == (0, 120_000, 2, 0)
+    # A settled review cannot be reserved again.
+    assert (await reserve_shadow_review(db, review_id="r1")).reason == "already_settled"
+    assert (await settle_shadow_review(db, review_id="nope", actual_usd=0)).reason == "unknown_review"
+
+
+@pytest.mark.asyncio
+async def test_t4_settlement_uses_a_transaction_when_available():
+    from core.shadow_budget import reserve_shadow_review, settle_shadow_review
+
+    db = make_db()
+    await reserve_shadow_review(db, review_id="r1")
+    sessions = []
+
+    class _Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def with_transaction(self, callback, **kwargs):
+            sessions.append(kwargs)
+            return await callback(None)  # the double ignores sessions
+
+    class _Client:
+        async def start_session(self):
+            return _Session()
+
+    db.__dict__["client"] = _Client()
+    result = await settle_shadow_review(db, review_id="r1", actual_usd=0.01, actual_calls=1)
+    assert result.applied and len(sessions) == 1
+    assert sessions[0]["read_concern"].level == "snapshot"
+    assert sessions[0]["write_concern"].document == {"w": "majority"}
+
+
+@pytest.mark.skipif(
+    not __import__("os").getenv("FORGE_RS0_MONGODB_URL"),
+    reason="rs0: needs a real single-node replica set (set FORGE_RS0_MONGODB_URL)",
+)
+@pytest.mark.asyncio
+async def test_t4_settlement_exactly_once_rs0():
+    import asyncio
+    import os
+
+    from motor.motor_asyncio import AsyncIOMotorClient
+
+    from core.shadow_budget import reserve_shadow_review, settle_shadow_review
+
+    client = AsyncIOMotorClient(os.environ["FORGE_RS0_MONGODB_URL"])
+    try:
+        assert (await client.admin.command("hello")).get("setName") == "rs0"
+        db = client["forge_s0_t4"]
+        await db.platform_budgets.delete_many({})
+        await db.shadow_reviews.delete_many({})
+        await db.shadow_reviews.create_index("id", unique=True)
+        assert (await reserve_shadow_review(db, review_id="r1")).ok
+        results = await asyncio.gather(*[
+            settle_shadow_review(db, review_id="r1", actual_usd=0.1, actual_calls=1) for _ in range(5)
+        ])
+        assert sum(r.applied for r in results) == 1
+        doc = await db.platform_budgets.find_one({})
+        assert (doc["reserved_micros"], doc["spent_micros"], doc["calls"], doc["calls_reserved"]) == (0, 100_000, 1, 0)
+    finally:
+        client.close()
+
+
+@pytest.mark.asyncio
+async def test_consent_drop_releases_reservations_but_never_a_started_review(external_flag):
+    from core.shadow_budget import reserve_shadow_review
+
+    db = make_db(users=[{"id": "u1"}], shadow_reviews=[
+        {"id": "q1", "owner_user_id": "u1", "status": "queued", "consent_basis": "opt_in"},
+        {"id": "q2", "owner_user_id": "u1", "status": "queued", "consent_basis": "opt_in"},
+    ])
+    await reserve_shadow_review(db, review_id="q1")
+    await reserve_shadow_review(db, review_id="q2")
+    db.shadow_reviews.docs[1]["status"] = "running"  # S1 started q2
+    await grant_consent(db, user_id="u1", scope=SCOPE_AI_QUALITY_REVIEW)
+    await revoke_consent(db, user_id="u1", scope=SCOPE_AI_QUALITY_REVIEW)
+    q1, q2 = db.shadow_reviews.docs
+    assert q1["status"] == "dropped" and q1["settled"] is True and q1["dropped_reason"] == "consent_revoked"
+    assert q2["status"] == "running" and not q2.get("settled")
+    doc = _month_doc(db)
+    assert (doc["reserved_micros"], doc["calls_reserved"], doc["spent_micros"], doc["calls"]) == (200_000, 2, 0, 0)

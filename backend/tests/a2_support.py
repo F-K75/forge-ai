@@ -54,6 +54,10 @@ def _eval_expr(expr, doc):
             return values[0] <= values[1]
         if op == "$lt":
             return values[0] < values[1]
+        if op == "$and":  # S0: call-capped budget accounts
+            return all(values)
+        if op == "$ifNull":
+            return values[1] if values[0] is None else values[0]
         raise NotImplementedError(op)
     return expr
 
