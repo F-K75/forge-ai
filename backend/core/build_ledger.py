@@ -238,6 +238,11 @@ class LedgerRun:
         self.incomplete_stages: List[Dict[str, Any]] = []
         self.last_failure: Optional[Tuple[str, str]] = None
         self._heartbeat: Optional[asyncio.Task] = None
+        # time.monotonic() at which this attempt's build_timeout runs out;
+        # interactive gates never wait past it (F14).
+        import time as _time
+
+        self.deadline: float = _time.monotonic() + float(_settings().build_timeout)
 
     # -- lease (G2) ------------------------------------------------------ #
 

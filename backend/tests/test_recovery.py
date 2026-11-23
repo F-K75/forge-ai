@@ -469,3 +469,21 @@ async def test_ct5_sweeper_vs_stalled_worker_rs0():
     finally:
         await client.drop_database("forge_a1_ct5")
         client.close()
+
+
+def test_gates_never_wait_past_the_build_time_budget(monkeypatch):
+    """F14: with no time left for a gate (build_timeout minus the reserve
+    the rest of the pipeline needs), an interactive ledger build's gates
+    auto-approve at once instead of running the build into its soft time
+    limit."""
+    import time
+
+    h = LedgerHarness(monkeypatch, interactive=True, script=_script(),
+                      flags={"gate_timeout": 3600, "build_timeout": 600, "collab_time_reserve_s": 600})
+    started = time.monotonic()
+    result, exc = h.run_to_end()
+    assert exc is None and result["status"] == "success"
+    assert time.monotonic() - started < 30
+    resolved = [e for e in h.events if getattr(e.type, "value", e.type) == "gate_resolved"]
+    assert resolved and all(e.data["auto"] for e in resolved)
+    _settled_ok(h)

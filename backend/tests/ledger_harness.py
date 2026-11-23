@@ -161,11 +161,13 @@ class LedgerHarness:
     BUILD_ID = "build-1"
 
     def __init__(self, monkeypatch, *, script: Script, funding: str = "user_credits", credits: int = 100,
-                 flags: Optional[Dict[str, Any]] = None, db: Optional[LedgerFakeDB] = None):
+                 flags: Optional[Dict[str, Any]] = None, db: Optional[LedgerFakeDB] = None,
+                 interactive: bool = False):
         import tasks.build_tasks as build_tasks_module
         from tests.a2_support import make_user
 
         self.monkeypatch = monkeypatch
+        self.interactive = interactive
         self.script = script
         self.funding = FundingSource(funding)
         self.db = db or LedgerFakeDB()
@@ -220,7 +222,8 @@ class LedgerHarness:
         from core import execution_state
         from core.models import Build
 
-        build = Build(id=self.BUILD_ID, project_id="p1", user_id="u1", prompt="Build a todo app")
+        build = Build(id=self.BUILD_ID, project_id="p1", user_id="u1", prompt="Build a todo app",
+                      interactive=self.interactive)
         execution_state.admit(build)
         doc = build.model_dump()
         doc.pop("idempotency_key", None)

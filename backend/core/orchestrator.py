@@ -879,12 +879,15 @@ class Orchestrator:
         collab_run: Optional[_CollabRun],
     ) -> bool:
         """Resume inside the debug loop: ``debug#k`` an earlier attempt left
-        open gets its journal or recovery dispatch (C9) with the errors of
-        the PM pass before it, instead of being silently dropped."""
+        open (or failed, before its retry) runs again with the errors of the
+        PM pass before it, instead of being silently dropped."""
         debug_key = f"debug#{iteration}"
         _, op = run.latest(debug_key)
-        if op is None or op.get("status") not in build_ledger.OPEN:
+        if op is None or op.get("status") in ("completed", "refused") or op.get("reason") == "no_change":
             return False
+        # Open (interrupted) -> journal or recovery dispatch; failed on the
+        # previous attempt (the Celery retry is for it) -> a new operation
+        # for the same stage_key (§12 row 4).
         previous = self._recover_stage_output(build, f"pm#{iteration - 1}") or {}
         errors = self._validation_errors(previous, []) if previous else ["Resume the interrupted debug pass"]
         await self._start_agent(build, AgentType.DEBUGGER, emit)
@@ -1483,6 +1486,13 @@ class Orchestrator:
 
         db = await get_db()
         timeout = settings.gate_timeout if timeout_seconds is None else timeout_seconds
+        run = current_ledger_run()
+        if run is not None and run.build_id == build.id:
+            # A1 (F14): on the ledger path a gate never waits into the time
+            # the rest of the pipeline needs; with too little left it
+            # auto-approves at once instead of letting the soft time limit
+            # fail a build whose stages are all paid for.
+            timeout = max(0.0, min(timeout, run.deadline - time.monotonic() - settings.collab_time_reserve_s))
         gate = {
             "gate_id": str(uuid.uuid4()),
             "stage": stage,
