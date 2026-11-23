@@ -28,7 +28,10 @@ spec:
         - --maxmemory
         - "512mb"
         - --maxmemory-policy
-        - "allkeys-lru"
+        # noeviction: the Celery broker lives here; a full Redis must refuse
+        # writes (a failed enqueue releases the build's reservation, T3)
+        # rather than evict queued build tasks (F19, plan §18.2).
+        - "noeviction"
         - --requirepass
         - $(REDIS_PASSWORD)
         ports:

@@ -370,7 +370,7 @@ jobs:
           python3 ../scripts/test_restore.py
 
   mongo-integration:
-    name: Backend — real MongoDB 7 integration tests
+    name: Backend — real MongoDB 7 replica set (rs0) integration tests
     runs-on: ubuntu-latest
     # The backend job's suite mocks the database (or lets it fail open), so a
     # driver upgrade can pass it while broken against a real server. These
@@ -378,20 +378,60 @@ jobs:
     # paginated_query, atomic credit reservation, aggregation, budget
     # manager, the Celery build task, the webhook secret lifecycle) through
     # Motor against a live mongod of the major version production runs.
-    services:
-      mongodb:
-        image: mongo:7.0
-        ports: ["27017:27017"]
-        env:
-          MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: testpass
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    #
+    # A1 (plan §10.1, U10): the server is a single-node replica set rs0 with
+    # keyFile + auth, as in production, so MongoDB transactions exist and the
+    # ledger's transactional tests (marked rs0: TX-*, CT-*, QT-3, QT-5, GR-8)
+    # prove atomicity and concurrency for real. GitHub service containers
+    # cannot override the container command, so mongod is started in a step.
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start MongoDB 7 as replica set rs0 (keyFile + auth)
+        run: |
+          openssl rand -base64 756 > "$RUNNER_TEMP/mongo-keyfile"
+          chmod 400 "$RUNNER_TEMP/mongo-keyfile"
+          sudo chown 999:999 "$RUNNER_TEMP/mongo-keyfile"
+          docker run -d --name forge-mongo-rs0 -p 27017:27017 \
+            -e MONGO_INITDB_ROOT_USERNAME=root \
+            -e MONGO_INITDB_ROOT_PASSWORD=testpass \
+            -v "$RUNNER_TEMP/mongo-keyfile:/etc/mongo/keyfile:ro" \
+            mongo:7.0 --replSet rs0 --bind_ip_all --keyFile /etc/mongo/keyfile
+
+      - name: Initiate rs0 and wait for PRIMARY
+        run: |
+          mongosh_rs0() {
+            docker exec forge-mongo-rs0 mongosh --quiet -u root -p testpass \
+              --authenticationDatabase admin --eval "$1"
+          }
+          for i in $(seq 1 60); do
+            if mongosh_rs0 'db.runCommand({ ping: 1 }).ok' >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          mongosh_rs0 'try { rs.status() } catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]}) }'
+          state=""
+          for i in $(seq 1 60); do
+            state=$(mongosh_rs0 'rs.status().myState' 2>/dev/null || true)
+            if [ "$state" = "1" ]; then break; fi
+            sleep 2
+          done
+          if [ "$state" != "1" ]; then
+            echo "::error::rs0 never became PRIMARY"
+            docker logs forge-mongo-rs0
+            exit 1
+          fi
+
+      - name: Guard — the server must be replica set rs0 (TX-6)
+        # The transactional suite must never run (and pass by skipping) on a
+        # standalone server.
+        run: |
+          set_name=$(docker exec forge-mongo-rs0 mongosh --quiet -u root -p testpass \
+            --authenticationDatabase admin --eval 'db.hello().setName')
+          if [ "$set_name" != "rs0" ]; then
+            echo "::error::hello.setName is '${set_name}', expected rs0"
+            exit 1
+          fi
+          echo "✓ MongoDB is replica set ${set_name}"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -413,10 +453,29 @@ jobs:
         # CI_TEST_MODE/TESTING, which would cut get_db()'s server-selection
         # timeout to 50ms.
         env:
-          FORGE_MONGO_INTEGRATION_URL: mongodb://root:testpass@localhost:27017/?authSource=admin
+          FORGE_MONGO_INTEGRATION_URL: mongodb://root:testpass@localhost:27017/?authSource=admin&replicaSet=rs0
         run: |
           cd backend
           python -m pytest tests/test_mongo_integration.py -v -rA --timeout=120
+
+      - name: Run replica-set tests (rs0)
+        # Every test marked rs0 (transactions, concurrency, atomic meters and
+        # budgets). They skip only without FORGE_RS0_MONGODB_URL, which is set
+        # here; a skip in this job is a failure.
+        env:
+          FORGE_RS0_MONGODB_URL: mongodb://root:testpass@localhost:27017/?authSource=admin&replicaSet=rs0
+        run: |
+          cd backend
+          set -o pipefail
+          python -m pytest -m rs0 -v -rA --timeout=120 -p no:cacheprovider 2>&1 | tee rs0.log
+          if grep -E "^SKIPPED|[0-9]+ skipped" rs0.log; then
+            echo "::error::rs0 tests were skipped on the replica-set job"
+            exit 1
+          fi
+          if ! grep -E "[0-9]+ passed" rs0.log; then
+            echo "::error::no rs0 test ran"
+            exit 1
+          fi
 
   quality-gate:
     name: Quality Gate
