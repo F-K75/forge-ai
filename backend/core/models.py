@@ -471,6 +471,11 @@ class Build(BaseModel):
     collab_config: Optional[Dict[str, Any]] = None
     blackboard: List[BlackboardEntry] = []
     escalations: List[Escalation] = []
+    # Foundation C: report-only static security report of the final files
+    # (sandbox/static_security.py; shape in scan_static_security). None when
+    # the static_security_report flag was off for this build. Never affects
+    # status, quality or credits.
+    static_security: Optional[Dict[str, Any]] = None
     created_at: datetime = Field(default_factory=utcnow)
     completed_at: Optional[datetime] = None
 

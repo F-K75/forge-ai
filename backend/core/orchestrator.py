@@ -25,6 +25,7 @@ from core.config import get_settings
 from core.database import get_db
 from sandbox.moderation import scan_code
 from sandbox.csp import apply_csp
+from sandbox import static_security
 from harness.evaluator import PromptEvaluator
 from harness.metrics import MetricsCollector
 from harness.models import TestCase, TestSuite
@@ -145,6 +146,8 @@ class Orchestrator:
         # is then refunded in full by the existing reserved-minus-used logic
         # in tasks/build_tasks.py, with no changes needed there.
         byok_active = await self._is_byok_active(build.user_id)
+        # Foundation C flag, read once per attempt; None means no scan.
+        static_security_config = static_security.snapshot_config(settings)
         try:
 
             # --- 0. BUILD START ---
@@ -515,6 +518,10 @@ class Orchestrator:
             final_moderation = await scan_code(files)
             validation["moderation"] = final_moderation.to_dict() if final_moderation else None
             validation["csp"] = csp_report.to_dict()
+            # Foundation C: report-only static security scan of the final
+            # files, on build.static_security and validation["static_security"].
+            # No quality effect, no credits, no provider call; never raises.
+            await static_security.attach_report(build, validation, files, static_security_config)
 
             # BUILD_COMPLETE already carries the full final `files` state
             # below -- a trailing FILE_UPDATE re-sending everything as a

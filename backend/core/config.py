@@ -299,6 +299,17 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     app_env: str = "development"
 
+    # --- Foundation C: static security report ---
+    # docs/architecture/agent-collaboration-plan.md §11, §18.2. Off by
+    # default. When on, the generated files are scanned once after the debug
+    # loop (bandit on Python, curated JS/TS and secret rules; see
+    # sandbox/static_security.py) and the report is attached to the build.
+    # Report-only: no quality effect, no credits, no provider call; a scanner
+    # error or timeout is recorded as skipped. Read once when a build
+    # attempt starts.
+    static_security_report: bool = False
+    static_security_bandit_timeout_s: float = 20.0
+
     @model_validator(mode="after")
     def validate_production_billing(self):
         """Fail at process startup instead of failing during customer checkout."""
