@@ -384,11 +384,12 @@ class AIGateway:
                 hits = _detect_blocked_content(final_text, categories)
                 if hits:
                     _block(hits, tier="dtier")
-            if not response.guardrail_blocked:
-                if validation["valid"]:
-                    response.structured_data = validation["data"]
-                else:
-                    response.structured_output_errors = validation["errors"]
+            if response.guardrail_blocked:
+                response.structured_output_errors = ["blocked_by_guardrail"]
+            elif validation["valid"]:
+                response.structured_data = validation["data"]
+            else:
+                response.structured_output_errors = validation["errors"]
         elif request.structured_output_schema is not None:
             response.structured_output_errors = ["blocked_by_guardrail"]
 

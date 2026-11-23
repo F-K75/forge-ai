@@ -61,6 +61,8 @@ def _everything_on(harness):
 
 
 def _run_byok_build(monkeypatch, flags, *, db=None):
+    global _SHADOW_BEFORE
+    _SHADOW_BEFORE = set(_inflight())
     db = db or _db()
     patch_infra(monkeypatch, db)
     set_flags(monkeypatch, guardrail_monthly_usd=50.0, openai_api_key="sk-forge-embeddings", **flags)
@@ -73,10 +75,19 @@ def _run_byok_build(monkeypatch, flags, *, db=None):
     return result, trip, forge, guardrail, db
 
 
-def _settle_shadow_tasks():
+_SHADOW_BEFORE: set = set()
+
+
+def _inflight():
     import core.specialist_shadow as shadow_module
 
     return list(shadow_module._inflight_tasks)
+
+
+def _settle_shadow_tasks():
+    """Shadow tasks enqueued by this build (other tests' Forge builds may
+    leave their own shadow task in flight on the worker loop)."""
+    return [t for t in _inflight() if t not in _SHADOW_BEFORE]
 
 
 # --------------------------------------------------------------------------- #

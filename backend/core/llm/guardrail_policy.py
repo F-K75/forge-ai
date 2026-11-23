@@ -170,3 +170,19 @@ def guardrail_model_config(config: Mapping[str, Any]) -> Dict[str, Any]:
     config). Never the calling agent's model (F26)."""
     entry = config.get("guardrail_screen") if isinstance(config, Mapping) else None
     return dict(entry) if isinstance(entry, Mapping) else {}
+
+
+def validate_guardrail_model_config(config: Mapping[str, Any]) -> None:
+    """Startup check (§4.6): the L-tier model must be explicitly priced in
+    ``MODEL_COSTS``. Raises ``GuardrailPolicyError`` otherwise. At run time an
+    unpriced model already makes the screen not run (unverified when
+    required); calling this at app startup turns the misconfiguration into a
+    refusal to start."""
+    from core.ai_usage import is_priced_model
+
+    entry = guardrail_model_config(config)
+    model = entry.get("model")
+    if not entry.get("provider") or not model:
+        raise GuardrailPolicyError("guardrail_screen needs a provider and a model")
+    if not is_priced_model(model):
+        raise GuardrailPolicyError(f"guardrail_screen model {model!r} has no MODEL_COSTS entry")

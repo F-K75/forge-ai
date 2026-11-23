@@ -589,3 +589,27 @@ def test_cost_regression_guard(monkeypatch, policy, expected):
     if policy is not None:
         report = db.builds.docs[0]["guardrail_report"]
         assert report["artifacts"] == 16 and report["ltier_calls"] == 16
+
+
+def test_guardrail_model_must_be_priced():
+    from core.llm.config import DEFAULT_LLM_CONFIG
+    from core.llm.guardrail_policy import validate_guardrail_model_config
+
+    validate_guardrail_model_config(DEFAULT_LLM_CONFIG)  # shipped default is priced
+    validate_guardrail_model_config(LLMConfigLoader()._config)  # and so is the committed config
+    with pytest.raises(GuardrailPolicyError):
+        validate_guardrail_model_config({"guardrail_screen": {"provider": "openrouter", "model": "unpriced-x"}})
+    with pytest.raises(GuardrailPolicyError):
+        validate_guardrail_model_config({})
+
+
+@pytest.mark.asyncio
+async def test_unpriced_guardrail_model_never_runs(monkeypatch):
+    gateway, _, guardrail, _ = _gateway(monkeypatch, org_policy=REQUIRED)
+    gateway.router.config_loader._config["guardrail_screen"] = {"provider": "openrouter", "model": "unpriced-x"}
+    response = await gateway.generate(GatewayRequest(
+        agent_name="developeragent", messages=[{"role": "user", "content": "plan"}], org_id="org-1",
+    ))
+    assert guardrail.calls == []
+    assert response.guardrail_outcome["ltier_reason"] == "unpriced_model"
+    assert response.guardrail_unverified
