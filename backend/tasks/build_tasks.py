@@ -12,6 +12,7 @@ from core.metrics import build_outcomes_total, build_duration_seconds, build_cre
 from core.models import Build, BuildStatus, BuildDeadLetter, WSEvent, WSEventType, BuildFile
 from core.orchestrator import BuildCancelled, Orchestrator
 from core.database import get_db
+from core import execution_state
 from core.llm.guardrail_errors import GuardrailBlocked, GuardrailUnavailable
 from core.processing_boundary import (
     PlatformProcessingDenied,
@@ -202,11 +203,17 @@ def run_build(
         effective_existing_files = resumed_files if resumed_files else existing_files
 
         async def emit(event: WSEvent) -> None:
+            if event.type == WSEventType.STREAM_TOKEN:
+                # F3: a token changes no persisted state; only state-changing
+                # events write the build document.
+                await manager.emit(event)
+                return
+            execution_state.sync(build)
             await db.builds.update_one(
                 {"id": build_id},
                 {
                     "$set": {
-                        "status": build.status,
+                        **execution_state.state_fields(build),
                         "agents": [a.model_dump() for a in build.agents],
                         "credits_used": build.credits_used,
                         "business_model": build.business_model,
@@ -274,6 +281,7 @@ def run_build(
                 persist_files=persist_files,
                 reserved_credits=reserved_credits,
             )
+            execution_state.sync(build)
             await db.builds.update_one({"id": build_id}, {"$set": {**build.model_dump(), **_guardrail_fields()}})
 
             if files:
@@ -323,9 +331,14 @@ def run_build(
                     {"$inc": {"credits": refund}}
                 )
 
+            execution_state.set_status(build, BuildStatus.FAILED, reason="timeout")
             await db.builds.update_one(
                 {"id": build_id},
-                {"$set": {"status": BuildStatus.FAILED.value, "error": "Build exceeded maximum allowed time", "credits_used": used}}
+                {"$set": {
+                    **execution_state.state_fields(build),
+                    "error": "Build exceeded maximum allowed time",
+                    "credits_used": used,
+                }}
             )
             build_duration_seconds.observe(time.monotonic() - start_time)
             build_outcomes_total.labels(status="timeout").inc()
@@ -381,7 +394,11 @@ def run_build(
                     {"$inc": {"credits": refund}}
                 )
 
-            failure = {"status": BuildStatus.FAILED.value, "error": str(e), "credits_used": used}
+            execution_state.set_status(
+                build, BuildStatus.FAILED,
+                reason=failure_reason or ("cancelled" if isinstance(e, BuildCancelled) else "exception"),
+            )
+            failure = {**execution_state.state_fields(build), "error": str(e), "credits_used": used}
             if failure_reason == BYOK_NO_AUTO_RETRY:
                 failure["error"] = (
                     f"{e} (not retried: automatic retries on your own provider key are off)"
@@ -420,10 +437,11 @@ async def _terminate_interrupted_byok(db, build: Build, user: Optional[dict], re
     message = (
         "Build was interrupted and was not re-run automatically on your own provider key"
     )
+    execution_state.set_status(build, BuildStatus.FAILED, reason=BYOK_INTERRUPTED)
     await db.builds.update_one(
         {"id": build.id},
         {"$set": {
-            "status": BuildStatus.FAILED.value,
+            **execution_state.state_fields(build),
             "error": message,
             "failure_reason": BYOK_INTERRUPTED,
             "credits_used": used,
@@ -452,10 +470,15 @@ def update_build_status(build_id: str, status: str, error: Optional[str] = None)
 
     async def _update():
         db = await get_db()
-        update_doc = {"status": status}
-        if error:
-            update_doc["error"] = error
-        await db.builds.update_one({"id": build_id}, {"$set": update_doc})
+        current = await db.builds.find_one({"id": build_id}, {"_id": 0, "status": 1, "build_status": 1}) or {}
+        previous = current.get("build_status") or (
+            execution_state.canonical_for(current["status"]) if current.get("status") else None
+        )
+        extra = {"error": error} if error else {}
+        await db.builds.update_one(
+            {"id": build_id},
+            execution_state.transition_update(previous, status, reason="status_update", extra_set=extra),
+        )
         return {"status": "updated"}
 
     return _run_async(_update())

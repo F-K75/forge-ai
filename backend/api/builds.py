@@ -25,6 +25,7 @@ from core.models import (
 )
 from core.orchestrator import Orchestrator, MAX_DEBUG_ITERATIONS
 from core.database import get_db
+from core import execution_state
 from core.processing_boundary import snapshot_boundary
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager, authenticate_websocket_token
@@ -254,6 +255,7 @@ async def create_build(
             status=BuildStatus.PENDING,
             interactive=req.interactive,
         )
+        execution_state.admit(build)
 
         # Omit idempotency_key entirely when unset rather than writing null --
         # the unique index on (user_id, idempotency_key) is only partial over
@@ -293,11 +295,12 @@ async def create_build(
             # The row exists but no worker will ever pick it up; leaving it
             # "pending" makes the UI show a build that never progresses and
             # trips the duplicate-build guard on the next attempt.
+            execution_state.set_status(build, BuildStatus.FAILED, reason="dispatch_failed")
             await db.builds.update_one(
                 {"id": build_inserted_id},
                 {
                     "$set": {
-                        "status": BuildStatus.FAILED.value,
+                        **execution_state.state_fields(build),
                         "error": "Build could not be dispatched to a worker",
                         "completed_at": utcnow(),
                     }
@@ -319,7 +322,7 @@ async def create_build(
             )
         raise
 
-    return {"build_id": build.id, "status": build.status}
+    return {"build_id": build.id, "status": build.status, "build_status": build.build_status}
 
 
 async def _get_prior_build_context(db, project_id: str):
@@ -452,6 +455,7 @@ async def rollback_build(
         status=BuildStatus.SUCCESS,
         completed_at=utcnow(),
     )
+    execution_state.admit(rollback_build_record, reason="rollback")
     await db.builds.insert_one(rollback_build_record.model_dump())
 
     if files_dict:

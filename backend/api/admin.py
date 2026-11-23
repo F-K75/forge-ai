@@ -496,6 +496,10 @@ async def retry_dead_letter_build(
     build_doc = await db.builds.find_one({"id": build_id})
     if not build_doc:
         raise HTTPException(status_code=404, detail="Build not found")
+    if build_doc.get("schema_version") == 2:
+        # A ledger build settled through T2/T3 when it ended; re-running it in
+        # place would reserve outside T1. The user starts a new build instead.
+        raise HTTPException(status_code=409, detail="Ledger builds are not re-run in place; start a new build")
 
     project = await db.projects.find_one({"id": build_doc["project_id"], "deleted_at": None})
     if not project:
@@ -512,18 +516,23 @@ async def retry_dead_letter_build(
     if not reserved:
         raise HTTPException(status_code=402, detail="Insufficient credits to retry build")
 
+    from core import execution_state
+
+    previous = build_doc.get("build_status") or execution_state.canonical_for(build_doc.get("status"))
     await db.builds.update_one(
         {"id": build_id},
-        {"$set": {
-            "status": BuildStatus.PENDING.value,
-            "agents": [],
-            "credits_used": 0,
-            "context_tokens": 0,
-            "debug_iterations": 0,
-            "error": None,
-            "completed_at": None,
-            "business_model": None,
-        }}
+        execution_state.transition_update(
+            previous, BuildStatus.PENDING, reason="admin_retry",
+            extra_set={
+                "agents": [],
+                "credits_used": 0,
+                "context_tokens": 0,
+                "debug_iterations": 0,
+                "error": None,
+                "completed_at": None,
+                "business_model": None,
+            },
+        ),
     )
 
     await db.build_dead_letters.delete_one({"build_id": build_id})

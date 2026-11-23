@@ -229,6 +229,10 @@ class AgentStep(BaseModel):
     # Persistent agent_registry.AgentProfile.id this step ran as, so its
     # outcome can be recorded against that agent's running stats/ownership.
     agent_profile_id: Optional[str] = None
+    # A1 ledger builds: the operation this step committed (W7) and how it
+    # ended (completed | failed | refused | interrupted | no_change).
+    operation_id: Optional[str] = None
+    outcome: Optional[str] = None
 
 
 class AgentMessageStatus(str, Enum):
@@ -488,8 +492,32 @@ class Build(BaseModel):
     # $inc directly in Mongo, and the completion path $sets the whole model,
     # so a declared field would write back a stale count and could let a
     # redelivered BYOK task run again on the customer's key (U1, BY-6).
+    #
+    # A1 (plan §15.1, C10): canonical execution state, written in the same
+    # update as `status` (core/execution_state.py). Derived from `status`
+    # for documents written before it existed.
+    build_status: Optional[str] = None
+    execution_transitions: List[Dict[str, Any]] = []
+    # A1 ledger builds (schema_version 2) also carry `funding`, `ledger`,
+    # `settlement`, `attempt_token`, `lease_expires_at`, `recovery_enqueues`,
+    # `token_meters` and `retry_scheduled_until`. They are deliberately NOT
+    # declared here, for the same reason as the BYOK counters above: they are
+    # changed only by guarded single-document updates and transactions
+    # (core/build_ledger.py, core/credit_ledger.py), never by a whole-model
+    # $set. `quality` (incomplete_stages written by A1 for ceiling and quota
+    # stops; the status is B2's) is declared so it survives the final write.
+    schema_version: int = 1
+    quality: Optional[Dict[str, Any]] = None
     created_at: datetime = Field(default_factory=utcnow)
     completed_at: Optional[datetime] = None
+
+    @model_validator(mode="after")
+    def _derive_build_status(self) -> "Build":
+        if self.build_status is None:
+            from core.execution_state import canonical_for
+
+            self.build_status = canonical_for(self.status)
+        return self
 
 
 class BuildFile(BaseModel):
