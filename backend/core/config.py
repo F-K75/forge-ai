@@ -333,6 +333,48 @@ class Settings(BaseSettings):
     # Upper bound on the N a user may choose for `byok_auto_retry` (X4).
     byok_auto_retry_max_cap: int = 3
 
+    # --- A1: build ledger, transactions, recovery -------------------------
+    # (docs/architecture/agent-collaboration-plan.md §8, §10, §13, §18.2).
+    # Both flags default off. With `ledger_v2` off new builds are admitted,
+    # charged and settled exactly as before; a build admitted with it on
+    # (schema_version 2) always finishes on the ledger path, whatever the
+    # flag says later (§18.1 rule 4).
+    ledger_v2: bool = False
+    # C2 exemption from the interactive daily token budget for calls bound
+    # to a live ledger operation. Stays off until U4 and U5 values are set
+    # and QT-1..QT-5 pass on staging (§13.3, §18.3 step 9).
+    build_token_exemption: bool = False
+    # N of the reservation formula (§13.1); the orchestrator's debug loop
+    # bound. Read by core/pricing.py, never hard-coded there.
+    max_debug_iterations: int = 3
+    # Lease, heartbeat and sweeper (§8.7; defaults 90 s / 30 s / 5 min).
+    ledger_lease_seconds: int = 90
+    ledger_heartbeat_seconds: int = 30
+    ledger_sweeper_interval_seconds: int = 300
+    # A lease must have been expired this long before the sweeper acts.
+    ledger_sweeper_grace_seconds: int = 120
+    # A RESERVED build no worker ever leased (broker loss) is released
+    # after this long.
+    ledger_dispatch_timeout_seconds: int = 900
+    # Model-output failures (unusable output after the in-dispatch repair)
+    # get this many Celery retries per stage_key on the Forge credential
+    # (U13), then count as non-transient.
+    ledger_model_output_retries_per_stage: int = 1
+    # Journal backstop TTL (§8.5, X1: deleted at W7; 24 h at most).
+    llm_journal_ttl_seconds: int = 24 * 3600
+    # Quotas (§13.3, U4, U5). Unset means "no limit" (built and recorded).
+    # Plan daily build limits, e.g. {"free": 3, "standard": 20}; counted
+    # inside the T1 admission transaction.
+    plan_daily_build_limits: Dict[str, int] = {}
+    # Per-build token ceilings for the `generation` meter (generation,
+    # free_grant, customer_provider) and the `platform` meter (recovery,
+    # guardrail).
+    build_generation_token_ceiling: "int | None" = None
+    build_platform_token_ceiling: "int | None" = None
+    # Per-operation (per-agent) token ceilings keyed by base stage
+    # (architect, developer, pm, debug, clarification, ...).
+    operation_token_ceilings: Dict[str, int] = {}
+
     @model_validator(mode="after")
     def validate_production_billing(self):
         """Fail at process startup instead of failing during customer checkout."""

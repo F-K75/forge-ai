@@ -34,7 +34,8 @@ from harness.models import TestCase, TestSuite
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-MAX_DEBUG_ITERATIONS = 3
+# N of the reservation formula (core/pricing.py); 3 with the shipped settings.
+MAX_DEBUG_ITERATIONS = settings.max_debug_iterations
 
 # Best-effort harness evaluation after each agent step.
 ENABLE_LOOP_ENGINEERING = True
