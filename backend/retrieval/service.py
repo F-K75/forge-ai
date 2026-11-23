@@ -27,6 +27,10 @@ def _split_text(text: str) -> List[str]:
     return chunks
 
 
+class RetrievalScopeError(ValueError):
+    """A retrieval request without the tenant scope it requires."""
+
+
 def _chunk_id(source_id: str, index: int) -> str:
     return hashlib.sha256(f"{source_id}:{index}".encode("utf-8")).hexdigest()
 
@@ -88,23 +92,65 @@ class SemanticRetriever:
         self,
         query: str,
         *,
+        org_id: str,
+        project_id: str,
         top_k: int = 5,
         source_types: Optional[List[SourceType]] = None,
-        org_id: Optional[str] = None,
-        project_id: Optional[str] = None,
         keyword_filter: Optional[str] = None,
         min_score: float = 0.0,
     ) -> List[RetrievedChunk]:
-        """Return the top-k most relevant chunks for `query`. Combines
-        vector similarity with an optional keyword filter (hybrid search):
-        `keyword_filter` narrows the candidate set to chunks containing
-        that substring before ranking by cosine similarity, rather than
-        blending two separate scores -- simpler and avoids needing a
-        weighting knob between the two signals.
+        """Return the top-k most relevant chunks for `query` within one
+        organization's project. Combines vector similarity with an optional
+        keyword filter (hybrid search): `keyword_filter` narrows the
+        candidate set to chunks containing that substring before ranking by
+        cosine similarity, rather than blending two separate scores --
+        simpler and avoids needing a weighting knob between the two signals.
 
-        Returns an empty list (not an error) if embeddings are unavailable,
-        so callers can always treat retrieval as best-effort context
-        enrichment."""
+        `org_id` and `project_id` are mandatory (BY-10, F28): an unscoped
+        search would rank every organization's indexed sources. Missing ids
+        raise `RetrievalScopeError` before anything is embedded.
+
+        Returns an empty list (not an error) if embeddings are unavailable or
+        not permitted by the processing boundary, so callers can always
+        treat retrieval as best-effort context enrichment."""
+        if not org_id or not project_id:
+            raise RetrievalScopeError("semantic retrieval requires both org_id and project_id")
+        return await self._search(
+            query, top_k=top_k, source_types=source_types, org_id=org_id,
+            project_id=project_id, keyword_filter=keyword_filter, min_score=min_score,
+        )
+
+    async def retrieve_org_wide(
+        self,
+        query: str,
+        *,
+        org_id: str,
+        top_k: int = 5,
+        source_types: Optional[List[SourceType]] = None,
+        keyword_filter: Optional[str] = None,
+        min_score: float = 0.0,
+    ) -> List[RetrievedChunk]:
+        """Organization-wide knowledge-base search for the authenticated,
+        membership-checked `/api/retrieval/search` endpoint. Still
+        tenant-scoped: `org_id` is mandatory. Never used by the build path."""
+        if not org_id:
+            raise RetrievalScopeError("org-wide retrieval requires org_id")
+        return await self._search(
+            query, top_k=top_k, source_types=source_types, org_id=org_id,
+            project_id=None, keyword_filter=keyword_filter, min_score=min_score,
+        )
+
+    async def _search(
+        self,
+        query: str,
+        *,
+        top_k: int,
+        source_types: Optional[List[SourceType]],
+        org_id: str,
+        project_id: Optional[str],
+        keyword_filter: Optional[str],
+        min_score: float,
+    ) -> List[RetrievedChunk]:
         from retrieval.embeddings import EmbeddingUnavailable
 
         try:

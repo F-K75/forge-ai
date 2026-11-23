@@ -34,6 +34,16 @@ DEFAULT_LLM_CONFIG: Dict[str, Any] = {
         # agent can widen coverage but can't silently disable the safety
         # floor by omitting a baseline category.
         "blocked_categories": None,
+        # An optional `guardrail` sub-block holds the guardrail v2 policy
+        # (core/llm/guardrail_policy.py). Absent = the shipped default:
+        # D-tier everywhere, L-tier off (§4.4).
+    },
+    # Dedicated model for the output L-tier screen (§4.2): one bounded call
+    # per artifact on a lower-cost, explicitly priced model -- never the
+    # calling agent's own model (F26). Overridable in config/llm.yaml.
+    "guardrail_screen": {
+        "provider": "openrouter",
+        "model": "anthropic/claude-haiku-4.5",
     },
 }
 

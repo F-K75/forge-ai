@@ -25,6 +25,7 @@ from core.models import (
 )
 from core.orchestrator import Orchestrator, MAX_DEBUG_ITERATIONS
 from core.database import get_db
+from core.processing_boundary import snapshot_boundary
 from sandbox.runner import SandboxRunner
 from services.ws_manager import manager, authenticate_websocket_token
 from tasks.build_tasks import run_build
@@ -262,6 +263,12 @@ async def create_build(
         build_dict = build.model_dump()
         if build_dict.get("idempotency_key") is None:
             build_dict.pop("idempotency_key", None)
+
+        # A2 (§5.2, BY-7): snapshot the processing boundary at admission.
+        # Consents granted after this point never widen this build; a
+        # revocation narrows it at its next operation.
+        boundary = await snapshot_boundary(db, current_user.id)
+        build_dict["processing_boundary"] = boundary.to_doc()
 
         await db.builds.insert_one(build_dict)
         build_inserted_id = build.id

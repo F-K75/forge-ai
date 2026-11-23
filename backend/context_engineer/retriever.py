@@ -56,6 +56,10 @@ class ContextRetriever:
         task: str,
         sources: Optional[List[ContextSource]] = None,
         max_chunks_per_source: int = 5,
+        *,
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        build_path: bool = False,
     ) -> RetrievalResult:
         """Retrieve context chunks for a role and task.
 
@@ -64,11 +68,21 @@ class ContextRetriever:
             task: The current task description.
             sources: List of sources to query. Defaults to all sources.
             max_chunks_per_source: Max chunks to return per source.
+            org_id / project_id: tenant scope for semantic retrieval. Without
+                both, semantic retrieval is skipped (BY-10).
+            build_path: True for agent context assembly during a build.
+                Semantic retrieval there is disabled unless the
+                `build_path_retrieval` flag is on (F28); when on, it is
+                tenant-scoped and the embedding call passes the processing
+                boundary (BYOK content needs consent).
 
         Returns:
             RetrievalResult with chunks from all queried sources.
         """
         start = time.perf_counter()
+        # Passed explicitly, never stored on the instance: the assembler and
+        # this retriever are shared by every concurrent build.
+        scope = self._semantic_scope_for(org_id, project_id, build_path)
 
         if sources is None:
             sources = [
@@ -86,7 +100,7 @@ class ContextRetriever:
         sources_used: List[ContextSource] = []
 
         for source in sources:
-            chunks = await self._query_source(source, role, task, max_chunks_per_source)
+            chunks = await self._query_source(source, role, task, max_chunks_per_source, scope=scope)
             if chunks:
                 all_chunks.extend(chunks)
                 sources_used.append(source)
@@ -102,12 +116,39 @@ class ContextRetriever:
             sources_used=sources_used,
         )
 
+    @staticmethod
+    def _semantic_scope_for(
+        org_id: Optional[str], project_id: Optional[str], build_path: bool
+    ) -> Optional[Dict[str, str]]:
+        """The scope semantic retrieval may run under, or None to skip it."""
+        if not _SEMANTIC_AVAILABLE or not org_id or not project_id:
+            return None
+        if build_path:
+            from core.config import get_settings
+
+            if not get_settings().build_path_retrieval:
+                return None
+        return {"org_id": org_id, "project_id": project_id}
+
+    async def _semantic(self, task: str, max_chunks: int, source_type, scope: Optional[Dict[str, str]]) -> list:
+        if scope is None:
+            return []
+        try:
+            semantic = _get_semantic_retriever()
+            return await semantic.retrieve(
+                task, top_k=max_chunks, source_types=[source_type],
+                org_id=scope["org_id"], project_id=scope["project_id"],
+            )
+        except Exception:
+            return []
+
     async def _query_source(
         self,
         source: ContextSource,
         role: str,
         task: str,
         max_chunks: int,
+        scope: Optional[Dict[str, str]] = None,
     ) -> List[ContextChunk]:
         """Query a single source for context chunks.
 
@@ -124,7 +165,7 @@ class ContextRetriever:
         if handler is None:
             return []
 
-        return await handler(role, task, max_chunks)
+        return await handler(role, task, max_chunks, scope=scope)
 
     def _get_handler(self, source: ContextSource):
         handlers = {
@@ -140,7 +181,7 @@ class ContextRetriever:
         return handlers.get(source)
 
     async def _get_project_state(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve project state context (tech stack, architecture, tasks)."""
         return [
@@ -154,30 +195,22 @@ class ContextRetriever:
         ][:max_chunks]
 
     async def _get_file_contents(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve relevant file contents, using the real semantic retriever
         when available."""
-        if _SEMANTIC_AVAILABLE:
-            try:
-                semantic = _get_semantic_retriever()
-                results = await semantic.retrieve(
-                    task, top_k=max_chunks,
-                    source_types=[_RetrievalSourceType.CODE],
+        results = await self._semantic(task, max_chunks, _RetrievalSourceType.CODE, scope) if _SEMANTIC_AVAILABLE else []
+        if results:
+            return [
+                ContextChunk(
+                    chunk_id=r.id,
+                    source=ContextSource.FILE_CONTENT,
+                    content=r.text,
+                    priority=7,
+                    score=r.score,
                 )
-                if results:
-                    return [
-                        ContextChunk(
-                            chunk_id=r.id,
-                            source=ContextSource.FILE_CONTENT,
-                            content=r.text,
-                            priority=7,
-                            score=r.score,
-                        )
-                        for r in results
-                    ]
-            except Exception:
-                pass
+                for r in results
+            ]
         return [
             ContextChunk(
                 chunk_id=f"file-{role}-{i}",
@@ -190,7 +223,7 @@ class ContextRetriever:
         ]
 
     async def _get_previous_outputs(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve outputs from previous agent runs."""
         return [
@@ -204,30 +237,22 @@ class ContextRetriever:
         ][:max_chunks]
 
     async def _get_knowledge_base(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve knowledge base entries, using the real semantic retriever
         for documentation when available."""
-        if _SEMANTIC_AVAILABLE:
-            try:
-                semantic = _get_semantic_retriever()
-                results = await semantic.retrieve(
-                    task, top_k=max_chunks,
-                    source_types=[_RetrievalSourceType.DOCUMENTATION],
+        results = await self._semantic(task, max_chunks, _RetrievalSourceType.DOCUMENTATION, scope) if _SEMANTIC_AVAILABLE else []
+        if results:
+            return [
+                ContextChunk(
+                    chunk_id=r.id,
+                    source=ContextSource.KNOWLEDGE_BASE,
+                    content=r.text,
+                    priority=5,
+                    score=r.score,
                 )
-                if results:
-                    return [
-                        ContextChunk(
-                            chunk_id=r.id,
-                            source=ContextSource.KNOWLEDGE_BASE,
-                            content=r.text,
-                            priority=5,
-                            score=r.score,
-                        )
-                        for r in results
-                    ]
-            except Exception:
-                pass
+                for r in results
+            ]
         return [
             ContextChunk(
                 chunk_id=f"kb-{role}-{i}",
@@ -240,29 +265,21 @@ class ContextRetriever:
         ]
 
     async def _get_similar_tasks(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve similar past tasks from conversation history when available."""
-        if _SEMANTIC_AVAILABLE:
-            try:
-                semantic = _get_semantic_retriever()
-                results = await semantic.retrieve(
-                    task, top_k=max_chunks,
-                    source_types=[_RetrievalSourceType.CONVERSATION],
+        results = await self._semantic(task, max_chunks, _RetrievalSourceType.CONVERSATION, scope) if _SEMANTIC_AVAILABLE else []
+        if results:
+            return [
+                ContextChunk(
+                    chunk_id=r.id,
+                    source=ContextSource.SIMILAR_TASKS,
+                    content=r.text,
+                    priority=4,
+                    score=r.score,
                 )
-                if results:
-                    return [
-                        ContextChunk(
-                            chunk_id=r.id,
-                            source=ContextSource.SIMILAR_TASKS,
-                            content=r.text,
-                            priority=4,
-                            score=r.score,
-                        )
-                        for r in results
-                    ]
-            except Exception:
-                pass
+                for r in results
+            ]
         return [
             ContextChunk(
                 chunk_id=f"sim-{role}",
@@ -274,7 +291,7 @@ class ContextRetriever:
         ][:max_chunks]
 
     async def _get_documentation(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve documentation relevant to the task."""
         return [
@@ -288,7 +305,7 @@ class ContextRetriever:
         ][:max_chunks]
 
     async def _get_workspace_config(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve workspace configuration context."""
         return [
@@ -302,7 +319,7 @@ class ContextRetriever:
         ][:max_chunks]
 
     async def _get_agent_memory(
-        self, role: str, task: str, max_chunks: int
+        self, role: str, task: str, max_chunks: int, scope: Optional[Dict[str, str]] = None
     ) -> List[ContextChunk]:
         """Retrieve learned patterns from agent memory."""
         return [

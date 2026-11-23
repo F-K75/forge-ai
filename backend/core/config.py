@@ -310,6 +310,29 @@ class Settings(BaseSettings):
     static_security_report: bool = False
     static_security_bandit_timeout_s: float = 20.0
 
+    # --- A2: provider accounting, guardrail v2, BYOK isolation ------------
+    # (docs/architecture/agent-collaboration-plan.md §4, §5, §15.2, §18.2).
+    # Rollout flags. All default off; see §18.2 for what each rollback
+    # keeps. The BYOK processing boundary itself is NOT a flag (§18.1).
+    guardrail_v2: bool = False
+    unified_usage_recording: bool = False
+    build_path_retrieval: bool = False
+    # L-tier (one bounded LLM screen per artifact) limits, §4.2 / §4.6.
+    guardrail_llm_max_input_tokens: int = 8000
+    guardrail_llm_max_output_tokens: int = 16
+    guardrail_llm_timeout_seconds: float = 20.0
+    # Unset means the L-tier cannot run at all (X12 interim default).
+    guardrail_monthly_usd: "float | None" = None
+    # 16 artifacts x the per-call worst case at the input cap (§4.6).
+    guardrail_per_build_usd: float = 0.11
+    # D-tier stream window; the scan overlap is derived from the patterns.
+    guardrail_dtier_window_chars: int = 400
+    # Version of the data-use policy text a consent was captured against.
+    # A consent recorded under another version does not count (§5.4).
+    processing_policy_version: str = "2026-11"
+    # Upper bound on the N a user may choose for `byok_auto_retry` (X4).
+    byok_auto_retry_max_cap: int = 3
+
     @model_validator(mode="after")
     def validate_production_billing(self):
         """Fail at process startup instead of failing during customer checkout."""

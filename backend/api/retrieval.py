@@ -70,12 +70,21 @@ async def delete_source(
 async def search(request: SearchRequest, user: User = Depends(get_current_user)) -> Dict[str, Any]:
     await _require_org_membership(user, request.org_id)
     retriever = get_semantic_retriever()
-    results = await retriever.retrieve(
-        request.query,
-        top_k=request.top_k,
-        source_types=request.source_types,
-        org_id=request.org_id,
-        project_id=request.project_id,
-        keyword_filter=request.keyword_filter,
-    )
+    if request.project_id:
+        results = await retriever.retrieve(
+            request.query,
+            top_k=request.top_k,
+            source_types=request.source_types,
+            org_id=request.org_id,
+            project_id=request.project_id,
+            keyword_filter=request.keyword_filter,
+        )
+    else:
+        results = await retriever.retrieve_org_wide(
+            request.query,
+            top_k=request.top_k,
+            source_types=request.source_types,
+            org_id=request.org_id,
+            keyword_filter=request.keyword_filter,
+        )
     return {"results": [r.model_dump(mode="json") for r in results]}

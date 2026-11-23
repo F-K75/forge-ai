@@ -56,6 +56,10 @@ class ContextAssembler:
         user_request: str = "",
         previous_outputs: Optional[Dict[str, str]] = None,
         extra_state: Optional[ProjectStateSlice] = None,
+        *,
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        build_path: bool = False,
     ) -> PromptContext:
         """Assemble a complete PromptContext from all available sources.
 
@@ -70,6 +74,8 @@ class ContextAssembler:
             user_request: Raw user request text.
             previous_outputs: Dict of previous agent outputs (role -> output).
             extra_state: Additional project state to include.
+            org_id / project_id / build_path: tenant scope and build-path
+                marker for semantic retrieval (see ContextRetriever.retrieve).
 
         Returns:
             A fully populated PromptContext ready for prompt_builder.build().
@@ -82,6 +88,9 @@ class ContextAssembler:
             task=task,
             sources=cfg.sources[:cfg.max_sources],
             max_chunks_per_source=5,
+            org_id=org_id,
+            project_id=project_id,
+            build_path=build_path,
         )
 
         # 2. Score for relevance

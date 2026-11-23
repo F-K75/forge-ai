@@ -35,6 +35,7 @@ from api.agent_executions import router as agent_executions_router
 from api.llm import router as llm_router
 from api.optimizer import router as optimizer_router
 from api.org_llm_policy import router as org_llm_policy_router
+from api.data_use_consents import router as data_use_consents_router
 from api.budget import router as budget_router
 from api.retrieval import router as retrieval_router
 from api.engineering import router as engineering_router
@@ -349,6 +350,7 @@ app.include_router(agent_executions_router)
 app.include_router(llm_router)
 app.include_router(optimizer_router)
 app.include_router(org_llm_policy_router)
+app.include_router(data_use_consents_router)
 app.include_router(budget_router)
 app.include_router(retrieval_router)
 app.include_router(engineering_router)

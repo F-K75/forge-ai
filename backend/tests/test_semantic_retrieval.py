@@ -75,6 +75,12 @@ def fake_index(monkeypatch):
     return SemanticIndex()
 
 
+# SemanticRetriever.retrieve requires a tenant scope (BY-10, see
+# tests/test_retrieval_scoping.py), so chunks are indexed and searched
+# within one org's project.
+_SCOPE = {"org_id": "org-1", "project_id": "proj-1"}
+
+
 def _fake_embed(vector_by_text):
     async def embed_texts(texts):
         return [vector_by_text[t] for t in texts]
@@ -124,10 +130,10 @@ async def test_retrieve_ranks_by_cosine_similarity(fake_index, monkeypatch):
     monkeypatch.setattr("retrieval.service.embed_text", embed_text)
 
     retriever = SemanticRetriever(index=fake_index)
-    await retriever.index_source(source_type=SourceType.DOCUMENTATION, source_id="doc-a", text="python async patterns")
-    await retriever.index_source(source_type=SourceType.DOCUMENTATION, source_id="doc-b", text="how to bake bread")
+    await retriever.index_source(source_type=SourceType.DOCUMENTATION, source_id="doc-a", text="python async patterns", **_SCOPE)
+    await retriever.index_source(source_type=SourceType.DOCUMENTATION, source_id="doc-b", text="how to bake bread", **_SCOPE)
 
-    results = await retriever.retrieve("query about async python", top_k=2)
+    results = await retriever.retrieve("query about async python", top_k=2, **_SCOPE)
 
     assert results[0].source_id == "doc-a"
     assert results[0].score > results[1].score
@@ -141,7 +147,7 @@ async def test_retrieve_returns_empty_when_embeddings_unavailable(fake_index, mo
     monkeypatch.setattr("retrieval.service.embed_text", raising_embed_text)
 
     retriever = SemanticRetriever(index=fake_index)
-    results = await retriever.retrieve("anything")
+    results = await retriever.retrieve("anything", **_SCOPE)
 
     assert results == []
 
@@ -158,10 +164,10 @@ async def test_retrieve_filters_by_source_type_and_keyword(fake_index, monkeypat
     monkeypatch.setattr("retrieval.service.embed_text", embed_text)
 
     retriever = SemanticRetriever(index=fake_index)
-    await retriever.index_source(source_type=SourceType.CODE, source_id="src-1", text="django orm tips")
-    await retriever.index_source(source_type=SourceType.DOCUMENTATION, source_id="doc-1", text="flask routing tips")
+    await retriever.index_source(source_type=SourceType.CODE, source_id="src-1", text="django orm tips", **_SCOPE)
+    await retriever.index_source(source_type=SourceType.DOCUMENTATION, source_id="doc-1", text="flask routing tips", **_SCOPE)
 
-    results = await retriever.retrieve("query", source_types=[SourceType.CODE], keyword_filter="django")
+    results = await retriever.retrieve("query", source_types=[SourceType.CODE], keyword_filter="django", **_SCOPE)
 
     assert len(results) == 1
     assert results[0].source_id == "src-1"
