@@ -594,3 +594,167 @@ async def test_s0_indexes_include_ttls():
                    ("adjudication_access_log", "at"): 365 * 24 * 3600}
     assert ("adjudication_excerpts", ("finding_id",), {"unique": True}) in calls
     assert ("shadow_reviews", ("id",), {"unique": True}) in calls
+
+
+# --------------------------------------------------------------------------- #
+# Admin adjudication API (PV-2, PV-4, PV-5)
+# --------------------------------------------------------------------------- #
+
+
+def _api(monkeypatch, db, admin_id="admin-1"):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    import api.adjudication as adjudication_api
+
+    async def _get_db():
+        return db
+
+    monkeypatch.setattr(adjudication_api, "get_db", _get_db)
+    app = FastAPI()
+    app.include_router(adjudication_api.router)
+    app.dependency_overrides[adjudication_api.admin_required] = lambda: _admin(admin_id)
+    return TestClient(app)
+
+
+async def _queued(db, finding_id="f1"):
+    from core.adjudication import enqueue_finding_for_adjudication
+
+    return await enqueue_finding_for_adjudication(db, _finding(finding_id))
+
+
+def test_adjudication_routes_are_admin_only():
+    import inspect
+
+    import api.adjudication as adjudication_api
+
+    for route in adjudication_api.router.routes:
+        params = inspect.signature(route.endpoint).parameters
+        assert params["admin"].default.dependency is adjudication_api.admin_required, route.path
+
+
+@pytest.mark.asyncio
+async def test_pv4_default_view_contains_no_full_artifact(monkeypatch):
+    from core.adjudication import VIEW_FIELDS
+
+    db = seeded_db()
+    item = await _queued(db)
+    client = _api(monkeypatch, db)
+    resp = client.get(f"/admin/adjudication/items/{item['id']}")
+    assert resp.status_code == 200
+    view = resp.json()
+    assert set(view) == set(VIEW_FIELDS)
+    text = resp.text
+    # Nothing outside the ±20-line window, no prompt, no unredacted secret.
+    assert "tail_29 = 29" not in text and "line_0 = 0" not in text
+    assert "Build an invoice app" not in text
+    assert "content" not in view and "prompt" not in view
+    assert_no_seeded_secret(view)
+    assert view["redacted_excerpt"].count("\n") == 40
+    assert view["blueprint_fragment"]["pages"][0]["name"] == "Settings"
+    assert "description" not in view["blueprint_fragment"]
+
+    # The full artifact only through the logged expand, and still redacted.
+    resp = client.post(f"/admin/adjudication/items/{item['id']}/expand", json={"purpose": "too short"})
+    assert resp.status_code == 422
+    purpose = "Confirm the key is used at runtime, not only in a test fixture"
+    resp = client.post(f"/admin/adjudication/items/{item['id']}/expand", json={"purpose": purpose})
+    assert resp.status_code == 200
+    expanded = resp.json()
+    assert "tail_29 = 29" in expanded["content"] and expanded["artifact_id"] == "file-1"
+    assert_no_seeded_secret(expanded)
+    resp = client.post(f"/admin/adjudication/items/{item['id']}/expand",
+                       json={"purpose": purpose, "target": "prompt"})
+    assert resp.status_code == 200 and "Build an invoice app" in resp.json()["content"]
+    assert STRIPE_LIVE not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_pv5_every_adjudication_api_read_writes_one_access_log_row(monkeypatch):
+    db = seeded_db()
+    item = await _queued(db)
+    await _queued(db, "f2")
+    client = _api(monkeypatch, db)
+    purpose = "Check whether the flagged line is reachable"
+
+    calls = [
+        ("get", "/admin/adjudication/queue", None, 200),
+        ("get", f"/admin/adjudication/items/{item['id']}", None, 200),
+        ("post", f"/admin/adjudication/items/{item['id']}/expand", {"purpose": purpose}, 200),
+        ("post", f"/admin/adjudication/items/{item['id']}/expand", {"purpose": ""}, 422),
+        ("get", "/admin/adjudication/items/does-not-exist", None, 404),
+        ("post", f"/admin/adjudication/items/{item['id']}/label",
+         {"verdict": "true_positive", "notes": f"real key {AWS_KEY_ID}"}, 200),
+        ("get", "/admin/adjudication/queue?status=labelled", None, 200),
+    ]
+    for i, (method, url, body, status) in enumerate(calls, start=1):
+        resp = getattr(client, method)(url, json=body) if body is not None else getattr(client, method)(url)
+        assert resp.status_code == status, (url, resp.text)
+        assert len(db.adjudication_access_log.docs) == i, url
+
+    rows = db.adjudication_access_log.docs
+    assert [r["action"] for r in rows] == ["list", "view", "expand", "expand", "view", "label", "list"]
+    assert [r["outcome"] for r in rows] == ["granted", "granted", "granted", "invalid", "not_found", "granted",
+                                            "granted"]
+    assert all(r["adjudicator_id"] == "admin-1" and r["at"] for r in rows)
+    view, expand = rows[1], rows[2]
+    assert view["build_id"] == "b1" and view["artifact_id"] == "b1:app/settings.py"
+    assert "redacted_excerpt" in view["fields"] and view["purpose"] is None
+    assert expand["fields"] == ["artifact.content"] and expand["purpose"] == purpose
+    assert expand["artifact_id"] == "file-1"
+    assert sorted(rows[0]["build_ids"]) == ["b1"]
+    # Label stored with redacted notes; the queue now lists it as labelled.
+    [label] = db.finding_adjudications.docs
+    assert label["verdict"] == "true_positive" and AWS_KEY_ID not in label["notes"]
+    assert [i["item_id"] for i in client.get("/admin/adjudication/queue?status=labelled").json()["items"]] == [
+        item["id"]]
+
+
+@pytest.mark.asyncio
+async def test_pv2_revocation_purges_excerpts_and_blocks_new_access(monkeypatch, external_flag):
+    from core.adjudication import enqueue_finding_for_adjudication
+
+    db = seeded_db(internal=False, created_at=utcnow() + timedelta(seconds=5))
+    db.users.docs.append({"id": "u2", "is_internal": True})
+    other = _build("b2", "u2")
+    db.builds.docs.append(other)
+    await grant_consent(db, user_id="u1", scope=SCOPE_HUMAN_QUALITY_REVIEW)
+    item = await _queued(db)
+    assert item["consent_basis"] == "opt_in"
+    other_item = await enqueue_finding_for_adjudication(db, _finding("g1", "b2"), file_content="x = 1")
+    client = _api(monkeypatch, db)
+    assert client.get(f"/admin/adjudication/items/{item['id']}").status_code == 200
+
+    await revoke_consent(db, user_id="u1", scope=SCOPE_HUMAN_QUALITY_REVIEW)
+    # Purged immediately; other users' excerpts untouched.
+    assert [d["id"] for d in db.adjudication_excerpts.docs] == [other_item["id"]]
+    # No new access: the item is gone, the queue no longer lists it, and a
+    # new finding for the same build is not queued.
+    assert client.get(f"/admin/adjudication/items/{item['id']}").status_code == 404
+    assert [i["build_id"] for i in client.get("/admin/adjudication/queue").json()["items"]] == ["b2"]
+    assert await enqueue_finding_for_adjudication(db, _finding("f9")) is None
+    # Every one of those reads was still logged.
+    assert [r["outcome"] for r in db.adjudication_access_log.docs] == ["granted", "not_found", "granted"]
+
+
+@pytest.mark.asyncio
+async def test_pv2_access_is_rechecked_on_every_read(monkeypatch):
+    """Material that is still stored but no longer eligible is refused."""
+    db = seeded_db(internal=True)
+    item = await _queued(db)
+    client = _api(monkeypatch, db)
+    db.users.docs[0]["is_internal"] = False  # changed outside set_user_internal
+    resp = client.get(f"/admin/adjudication/items/{item['id']}")
+    assert resp.status_code == 403
+    assert client.post(f"/admin/adjudication/items/{item['id']}/label",
+                       json={"verdict": "false_positive"}).status_code == 403
+    assert client.get("/admin/adjudication/queue").json()["items"] == []
+    assert [r["outcome"] for r in db.adjudication_access_log.docs] == ["denied", "denied", "granted"]
+    assert db.finding_adjudications.docs == []
+
+    # Through the audited admin path the internal-basis excerpts are purged.
+    from core.quality_review import set_user_internal
+
+    db.users.docs[0]["is_internal"] = True
+    await set_user_internal(db, user_id="u1", is_internal=False, actor=_admin())
+    assert db.adjudication_excerpts.docs == []

@@ -12,6 +12,7 @@ from fastapi import APIRouter
 
 from api.activity import router as activity_router
 from api.admin import router as admin_router
+from api.adjudication import router as adjudication_router
 from api.agent_executions import router as agent_executions_router
 from api.agent_registry import router as agent_registry_router
 from api.analytics import router as analytics_router
@@ -54,6 +55,7 @@ v1_router = APIRouter(prefix="/v1")
 
 v1_router.include_router(activity_router)
 v1_router.include_router(admin_router)
+v1_router.include_router(adjudication_router)
 v1_router.include_router(agent_executions_router)
 v1_router.include_router(agent_registry_router)
 v1_router.include_router(analytics_router)

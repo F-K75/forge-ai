@@ -401,6 +401,244 @@ async def record_access(
 
 
 # --------------------------------------------------------------------------- #
+# Adjudicator reads and writes. Every call writes exactly one access-log row,
+# whatever the outcome (PV-5), and re-checks eligibility (PV-2: a revoked
+# consent or a removed internal flag blocks access at once).
+# --------------------------------------------------------------------------- #
+
+
+async def _eligible_for_human(db, build_id: Optional[str]) -> bool:
+    from core.quality_review import evaluate_review_eligibility
+
+    if not build_id:
+        return False
+    return (await evaluate_review_eligibility(db, build_id)).human_adjudication.allowed
+
+
+def _queue_item(doc: Dict[str, Any]) -> Dict[str, Any]:
+    finding = doc.get("finding") or {}
+    return {
+        "item_id": doc.get("id"),
+        "finding_id": doc.get("finding_id"),
+        "build_id": doc.get("build_id"),
+        "file": doc.get("file"),
+        "line": doc.get("line"),
+        "rule_or_category": finding.get("rule_or_category"),
+        "status": doc.get("status"),
+        "consent_basis": doc.get("consent_basis"),
+        "created_at": doc.get("created_at"),
+        "expires_at": doc.get("expires_at"),
+    }
+
+
+async def list_queue(
+    db, *, adjudicator_id: str, status: str = STATUS_PENDING, limit: int = 50, skip: int = 0, now=None,
+) -> Dict[str, Any]:
+    """Queue items (metadata only: no excerpt, no message). Items whose
+    build is no longer eligible are left out."""
+    if status not in (STATUS_PENDING, STATUS_LABELLED):
+        await record_access(db, adjudicator_id=adjudicator_id, action="list", outcome="invalid", now=now)
+        raise AdjudicationInvalid("status must be pending or labelled")
+    limit = max(1, min(int(limit), 100))
+    skip = max(0, int(skip))
+    now = now or utcnow()
+    cursor = _coll(db, EXCERPTS).find({"status": status}, {"_id": 0}).sort("created_at", 1).skip(skip).limit(limit)
+    docs = await cursor.to_list(limit)
+    eligible: Dict[str, bool] = {}
+    items = []
+    for doc in docs:
+        if doc.get("expires_at") is not None and doc["expires_at"] <= now:
+            continue  # past retention; the TTL monitor has not run yet
+        build_id = doc.get("build_id")
+        if build_id not in eligible:
+            eligible[build_id] = await _eligible_for_human(db, build_id)
+        if eligible[build_id]:
+            items.append(_queue_item(doc))
+    await record_access(
+        db, adjudicator_id=adjudicator_id, action="list", fields=QUEUE_FIELDS,
+        build_ids=sorted({i["build_id"] for i in items if i.get("build_id")}), now=now,
+    )
+    return {"items": items, "count": len(items), "status": status, "limit": limit, "skip": skip}
+
+
+async def _load_item(db, *, adjudicator_id: str, item_id: str, action: str, purpose: Optional[str] = None,
+                     now=None) -> Dict[str, Any]:
+    """The excerpt, if it exists, is within retention and is still
+    eligible. Otherwise logs the refused access and raises."""
+    doc = await _coll(db, EXCERPTS).find_one({"id": item_id}, {"_id": 0})
+    if doc and doc.get("expires_at") is not None and doc["expires_at"] <= (now or utcnow()):
+        doc = None
+    if not doc:
+        await record_access(db, adjudicator_id=adjudicator_id, action=action, item_id=item_id,
+                            purpose=purpose, outcome="not_found", now=now)
+        raise AdjudicationNotFound("Adjudication item not found")
+    if not await _eligible_for_human(db, doc.get("build_id")):
+        await record_access(db, adjudicator_id=adjudicator_id, action=action, item_id=item_id,
+                            build_id=doc.get("build_id"), finding_id=doc.get("finding_id"),
+                            purpose=purpose, outcome="denied", now=now)
+        raise AdjudicationDenied("This build is no longer eligible for human adjudication")
+    return doc
+
+
+def _public_label(label: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not label:
+        return None
+    return {k: label.get(k) for k in ("id", "finding_id", "verdict", "corrected_category", "notes",
+                                      "adjudicator_id", "created_at", "updated_at")}
+
+
+async def view_item(db, *, adjudicator_id: str, item_id: str, now=None) -> Dict[str, Any]:
+    """Default view (PV-4): the finding, the redacted excerpt and the
+    blueprint fragment. Never the full artifact or prompt."""
+    doc = await _load_item(db, adjudicator_id=adjudicator_id, item_id=item_id, action="view", now=now)
+    label = await _coll(db, LABELS).find_one(
+        {"finding_id": doc.get("finding_id"), "adjudicator_id": adjudicator_id}, {"_id": 0},
+    )
+    view = {
+        "item_id": doc.get("id"),
+        "finding": doc.get("finding"),
+        "file": doc.get("file"),
+        "excerpt_start_line": doc.get("excerpt_start_line"),
+        "excerpt_end_line": doc.get("excerpt_end_line"),
+        "redacted_excerpt": doc.get("redacted_excerpt"),
+        "blueprint_fragment": doc.get("blueprint_fragment") or {},
+        "redaction_report": doc.get("redaction_report") or {},
+        "consent_basis": doc.get("consent_basis"),
+        "status": doc.get("status"),
+        "created_at": doc.get("created_at"),
+        "expires_at": doc.get("expires_at"),
+        "my_label": _public_label(label),
+    }
+    await record_access(
+        db, adjudicator_id=adjudicator_id, action="view", item_id=item_id, build_id=doc.get("build_id"),
+        finding_id=doc.get("finding_id"), artifact_id=_artifact_id(doc.get("build_id"), doc.get("file")),
+        fields=VIEW_FIELDS, now=now,
+    )
+    return view
+
+
+def _artifact_id(build_id: Optional[str], path: Optional[str], file_doc: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    if file_doc and file_doc.get("id"):
+        return str(file_doc["id"])
+    if build_id and path:
+        return f"{build_id}:{path}"
+    return None
+
+
+def validate_purpose(purpose: Optional[str]) -> str:
+    text = (purpose or "").strip()
+    if len(text) < MIN_PURPOSE_CHARS:
+        raise AdjudicationInvalid(f"An expand needs a purpose of at least {MIN_PURPOSE_CHARS} characters")
+    return text[:MAX_PURPOSE_CHARS]
+
+
+async def expand_item(
+    db, *, adjudicator_id: str, item_id: str, purpose: Optional[str], target: str = "artifact", now=None,
+) -> Dict[str, Any]:
+    """The logged "expand" action: the full artifact the finding points at
+    (or the build prompt), still redacted. Requires a purpose, which is
+    recorded with the access."""
+    try:
+        clean_purpose = validate_purpose(purpose)
+        if target not in EXPAND_TARGETS:
+            raise AdjudicationInvalid(f"target must be one of {', '.join(EXPAND_TARGETS)}")
+    except AdjudicationInvalid:
+        await record_access(db, adjudicator_id=adjudicator_id, action="expand", item_id=item_id,
+                            purpose=(purpose or "").strip()[:MAX_PURPOSE_CHARS] or None,
+                            outcome="invalid", now=now)
+        raise
+    doc = await _load_item(db, adjudicator_id=adjudicator_id, item_id=item_id, action="expand",
+                           purpose=clean_purpose, now=now)
+    build_id = doc.get("build_id")
+    if target == "artifact":
+        file_doc = await _load_file(db, build_id, doc.get("file"))
+        raw = file_doc.get("content") if file_doc else None
+        artifact_id = _artifact_id(build_id, doc.get("file"), file_doc)
+        field_name, path = "artifact.content", doc.get("file")
+    else:
+        build = await _coll(db, "builds").find_one({"id": build_id}, {"_id": 0, "prompt": 1})
+        raw = (build or {}).get("prompt")
+        artifact_id = f"{build_id}:prompt" if build_id else None
+        field_name, path = "build.prompt", None
+    if raw is None:
+        await record_access(db, adjudicator_id=adjudicator_id, action="expand", item_id=item_id,
+                            build_id=build_id, finding_id=doc.get("finding_id"), artifact_id=artifact_id,
+                            purpose=clean_purpose, outcome="not_found", now=now)
+        raise AdjudicationNotFound("The artifact is no longer available")
+    truncated = len(raw) > MAX_ARTIFACT_CHARS
+    redacted = redact_text(raw[:MAX_ARTIFACT_CHARS], path=path)
+    await record_access(
+        db, adjudicator_id=adjudicator_id, action="expand", item_id=item_id, build_id=build_id,
+        finding_id=doc.get("finding_id"), artifact_id=artifact_id, fields=(field_name,),
+        purpose=clean_purpose, now=now,
+    )
+    return {
+        "item_id": item_id,
+        "target": target,
+        "artifact_id": artifact_id,
+        "path": path,
+        "content": redacted.text,
+        "truncated": truncated,
+        "redaction_report": redacted.report,
+    }
+
+
+async def submit_label(
+    db,
+    *,
+    adjudicator_id: str,
+    item_id: str,
+    verdict: str,
+    corrected_category: Optional[str] = None,
+    notes: Optional[str] = None,
+    now=None,
+) -> Dict[str, Any]:
+    """Record (or replace) this adjudicator's label for the item's finding.
+    Notes go through the redactor."""
+    if verdict not in VERDICTS:
+        await record_access(db, adjudicator_id=adjudicator_id, action="label", item_id=item_id,
+                            outcome="invalid", now=now)
+        raise AdjudicationInvalid(f"verdict must be one of {', '.join(VERDICTS)}")
+    doc = await _load_item(db, adjudicator_id=adjudicator_id, item_id=item_id, action="label", now=now)
+    now = now or utcnow()
+    clean_notes = redact_text(notes[:MAX_NOTES_CHARS]).text if notes else None
+    category = corrected_category.strip()[:200] if isinstance(corrected_category, str) and corrected_category.strip() else None
+    finding = doc.get("finding") or {}
+    key = {"finding_id": doc.get("finding_id"), "adjudicator_id": adjudicator_id}
+    await _coll(db, LABELS).update_one(
+        key,
+        {
+            "$set": {
+                "verdict": verdict,
+                "corrected_category": category,
+                "notes": clean_notes,
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                **key,
+                "build_id": doc.get("build_id"),
+                "owner_user_id": doc.get("owner_user_id"),
+                "rule_or_category": finding.get("rule_or_category"),
+                "consent_basis": doc.get("consent_basis"),
+                "created_at": now,
+                "anonymized": False,
+            },
+        },
+        upsert=True,
+    )
+    label = await _coll(db, LABELS).find_one(key, {"_id": 0})
+    await _coll(db, EXCERPTS).update_one(
+        {"id": item_id}, {"$set": {"status": STATUS_LABELLED, "labelled_at": now}},
+    )
+    await record_access(
+        db, adjudicator_id=adjudicator_id, action="label", item_id=item_id, build_id=doc.get("build_id"),
+        finding_id=doc.get("finding_id"), fields=("label",), now=now,
+    )
+    return _public_label(label) or {}
+
+
+# --------------------------------------------------------------------------- #
 # Purge on consent revocation (PV-2)
 # --------------------------------------------------------------------------- #
 
