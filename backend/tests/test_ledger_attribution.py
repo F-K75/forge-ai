@@ -56,3 +56,10 @@ def test_every_provider_attempt_carries_its_operation(monkeypatch):
     assert meter == sum(r["total_tokens"] for r in rows) > 0
     assert built["settlement"]["provider_cost_summary"]["generation"]["attempts"] == len(rows)
     assert built["settlement"]["consumed"] == sum(op["credits"] for op in ops.values())
+    # I-1…I-12, including I-5/I-6/I-11 which need the usage rows.
+    from core.reconcile import reconcile_build
+
+    loop = asyncio.new_event_loop()
+    report = loop.run_until_complete(reconcile_build(db, "build-1"))
+    loop.close()
+    assert report.ok and not report.skipped, (report.summary(), report.skipped)

@@ -285,6 +285,11 @@ class LedgerHarness:
     def credit_rows(self, kind: Optional[str] = None):
         return [r for r in self.db.credit_transactions.docs if kind is None or r["kind"] == kind]
 
+    def reconcile(self):
+        from core.reconcile import reconcile_build
+
+        return self.loop.run_until_complete(reconcile_build(self.db, self.BUILD_ID))
+
     def event_types(self) -> List[str]:
         return [getattr(e.type, "value", e.type) for e in self.events]
 

@@ -45,6 +45,9 @@ def _assert_balanced(h: LedgerHarness):
     else:
         assert consumed == 0 and h.user["credits"] == h.initial_credits
     assert len(h.credit_rows("settle")) == 1 and len(h.credit_rows("reserve")) == 1
+    # I-1…I-12 hold in every run.
+    report = h.reconcile()
+    assert report.ok, report.summary()
 
 
 def test_happy_path_charges_completed_stages_once(monkeypatch):

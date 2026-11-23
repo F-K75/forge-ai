@@ -70,6 +70,8 @@ def _settled_ok(h):
         assert h.user["credits"] == h.initial_credits - consumed
     else:
         assert h.user["credits"] == h.initial_credits
+    report = h.reconcile()
+    assert report.ok, report.summary()
 
 
 @pytest.mark.parametrize("stage_key,call", STAGES)
