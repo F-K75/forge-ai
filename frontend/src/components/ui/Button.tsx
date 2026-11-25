@@ -50,6 +50,7 @@ export function Button({
     <button
       type={type}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={twMerge(
         clsx(
           'relative inline-flex cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap font-medium transition-all duration-fast ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base disabled:cursor-not-allowed disabled:opacity-50',

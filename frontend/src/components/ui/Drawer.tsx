@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { motion, useReducedMotion } from 'motion/react'
@@ -37,6 +37,15 @@ export function Drawer({
 }: DrawerProps) {
   const reduceMotion = useReducedMotion()
 
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, onOpenChange])
+
   if (!open) return null
 
   const animationVariants = {
@@ -59,6 +68,7 @@ export function Drawer({
       <motion.div
         role="dialog"
         aria-modal="true"
+        aria-label={title || 'Drawer'}
         className={twMerge(
           clsx(
             'relative flex flex-col bg-panel text-ink shadow-apple-float',
