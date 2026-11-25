@@ -49,8 +49,8 @@ describe('Theme & UI Primitives (Phase 1)', () => {
     document.documentElement.className = ''
   })
 
-  it('defaults to dark mode and supports light and high-contrast modes', () => {
-    expect(getStoredTheme()).toBe('dark')
+  it('defaults to light mode and supports dark and high-contrast modes', () => {
+    expect(getStoredTheme()).toBe('light')
 
     applyTheme('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
@@ -168,17 +168,27 @@ describe('Theme & UI Primitives (Phase 1)', () => {
         <Drawer open onOpenChange={onDrawerClose} title="Inspector">
           <p>Details panel</p>
         </Drawer>
-        <EmptyState
-          icon={FolderGit2}
-          title="No repositories"
-          description="Import a repository to get started."
-          primaryAction={{ label: 'Import Repo', onClick: vi.fn() }}
-        />
       </div>
     )
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(onDialogClose).toHaveBeenCalledTimes(1)
     expect(onDrawerClose).toHaveBeenCalledTimes(1)
+    await expectNoAxeViolations(container)
+  })
+
+  it('renders EmptyState with primary action and zero axe violations', async () => {
+    const onImport = vi.fn()
+    const { container } = render(
+      <EmptyState
+        icon={FolderGit2}
+        title="No repositories"
+        description="Import a repository to get started."
+        primaryAction={{ label: 'Import Repo', onClick: onImport }}
+      />
+    )
+    expect(screen.getByText('No repositories')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Import Repo' }))
+    expect(onImport).toHaveBeenCalledTimes(1)
     await expectNoAxeViolations(container)
   })
 })
