@@ -64,9 +64,9 @@ const demoUser = (overrides: Partial<User> = {}): User => ({
 })
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: demoUser({ email: 'admin@forge.ai', name: 'Admin Operator', plan: 'enterprise', credits: 1247, is_admin: true }),
-  isAuthenticated: true,
-  isLoading: false,
+  user: LIVE_MODE ? null : demoUser({ email: 'admin@forge.ai', name: 'Admin Operator', plan: 'enterprise', credits: 1247, is_admin: true }),
+  isAuthenticated: !LIVE_MODE,
+  isLoading: LIVE_MODE,
 
   login: async (email: string, password: string) => {
     if (!LIVE_MODE) {

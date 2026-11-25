@@ -37,6 +37,8 @@ export interface TopNavBarProps {
   onOpenAgentFleet?: () => void;
   activeAgentCount?: number;
   creditsBalance?: number;
+  onToggleMobileNav?: () => void;
+  mobileNavOpen?: boolean;
 }
 
 interface NavItem {
@@ -52,6 +54,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   onOpenAgentFleet,
   activeAgentCount = 3,
   creditsBalance = 1247,
+  onToggleMobileNav,
+  mobileNavOpen,
 }) => {
   const { user, logout } = useAuthStore();
   const location = useLocation();
@@ -294,6 +298,15 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   };
 
   const isMoreActive = secondaryNavItems.some((item) => item.match(location.pathname));
+  const isMobileNavOpen = mobileNavOpen ?? showMobileDrawer;
+
+  const handleToggleMobileNav = () => {
+    if (onToggleMobileNav) {
+      onToggleMobileNav();
+    } else {
+      setShowMobileDrawer((v) => !v);
+    }
+  };
 
   return (
     <>
@@ -306,11 +319,12 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
-            onClick={() => setShowMobileDrawer((v) => !v)}
+            onClick={handleToggleMobileNav}
             aria-label="Toggle Navigation Drawer"
+            aria-expanded={isMobileNavOpen}
             className="lg:hidden rounded-md border border-border p-1.5 text-muted hover:bg-panel-alt hover:text-ink transition-colors"
           >
-            {showMobileDrawer ? <X size={18} /> : <Menu size={18} />}
+            {isMobileNavOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
           <NavLink

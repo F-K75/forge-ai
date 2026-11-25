@@ -425,7 +425,7 @@ export default function ProjectsPage() {
       setShowImport(false);
       setImportRepoUrl("");
       const importedId = res?.project?.id || res?.id || "p1";
-      navigate(`/build/${importedId}`);
+      navigate(`/p/${importedId}/workspace`);
     } catch {
       toast.error("Failed to import repository. Please verify the URL and credentials.");
     } finally {
@@ -1340,7 +1340,7 @@ export default function ProjectsPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => navigate(`/build/${p.id}`)}
+                                  onClick={() => navigate(`/p/${p.id}/workspace`)}
                                   className="h-7 px-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-full font-bold text-xs"
                                 >
                                   Open IDE
@@ -1404,7 +1404,7 @@ export default function ProjectsPage() {
                             <h3
                               onClick={() => {
                                 handleSound();
-                                navigate(`/build/${p.id}`);
+                                navigate(`/p/${p.id}/workspace`);
                               }}
                               className="text-lg font-bold text-neutral-900 dark:text-neutral-50 tracking-tight leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 cursor-pointer"
                             >
@@ -1455,7 +1455,7 @@ export default function ProjectsPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleSound();
-                                  navigate(`/build/${p.id}`);
+                                  navigate(`/p/${p.id}/workspace`);
                                 }}
                                 className="h-8 px-4 bg-neutral-900 hover:bg-black dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 font-semibold text-xs rounded-full flex items-center gap-1.5 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
                               >
@@ -1570,7 +1570,7 @@ export default function ProjectsPage() {
                       type="button"
                       onClick={() => {
                         setShowNewDialog(false);
-                        navigate(`/build/${generatedPreview.id}`);
+                        navigate(`/p/${generatedPreview.id}/workspace`);
                       }}
                       className="text-xs font-bold text-emerald-600 hover:underline"
                     >

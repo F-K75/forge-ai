@@ -1,11 +1,12 @@
 import { useEffect, useState, Suspense } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams } from "react-router-dom"
 import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
 import { LIVE_MODE } from "./lib/env"
 import { lazyWithRetry } from "./lib/lazyRetry"
+import { useActiveProject } from "./hooks/useActiveProject"
 import GlobalBackground from "./components/GlobalBackground"
 import BrandLogo from "./components/BrandLogo"
 
@@ -29,14 +30,9 @@ const MarketplacePage = lazyWithRetry(() => import("./pages/MarketplacePage"))
 const BillingPage = lazyWithRetry(() => import("./pages/BillingPage"))
 const SettingsPage = lazyWithRetry(() => import("./pages/SettingsPage"))
 const WorkspacePage = lazyWithRetry(() => import("./pages/WorkspacePage"))
-const LLMManagementPage = lazyWithRetry(() => import("./pages/LLMManagementPage"))
-const OptimizationDashboard = lazyWithRetry(() => import("./pages/OptimizationDashboard"))
-const EngineeringHealthPage = lazyWithRetry(() => import("./pages/EngineeringHealthPage"))
-const PromptStudioPage = lazyWithRetry(() => import("./pages/PromptStudioPage"))
 // Step 3: in-shell surfaces
-const AdminConsole = lazyWithRetry(() => import("./pages/AdminConsole"))
+const AdminOpsPage = lazyWithRetry(() => import("./pages/AdminOpsPage"))
 const ProjectHistory = lazyWithRetry(() => import("./pages/ProjectHistory"))
-const EngineeringOrgPage = lazyWithRetry(() => import("./pages/EngineeringOrgPage"))
 // AI-native Agile PM layer (Initiatives): vision/PRD -> epics/stories/tasks -> sprints -> board -> releases
 const InitiativesListPage = lazyWithRetry(() => import("./pages/pm/InitiativesListPage"))
 const InitiativeLayout = lazyWithRetry(() => import("./pages/pm/InitiativeLayout"))
@@ -158,7 +154,32 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/projects" replace />
   }
 
+  // The backend refuses every admin endpoint (api/admin.py admin_required,
+  // SEC-007) until the admin has enabled MFA. Say so up front instead of
+  // rendering the page and letting each panel fail with a bare 403.
+  if (LIVE_MODE && user?.mfa_enabled !== true) {
+    return <AdminMfaRequired />
+  }
+
   return <>{children}</>
+}
+
+function AdminMfaRequired() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
+      <h1 className="text-xl font-bold text-ink">Turn on two-factor authentication</h1>
+      <p className="max-w-md text-sm text-muted">
+        Admin tools are only available to admin accounts with two-factor authentication (MFA)
+        enabled. Set it up in Security settings, then come back to this page.
+      </p>
+      <Link
+        to="/settings#security"
+        className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-ember-glow transition-colors"
+      >
+        Set up two-factor authentication
+      </Link>
+    </div>
+  )
 }
 
 function RootRoute() {
@@ -182,7 +203,13 @@ function RootRoute() {
   const searchParams = new URLSearchParams(location.search)
   const wantsApp = searchParams.get("app") === "true"
 
-  if (wantsApp || (LIVE_MODE && isAuthenticated)) {
+  if (LIVE_MODE && isAuthenticated) {
+    // /projects resolves the user's real projects; a stale or foreign
+    // "last project" id from localStorage would otherwise 404.
+    return <Navigate to="/projects" replace />
+  }
+
+  if (wantsApp) {
     const lastProject = localStorage.getItem("forge_last_project") || "demo-project"
     return <Navigate to={`/p/${lastProject}/workspace`} replace />
   }
@@ -194,6 +221,18 @@ function RootRoute() {
       </Suspense>
     </ErrorBoundary>
   )
+}
+
+function ProjectScopedRedirect({ sub }: { sub: string }) {
+  const { projectPath, isLoading } = useActiveProject()
+  if (LIVE_MODE && isLoading) return <RouteSkeleton />
+  return <Navigate to={projectPath(sub)} replace />
+}
+
+function ParamProjectRedirect({ sub }: { sub: string }) {
+  const { projectId } = useParams<{ projectId: string }>()
+  if (!projectId) return <Navigate to="/projects" replace />
+  return <Navigate to={`/p/${projectId}/${sub}`} replace />
 }
 
 export default function App() {
@@ -293,23 +332,11 @@ export default function App() {
             }
           />
 
-          {/* Layer 1: Public Marketing & CLI Launchpad */}
+          {/* Layer 1: Public Marketing & Demo Redirect */}
           <Route path="/" element={<RootRoute />} />
           <Route
             path="/demo"
-            element={<Navigate to="/p/demo-project/workspace" replace />}
-          />
-          <Route
-            path="/launch"
-            element={
-              <ErrorBoundary>
-                <PublicRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <Launch />
-                  </Suspense>
-                </PublicRoute>
-              </ErrorBoundary>
-            }
+            element={<Navigate to={LIVE_MODE ? "/projects" : "/p/demo-project/workspace"} replace />}
           />
 
           {/* Layer 2 & 3: Platform Hub & Project-Scoped Workspaces */}
@@ -327,15 +354,11 @@ export default function App() {
             {/* Backward-compatibility and global aliases */}
             <Route
               path="/workspace"
-              element={<Navigate to="/p/demo-project/workspace" replace />}
+              element={<ProjectScopedRedirect sub="workspace" />}
             />
             <Route
               path="/build/:projectId"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <WorkspacePage />
-                </Suspense>
-              }
+              element={<ParamProjectRedirect sub="workspace" />}
             />
 
             {/* Layer 3: Project-Scoped Deep Work Context (/p/:projectId/*) */}
@@ -420,7 +443,8 @@ export default function App() {
                 path="history"
                 element={
                   <Suspense fallback={<RouteSkeleton />}>
-                    <HistoryPage />
+                    {/* Live mode: the real, API-backed build history. */}
+                    {LIVE_MODE ? <ProjectHistory /> : <HistoryPage />}
                   </Suspense>
                 }
               />
@@ -435,6 +459,14 @@ export default function App() {
             </Route>
 
             {/* Layer 2: Platform Hub Routes */}
+            <Route
+              path="/launch"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <Launch />
+                </Suspense>
+              }
+            />
             <Route
               path="/projects"
               element={
@@ -453,27 +485,15 @@ export default function App() {
             />
             <Route
               path="/files"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <FilesPage />
-                </Suspense>
-              }
+              element={<ProjectScopedRedirect sub="files" />}
             />
             <Route
               path="/history"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <HistoryPage />
-                </Suspense>
-              }
+              element={<ProjectScopedRedirect sub="history" />}
             />
             <Route
               path="/models"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <LLMManagementPage />
-                </Suspense>
-              }
+              element={<Navigate to="/admin?tab=llm" replace />}
             />
             <Route
               path="/marketplace"
@@ -499,72 +519,45 @@ export default function App() {
                 </Suspense>
               }
             />
+            {/* Unified Admin & AI Ops Console */}
             <Route
-              path="/llm-management"
+              path="/admin"
               element={
                 <AdminRoute>
                   <Suspense fallback={<RouteSkeleton />}>
-                    <LLMManagementPage />
+                    <AdminOpsPage />
                   </Suspense>
                 </AdminRoute>
               }
+            />
+            <Route
+              path="/llm-management"
+              element={<Navigate to="/admin?tab=llm" replace />}
             />
             <Route
               path="/optimization-dashboard"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <OptimizationDashboard />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=optimization" replace />}
             />
             <Route
               path="/engineering-health"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <EngineeringHealthPage />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=health" replace />}
             />
             <Route
               path="/prompt-studio"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <PromptStudioPage />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=prompts" replace />}
             />
             {/* Step 3: in-shell surfaces */}
             <Route
               path="/admin-console"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <AdminConsole />
-                  </Suspense>
-                </AdminRoute>
-              }
+              element={<Navigate to="/admin?tab=overview" replace />}
             />
             <Route
               path="/project/:projectId"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <ProjectHistory />
-                </Suspense>
-              }
+              element={<ParamProjectRedirect sub="history" />}
             />
             <Route
               path="/project/:projectId/org"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <EngineeringOrgPage />
-                </Suspense>
-              }
+              element={<ParamProjectRedirect sub="agents" />}
             />
             <Route
               path="/reviews"
@@ -592,11 +585,7 @@ export default function App() {
             />
             <Route
               path="/flow"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <FlowPage />
-                </Suspense>
-              }
+              element={<ProjectScopedRedirect sub="agents" />}
             />
             <Route
               path="/initiatives"
