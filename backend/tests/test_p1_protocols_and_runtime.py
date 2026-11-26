@@ -177,8 +177,8 @@ class TestP1ProtocolsAndRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(resp.task_count, 2)
         self.assertGreaterEqual(len(resp.artifacts), 2)
         # Project isolation on task lookup
-        self.assertIsNotNone(a2a.get_task(project_id="proj_42", task_id=resp.task_id))
-        self.assertIsNone(a2a.get_task(project_id="other_proj", task_id=resp.task_id))
+        self.assertIsNotNone(await a2a.get_task(project_id="proj_42", task_id=resp.task_id))
+        self.assertIsNone(await a2a.get_task(project_id="other_proj", task_id=resp.task_id))
 
     async def test_skill_telemetry_feedback_loop_boosts_routing(self) -> None:
         reg = SkillRegistry(load_builtins=True)

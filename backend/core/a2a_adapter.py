@@ -25,7 +25,6 @@ import logging
 import re
 import time
 import uuid
-from collections import OrderedDict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, FrozenSet, List, Optional, Tuple
@@ -43,6 +42,13 @@ from core.agent_kernel import (
 )
 from core.protocol_gateway import validate_mcp_endpoint_url
 from core.skill_engine import get_skill_registry
+from core.a2a_task_store import (
+    A2ATaskStore,
+    InMemoryA2ATaskStore,
+    MongoA2ATaskStore,
+    is_stale_record,
+    make_worker_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +174,12 @@ class A2ATaskResponse:
                 "taskCount": self.task_count,
             },
         }
+
+    @classmethod
+    def from_record(cls, record: Dict[str, Any]) -> "A2ATaskResponse":
+        """Build from an `A2ATaskStore` record (ignores store bookkeeping fields)."""
+        names = cls.__dataclass_fields__.keys()
+        return cls(**{k: record[k] for k in names if k in record})
 
 
 @dataclass
@@ -613,9 +625,15 @@ class A2ARemoteClient:
 
 
 class A2AGateway:
-    """Governed A2A gateway: inbound tasks into Forge's AgentKernel + outbound remote calls."""
+    """Governed A2A gateway: inbound tasks into Forge's AgentKernel + outbound remote calls.
 
-    MAX_TASK_RECORDS = 1000
+    Inbound task state lives in an `A2ATaskStore` shared by all API workers
+    (MongoDB in production, in-memory in tests/dev). Each gateway instance is
+    one worker: it owns the kernel runs it started, heartbeats their leases,
+    and observes cross-worker cancellation through the store.
+    """
+
+    MAX_TASK_RECORDS = 1000  # in-memory store cap; MongoDB uses TTL retention instead
     MAX_AUDIT_RECORDS = 500
 
     def __init__(
@@ -624,15 +642,66 @@ class A2AGateway:
         *,
         remote_client: Optional[A2ARemoteClient] = None,
         max_inflight_tasks: int = 8,
+        task_store: Optional[A2ATaskStore] = None,
+        worker_id: Optional[str] = None,
+        lease_ttl_seconds: float = 30.0,
+        heartbeat_interval_seconds: Optional[float] = None,
+        clock: Optional[Callable[[], float]] = None,
+        auto_select_store: bool = False,
     ) -> None:
         self._kernel = kernel
-        self._tasks: "OrderedDict[Tuple[str, str], A2ATaskResponse]" = OrderedDict()
+        self._task_store: A2ATaskStore = task_store or InMemoryA2ATaskStore(
+            max_records=self.MAX_TASK_RECORDS
+        )
+        # Only the process singleton auto-switches to MongoDB once a DB is known.
+        self._auto_select_store = bool(auto_select_store) and task_store is None
+        self.worker_id = worker_id or make_worker_id()
+        self._lease_ttl = max(0.05, float(lease_ttl_seconds))
+        self._heartbeat_interval = max(
+            0.01,
+            float(heartbeat_interval_seconds)
+            if heartbeat_interval_seconds is not None
+            else self._lease_ttl / 3.0,
+        )
+        self._clock: Callable[[], float] = clock or time.time
+        # Runs executing on *this* worker (cancel hooks); task state lives in the store.
         self._runs: Dict[Tuple[str, str], KernelRun] = {}
         self._runners: Dict[Tuple[str, str], asyncio.Task] = {}
         self._max_inflight = max(1, int(max_inflight_tasks))
         self._remote = remote_client or A2ARemoteClient()
         self._audit_log: List[A2AAuditRecord] = []
         self._audit_persister: Optional[Callable[[Dict[str, Any]], Awaitable[Any]]] = None
+
+    # ---- task store ----------------------------------------------------- #
+
+    @property
+    def task_store(self) -> A2ATaskStore:
+        return self._task_store
+
+    @property
+    def max_inflight(self) -> int:
+        return self._max_inflight
+
+    def attach_task_store(self, store: A2ATaskStore) -> None:
+        self._task_store = store
+        self._auto_select_store = False
+
+    def ensure_db_task_store(self, db: Any) -> None:
+        """Switch an auto-selecting gateway to MongoDB (no-op otherwise / once done)."""
+        if not self._auto_select_store or self._runners:
+            return
+        self.attach_task_store(MongoA2ATaskStore(db, slot_count=self._max_inflight))
+
+    def _lease_deadline(self) -> float:
+        return self._clock() + self._lease_ttl
+
+    async def reap_stale_tasks(self) -> int:
+        """Mark tasks whose owning worker's lease expired as failed (startup recovery)."""
+        return await self._task_store.reap_stale(self._clock())
+
+    async def running_count(self) -> int:
+        """Globally running inbound tasks (live slot leases across all workers)."""
+        return await self._task_store.count_running(self._clock())
 
     # ---- audit ---------------------------------------------------------- #
 
@@ -666,19 +735,20 @@ class A2AGateway:
     def _get_kernel(self) -> AgentKernel:
         return self._kernel or get_agent_kernel()
 
-    def _store(self, resp: A2ATaskResponse) -> None:
-        key = (resp.project_id, resp.task_id)
-        self._tasks[key] = resp
-        self._tasks.move_to_end(key)
-        while len(self._tasks) > self.MAX_TASK_RECORDS:
-            evict = next(
-                (k for k, v in self._tasks.items() if v.state in A2A_TERMINAL_STATES or v.state == "submitted"),
-                None,
-            )
-            if evict is None:
-                break
-            self._tasks.pop(evict, None)
-            self._runs.pop(evict, None)
+    @staticmethod
+    def _record(resp: A2ATaskResponse, **bookkeeping: Any) -> Dict[str, Any]:
+        rec = resp.to_dict()
+        rec.update(
+            {
+                "created_at": resp.updated_at,
+                "worker_id": None,
+                "lease_expires_at": None,
+                "cancel_requested": False,
+                "plan_only": False,
+            }
+        )
+        rec.update(bookkeeping)
+        return rec
 
     def _plan(self, req: A2ATaskRequest, objective: str) -> Tuple[KernelRun, KernelExecutionConfig]:
         config = KernelExecutionConfig(
@@ -752,29 +822,42 @@ class A2AGateway:
                 caller_agent=req.caller_agent,
             )
 
-        self._store(resp)
+        await self._task_store.put(self._record(resp, plan_only=not req.execute_now))
         return resp
 
-    def _inflight_count(self) -> int:
-        return sum(1 for t in self._runners.values() if not t.done())
+    @staticmethod
+    def _slot_holder(key: Tuple[str, str]) -> str:
+        return f"{key[0]}/{key[1]}"
 
     async def submit_task(self, req: A2ATaskRequest, *, plan_only: bool = False) -> A2ATaskResponse:
         """A2A `tasks/send`: plan the DAG and execute it in the background.
 
-        Idempotent per (project, task id): re-sending an existing id returns the
-        current task state without starting a second run.
+        Idempotent per (project, task id) across workers: the record is created
+        with a single atomic insert guarded by the store's unique key, so only
+        the worker that wins the insert starts a run; everyone else gets the
+        current state. Running tasks are bounded globally by store-held slots.
         """
         objective = (req.objective or "").strip()
         if len(objective) < 3:
             raise A2ARpcError(JSONRPC_INVALID_PARAMS, "Task text must be at least 3 characters")
         key = (req.project_id, req.task_id)
-        existing = self._tasks.get(key)
+        existing = await self.get_task(project_id=req.project_id, task_id=req.task_id)
         if existing is not None:
             return existing
-        if not plan_only and self._inflight_count() >= self._max_inflight:
-            raise A2ARpcError(A2A_SERVER_BUSY, "Too many in-flight A2A tasks; retry later")
 
         run, config = self._plan(req, objective)
+        slot_id: Optional[str] = None
+        lease_until: Optional[float] = None
+        holder = self._slot_holder(key)
+        if not plan_only:
+            now = self._clock()
+            lease_until = now + self._lease_ttl
+            slot_id = await self._task_store.acquire_slot(
+                holder, self.worker_id, limit=self._max_inflight, now=now, lease_until=lease_until
+            )
+            if slot_id is None:
+                raise A2ARpcError(A2A_SERVER_BUSY, "Too many in-flight A2A tasks; retry later")
+
         resp = A2ATaskResponse(
             task_id=req.task_id,
             kernel_run_id=run.id,
@@ -789,13 +872,80 @@ class A2AGateway:
             session_id=req.session_id,
             caller_agent=req.caller_agent,
         )
-        self._store(resp)
-        self._runs[key] = run
-        if not plan_only:
-            self._runners[key] = asyncio.create_task(self._run_in_background(key, req, run))
+        record = self._record(
+            resp,
+            plan_only=plan_only,
+            worker_id=None if plan_only else self.worker_id,
+            lease_expires_at=lease_until,
+        )
+        try:
+            stored, created = await self._task_store.create_if_absent(record)
+        except BaseException:
+            if slot_id is not None:
+                await self._release_slot(slot_id, holder)
+            raise
+        if not created:
+            # Another request/worker won the insert and owns the (single) run.
+            if slot_id is not None:
+                await self._release_slot(slot_id, holder)
+            return A2ATaskResponse.from_record(stored)
+
+        if slot_id is not None:
+            self._runs[key] = run
+            self._runners[key] = asyncio.create_task(
+                self._run_in_background(key, req, run, slot_id)
+            )
         return resp
 
-    async def _run_in_background(self, key: Tuple[str, str], req: A2ATaskRequest, run: KernelRun) -> None:
+    async def _release_slot(self, slot_id: str, holder: str) -> None:
+        try:
+            await self._task_store.release_slot(slot_id, holder, self.worker_id)
+        except Exception:
+            # Fail open: the slot lease expires on its own.
+            logger.warning("A2A slot release failed for %s", holder, exc_info=True)
+
+    def _stop_local_run(self, key: Tuple[str, str]) -> None:
+        """Stop a run executing on this worker via the kernel's cancel hook."""
+        run = self._runs.get(key)
+        if run is not None and self._get_kernel().cancel_run(run.id):
+            return
+        runner = self._runners.get(key)
+        if runner is not None and not runner.done():
+            # Not yet inside the kernel (or kernel already finished): stop the runner.
+            runner.cancel()
+
+    async def _watch_lease(self, key: Tuple[str, str], slot_id: str) -> None:
+        """Heartbeat the task + slot lease and observe cross-worker cancellation."""
+        project_id, task_id = key
+        holder = self._slot_holder(key)
+        while True:
+            await asyncio.sleep(self._heartbeat_interval)
+            lease_until = self._lease_deadline()
+            try:
+                doc = await self._task_store.update(
+                    project_id,
+                    task_id,
+                    {"lease_expires_at": lease_until},
+                    worker_id=self.worker_id,
+                )
+                await self._task_store.renew_slot(
+                    slot_id, holder, self.worker_id, lease_until=lease_until
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.warning("A2A lease heartbeat failed for %s", holder, exc_info=True)
+                continue
+            if doc is None or doc.get("cancel_requested") or doc.get("state") != "working":
+                # Canceled from any worker, reaped, or ownership lost: stop spending.
+                self._stop_local_run(key)
+                return
+
+    async def _run_in_background(
+        self, key: Tuple[str, str], req: A2ATaskRequest, run: KernelRun, slot_id: str
+    ) -> None:
+        watcher = asyncio.create_task(self._watch_lease(key, slot_id))
+        final: Optional[A2ATaskResponse] = None
         try:
             finished = await self._get_kernel().execute_run(
                 run, shared_context={"a2a_caller": req.caller_agent}
@@ -817,11 +967,30 @@ class A2AGateway:
                 caller_agent=req.caller_agent,
             )
         finally:
+            watcher.cancel()
+            await asyncio.gather(watcher, return_exceptions=True)
             self._runners.pop(key, None)
+            self._runs.pop(key, None)
+            await self._release_slot(slot_id, self._slot_holder(key))
 
-        current = self._tasks.get(key)
-        if final is not None and current is not None and current.state != "canceled":
-            self._tasks[key] = final
+        if final is None:
+            return
+        fields = final.to_dict()
+        fields.pop("task_id", None)
+        fields.pop("project_id", None)
+        try:
+            # Never overwrite a terminal state set elsewhere (cancel / reaper).
+            updated = await self._task_store.update(
+                req.project_id,
+                req.task_id,
+                fields,
+                unless_states=A2A_TERMINAL_STATES,
+                worker_id=self.worker_id,
+            )
+        except Exception:
+            logger.warning("A2A task %s final state was not persisted", req.task_id, exc_info=True)
+            return
+        if updated is not None:
             await self.record_audit(
                 direction="inbound",
                 method="tasks/execute",
@@ -832,36 +1001,56 @@ class A2AGateway:
                 reason=None if final.state == "completed" else final.summary,
             )
 
-    def get_task(self, *, project_id: str, task_id: str) -> Optional[A2ATaskResponse]:
-        return self._tasks.get((project_id, task_id))
+    async def get_task(self, *, project_id: str, task_id: str) -> Optional[A2ATaskResponse]:
+        rec = await self._task_store.get(project_id, task_id)
+        if rec is None:
+            return None
+        now = self._clock()
+        if is_stale_record(rec, now):
+            # Owner stopped heartbeating (crash / redeploy): fail it instead of
+            # reporting `working` forever.
+            await self._task_store.reap_stale(now, project_id=project_id, task_id=task_id)
+            rec = await self._task_store.get(project_id, task_id) or rec
+        return A2ATaskResponse.from_record(rec)
 
     async def cancel_task(self, *, project_id: str, task_id: str) -> A2ATaskResponse:
+        """Persist the cancel in the shared store; the owning worker observes it."""
         key = (project_id, task_id)
-        rec = self._tasks.get(key)
+        rec = await self.get_task(project_id=project_id, task_id=task_id)
         if rec is None:
             raise A2ARpcError(A2A_TASK_NOT_FOUND, "Task not found")
         if rec.state in A2A_TERMINAL_STATES:
             raise A2ARpcError(A2A_TASK_NOT_CANCELABLE, f"Task is already {rec.state}")
-        run = self._runs.get(key)
-        runner = self._runners.get(key)
-        if run is not None and not self._get_kernel().cancel_run(run.id):
-            # Not yet inside the kernel (or already finished): stop the runner directly.
-            if runner is not None and not runner.done():
-                runner.cancel()
-        rec.state = "canceled"
-        rec.summary = "Task canceled by A2A client request."
-        rec.updated_at = _utc_now()
-        return rec
+        updated = await self._task_store.update(
+            project_id,
+            task_id,
+            {
+                "state": "canceled",
+                "summary": "Task canceled by A2A client request.",
+                "cancel_requested": True,
+                "updated_at": _utc_now(),
+            },
+            unless_states=A2A_TERMINAL_STATES,
+        )
+        if updated is None:
+            current = await self.get_task(project_id=project_id, task_id=task_id)
+            if current is None:
+                raise A2ARpcError(A2A_TASK_NOT_FOUND, "Task not found")
+            raise A2ARpcError(A2A_TASK_NOT_CANCELABLE, f"Task is already {current.state}")
+        # Fast path when this worker owns the run; other workers see it on heartbeat.
+        if key in self._runs:
+            self._stop_local_run(key)
+        return A2ATaskResponse.from_record(updated)
 
     async def wait_for_task(self, *, project_id: str, task_id: str, timeout: float = 5.0) -> Optional[A2ATaskResponse]:
-        """Await the background runner (used by tests and graceful shutdown)."""
+        """Await the local background runner (used by tests and graceful shutdown)."""
         runner = self._runners.get((project_id, task_id))
         if runner is not None:
             try:
                 await asyncio.wait_for(asyncio.shield(runner), timeout=timeout)
             except (asyncio.TimeoutError, asyncio.CancelledError):
                 pass
-        return self.get_task(project_id=project_id, task_id=task_id)
+        return await self.get_task(project_id=project_id, task_id=task_id)
 
     async def handle_jsonrpc(
         self,
@@ -933,7 +1122,7 @@ class A2AGateway:
                 peer = caller
             elif method == "tasks/get":
                 task_id = _validate_task_id(params.get("id"), required=True)
-                rec = self.get_task(project_id=project_id, task_id=task_id)
+                rec = await self.get_task(project_id=project_id, task_id=task_id)
                 if rec is None:
                     raise A2ARpcError(A2A_TASK_NOT_FOUND, "Task not found")
                 result = rec.to_a2a_task()
@@ -1137,5 +1326,5 @@ _a2a_gateway: Optional[A2AGateway] = None
 def get_a2a_gateway() -> A2AGateway:
     global _a2a_gateway
     if _a2a_gateway is None:
-        _a2a_gateway = A2AGateway()
+        _a2a_gateway = A2AGateway(auto_select_store=True)
     return _a2a_gateway

@@ -89,6 +89,9 @@ def _ensure_distributed_hooks(db) -> None:
             await db.a2a_audit_logs.insert_one(dict(record))
 
         a2a.attach_audit_persister(_persist_a2a_audit)
+    # Shared MongoDB task state across workers (normally already attached by the
+    # startup bootstrap; this covers a startup where the DB ping failed).
+    a2a.ensure_db_task_store(db)
 
 
 async def read_bounded_json(request: Request, *, limit: int = MAX_A2A_RPC_BODY_BYTES) -> Any:
@@ -451,7 +454,8 @@ async def get_a2a_task(
     """REST view of an inbound A2A task (A2A `Task` shape)."""
     db = await get_db()
     await _assert_project_access(db, project_id, current_user.id)
-    rec = get_a2a_gateway().get_task(project_id=project_id, task_id=task_id)
+    _ensure_distributed_hooks(db)
+    rec = await get_a2a_gateway().get_task(project_id=project_id, task_id=task_id)
     if rec is None:
         raise HTTPException(status_code=404, detail="A2A task not found")
     return rec.to_a2a_task()
