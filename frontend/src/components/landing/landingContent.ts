@@ -121,7 +121,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Which models does Forge use?",
-    a: "The model gateway routes across nine cloud providers, including Anthropic, OpenAI, Azure, Gemini, Groq, Mistral, OpenRouter and Together, with budgets, rate limits and circuit breakers. Local models run through Ollama, and Pro plans can bring their own API keys.",
+    a: "The model gateway routes across nine cloud providers, including Anthropic, OpenAI, Azure, Gemini, Groq, Mistral, OpenRouter and Together, with budgets, rate limits and circuit breakers. Self-hosted models run through Ollama, vLLM or a LiteLLM proxy, and Pro plans can bring their own API keys.",
   },
   {
     q: "What happens to my code and data?",

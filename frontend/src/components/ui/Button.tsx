@@ -15,7 +15,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variantClasses: Record<ButtonVariant, string> = {
   // Solid ink pill (white on dark, near-black on light) — the main call to action
   primary:
-    'border border-transparent bg-ink text-base hover:bg-ink/90 active:scale-[0.98]',
+    'border border-transparent bg-ink text-[rgb(var(--bg))] hover:bg-ink/90 active:scale-[0.98]',
   // Frosted glass pill — secondary actions on any surface
   secondary:
     'border border-glass-border bg-glass text-ink backdrop-blur-[5px] hover:bg-ink/10 active:scale-[0.98]',
