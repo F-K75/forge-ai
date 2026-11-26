@@ -13,26 +13,26 @@
   color-scheme: light;
 
   /* Core Neutral Scale (Cool Alabaster & Slate) */
-  --bg: 248 250 252;                      /* #F8FAFC */
+  --bg: 250 250 249;                      /* #F8FAFC */
   --surface: 255 255 255;                 /* #FFFFFF */
-  --surface-container: 241 245 249;       /* #F1F5F9 */
-  --surface-container-high: 226 232 240;  /* #E2E8F0 */
+  --surface-container: 244 244 242;       /* #F1F5F9 */
+  --surface-container-high: 232 232 229;  /* #E2E8F0 */
 
   /* Hairline Outlines */
-  --outline: 226 232 240;                 /* #E2E8F0 */
-  --outline-alpha: 1;
-  --outline-soft-alpha: 0.7;
-  --outline-muted: 148 163 184;           /* #94A3B8 */
+  --outline: 10 10 10;
+  --outline-alpha: 0.1;
+  --outline-soft-alpha: 0.06;
+  --outline-muted: 140 140 136;           /* #94A3B8 */
 
   /* Typography Ink (WCAG AAA / AA) */
-  --on-surface: 15 23 42;                 /* #0F172A */
-  --on-surface-variant: 71 85 105;        /* #475569 */
+  --on-surface: 10 10 10;                 /* #0F172A */
+  --on-surface-variant: 82 82 78;        /* #475569 */
 
   /* Signature Accent — Precision Cobalt */
-  --primary: 37 99 235;                   /* #2563EB */
-  --primary-hover: 29 78 216;             /* #1D4ED8 */
-  --primary-container: rgba(37, 99, 235, 0.08);
-  --secondary: 79 70 229;                 /* #4F46E5 */
+  --primary: 214 72 0;                   /* #2563EB */
+  --primary-hover: 184 61 0;             /* #1D4ED8 */
+  --primary-container: rgba(255, 102, 0, 0.1);
+  --secondary: 38 38 36;                 /* #4F46E5 */
   --secondary-container: rgba(79, 70, 229, 0.08);
 
   /* Semantic Status Colors */
@@ -44,7 +44,7 @@
   /* Interactive States */
   --state-hover: rgba(15, 23, 42, 0.04);
   --state-pressed: rgba(15, 23, 42, 0.08);
-  --state-focus: rgba(37, 99, 235, 0.25);
+  --state-focus: rgba(214, 72, 0, 0.3);
 
   /* Surface Inlays */
   --inlay-subtle: 248 250 252;
@@ -80,57 +80,57 @@
 :root.dark {
   color-scheme: dark;
 
-  /* Core Obsidian Scale */
-  --bg: 9 12 18;                          /* #090C12 */
-  --surface: 17 22 34;                    /* #111622 */
-  --surface-container: 23 30 46;          /* #171E2E */
-  --surface-container-high: 30 41 59;     /* #1E293B */
+  /* Ember Night — near-black canvas, white-alpha hairlines, single orange accent */
+  --bg: 7 7 7;                            /* #070707 */
+  --surface: 17 17 17;                    /* #111111 */
+  --surface-container: 24 24 24;          /* #181818 (≈ white 6% over surface) */
+  --surface-container-high: 33 33 33;     /* #212121 */
 
-  /* Hairline Outlines */
-  --outline: 30 41 59;                    /* #1E293B */
-  --outline-alpha: 1;
-  --outline-soft-alpha: 0.7;
-  --outline-muted: 100 116 139;           /* #64748B */
+  /* Hairlines are white at low alpha, never grey-blue */
+  --outline: 255 255 255;
+  --outline-alpha: 0.12;
+  --outline-soft-alpha: 0.06;
+  --outline-muted: 115 115 115;           /* ≈ white 40% */
 
-  /* Typography Ink */
-  --on-surface: 241 245 249;              /* #F1F5F9 */
-  --on-surface-variant: 148 163 184;      /* #94A3B8 */
+  /* Ink */
+  --on-surface: 255 255 255;
+  --on-surface-variant: 168 168 168;      /* readable secondary copy (AA on #111) */
 
-  /* Signature Accent — Luminous Cobalt */
-  --primary: 59 130 246;                  /* #3B82F6 */
-  --primary-hover: 96 165 250;            /* #60A5FA */
-  --primary-container: rgba(59, 130, 246, 0.14);
-  --secondary: 129 140 248;               /* #818CF8 */
-  --secondary-container: rgba(129, 140, 248, 0.14);
+  /* Signature accent — Ember Orange, used sparingly for labels, live state, focus */
+  --primary: 255 102 0;                   /* #FF6600 */
+  --primary-hover: 255 133 51;
+  --primary-container: rgba(255, 102, 0, 0.12);
+  --secondary: 232 232 232;
+  --secondary-container: rgba(255, 255, 255, 0.06);
 
-  /* Semantic Status Colors */
-  --success: 16 185 129;                  /* #10B981 */
-  --warning: 245 158 11;                  /* #F59E0B */
-  --error: 239 68 68;                     /* #EF4444 */
-  --info: 56 189 248;                     /* #38BDF8 */
+  /* Status */
+  --success: 52 199 120;
+  --warning: 245 166 35;
+  --error: 244 80 80;
+  --info: 96 165 250;
 
   /* Interactive States */
-  --state-hover: rgba(241, 245, 249, 0.05);
-  --state-pressed: rgba(241, 245, 249, 0.10);
-  --state-focus: rgba(59, 130, 246, 0.35);
+  --state-hover: rgba(255, 255, 255, 0.04);
+  --state-pressed: rgba(255, 255, 255, 0.08);
+  --state-focus: rgba(255, 102, 0, 0.35);
 
   /* Surface Inlays */
-  --inlay-subtle: 17 22 34;
-  --inlay: 23 30 46;
-  --inlay-hover: 30 41 59;
-  --inlay-strong: 51 65 85;
+  --inlay-subtle: 12 12 12;
+  --inlay: 17 17 17;
+  --inlay-hover: 24 24 24;
+  --inlay-strong: 40 40 40;
 
-  /* Translucent Surfaces */
-  --glass: rgba(17, 22, 34, 0.92);
-  --glass-border: rgba(30, 41, 59, 0.95);
-  --glass-strong: rgba(17, 22, 34, 0.97);
-  --glass-strong-border: rgba(51, 65, 85, 0.9);
+  /* Glass (backdrop-blurred chrome, pill buttons, nav) */
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-strong: rgba(17, 17, 17, 0.82);
+  --glass-strong-border: rgba(255, 255, 255, 0.12);
 
   /* Material 3 compatibility aliases */
-  --md-sys-color-primary-container: 30 58 138;
-  --md-sys-color-on-primary-container: 219 234 254;
-  --md-sys-color-secondary-container: 30 41 59;
-  --md-sys-color-on-secondary-container: 241 245 249;
+  --md-sys-color-primary-container: 51 26 8;
+  --md-sys-color-on-primary-container: 255 214 186;
+  --md-sys-color-secondary-container: 24 24 24;
+  --md-sys-color-on-secondary-container: 232 232 232;
 }
 
 :root.hc,
@@ -151,7 +151,9 @@
   html {
     background-color: rgb(var(--bg));
     color: rgb(var(--on-surface));
-    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -165,17 +167,19 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+    font-family: "Inter", system-ui, sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
     letter-spacing: -0.02em;
     color: rgb(var(--on-surface));
   }
 
   code, pre, kbd, samp {
-    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: "Intel One Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
   ::selection {
-    background: rgba(37, 99, 235, 0.18);
+    background: rgba(255, 102, 0, 0.28);
     color: rgb(var(--on-surface));
   }
 

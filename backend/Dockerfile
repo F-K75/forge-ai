@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Includes skills/<name>/SKILL.md (the Skill Engine catalogue, loaded at runtime);
+# keep it out of .dockerignore. tests/test_skill_engine.py guards this.
 COPY . .
 
 RUN groupadd -r -g 1000 nonroot && useradd -r -g nonroot -u 1000 -m nonroot

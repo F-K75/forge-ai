@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 from api.auth import get_current_user
 from core.database import get_db
 from core.models import User
 from core.permissions import has_project_access
-from core.skill_engine import get_skill_registry, get_skill_router
+from core.skill_engine import SkillDependencyError, get_skill_registry, get_skill_router
 
 router = APIRouter(prefix="/projects/{project_id}/skills", tags=["skill-engine"])
 
@@ -44,7 +44,7 @@ async def list_project_skills(
     search: Optional[str] = Query(None, max_length=128),
     current_user: User = Depends(get_current_user),
 ):
-    """List discovered filesystem + canonical 9-domain skills."""
+    """List the canonical file-based catalogue (backend/skills/) plus discovered repo skills."""
     db = await get_db()
     await _assert_project_access(db, project_id, current_user.id)
 
@@ -90,4 +90,29 @@ async def get_skill_telemetry(
     await _assert_project_access(db, project_id, current_user.id)
     return {
         "telemetry": get_skill_registry().get_telemetry(),
+    }
+
+
+# Declared after the static routes so `/telemetry` is never captured as a skill name.
+@router.get("/{skill_name}")
+async def get_project_skill(
+    project_id: str,
+    skill_name: str = Path(..., min_length=2, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$"),
+    current_user: User = Depends(get_current_user),
+):
+    """Return one skill's full manifest, including its SKILL.md instructions body."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+
+    registry = get_skill_registry()
+    manifest = registry.get(skill_name)
+    if manifest is None:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    try:
+        chain = [m.name for m in registry.resolve_dependencies([skill_name]) if m.name != skill_name]
+    except SkillDependencyError:
+        chain = []
+    return {
+        "skill": manifest.to_dict(include_instructions=True),
+        "resolved_dependencies": chain,
     }

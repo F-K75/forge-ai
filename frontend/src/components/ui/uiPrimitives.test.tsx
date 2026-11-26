@@ -49,8 +49,8 @@ describe('Theme & UI Primitives (Phase 1)', () => {
     document.documentElement.className = ''
   })
 
-  it('defaults to light mode and supports dark and high-contrast modes', () => {
-    expect(getStoredTheme()).toBe('light')
+  it('defaults to dark mode and supports light and high-contrast modes', () => {
+    expect(getStoredTheme()).toBe('dark')
 
     applyTheme('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)

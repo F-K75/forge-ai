@@ -6,6 +6,7 @@ from .groq import GroqAdapter
 from .together import TogetherAdapter
 from .ollama import OllamaAdapter
 from .mistral import MistralAdapter
+from .openai_compatible import OpenAICompatibleAdapter
 
 __all__ = [
     "AnthropicAdapter",
@@ -16,4 +17,5 @@ __all__ = [
     "TogetherAdapter",
     "OllamaAdapter",
     "MistralAdapter",
+    "OpenAICompatibleAdapter",
 ]

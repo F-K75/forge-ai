@@ -7,11 +7,10 @@ blueprint under `/v1/projects/{project_id}/kernel/*`.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel, Field
 
 from api.auth import get_current_user
@@ -31,7 +30,8 @@ from core.agent_kernel import (
 )
 from core.database import get_db
 from core.models import User
-from core.permissions import has_project_access
+from core.audit import record_audit_log
+from core.permissions import can_decide_project_gates, has_project_access
 
 logger = logging.getLogger(__name__)
 
@@ -290,60 +290,141 @@ async def get_kernel_run_artifacts(
     }
 
 
+_GATE_ID_PATH = Path(..., min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:\-]{0,127}$")
+
+
+def _find_gate(gates: List[Dict[str, Any]], gate_id: str) -> Optional[Dict[str, Any]]:
+    for gate in gates or []:
+        if isinstance(gate, dict) and gate.get("gate_id") == gate_id:
+            return gate
+    return None
+
+
+async def _decide_kernel_gate(
+    *,
+    project_id: str,
+    run_id: str,
+    gate_id: str,
+    approved: bool,
+    note: str,
+    request: Request,
+    current_user: User,
+) -> Dict[str, Any]:
+    """Shared approve/reject flow for human-in-the-loop governance gates.
+
+    Order of checks: project access (404, so foreign projects are not
+    disclosed) -> approver role (403, audited) -> run / gate existence (404)
+    -> gate state. A repeat of the same decision by the same actor is an
+    idempotent 200; any other decision on an already-resolved gate is a 409.
+    """
+    db = await get_db()
+    project = await _assert_project_access(db, project_id, current_user.id)
+    decision = "approved" if approved else "rejected"
+    actor = current_user.email or current_user.id
+    audit_changes = {"project_id": project_id, "run_id": run_id, "decision": decision}
+
+    if not await can_decide_project_gates(db, current_user.id, project):
+        await record_audit_log(
+            db,
+            request,
+            current_user,
+            action="kernel.gate.decision_denied",
+            resource_type="kernel_gate",
+            resource_id=gate_id,
+            changes=audit_changes,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Only the project owner or an org owner/admin can decide governance gates",
+        )
+
+    kernel = get_agent_kernel()
+    active = kernel.get_active_run(run_id)
+    if active is not None and active.project_id == project_id:
+        gates = active.approval_gates
+    else:
+        active = None
+        run_doc = await get_kernel_run_repository().get(project_id, run_id)
+        if not run_doc:
+            raise HTTPException(status_code=404, detail="Kernel run not found")
+        gates = run_doc.get("approval_gates") or []
+
+    gate_doc = _find_gate(gates, gate_id)
+    if gate_doc is None:
+        raise HTTPException(status_code=404, detail="Approval gate not found")
+
+    if gate_doc.get("status") == "pending":
+        resolved = None
+        if active is not None:
+            resolved = kernel.resolve_approval_gate(
+                run_id, gate_id, approved=approved, actor=actor, note=note
+            )
+        if resolved is not None:
+            await record_audit_log(
+                db,
+                request,
+                current_user,
+                action=f"kernel.gate.{decision}",
+                resource_type="kernel_gate",
+                resource_id=gate_id,
+                changes={**audit_changes, "gate_name": resolved.gate_name, "note": resolved.note},
+            )
+            return {"run_id": run_id, "gate": resolved.to_dict(), "idempotent": False}
+        # Lost a race with another decision / timeout, or the run is no longer
+        # executing (e.g. persisted snapshot after a restart). Re-read state.
+        latest = _find_gate(active.approval_gates, gate_id) if active is not None else None
+        if latest is None or latest.get("status") == "pending":
+            raise HTTPException(
+                status_code=409, detail="Approval gate is no longer awaiting a decision"
+            )
+        gate_doc = latest
+
+    status = gate_doc.get("status")
+    if status == decision and gate_doc.get("decided_by") == actor:
+        return {"run_id": run_id, "gate": dict(gate_doc), "idempotent": True}
+    raise HTTPException(status_code=409, detail=f"Approval gate already {status}")
+
+
 @router.post("/runs/{run_id}/gates/{gate_id}/approve")
 async def approve_kernel_gate(
     project_id: str,
     run_id: str,
-    gate_id: str,
+    request: Request,
     req: GateDecisionRequest,
+    gate_id: str = _GATE_ID_PATH,
     current_user: User = Depends(get_current_user),
 ):
     """Approve a pending human-in-the-loop governance gate and resume run execution."""
-    db = await get_db()
-    await _assert_project_access(db, project_id, current_user.id)
-    kernel = get_agent_kernel()
-    active = kernel.get_active_run(run_id)
-    if active is None or active.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Active kernel run not found")
-
-    gate = kernel.resolve_approval_gate(
-        run_id,
-        gate_id,
+    return await _decide_kernel_gate(
+        project_id=project_id,
+        run_id=run_id,
+        gate_id=gate_id,
         approved=True,
-        actor=current_user.email or current_user.id,
         note=req.note,
+        request=request,
+        current_user=current_user,
     )
-    if gate is None:
-        raise HTTPException(status_code=404, detail="Pending approval gate not found")
-    return {"run_id": run_id, "gate": gate.to_dict()}
 
 
 @router.post("/runs/{run_id}/gates/{gate_id}/reject")
 async def reject_kernel_gate(
     project_id: str,
     run_id: str,
-    gate_id: str,
+    request: Request,
     req: GateDecisionRequest,
+    gate_id: str = _GATE_ID_PATH,
     current_user: User = Depends(get_current_user),
 ):
     """Reject a pending human-in-the-loop governance gate and halt downstream waves."""
-    db = await get_db()
-    await _assert_project_access(db, project_id, current_user.id)
-    kernel = get_agent_kernel()
-    active = kernel.get_active_run(run_id)
-    if active is None or active.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Active kernel run not found")
-
-    gate = kernel.resolve_approval_gate(
-        run_id,
-        gate_id,
+    return await _decide_kernel_gate(
+        project_id=project_id,
+        run_id=run_id,
+        gate_id=gate_id,
         approved=False,
-        actor=current_user.email or current_user.id,
         note=req.note,
+        request=request,
+        current_user=current_user,
     )
-    if gate is None:
-        raise HTTPException(status_code=404, detail="Pending approval gate not found")
-    return {"run_id": run_id, "gate": gate.to_dict()}
 
 
 @router.post("/runs/{run_id}/cancel")

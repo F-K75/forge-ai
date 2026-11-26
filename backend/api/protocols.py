@@ -5,18 +5,35 @@ Exposes authenticated, project-scoped endpoints under
 - AG-UI SSE stream (`GET /agui/runs/{run_id}/stream`) with Last-Event-ID replay
 - MCP governed tool catalog & invocation (`GET /mcp/tools`, `POST /mcp/invoke`)
 - A2UI declarative surfaces (`GET /a2ui/runs/{run_id}/surfaces`)
+- MCP Apps sandboxed UI resources (`GET /mcp/apps/{app_id}/resource`)
+- A2A inbound JSON-RPC (`POST /a2a/rpc`: tasks/send, tasks/get, tasks/cancel), the
+  project-scoped agent card (`GET /a2a/.well-known/agent.json`), and governed
+  outbound calls to remote A2A agents (`/a2a/remote/*`)
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from api.auth import get_current_user
-from core.a2a_adapter import A2ATaskRequest, build_forge_agent_card, get_a2a_gateway
+from core.a2a_adapter import (
+    JSONRPC_PARSE_ERROR,
+    MAX_A2A_RPC_BODY_BYTES,
+    A2ABlockedURLError,
+    A2ARemoteError,
+    A2ARpcError,
+    A2ATaskRequest,
+    build_forge_agent_card,
+    get_a2a_gateway,
+    jsonrpc_error,
+)
+from core.config import get_settings
+from core.mcp_apps import MCPAppResourceError, MCPAppsService
 from core.agent_kernel import get_agent_kernel, get_kernel_run_repository
 from core.database import get_db, get_redis
 from core.models import User
@@ -66,6 +83,44 @@ def _ensure_distributed_hooks(db) -> None:
 
         gw.attach_audit_persister(_persist_audit)
 
+    a2a = get_a2a_gateway()
+    if a2a._audit_persister is None:
+        async def _persist_a2a_audit(record: Dict[str, Any]) -> None:
+            await db.a2a_audit_logs.insert_one(dict(record))
+
+        a2a.attach_audit_persister(_persist_a2a_audit)
+    # Shared MongoDB task state across workers (normally already attached by the
+    # startup bootstrap; this covers a startup where the DB ping failed).
+    a2a.ensure_db_task_store(db)
+
+
+async def read_bounded_json(request: Request, *, limit: int = MAX_A2A_RPC_BODY_BYTES) -> Any:
+    """Read and parse a JSON request body without buffering more than `limit` bytes.
+
+    Raises HTTP 413 when the declared or streamed size exceeds `limit`, HTTP 415
+    on a non-JSON content type, and `json.JSONDecodeError` on malformed JSON.
+    """
+    ctype = request.headers.get("content-type", "").split(";")[0].strip().lower()
+    if ctype != "application/json":
+        raise HTTPException(status_code=415, detail="Content-Type must be application/json")
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        if not declared.isdigit():
+            raise HTTPException(status_code=400, detail="Invalid Content-Length")
+        if int(declared) > limit:
+            raise HTTPException(status_code=413, detail=f"Request body exceeds {limit} bytes")
+    buf = bytearray()
+    async for chunk in request.stream():
+        buf.extend(chunk)
+        if len(buf) > limit:
+            raise HTTPException(status_code=413, detail=f"Request body exceeds {limit} bytes")
+    return json.loads(bytes(buf).decode("utf-8"))
+
+
+def public_api_base_url() -> str:
+    """Canonical public API origin for advertised URLs (never the Host header)."""
+    return (get_settings().api_url or "").rstrip("/")
+
 
 class MCPInvokeRequest(BaseModel):
     tool_name: str = Field(..., min_length=2, max_length=128)
@@ -78,6 +133,21 @@ class RegisterMCPServerRequest(BaseModel):
     server_id: str = Field(..., min_length=2, max_length=48)
     endpoint_url: str = Field(..., min_length=10, max_length=512)
     discover_tools: bool = Field(False)
+
+
+class A2ARemoteDiscoverBody(BaseModel):
+    agent_url: str = Field(..., min_length=10, max_length=2048)
+
+
+class A2ARemoteSendBody(BaseModel):
+    endpoint_url: str = Field(..., min_length=10, max_length=2048)
+    text: str = Field(..., min_length=3, max_length=4000)
+    task_id: Optional[str] = Field(None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:\-]{0,127}$")
+    wait_seconds: float = Field(0.0, ge=0.0, le=30.0)
+
+
+class A2ARemoteTaskBody(BaseModel):
+    endpoint_url: str = Field(..., min_length=10, max_length=2048)
 
 
 class A2ASendTaskBody(BaseModel):
@@ -296,3 +366,224 @@ async def send_a2a_task(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return resp.to_dict()
+
+
+# --------------------------------------------------------------------------- #
+# MCP Apps: sandboxed ui:// resources
+# --------------------------------------------------------------------------- #
+
+_TASK_ID_PATH = Path(..., min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:\-]{0,127}$")
+
+
+@router.get("/mcp/apps/{app_id}/resource")
+async def get_mcp_app_resource(
+    project_id: str,
+    app_id: str = Path(..., min_length=2, max_length=128, pattern=r"^[A-Za-z0-9_\-]+$"),
+    role: str = Query(..., min_length=2, max_length=64),
+    department: str = Query(..., min_length=2, max_length=64),
+    current_user: User = Depends(get_current_user),
+):
+    """Fetch an MCP App's `ui://` resource, validated and wrapped for a sandboxed iframe.
+
+    The returned `html` must only be rendered via `<iframe srcdoc sandbox="allow-scripts">`
+    using the `sandbox` metadata; it is never served as a document from Forge's origin.
+    """
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    service = MCPAppsService(get_mcp_gateway())
+    try:
+        payload = await service.fetch_app_resource(
+            app_id=app_id, role=role, department=department, project_id=project_id
+        )
+    except MCPAppResourceError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+    return JSONResponse(payload.to_dict(), headers={"Cache-Control": "no-store"})
+
+
+# --------------------------------------------------------------------------- #
+# A2A inbound: project-scoped agent card + JSON-RPC task endpoint
+# --------------------------------------------------------------------------- #
+
+
+@router.get("/a2a/.well-known/agent.json")
+async def get_project_a2a_agent_card(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Project-scoped A2A Agent Card advertising this project's JSON-RPC endpoint."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    base = public_api_base_url()
+    card = build_forge_agent_card(
+        project_id=project_id,
+        base_url=base,
+        endpoint_url=f"{base}/v1/projects/{project_id}/protocols/a2a/rpc",
+    )
+    return card.to_dict()
+
+
+@router.post("/a2a/rpc")
+async def a2a_jsonrpc(
+    project_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """A2A JSON-RPC 2.0 endpoint: `tasks/send`, `tasks/get`, `tasks/cancel`.
+
+    Body is capped at 64 KB; protocol errors are returned as JSON-RPC errors.
+    """
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    try:
+        payload = await read_bounded_json(request)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return jsonrpc_error(None, JSONRPC_PARSE_ERROR, "Parse error")
+    return await get_a2a_gateway().handle_jsonrpc(
+        payload, project_id=project_id, actor=current_user.id
+    )
+
+
+@router.get("/a2a/tasks/{task_id}")
+async def get_a2a_task(
+    project_id: str,
+    task_id: str = _TASK_ID_PATH,
+    current_user: User = Depends(get_current_user),
+):
+    """REST view of an inbound A2A task (A2A `Task` shape)."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    rec = await get_a2a_gateway().get_task(project_id=project_id, task_id=task_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="A2A task not found")
+    return rec.to_a2a_task()
+
+
+@router.post("/a2a/tasks/{task_id}/cancel")
+async def cancel_a2a_task(
+    project_id: str,
+    task_id: str = _TASK_ID_PATH,
+    current_user: User = Depends(get_current_user),
+):
+    """REST cancel for an inbound A2A task."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    try:
+        rec = await get_a2a_gateway().cancel_task(project_id=project_id, task_id=task_id)
+    except A2ARpcError as exc:
+        raise HTTPException(status_code=404 if exc.code == -32001 else 409, detail=exc.message) from exc
+    return rec.to_a2a_task()
+
+
+@router.get("/a2a/audit")
+async def get_a2a_audit_log(
+    project_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+):
+    """Inbound & outbound A2A audit trail for this project."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    return {"audit_log": get_a2a_gateway().get_audit_log(project_id=project_id, limit=limit)}
+
+
+# --------------------------------------------------------------------------- #
+# A2A outbound: governed calls to remote agents
+# --------------------------------------------------------------------------- #
+
+
+def _remote_error(exc: A2ARemoteError) -> HTTPException:
+    status = 400 if isinstance(exc, A2ABlockedURLError) else 502
+    return HTTPException(status_code=status, detail=str(exc)[:300])
+
+
+@router.post("/a2a/remote/discover")
+async def discover_remote_a2a_agent(
+    project_id: str,
+    body: A2ARemoteDiscoverBody,
+    current_user: User = Depends(get_current_user),
+):
+    """Fetch and validate a remote agent's A2A card (SSRF-guarded)."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    try:
+        return await get_a2a_gateway().fetch_remote_agent_card(
+            body.agent_url, project_id=project_id, actor=current_user.id
+        )
+    except A2ARemoteError as exc:
+        raise _remote_error(exc) from exc
+
+
+@router.post("/a2a/remote/tasks/send")
+async def send_remote_a2a_task(
+    project_id: str,
+    body: A2ARemoteSendBody,
+    current_user: User = Depends(get_current_user),
+):
+    """Send a task to a remote A2A agent; optionally poll up to `wait_seconds`."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    gw = get_a2a_gateway()
+    try:
+        task = await gw.send_remote_task(
+            body.endpoint_url,
+            project_id=project_id,
+            text=body.text,
+            task_id=body.task_id,
+            actor=current_user.id,
+        )
+        if body.wait_seconds > 0 and task["status"]["state"] not in ("completed", "canceled", "failed"):
+            task = await gw.poll_remote_task(
+                body.endpoint_url,
+                project_id=project_id,
+                task_id=task["id"],
+                interval_seconds=min(2.0, max(0.25, body.wait_seconds / 10)),
+                timeout_seconds=body.wait_seconds,
+                actor=current_user.id,
+            )
+    except A2ARemoteError as exc:
+        raise _remote_error(exc) from exc
+    return task
+
+
+@router.post("/a2a/remote/tasks/{task_id}/get")
+async def get_remote_a2a_task(
+    project_id: str,
+    body: A2ARemoteTaskBody,
+    task_id: str = _TASK_ID_PATH,
+    current_user: User = Depends(get_current_user),
+):
+    """Fetch a remote A2A task's status."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    try:
+        return await get_a2a_gateway().get_remote_task(
+            body.endpoint_url, project_id=project_id, task_id=task_id, actor=current_user.id
+        )
+    except A2ARemoteError as exc:
+        raise _remote_error(exc) from exc
+
+
+@router.post("/a2a/remote/tasks/{task_id}/cancel")
+async def cancel_remote_a2a_task(
+    project_id: str,
+    body: A2ARemoteTaskBody,
+    task_id: str = _TASK_ID_PATH,
+    current_user: User = Depends(get_current_user),
+):
+    """Cancel a remote A2A task."""
+    db = await get_db()
+    await _assert_project_access(db, project_id, current_user.id)
+    _ensure_distributed_hooks(db)
+    try:
+        return await get_a2a_gateway().cancel_remote_task(
+            body.endpoint_url, project_id=project_id, task_id=task_id, actor=current_user.id
+        )
+    except A2ARemoteError as exc:
+        raise _remote_error(exc) from exc

@@ -6,23 +6,35 @@
 3. A2UI Generative Surface Builder (declarative, XSS-safe structured UI component
    trees synthesized from KernelRun state for approval cards, conflicts, and scorecards).
 
-Pure-Python stdlib implementation so it runs cleanly in both FastAPI production
-and standalone unit tests.
+Outbound MCP traffic uses httpx through `core.safe_http.PinnedTransport`
+(DNS-pinned, SSRF-safe); everything else is pure Python so it runs cleanly in
+both FastAPI production and standalone unit tests.
 """
 
 from __future__ import annotations
 
 import asyncio
-import ipaddress
+import codecs
 import json
 import logging
-import socket
+import re
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, FrozenSet, List, Optional, Set, Tuple
-from urllib import request as urllib_request
 from urllib.parse import urlparse
+
+import httpx
+
+from core.safe_http import (
+    BlockedDestinationError,
+    PinnedTransport,
+    Resolver,
+    SafeHTTPError,
+    check_url_static,
+    read_capped_body,
+    validate_url_with_dns,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -195,92 +207,373 @@ class AGUIStreamBroker:
 
 
 def validate_mcp_endpoint_url(url: str) -> Tuple[bool, Optional[str]]:
-    """Validate an external MCP server URL against SSRF and unsafe schemes."""
-    parsed = urlparse((url or "").strip())
-    if parsed.scheme not in ("https",):
-        return False, "External MCP server endpoints must use https://"
-    hostname = (parsed.hostname or "").strip().lower()
-    if not hostname:
-        return False, "Missing hostname in MCP endpoint URL"
-    blocked_hosts = {"localhost", "metadata.google.internal", "169.254.169.254"}
-    if hostname in blocked_hosts or hostname.endswith(".local") or hostname.endswith(".internal"):
-        return False, f"Blocked private/internal MCP host '{hostname}'"
+    """Advisory SSRF pre-check for an external MCP server URL (registration time).
 
-    # Check literal IP addresses directly
-    try:
-        ip = ipaddress.ip_address(hostname)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
-            return False, f"Blocked non-public IP address '{hostname}'"
-    except ValueError:
-        # Resolve DNS best-effort when running online; block if it resolves to private ranges
-        try:
-            infos = socket.getaddrinfo(hostname, None)
-            for info in infos:
-                resolved_ip = ipaddress.ip_address(info[4][0])
-                if (
-                    resolved_ip.is_private
-                    or resolved_ip.is_loopback
-                    or resolved_ip.is_link_local
-                    or resolved_ip.is_reserved
-                ):
-                    return False, f"Host '{hostname}' resolves to non-public IP"
-        except OSError:
-            pass
-    return True, None
+    https only, no credentials, no internal hostnames, no non-public IP literals,
+    and (best effort) no hostname resolving to a non-public address. The
+    authoritative check runs on every request inside `PinnedTransport`, which
+    resolves once, validates every address and dials the validated IP.
+    """
+    return validate_url_with_dns(url, label="MCP")
 
 
-class _NoRedirectHandler(urllib_request.HTTPRedirectHandler):
-    """Block 3xx redirects on outbound external MCP requests to prevent redirect-based SSRF."""
+# Revisions reachable through the `initialize` handshake, newest first.
+MCP_CLIENT_PROTOCOL_VERSIONS: Tuple[str, ...] = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
+MCP_CLIENT_INFO: Dict[str, str] = {"name": "forge-ai-mcp-gateway", "version": "1.0.0"}
+_MCP_ACCEPT = "application/json, text/event-stream"
+_MCP_SESSION_ID_RE = re.compile(r"^[\x21-\x7e]{1,256}$")
+JSONRPC_METHOD_NOT_FOUND_CODE = -32601
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise ValueError(f"External MCP server attempted disallowed HTTP redirect ({code})")
+
+class MCPClientError(ValueError):
+    """Raised for any failed or rejected external MCP exchange."""
+
+
+@dataclass
+class MCPSessionState:
+    """Negotiated state for one external MCP endpoint."""
+
+    protocol_version: Optional[str] = None  # None => legacy server without `initialize`
+    session_id: Optional[str] = None
+    server_capabilities: Dict[str, Any] = field(default_factory=dict)
+    server_info: Dict[str, Any] = field(default_factory=dict)
+    legacy: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class _MCPHTTPResult:
+    status: int
+    headers: httpx.Headers
+    message: Optional[Dict[str, Any]] = None
 
 
 class StreamableHTTPMCPClient:
-    """Hardened Streamable HTTP JSON-RPC 2.0 client for external MCP servers."""
+    """Streamable HTTP MCP client (JSON-RPC 2.0) for external MCP servers.
 
-    MAX_RESPONSE_BYTES = 512 * 1024  # 512 KB cap
+    Lifecycle per endpoint (lazy, on first call): `initialize` (protocolVersion,
+    capabilities, clientInfo) -> store negotiated version + server capabilities
+    -> `notifications/initialized` -> requests carrying `Mcp-Session-Id` (when
+    the server issued one) and `MCP-Protocol-Version`. Responses may be
+    `application/json` or `text/event-stream` (SSE, bounded in bytes and time).
+    A 404 on a request bearing a session id re-initializes once and retries.
+    `close_session` / `aclose` send DELETE for open sessions.
+
+    Every HTTP request goes through `core.safe_http.PinnedTransport` (https only,
+    DNS resolved once per request, all addresses validated, TCP dialled to the
+    validated IP with TLS verified against the hostname, no redirects).
+
+    Test seams: `transport` (an in-process httpx transport; policy, DNS and
+    pinning still run before delegation), `resolver`, `network_backend`, `verify`.
+    """
+
+    MAX_RESPONSE_BYTES = 512 * 1024  # 512 KB cap (JSON body or whole SSE stream)
 
     def __init__(
         self,
         *,
         timeout_seconds: float = 8.0,
-        transport_fn: Optional[Callable[[str, Dict[str, Any]], Dict[str, Any]]] = None,
+        transport: Optional[httpx.AsyncBaseTransport] = None,
+        allowlisted_hosts: Optional[FrozenSet[str]] = None,
+        resolver: Optional[Resolver] = None,
+        network_backend: Any = None,
+        verify: Any = True,
     ) -> None:
-        self._timeout = min(10.0, max(1.0, float(timeout_seconds)))
-        self._transport_fn = transport_fn
-
-    def _post_jsonrpc_sync(self, endpoint_url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        ok, err = validate_mcp_endpoint_url(endpoint_url)
-        if not ok:
-            raise ValueError(err or "Invalid external MCP endpoint URL")
-        if self._transport_fn is not None:
-            return self._transport_fn(endpoint_url, payload)
-
-        body = json.dumps(payload).encode("utf-8")
-        req = urllib_request.Request(
-            endpoint_url,
-            data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "User-Agent": "ForgeAI-MCP-Gateway/1.0",
-            },
-            method="POST",
+        self._timeout = min(10.0, max(0.2, float(timeout_seconds)))
+        self._transport = PinnedTransport(
+            allowlisted_hosts=allowlisted_hosts or frozenset(),
+            resolver=resolver,
+            verify=verify,
+            network_backend=network_backend,
+            inner=transport,
         )
-        opener = urllib_request.build_opener(_NoRedirectHandler())
-        with opener.open(req, timeout=self._timeout) as resp:
-            raw = resp.read(self.MAX_RESPONSE_BYTES + 1)
-            if len(raw) > self.MAX_RESPONSE_BYTES:
-                raise ValueError("External MCP response exceeded 512 KB safety limit")
-            parsed = json.loads(raw.decode("utf-8", errors="replace"))
-            if not isinstance(parsed, dict):
-                raise ValueError("External MCP server returned non-object JSON-RPC payload")
-            return parsed
+        self._sessions: Dict[str, MCPSessionState] = {}
+        self._init_locks: Dict[str, asyncio.Lock] = {}
+
+    # ---- introspection ---------------------------------------------------- #
+
+    def get_session(self, endpoint_url: str) -> Optional[MCPSessionState]:
+        return self._sessions.get(self._key(endpoint_url))
+
+    @staticmethod
+    def _key(endpoint_url: str) -> str:
+        return (endpoint_url or "").strip()
+
+    # ---- HTTP ------------------------------------------------------------- #
+
+    def _headers(self, session: Optional[MCPSessionState]) -> Dict[str, str]:
+        headers = {
+            "Accept": _MCP_ACCEPT,
+            "Content-Type": "application/json",
+            "User-Agent": "ForgeAI-MCP-Gateway/1.0",
+        }
+        if session is not None:
+            if session.session_id:
+                headers["Mcp-Session-Id"] = session.session_id
+            if session.protocol_version:
+                headers["MCP-Protocol-Version"] = session.protocol_version
+        return headers
+
+    async def _send(
+        self,
+        method: str,
+        endpoint_url: str,
+        *,
+        headers: Dict[str, str],
+        payload: Optional[Dict[str, Any]] = None,
+        expect_id: Any = None,
+    ) -> _MCPHTTPResult:
+        ok, err = check_url_static(endpoint_url, allowlisted_hosts=self._transport.allowlisted_hosts, label="MCP")
+        if not ok:
+            raise BlockedDestinationError(err or "Invalid external MCP endpoint URL")
+
+        async def _do() -> _MCPHTTPResult:
+            async with httpx.AsyncClient(
+                transport=self._transport,
+                timeout=httpx.Timeout(self._timeout),
+                follow_redirects=False,
+            ) as client:
+                async with client.stream(method, endpoint_url, json=payload, headers=headers) as resp:
+                    if 300 <= resp.status_code < 400:
+                        raise BlockedDestinationError(
+                            f"External MCP server attempted disallowed HTTP redirect ({resp.status_code})"
+                        )
+                    result = _MCPHTTPResult(status=resp.status_code, headers=resp.headers)
+                    if expect_id is None or resp.status_code != 200:
+                        return result
+                    ctype = resp.headers.get("content-type", "").split(";")[0].strip().lower()
+                    if ctype == "text/event-stream":
+                        result.message = await self._read_sse_response(resp, expect_id)
+                    elif ctype == "application/json":
+                        raw = await read_capped_body(resp, self.MAX_RESPONSE_BYTES, label="External MCP")
+                        result.message = self._match_json_response(raw, expect_id)
+                    else:
+                        raise MCPClientError("External MCP server returned an unsupported content type")
+                    return result
+
+        try:
+            # Overall deadline on top of httpx per-operation timeouts (slow-drip SSE defense).
+            return await asyncio.wait_for(_do(), timeout=self._timeout * 2)
+        except asyncio.TimeoutError as exc:
+            raise MCPClientError("External MCP server timed out") from exc
+        except httpx.HTTPError as exc:
+            raise MCPClientError(f"External MCP transport error ({type(exc).__name__})") from exc
+
+    @staticmethod
+    def _is_response_for(msg: Any, expect_id: Any) -> bool:
+        return (
+            isinstance(msg, dict)
+            and msg.get("id") == expect_id
+            and ("result" in msg or "error" in msg)
+        )
+
+    def _match_json_response(self, raw: bytes, expect_id: Any) -> Dict[str, Any]:
+        try:
+            parsed = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise MCPClientError("External MCP server returned invalid JSON") from exc
+        candidates = parsed if isinstance(parsed, list) else [parsed]
+        for msg in candidates:
+            if self._is_response_for(msg, expect_id):
+                return msg
+        if not isinstance(parsed, (dict, list)):
+            raise MCPClientError("External MCP server returned non-object JSON-RPC payload")
+        raise MCPClientError("External MCP server returned no response matching the request id")
+
+    async def _read_sse_response(self, resp: httpx.Response, expect_id: Any) -> Dict[str, Any]:
+        """Parse an SSE stream and return the JSON-RPC response matching `expect_id`.
+
+        Server notifications / requests interleaved before the response are
+        skipped. The whole stream is capped at MAX_RESPONSE_BYTES; the caller's
+        deadline bounds its duration.
+        """
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
+        total = 0
+        pending = ""
+        data_lines: List[str] = []
+        event_type = ""
+
+        def _dispatch() -> Optional[Dict[str, Any]]:
+            nonlocal data_lines, event_type
+            data, etype = "\n".join(data_lines), event_type
+            data_lines, event_type = [], ""
+            if not data or etype not in ("", "message"):
+                return None
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError as exc:
+                raise MCPClientError("External MCP server sent a malformed SSE event") from exc
+            return msg if self._is_response_for(msg, expect_id) else None
+
+        def _feed_line(line: str) -> Optional[Dict[str, Any]]:
+            nonlocal event_type
+            if line == "":
+                return _dispatch()
+            if line.startswith(":"):
+                return None
+            name, _, value = line.partition(":")
+            if value.startswith(" "):
+                value = value[1:]
+            if name == "data":
+                data_lines.append(value)
+            elif name == "event":
+                event_type = value
+            return None  # `id` / `retry` are not needed without resumption
+
+        try:
+            async for chunk in resp.aiter_bytes():
+                total += len(chunk)
+                if total > self.MAX_RESPONSE_BYTES:
+                    raise MCPClientError("External MCP SSE response exceeded 512 KB safety limit")
+                pending += decoder.decode(chunk)
+                # Hold a trailing CR: it may be the first half of a CRLF.
+                hold = pending.endswith("\r")
+                work, pending = (pending[:-1], "\r") if hold else (pending, "")
+                lines = work.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+                pending = lines.pop() + pending
+                for line in lines:
+                    found = _feed_line(line)
+                    if found is not None:
+                        return found
+            pending += decoder.decode(b"", final=True)
+        except UnicodeDecodeError as exc:
+            raise MCPClientError("External MCP server sent non-UTF-8 SSE data") from exc
+        for line in pending.replace("\r\n", "\n").replace("\r", "\n").split("\n") + [""]:
+            found = _feed_line(line)
+            if found is not None:
+                return found
+        raise MCPClientError("External MCP SSE stream ended without a response")
+
+    # ---- lifecycle -------------------------------------------------------- #
+
+    def _lock_for(self, key: str) -> asyncio.Lock:
+        lock = self._init_locks.get(key)
+        if lock is None:
+            lock = self._init_locks[key] = asyncio.Lock()
+        return lock
+
+    async def _ensure_session(self, endpoint_url: str) -> MCPSessionState:
+        key = self._key(endpoint_url)
+        session = self._sessions.get(key)
+        if session is not None:
+            return session
+        async with self._lock_for(key):
+            session = self._sessions.get(key)
+            if session is None:
+                session = await self._initialize(key)
+                self._sessions[key] = session
+            return session
+
+    async def _reinitialize(self, endpoint_url: str, stale: MCPSessionState) -> MCPSessionState:
+        key = self._key(endpoint_url)
+        async with self._lock_for(key):
+            current = self._sessions.get(key)
+            if current is not None and current is not stale:
+                return current  # another caller already re-initialized
+            self._sessions.pop(key, None)
+            session = await self._initialize(key)
+            self._sessions[key] = session
+            return session
+
+    async def _initialize(self, endpoint_url: str) -> MCPSessionState:
+        rpc_id = _new_id("init")
+        res = await self._send(
+            "POST",
+            endpoint_url,
+            headers=self._headers(None),
+            payload={
+                "jsonrpc": "2.0",
+                "id": rpc_id,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": MCP_CLIENT_PROTOCOL_VERSIONS[0],
+                    "capabilities": {},
+                    "clientInfo": dict(MCP_CLIENT_INFO),
+                },
+            },
+            expect_id=rpc_id,
+        )
+        if res.status != 200 or res.message is None:
+            raise MCPClientError(f"External MCP initialize failed (HTTP {res.status})")
+        msg = res.message
+        if "error" in msg:
+            err = msg["error"] if isinstance(msg["error"], dict) else {}
+            if err.get("code") == JSONRPC_METHOD_NOT_FOUND_CODE:
+                # Pre-lifecycle stateless JSON server: keep the plain JSON-RPC mode.
+                return MCPSessionState(legacy=True)
+            raise MCPClientError(f"External MCP initialize rejected: {str(msg['error'])[:200]}")
+
+        result = msg.get("result") if isinstance(msg.get("result"), dict) else {}
+        session_id = res.headers.get("mcp-session-id")
+        if session_id is not None and not _MCP_SESSION_ID_RE.match(session_id):
+            raise MCPClientError("External MCP server issued an invalid Mcp-Session-Id")
+        version = result.get("protocolVersion")
+        session = MCPSessionState(
+            protocol_version=version if isinstance(version, str) else None,
+            session_id=session_id,
+            server_capabilities=dict(result.get("capabilities") or {})
+            if isinstance(result.get("capabilities"), dict)
+            else {},
+            server_info=dict(result.get("serverInfo") or {}) if isinstance(result.get("serverInfo"), dict) else {},
+        )
+        if version not in MCP_CLIENT_PROTOCOL_VERSIONS:
+            await self._terminate(endpoint_url, session)
+            raise MCPClientError(f"External MCP server negotiated unsupported protocol version {str(version)[:32]!r}")
+
+        notified = await self._send(
+            "POST",
+            endpoint_url,
+            headers=self._headers(session),
+            payload={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        )
+        if notified.status not in (200, 202, 204):
+            raise MCPClientError(f"External MCP server rejected notifications/initialized (HTTP {notified.status})")
+        return session
+
+    async def _terminate(self, endpoint_url: str, session: MCPSessionState) -> None:
+        if not session.session_id:
+            return
+        try:
+            await self._send("DELETE", endpoint_url, headers=self._headers(session))
+        except (MCPClientError, SafeHTTPError):
+            logger.debug("MCP session DELETE failed for %s", endpoint_url, exc_info=True)
+
+    async def close_session(self, endpoint_url: str) -> None:
+        """Forget the endpoint's session, sending DELETE if the server issued an id."""
+        session = self._sessions.pop(self._key(endpoint_url), None)
+        if session is not None:
+            await self._terminate(self._key(endpoint_url), session)
+
+    async def aclose(self) -> None:
+        for key in list(self._sessions):
+            await self.close_session(key)
+
+    # ---- JSON-RPC --------------------------------------------------------- #
+
+    async def _request(self, endpoint_url: str, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        session = await self._ensure_session(endpoint_url)
+        for attempt in range(2):
+            rpc_id = _new_id("rpc")
+            res = await self._send(
+                "POST",
+                endpoint_url,
+                headers=self._headers(session),
+                payload={"jsonrpc": "2.0", "id": rpc_id, "method": method, "params": params},
+                expect_id=rpc_id,
+            )
+            if res.status == 404 and session.session_id and attempt == 0:
+                # Session expired / terminated server-side: re-initialize once.
+                session = await self._reinitialize(endpoint_url, session)
+                continue
+            if res.status != 200 or res.message is None:
+                raise MCPClientError(f"External MCP server returned HTTP {res.status}")
+            return res.message
+        raise MCPClientError("External MCP session could not be re-established")
 
     async def list_tools(self, endpoint_url: str) -> List[Dict[str, Any]]:
-        rpc = {"jsonrpc": "2.0", "id": _new_id("rpc"), "method": "tools/list", "params": {}}
-        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        res = await self._request(endpoint_url, "tools/list", {})
         if "error" in res:
             raise ValueError(str(res["error"])[:240])
         tools = (res.get("result") or {}).get("tools") or []
@@ -289,16 +582,40 @@ class StreamableHTTPMCPClient:
     async def call_tool(
         self, endpoint_url: str, tool_name: str, arguments: Dict[str, Any]
     ) -> Dict[str, Any]:
-        rpc = {
-            "jsonrpc": "2.0",
-            "id": _new_id("rpc"),
-            "method": "tools/call",
-            "params": {"name": tool_name, "arguments": arguments},
-        }
-        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        res = await self._request(endpoint_url, "tools/call", {"name": tool_name, "arguments": arguments})
         if "error" in res:
             raise ValueError(str(res["error"])[:240])
         return dict(res.get("result") or {})
+
+    async def read_resource(self, endpoint_url: str, uri: str) -> Dict[str, Any]:
+        """Fetch a resource (e.g. an MCP Apps `ui://` document) via `resources/read`."""
+        res = await self._request(endpoint_url, "resources/read", {"uri": uri})
+        if "error" in res:
+            raise ValueError(str(res["error"])[:240])
+        result = res.get("result")
+        if not isinstance(result, dict):
+            raise ValueError("External MCP server returned a malformed resources/read result")
+        return result
+
+
+def extract_mcp_app_resource_uri(raw_tool: Dict[str, Any]) -> Optional[str]:
+    """Return the MCP Apps `ui://` resource a tool declares, if any.
+
+    Supports the current `_meta.ui.resourceUri` shape and the legacy flat
+    `_meta["ui/resourceUri"]` key. Non-`ui://` values are ignored.
+    """
+    meta = raw_tool.get("_meta")
+    if not isinstance(meta, dict):
+        return None
+    candidate: Any = None
+    ui = meta.get("ui")
+    if isinstance(ui, dict):
+        candidate = ui.get("resourceUri")
+    if candidate is None:
+        candidate = meta.get("ui/resourceUri")
+    if isinstance(candidate, str) and candidate.startswith("ui://") and len(candidate) <= 512:
+        return candidate
+    return None
 
 
 MCPToolHandler = Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[Dict[str, Any]]]
@@ -312,6 +629,7 @@ class MCPToolSpec:
     allowed_departments: FrozenSet[str]
     input_schema: Dict[str, Any]
     read_only: bool = True
+    ui_resource_uri: Optional[str] = None  # MCP Apps `ui://` resource declared by the tool
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -321,6 +639,7 @@ class MCPToolSpec:
             "allowed_departments": sorted(self.allowed_departments),
             "input_schema": self.input_schema,
             "read_only": self.read_only,
+            "ui_resource_uri": self.ui_resource_uri,
         }
 
 
@@ -335,6 +654,7 @@ class MCPAppSpec:
     description: str
     ui_schema: Dict[str, Any]
     protocol: str = "mcp-apps/v1"
+    resource_uri: Optional[str] = None  # `ui://` resource rendered in a sandboxed iframe
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -350,6 +670,8 @@ class MCPInvocationAudit:
     project_id: str
     status: str  # succeeded | denied | error
     reason: Optional[str] = None
+    action: str = "tools/call"  # tools/call | resources/read
+    resource_uri: Optional[str] = None
     created_at: str = field(default_factory=_utc_now)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -428,6 +750,27 @@ class MCPGateway:
 
     def list_apps(self) -> List[Dict[str, Any]]:
         return [a.to_dict() for a in self._apps.values()]
+
+    def register_app(self, app: MCPAppSpec) -> None:
+        self._apps[app.app_id] = app
+
+    def get_app(self, app_id: str) -> Optional[MCPAppSpec]:
+        return self._apps.get(app_id)
+
+    def get_tool_spec(self, tool_name: str) -> Optional[MCPToolSpec]:
+        entry = self._tools.get(tool_name)
+        return entry[0] if entry else None
+
+    def get_server(self, server_id: str) -> Optional[Dict[str, Any]]:
+        return self._servers.get(server_id)
+
+    @property
+    def http_client(self) -> StreamableHTTPMCPClient:
+        return self._http_client
+
+    async def aclose(self) -> None:
+        """Terminate open external MCP sessions (DELETE) on shutdown."""
+        await self._http_client.aclose()
 
     def _register_builtin_tools(self) -> None:
         all_depts = frozenset(
@@ -561,6 +904,7 @@ class MCPGateway:
                     return await self._http_client.call_tool(ep, rname, args)
                 return _proxy_handler
 
+            ui_uri = extract_mcp_app_resource_uri(raw)
             spec = MCPToolSpec(
                 name=scoped_name,
                 server_id=server_id,
@@ -568,8 +912,24 @@ class MCPGateway:
                 allowed_departments=depts,
                 input_schema=schema,
                 read_only=bool(raw.get("readOnly", True)),
+                ui_resource_uri=ui_uri,
             )
             self.register_tool(spec, _make_proxy(endpoint_url, remote_name))
+            if ui_uri:
+                app_id = "app_" + "".join(
+                    ch if ch.isalnum() else "_" for ch in scoped_name
+                )[:96]
+                self.register_app(
+                    MCPAppSpec(
+                        app_id=app_id,
+                        title=str(raw.get("title") or remote_name)[:120],
+                        tool_name=scoped_name,
+                        server_id=server_id,
+                        description=desc,
+                        ui_schema={"kind": "mcp-app-resource", "resource_uri": ui_uri},
+                        resource_uri=ui_uri,
+                    )
+                )
             registered.append(spec.to_dict())
 
         server["status"] = "connected"
@@ -595,6 +955,9 @@ class MCPGateway:
         if project_id:
             entries = [e for e in entries if e.project_id == project_id]
         return [e.to_dict() for e in entries[-limit:]]
+
+    async def record_audit(self, audit: MCPInvocationAudit) -> None:
+        await self._record_audit(audit)
 
     async def _record_audit(self, audit: MCPInvocationAudit) -> None:
         self._audit_log.append(audit)
@@ -679,10 +1042,563 @@ class MCPGateway:
 # --------------------------------------------------------------------------- #
 # 3. A2UI Declarative Generative Surface Builder (XSS-Safe Typed Components)
 # --------------------------------------------------------------------------- #
+#
+# Every A2UI component is a flat, typed JSON object: ``{"type": <name>, ...props}``.
+# Each component type has a closed prop schema; unknown component types, unknown
+# props (at any nesting depth), wrong types, oversize strings/lists, control
+# characters and non-http(s) URLs are rejected. Components never carry raw HTML:
+# every string is data that the client renders as escaped text nodes, so markup
+# such as ``<script>`` stays inert.
 
-ALLOWED_A2UI_COMPONENTS: FrozenSet[str] = frozenset(
-    {"heading", "metric_row", "checklist", "approval_card", "conflict_list", "eval_table"}
+A2UI_LINK_URL_SCHEMES: FrozenSet[str] = frozenset({"http", "https"})
+A2UI_TONES: FrozenSet[str] = frozenset({"info", "success", "warning", "error"})
+A2UI_TASK_STATUSES: FrozenSet[str] = frozenset(
+    {"pending", "running", "completed", "failed", "blocked", "cancelled"}
 )
+A2UI_AGENT_STATUSES: FrozenSet[str] = frozenset({"idle", "active", "completed", "failed", "blocked"})
+A2UI_TIMELINE_STATUSES: FrozenSet[str] = A2UI_TASK_STATUSES | frozenset(
+    {"info", "answered", "rejected", "timeout"}
+)
+
+
+@dataclass(frozen=True)
+class A2UIProp:
+    """Declarative schema node for a single A2UI prop (or list item / object field)."""
+
+    kind: str  # str | int | num | bool | enum | url | list | obj
+    required: bool = True
+    nullable: bool = False
+    max_len: int = 200
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    choices: FrozenSet[str] = frozenset()
+    item: Optional["A2UIProp"] = None
+    fields: Optional[Dict[str, "A2UIProp"]] = None
+    max_items: int = 50
+    multiline: bool = False
+
+
+def _p_str(
+    max_len: int = 200, *, required: bool = True, nullable: bool = False, multiline: bool = False
+) -> A2UIProp:
+    return A2UIProp("str", required=required, nullable=nullable, max_len=max_len, multiline=multiline)
+
+
+def _p_int(
+    lo: Optional[float] = None, hi: Optional[float] = None, *, required: bool = True, nullable: bool = False
+) -> A2UIProp:
+    return A2UIProp("int", required=required, nullable=nullable, min_value=lo, max_value=hi)
+
+
+def _p_num(
+    lo: Optional[float] = None, hi: Optional[float] = None, *, required: bool = True, nullable: bool = False
+) -> A2UIProp:
+    return A2UIProp("num", required=required, nullable=nullable, min_value=lo, max_value=hi)
+
+
+def _p_bool(*, required: bool = True, nullable: bool = False) -> A2UIProp:
+    return A2UIProp("bool", required=required, nullable=nullable)
+
+
+def _p_enum(choices: FrozenSet[str], *, required: bool = True) -> A2UIProp:
+    return A2UIProp("enum", required=required, choices=frozenset(choices))
+
+
+def _p_url(*, required: bool = True) -> A2UIProp:
+    return A2UIProp("url", required=required, max_len=2048)
+
+
+def _p_list(item: A2UIProp, max_items: int = 50, *, required: bool = True) -> A2UIProp:
+    return A2UIProp("list", required=required, item=item, max_items=max_items)
+
+
+def _p_obj(fields: Dict[str, A2UIProp]) -> A2UIProp:
+    return A2UIProp("obj", fields=fields)
+
+
+A2UI_COMPONENT_SCHEMAS: Dict[str, Dict[str, A2UIProp]] = {
+    # --- Original six components -------------------------------------------
+    "heading": {
+        "text": _p_str(200),
+        "level": _p_int(1, 4, required=False),
+    },
+    "metric_row": {
+        "items": _p_list(_p_obj({"label": _p_str(80), "value": _p_str(80)}), 12),
+    },
+    "checklist": {
+        "items": _p_list(_p_obj({"label": _p_str(200), "checked": _p_bool()}), 50),
+    },
+    "approval_card": {
+        "gate_id": _p_str(120, nullable=True),
+        "gate_name": _p_str(200, nullable=True),
+        "reason": _p_str(1000, required=False, nullable=True, multiline=True),
+        "wave_index": _p_int(0, None, required=False, nullable=True),
+        "risk_level": _p_str(40, required=False, nullable=True),
+        "actions": _p_list(_p_enum(frozenset({"approve", "reject"})), 2),
+    },
+    "conflict_list": {
+        "items": _p_list(
+            _p_obj(
+                {
+                    "file_path": _p_str(500, nullable=True),
+                    "wave_index": _p_int(0, None, required=False, nullable=True),
+                    "roles": A2UIProp("list", required=False, nullable=True, item=_p_str(80), max_items=20),
+                    "status": _p_str(40, required=False, nullable=True),
+                }
+            ),
+            50,
+        ),
+    },
+    "eval_table": {
+        "rows": _p_list(
+            _p_obj(
+                {
+                    "role": _p_str(80, nullable=True),
+                    "artifact_type": _p_str(80, nullable=True),
+                    "score": _p_num(0, 1, nullable=True),
+                    "passed": _p_bool(nullable=True),
+                }
+            ),
+            50,
+        ),
+    },
+    # --- Agent-surface components -------------------------------------------
+    "text_block": {
+        # "markdown" is rendered client-side from a tiny safe subset (headings,
+        # bullets, paragraphs) into React text nodes; it is never turned into HTML.
+        "text": _p_str(4000, multiline=True),
+        "format": _p_enum(frozenset({"plain", "markdown"}), required=False),
+    },
+    "key_value_list": {
+        "items": _p_list(_p_obj({"key": _p_str(80), "value": _p_str(500)}), 30),
+    },
+    "progress_bar": {
+        "label": _p_str(120),
+        "value": _p_num(0, None),
+        "max": _p_num(0, None),
+        "tone": _p_enum(A2UI_TONES, required=False),
+    },
+    "timeline": {
+        "events": _p_list(
+            _p_obj(
+                {
+                    "timestamp": _p_str(64, required=False, nullable=True),
+                    "actor": _p_str(80, required=False, nullable=True),
+                    "label": _p_str(300),
+                    "status": _p_enum(A2UI_TIMELINE_STATUSES, required=False),
+                }
+            ),
+            50,
+        ),
+    },
+    "status_list": {
+        "items": _p_list(
+            _p_obj(
+                {
+                    "id": _p_str(120, required=False),
+                    "title": _p_str(200),
+                    "status": _p_enum(A2UI_TASK_STATUSES),
+                    "owner": _p_str(80, required=False, nullable=True),
+                    "detail": _p_str(500, required=False, nullable=True),
+                }
+            ),
+            100,
+        ),
+    },
+    "code_diff": {
+        # Unified-diff text only; rendered line-by-line as escaped text.
+        "diff": _p_str(20000, multiline=True),
+        "file_path": _p_str(500, required=False, nullable=True),
+        "language": _p_str(40, required=False, nullable=True),
+    },
+    "cost_breakdown": {
+        "currency": _p_enum(frozenset({"USD"})),
+        "total": _p_num(0, None),
+        "budget": _p_num(0, None, required=False, nullable=True),
+        "items": _p_list(_p_obj({"label": _p_str(120), "amount": _p_num(0, None)}), 30),
+    },
+    "agent_roster": {
+        "agents": _p_list(
+            _p_obj(
+                {
+                    "role": _p_str(80),
+                    "department": _p_str(80, required=False, nullable=True),
+                    "status": _p_enum(A2UI_AGENT_STATUSES),
+                    "task_count": _p_int(0, None, required=False),
+                    "model": _p_str(120, required=False, nullable=True),
+                }
+            ),
+            50,
+        ),
+    },
+    "callout": {
+        "tone": _p_enum(A2UI_TONES),
+        "title": _p_str(200, required=False, nullable=True),
+        "text": _p_str(2000, multiline=True),
+    },
+    "link_list": {
+        "links": _p_list(_p_obj({"label": _p_str(200), "url": _p_url()}), 30),
+    },
+}
+
+ALLOWED_A2UI_COMPONENTS: FrozenSet[str] = frozenset(A2UI_COMPONENT_SCHEMAS)
+
+
+def _a2ui_has_bad_control_chars(value: str, multiline: bool) -> bool:
+    allowed = {"\n", "\t", "\r"} if multiline else {"\t"}
+    return any((ord(ch) < 32 or ord(ch) == 127) and ch not in allowed for ch in value)
+
+
+def validate_a2ui_url(url: Any) -> Tuple[bool, Optional[str]]:
+    """Allow only absolute http(s) URLs with a host; rejects javascript:/data:/file: etc."""
+    if not isinstance(url, str) or not url:
+        return False, "URL must be a non-empty string"
+    if len(url) > 2048:
+        return False, "URL exceeds 2048 characters"
+    if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in url):
+        return False, "URL must not contain whitespace or control characters"
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        has_credentials = bool(parsed.username or parsed.password)
+    except ValueError:
+        return False, "URL could not be parsed"
+    if parsed.scheme.lower() not in A2UI_LINK_URL_SCHEMES:
+        return False, f"URL scheme '{parsed.scheme}' is not allowed (http/https only)"
+    if not hostname:
+        return False, "URL must include a host"
+    if has_credentials:
+        return False, "URL must not embed credentials"
+    return True, None
+
+
+def _validate_a2ui_value(value: Any, spec: A2UIProp, path: str) -> Optional[str]:
+    if value is None:
+        return None if spec.nullable else f"{path}: must not be null"
+    kind = spec.kind
+    if kind == "str":
+        if not isinstance(value, str):
+            return f"{path}: expected string"
+        if len(value) > spec.max_len:
+            return f"{path}: exceeds {spec.max_len} characters"
+        if _a2ui_has_bad_control_chars(value, spec.multiline):
+            return f"{path}: contains control characters"
+        return None
+    if kind in ("int", "num"):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return f"{path}: expected {'integer' if kind == 'int' else 'number'}"
+        if kind == "int" and not isinstance(value, int):
+            return f"{path}: expected integer"
+        if value != value or value in (float("inf"), float("-inf")):
+            return f"{path}: must be finite"
+        if spec.min_value is not None and value < spec.min_value:
+            return f"{path}: must be >= {spec.min_value}"
+        if spec.max_value is not None and value > spec.max_value:
+            return f"{path}: must be <= {spec.max_value}"
+        return None
+    if kind == "bool":
+        return None if isinstance(value, bool) else f"{path}: expected boolean"
+    if kind == "enum":
+        if not isinstance(value, str) or value not in spec.choices:
+            return f"{path}: must be one of {sorted(spec.choices)}"
+        return None
+    if kind == "url":
+        ok, reason = validate_a2ui_url(value)
+        return None if ok else f"{path}: {reason}"
+    if kind == "list":
+        if not isinstance(value, list):
+            return f"{path}: expected list"
+        if len(value) > spec.max_items:
+            return f"{path}: exceeds {spec.max_items} items"
+        if spec.item is None:
+            return f"{path}: list schema has no item spec"
+        for idx, item in enumerate(value):
+            err = _validate_a2ui_value(item, spec.item, f"{path}[{idx}]")
+            if err:
+                return err
+        return None
+    if kind == "obj":
+        if not isinstance(value, dict):
+            return f"{path}: expected object"
+        return _validate_a2ui_props(value, spec.fields or {}, path)
+    return f"{path}: unsupported schema kind '{kind}'"
+
+
+def _validate_a2ui_props(obj: Dict[str, Any], schema: Dict[str, A2UIProp], path: str) -> Optional[str]:
+    unknown = sorted(str(k) for k in obj if k not in schema)
+    if unknown:
+        return f"{path}: unknown prop(s) {unknown}"
+    for name, spec in schema.items():
+        if name not in obj:
+            if spec.required:
+                return f"{path}.{name}: is required"
+            continue
+        err = _validate_a2ui_value(obj[name], spec, f"{path}.{name}")
+        if err:
+            return err
+    return None
+
+
+def validate_a2ui_component(component: Any) -> Tuple[bool, Optional[str]]:
+    """Validate one A2UI component against the allowlist and its closed prop schema."""
+    if not isinstance(component, dict):
+        return False, "component must be an object"
+    ctype = component.get("type")
+    if not isinstance(ctype, str) or ctype not in A2UI_COMPONENT_SCHEMAS:
+        return False, f"component type {ctype!r} is not allowed"
+    props = {k: v for k, v in component.items() if k != "type"}
+    err = _validate_a2ui_props(props, A2UI_COMPONENT_SCHEMAS[ctype], ctype)
+    return (err is None), err
+
+
+def validate_a2ui_surface(surface: Any) -> Tuple[bool, Optional[str]]:
+    """Validate an A2UI surface envelope and every component it contains."""
+    if not isinstance(surface, dict):
+        return False, "surface must be an object"
+    allowed_keys = {"surface_id", "protocol", "title", "components"}
+    unknown = sorted(str(k) for k in surface if k not in allowed_keys)
+    if unknown:
+        return False, f"surface: unknown key(s) {unknown}"
+    if surface.get("protocol") != "a2ui/v1":
+        return False, "surface: protocol must be 'a2ui/v1'"
+    for key in ("surface_id", "title"):
+        err = _validate_a2ui_value(surface.get(key), _p_str(200), f"surface.{key}")
+        if err:
+            return False, err
+    components = surface.get("components")
+    if not isinstance(components, list) or len(components) > 50:
+        return False, "surface.components must be a list of at most 50 components"
+    for idx, comp in enumerate(components):
+        ok, reason = validate_a2ui_component(comp)
+        if not ok:
+            return False, f"components[{idx}]: {reason}"
+    return True, None
+
+
+def _finalize_a2ui_surface(surface: Dict[str, Any]) -> Dict[str, Any]:
+    """Drop (and log) any component that fails validation so emitted surfaces are schema-safe."""
+    surface["title"] = _a2ui_text(surface.get("title"), 200)
+    surface["surface_id"] = _a2ui_text(surface.get("surface_id"), 200)
+    safe_components: List[Dict[str, Any]] = []
+    for comp in surface.get("components", []):
+        ok, reason = validate_a2ui_component(comp)
+        if ok:
+            safe_components.append(comp)
+        else:
+            logger.warning("Dropping invalid A2UI component in %s: %s", surface.get("surface_id"), reason)
+    surface["components"] = safe_components[:50]
+    return surface
+
+
+def _a2ui_text(value: Any, max_len: int, *, multiline: bool = False) -> str:
+    """Coerce run data into a schema-safe string (strip control chars, clamp length)."""
+    text = "" if value is None else str(value)
+    allowed = {"\n", "\t"} if multiline else {"\t"}
+    text = "".join(ch for ch in text if ch in allowed or not (ord(ch) < 32 or ord(ch) == 127))
+    if len(text) > max_len:
+        text = text[: max_len - 1] + "…"
+    return text
+
+
+def _a2ui_opt_text(value: Any, max_len: int, *, multiline: bool = False) -> Optional[str]:
+    return None if value is None or value == "" else _a2ui_text(value, max_len, multiline=multiline)
+
+
+def _a2ui_amount(value: Any) -> float:
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if num != num or num in (float("inf"), float("-inf")) or num < 0:
+        return 0.0
+    return num
+
+
+def _derive_agent_status(statuses: List[str]) -> str:
+    if "running" in statuses:
+        return "active"
+    if "failed" in statuses:
+        return "failed"
+    if "blocked" in statuses:
+        return "blocked"
+    if statuses and all(s == "completed" for s in statuses):
+        return "completed"
+    return "idle"
+
+
+def _build_a2ui_activity_components(
+    run_dict: Dict[str, Any], tasks: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Agent activity components derived strictly from data present in the run snapshot."""
+    components: List[Dict[str, Any]] = []
+    cost_summary = run_dict.get("cost_summary") or {}
+    delegations = [d for d in (run_dict.get("delegations") or []) if isinstance(d, dict)]
+
+    # Run overview (objective + key facts that are actually present)
+    if run_dict.get("objective"):
+        components.append(
+            {
+                "type": "text_block",
+                "format": "plain",
+                "text": _a2ui_text(run_dict["objective"], 4000, multiline=True),
+            }
+        )
+    overview: List[Dict[str, str]] = []
+    duration_ms = run_dict.get("duration_ms")
+    for key, value in (
+        ("Status", run_dict.get("status")),
+        ("Risk Level", run_dict.get("risk_level")),
+        ("Waves", len(run_dict.get("waves") or []) or None),
+        ("Duration", f"{int(duration_ms)} ms" if isinstance(duration_ms, (int, float)) and duration_ms else None),
+        ("Plan", run_dict.get("plan_id")),
+    ):
+        if value not in (None, ""):
+            overview.append({"key": key, "value": _a2ui_text(value, 500)})
+    if overview:
+        components.append({"type": "key_value_list", "items": overview})
+
+    # Alerts
+    statuses = [str(t.get("status") or "pending") for t in tasks]
+    statuses = [s if s in A2UI_TASK_STATUSES else "pending" for s in statuses]
+    failed = statuses.count("failed")
+    blocked = statuses.count("blocked")
+    if failed or blocked:
+        parts = []
+        if failed:
+            parts.append(f"{failed} task(s) failed")
+        if blocked:
+            parts.append(f"{blocked} task(s) blocked")
+        components.append(
+            {"type": "callout", "tone": "error", "title": "Execution issues", "text": ", ".join(parts) + "."}
+        )
+    risk_level = str(run_dict.get("risk_level") or "").lower()
+    if risk_level in ("high", "critical") and run_dict.get("risk_notes"):
+        components.append(
+            {
+                "type": "callout",
+                "tone": "warning",
+                "title": f"{risk_level.capitalize()} risk",
+                "text": _a2ui_text(run_dict.get("risk_notes"), 2000, multiline=True),
+            }
+        )
+
+    # Progress
+    completed = statuses.count("completed")
+    components.append(
+        {
+            "type": "progress_bar",
+            "label": "Tasks completed",
+            "value": completed,
+            "max": len(tasks),
+            "tone": "error" if failed else ("success" if completed == len(tasks) else "info"),
+        }
+    )
+
+    # Agent roster (one entry per role, aggregated over that role's tasks)
+    roster: Dict[str, Dict[str, Any]] = {}
+    for task, status in zip(tasks, statuses):
+        role = _a2ui_text(task.get("role") or "agent", 80)
+        entry = roster.setdefault(role, {"department": task.get("department"), "statuses": [], "model": None})
+        entry["statuses"].append(status)
+        if task.get("model_id"):
+            entry["model"] = task.get("model_id")
+    components.append(
+        {
+            "type": "agent_roster",
+            "agents": [
+                {
+                    "role": role,
+                    "department": _a2ui_opt_text(entry["department"], 80),
+                    "status": _derive_agent_status(entry["statuses"]),
+                    "task_count": len(entry["statuses"]),
+                    "model": _a2ui_opt_text(entry["model"], 120),
+                }
+                for role, entry in list(roster.items())[:50]
+            ],
+        }
+    )
+
+    # Task board
+    board: List[Dict[str, Any]] = []
+    for idx, (task, status) in enumerate(zip(tasks, statuses)):
+        wave = task.get("wave_index")
+        detail = _a2ui_opt_text(task.get("error"), 500) or (
+            f"Wave {wave}" if isinstance(wave, int) and not isinstance(wave, bool) else None
+        )
+        board.append(
+            {
+                "id": _a2ui_text(task.get("id") or f"task_{idx}", 120),
+                "title": _a2ui_text(task.get("title") or task.get("id") or "Task", 200),
+                "status": status,
+                "owner": _a2ui_opt_text(task.get("role"), 80),
+                "detail": detail,
+            }
+        )
+    components.append({"type": "status_list", "items": board[:100]})
+
+    # Activity timeline from task start/finish timestamps and delegation records
+    events: List[Dict[str, Any]] = []
+    for task, status in zip(tasks, statuses):
+        title = _a2ui_text(task.get("title") or task.get("id") or "Task", 200)
+        role = _a2ui_opt_text(task.get("role"), 80)
+        if task.get("started_at"):
+            events.append(
+                {
+                    "timestamp": _a2ui_text(task["started_at"], 64),
+                    "actor": role,
+                    "label": f"Started: {title}",
+                    "status": "running",
+                }
+            )
+        if task.get("finished_at"):
+            events.append(
+                {
+                    "timestamp": _a2ui_text(task["finished_at"], 64),
+                    "actor": role,
+                    "label": f"Finished: {title}",
+                    "status": status,
+                }
+            )
+    for d in delegations:
+        if not d.get("created_at"):
+            continue
+        status = str(d.get("status") or "info")
+        question = _a2ui_text(d.get("question") or "", 240)
+        label = f"Delegated to {_a2ui_text(d.get('to_role') or 'agent', 40)}" + (f": {question}" if question else "")
+        events.append(
+            {
+                "timestamp": _a2ui_text(d["created_at"], 64),
+                "actor": _a2ui_opt_text(d.get("from_role"), 80),
+                "label": label,
+                "status": status if status in A2UI_TIMELINE_STATUSES else "info",
+            }
+        )
+    if events:
+        events.sort(key=lambda e: e["timestamp"])
+        components.append({"type": "timeline", "events": events[-50:]})
+
+    # Cost breakdown by role (per-task cost_usd plus the budget guard summary)
+    role_costs: Dict[str, float] = {}
+    for task in tasks:
+        label = _a2ui_text(task.get("role") or "agent", 120)
+        role_costs[label] = role_costs.get(label, 0.0) + _a2ui_amount(task.get("cost_usd"))
+    total = _a2ui_amount(cost_summary.get("spent_usd", sum(role_costs.values())))
+    budget = cost_summary.get("max_budget_usd")
+    if total > 0 or any(v > 0 for v in role_costs.values()):
+        components.append(
+            {
+                "type": "cost_breakdown",
+                "currency": "USD",
+                "total": round(total, 6),
+                "budget": round(_a2ui_amount(budget), 6) if budget is not None else None,
+                "items": [
+                    {"label": label, "amount": round(amount, 6)}
+                    for label, amount in sorted(role_costs.items(), key=lambda kv: -kv[1])
+                    if amount > 0
+                ][:30],
+            }
+        )
+    return components
 
 
 def build_a2ui_surfaces_for_run(run_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -707,7 +1623,7 @@ def build_a2ui_surfaces_for_run(run_dict: Dict[str, Any]) -> List[Dict[str, Any]
                         "type": "approval_card",
                         "gate_id": gate.get("gate_id"),
                         "gate_name": gate.get("gate_name"),
-                        "reason": gate.get("reason"),
+                        "reason": _a2ui_opt_text(gate.get("reason"), 1000, multiline=True),
                         "wave_index": gate.get("wave_index"),
                         "risk_level": run_dict.get("risk_level", "medium"),
                         "actions": ["approve", "reject"],
@@ -768,7 +1684,19 @@ def build_a2ui_surfaces_for_run(run_dict: Dict[str, Any]) -> List[Dict[str, Any]
             "components": summary_components,
         }
     )
-    return surfaces
+
+    # 3. Agent Activity Surface (roster, task board, timeline, costs) -- only when tasks exist
+    tasks = [t for t in (run_dict.get("tasks") or []) if isinstance(t, dict)]
+    if tasks:
+        surfaces.append(
+            {
+                "surface_id": f"a2ui_activity_{run_dict.get('id', 'run')}",
+                "protocol": "a2ui/v1",
+                "title": "Agent Activity Surface",
+                "components": _build_a2ui_activity_components(run_dict, tasks),
+            }
+        )
+    return [_finalize_a2ui_surface(surface) for surface in surfaces]
 
 
 # --------------------------------------------------------------------------- #

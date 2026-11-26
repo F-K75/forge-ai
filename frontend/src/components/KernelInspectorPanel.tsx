@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -21,11 +21,41 @@ import {
   type KnowledgeHit,
   type KnowledgeSnapshot,
   type MarketplaceSkillPackage,
+  type MCPAppResourcePayload,
   type MCPAppSpec,
   type MCPToolSpec,
   type SkillManifest,
   type TenantGovernancePolicy,
 } from "../lib/kernelApi";
+import {
+  A2UISurfaceView,
+  type A2UIApprovalAction,
+  type A2UIApprovalUIState,
+} from "./a2ui/A2UIRenderer";
+import { MCPAppFrame } from "./a2ui/MCPAppFrame";
+
+/** Role/department context sent with an MCP App resource fetch (department is RBAC-checked server-side). */
+export interface MCPAppOpenContext {
+  role: string;
+  department: string;
+}
+
+const MCP_APP_VIEWER_ROLE = "workspace_operator";
+
+function isResourceBackedApp(app: MCPAppSpec): boolean {
+  return Boolean(app.resource_uri || app.ui_schema?.resource_uri || app.ui_schema?.kind === "mcp-app-resource");
+}
+
+function describeDecisionError(err: unknown): string {
+  const response = (err as { response?: { status?: unknown; data?: { detail?: unknown } } } | null)?.response;
+  const detail = response?.data?.detail;
+  if (typeof detail === "string" && detail.trim()) {
+    return detail.slice(0, 300);
+  }
+  if (response?.status === 403) return "You do not have permission to decide this gate.";
+  if (response?.status === 409) return "This gate has already been decided.";
+  return "Unable to submit the gate decision. Please retry.";
+}
 
 export type InspectorTab =
   | "blackboard"
@@ -72,6 +102,14 @@ interface KernelInspectorPanelProps {
       >
     >,
   ) => Promise<void>;
+  /**
+   * Submits an approve/reject decision for a governance gate rendered as an
+   * A2UI approval_card. Must reject (throw) on failure; on success the parent
+   * is expected to refresh the run and its surfaces.
+   */
+  onApprovalDecision?: (gateId: string, action: A2UIApprovalAction) => Promise<void>;
+  /** Loads an MCP App's sandboxed ui:// resource; when omitted, MCP App views are not offered. */
+  onLoadMcpAppResource?: (app: MCPAppSpec, ctx: MCPAppOpenContext) => Promise<MCPAppResourcePayload>;
 }
 
 export function KernelInspectorPanel({
@@ -102,7 +140,42 @@ export function KernelInspectorPanel({
   marketplaceStatus,
   tenantPolicy,
   onUpdatePolicy,
+  onApprovalDecision,
+  onLoadMcpAppResource,
 }: KernelInspectorPanelProps) {
+  const [approvalState, setApprovalState] = useState<Record<string, A2UIApprovalUIState>>({});
+  const [openAppId, setOpenAppId] = useState<string | null>(null);
+
+  // Gate ids are only unique within a run (local gates reuse ids across runs).
+  useEffect(() => {
+    setApprovalState({});
+  }, [activeRun.id]);
+
+  const handleApprovalAction = useCallback(
+    async (gateId: string, action: A2UIApprovalAction) => {
+      if (!onApprovalDecision || approvalState[gateId]?.pending) return;
+      setApprovalState((prev) => ({ ...prev, [gateId]: { pending: action, error: null, resolved: null } }));
+      try {
+        await onApprovalDecision(gateId, action);
+        setApprovalState((prev) => ({
+          ...prev,
+          [gateId]: { pending: null, error: null, resolved: action === "approve" ? "approved" : "rejected" },
+        }));
+      } catch (err) {
+        setApprovalState((prev) => ({
+          ...prev,
+          [gateId]: { pending: null, error: describeDecisionError(err), resolved: null },
+        }));
+      }
+    },
+    [onApprovalDecision, approvalState],
+  );
+
+  const departmentForApp = useCallback(
+    (app: MCPAppSpec): string =>
+      mcpTools.find((t) => t.name === app.tool_name)?.allowed_departments?.[0] ?? "engineering",
+    [mcpTools],
+  );
   const [activeTab, setActiveTab] = useState<InspectorTab>("blackboard");
   const [skillSearch, setSkillSearch] = useState<string>("");
   const [skillDomainFilter, setSkillDomainFilter] = useState<string>("all");
@@ -380,35 +453,12 @@ export function KernelInspectorPanel({
                 A2UI Declarative Surfaces ({a2uiSurfaces.length})
               </p>
               {a2uiSurfaces.map((surface) => (
-                <div
+                <A2UISurfaceView
                   key={surface.surface_id}
-                  className="rounded-md border border-border bg-base p-2.5 text-xs space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-ink">{surface.title}</span>
-                    <span className="font-mono text-[10px] text-muted">{surface.protocol}</span>
-                  </div>
-                  {surface.components.map((comp, idx) => {
-                    if (comp.type === "metric_row" && Array.isArray(comp.items)) {
-                      return (
-                        <div
-                          key={`${surface.surface_id}-m-${idx}`}
-                          className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1"
-                        >
-                          {(comp.items as Array<{ label: string; value: string }>).map((item) => (
-                            <div key={item.label} className="text-[11px]">
-                              <div className="text-muted">{item.label}</div>
-                              <div className="font-mono tabular-nums font-semibold text-ink">
-                                {item.value}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
+                  surface={surface}
+                  onApprovalAction={onApprovalDecision ? handleApprovalAction : undefined}
+                  approvalState={approvalState}
+                />
               ))}
             </div>
           )}
@@ -472,6 +522,30 @@ export function KernelInspectorPanel({
                       </span>
                     </div>
                     <p className="text-muted">{app.description}</p>
+                    {onLoadMcpAppResource && isResourceBackedApp(app) && (
+                      <div className="pt-1 space-y-1.5">
+                        <button
+                          type="button"
+                          aria-expanded={openAppId === app.app_id}
+                          onClick={() => setOpenAppId((cur) => (cur === app.app_id ? null : app.app_id))}
+                          className="px-2 py-0.5 rounded border border-border bg-panel text-[11px] font-medium text-ink hover:border-accent/60 cursor-pointer"
+                        >
+                          {openAppId === app.app_id ? "Close view" : `Open ${app.title} view`}
+                        </button>
+                        {openAppId === app.app_id && (
+                          <MCPAppFrame
+                            key={app.app_id}
+                            title={`MCP App: ${app.title}`}
+                            loadResource={() =>
+                              onLoadMcpAppResource(app, {
+                                role: MCP_APP_VIEWER_ROLE,
+                                department: departmentForApp(app),
+                              })
+                            }
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

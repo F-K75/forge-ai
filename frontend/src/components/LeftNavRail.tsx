@@ -2,6 +2,11 @@ import React, { useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   FolderGit2,
+  LayoutDashboard,
+  ShieldCheck,
+  Sparkles,
+  Network,
+  Users,
   Rocket,
   Boxes,
   CreditCard,
@@ -73,6 +78,13 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
 
   const globalItems: RailNavItem[] = [
     {
+      id: "command",
+      to: "/command",
+      label: "Command Center",
+      icon: LayoutDashboard,
+      match: (p) => p === "/command",
+    },
+    {
       id: "projects",
       to: "/projects",
       label: "Projects",
@@ -85,6 +97,34 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
       label: "New Build",
       icon: Rocket,
       match: (p) => p === "/launch",
+    },
+    {
+      id: "approvals",
+      to: "/approvals",
+      label: "Approvals",
+      icon: ShieldCheck,
+      match: (p) => p.startsWith("/approvals"),
+    },
+    {
+      id: "org",
+      to: "/agents",
+      label: "Agents",
+      icon: Users,
+      match: (p) => p === "/agents",
+    },
+    {
+      id: "skills",
+      to: "/skills",
+      label: "Skills",
+      icon: Sparkles,
+      match: (p) => p.startsWith("/skills"),
+    },
+    {
+      id: "protocols",
+      to: "/protocols",
+      label: "Protocols",
+      icon: Network,
+      match: (p) => p.startsWith("/protocols"),
     },
     {
       id: "marketplace",

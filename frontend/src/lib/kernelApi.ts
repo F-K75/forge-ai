@@ -240,14 +240,167 @@ export interface MCPToolSpec {
   description: string;
   allowed_departments: string[];
   read_only: boolean;
+  /** MCP Apps `ui://` resource declared by the tool (`_meta.ui.resourceUri`). */
+  ui_resource_uri?: string | null;
 }
 
 export interface A2UISurface {
   surface_id: string;
   protocol: string;
   title: string;
+  /**
+   * Wire-format components. Treat as untrusted: render through
+   * `parseA2UIComponent` (components/a2ui/A2UIRenderer), which narrows each
+   * entry to an `A2UIComponent` or drops it.
+   */
   components: Array<Record<string, unknown>>;
 }
+
+// --- A2UI typed component set (mirrors A2UI_COMPONENT_SCHEMAS in
+// backend/core/protocol_gateway.py). All strings are plain text; none of
+// these props ever carries HTML. ---------------------------------------------
+
+export type A2UITone = "info" | "success" | "warning" | "error";
+export type A2UITaskStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "blocked"
+  | "cancelled";
+export type A2UIAgentStatus = "idle" | "active" | "completed" | "failed" | "blocked";
+export type A2UITimelineStatus = A2UITaskStatus | "info" | "answered" | "rejected" | "timeout";
+
+export interface A2UIHeading {
+  type: "heading";
+  text: string;
+  level?: 1 | 2 | 3 | 4;
+}
+export interface A2UIMetricRow {
+  type: "metric_row";
+  items: Array<{ label: string; value: string }>;
+}
+export interface A2UIChecklist {
+  type: "checklist";
+  items: Array<{ label: string; checked: boolean }>;
+}
+export interface A2UIApprovalCard {
+  type: "approval_card";
+  gate_id: string | null;
+  gate_name: string | null;
+  reason?: string | null;
+  wave_index?: number | null;
+  risk_level?: string | null;
+  actions: Array<"approve" | "reject">;
+}
+export interface A2UIConflictList {
+  type: "conflict_list";
+  items: Array<{
+    file_path: string | null;
+    wave_index?: number | null;
+    roles?: string[] | null;
+    status?: string | null;
+  }>;
+}
+export interface A2UIEvalTable {
+  type: "eval_table";
+  rows: Array<{
+    role: string | null;
+    artifact_type: string | null;
+    score: number | null;
+    passed: boolean | null;
+  }>;
+}
+export interface A2UITextBlock {
+  type: "text_block";
+  text: string;
+  /** "markdown" renders a tiny safe subset (headings, bullets, paragraphs) as text nodes. */
+  format?: "plain" | "markdown";
+}
+export interface A2UIKeyValueList {
+  type: "key_value_list";
+  items: Array<{ key: string; value: string }>;
+}
+export interface A2UIProgressBar {
+  type: "progress_bar";
+  label: string;
+  value: number;
+  max: number;
+  tone?: A2UITone;
+}
+export interface A2UITimeline {
+  type: "timeline";
+  events: Array<{
+    timestamp?: string | null;
+    actor?: string | null;
+    label: string;
+    status?: A2UITimelineStatus;
+  }>;
+}
+export interface A2UIStatusList {
+  type: "status_list";
+  items: Array<{
+    id?: string;
+    title: string;
+    status: A2UITaskStatus;
+    owner?: string | null;
+    detail?: string | null;
+  }>;
+}
+export interface A2UICodeDiff {
+  type: "code_diff";
+  diff: string;
+  file_path?: string | null;
+  language?: string | null;
+}
+export interface A2UICostBreakdown {
+  type: "cost_breakdown";
+  currency: "USD";
+  total: number;
+  budget?: number | null;
+  items: Array<{ label: string; amount: number }>;
+}
+export interface A2UIAgentRoster {
+  type: "agent_roster";
+  agents: Array<{
+    role: string;
+    department?: string | null;
+    status: A2UIAgentStatus;
+    task_count?: number;
+    model?: string | null;
+  }>;
+}
+export interface A2UICallout {
+  type: "callout";
+  tone: A2UITone;
+  title?: string | null;
+  text: string;
+}
+export interface A2UILinkList {
+  type: "link_list";
+  /** Only absolute http(s) URLs are rendered; anything else is dropped. */
+  links: Array<{ label: string; url: string }>;
+}
+
+export type A2UIComponent =
+  | A2UIHeading
+  | A2UIMetricRow
+  | A2UIChecklist
+  | A2UIApprovalCard
+  | A2UIConflictList
+  | A2UIEvalTable
+  | A2UITextBlock
+  | A2UIKeyValueList
+  | A2UIProgressBar
+  | A2UITimeline
+  | A2UIStatusList
+  | A2UICodeDiff
+  | A2UICostBreakdown
+  | A2UIAgentRoster
+  | A2UICallout
+  | A2UILinkList;
+
+export type A2UIComponentType = A2UIComponent["type"];
 
 export interface MCPAppSpec {
   app_id: string;
@@ -257,11 +410,61 @@ export interface MCPAppSpec {
   description: string;
   protocol: string;
   ui_schema: {
-    input_field: string;
-    input_label: string;
-    action_label: string;
-    result_view: string;
+    input_field?: string;
+    input_label?: string;
+    action_label?: string;
+    result_view?: string;
+    /** "mcp-app-resource" for apps rendered from a sandboxed `ui://` resource. */
+    kind?: string;
+    resource_uri?: string;
   };
+  resource_uri?: string | null;
+}
+
+/**
+ * Sanitized MCP App UI resource. Render ONLY as
+ * `<iframe srcdoc={html} sandbox={sandbox.iframe_sandbox} allow={sandbox.iframe_allow}
+ *  referrerPolicy={sandbox.referrer_policy}>` and never inject `html` into Forge's own DOM.
+ */
+export interface MCPAppResourcePayload {
+  app_id: string;
+  tool_name: string;
+  server_id: string;
+  resource_uri: string;
+  mime_type: "text/html;profile=mcp-app";
+  html: string;
+  size_bytes: number;
+  content_sha256: string;
+  protocol: string;
+  extension: string;
+  warnings: string[];
+  sandbox: {
+    render_mode: "iframe-srcdoc";
+    iframe_sandbox: string;
+    iframe_allow: string;
+    referrer_policy: string;
+    csp: string;
+    allowed_domains: {
+      connect_domains: string[];
+      resource_domains: string[];
+      frame_domains: string[];
+    };
+    denied_permissions: string[];
+    prefers_border: boolean;
+  };
+}
+
+/** A2A `Task` object as returned by Forge's A2A JSON-RPC / REST endpoints. */
+export interface A2ATask {
+  id: string;
+  sessionId?: string | null;
+  status: {
+    state: "submitted" | "working" | "input-required" | "completed" | "canceled" | "failed" | "unknown";
+    message?: { role: string; parts: Array<{ type: string; text?: string }> } | string;
+    timestamp: string;
+  };
+  artifacts: Array<Record<string, unknown>>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface A2AAgentCard {
@@ -281,7 +484,7 @@ export interface A2ATaskResponse {
   task_id: string;
   kernel_run_id: string;
   project_id: string;
-  state: "submitted" | "working" | "completed" | "failed";
+  state: "submitted" | "working" | "completed" | "canceled" | "failed";
   summary: string;
   wave_count: number;
   task_count: number;
@@ -616,6 +819,20 @@ export const protocolApi = {
 
   listMcpApps: (projectId: string): Promise<{ protocol: string; apps: MCPAppSpec[] }> =>
     api.get(`/v1/projects/${projectId}/protocols/mcp/apps`).then((r) => r.data),
+
+  getMcpAppResource: (
+    projectId: string,
+    appId: string,
+    params: { role: string; department: string },
+  ): Promise<MCPAppResourcePayload> =>
+    api
+      .get(`/v1/projects/${projectId}/protocols/mcp/apps/${encodeURIComponent(appId)}/resource`, { params })
+      .then((r) => r.data),
+
+  getA2ATask: (projectId: string, taskId: string): Promise<A2ATask> =>
+    api
+      .get(`/v1/projects/${projectId}/protocols/a2a/tasks/${encodeURIComponent(taskId)}`)
+      .then((r) => r.data),
 
   registerMcpServer: (
     projectId: string,

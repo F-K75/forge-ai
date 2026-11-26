@@ -41,6 +41,7 @@ from api.retrieval import router as retrieval_router
 from api.engineering import router as engineering_router
 from engineering_plugins import register_engineering_plugins
 from api.v1 import v1_router
+from api.a2a_public import well_known_router as a2a_well_known_router
 from core.database import close_connections
 from core.config import get_settings
 from core.security import (
@@ -177,6 +178,18 @@ async def lifespan(app: FastAPI):
         except Exception:
             logger.warning("Enterprise OS persistence bootstrap skipped; continuing in-memory", exc_info=True)
 
+        # Shared MongoDB-backed inbound A2A task state (cross-worker idempotency,
+        # cancel, global concurrency) + fail tasks orphaned by a dead worker.
+        try:
+            from core.a2a_task_store import bootstrap_a2a_task_store
+
+            a2a_state = await bootstrap_a2a_task_store(db)
+            logger.info("A2A task store bootstrapped: %s", a2a_state)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("A2A task store bootstrap did not complete; store setup retries on first A2A request", exc_info=True)
+
     startup_task = asyncio.create_task(_background_startup_init())
 
     yield
@@ -195,6 +208,17 @@ async def lifespan(app: FastAPI):
     await ws_manager.stop()
     await pm_manager.stop()
     await org_manager.stop()
+
+    # Release MCP sessions (DELETE on servers that issued an Mcp-Session-Id).
+    # Only touch the gateway if something in this process created it.
+    try:
+        from core import protocol_gateway as _pg
+
+        if _pg._mcp_gateway is not None:
+            await asyncio.wait_for(_pg._mcp_gateway.aclose(), timeout=5)
+    except Exception as exc:  # shutdown must never fail on cleanup
+        logger.warning("MCP gateway close failed during shutdown: %s", exc)
+
     await close_connections()
 
 
@@ -316,6 +340,8 @@ async def deprecation_middleware(request: Request, call_next):
         return response
     if path.startswith("/api/llm"):
         return response
+    if path.startswith("/.well-known/"):
+        return response
     if path.startswith("/razorpay"):
         return response
     if path.startswith("/cashfree"):
@@ -333,6 +359,9 @@ async def deprecation_middleware(request: Request, call_next):
 
 # Canonical /v1/ routes (BE-004).
 app.include_router(v1_router)
+
+# A2A discovery card must live at the origin root per the A2A convention.
+app.include_router(a2a_well_known_router)
 
 # Legacy root-level routes remain available during the deprecation window but
 # receive Deprecation and Link headers pointing at their /v1/ successors.
