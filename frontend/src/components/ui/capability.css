@@ -1,0 +1,31 @@
+/*
+ * Atmosphere tokens for capability / feature cards (Ember Night).
+ * Muted olive, rust and teal family, faded into the near-black canvas under a
+ * 30% base overlay. Use via `.cap-atmo-<hue>` classes, never as flat fills.
+ */
+:root {
+  --atmo-olive: 110 110 77;  /* #6E6E4D */
+  --atmo-rust: 97 48 32;     /* #613020 */
+  --atmo-teal: 61 87 87;     /* #3D5757 */
+  --atmo-moss: 79 90 60;
+  --atmo-slate: 58 70 82;
+  --atmo-clay: 107 74 58;
+  --atmo-strength: 0.55;
+}
+
+:root.light {
+  --atmo-strength: 0.32;
+}
+
+.cap-atmo {
+  background-image:
+    radial-gradient(120% 90% at var(--atmo-x, 0%) var(--atmo-y, 0%), rgb(var(--atmo-hue) / var(--atmo-strength)), transparent 62%),
+    radial-gradient(80% 60% at 100% 100%, rgb(var(--atmo-hue) / calc(var(--atmo-strength) * 0.35)), transparent 70%);
+}
+
+.cap-atmo-olive { --atmo-hue: var(--atmo-olive); }
+.cap-atmo-rust { --atmo-hue: var(--atmo-rust); }
+.cap-atmo-teal { --atmo-hue: var(--atmo-teal); }
+.cap-atmo-moss { --atmo-hue: var(--atmo-moss); }
+.cap-atmo-slate { --atmo-hue: var(--atmo-slate); }
+.cap-atmo-clay { --atmo-hue: var(--atmo-clay); }

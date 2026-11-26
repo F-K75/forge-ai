@@ -21,3 +21,14 @@ export { Table, TableHeader, TableBody, TableRow, TableCell } from './Table'
 export { ErrorBoundary } from './ErrorBoundary'
 export { ClipboardCopyButton } from './ClipboardCopyButton'
 export { EmptyState } from './EmptyState'
+export {
+  TwoToneHeading,
+  SegmentedControl,
+  MetricTile,
+  AtmosphereLayer,
+  CapabilityCard,
+  DataTable,
+  InlineNotice,
+} from './CapabilityPrimitives'
+export type { SegmentedItem, AtmosphereHue, DataTableColumn } from './CapabilityPrimitives'
+export { SafeMarkdown } from './SafeMarkdown'
