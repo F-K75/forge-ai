@@ -365,7 +365,7 @@ class MultiAgentBenchmarkHarness:
             nonlocal local_routed
             route = ctx.get("model_route") or {}
             prefs = route.get("provider_preference") or []
-            if prefs and prefs[0] == "ollama":
+            if prefs and prefs[0] in ("ollama", "vllm"):
                 local_routed = True
             return {
                 "summary": "Generated release runbook and verified schema migration via local model route.",

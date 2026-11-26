@@ -38,6 +38,23 @@ class Settings(BaseSettings):
     together_api_key: str = ""
     mistral_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
+    # Self-hosted OpenAI-compatible servers (providers/openai_compatible.py).
+    # Each is registered only when its base URL is set; *_MODELS is a
+    # comma-separated list whose first entry is the default model;
+    # *_COST_PER_1K rates default to 0 (self-hosted inference is free to
+    # Forge) and feed usage/budget accounting.
+    vllm_base_url: str = ""
+    vllm_api_key: str = ""
+    vllm_models: str = ""
+    vllm_timeout_seconds: int = 120
+    vllm_input_cost_per_1k: float = 0.0
+    vllm_output_cost_per_1k: float = 0.0
+    litellm_base_url: str = ""
+    litellm_api_key: str = ""
+    litellm_models: str = ""
+    litellm_timeout_seconds: int = 120
+    litellm_input_cost_per_1k: float = 0.0
+    litellm_output_cost_per_1k: float = 0.0
     azure_openai_api_key: str = ""
     azure_openai_endpoint: str = ""
     azure_openai_api_version: str = "2024-10-21"

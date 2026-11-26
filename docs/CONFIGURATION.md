@@ -24,6 +24,33 @@ customer request.
 overrides are managed at runtime via `/api/llm/agent/{agent}` and stored in
 MongoDB.
 
+### Self-hosted models (vLLM, LiteLLM proxy)
+
+Both expose the OpenAI chat-completions API and are served by
+`backend/providers/openai_compatible.py` as providers `vllm` and `litellm`.
+Each is **registered only when its base URL is set** (no base URL = provider
+absent, never tried, never counted by the circuit breaker).
+
+| Variable | Default | Notes |
+|---|---|---|
+| `VLLM_BASE_URL` | — | e.g. `http://gpu-host:8000` (`/v1` optional). |
+| `VLLM_API_KEY` | — | Optional; matches `vllm serve --api-key`. |
+| `VLLM_MODELS` | — | Comma-separated served model names; first is the default. Empty = discover from `GET /v1/models`. A request for a model the server doesn't serve (e.g. an Ollama tag from a local-first chain) is mapped to the default. |
+| `VLLM_INPUT_COST_PER_1K` / `VLLM_OUTPUT_COST_PER_1K` | `0` | USD per 1K tokens, used for usage/budget accounting instead of `MODEL_COSTS`. Set to charge back GPU cost. |
+| `VLLM_TIMEOUT_SECONDS` | `120` | |
+| `LITELLM_BASE_URL` | — | e.g. `http://litellm:4000`. |
+| `LITELLM_API_KEY` | — | The proxy's master/virtual key (optional if the proxy has no auth). |
+| `LITELLM_MODELS` | — | Comma-separated model aliases from the proxy config; first is the default. |
+| `LITELLM_INPUT_COST_PER_1K` / `LITELLM_OUTPUT_COST_PER_1K` | `0` | Fallback rates; LiteLLM's `x-litellm-response-cost` header (real upstream cost) wins on non-streaming calls. |
+| `LITELLM_TIMEOUT_SECONDS` | `120` | |
+
+`prefer_local_llm` kernel runs (or `FORGE_LOCAL_LLM_ENABLED=1`) route the
+balanced/fast tiers local-first: `vllm, ollama` when `VLLM_BASE_URL` is set,
+otherwise `ollama, vllm`, followed by the cloud providers as failover. A
+failing local server trips its per-provider circuit breaker and traffic falls
+through to the cloud tier. To use either provider outside the kernel, add it
+to `LLM_FALLBACK_CHAIN` / `fallback_chain` in `backend/config/llm.yaml`.
+
 ## Datastores & queue
 
 | Variable | Default |

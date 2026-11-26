@@ -830,11 +830,11 @@ class LLMRouter:
                 raise
             logger.exception("Failed to record partial stream usage for user %s", user_id)
         if usage_out is not None:
-            cost_usd = calculate_cost(
-                response.model,
+            cost_usd = self._cost_for_response(
+                response,
                 response.usage.get("prompt_tokens", 0),
                 response.usage.get("completion_tokens", 0),
-                cached_tokens=response.usage.get("cached_tokens", 0),
+                response.usage.get("cached_tokens", 0),
             )
             usage_out.update({
                 "model": response.model,
@@ -1163,6 +1163,29 @@ class LLMRouter:
             return "claude-sonnet-4-6"
         return getattr(provider, "default_model", "claude-sonnet-4-6")
 
+    def _cost_for_response(
+        self, response: CompletionResponse, prompt_tokens: int, completion_tokens: int, cached_tokens: int = 0,
+    ) -> float:
+        """USD cost of a completed call.
+
+        Precedence: an explicit ``usage["cost_usd"]`` reported by the
+        provider (e.g. LiteLLM's upstream cost header), then the registered
+        provider's own ``cost_for_usage`` pricing (self-hosted vLLM/LiteLLM,
+        whose model names aren't in MODEL_COSTS and would otherwise be
+        billed at the default-model rate), then the MODEL_COSTS table.
+        """
+        explicit = (response.usage or {}).get("cost_usd")
+        if explicit is not None:
+            try:
+                return float(explicit)
+            except (TypeError, ValueError):
+                pass
+        provider = self.registry.get_provider(response.provider) if response.provider else None
+        pricer = getattr(provider, "cost_for_usage", None)
+        if callable(pricer):
+            return float(pricer(response.model, prompt_tokens, completion_tokens))
+        return calculate_cost(response.model, prompt_tokens, completion_tokens, cached_tokens=cached_tokens)
+
     async def _record_usage(
         self,
         *,
@@ -1180,7 +1203,7 @@ class LLMRouter:
         if prompt_tokens + completion_tokens <= 0:
             return
         cached_tokens = int(usage.get("cached_tokens", 0) or 0)
-        cost_usd = calculate_cost(response.model, prompt_tokens, completion_tokens, cached_tokens=cached_tokens)
+        cost_usd = self._cost_for_response(response, prompt_tokens, completion_tokens, cached_tokens)
         # Prometheus token volume is recorded before the user_id gate: token
         # throughput is a platform-level signal, not a billing one.
         if prompt_tokens:
@@ -1305,6 +1328,7 @@ class LLMRouter:
         from providers.ollama import OllamaAdapter
         from providers.mistral import MistralAdapter
         from providers.azure_openai import AzureOpenAIAdapter
+        from providers.openai_compatible import build_self_hosted_adapters
 
         settings = get_settings()
 
@@ -1351,6 +1375,15 @@ class LLMRouter:
             OllamaAdapter(base_url=settings.ollama_base_url),
             name="ollama", priority=40, models=["llama3.2"],
         )
+        # Self-hosted OpenAI-compatible servers (vLLM, LiteLLM proxy). Gated
+        # on base URL (the key is optional) so an unconfigured deployment
+        # never tries -- or trips the circuit breaker on -- a server that
+        # isn't there.
+        for adapter, priority in build_self_hosted_adapters(settings):
+            self.register_provider(
+                adapter, name=adapter.name, priority=priority,
+                models=adapter.models or None,
+            )
         if settings.mistral_api_key:
             self.register_provider(
                 MistralAdapter(api_key=settings.mistral_api_key),

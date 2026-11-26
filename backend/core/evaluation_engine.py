@@ -91,6 +91,26 @@ DEPARTMENT_DEFAULT_TIER: Dict[str, str] = {
 }
 
 
+def _local_provider_preference() -> Tuple[str, ...]:
+    """Local (self-hosted) provider tier for prefer_local routing.
+
+    vLLM is only registered when ``VLLM_BASE_URL`` is configured, whereas
+    Ollama always registers against its localhost default. So when an
+    operator has explicitly pointed Forge at a vLLM server, try it first;
+    otherwise keep Ollama first (vLLM is then simply skipped as
+    unregistered). Either way the cloud tier follows as failover.
+    """
+    vllm_url = os.getenv("VLLM_BASE_URL", "")
+    if not vllm_url:
+        try:
+            from core.config import get_settings
+
+            vllm_url = get_settings().vllm_base_url
+        except Exception:
+            vllm_url = ""
+    return ("vllm", "ollama") if vllm_url.strip() else ("ollama", "vllm")
+
+
 class ModelRouter:
     """Selects optimal model tier & provider chain per department/role with repair escalation and budget awareness."""
 
@@ -146,7 +166,7 @@ class ModelRouter:
                 estimated_cost_per_call_usd=0.001,
                 rationale=f"Self-hosted local inference preference ({local_model}) with cloud failover",
                 task_complexity=decision.task_complexity,
-                provider_preference=("ollama", "vllm", *decision.provider_preference),
+                provider_preference=(*_local_provider_preference(), *decision.provider_preference),
                 input_cost_per_1m_usd=0.0,
                 output_cost_per_1m_usd=0.0,
             )
