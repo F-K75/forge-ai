@@ -6,11 +6,22 @@
  */
 import { useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from "react"
 import clsx from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
 import type { LucideIcon } from "lucide-react"
 import "./capability.css"
 
-const cx = (...args: Parameters<typeof clsx>) => twMerge(clsx(...args))
+// Teach tailwind-merge the Ember Night type scale and colour tokens so e.g.
+// `text-caption` and `text-muted` don't cancel each other out.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["hero", "display", "headline", "title", "body", "caption", "2xs"] }],
+      "text-color": [{ text: ["ink", "muted", "faint", "accent", "ok", "warn", "error", "info"] }],
+    },
+  },
+})
+
+const cx =(...args: Parameters<typeof clsx>) => twMerge(clsx(...args))
 
 // ---------------------------------------------------------------------------
 // TwoToneHeading
