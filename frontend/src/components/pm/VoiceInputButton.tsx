@@ -97,7 +97,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         type="button"
         disabled
         title="Microphone / Speech recognition is not supported in this browser"
-        className="px-2 py-1 bg-neutral-100 text-neutral-400 border border-neutral-300 text-[10px] font-mono font-bold uppercase cursor-not-allowed flex items-center gap-1 opacity-60"
+        className="px-2 py-1 bg-panel-alt text-faint border border-border text-[10px] font-mono font-semibold uppercase cursor-not-allowed flex items-center gap-1 opacity-60"
       >
         <MicOff className="w-3 h-3" />
         <span>Voice Unavailable</span>
@@ -115,10 +115,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           onClick={handleToggle}
           disabled={isTranscribing}
           title={isListening ? 'Stop listening' : 'Dictate verbally with microphone'}
-          className={`px-2 py-0.5 text-[10px] font-black uppercase border transition-all flex items-center gap-1 ${
+          className={`px-2 py-0.5 text-[10px] font-semibold uppercase border transition-all flex items-center gap-1 ${
             isListening
-              ? 'bg-rose-500 text-white border-black animate-pulse shadow-[1px_1px_0px_#000]'
-              : 'bg-white hover:bg-brutal-yellow text-neutral-800 border-black shadow-[1px_1px_0px_#000]'
+              ? 'bg-error text-on-ink border-border animate-pulse'
+              : 'bg-panel hover:bg-brutal-yellow text-ink border-border'
           } ${className}`}
         >
           {isListening ? (
@@ -133,7 +133,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
             </>
           ) : (
             <>
-              <Mic className="w-2.5 h-2.5 text-neutral-700" />
+              <Mic className="w-2.5 h-2.5 text-ink" />
               <span>{label || 'Dictate'}</span>
             </>
           )}
@@ -144,28 +144,28 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           type="button"
           onClick={handleToggle}
           disabled={isTranscribing}
-          className={`px-3 py-1.5 text-xs font-black uppercase border-2 transition-all flex items-center gap-2 ${
+          className={`px-3 py-1.5 text-xs font-semibold uppercase border-2 transition-all flex items-center gap-2 ${
             isListening
-              ? 'bg-rose-600 text-white border-black shadow-[2px_2px_0px_#000]'
-              : 'bg-white hover:bg-neutral-50 text-black border-black shadow-[2px_2px_0px_#000]'
+              ? 'bg-error text-on-ink border-border'
+              : 'bg-panel hover:bg-ink/5 text-ink border-border'
           } ${className}`}
         >
           {isListening ? (
             <>
-              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+              <span className="w-2.5 h-2.5 rounded-full bg-panel animate-ping" />
               <span>Recording Voice… (Click to Finish)</span>
               <Square className="w-3.5 h-3.5 fill-current ml-1" />
             </>
           ) : isTranscribing ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-warn" />
               <span>Transcribing Audio…</span>
             </>
           ) : (
             <>
-              <Mic className="w-3.5 h-3.5 text-rose-600" />
+              <Mic className="w-3.5 h-3.5 text-error" />
               <span>{label}</span>
-              <span className="text-[10px] px-1.5 py-0.2 bg-neutral-100 text-neutral-600 border border-neutral-300">
+              <span className="text-[10px] px-1.5 py-0.2 bg-panel-alt text-muted border border-border">
                 MIC
               </span>
             </>
@@ -178,26 +178,26 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           type="button"
           onClick={handleToggle}
           disabled={isTranscribing}
-          className={`px-2.5 py-1 text-[11px] font-black uppercase border-2 transition-all flex items-center gap-1.5 ${
+          className={`px-2.5 py-1 text-[11px] font-semibold uppercase border-2 transition-all flex items-center gap-1.5 ${
             isListening
-              ? 'bg-rose-500 text-white border-black shadow-[2px_2px_0px_#000]'
-              : 'bg-white hover:bg-brutal-yellow text-black border-black shadow-[1px_1px_0px_#000] active:translate-x-0.5 active:translate-y-0.5'
+              ? 'bg-error text-on-ink border-border'
+              : 'bg-panel hover:bg-brutal-yellow text-ink border-border active:translate-x-0.5 active:translate-y-0.5'
           } ${className}`}
         >
           {isListening ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-panel animate-pulse shrink-0" />
               <span>Recording…</span>
-              <Square className="w-3 h-3 fill-white ml-0.5" />
+              <Square className="w-3 h-3 fill-ink ml-0.5" />
             </>
           ) : isTranscribing ? (
             <>
-              <Loader2 className="w-3 h-3 animate-spin text-amber-700" />
+              <Loader2 className="w-3 h-3 animate-spin text-warn" />
               <span>Transcribing…</span>
             </>
           ) : (
             <>
-              <Mic className="w-3 h-3 text-rose-600 shrink-0" />
+              <Mic className="w-3 h-3 text-error shrink-0" />
               <span>{label}</span>
             </>
           )}
@@ -208,33 +208,33 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       {(isListening || showLivePanel || isTranscribing || error) && (
         <div
           id={`${id}-live-panel`}
-          className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-88 p-3 bg-white border-2 border-black shadow-[4px_4px_0px_#000] space-y-2.5 text-left font-mono"
+          className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-88 p-3 bg-panel border-2 border-border space-y-2.5 text-left font-mono"
         >
           {/* Header & Status */}
-          <div className="flex items-center justify-between border-b border-black pb-1.5">
+          <div className="flex items-center justify-between border-b border-border pb-1.5">
             <div className="flex items-center gap-1.5">
               {isListening ? (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-400 text-[10px] font-black uppercase">
-                  <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-error/10 text-error border border-error/30 text-[10px] font-semibold uppercase">
+                  <span className="w-2 h-2 rounded-full bg-error animate-pulse" />
                   Live Listening
                 </span>
               ) : isTranscribing ? (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-400 text-[10px] font-black uppercase">
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-warn/10 text-warn border border-warn/30 text-[10px] font-semibold uppercase">
                   <Loader2 className="w-2.5 h-2.5 animate-spin" />
                   Processing Audio
                 </span>
               ) : error ? (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-400 text-[10px] font-black uppercase">
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-error/10 text-error border border-error/30 text-[10px] font-semibold uppercase">
                   <AlertCircle className="w-2.5 h-2.5" />
                   Notice
                 </span>
               ) : (
-                <span className="text-[10px] font-black uppercase text-neutral-600">
+                <span className="text-[10px] font-semibold uppercase text-muted">
                   Voice Dictation
                 </span>
               )}
 
-              <span className="text-[9px] text-neutral-400 uppercase font-bold">
+              <span className="text-[9px] text-faint uppercase font-semibold">
                 {engine === 'native' ? 'Web Speech API' : 'Gemini Multimodal Audio'}
               </span>
             </div>
@@ -242,7 +242,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="text-[10px] font-black text-neutral-400 hover:text-black uppercase"
+              className="text-[10px] font-semibold text-faint hover:text-ink uppercase"
             >
               ✕
             </button>
@@ -250,16 +250,16 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
           {/* Context directive hint */}
           {contextHint && (
-            <div className="text-[10px] text-neutral-600 italic bg-neutral-50 p-1 border border-neutral-200 line-clamp-2">
+            <div className="text-[10px] text-muted italic bg-panel p-1 border border-border line-clamp-2">
               &ldquo;{contextHint}&rdquo;
             </div>
           )}
 
           {/* Equalizer Frequency Wave Bars while listening */}
           {isListening && (
-            <div className="bg-neutral-900 p-2 border border-black flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-black">
-                <Volume2 className="w-3 h-3 text-emerald-400" />
+            <div className="bg-panel-alt p-2 border border-border flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1 text-[10px] text-ok font-semibold">
+                <Volume2 className="w-3 h-3 text-ok" />
                 <span>{audioLevel > 5 ? 'VOICE DETECTED' : 'AWAITING SPEECH…'}</span>
               </div>
 
@@ -268,7 +268,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                 {audioBars.map((h, i) => (
                   <span
                     key={i}
-                    className="w-1.5 bg-emerald-400 border border-emerald-300 transition-all duration-75"
+                    className="w-1.5 bg-ok border border-ok/30 transition-all duration-75"
                     style={{ height: `${Math.max(4, Math.round((h / 100) * 20))}px` }}
                   />
                 ))}
@@ -278,8 +278,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
           {/* Live Interim Transcript Stream */}
           {interimTranscript && (
-            <div className="p-2 bg-amber-50 border border-amber-300 text-xs font-bold text-amber-950 italic">
-              <span className="text-[9px] font-black uppercase text-amber-700 block not-italic mb-0.5">
+            <div className="p-2 bg-warn/10 border border-warn/30 text-xs font-semibold text-warn italic">
+              <span className="text-[9px] font-semibold uppercase text-warn block not-italic mb-0.5">
                 Hearing right now:
               </span>
               &ldquo;{interimTranscript}&rdquo;
@@ -288,23 +288,23 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
           {/* Error notice if any */}
           {error && (
-            <div className="p-2 bg-rose-50 border border-rose-300 text-[11px] font-bold text-rose-900">
+            <div className="p-2 bg-error/10 border border-error/30 text-[11px] font-semibold text-error">
               {error}
             </div>
           )}
 
           {/* Action options & Done button */}
-          <div className="pt-1 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-200 text-[10px]">
+          <div className="pt-1 flex flex-wrap items-center justify-between gap-2 border-t border-border text-[10px]">
             {/* Insert Mode Toggle */}
-            <div className="flex items-center gap-1 font-bold text-neutral-600">
+            <div className="flex items-center gap-1 font-semibold text-muted">
               <span>Mode:</span>
               <button
                 type="button"
                 onClick={() => setInsertMode('append')}
                 className={`px-1.5 py-0.5 border ${
                   insertMode === 'append'
-                    ? 'bg-black text-white border-black'
-                    : 'bg-neutral-100 text-neutral-700 border-neutral-300'
+                    ? 'bg-ink text-on-ink border-border'
+                    : 'bg-panel-alt text-ink border-border'
                 }`}
               >
                 Append
@@ -314,8 +314,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                 onClick={() => setInsertMode('replace')}
                 className={`px-1.5 py-0.5 border ${
                   insertMode === 'replace'
-                    ? 'bg-black text-white border-black'
-                    : 'bg-neutral-100 text-neutral-700 border-neutral-300'
+                    ? 'bg-ink text-on-ink border-border'
+                    : 'bg-panel-alt text-ink border-border'
                 }`}
               >
                 Replace
@@ -331,7 +331,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                     stopListening();
                     setShowLivePanel(false);
                   }}
-                  className="px-2 py-1 bg-black text-white font-black uppercase border border-black shadow-[1px_1px_0px_#FFE600] flex items-center gap-1 hover:bg-neutral-800"
+                  className="px-2 py-1 bg-ink text-on-ink font-semibold uppercase border border-border flex items-center gap-1 hover:bg-ink/90"
                 >
                   <Square className="w-2.5 h-2.5 fill-current" />
                   <span>Done Speaking</span>
@@ -340,7 +340,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                 <button
                   type="button"
                   onClick={handleToggle}
-                  className="px-2 py-1 bg-brutal-yellow text-black font-black uppercase border border-black shadow-[1px_1px_0px_#000] flex items-center gap-1"
+                  className="px-2 py-1 bg-brutal-yellow text-ink font-semibold uppercase border border-border flex items-center gap-1"
                 >
                   <Sparkles className="w-2.5 h-2.5" />
                   <span>Resume Dictation</span>

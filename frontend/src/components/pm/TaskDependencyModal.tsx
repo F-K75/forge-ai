@@ -115,7 +115,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
   return (
     <div
       id="kanban-dependency-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
@@ -123,23 +123,23 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="dependency-modal-title"
-        className="w-full max-w-2xl glass-card rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-white/80 dark:border-white/10"
+        className="w-full max-w-2xl glass-card rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-border"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="px-6 py-4 glass-header flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-500/20 shrink-0 shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-agent-integration/10 text-agent-integration flex items-center justify-center border border-agent-integration/20 shrink-0 shadow-xs">
               <GitFork className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div className="truncate">
               <h2
                 id="dependency-modal-title"
-                className="text-sm font-bold text-slate-900 dark:text-white tracking-tight"
+                className="text-sm font-semibold text-ink tracking-tight"
               >
                 Task Dependencies & Blockers
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+              <p className="text-xs text-muted truncate mt-0.5">
                 #{task.id.replace(/^task-/, "")}: {task.title}
               </p>
             </div>
@@ -149,23 +149,23 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close dependency modal"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-faint hover:text-ink hover:bg-ink/5 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Current Task Status Overview Bar */}
-        <div className="px-6 py-3 bg-slate-50/70 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-3 text-xs shrink-0 flex-wrap">
+        <div className="px-6 py-3 bg-ink/10 border-b border-border flex items-center justify-between gap-3 text-xs shrink-0 flex-wrap">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status:</span>
+            <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Status:</span>
             <span
               className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${
                 task.status === "done"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                  ? "bg-ok/10 text-ok border-ok/30 "
                   : task.status === "blocked"
-                  ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800"
-                  : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
+                  ? "bg-error/10 text-error border-error/30 "
+                  : "bg-warn/10 text-warn border-warn/30 "
               }`}
             >
               {task.status?.replace("_", " ") || "BACKLOG"}
@@ -179,25 +179,25 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
               </span>
             )}
             {task.assigned_agent && (
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                Assignee: <strong className="text-slate-700 dark:text-slate-200 uppercase font-semibold">{task.assigned_agent.replace("_agent", "")}</strong>
+              <span className="text-xs text-muted">
+                Assignee: <strong className="text-ink uppercase font-semibold">{task.assigned_agent.replace("_agent", "")}</strong>
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
             {activeBlockers.length > 0 ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-800/80">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-error bg-error/10 px-2.5 py-0.5 rounded-full border border-error/30">
                 <AlertTriangle className="w-3.5 h-3.5 stroke-[2.2]" />
                 Blocked by {activeBlockers.length} {activeBlockers.length === 1 ? "task" : "tasks"}
               </span>
             ) : dependencies.length > 0 ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/80">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ok bg-ok/10 px-2.5 py-0.5 rounded-full border border-ok/30">
                 <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.2]" />
                 All {dependencies.length} Prerequisites Done
               </span>
             ) : (
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+              <span className="text-xs text-faint font-medium">
                 No prerequisites
               </span>
             )}
@@ -210,20 +210,20 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-red-500" />
-                <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                <ShieldAlert className="w-4 h-4 text-error" />
+                <h3 className="text-xs font-semibold text-ink uppercase tracking-wider">
                   Prerequisites & Blockers ({dependencies.length})
                 </h3>
               </div>
-              <span className="text-xs text-slate-400 dark:text-slate-500">
+              <span className="text-xs text-faint">
                 Must finish before this task can start
               </span>
             </div>
 
             {dependencies.length === 0 ? (
-              <div className="p-5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 text-center text-slate-500 dark:text-slate-400">
+              <div className="p-5 rounded-xl border border-dashed border-border bg-ink/10 text-center text-muted">
                 <p className="font-semibold text-xs">No blockers linked to this task.</p>
-                <p className="text-[11px] mt-1 text-slate-400 dark:text-slate-500">
+                <p className="text-[11px] mt-1 text-faint">
                   Link an existing task below if this work item is blocked by another deliverable.
                 </p>
               </div>
@@ -240,8 +240,8 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                       id={`dependency-row-${dep.id}`}
                       className={`p-3.5 rounded-xl border transition-all flex items-start justify-between gap-3 ${
                         isDone
-                          ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20"
-                          : "border-red-200 dark:border-red-900/60 bg-red-50/40 dark:bg-red-950/20 shadow-xs"
+                          ? "border-ok/30 bg-ok/20"
+                          : "border-error/30 bg-error/20 shadow-xs"
                       }`}
                     >
                       <div className="flex-1 min-w-0">
@@ -249,8 +249,8 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                           <span
                             className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border ${
                               isDone
-                                ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300"
-                                : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/80 text-red-700 dark:text-red-300"
+                                ? "border-ok/30 bg-ok/10 text-ok"
+                                : "border-error/30 bg-error/10 text-error"
                             }`}
                           >
                             {isDone ? (
@@ -266,11 +266,11 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                             )}
                           </span>
 
-                          <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
+                          <span className="text-xs font-mono font-semibold text-ink">
                             #{dep.id.replace(/^task-/, "")}
                           </span>
 
-                          <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-panel-alt text-muted">
                             {dep.status?.replace("_", " ")}
                           </span>
 
@@ -283,13 +283,13 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                           )}
 
                           {dep.assigned_agent && (
-                            <span className="text-xs text-slate-400">
+                            <span className="text-xs text-faint">
                               @{dep.assigned_agent.replace("_agent", "")}
                             </span>
                           )}
                         </div>
 
-                        <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate leading-tight">
+                        <p className="text-xs font-semibold text-ink truncate leading-tight">
                           {dep.title}
                         </p>
                       </div>
@@ -300,7 +300,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                             type="button"
                             onClick={() => onSelectTask(dep.id)}
                             title="View task on board"
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg border border-border bg-panel hover:bg-ink/5 text-muted transition-colors cursor-pointer"
                           >
                             <ArrowRight className="w-3.5 h-3.5" />
                           </button>
@@ -310,7 +310,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                           id={`unlink-dep-${dep.id}`}
                           onClick={() => onRemoveDependency(task.id, dep.id)}
                           title="Remove this dependency link"
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50 dark:hover:text-red-400 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                          className="px-2.5 py-1.5 rounded-lg border border-border bg-panel hover:border-error/30 hover:bg-error/20 hover:text-error text-ink text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
                         >
                           <Unlink className="w-3 h-3" />
                           <span>Unlink</span>
@@ -324,21 +324,21 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
           </div>
 
           {/* Section 2: Add New Dependency */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50 shadow-xs">
+          <div className="p-4 rounded-xl border border-border bg-ink/10 shadow-xs">
             <div className="flex items-center gap-2 mb-1.5">
-              <Plus className="w-4 h-4 text-teal-600 dark:text-teal-400 stroke-[2.5]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+              <Plus className="w-4 h-4 text-agent-integration stroke-[2.5]" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink">
                 Link New Dependency / Blocker
               </h3>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <p className="text-xs text-muted mb-3">
               Select another task that must be finished before this task can be worked on.
             </p>
 
             <form onSubmit={handleAdd} className="space-y-3">
               {allTasks.length > 4 && (
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
                   <input
                     id="dependency-candidate-filter-input"
                     type="text"
@@ -346,7 +346,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                     placeholder="Filter candidate tasks by title or #id..."
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    className="w-full h-8 pl-8.5 pr-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="w-full h-8 pl-8.5 pr-3 rounded-lg border border-border bg-panel text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
                   />
                 </div>
               )}
@@ -358,7 +358,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                     aria-label="Select candidate task to link as dependency"
                     value={selectedCandidateId}
                     onChange={(e) => setSelectedCandidateId(e.target.value)}
-                    className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer"
+                    className="w-full h-9 rounded-lg border border-border bg-panel px-3 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30 cursor-pointer"
                   >
                     <option value="">-- Choose a task to link as blocker --</option>
                     {availableCandidates.map((cand) => (
@@ -382,7 +382,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
               </div>
 
               {availableCandidates.length === 0 && (
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
+                <p className="text-[11px] text-faint italic">
                   {searchFilter.trim()
                     ? "No candidate tasks match the filter criteria."
                     : "All available tasks are already linked or would create circular dependencies."}
@@ -394,17 +394,17 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
           {/* Section 3: Downstream Dependent Tasks */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <GitFork className="w-4 h-4 text-amber-500" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+              <GitFork className="w-4 h-4 text-warn" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink">
                 Downstream Dependent Tasks ({downstreamTasks.length})
               </h3>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2.5">
+            <p className="text-xs text-muted mb-2.5">
               Tasks waiting for this task to be completed.
             </p>
 
             {downstreamTasks.length === 0 ? (
-              <div className="p-3.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 text-slate-400 dark:text-slate-500 text-xs">
+              <div className="p-3.5 rounded-xl border border-dashed border-border bg-ink/10 text-faint text-xs">
                 No downstream tasks depend on this task.
               </div>
             ) : (
@@ -413,23 +413,23 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                   <div
                     key={down.id}
                     id={`downstream-task-${down.id}`}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-800/70 flex items-center justify-between gap-2"
+                    className="p-3 rounded-xl border border-border bg-panel/70 flex items-center justify-between gap-2"
                   >
                     <div className="truncate flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 shrink-0">
+                      <span className="text-xs font-mono font-semibold text-ink shrink-0">
                         #{down.id.replace(/^task-/, "")}
                       </span>
-                      <span className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">
+                      <span className="text-xs font-medium text-ink truncate">
                         {down.title}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-panel-alt text-muted">
                         {down.status?.replace("_", " ")}
                       </span>
                       {down.assigned_agent && (
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-faint">
                           @{down.assigned_agent.replace("_agent", "")}
                         </span>
                       )}
@@ -443,7 +443,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
 
         {/* Modal Footer */}
         <div className="px-6 py-3.5 glass-header flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-muted">
             Changes are saved immediately and update blocker indicators.
           </span>
           <button

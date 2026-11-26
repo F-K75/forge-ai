@@ -91,24 +91,24 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
   const getCategoryIcon = (category: string) => {
     const cLower = category.toLowerCase();
     if (cLower.includes('user') || cLower.includes('audience') || cLower.includes('role')) {
-      return <Users className="w-3.5 h-3.5 text-blue-600" />;
+      return <Users className="w-3.5 h-3.5 text-accent" />;
     }
     if (cLower.includes('mvp') || cLower.includes('scope') || cLower.includes('feature')) {
-      return <Target className="w-3.5 h-3.5 text-rose-600" />;
+      return <Target className="w-3.5 h-3.5 text-error" />;
     }
     if (cLower.includes('stack') || cLower.includes('architecture') || cLower.includes('tech')) {
-      return <Wrench className="w-3.5 h-3.5 text-indigo-600" />;
+      return <Wrench className="w-3.5 h-3.5 text-agent-business-improver" />;
     }
     if (cLower.includes('integration') || cLower.includes('api')) {
-      return <Zap className="w-3.5 h-3.5 text-amber-600" />;
+      return <Zap className="w-3.5 h-3.5 text-warn" />;
     }
     if (cLower.includes('security') || cLower.includes('compliance') || cLower.includes('sla')) {
-      return <Lock className="w-3.5 h-3.5 text-red-600" />;
+      return <Lock className="w-3.5 h-3.5 text-error" />;
     }
     if (cLower.includes('timeline') || cLower.includes('sprint') || cLower.includes('velocity')) {
-      return <Clock className="w-3.5 h-3.5 text-emerald-600" />;
+      return <Clock className="w-3.5 h-3.5 text-ok" />;
     }
-    return <Layers className="w-3.5 h-3.5 text-neutral-600" />;
+    return <Layers className="w-3.5 h-3.5 text-muted" />;
   };
 
   const handleStartEdit = (qId: string, currentVal: string) => {
@@ -187,14 +187,14 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
       <div className="glass-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-neutral-900 dark:text-white text-sm">
+            <span className="font-semibold text-ink text-sm">
               Validation Summary
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-800 dark:text-teal-300 font-bold text-[10px]">
+            <span className="px-2 py-0.5 rounded-md bg-agent-integration/10 text-agent-integration font-semibold text-[10px]">
               Ready to generate
             </span>
           </div>
-          <p className="text-neutral-600 dark:text-neutral-400 font-sans text-xs">
+          <p className="text-muted font-sans text-xs">
             Review specifications before creating sprint epics and tasks.
           </p>
         </div>
@@ -205,10 +205,10 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               id="val-summary-save-draft-btn"
               type="button"
               onClick={onSaveDraft}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 isDraftSaved
-                  ? 'bg-emerald-600 text-white'
-                  : 'glass-button-secondary text-neutral-800 dark:text-neutral-200'
+                  ? 'bg-ok text-on-ink'
+                  : 'glass-button-secondary text-ink'
               }`}
               title="Save current requirements specification as draft"
             >
@@ -220,17 +220,17 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
           <button
             type="button"
             onClick={handleCopySpec}
-            className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-xs flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-xs flex items-center gap-1.5 text-ink transition-all cursor-pointer"
             title="Copy requirements manifest"
           >
             {copied ? (
               <>
-                <CheckCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <CheckCheck className="w-3.5 h-3.5 text-ok" />
                 <span>Copied</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5 text-neutral-500" />
+                <Copy className="w-3.5 h-3.5 text-muted" />
                 <span>Copy</span>
               </>
             )}
@@ -239,7 +239,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
           <button
             type="button"
             onClick={onBackToSurvey}
-            className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-xs flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-xs flex items-center gap-1.5 text-ink transition-all cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Questions</span>
@@ -250,18 +250,18 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
       {/* Overview Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="glass-card p-4">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-1">
             Requirements Completeness
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-neutral-900 dark:text-white font-mono">
+            <span className="text-xl font-semibold text-ink font-mono">
               {answeredCount}/{totalCount}
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/30 font-bold text-[10px]">
+            <span className="px-2 py-0.5 rounded-full bg-agent-integration/15 text-agent-integration border border-agent-integration/30 font-semibold text-[10px]">
               {percent}%
             </span>
           </div>
-          <div className="text-[11px] text-neutral-600 dark:text-neutral-400 mt-1.5">
+          <div className="text-[11px] text-muted mt-1.5">
             {remainingCount === 0
               ? 'All dimensions customized'
               : `${remainingCount} field${remainingCount === 1 ? '' : 's'} using intelligent defaults`}
@@ -269,28 +269,28 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
         </div>
 
         <div className="glass-card p-4">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-1">
             Domain Classification
           </div>
-          <div className="font-bold text-sm text-neutral-900 dark:text-white truncate uppercase">
+          <div className="font-semibold text-sm text-ink truncate uppercase">
             {domain || 'Full-Stack Software Architecture'}
           </div>
-          <div className="text-[11px] text-neutral-600 dark:text-neutral-400 mt-1.5">
+          <div className="text-[11px] text-muted mt-1.5">
             Tailored PM taxonomy and workflow
           </div>
         </div>
 
         <div className="glass-card p-4">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-1">
             Synthesis Readiness
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50" />
-            <span className="font-bold text-xs text-emerald-700 dark:text-emerald-400 uppercase">
+            <span className="w-2.5 h-2.5 rounded-full bg-ok shadow-xs shadow-emerald-500/50" />
+            <span className="font-semibold text-xs text-ok uppercase">
               Ready for PM Generation
             </span>
           </div>
-          <div className="text-[11px] text-neutral-600 dark:text-neutral-400 mt-1.5">
+          <div className="text-[11px] text-muted mt-1.5">
             Zero hallucinations on unstated needs
           </div>
         </div>
@@ -300,10 +300,10 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
       <div className="glass-card p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-lg bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded-lg bg-ink text-on-ink text-[10px] font-semibold uppercase tracking-wider">
               CORE INITIATIVE
             </span>
-            <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs">
+            <span className="font-semibold text-ink text-xs">
               Project Concept & Problem Statement
             </span>
           </div>
@@ -314,9 +314,9 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                 setTempPrompt(prompt);
                 setEditingPrompt(true);
               }}
-              className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-[11px] uppercase flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-[11px] uppercase flex items-center gap-1.5 text-ink transition-all cursor-pointer"
             >
-              <Edit3 className="w-3 h-3 text-neutral-500" />
+              <Edit3 className="w-3 h-3 text-muted" />
               <span>Edit</span>
             </button>
           ) : (
@@ -324,7 +324,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               <button
                 type="button"
                 onClick={handleSavePrompt}
-                className="px-3 py-1.5 rounded-xl glass-button-primary font-bold text-[10px] uppercase flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl glass-button-primary font-semibold text-[10px] uppercase flex items-center gap-1 cursor-pointer"
               >
                 <Check className="w-3 h-3" />
                 <span>Save</span>
@@ -332,7 +332,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               <button
                 type="button"
                 onClick={() => setEditingPrompt(false)}
-                className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-[10px] uppercase text-neutral-600 dark:text-neutral-400 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-[10px] uppercase text-muted cursor-pointer"
               >
                 Cancel
               </button>
@@ -348,7 +348,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                 value={tempPrompt}
                 onChange={(e) => setTempPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSavePrompt()}
-                className="flex-1 rounded-xl bg-white/80 dark:bg-neutral-800/80 border border-neutral-300 dark:border-neutral-700 p-2.5 text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="flex-1 rounded-xl bg-panel/80 border border-border p-2.5 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/30"
                 autoFocus
               />
               <VoiceInputButton
@@ -361,7 +361,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
             </div>
           </div>
         ) : (
-          <p className="font-semibold text-sm text-neutral-900 dark:text-white bg-white/40 dark:bg-neutral-800/40 p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-700/80">
+          <p className="font-semibold text-sm text-ink bg-ink/40 p-3 rounded-xl border border-border">
             &ldquo;{prompt}&rdquo;
           </p>
         )}
@@ -370,10 +370,10 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
       {/* Survey Fields List (with Edit Button on each field) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between pt-1">
-          <span className="font-bold text-xs uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+          <span className="font-semibold text-xs uppercase tracking-wider text-ink">
             Gathered Requirements By Dimension ({questions.length})
           </span>
-          <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
+          <span className="text-[11px] text-muted font-mono">
             Click &ldquo;Edit&rdquo; on any field to refine before generation
           </span>
         </div>
@@ -394,31 +394,31 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               key={q.id}
               id={`validation-field-${q.id}`}
               className={`glass-card p-4 sm:p-5 transition-all ${
-                isBranch ? 'border-l-4 border-l-cyan-500 bg-cyan-500/5 dark:bg-cyan-950/20' : ''
-              } ${isEditing ? 'ring-2 ring-teal-500/50 bg-teal-500/5' : ''}`}
+                isBranch ? 'border-l-4 border-l-info/30 bg-info/[0.08]' : ''
+              } ${isEditing ? 'ring-2 ring-agent-integration/50 bg-agent-integration/[0.08]' : ''}`}
             >
               {/* Field Header */}
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="w-5 h-5 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[10px] font-bold flex items-center justify-center shrink-0">
+                  <span className="w-5 h-5 rounded-md bg-ink text-on-ink text-[10px] font-semibold flex items-center justify-center shrink-0">
                     {idx + 1}
                   </span>
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[10px] font-bold uppercase text-neutral-700 dark:text-neutral-300">
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-panel-alt border border-border text-[10px] font-semibold uppercase text-ink">
                     {getCategoryIcon(q.category)}
                     <span>{q.category}</span>
                   </div>
                   {isBranch && (
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-900 dark:text-cyan-300 border border-cyan-500/30 text-[10px] font-bold uppercase">
-                      <GitBranch className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-info/15 text-info border border-info/30 text-[10px] font-semibold uppercase">
+                      <GitBranch className="w-3 h-3 text-info" />
                       <span>{q.branch_badge || 'TAILORED FOLLOW-UP'}</span>
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="font-bold text-neutral-900 dark:text-white text-sm leading-tight">
+                    <span className="font-semibold text-ink text-sm leading-tight">
                       {q.business_title || q.question}
                     </span>
                     {q.business_title && (
-                      <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 font-sans mt-0.5">
+                      <span className="text-[11px] font-semibold text-muted font-sans mt-0.5">
                         {q.question}
                       </span>
                     )}
@@ -431,17 +431,17 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                     <button
                       type="button"
                       onClick={() => handleStartEdit(q.id, currentAnswer)}
-                      className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-[11px] uppercase flex items-center gap-1 text-neutral-700 dark:text-neutral-300 transition-all cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-[11px] uppercase flex items-center gap-1 text-ink transition-all cursor-pointer"
                       title={`Edit ${q.category} requirements`}
                     >
-                      <Edit3 className="w-3 h-3 text-neutral-500" />
+                      <Edit3 className="w-3 h-3 text-muted" />
                       <span>Edit</span>
                     </button>
                     {onJumpToQuestion && (
                       <button
                         type="button"
                         onClick={() => onJumpToQuestion(idx)}
-                        className="px-2 py-1 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white underline hidden sm:inline cursor-pointer"
+                        className="px-2 py-1 text-[10px] font-semibold text-muted hover:text-ink underline hidden sm:inline cursor-pointer"
                         title="Jump to question in survey wizard"
                       >
                         Survey Step
@@ -453,7 +453,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSaveEdit(q.id)}
-                      className="px-3 py-1.5 rounded-xl glass-button-primary font-bold text-[10px] uppercase flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl glass-button-primary font-semibold text-[10px] uppercase flex items-center gap-1 cursor-pointer"
                     >
                       <Check className="w-3 h-3" />
                       <span>Save Field</span>
@@ -461,7 +461,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                     <button
                       type="button"
                       onClick={handleCancelEdit}
-                      className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-[10px] uppercase text-neutral-600 dark:text-neutral-400 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-[10px] uppercase text-muted cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -471,7 +471,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
 
               {/* Field Value Display OR Field Inline Editor */}
               {isBranch && q.branch_reason && (
-                <div className="text-[10px] font-semibold text-neutral-600 dark:text-neutral-400 bg-white/50 dark:bg-neutral-800/50 px-2.5 py-1 rounded-lg border border-neutral-200/80 dark:border-neutral-700/80 inline-flex items-center gap-1.5 mb-2 font-mono">
+                <div className="text-[10px] font-semibold text-muted bg-panel/50 px-2.5 py-1 rounded-lg border border-border inline-flex items-center gap-1.5 mb-2 font-mono">
                   <span>↳</span>
                   <span>{q.branch_reason}</span>
                 </div>
@@ -479,14 +479,14 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               {!isEditing ? (
                 <div className="mt-2">
                   {isAnswered ? (
-                    <div className="p-3.5 rounded-xl bg-white/40 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700/80 space-y-2">
+                    <div className="p-3.5 rounded-xl bg-ink/40 border border-border space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        <div className="flex items-center gap-1.5 text-ok text-[10px] font-semibold uppercase">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-ok" />
                           <span>Confirmed Requirement</span>
                         </div>
                         {(q.business_impact || BUSINESS_CATEGORY_MAP[q.category]?.businessImpact) && (
-                          <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-sans italic hidden sm:inline">
+                          <span className="text-[10px] text-muted font-sans italic hidden sm:inline">
                             Impact: {q.business_impact || BUSINESS_CATEGORY_MAP[q.category]?.businessImpact}
                           </span>
                         )}
@@ -499,22 +499,22 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                           return (
                             <div
                               key={chip}
-                              className="p-2.5 rounded-xl bg-white/70 dark:bg-neutral-800/70 border border-neutral-200/70 dark:border-neutral-700/70 text-xs flex flex-col gap-1"
+                              className="p-2.5 rounded-xl bg-panel/70 border border-border text-xs flex flex-col gap-1"
                             >
                               <div className="flex flex-wrap items-center justify-between gap-1">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-neutral-900 dark:text-white">{optInfo.label}</span>
+                                  <span className="font-semibold text-ink">{optInfo.label}</span>
                                   {optInfo.badge && (
-                                    <span className="px-1.5 py-0.2 rounded-full bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/30 text-[9px] font-bold uppercase">
+                                    <span className="px-1.5 py-0.2 rounded-full bg-agent-integration/15 text-agent-integration border border-agent-integration/30 text-[9px] font-semibold uppercase">
                                       {optInfo.badge}
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400">
+                                <span className="text-[10px] font-mono text-muted">
                                   Spec: {chip}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-neutral-600 dark:text-neutral-400 font-sans leading-relaxed">
+                              <p className="text-[11px] text-muted font-sans leading-relaxed">
                                 {optInfo.plainExplanation}
                               </p>
                             </div>
@@ -523,17 +523,17 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2">
+                    <div className="p-3 rounded-xl bg-warn/10 border border-warn/30 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                        <span className="text-amber-900 dark:text-amber-300 text-[11px] font-semibold">
+                        <AlertCircle className="w-3.5 h-3.5 text-warn shrink-0" />
+                        <span className="text-warn text-[11px] font-semibold">
                           Not specified yet — Autonomous agents will formulate safe industry defaults.
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleStartEdit(q.id, toSafeString(q.default_answer))}
-                        className="text-[10px] font-bold uppercase text-amber-800 dark:text-amber-300 underline hover:text-amber-900 dark:hover:text-amber-200 shrink-0 cursor-pointer"
+                        className="text-[10px] font-semibold uppercase text-warn underline hover:text-warn shrink-0 cursor-pointer"
                       >
                         + Add Custom Choice
                       </button>
@@ -542,14 +542,14 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                 </div>
               ) : (
                 /* INLINE EDIT MODE FOR THIS FIELD */
-                <div className="mt-3 p-4 rounded-xl bg-teal-500/5 border border-teal-500/30 space-y-3">
-                  <div className="text-[11px] font-bold uppercase text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
+                <div className="mt-3 p-4 rounded-xl bg-agent-integration/[0.08] border border-agent-integration/30 space-y-3">
+                  <div className="text-[11px] font-semibold uppercase text-ink flex items-center justify-between">
                     <span>Editing &ldquo;{q.category}&rdquo; Specification:</span>
                     {q.default_answer && (
                       <button
                         type="button"
                         onClick={() => setTempValue(toSafeString(q.default_answer))}
-                        className="text-[10px] font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-[10px] font-semibold text-agent-integration hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <RotateCcw className="w-2.5 h-2.5" />
                         Reset to Recommended
@@ -560,7 +560,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                   {/* Preset Options to toggle */}
                   {Array.isArray(q.options) && q.options.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-1.5">
                         Select Presets:
                       </div>
                       <div className="flex flex-wrap gap-1.5">
@@ -577,15 +577,15 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                               onClick={() => handleToggleOptionInEdit(opt)}
                               className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold border flex items-center gap-1.5 transition-all cursor-pointer ${
                                 isSelected
-                                  ? 'bg-teal-500/15 dark:bg-teal-500/20 text-teal-950 dark:text-teal-100 border-teal-500/60 shadow-xs'
-                                  : 'bg-white/60 dark:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200 border-neutral-200/80 dark:border-neutral-700/80 hover:bg-white/90 dark:hover:bg-neutral-800/80'
+                                  ? 'bg-agent-integration/15 text-agent-integration border-agent-integration/60 shadow-xs'
+                                  : 'bg-panel/60 text-ink border-border hover:bg-panel/90'
                               }`}
                               title={`${optInfo.plainExplanation} (Tech spec: ${opt})`}
                             >
                               <span>{isSelected ? '✓' : '+'}</span>
                               <span>{optInfo.label}</span>
                               {optInfo.badge && (
-                                <span className="text-[8px] px-1.5 py-0.2 rounded-full font-bold uppercase bg-teal-500/20 text-teal-900 dark:text-teal-200">
+                                <span className="text-[8px] px-1.5 py-0.2 rounded-full font-semibold uppercase bg-agent-integration/20 text-agent-integration">
                                   {optInfo.badge}
                                 </span>
                               )}
@@ -598,7 +598,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
 
                   {/* Direct Text input */}
                   <div>
-                    <div className="flex items-center justify-between text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400 mb-1">
+                    <div className="flex items-center justify-between text-[10px] font-semibold uppercase text-muted mb-1">
                       <span>Custom Specification / Notes:</span>
                       <VoiceInputButton
                         id={`voice-val-q-${q.id}`}
@@ -614,7 +614,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                       value={tempValue}
                       onChange={(e) => setTempValue(e.target.value)}
                       placeholder={q.placeholder || 'Type or speak custom specifications...'}
-                      className="w-full text-xs font-medium p-2.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white/80 dark:bg-neutral-800/80 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+                      className="w-full text-xs font-medium p-2.5 rounded-xl border border-border bg-panel/80 text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/30 resize-none"
                       autoFocus
                     />
                   </div>
@@ -623,14 +623,14 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                     <button
                       type="button"
                       onClick={handleCancelEdit}
-                      className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-[10px] font-bold uppercase text-neutral-600 dark:text-neutral-400 cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-[10px] font-semibold uppercase text-muted cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSaveEdit(q.id)}
-                      className="px-4 py-1.5 rounded-xl glass-button-primary text-[10px] font-bold uppercase cursor-pointer"
+                      className="px-4 py-1.5 rounded-xl glass-button-primary text-[10px] font-semibold uppercase cursor-pointer"
                     >
                       Save Specification
                     </button>
@@ -646,10 +646,10 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
       <div className="glass-card p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[10px] font-bold uppercase text-neutral-700 dark:text-neutral-300">
+            <span className="px-2.5 py-0.5 rounded-lg bg-panel-alt border border-border text-[10px] font-semibold uppercase text-ink">
               ADDITIONAL CONSTRAINTS
             </span>
-            <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs">
+            <span className="font-semibold text-ink text-xs">
               Architectural Guardrails & Compliance Overrides
             </span>
           </div>
@@ -661,9 +661,9 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                 setTempNotes(additionalNotes);
                 setEditingNotes(true);
               }}
-              className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-[11px] uppercase flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-[11px] uppercase flex items-center gap-1.5 text-ink cursor-pointer"
             >
-              <Edit3 className="w-3 h-3 text-neutral-500" />
+              <Edit3 className="w-3 h-3 text-muted" />
               <span>Edit</span>
             </button>
           ) : (
@@ -671,7 +671,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               <button
                 type="button"
                 onClick={handleSaveNotes}
-                className="px-3 py-1.5 rounded-xl glass-button-primary font-bold text-[10px] uppercase flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl glass-button-primary font-semibold text-[10px] uppercase flex items-center gap-1 cursor-pointer"
               >
                 <Check className="w-3 h-3" />
                 <span>Save</span>
@@ -679,7 +679,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               <button
                 type="button"
                 onClick={() => setEditingNotes(false)}
-                className="px-3 py-1.5 rounded-xl glass-button-secondary font-bold text-[10px] uppercase text-neutral-600 dark:text-neutral-400 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl glass-button-secondary font-semibold text-[10px] uppercase text-muted cursor-pointer"
               >
                 Cancel
               </button>
@@ -689,7 +689,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
 
         {editingNotes ? (
           <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400 mb-1">
+            <div className="flex items-center justify-between text-[10px] font-semibold uppercase text-muted mb-1">
               <span>Directives & Constraints:</span>
               <VoiceInputButton
                 id="voice-val-notes"
@@ -704,16 +704,16 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               value={tempNotes}
               onChange={(e) => setTempNotes(e.target.value)}
               placeholder="e.g., Must use Postgres on GCP, enforce SOC2 compliance, 2-week sprints..."
-              className="w-full rounded-xl bg-white/80 dark:bg-neutral-800/80 border border-neutral-300 dark:border-neutral-700 p-2.5 text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+              className="w-full rounded-xl bg-panel/80 border border-border p-2.5 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/30 resize-none"
               autoFocus
             />
           </div>
         ) : (
-          <p className="font-semibold text-xs text-neutral-800 dark:text-neutral-200 bg-white/40 dark:bg-neutral-800/40 p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-700/80">
+          <p className="font-semibold text-xs text-ink bg-ink/40 p-3 rounded-xl border border-border">
             {additionalNotes.trim() ? (
               additionalNotes
             ) : (
-              <span className="text-neutral-400 dark:text-neutral-500 italic">
+              <span className="text-faint italic">
                 None specified. Standard agile and best-practice engineering standards will apply.
               </span>
             )}
@@ -724,16 +724,16 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
       {/* Neural Architectural Chat Dialogue History (if available) */}
       {chatMessages && chatMessages.length > 0 && (
         <div className="glass-card p-4 sm:p-5 space-y-3">
-          <div className="flex items-center justify-between gap-2 border-b border-neutral-200/70 dark:border-neutral-800/70 pb-2.5">
+          <div className="flex items-center justify-between gap-2 border-b border-border pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center shrink-0">
-                <Brain className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+              <div className="w-6 h-6 rounded-lg bg-agent-integration/15 border border-agent-integration/30 flex items-center justify-center shrink-0">
+                <Brain className="w-3.5 h-3.5 text-agent-integration" />
               </div>
               <div>
-                <span className="font-bold text-xs uppercase tracking-wider text-neutral-900 dark:text-white">
+                <span className="font-semibold text-xs uppercase tracking-wider text-ink">
                   Neural Architectural Chat Dialogue
                 </span>
-                <span className="ml-2 px-2 py-0.5 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[9px] font-mono font-bold">
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-ink text-on-ink text-[9px] font-mono font-semibold">
                   {chatMessages.length} {chatMessages.length === 1 ? 'Message' : 'Messages'}
                 </span>
               </div>
@@ -742,9 +742,9 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
             <button
               type="button"
               onClick={() => setShowChatHistory(!showChatHistory)}
-              className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase glass-button-secondary text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase glass-button-secondary text-ink flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <MessageSquare className="w-3 h-3 text-teal-600 dark:text-teal-400" />
+              <MessageSquare className="w-3 h-3 text-agent-integration" />
               <span>{showChatHistory ? 'Hide Dialogue' : 'Review Dialogue'}</span>
               {showChatHistory ? (
                 <ChevronUp className="w-3 h-3" />
@@ -755,25 +755,25 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
           </div>
 
           {showChatHistory && (
-            <div className="max-h-80 overflow-y-auto space-y-2.5 p-3 rounded-xl bg-white/30 dark:bg-neutral-900/30 border border-neutral-200/60 dark:border-neutral-800/60 font-mono text-xs">
+            <div className="max-h-80 overflow-y-auto space-y-2.5 p-3 rounded-xl bg-ink/30 border border-border font-mono text-xs">
               {chatMessages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`p-3 rounded-xl border ${
                     msg.role === 'user'
-                      ? 'bg-teal-500/10 border-teal-500/25'
-                      : 'bg-white/50 dark:bg-neutral-800/50 border-neutral-200/80 dark:border-neutral-700/80'
+                      ? 'bg-agent-integration/10 border-agent-integration/25'
+                      : 'bg-panel/50 border-border'
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400 mb-1 border-b border-neutral-200/40 dark:border-neutral-700/40 pb-1">
-                    <span className={msg.role === 'user' ? 'text-teal-700 dark:text-teal-300' : 'text-purple-700 dark:text-purple-400'}>
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase text-muted mb-1 border-b border-border pb-1">
+                    <span className={msg.role === 'user' ? 'text-agent-integration' : 'text-agent-business-improver'}>
                       {msg.role === 'user' ? '👤 User Requirement' : '⚡ Autonomous Architect'}
                     </span>
-                    <span className="font-mono text-[9px] text-neutral-400">
+                    <span className="font-mono text-[9px] text-faint">
                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-neutral-800 dark:text-neutral-200 leading-relaxed text-[11px] font-sans">
+                  <p className="whitespace-pre-wrap text-ink leading-relaxed text-[11px] font-sans">
                     {msg.content}
                   </p>
                 </div>
@@ -784,15 +784,15 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
       )}
 
       {/* Confirmation & Synthesis Action Banner */}
-      <div className="p-5 rounded-2xl glass-card border border-teal-500/30 bg-gradient-to-br from-teal-500/10 via-emerald-500/5 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl glass-card border border-agent-integration/30 bg-gradient-to-br from-agent-integration/10 via-ok/5 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-bold text-xs uppercase tracking-wider text-neutral-900 dark:text-white">
+            <CheckCircle2 className="w-4 h-4 text-ok" />
+            <span className="font-semibold text-xs uppercase tracking-wider text-ink">
               Ready for PM Board Synthesis
             </span>
           </div>
-          <p className="text-[11px] text-neutral-600 dark:text-neutral-400 font-sans">
+          <p className="text-[11px] text-muted font-sans">
             Every specification above is locked in. The autonomous agent fleet will strictly follow these requirements.
           </p>
         </div>
@@ -802,7 +802,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
             type="button"
             onClick={onBackToSurvey}
             disabled={isGenerating}
-            className="px-4 py-2.5 rounded-xl glass-button-secondary text-xs font-bold uppercase text-neutral-700 dark:text-neutral-300 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl glass-button-secondary text-xs font-semibold uppercase text-ink cursor-pointer"
           >
             Review Questions
           </button>
@@ -812,16 +812,16 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
             type="button"
             onClick={onConfirmGenerate}
             disabled={isGenerating}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-teal-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-agent-integration/25 to-ok/25 hover:from-agent-integration/25 hover:to-ok/25 text-ink font-semibold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-teal-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {isGenerating ? (
               <>
-                <RotateCcw className="w-4 h-4 animate-spin text-white" />
+                <RotateCcw className="w-4 h-4 animate-spin text-ink" />
                 <span>Generating PM Board...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-amber-300" />
+                <Sparkles className="w-4 h-4 text-warn" />
                 <span>Confirm & Synthesize PM Board</span>
                 <ArrowRight className="w-4 h-4" />
               </>

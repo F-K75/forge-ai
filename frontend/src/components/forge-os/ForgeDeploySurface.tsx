@@ -86,7 +86,7 @@ export function ForgeDeploySurface({ projectName = "forge-app" }: { projectName?
                 href={deploymentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-9 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                className="h-9 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               >
                 <span>Visit Live App</span>
                 <ArrowUpRight size={14} />

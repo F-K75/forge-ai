@@ -108,9 +108,9 @@ export default function Onboarding() {
                         "w-8 h-8 rounded-full flex items-center justify-center",
                         "text-xs font-semibold shrink-0",
                         isDone
-                          ? "bg-accent text-white"
+                          ? "bg-accent text-on-ink"
                           : isCurrent
-                          ? "bg-accent text-white ring-2 ring-accent ring-offset-2 ring-offset-base"
+                          ? "bg-accent text-on-ink ring-2 ring-accent ring-offset-2 ring-offset-base"
                           : "bg-border text-faint",
                       ].join(" ")}
                     >
@@ -192,7 +192,7 @@ export default function Onboarding() {
           <motion.button
             type="button"
             onClick={handlePrimary}
-            className="px-5 py-2 text-sm font-semibold bg-accent text-white rounded-lg hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+            className="px-5 py-2 text-sm font-semibold bg-accent text-on-ink rounded-lg hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
             {...presets.button}
           >
             {primaryLabel}
@@ -210,7 +210,7 @@ function StepWelcome() {
         <BrandLogo size="lg" />
       </div>
       <div>
-      <h1 className="text-xl font-bold text-ink mb-2">Welcome to Forge</h1>
+      <h1 className="text-xl font-semibold text-ink mb-2">Welcome to Forge</h1>
       <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
         Six specialized agents collaborate to plan, build, and ship your app.
         Setup takes about two minutes.
@@ -230,7 +230,7 @@ function StepGoal({
   const reduceMotion = useReducedMotion();
   return (
     <div>
-      <h2 className="text-lg font-bold text-ink mb-1">What will you build first?</h2>
+      <h2 className="text-lg font-semibold text-ink mb-1">What will you build first?</h2>
       <p className="text-sm text-muted mb-5">
         Pick a starting point and we'll prepare the right template.
       </p>
@@ -299,7 +299,7 @@ function StepConnect({
   const reduceMotion = useReducedMotion();
   return (
     <div>
-      <h2 className="text-lg font-bold text-ink mb-1">Connect your tools</h2>
+      <h2 className="text-lg font-semibold text-ink mb-1">Connect your tools</h2>
       <p className="text-sm text-muted mb-5">
         Connect your accounts to continue. These open in a new tab — come back when you're done, or skip for now.
       </p>
@@ -395,7 +395,7 @@ function StepReady({ goal }: { goal: Goal }) {
         <Check size={22} className="text-ok" aria-hidden="true" />
       </div>
       <div>
-      <h2 className="text-xl font-bold text-ink mb-2">You're ready</h2>
+      <h2 className="text-xl font-semibold text-ink mb-2">You're ready</h2>
       <p className="text-sm text-muted leading-relaxed max-w-xs mx-auto">
         {goal
           ? `${goal} starters are ready. `

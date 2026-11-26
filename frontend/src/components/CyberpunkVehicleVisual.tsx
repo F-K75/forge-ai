@@ -17,7 +17,7 @@ export function ForgeWorkstationVisual({
 }: VisualProps) {
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-lg border border-border bg-[#0B101B] ${className}`}
+      className={`relative w-full overflow-hidden rounded-lg border border-border bg-panel-alt ${className}`}
     >
       <ForgeScene3D
         mode="embedded"
@@ -39,7 +39,7 @@ export function ForgeSwarmVisual({
 }: VisualProps) {
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-lg border border-border bg-[#0B101B] ${className}`}
+      className={`relative w-full overflow-hidden rounded-lg border border-border bg-panel-alt ${className}`}
     >
       <ForgeScene3D
         mode="embedded"

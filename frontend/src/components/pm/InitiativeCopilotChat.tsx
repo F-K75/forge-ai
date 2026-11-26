@@ -316,11 +316,11 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
   // Determine container placement based on layout mode
   const modeContainerClasses = {
     docked:
-      'fixed inset-y-0 right-0 w-full sm:w-[500px] lg:w-[560px] z-50 shadow-2xl border-l border-black/10 dark:border-white/10 animate-in slide-in-from-right duration-200',
+      'fixed inset-y-0 right-0 w-full sm:w-[500px] lg:w-[560px] z-50 shadow-2xl border-l border-border animate-in slide-in-from-right duration-200',
     floating:
-      'fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-full max-w-lg sm:max-w-xl h-[680px] max-h-[90vh] z-50 shadow-2xl rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200',
+      'fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-full max-w-lg sm:max-w-xl h-[680px] max-h-[90vh] z-50 shadow-2xl rounded-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200',
     expanded:
-      'fixed inset-3 sm:inset-6 z-50 shadow-2xl rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200',
+      'fixed inset-3 sm:inset-6 z-50 shadow-2xl rounded-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200',
   }[mode];
 
   const CurrentPersonaIcon = PERSONAS[persona].icon;
@@ -330,7 +330,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
       {/* Dimmed backdrop for docked mode on mobile, or for expanded mode */}
       {(mode === 'expanded' || (mode === 'docked' && window.innerWidth < 1024)) && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 transition-opacity"
+          className="fixed inset-0 bg-base/60 backdrop-blur-xs z-40 transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -342,24 +342,24 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label={`${initiative.name} Agile Intelligence Copilot`}
-        className={`${modeContainerClasses} flex flex-col bg-white dark:bg-[#0E0F17] text-neutral-900 dark:text-neutral-100 font-sans`}
+        className={`${modeContainerClasses} flex flex-col bg-panel text-ink font-sans`}
       >
         {/* =====================================================================
             1. TOP HEADER BAR: BRAND, PERSONA PICKER & WINDOW CONTROLS
         ===================================================================== */}
-        <div className="h-14 px-3.5 sm:px-4 border-b border-black/10 dark:border-white/10 bg-neutral-50/90 dark:bg-white/[0.03] backdrop-blur-md flex items-center justify-between gap-2 shrink-0">
+        <div className="h-14 px-3.5 sm:px-4 border-b border-border bg-ink/10 backdrop-blur-md flex items-center justify-between gap-2 shrink-0">
           {/* Left: Brand Identity & Persona Switcher */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-accent to-emerald-400 text-neutral-950 font-bold flex items-center justify-center shrink-0 shadow-xs ring-1 ring-black/10 dark:ring-white/10">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-accent to-ok/25 text-ink font-semibold flex items-center justify-center shrink-0 shadow-xs ring-1 ring-border">
               <Bot size={16} />
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-mono font-bold text-xs uppercase tracking-tight truncate">
+                <span className="font-mono font-semibold text-xs uppercase tracking-tight truncate">
                   Initiative Copilot
                 </span>
-                <span className="hidden sm:inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="hidden sm:inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-ok/10 text-ok border border-ok/20">
                   Gemini 3.8 Flash
                 </span>
               </div>
@@ -370,7 +370,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                   type="button"
                   id="copilot-persona-toggle"
                   onClick={() => setShowPersonaMenu((v) => !v)}
-                  className="flex items-center gap-1 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                  className="flex items-center gap-1 text-[11px] font-medium text-muted hover:text-ink transition-colors cursor-pointer"
                   title="Switch Reasoning Persona"
                 >
                   <CurrentPersonaIcon size={11} className="text-accent shrink-0" />
@@ -390,8 +390,8 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                       className="fixed inset-0 z-40"
                       onClick={() => setShowPersonaMenu(false)}
                     />
-                    <div className="absolute top-6 left-0 z-50 w-72 rounded-xl bg-white dark:bg-[#151620] border border-black/10 dark:border-white/15 shadow-xl p-1.5 space-y-1 text-xs font-sans animate-in fade-in zoom-in-95 duration-150">
-                      <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-400">
+                    <div className="absolute top-6 left-0 z-50 w-72 rounded-xl bg-panel border border-border shadow-xl p-1.5 space-y-1 text-xs font-sans animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-faint">
                         Reasoning Personas
                       </div>
                       {(Object.keys(PERSONAS) as PersonaType[]).map((key) => {
@@ -410,23 +410,23 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                             className={`w-full text-left p-2 rounded-lg transition-colors cursor-pointer flex items-start gap-2.5 ${
                               isSelected
                                 ? 'bg-accent/10 border border-accent/25 text-accent'
-                                : 'hover:bg-neutral-100 dark:hover:bg-white/[0.04] text-neutral-700 dark:text-neutral-200'
+                                : 'hover:bg-ink/5 text-ink'
                             }`}
                           >
                             <ItemIcon
                               size={15}
                               className={`mt-0.5 shrink-0 ${
-                                isSelected ? 'text-accent' : 'text-neutral-400'
+                                isSelected ? 'text-accent' : 'text-faint'
                               }`}
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between">
                                 <span className="font-semibold text-xs">{item.name}</span>
-                                <span className="text-[9px] font-mono font-bold px-1 rounded bg-black/5 dark:bg-white/10">
+                                <span className="text-[9px] font-mono font-semibold px-1 rounded bg-ink/5">
                                   {item.badge}
                                 </span>
                               </div>
-                              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 line-clamp-2 mt-0.5">
+                              <p className="text-[10px] text-muted line-clamp-2 mt-0.5">
                                 {item.description}
                               </p>
                             </div>
@@ -446,7 +446,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
             <button
               type="button"
               onClick={exportConversation}
-              className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-ink/5 transition-colors cursor-pointer"
               title="Export transcript as Markdown"
             >
               <Download size={14} />
@@ -456,21 +456,21 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
             <button
               type="button"
               onClick={clearChat}
-              className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-ink/5 transition-colors cursor-pointer"
               title="Clear chat history"
             >
               <RotateCcw size={14} />
             </button>
 
             {/* Layout Mode Toggles */}
-            <div className="hidden sm:flex items-center border border-black/10 dark:border-white/10 rounded-lg p-0.5 bg-black/[0.02] dark:bg-white/[0.02]">
+            <div className="hidden sm:flex items-center border border-border rounded-lg p-0.5 bg-ink/[0.02]">
               <button
                 type="button"
                 onClick={() => setMode('docked')}
                 className={`p-1 rounded text-xs transition-colors cursor-pointer ${
                   mode === 'docked'
-                    ? 'bg-white dark:bg-[#1E1F2A] text-neutral-900 dark:text-white shadow-xs'
-                    : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'
+                    ? 'bg-panel text-ink shadow-xs'
+                    : 'text-faint hover:text-ink'
                 }`}
                 title="Dock to side panel"
               >
@@ -481,8 +481,8 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                 onClick={() => setMode('floating')}
                 className={`p-1 rounded text-xs transition-colors cursor-pointer ${
                   mode === 'floating'
-                    ? 'bg-white dark:bg-[#1E1F2A] text-neutral-900 dark:text-white shadow-xs'
-                    : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'
+                    ? 'bg-panel text-ink shadow-xs'
+                    : 'text-faint hover:text-ink'
                 }`}
                 title="Float window"
               >
@@ -493,8 +493,8 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                 onClick={() => setMode('expanded')}
                 className={`p-1 rounded text-xs transition-colors cursor-pointer ${
                   mode === 'expanded'
-                    ? 'bg-white dark:bg-[#1E1F2A] text-neutral-900 dark:text-white shadow-xs'
-                    : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'
+                    ? 'bg-panel text-ink shadow-xs'
+                    : 'text-faint hover:text-ink'
                 }`}
                 title="Full canvas workspace"
               >
@@ -506,7 +506,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-neutral-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer ml-1"
+              className="p-1.5 rounded-lg text-muted hover:text-error hover:bg-error/10 transition-colors cursor-pointer ml-1"
               title="Close copilot (Esc)"
               aria-label="Close copilot"
             >
@@ -518,20 +518,20 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
         {/* =====================================================================
             2. CONTEXT STRIP: ACTIVE INITIATIVE & TECH STACK CHIPS
         ===================================================================== */}
-        <div className="px-3.5 sm:px-4 py-2 bg-neutral-100/60 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5 flex items-center justify-between gap-2 overflow-x-auto text-[11px] font-mono shrink-0 custom-scrollbar">
+        <div className="px-3.5 sm:px-4 py-2 bg-ink/10 border-b border-border-soft flex items-center justify-between gap-2 overflow-x-auto text-[11px] font-mono shrink-0 custom-scrollbar">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-neutral-400 text-[10px] uppercase font-bold shrink-0">
+            <span className="text-faint text-[10px] uppercase font-semibold shrink-0">
               Context:
             </span>
-            <span className="font-semibold text-neutral-800 dark:text-neutral-200 truncate">
+            <span className="font-semibold text-ink truncate">
               {initiative.name}
             </span>
-            <span className="text-neutral-300 dark:text-neutral-700">·</span>
+            <span className="text-muted">·</span>
             <div className="flex items-center gap-1 shrink-0">
               {(initiative.tech_stack || ['React', 'TypeScript', 'Node']).slice(0, 3).map((tech) => (
                 <span
                   key={tech}
-                  className="px-1.5 py-0.2 rounded text-[10px] bg-black/5 dark:bg-white/5 text-neutral-600 dark:text-neutral-300 border border-black/5 dark:border-white/5"
+                  className="px-1.5 py-0.2 rounded text-[10px] bg-ink/5 text-muted border border-border-soft"
                 >
                   {tech}
                 </span>
@@ -539,8 +539,8 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
             </div>
           </div>
 
-          <div className="shrink-0 flex items-center gap-1.5 text-[10px] text-neutral-500 dark:text-neutral-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <div className="shrink-0 flex items-center gap-1.5 text-[10px] text-muted">
+            <span className="w-1.5 h-1.5 rounded-full bg-ok" />
             <span>Telemetry Online</span>
           </div>
         </div>
@@ -548,7 +548,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
         {/* =====================================================================
             3. MEDIA FILTER BAR: MULTI-MODAL ASSET SEGMENTATION
         ===================================================================== */}
-        <div className="px-3.5 sm:px-4 py-1.5 border-b border-black/5 dark:border-white/5 bg-white dark:bg-[#0E0F17] flex items-center gap-1 overflow-x-auto text-xs shrink-0 custom-scrollbar">
+        <div className="px-3.5 sm:px-4 py-1.5 border-b border-border-soft bg-panel flex items-center gap-1 overflow-x-auto text-xs shrink-0 custom-scrollbar">
           {(
             [
               { id: 'all', label: 'All Media' },
@@ -567,8 +567,8 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                 onClick={() => setActiveMediaFilter(tab.id)}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   isSelected
-                    ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold shadow-xs'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5'
+                    ? 'bg-ink text-on-ink font-semibold shadow-xs'
+                    : 'text-muted hover:text-ink hover:bg-ink/5'
                 }`}
               >
                 {tab.label}
@@ -580,7 +580,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
         {/* =====================================================================
             4. MESSAGES STREAM
         ===================================================================== */}
-        <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-4 bg-neutral-50/50 dark:bg-[#0A0B10] custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-4 bg-ink/10 custom-scrollbar">
           {messages.map((msg) => {
             const isAssistant = msg.role === 'assistant';
 
@@ -603,14 +603,14 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                 className={`flex flex-col ${isAssistant ? 'items-start' : 'items-end'}`}
               >
                 {/* Message Header */}
-                <div className="flex items-center gap-2 mb-1 px-1 text-[11px] text-neutral-400 font-mono">
+                <div className="flex items-center gap-2 mb-1 px-1 text-[11px] text-faint font-mono">
                   {isAssistant ? (
-                    <div className="flex items-center gap-1.5 font-semibold text-neutral-700 dark:text-neutral-300">
+                    <div className="flex items-center gap-1.5 font-semibold text-ink">
                       <CurrentPersonaIcon size={12} className="text-accent" />
                       <span>{PERSONAS[persona].name}</span>
                     </div>
                   ) : (
-                    <span className="font-semibold text-neutral-700 dark:text-neutral-300">You</span>
+                    <span className="font-semibold text-ink">You</span>
                   )}
                   <span>·</span>
                   <span>
@@ -625,8 +625,8 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                 <div
                   className={`relative max-w-[95%] sm:max-w-[88%] rounded-2xl p-4 text-xs sm:text-[13px] leading-relaxed transition-all shadow-xs ${
                     isAssistant
-                      ? 'bg-white dark:bg-[#14151F] border border-black/10 dark:border-white/10 text-neutral-900 dark:text-neutral-100'
-                      : 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 font-medium'
+                      ? 'bg-panel border border-border text-ink'
+                      : 'bg-ink text-on-ink font-medium'
                   }`}
                 >
                   {/* Text Content */}
@@ -638,11 +638,11 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
 
                   {/* Attachments */}
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-white/20 flex flex-wrap gap-1.5">
+                    <div className="mt-2.5 pt-2 border-t border-border flex flex-wrap gap-1.5">
                       {msg.attachments.map((att, idx) => (
                         <div
                           key={idx}
-                          className="px-2 py-1 rounded bg-white/10 text-[10px] font-mono flex items-center gap-1"
+                          className="px-2 py-1 rounded bg-ink/10 text-[10px] font-mono flex items-center gap-1"
                         >
                           <Paperclip size={10} />
                           <span className="truncate max-w-[140px]">{att.name}</span>
@@ -654,28 +654,28 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
 
                   {/* Mixed Media Assets */}
                   {isAssistant && msg.mixedMedia && (
-                    <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 space-y-3">
+                    <div className="mt-3 pt-3 border-t border-border-soft space-y-3">
                       <MixedMediaCard media={msg.mixedMedia} />
                     </div>
                   )}
 
                   {/* Bubble Actions */}
                   {isAssistant && (
-                    <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
+                    <div className="mt-3 pt-2 border-t border-border-soft flex items-center justify-between text-[11px] text-faint">
                       <div className="flex items-center gap-1 font-mono text-[10px]">
-                        <Sparkles size={11} className="text-amber-500" />
+                        <Sparkles size={11} className="text-warn" />
                         <span>Mixed Media Synthesis</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => copyMessageText(msg.id, msg.content)}
-                        className="flex items-center gap-1 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                        className="flex items-center gap-1 hover:text-ink transition-colors cursor-pointer"
                         title="Copy message text"
                       >
                         {copiedId === msg.id ? (
                           <>
-                            <Check size={11} className="text-emerald-500" />
-                            <span className="text-emerald-500">Copied</span>
+                            <Check size={11} className="text-ok" />
+                            <span className="text-ok">Copied</span>
                           </>
                         ) : (
                           <>
@@ -697,12 +697,12 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
               <div className="w-7 h-7 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
                 <Sparkles size={13} className="animate-spin" />
               </div>
-              <div className="p-3 rounded-xl bg-white dark:bg-[#14151F] border border-black/10 dark:border-white/10 text-xs font-mono space-y-1.5 shadow-xs">
-                <div className="flex items-center gap-2 font-bold text-neutral-800 dark:text-neutral-200">
+              <div className="p-3 rounded-xl bg-panel border border-border text-xs font-mono space-y-1.5 shadow-xs">
+                <div className="flex items-center gap-2 font-semibold text-ink">
                   <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
                   <span>Synthesizing Multi-Modal Architecture & Media...</span>
                 </div>
-                <div className="text-[10px] text-neutral-400 space-y-0.5">
+                <div className="text-[10px] text-faint space-y-0.5">
                   <div>1. Querying initiative epics & sprint milestones</div>
                   <div>2. Computing INVEST parameters & story acceptance criteria</div>
                   <div>3. Generating audio frequencies & burndown vectors</div>
@@ -717,9 +717,9 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
         {/* =====================================================================
             5. QUICK REPLIES & STARTER PROMPTS STRIP
         ===================================================================== */}
-        <div className="px-3.5 sm:px-4 py-2 bg-neutral-50 dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 overflow-x-auto text-xs shrink-0 custom-scrollbar">
+        <div className="px-3.5 sm:px-4 py-2 bg-panel border-t border-border-soft overflow-x-auto text-xs shrink-0 custom-scrollbar">
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-[10px] font-mono uppercase text-neutral-400 mr-1 shrink-0">
+            <span className="text-[10px] font-mono uppercase text-faint mr-1 shrink-0">
               Quick Prompts:
             </span>
             {STARTER_QUERIES.map((starter, idx) => {
@@ -730,7 +730,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
                   type="button"
                   onClick={() => handleSendMessage(starter.query)}
                   disabled={isThinking}
-                  className="px-2.5 py-1 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-[#151620] hover:bg-neutral-100 dark:hover:bg-white/5 text-neutral-700 dark:text-neutral-300 text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                  className="px-2.5 py-1 rounded-lg border border-border bg-panel hover:bg-ink/5 text-ink text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                 >
                   <Icon size={12} className="text-accent" />
                   <span>{starter.label}</span>
@@ -744,18 +744,18 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
             6. PENDING ATTACHMENTS
         ===================================================================== */}
         {pendingAttachments.length > 0 && (
-          <div className="px-3.5 sm:px-4 py-1.5 bg-neutral-100 dark:bg-white/[0.04] border-t border-black/10 dark:border-white/10 flex flex-wrap items-center gap-1.5 shrink-0 text-xs font-mono">
-            <span className="text-[10px] uppercase text-neutral-400">Attached:</span>
+          <div className="px-3.5 sm:px-4 py-1.5 bg-panel-alt border-t border-border flex flex-wrap items-center gap-1.5 shrink-0 text-xs font-mono">
+            <span className="text-[10px] uppercase text-faint">Attached:</span>
             {pendingAttachments.map((att, i) => (
               <div
                 key={i}
-                className="px-2 py-0.5 rounded-md bg-white dark:bg-[#1A1B26] border border-black/10 dark:border-white/10 text-[10px] flex items-center gap-1.5 shadow-2xs"
+                className="px-2 py-0.5 rounded-md bg-panel border border-border text-[10px] flex items-center gap-1.5 shadow-2xs"
               >
                 <span>{att.name}</span>
                 <button
                   type="button"
                   onClick={() => removeAttachment(i)}
-                  className="text-neutral-400 hover:text-rose-500 font-bold"
+                  className="text-faint hover:text-error font-semibold"
                   title="Remove attachment"
                 >
                   ×
@@ -768,8 +768,8 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
         {/* =====================================================================
             7. INPUT & ACTION COMPOSER BAR
         ===================================================================== */}
-        <div className="p-3 sm:p-4 bg-white dark:bg-[#0E0F17] border-t border-black/10 dark:border-white/10 shrink-0">
-          <div className="flex items-end gap-2 p-1.5 rounded-xl border border-black/15 dark:border-white/15 bg-neutral-50/75 dark:bg-[#141520] focus-within:ring-2 focus-within:ring-accent/40 focus-within:border-accent transition-all shadow-xs">
+        <div className="p-3 sm:p-4 bg-panel border-t border-border shrink-0">
+          <div className="flex items-end gap-2 p-1.5 rounded-xl border border-border bg-ink/10 focus-within:ring-2 focus-within:ring-accent/40 focus-within:border-accent transition-all shadow-xs">
             {/* Hidden File Input */}
             <input
               ref={fileInputRef}
@@ -784,7 +784,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+              className="p-2 rounded-lg text-muted hover:text-ink hover:bg-ink/5 transition-colors cursor-pointer shrink-0"
               title="Attach spec, architecture diagram, or logs"
               aria-label="Attach file"
             >
@@ -805,7 +805,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
               }}
               placeholder={`Ask ${PERSONAS[persona].name} about burndown, INVEST stories, architecture...`}
               disabled={isThinking}
-              className="flex-1 bg-transparent border-0 px-1 py-1.5 text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none resize-none max-h-32 min-h-[36px]"
+              className="flex-1 bg-transparent border-0 px-1 py-1.5 text-xs sm:text-sm text-ink placeholder:text-faint focus:outline-none resize-none max-h-32 min-h-[36px]"
             />
 
             {/* Integrated Voice Input */}
@@ -824,7 +824,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
               id="copilot-send-button"
               onClick={() => handleSendMessage()}
               disabled={(!inputValue.trim() && pendingAttachments.length === 0) || isThinking}
-              className="h-8 px-3 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 hover:opacity-90 active:scale-95 transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-xs"
+              className="h-8 px-3 rounded-lg bg-ink text-on-ink hover:opacity-90 active:scale-95 transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-xs"
               title="Send message (Enter)"
               aria-label="Send message"
             >
@@ -834,10 +834,10 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
           </div>
 
           {/* Micro Footer Hint */}
-          <div className="mt-1.5 px-1 flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+          <div className="mt-1.5 px-1 flex items-center justify-between text-[10px] text-faint font-mono">
             <span>Press Enter to send · Shift+Enter for newline</span>
             <span className="flex items-center gap-1">
-              <ShieldCheck size={10} className="text-emerald-500" />
+              <ShieldCheck size={10} className="text-ok" />
               <span>Context-grounded reasoning</span>
             </span>
           </div>

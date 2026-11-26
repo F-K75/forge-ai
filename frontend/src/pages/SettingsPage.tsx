@@ -170,7 +170,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-ink">
+              <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink">
                 Settings
               </h1>
               <span className="text-[11px] font-mono font-medium uppercase tracking-wider text-accent">

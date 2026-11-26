@@ -27,10 +27,10 @@ import { findReviewById, type BacklogItem, type ReviewRunDetails } from "../../l
 import { LIVE_MODE } from "../../lib/env";
 
 const SEVERITY_STYLES: Record<BacklogItem["severity"], { bg: string; text: string }> = {
- critical: { bg: "bg-error/20 text-error", text: "text-black" },
- high: { bg: "bg-warn/20 text-warn", text: "text-black" },
- medium: { bg: "bg-accent text-[#09090B]", text: "text-black" },
- low: { bg: "bg-neutral-200", text: "text-black" },
+ critical: { bg: "bg-error/20 text-error", text: "text-ink" },
+ high: { bg: "bg-warn/20 text-warn", text: "text-ink" },
+ medium: { bg: "bg-accent text-on-ink", text: "text-on-ink" },
+ low: { bg: "bg-surface-high", text: "text-ink" },
 };
 
 const TERMINAL_STATUSES = new Set(["complete", "failed"]);
@@ -246,7 +246,7 @@ export default function ReviewDetailPage() {
 
   if (!hydrated) {
     return (
- <div className="flex h-full items-center justify-center p-8 bg-neutral-50 dark:bg-[#121218] font-mono text-sm font-black text-ink">
+ <div className="flex h-full items-center justify-center p-8 bg-panel font-mono text-sm font-semibold text-ink">
  <div className="inline-block h-6 w-6 animate-spin border border-border border-t-brutal-yellow mr-3" />
         HYDRATING AUDIT RUN TELEMETRY...
       </div>
@@ -259,12 +259,12 @@ export default function ReviewDetailPage() {
  const isRunning = status === "running" || status === "consolidating";
 
   const bannerColor = isGo
- ? "bg-ok/20 text-ok text-black"
+ ? "bg-ok/20 text-ok text-ink"
     : isNoGo
- ? "bg-error/20 text-error text-black"
+ ? "bg-error/20 text-error text-ink"
     : isFixes
- ? "bg-accent text-[#09090B] text-black"
- : "bg-info/20 text-info text-black";
+ ? "bg-accent text-on-ink text-on-ink"
+ : "bg-info/20 text-info text-ink";
 
  const repoTarget = fallbackData?.repo_path || "Target Repository";
 
@@ -272,25 +272,25 @@ export default function ReviewDetailPage() {
     const isUnconfigured = !isConfigured && LIVE_MODE;
     return (
  <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center font-mono">
- <div className="border border-border bg-white dark:bg-[#181820] p-8 max-w-lg shadow-m3 ">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-accent text-[#09090B] text-black shadow-m3">
+ <div className="border border-border bg-panel p-8 max-w-lg shadow-m3 ">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
             <ShieldAlert size={28} strokeWidth={2.5} />
           </div>
- <h1 className="text-lg font-black uppercase text-ink">
+ <h1 className="text-lg font-semibold uppercase text-ink">
  {isUnconfigured ? "Review Board service not configured" : "Review unavailable"}
           </h1>
  <p className="mt-2 text-xs text-muted leading-relaxed">{loadError}</p>
  <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
  to="/reviews"
- className="h-8 px-4 inline-flex items-center justify-center border border-border bg-accent text-[#09090B] font-mono text-xs font-black uppercase text-black shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-8 px-4 inline-flex items-center justify-center border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
             >
               Back to reviews
             </Link>
           </div>
           {isUnconfigured && (
  <p className="mt-4 font-mono text-[11px] text-muted">
- To view live audit reports, configure the <code className="border border-black/30 dark:border-white/30 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-bold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
+ To view live audit reports, configure the <code className="border border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
             </p>
           )}
         </div>
@@ -299,42 +299,42 @@ export default function ReviewDetailPage() {
   }
 
   return (
- <div className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-neutral-50 dark:bg-[#121218] p-4 md:p-8 font-mono">
+ <div className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-panel p-4 md:p-8 font-mono">
  <div className="mx-auto w-full max-w-6xl space-y-6">
         {/* Navigation Breadcrumb */}
  <div className="flex items-center justify-between">
           <Link
  to="/reviews"
- className="h-7 inline-flex items-center gap-2 border border-border bg-white dark:bg-[#20202a] px-3 font-mono text-xs font-black uppercase text-ink shadow-m3 hover:bg-neutral-100 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 inline-flex items-center gap-2 border border-border bg-panel px-3 font-mono text-xs font-semibold uppercase text-ink shadow-m3 hover:bg-ink/5 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
           >
             <ArrowLeft size={13} />
             Back to Reviews
           </Link>
 
- <div className="flex items-center gap-2 font-mono text-xs text-muted font-bold">
+ <div className="flex items-center gap-2 font-mono text-xs text-muted font-semibold">
             <Clock size={13} />
  <span>Mode: {mode?.toUpperCase() ?? "FULL"}</span>
           </div>
         </div>
 
         {/* Top Header Card */}
- <header className="border border-border bg-white dark:bg-[#181820] p-6 shadow-m3 ">
+ <header className="border border-border bg-panel p-6 shadow-m3 ">
  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
  <div className="space-y-1">
  <div className="flex items-center gap-2.5">
- <span className="flex h-7 w-7 items-center justify-center border border-border bg-accent text-[#09090B] text-black shadow-m3">
+ <span className="flex h-7 w-7 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
  <BrandLogo size="xs" />
                 </span>
- <span className="font-mono text-xs font-black uppercase tracking-wider text-muted">
+ <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
                   Audit Snapshot Report
                 </span>
               </div>
- <h1 className="font-mono text-xl font-black text-ink md:text-2xl break-all">
+ <h1 className="font-mono text-xl font-semibold text-ink md:text-2xl break-all">
                 {repoTarget}
               </h1>
  <div className="flex items-center gap-2 font-mono text-xs text-muted">
- <span className="font-bold">Run ID:</span>
- <code className="border border-border bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 font-bold text-ink shadow-m3">
+ <span className="font-semibold">Run ID:</span>
+ <code className="border border-border bg-panel-alt px-2 py-0.5 font-semibold text-ink shadow-m3">
                   {runId}
                 </code>
               </div>
@@ -342,12 +342,12 @@ export default function ReviewDetailPage() {
 
  <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`border border-border px-3 py-1 font-mono text-xs font-black uppercase shadow-m3 ${
+                className={`border border-border px-3 py-1 font-mono text-xs font-semibold uppercase shadow-m3 ${
  status === "complete"
- ? "bg-ok/20 text-ok text-black"
+ ? "bg-ok/20 text-ok text-ink"
  : status === "failed"
- ? "bg-error/20 text-error text-black"
- : "bg-info/20 text-info text-black"
+ ? "bg-error/20 text-error text-ink"
+ : "bg-info/20 text-info text-ink"
                 }`}
               >
                 Status: {status}
@@ -369,7 +369,7 @@ export default function ReviewDetailPage() {
  <ShieldCheck size={24} strokeWidth={2.5} className="shrink-0" />
             )}
  <div className="min-w-0 font-mono">
- <div className="text-sm font-black uppercase tracking-wider">
+ <div className="text-sm font-semibold uppercase tracking-wider">
                 {isGo
  ? "GATE VERDICT: GO — PRODUCTION RELEASE APPROVED"
                   : isNoGo
@@ -378,7 +378,7 @@ export default function ReviewDetailPage() {
  ? "GATE VERDICT: GO_WITH_FIXES — CONDITIONAL PASS"
  : "AUDIT IN PROGRESS — EXECUTING AGENT AST PIPELINES"}
               </div>
- <div className="mt-0.5 text-xs font-bold opacity-90 leading-relaxed">
+ <div className="mt-0.5 text-xs font-semibold opacity-90 leading-relaxed">
                 {fallbackData?.consolidated?.summary ||
                   (isGo
  ? "Code snapshot passed all static checks, vulnerability scanning, and complexity limits."
@@ -392,71 +392,71 @@ export default function ReviewDetailPage() {
 
         {/* Telemetry Metric Grid */}
  <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
- <div className="border border-border bg-white dark:bg-[#181820] p-3.5 shadow-m3 ">
- <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-black uppercase">
+ <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <ShieldCheck size={13} />
               Overall Score
             </div>
- <div className="mt-1 font-mono text-2xl font-black text-ink">
+ <div className="mt-1 font-mono text-2xl font-semibold text-ink">
  {overallScore !== null ? `${overallScore}/100` : "—"}
             </div>
           </div>
 
- <div className="border border-border bg-white dark:bg-[#181820] p-3.5 shadow-m3 ">
- <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-black uppercase">
+ <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <Files size={13} />
               Candidate Files
             </div>
- <div className="mt-1 font-mono text-2xl font-black text-ink">{candidateFiles}</div>
+ <div className="mt-1 font-mono text-2xl font-semibold text-ink">{candidateFiles}</div>
           </div>
 
- <div className="border border-border bg-white dark:bg-[#181820] p-3.5 shadow-m3 ">
- <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-black uppercase">
+ <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <BotIcon size={13} />
               Agents Active
             </div>
- <div className="mt-1 font-mono text-2xl font-black text-ink">{triggeredAgents.length}</div>
+ <div className="mt-1 font-mono text-2xl font-semibold text-ink">{triggeredAgents.length}</div>
           </div>
 
- <div className="border border-border bg-white dark:bg-[#181820] p-3.5 shadow-m3 ">
- <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-black uppercase">
+ <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <ListChecks size={13} />
               Backlog Items
             </div>
- <div className="mt-1 font-mono text-2xl font-black text-ink">
+ <div className="mt-1 font-mono text-2xl font-semibold text-ink">
  {(backlogCount ?? backlogTotal) !== null ? (backlogCount ?? backlogTotal) : "0"}
             </div>
           </div>
 
- <div className="border border-border bg-white dark:bg-[#181820] p-3.5 shadow-m3 ">
- <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-black uppercase">
+ <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <DollarSign size={13} />
               Audit Cost
             </div>
- <div className="mt-1 font-mono text-2xl font-black text-ink">${totalCostUsd.toFixed(4)}</div>
+ <div className="mt-1 font-mono text-2xl font-semibold text-ink">${totalCostUsd.toFixed(4)}</div>
           </div>
 
- <div className="border border-border bg-white dark:bg-[#181820] p-3.5 shadow-m3 ">
- <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-black uppercase">
+ <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <Zap size={13} />
               Tokens Used
             </div>
- <div className="mt-1 font-mono text-2xl font-black text-ink">{totalTokens.toLocaleString()}</div>
+ <div className="mt-1 font-mono text-2xl font-semibold text-ink">{totalTokens.toLocaleString()}</div>
           </div>
         </section>
 
         {/* Multi-Agent Execution Board */}
- <section className="border border-border bg-white dark:bg-[#181820] p-6 shadow-m3 ">
- <div className="flex items-center justify-between border-b-2 border-black dark:border-white/80 pb-3">
+ <section className="border border-border bg-panel p-6 shadow-m3 ">
+ <div className="flex items-center justify-between border-b-2 border-border pb-3">
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border border-border bg-info/20 text-info text-black shadow-m3 font-mono text-xs font-black">
+ <span className="flex h-6 w-6 items-center justify-center border border-border bg-info/20 text-info text-ink shadow-m3 font-mono text-xs font-semibold">
                 @
               </span>
- <h2 className="font-mono text-base font-black uppercase text-ink">
+ <h2 className="font-mono text-base font-semibold uppercase text-ink">
                 Autonomous Review Fleet Status
               </h2>
             </div>
- <span className="font-mono text-xs text-muted font-bold">
+ <span className="font-mono text-xs text-muted font-semibold">
               {triggeredAgents.length} specialized subagents deployed
             </span>
           </div>
@@ -472,7 +472,7 @@ export default function ReviewDetailPage() {
               const issues = state?.issues ?? 0;
               const score = state?.score;
 
- let iconBg = "bg-accent text-[#09090B]";
+ let iconBg = "bg-accent text-on-ink";
  if (agentId.includes("security")) iconBg = "bg-error/20 text-error";
  else if (agentId.includes("performance")) iconBg = "bg-info/20 text-info";
  else if (agentId.includes("architecture")) iconBg = "bg-accent/20 text-accent";
@@ -481,23 +481,23 @@ export default function ReviewDetailPage() {
               return (
                 <div
                   key={agentId}
- className="border border-border bg-neutral-50 dark:bg-neutral-900 p-3.5 shadow-m3 space-y-2 font-mono"
+ className="border border-border bg-panel p-3.5 shadow-m3 space-y-2 font-mono"
                 >
  <div className="flex items-center justify-between">
                     <span
-                      className={`flex h-7 w-7 items-center justify-center border border-border ${iconBg} text-black font-mono text-xs font-black shadow-m3`}
+                      className={`flex h-7 w-7 items-center justify-center border border-border ${iconBg} text-ink font-mono text-xs font-semibold shadow-m3`}
                     >
                       <BotIcon size={14} />
                     </span>
                     <span
-                      className={`border border-border px-2 py-0.5 font-mono text-[10px] font-black uppercase shadow-m3 ${
+                      className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${
                         isDone
- ? "bg-ok/20 text-ok text-black"
+ ? "bg-ok/20 text-ok text-ink"
                           : isFailed
- ? "bg-error/20 text-error text-black"
+ ? "bg-error/20 text-error text-ink"
                           : isActive
- ? "bg-info/20 text-info text-black animate-pulse"
- : "bg-neutral-200 text-black"
+ ? "bg-info/20 text-info text-ink animate-pulse"
+ : "bg-surface-high text-ink"
                       }`}
                     >
  {state?.status ?? "idle"}
@@ -505,21 +505,21 @@ export default function ReviewDetailPage() {
                   </div>
 
                   <div>
- <h4 className="font-mono text-xs font-black text-ink truncate">{humanName}</h4>
- <div className="font-mono text-[11px] text-muted font-bold">
- Issues flagged: <span className="font-black text-ink">{issues}</span>
+ <h4 className="font-mono text-xs font-semibold text-ink truncate">{humanName}</h4>
+ <div className="font-mono text-[11px] text-muted font-semibold">
+ Issues flagged: <span className="font-semibold text-ink">{issues}</span>
                     </div>
                   </div>
 
                   {score !== undefined && score !== null && (
- <div className="pt-2 border-t-2 border-black/20 dark:border-white/20 flex items-center justify-between font-mono text-xs">
- <span className="text-muted font-bold">Agent Score:</span>
- <span className="font-black text-ink">{score}/100</span>
+ <div className="pt-2 border-t-2 border-border flex items-center justify-between font-mono text-xs">
+ <span className="text-muted font-semibold">Agent Score:</span>
+ <span className="font-semibold text-ink">{score}/100</span>
                     </div>
                   )}
 
                   {state?.error && (
- <div className="text-[11px] font-mono font-bold text-error truncate">{state.error}</div>
+ <div className="text-[11px] font-mono font-semibold text-error truncate">{state.error}</div>
                   )}
                 </div>
               );
@@ -528,18 +528,18 @@ export default function ReviewDetailPage() {
         </section>
 
         {/* Prioritized Backlog Section */}
- <section className="border border-border bg-white dark:bg-[#181820] p-6 shadow-m3 space-y-4 font-mono">
- <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b-2 border-black dark:border-white/80 pb-4">
+ <section className="border border-border bg-panel p-6 shadow-m3 space-y-4 font-mono">
+ <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b-2 border-border pb-4">
             <div>
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border border-border bg-error/20 text-error text-black shadow-m3 font-mono text-xs font-black">
+ <span className="flex h-6 w-6 items-center justify-center border border-border bg-error/20 text-error text-ink shadow-m3 font-mono text-xs font-semibold">
                   !
                 </span>
- <h2 className="font-mono text-base font-black uppercase text-ink">
+ <h2 className="font-mono text-base font-semibold uppercase text-ink">
                   Prioritized Remediation Backlog ({visibleBacklog.length} items)
                 </h2>
               </div>
- <p className="mt-0.5 font-mono text-xs text-muted font-bold">
+ <p className="mt-0.5 font-mono text-xs text-muted font-semibold">
                 Actionable findings ranked by security risk, architectural impact, and effort.
               </p>
             </div>
@@ -549,7 +549,7 @@ export default function ReviewDetailPage() {
  type="button"
                 onClick={handleExportMarkdown}
                 disabled={!backlog || backlog.length === 0}
- className="h-7 inline-flex items-center gap-1.5 border border-border bg-white dark:bg-[#20202a] px-3 font-mono text-xs font-black uppercase shadow-m3 hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] transition-all disabled:opacity-50"
+ className="h-7 inline-flex items-center gap-1.5 border border-border bg-panel px-3 font-mono text-xs font-semibold uppercase shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all disabled:opacity-50"
               >
                 <Download size={13} />
                 Export Markdown
@@ -565,10 +565,10 @@ export default function ReviewDetailPage() {
                   key={sev}
  type="button"
                   onClick={() => setSeverityFilter(sev)}
-                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-black uppercase transition-all ${
+                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-semibold uppercase transition-all ${
                     severityFilter === sev
- ? "bg-black text-white shadow-m3 dark:bg-white dark:text-black "
- : "bg-white dark:bg-[#20202a] text-ink hover:bg-neutral-100 shadow-m3"
+ ? "bg-ink text-on-ink shadow-m3 "
+ : "bg-panel text-ink hover:bg-ink/5 shadow-m3"
                   }`}
                 >
                   {sev}
@@ -584,7 +584,7 @@ export default function ReviewDetailPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
  placeholder="Filter issues..."
- className="h-7 w-full border border-border bg-white dark:bg-[#1E1E28] pl-8 pr-2 font-mono text-xs font-bold text-ink placeholder:text-neutral-400 focus:outline-none shadow-m3"
+ className="h-7 w-full border border-border bg-panel pl-8 pr-2 font-mono text-xs font-semibold text-ink placeholder:text-faint focus:outline-none shadow-m3"
                 />
               </div>
 
@@ -592,10 +592,10 @@ export default function ReviewDetailPage() {
                 <button
  type="button"
  onClick={() => setSortBy("severity")}
-                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-black uppercase shadow-m3 ${
+                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-semibold uppercase shadow-m3 ${
  sortBy === "severity"
- ? "bg-black text-white dark:bg-white dark:text-black"
- : "bg-white dark:bg-[#20202a] text-muted hover:text-ink"
+ ? "bg-ink text-on-ink "
+ : "bg-panel text-muted hover:text-ink"
                   }`}
                 >
                   Severity
@@ -603,10 +603,10 @@ export default function ReviewDetailPage() {
                 <button
  type="button"
  onClick={() => setSortBy("impact")}
-                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-black uppercase shadow-m3 ${
+                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-semibold uppercase shadow-m3 ${
  sortBy === "impact"
- ? "bg-black text-white dark:bg-white dark:text-black"
- : "bg-white dark:bg-[#20202a] text-muted hover:text-ink"
+ ? "bg-ink text-on-ink "
+ : "bg-panel text-muted hover:text-ink"
                   }`}
                 >
                   Impact
@@ -617,10 +617,10 @@ export default function ReviewDetailPage() {
 
           {/* Issue Cards */}
           {visibleBacklog.length === 0 ? (
- <div className="border border-border bg-neutral-50 dark:bg-neutral-900 p-8 text-center shadow-m3">
+ <div className="border border-border bg-panel p-8 text-center shadow-m3">
  <CheckCircle2 size={32} className="mx-auto text-ok mb-2" />
- <div className="font-mono text-sm font-black text-ink">No unresolved issues in this filter view.</div>
- <p className="mt-1 font-mono text-xs text-muted font-bold">All checks in this category are compliant.</p>
+ <div className="font-mono text-sm font-semibold text-ink">No unresolved issues in this filter view.</div>
+ <p className="mt-1 font-mono text-xs text-muted font-semibold">All checks in this category are compliant.</p>
             </div>
           ) : (
  <div className="space-y-3">
@@ -631,50 +631,50 @@ export default function ReviewDetailPage() {
                 return (
                   <div
                     key={item.id}
- className="border border-border bg-white dark:bg-[#181820] p-4 shadow-m3 transition-all space-y-3"
+ className="border border-border bg-panel p-4 shadow-m3 transition-all space-y-3"
                   >
                     {/* Top line with badges */}
- <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-black/20 dark:border-white/20 pb-2.5">
+ <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border pb-2.5">
  <div className="flex items-center gap-2">
                         <span
-                          className={`border border-border px-2 py-0.5 font-mono text-[10px] font-black uppercase shadow-m3 ${style.bg} ${style.text}`}
+                          className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${style.bg} ${style.text}`}
                         >
                           {item.severity}
                         </span>
- <span className="font-mono text-[11px] font-black text-muted">
+ <span className="font-mono text-[11px] font-semibold text-muted">
                           Impact: {item.impact}/10
                         </span>
- <span className="font-mono text-[11px] font-black text-muted">
+ <span className="font-mono text-[11px] font-semibold text-muted">
                           Effort: {item.effort}
                         </span>
                       </div>
 
- <div className="font-mono text-[10px] text-muted font-bold">ID: {item.id}</div>
+ <div className="font-mono text-[10px] text-muted font-semibold">ID: {item.id}</div>
                     </div>
 
                     {/* Title & Description */}
                     <div>
- <h3 className="font-mono text-sm font-black text-ink">{item.title}</h3>
+ <h3 className="font-mono text-sm font-semibold text-ink">{item.title}</h3>
  <p className="mt-1 font-mono text-xs text-muted leading-relaxed font-medium">{item.description}</p>
                     </div>
 
                     {/* Proposed Fix Box */}
                     {item.fix && (
- <div className="border border-border bg-neutral-900 text-white p-3 shadow-m3">
+ <div className="border border-border bg-ink text-on-ink p-3 shadow-m3">
  <div className="flex items-center justify-between mb-1.5">
- <span className="font-mono text-[11px] font-black uppercase tracking-wider text-brutal-yellow">
+ <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-brutal-yellow">
                             Proposed Remediation:
                           </span>
                           <button
  type="button"
                             onClick={() => handleCopyFix(item.id, item.fix)}
- className="h-7 px-2 inline-flex items-center gap-1 border border-border bg-white dark:bg-[#20202a] font-mono text-[10px] font-black uppercase text-black dark:text-white shadow-m3 hover:bg-neutral-100 transition-colors"
+ className="h-7 px-2 inline-flex items-center gap-1 border border-border bg-panel font-mono text-[10px] font-semibold uppercase text-ink shadow-m3 hover:bg-ink/5 transition-colors"
                           >
  {isCopied ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
  {isCopied ? "Copied" : "Copy Fix"}
                           </button>
                         </div>
- <code className="block font-mono text-xs text-neutral-200 break-all bg-black p-2 border-2 border-neutral-700">
+ <code className="block font-mono text-xs text-muted break-all bg-ink p-2 border-2 border-border">
                           {item.fix}
                         </code>
                       </div>
@@ -683,12 +683,12 @@ export default function ReviewDetailPage() {
                     {/* Affected Files */}
                     {item.files && item.files.length > 0 && (
  <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
- <span className="font-black text-ink">Affected files:</span>
+ <span className="font-semibold text-ink">Affected files:</span>
  <div className="flex flex-wrap gap-1">
                           {item.files.map((file) => (
                             <span
                               key={file}
- className="border border-border bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-mono text-[10px] font-bold text-ink"
+ className="border border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
                             >
                               {file}
                             </span>

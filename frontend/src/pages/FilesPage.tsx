@@ -405,7 +405,7 @@ export default function FilesPage() {
 
     if (newFileTemplate === "component") {
       const compName = name.replace(/\.[^/.]+$/, "");
-      initialCode = `import React from 'react';\n\nexport default function ${compName}() {\n  return (\n    <div className="p-4 rounded-sm border-2 border-black bg-white">\n      <h2 className="font-mono text-lg font-bold">${compName}</h2>\n    </div>\n  );\n}\n`;
+      initialCode = `import React from 'react';\n\nexport default function ${compName}() {\n  return (\n    <div className="p-4 rounded-sm border-2 border-border bg-panel">\n      <h2 className="font-mono text-lg font-semibold">${compName}</h2>\n    </div>\n  );\n}\n`;
     } else if (newFileTemplate === "service") {
       initialCode = `export class ServiceEngine {\n  async execute() {\n    return { success: true };\n  }\n}\n`;
     } else if (newFileTemplate === "json") {
@@ -575,7 +575,7 @@ export default function FilesPage() {
           <button
             type="button"
             onClick={() => navigate(`/p/${filesProjectId}/workspace`)}
-            className="h-9 rounded-lg bg-accent hover:bg-ember-glow px-4 text-xs font-medium text-white transition-colors cursor-pointer"
+            className="h-9 rounded-lg bg-accent hover:bg-ember-glow px-4 text-xs font-medium text-on-ink transition-colors cursor-pointer"
           >
             Open workspace
           </button>
@@ -644,7 +644,7 @@ export default function FilesPage() {
             <button
               type="button"
               onClick={() => setNewFileModalOpen(true)}
-              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Plus size={14} />
               <span>New File</span>
@@ -776,7 +776,7 @@ export default function FilesPage() {
                   onClick={() => setLanguageFilter(lang)}
                   className={`px-2 py-1 rounded-md font-medium uppercase transition-colors cursor-pointer ${
                     languageFilter === lang
-                      ? "bg-accent text-white"
+                      ? "bg-accent text-on-ink"
                       : "text-muted hover:text-ink hover:bg-panel-alt"
                   }`}
                 >
@@ -957,7 +957,7 @@ export default function FilesPage() {
                 type="button"
                 disabled={!isDirty}
                 onClick={handleSave}
-                className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors disabled:opacity-45 cursor-pointer"
+                className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
               >
                 <Save size={13} />
                 <span>Save</span>
@@ -966,7 +966,7 @@ export default function FilesPage() {
           </div>
 
           {/* Monaco Code Editor Canvas */}
-          <div className="flex-1 min-h-[480px] relative bg-[#0B0F19]">
+          <div className="flex-1 min-h-[480px] relative bg-panel-alt">
             <Editor
               height="100%"
               language={activeFile.language}
@@ -1014,7 +1014,7 @@ export default function FilesPage() {
       {/* 5. Create File Modal */}
       <AnimatePresence>
         {newFileModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs">
             <motion.div
               role="dialog"
               aria-modal="true"
@@ -1091,7 +1091,7 @@ export default function FilesPage() {
                   type="button"
                   disabled={!newFilePath.trim()}
                   onClick={handleCreateFile}
-                  className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors disabled:opacity-45 cursor-pointer"
+                  className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
                 >
                   <Plus size={13} />
                   <span>Create File</span>
@@ -1105,7 +1105,7 @@ export default function FilesPage() {
       {/* 6. Delete File Confirmation Modal */}
       <AnimatePresence>
         {deleteConfirmOpen && fileToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs">
             <motion.div
               role="dialog"
               aria-modal="true"
@@ -1150,7 +1150,7 @@ export default function FilesPage() {
                 <button
                   type="button"
                   onClick={handleDeleteFile}
-                  className="h-8 px-4 text-xs font-medium rounded-lg bg-error text-white hover:opacity-90 transition-opacity cursor-pointer"
+                  className="h-8 px-4 text-xs font-medium rounded-lg bg-error text-on-ink hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Delete File
                 </button>

@@ -34,8 +34,8 @@ export default function BrandLogo({
 
   const logo = (
     <div
-      className={`relative ${container} flex items-center justify-center shrink-0 select-none bg-slate-900 dark:bg-slate-800 text-white transition-transform duration-fast ${
-        bordered ? "border border-slate-800 dark:border-slate-700" : ""
+      className={`relative ${container} flex items-center justify-center shrink-0 select-none bg-ink text-on-ink transition-transform duration-fast ${
+        bordered ? "border border-border" : ""
       } ${className}`}
     >
       <img

@@ -65,7 +65,7 @@ export function ForgeMomentCard({
         <button
           type="button"
           onClick={onOpenPreview}
-          className="w-full h-9 px-4 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium transition-colors duration-150 flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+          className="w-full h-9 px-4 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium transition-colors duration-150 flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
         >
           <span>Open Preview</span>
           <ExternalLink size={13} />

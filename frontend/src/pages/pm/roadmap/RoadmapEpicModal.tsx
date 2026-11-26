@@ -62,29 +62,29 @@ export function RoadmapEpicModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="roadmap-epic-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-base/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl rounded-2xl border border-border bg-panel shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border-soft bg-ink/10">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 items-center justify-center font-bold text-xs">
+            <span className="flex h-8 w-8 rounded-lg bg-info/10 text-info items-center justify-center font-semibold text-xs">
               <Layers size={16} />
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h3 id="roadmap-epic-modal-title" className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                <h3 id="roadmap-epic-modal-title" className="font-semibold text-sm text-ink">
                   {epic.title}
                 </h3>
-                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-info/10 text-info border border-info/30">
                   {epic.priority || "p2"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-mono">
+              <p className="text-xs text-muted font-mono">
                 {epic.estimated_duration || "Target: Q1"} · {epic.story_points || 0} story points
               </p>
             </div>
@@ -94,16 +94,16 @@ export function RoadmapEpicModal({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
             >
-              {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+              {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
               <span>{copied ? "Copied" : "Copy"}</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 text-faint hover:text-ink rounded-lg hover:bg-ink/5 transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X size={16} />
@@ -115,10 +115,10 @@ export function RoadmapEpicModal({
         <div className="flex-1 p-5 overflow-y-auto space-y-4 text-xs">
           {epic.description && (
             <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
                 Scope Description
               </span>
-              <p className="text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed">
+              <p className="text-ink bg-panel p-3 rounded-xl border border-border-soft leading-relaxed">
                 {epic.description}
               </p>
             </div>
@@ -126,25 +126,25 @@ export function RoadmapEpicModal({
 
           {/* User Stories */}
           <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <ListTodo size={12} className="text-blue-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-faint flex items-center gap-1.5">
+              <ListTodo size={12} className="text-accent" />
               Linked User Stories ({linkedStories.length})
             </span>
 
             {linkedStories.length === 0 ? (
-              <p className="text-slate-400 italic">No stories linked yet.</p>
+              <p className="text-faint italic">No stories linked yet.</p>
             ) : (
               <div className="space-y-2">
                 {linkedStories.map((story) => (
                   <div
                     key={story.id}
-                    className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-1.5"
+                    className="p-3 rounded-xl border border-border-soft bg-ink/10 space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      <span className="font-semibold text-ink">
                         {story.title}
                       </span>
-                      <span className="font-mono text-[10px] text-slate-400">
+                      <span className="font-mono text-[10px] text-faint">
                         {story.story_points || 3} pts
                       </span>
                     </div>
@@ -154,9 +154,9 @@ export function RoadmapEpicModal({
                         {story.acceptance_criteria.map((ac, i) => (
                           <li
                             key={i}
-                            className="text-[11px] text-slate-600 dark:text-slate-400 flex items-start gap-1.5"
+                            className="text-[11px] text-muted flex items-start gap-1.5"
                           >
-                            <CheckCircle2 size={11} className="text-emerald-500 shrink-0 mt-0.5" />
+                            <CheckCircle2 size={11} className="text-ok shrink-0 mt-0.5" />
                             <span>{ac}</span>
                           </li>
                         ))}
@@ -171,26 +171,26 @@ export function RoadmapEpicModal({
           {/* Tasks Summary */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <FileCode size={12} className="text-purple-500" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-faint flex items-center gap-1.5">
+                <FileCode size={12} className="text-agent-business-improver" />
                 Engineering Tasks ({linkedTasks.length})
               </span>
-              <span className="font-mono text-slate-400 text-[10px]">~{totalHours}h estimated</span>
+              <span className="font-mono text-faint text-[10px]">~{totalHours}h estimated</span>
             </div>
 
             {linkedTasks.length === 0 ? (
-              <p className="text-slate-400 italic">No engineering tasks attached yet.</p>
+              <p className="text-faint italic">No engineering tasks attached yet.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {linkedTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20 flex items-center justify-between"
+                    className="p-2.5 rounded-xl border border-border-soft bg-ink/10 flex items-center justify-between"
                   >
-                    <span className="font-medium text-slate-800 dark:text-slate-200 truncate mr-2">
+                    <span className="font-medium text-ink truncate mr-2">
                       {task.title}
                     </span>
-                    <span className="font-mono text-[10px] text-slate-400 shrink-0">
+                    <span className="font-mono text-[10px] text-faint shrink-0">
                       {task.estimated_hours}h
                     </span>
                   </div>
@@ -201,12 +201,12 @@ export function RoadmapEpicModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-5 py-3 border-t border-border-soft bg-ink/10 flex items-center justify-between text-xs text-muted">
           <span>Priority SLA: {epic.priority === "p0" ? "Critical Path" : "Standard"}</span>
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-semibold cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-ink text-on-ink font-semibold cursor-pointer"
           >
             Done
           </button>

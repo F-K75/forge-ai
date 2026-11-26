@@ -279,7 +279,7 @@ function GraphInner() {
     <div
       className={`mx-auto px-4 py-4 md:px-8 transition-all ${
         isFullscreen
-          ? "fixed inset-0 z-50 bg-[#0A0A10] p-4 flex flex-col h-screen"
+          ? "fixed inset-0 z-50 bg-panel-alt p-4 flex flex-col h-screen"
           : "max-w-7xl"
       }`}
       id="graph-tab-root"
@@ -311,7 +311,7 @@ function GraphInner() {
       {/* Interactive ReactFlow Container */}
       <motion.div
         ref={containerRef}
-        className={`relative w-full rounded-2xl border border-inlay bg-[#0A0A12] overflow-hidden ${
+        className={`relative w-full rounded-2xl border border-inlay bg-panel-alt overflow-hidden ${
           isFullscreen
             ? "flex-1 min-h-[500px]"
             : "h-[calc(100vh-270px)] min-h-[520px]"
@@ -338,7 +338,7 @@ function GraphInner() {
 
           <Controls
             showInteractive={true}
-            className="!bg-[#12121D]/90 !border !border-inlay !rounded-xl !text-ink !shadow-lg"
+            className="!bg-base/90 !border !border-inlay !rounded-xl !text-ink !shadow-lg"
           />
 
           <MiniMap
@@ -348,12 +348,12 @@ function GraphInner() {
             }}
             nodeStrokeWidth={2}
             maskColor="rgba(10, 10, 18, 0.75)"
-            className="!bg-[#11111A] !border !border-inlay !rounded-xl !overflow-hidden"
+            className="!bg-panel-alt !border !border-inlay !rounded-xl !overflow-hidden"
           />
 
           {/* Quick Helper Panel */}
           <Panel position="bottom-left" className="m-3">
-            <div className="flex items-center gap-2 rounded-lg border border-inlay/70 bg-[#101018]/85 px-2.5 py-1 text-[11px] text-faint backdrop-blur-xs">
+            <div className="flex items-center gap-2 rounded-lg border border-inlay/70 bg-base/85 px-2.5 py-1 text-[11px] text-faint backdrop-blur-xs">
               <span>Click node to inspect lineage</span>
               <span className="text-inlay-strong">·</span>
               <span>Scroll to zoom</span>

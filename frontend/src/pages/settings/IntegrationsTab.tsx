@@ -427,7 +427,7 @@ export function IntegrationsTab() {
 
       {/* Add Webhook Modal */}
       {isAddWebhookOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="w-full max-w-lg rounded-xl border border-border bg-panel p-6 shadow-2xl space-y-5">
             <div>
               <h3 className="text-sm font-semibold text-ink flex items-center gap-2">

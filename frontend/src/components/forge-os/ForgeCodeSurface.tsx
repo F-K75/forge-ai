@@ -130,7 +130,7 @@ export function ForgeCodeSurface({
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#0B0F19] overflow-hidden select-none">
+    <div className="h-full flex flex-col bg-panel-alt overflow-hidden select-none">
       {/* Editor Top Bar with File Tabs */}
       <div className="h-11 px-3 border-b border-border bg-panel-alt flex items-center justify-between gap-3 shrink-0">
         {/* Tabs */}
@@ -167,7 +167,7 @@ export function ForgeCodeSurface({
             onClick={() => setIsDiffMode(!isDiffMode)}
             className={`h-8 px-2.5 rounded-md border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
               isDiffMode
-                ? "bg-accent text-white border-accent"
+                ? "bg-accent text-on-ink border-accent"
                 : "bg-panel text-ink border-border hover:bg-panel-alt"
             }`}
           >
@@ -196,7 +196,7 @@ export function ForgeCodeSurface({
       </div>
 
       {/* Editor Viewport */}
-      <div className="flex-1 relative bg-[#0B0F19]">
+      <div className="flex-1 relative bg-panel-alt">
         {isDiffMode ? (
           <DiffEditor
             height="100%"

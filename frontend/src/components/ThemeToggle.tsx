@@ -32,7 +32,7 @@ export function ThemeToggle({ className = "", compact = false }: Props) {
   const Icon = ICONS[mode];
 
   const defaultClasses = compact
-    ? "h-7 w-7 bg-white dark:bg-[#252530] border-2 border-black dark:border-white/80 text-ink shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff] hover:bg-brutal-yellow hover:text-black active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center cursor-pointer transition-none shrink-0"
+    ? "h-7 w-7 bg-panel border-2 border-border text-ink hover:bg-brutal-yellow hover:text-ink active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center cursor-pointer transition-none shrink-0"
     : "bb-btn bb-btn-icon bb-btn-subtle gap-2 px-3";
 
   return (

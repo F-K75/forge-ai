@@ -16,20 +16,20 @@ export default function NotFoundPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-base p-6">
       <motion.main
-        className="max-w-md w-full rounded-sm border-3 border-black bg-white dark:bg-[#18181C] p-8 shadow-brutal-lg text-center"
+        className="max-w-md w-full rounded-sm border-3 border-border bg-panel p-8 text-center"
         initial={reduceMotion ? false : { opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
-        <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-sm border-2 border-black bg-brutal-yellow shadow-brutal-sm">
+        <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-sm border-2 border-border bg-brutal-yellow">
           <BrandLogo size="lg" />
         </div>
         <div>
-          <span className="mb-3 inline-block rounded-sm border-2 border-black bg-brutal-pink text-black px-3 py-1 font-mono text-xs font-black uppercase tracking-widest shadow-brutal-xs">
+          <span className="mb-3 inline-block rounded-sm border-2 border-border bg-brutal-pink text-ink px-3 py-1 font-mono text-xs font-semibold uppercase tracking-widest">
             Error 404
           </span>
         </div>
-        <h1 className="mb-2 font-mono text-2xl sm:text-3xl font-black uppercase tracking-tight text-ink">
+        <h1 className="mb-2 font-mono text-2xl sm:text-3xl font-semibold uppercase tracking-tight text-ink">
           Page Not Found
         </h1>
         <p className="mb-8 font-mono text-xs sm:text-sm text-muted">
@@ -38,7 +38,7 @@ export default function NotFoundPage() {
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             to={dashboardHref}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-sm border-2 border-black bg-brutal-yellow text-black font-mono font-extrabold text-xs uppercase tracking-wider shadow-brutal-sm hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-sm border-2 border-border bg-brutal-yellow text-ink font-mono font-semibold text-xs uppercase tracking-wider hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] transition-all"
           >
             <DashboardIcon size={14} aria-hidden="true" />
             {dashboardLabel}
@@ -47,7 +47,7 @@ export default function NotFoundPage() {
             <button
               type="button"
               onClick={() => window.history.back()}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-sm border-2 border-black bg-white dark:bg-[#121216] text-ink font-mono font-bold text-xs uppercase tracking-wider shadow-brutal-xs hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-sm border-2 border-border bg-panel text-ink font-mono font-semibold text-xs uppercase tracking-wider hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all"
             >
               <ArrowLeft size={14} aria-hidden="true" />
               Go back

@@ -127,7 +127,7 @@ export default function Launch() {
           >
             <BrandLogo size="sm" />
             <div className="flex flex-col">
-              <span className="font-display font-bold text-sm tracking-tight leading-none">
+              <span className="font-display font-semibold text-sm tracking-tight leading-none">
                 Forge AI
               </span>
               <span className="text-[11px] text-muted leading-tight mt-0.5">
@@ -167,7 +167,7 @@ export default function Launch() {
             </Link>
             <Link
               to="/build/demo-project"
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-md bg-accent hover:bg-ember-glow text-white text-[13px] font-semibold transition-colors shadow-apple"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-md bg-accent hover:bg-ember-glow text-on-ink text-[13px] font-semibold transition-colors shadow-apple"
             >
               <span>Open Workspace</span>
               <ArrowRight size={14} />
@@ -185,7 +185,7 @@ export default function Launch() {
               <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.14em] text-accent">
                 01. Specification Compiler
               </p>
-              <h1 className="font-display text-3xl sm:text-4xl lg:text-[42px] font-bold tracking-tight text-ink leading-[1.08]">
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-[42px] font-semibold tracking-tight text-ink leading-[1.08]">
                 Compile architecture into production code.
               </h1>
               <p className="text-sm sm:text-[15px] text-muted leading-relaxed">
@@ -245,7 +245,7 @@ export default function Launch() {
 
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-accent hover:bg-ember-glow text-white text-sm font-semibold transition-colors shadow-apple shrink-0 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-accent hover:bg-ember-glow text-on-ink text-sm font-semibold transition-colors shadow-apple shrink-0 cursor-pointer"
               >
                 <span>Build project</span>
                 <CornerDownLeft size={15} />
@@ -283,7 +283,7 @@ export default function Launch() {
                   <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.12em] text-muted">
                     02. Runtime Profile
                   </p>
-                  <h2 className="font-display text-lg font-bold text-ink mt-0.5">
+                  <h2 className="font-display text-lg font-semibold text-ink mt-0.5">
                     {currentConfig.name}
                   </h2>
                 </div>
@@ -346,7 +346,7 @@ export default function Launch() {
                   <span className="text-[11px] font-medium text-muted">
                     Tasks Delivered
                   </span>
-                  <div className="font-mono text-2xl font-bold text-ink tabular mt-0.5">
+                  <div className="font-mono text-2xl font-semibold text-ink tabular mt-0.5">
                     {currentConfig.tasksResolved}
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function Launch() {
                   <span className="text-[11px] font-medium text-muted">
                     Builds Deployed
                   </span>
-                  <div className="font-mono text-2xl font-bold text-ink tabular mt-0.5">
+                  <div className="font-mono text-2xl font-semibold text-ink tabular mt-0.5">
                     {currentConfig.buildsDeployed}
                   </div>
                 </div>
@@ -374,7 +374,7 @@ export default function Launch() {
                         <div
                           style={{ height: `${pct}%` }}
                           className={`w-full rounded-t-[3px] transition-all duration-300 ${
-                            i === 6 ? "bg-accent" : "bg-ink/25 dark:bg-white/25"
+                            i === 6 ? "bg-accent" : "bg-ink/25"
                           }`}
                         />
                       </div>

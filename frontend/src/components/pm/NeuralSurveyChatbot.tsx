@@ -619,39 +619,39 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden font-sans rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm">
+    <div className="flex flex-col h-full overflow-hidden font-sans rounded-2xl bg-panel border border-border shadow-sm">
       {/* Top Neural Telemetry Bar */}
-      <div className="px-4 py-2.5 bg-neutral-50/90 dark:bg-neutral-900/90 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="px-4 py-2.5 bg-ink/10 border-b border-border flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
+          <div className="w-7 h-7 rounded-lg bg-agent-integration/10 border border-agent-integration/20 flex items-center justify-center text-agent-integration">
             <Brain className="w-4 h-4" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-neutral-900 dark:text-white">
+            <span className="text-xs font-semibold text-ink">
               Neural Requirements Graph
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-700 dark:text-teal-300 text-[10px] font-medium border border-teal-500/20">
+            <span className="px-2 py-0.5 rounded-md bg-agent-integration/10 text-agent-integration text-[10px] font-medium border border-agent-integration/20">
               Live
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-            <span className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Convergence</span>
-            <div className="w-20 h-1.5 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-panel border border-border">
+            <span className="text-[10px] font-medium text-muted uppercase tracking-wider">Convergence</span>
+            <div className="w-20 h-1.5 bg-panel-alt rounded-full overflow-hidden">
               <div
-                className="h-full bg-teal-500 transition-all duration-500"
+                className="h-full bg-agent-integration transition-all duration-500"
                 style={{ width: `${convergenceScore}%` }}
               />
             </div>
-            <span className="font-semibold text-teal-700 dark:text-teal-400 font-mono text-[11px]">{convergenceScore}%</span>
+            <span className="font-semibold text-agent-integration font-mono text-[11px]">{convergenceScore}%</span>
           </div>
 
           <button
             type="button"
             onClick={() => setIsGraphExpanded(!isGraphExpanded)}
-            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg border border-border bg-panel text-muted hover:text-ink transition-colors cursor-pointer"
             title={isGraphExpanded ? 'Compact Topology Graph' : 'Expand Topology Graph'}
           >
             {isGraphExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -663,27 +663,27 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Left / Top: Interactive Neural Network Canvas */}
         <div
-          className={`border-b md:border-b-0 md:border-r border-neutral-200 dark:border-neutral-800 bg-[#0B1120] flex flex-col transition-all duration-300 ${
+          className={`border-b md:border-b-0 md:border-r border-border bg-panel-alt flex flex-col transition-all duration-300 ${
             isGraphExpanded ? 'h-72 md:h-auto md:w-3/5' : 'h-56 md:h-auto md:w-1/2'
           }`}
         >
           {/* Visualizer Header */}
-          <div className="px-4 py-2 bg-[#0B1120] border-b border-neutral-800/80 flex items-center justify-between text-[11px] text-neutral-300">
+          <div className="px-4 py-2 bg-panel-alt border-b border-border flex items-center justify-between text-[11px] text-muted">
             <div className="flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5 text-teal-400" />
-              <span className="font-medium text-neutral-200">
+              <Activity className="w-3.5 h-3.5 text-agent-integration" />
+              <span className="font-medium text-muted">
                 Network Topology
               </span>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-neutral-400 font-medium">
+            <div className="flex items-center gap-3 text-[10px] text-faint font-medium">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Calibrated
+                <span className="w-1.5 h-1.5 rounded-full bg-ok" /> Calibrated
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" /> Active
+                <span className="w-1.5 h-1.5 rounded-full bg-info" /> Active
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" /> Pending
+                <span className="w-1.5 h-1.5 rounded-full bg-ink/30" /> Pending
               </span>
             </div>
           </div>
@@ -831,13 +831,13 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
 
           {/* Node Inspector Drawer */}
           {selectedNode && (
-            <div className="p-3 bg-[#080E1A] border-t border-neutral-800 text-xs text-neutral-300 flex items-start justify-between gap-3 shrink-0">
+            <div className="p-3 bg-panel-alt border-t border-border text-xs text-muted flex items-start justify-between gap-3 shrink-0">
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="px-1.5 py-0.5 rounded bg-neutral-800 text-teal-300 text-[9px] font-mono font-medium border border-neutral-700">
+                  <span className="px-1.5 py-0.5 rounded bg-panel-alt text-agent-integration text-[9px] font-mono font-medium border border-border">
                     {selectedNode.id}
                   </span>
-                  <span className="font-semibold text-white">{selectedNode.name}</span>
+                  <span className="font-semibold text-ink">{selectedNode.name}</span>
                   <span
                     className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                     style={{
@@ -848,15 +848,15 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                     {Math.round(selectedNode.activation * 100)}% Calibrated
                   </span>
                 </div>
-                <p className="text-[11px] text-neutral-400 font-sans">{selectedNode.description}</p>
+                <p className="text-[11px] text-faint font-sans">{selectedNode.description}</p>
                 {selectedNode.resolvedDetail ? (
-                  <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5 truncate font-sans">
+                  <p className="text-[11px] text-ok font-medium flex items-center gap-1.5 truncate font-sans">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                     <span>Inferred: {selectedNode.resolvedDetail}</span>
                   </p>
                 ) : (
-                  <p className="text-[11px] text-neutral-400 italic flex items-center gap-1.5 font-sans">
-                    <Info className="w-3.5 h-3.5 shrink-0 text-neutral-500" />
+                  <p className="text-[11px] text-faint italic flex items-center gap-1.5 font-sans">
+                    <Info className="w-3.5 h-3.5 shrink-0 text-muted" />
                     <span>Discuss details in chat to calibrate this node.</span>
                   </p>
                 )}
@@ -864,7 +864,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedNode(null)}
-                className="text-neutral-400 hover:text-white text-xs px-2 py-1 rounded border border-neutral-800 hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="text-faint hover:text-ink text-xs px-2 py-1 rounded border border-border hover:bg-surface-high transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -873,24 +873,24 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
         </div>
 
         {/* Right / Bottom: Neural Chatbot Stream */}
-        <div className="flex-1 flex flex-col min-h-0 bg-neutral-50/40 dark:bg-neutral-900/40 relative">
+        <div className="flex-1 flex flex-col min-h-0 bg-ink/10 relative">
           {/* Chat Stream Header with Clean History Controls */}
-          <div className="px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
+          <div className="px-4 py-2 border-b border-border bg-panel/70 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
             <div className="flex items-center gap-2">
-              <Terminal className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-              <span className="font-semibold text-neutral-900 dark:text-white">
+              <Terminal className="w-3.5 h-3.5 text-agent-integration" />
+              <span className="font-semibold text-ink">
                 Conversation Stream
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-mono font-medium border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-panel-alt text-muted font-mono font-medium border border-border">
                 {messages.length} msgs
               </span>
               {perspective === 'business' ? (
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30 text-[10px] font-semibold flex items-center gap-1">
                   <span>💼</span>
                   <span className="hidden xs:inline">Business</span>
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-info/15 text-info border border-info/30 text-[10px] font-semibold flex items-center gap-1">
                   <span>⚙️</span>
                   <span className="hidden xs:inline">Technical</span>
                 </span>
@@ -905,8 +905,8 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 onClick={() => setShowHistoryDrawer((prev) => !prev)}
                 className={`h-7 px-2.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   showHistoryDrawer
-                    ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-transparent shadow-xs'
-                    : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50'
+                    ? 'bg-ink text-on-ink border-transparent shadow-xs'
+                    : 'bg-panel border-border text-ink hover:bg-ink/5'
                 }`}
                 title="View full requirement conversation history and snapshots"
               >
@@ -918,17 +918,17 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               <button
                 type="button"
                 onClick={handleCopyTranscript}
-                className="h-7 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+                className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                 title="Copy full chat transcript to clipboard"
               >
                 {copiedFullTranscript ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
-                    <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Copied</span>
+                    <Check className="w-3.5 h-3.5 text-ok stroke-[2.5]" />
+                    <span className="text-ok font-semibold">Copied</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5 text-neutral-500" />
+                    <Copy className="w-3.5 h-3.5 text-muted" />
                     <span className="hidden sm:inline">Copy</span>
                   </>
                 )}
@@ -938,7 +938,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSaveSnapshotModal(true)}
-                className="h-7 w-7 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="h-7 w-7 rounded-lg border border-border bg-panel text-muted hover:text-ink flex items-center justify-center transition-colors cursor-pointer"
                 title="Save current chat as a named snapshot"
               >
                 <Bookmark className="w-3.5 h-3.5" />
@@ -948,7 +948,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               <button
                 type="button"
                 onClick={() => setShowClearConfirmModal(true)}
-                className="h-7 w-7 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-500 hover:text-rose-600 dark:hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+                className="h-7 w-7 rounded-lg border border-border bg-panel text-muted hover:text-error flex items-center justify-center transition-colors cursor-pointer"
                 title="Reset conversation and start fresh calibration"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -960,15 +960,15 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
           <div
             className={`px-4 py-2 border-b text-xs flex flex-wrap items-center justify-between gap-2 shrink-0 transition-colors ${
               perspective === 'business'
-                ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/20 text-amber-950 dark:text-amber-200'
-                : 'bg-blue-500/10 dark:bg-blue-950/30 border-blue-500/20 text-blue-950 dark:text-blue-200'
+                ? 'bg-warn/10 border-warn/20 text-warn'
+                : 'bg-info/10 border-info/20 text-info'
             }`}
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-base shrink-0">{perspective === 'business' ? '💼' : '⚙️'}</span>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold uppercase tracking-wider text-[11px]">
+                  <span className="font-semibold uppercase tracking-wider text-[11px]">
                     {perspective === 'business' ? 'Business Perspective' : 'Technical Perspective'}
                   </span>
                   <span className="text-[10px] opacity-75 font-medium">
@@ -987,10 +987,10 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               <button
                 type="button"
                 onClick={() => onPerspectiveChange(perspective === 'business' ? 'technical' : 'business')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer shadow-2xs shrink-0 active:scale-95 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs shrink-0 active:scale-95 ${
                   perspective === 'business'
-                    ? 'bg-white dark:bg-neutral-800 border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/40 text-amber-950 dark:text-amber-200'
-                    : 'bg-white dark:bg-neutral-800 border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-950 dark:text-blue-200'
+                    ? 'bg-panel border-warn/30 hover:bg-warn/20 text-warn'
+                    : 'bg-panel border-info/30 hover:bg-info/20 text-info'
                 }`}
                 title={`Click to switch to ${perspective === 'business' ? 'Technical' : 'Business'} mode`}
               >
@@ -1002,7 +1002,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
           {/* Messages Scroll Area */}
           <div
             ref={chatScrollContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-50/50 dark:bg-neutral-950/20"
+            className="flex-1 overflow-y-auto p-4 space-y-3 bg-ink/10"
           >
             {messages.map((msg, idx) => {
               const isAssistant = msg.role === 'assistant';
@@ -1016,26 +1016,26 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   <div
                     className={`max-w-[85%] sm:max-w-[78%] p-3.5 rounded-2xl text-xs leading-relaxed transition-all ${
                       isAssistant
-                        ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 border border-neutral-200/90 dark:border-neutral-700/80 shadow-xs'
-                        : 'bg-neutral-900 text-white dark:bg-teal-600 dark:text-white rounded-tr-xs shadow-xs'
+                        ? 'bg-panel text-ink border border-border shadow-xs'
+                        : 'bg-ink text-on-ink rounded-tr-xs shadow-xs'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2 mb-1.5 pb-1.5 border-b border-black/5 dark:border-white/10">
+                    <div className="flex items-center justify-between gap-2 mb-1.5 pb-1.5 border-b border-border-soft">
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-[10px] uppercase flex items-center gap-1.5">
                           {isAssistant ? (
                             <>
-                              <Brain className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                              <span className="text-neutral-700 dark:text-neutral-200">AI Architect</span>
+                              <Brain className="w-3.5 h-3.5 text-agent-integration" />
+                              <span className="text-ink">AI Architect</span>
                             </>
                           ) : (
                             <>
-                              <Users className="w-3.5 h-3.5 text-neutral-400 dark:text-teal-200" />
-                              <span className="text-neutral-200">You</span>
+                              <Users className="w-3.5 h-3.5 text-faint" />
+                              <span className="text-muted">You</span>
                             </>
                           )}
                         </span>
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-black/5 dark:bg-white/10 font-mono text-neutral-500 dark:text-neutral-300">
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-ink/5 font-mono text-muted">
                           #{idx + 1}
                         </span>
                       </div>
@@ -1051,11 +1051,11 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                         <button
                           type="button"
                           onClick={() => handleCopySingleMessage(msg.id, msg.content)}
-                          className="text-[9px] p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                          className="text-[9px] p-0.5 rounded hover:bg-ink/10 transition-colors cursor-pointer"
                           title="Copy this message"
                         >
                           {isCopied ? (
-                            <CheckCheck className="w-3 h-3 text-emerald-500 stroke-[2.5]" />
+                            <CheckCheck className="w-3 h-3 text-ok stroke-[2.5]" />
                           ) : (
                             <Copy className="w-3 h-3 opacity-50 hover:opacity-100" />
                           )}
@@ -1069,16 +1069,16 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
 
                     {/* Mixed Media Card Render */}
                     {isAssistant && msg.mixedMedia && (
-                      <div className="mt-3 text-neutral-900 dark:text-neutral-100">
+                      <div className="mt-3 text-ink">
                         <MixedMediaCard media={msg.mixedMedia} />
                       </div>
                     )}
 
                     {/* Contextual Suggestion Chips directly under Assistant Message */}
                     {isAssistant && (msg.suggestions && msg.suggestions.length > 0 ? msg.suggestions : (idx === messages.length - 1 ? quickReplies : [])).length > 0 && (
-                      <div className="mt-3 pt-2.5 border-t border-neutral-200/60 dark:border-neutral-700/60">
-                        <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
-                          <Sparkles className="w-3 h-3 text-teal-600 dark:text-teal-400" />
+                      <div className="mt-3 pt-2.5 border-t border-border">
+                        <div className="flex items-center gap-1.5 mb-2 text-[10px] font-semibold text-agent-integration uppercase tracking-wider">
+                          <Sparkles className="w-3 h-3 text-agent-integration" />
                           <span>Suggested Answers:</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -1088,7 +1088,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                               type="button"
                               onClick={() => handleQuickReplyClick(suggestion)}
                               disabled={isAiThinking}
-                              className="px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800/80 bg-teal-50/90 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-900 dark:text-teal-200 text-xs font-semibold transition-all text-left cursor-pointer active:scale-95 disabled:opacity-50 shadow-2xs"
+                              className="px-2.5 py-1 rounded-lg border border-agent-integration/30 bg-agent-integration/20 hover:bg-agent-integration/20 text-agent-integration text-xs font-semibold transition-all text-left cursor-pointer active:scale-95 disabled:opacity-50 shadow-2xs"
                               title={`Answer: "${suggestion}"`}
                             >
                               {suggestion}
@@ -1104,9 +1104,9 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
 
             {isAiThinking && (
               <div className="flex justify-start">
-                <div className="px-3.5 py-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center gap-2 text-xs shadow-xs">
-                  <Cpu className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 animate-spin" />
-                  <span className="font-medium text-neutral-600 dark:text-neutral-400 text-xs">
+                <div className="px-3.5 py-2.5 rounded-xl bg-panel border border-border flex items-center gap-2 text-xs shadow-xs">
+                  <Cpu className="w-3.5 h-3.5 text-agent-integration animate-spin" />
+                  <span className="font-medium text-muted text-xs">
                     Analyzing constraints & mapping topology...
                   </span>
                 </div>
@@ -1120,19 +1120,19 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
           {showHistoryDrawer && (
             <div
               id="survey-chat-history-drawer"
-              className="absolute inset-0 z-30 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md flex flex-col font-sans animate-in fade-in duration-150"
+              className="absolute inset-0 z-30 bg-panel/95 backdrop-blur-md flex flex-col font-sans animate-in fade-in duration-150"
             >
               {/* Drawer Top Header */}
-              <div className="px-4 py-2.5 bg-neutral-50/90 dark:bg-neutral-900/90 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-3 shrink-0">
+              <div className="px-4 py-2.5 bg-ink/10 border-b border-border flex items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0 text-teal-600 dark:text-teal-400">
+                  <div className="w-7 h-7 rounded-lg bg-agent-integration/10 border border-agent-integration/20 flex items-center justify-center shrink-0 text-agent-integration">
                     <History className="w-4 h-4" />
                   </div>
                   <div className="truncate">
-                    <h3 className="text-xs font-semibold text-neutral-900 dark:text-white">
+                    <h3 className="text-xs font-semibold text-ink">
                       Conversation History
                     </h3>
-                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                    <p className="text-[11px] text-muted truncate">
                       {messages.length} messages &bull; {userMessageCount} user / {assistantMessageCount} AI
                     </p>
                   </div>
@@ -1142,11 +1142,11 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   <button
                     type="button"
                     onClick={handleCopyTranscript}
-                    className="h-7 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+                    className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                   >
                     {copiedFullTranscript ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                        <Check className="w-3.5 h-3.5 text-ok stroke-[2.5]" />
                         <span>Copied</span>
                       </>
                     ) : (
@@ -1160,7 +1160,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   <button
                     type="button"
                     onClick={handleDownloadTranscript}
-                    className="h-7 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+                    className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                     title="Download transcript as Markdown file"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1170,7 +1170,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowHistoryDrawer(false)}
-                    className="h-7 w-7 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-500 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center cursor-pointer transition-colors"
+                    className="h-7 w-7 rounded-lg border border-border bg-panel text-muted hover:text-ink flex items-center justify-center cursor-pointer transition-colors"
                     title="Close History Drawer"
                   >
                     <X className="w-4 h-4" />
@@ -1179,15 +1179,15 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               </div>
 
               {/* Sub-Tabs: Live Transcript vs Saved Sessions */}
-              <div className="px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-2 shrink-0 text-xs bg-white dark:bg-neutral-900">
+              <div className="px-4 py-2 border-b border-border flex items-center justify-between gap-2 shrink-0 text-xs bg-panel">
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setActiveHistoryTab('transcript')}
                     className={`px-3 py-1 rounded-lg font-medium text-xs transition-all cursor-pointer ${
                       activeHistoryTab === 'transcript'
-                        ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-xs'
-                        : 'border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50'
+                        ? 'bg-ink text-on-ink shadow-xs'
+                        : 'border border-border bg-panel text-ink hover:bg-ink/5'
                     }`}
                   >
                     Transcript ({filteredHistoryMessages.length})
@@ -1198,8 +1198,8 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                     onClick={() => setActiveHistoryTab('sessions')}
                     className={`px-3 py-1 rounded-lg font-medium text-xs transition-all cursor-pointer ${
                       activeHistoryTab === 'sessions'
-                        ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-xs'
-                        : 'border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50'
+                        ? 'bg-ink text-on-ink shadow-xs'
+                        : 'border border-border bg-panel text-ink hover:bg-ink/5'
                     }`}
                   >
                     Saved ({savedSessions.length})
@@ -1209,9 +1209,9 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowSaveSnapshotModal(true)}
-                  className="h-7 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+                  className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                 >
-                  <Bookmark className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                  <Bookmark className="w-3.5 h-3.5 text-agent-integration" />
                   <span>Save Snapshot</span>
                 </button>
               </div>
@@ -1220,21 +1220,21 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               {activeHistoryTab === 'transcript' ? (
                 <div className="flex-1 flex flex-col min-h-0 bg-transparent">
                   {/* Search and Role Filter Bar */}
-                  <div className="p-3 border-b border-neutral-200/70 dark:border-neutral-800/70 bg-white/40 dark:bg-neutral-900/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+                  <div className="p-3 border-b border-border bg-ink/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
                     <div className="relative flex-1">
-                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
                       <input
                         type="text"
                         value={historySearchQuery}
                         onChange={(e) => setHistorySearchQuery(e.target.value)}
                         placeholder="Search conversation history..."
-                        className="w-full pl-9 pr-7 py-1.5 text-xs rounded-xl bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                        className="w-full pl-9 pr-7 py-1.5 text-xs rounded-xl bg-panel/80 border border-border text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/30"
                       />
                       {historySearchQuery && (
                         <button
                           type="button"
                           onClick={() => setHistorySearchQuery('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-800 dark:hover:text-white text-xs font-bold"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-faint hover:text-ink text-xs font-semibold"
                         >
                           ✕
                         </button>
@@ -1242,16 +1242,16 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1 text-[10px] shrink-0">
-                      <span className="font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mr-1">Filter:</span>
+                      <span className="font-semibold text-muted uppercase tracking-wider mr-1">Filter:</span>
                       {(['all', 'user', 'assistant', 'media'] as const).map((mode) => (
                         <button
                           key={mode}
                           type="button"
                           onClick={() => setHistoryRoleFilter(mode)}
-                          className={`px-2.5 py-1 rounded-lg uppercase font-bold transition-all cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-lg uppercase font-semibold transition-all cursor-pointer ${
                             historyRoleFilter === mode
-                              ? 'bg-teal-600 text-white shadow-xs'
-                              : 'glass-button-secondary text-neutral-700 dark:text-neutral-300'
+                              ? 'bg-agent-integration text-on-ink shadow-xs'
+                              : 'glass-button-secondary text-ink'
                           }`}
                         >
                           {mode === 'all'
@@ -1269,10 +1269,10 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   {/* Messages List */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {filteredHistoryMessages.length === 0 ? (
-                      <div className="p-8 text-center text-neutral-500 dark:text-neutral-400 space-y-2">
-                        <FileText className="w-8 h-8 mx-auto text-neutral-400" />
-                        <p className="font-bold text-xs">No matching messages found.</p>
-                        <p className="text-[11px] text-neutral-400">
+                      <div className="p-8 text-center text-muted space-y-2">
+                        <FileText className="w-8 h-8 mx-auto text-faint" />
+                        <p className="font-semibold text-xs">No matching messages found.</p>
+                        <p className="text-[11px] text-faint">
                           Try searching for a different keyword or reset role filters.
                         </p>
                       </div>
@@ -1284,30 +1284,30 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                         return (
                           <div
                             key={m.id}
-                            className="p-4 rounded-2xl glass-card bg-white/70 dark:bg-neutral-800/70 border border-neutral-200/80 dark:border-neutral-700/80 space-y-2 transition-all"
+                            className="p-4 rounded-2xl glass-card bg-panel/70 border border-border space-y-2 transition-all"
                           >
-                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-neutral-200/60 dark:border-neutral-700/60 text-xs">
+                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-border text-xs">
                               <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[9px] font-bold uppercase font-mono">
+                                <span className="px-2 py-0.5 rounded-md bg-ink text-on-ink text-[9px] font-semibold uppercase font-mono">
                                   Turn #{idx + 1}
                                 </span>
-                                <span className="font-bold uppercase flex items-center gap-1.5 text-neutral-900 dark:text-white">
+                                <span className="font-semibold uppercase flex items-center gap-1.5 text-ink">
                                   {isAssistant ? (
                                     <>
-                                      <Brain className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                      <Brain className="w-3.5 h-3.5 text-agent-integration" />
                                       <span>Neural PM Architect</span>
                                     </>
                                   ) : (
                                     <>
-                                      <Users className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                                      <span className="text-teal-700 dark:text-teal-300">User Input</span>
+                                      <Users className="w-3.5 h-3.5 text-agent-integration" />
+                                      <span className="text-agent-integration">User Input</span>
                                     </>
                                   )}
                                 </span>
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
+                                <span className="text-[10px] text-muted">
                                   {new Date(m.timestamp).toLocaleString([], {
                                     month: 'short',
                                     day: 'numeric',
@@ -1318,12 +1318,12 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleCopySingleMessage(m.id, m.content)}
-                                  className="px-2.5 py-1 rounded-lg glass-button-secondary text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                  className="px-2.5 py-1 rounded-lg glass-button-secondary text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
                                 >
                                   {isCopied ? (
                                     <>
-                                      <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
-                                      <span className="text-emerald-700 dark:text-emerald-400">Copied</span>
+                                      <Check className="w-3 h-3 text-ok stroke-[3]" />
+                                      <span className="text-ok">Copied</span>
                                     </>
                                   ) : (
                                     <>
@@ -1335,29 +1335,29 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                               </div>
                             </div>
 
-                            <p className="font-sans text-xs text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed">
+                            <p className="font-sans text-xs text-ink whitespace-pre-wrap leading-relaxed">
                               {m.content}
                             </p>
 
                             {/* Mixed Media Preview Snippet in History */}
                             {m.mixedMedia && (
-                              <div className="mt-2 pt-2 border-t border-neutral-200/70 dark:border-neutral-700/70 rounded-xl bg-teal-500/5 p-3 border border-teal-500/20 text-xs space-y-1">
-                                <div className="flex items-center gap-1.5 font-bold text-[11px] text-teal-900 dark:text-teal-200 uppercase">
-                                  <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                              <div className="mt-2 pt-2 border-t border-border rounded-xl bg-agent-integration/[0.08] p-3 border border-agent-integration/20 text-xs space-y-1">
+                                <div className="flex items-center gap-1.5 font-semibold text-[11px] text-agent-integration uppercase">
+                                  <Sparkles className="w-3.5 h-3.5 text-agent-integration" />
                                   <span>Attached Calibration Deliverable</span>
                                 </div>
                                 {m.mixedMedia.diagram && (
-                                  <p className="text-[11px] text-neutral-700 dark:text-neutral-300">
+                                  <p className="text-[11px] text-ink">
                                     📐 <strong>Topology Diagram:</strong> {m.mixedMedia.diagram.title} ({m.mixedMedia.diagram.nodes.length} nodes)
                                   </p>
                                 )}
                                 {m.mixedMedia.storyCard && (
-                                  <p className="text-[11px] text-neutral-700 dark:text-neutral-300">
+                                  <p className="text-[11px] text-ink">
                                     📋 <strong>INVEST Story:</strong> [{m.mixedMedia.storyCard.id}] {m.mixedMedia.storyCard.title} ({m.mixedMedia.storyCard.points} pts)
                                   </p>
                                 )}
                                 {m.mixedMedia.audioBriefing && (
-                                  <p className="text-[11px] text-neutral-700 dark:text-neutral-300">
+                                  <p className="text-[11px] text-ink">
                                     🎙️ <strong>Audio Brief:</strong> {m.mixedMedia.audioBriefing.title} ({m.mixedMedia.audioBriefing.duration})
                                   </p>
                                 )}
@@ -1372,12 +1372,12 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               ) : (
                 /* Saved Sessions View */
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-transparent">
-                  <div className="flex items-center justify-between pb-2 border-b border-neutral-200/80 dark:border-neutral-800/80">
+                  <div className="flex items-center justify-between pb-2 border-b border-border">
                     <div>
-                      <h4 className="font-bold text-xs uppercase text-neutral-900 dark:text-white">
+                      <h4 className="font-semibold text-xs uppercase text-ink">
                         Archived Discovery Sessions
                       </h4>
-                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                      <p className="text-[11px] text-muted">
                         Saved dialogue transcripts and checkpoints for this prompt.
                       </p>
                     </div>
@@ -1385,7 +1385,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowSaveSnapshotModal(true)}
-                      className="px-3 py-1.5 rounded-xl glass-button-primary text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl glass-button-primary text-xs font-semibold uppercase flex items-center gap-1.5 cursor-pointer"
                     >
                       <Bookmark className="w-3.5 h-3.5" />
                       <span>Save Current Chat</span>
@@ -1394,9 +1394,9 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
 
                   {savedSessions.length === 0 ? (
                     <div className="p-8 rounded-2xl glass-card text-center space-y-2">
-                      <Bookmark className="w-8 h-8 mx-auto text-neutral-400" />
-                      <p className="font-bold text-xs uppercase text-neutral-800 dark:text-neutral-200">No Saved Sessions Yet</p>
-                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto">
+                      <Bookmark className="w-8 h-8 mx-auto text-faint" />
+                      <p className="font-semibold text-xs uppercase text-ink">No Saved Sessions Yet</p>
+                      <p className="text-[11px] text-muted max-w-sm mx-auto">
                         Click &ldquo;Save Current Chat&rdquo; above to snapshot your ongoing architectural conversation for future reference or comparison.
                       </p>
                     </div>
@@ -1404,21 +1404,21 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                     savedSessions.map((s) => (
                       <div
                         key={s.id}
-                        className="p-4 rounded-2xl glass-card bg-white/70 dark:bg-neutral-800/70 border border-neutral-200/80 dark:border-neutral-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        className="p-4 rounded-2xl glass-card bg-panel/70 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       >
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-neutral-900 dark:text-white uppercase truncate">
+                            <span className="font-semibold text-xs text-ink uppercase truncate">
                               {s.title || s.prompt.slice(0, 40)}
                             </span>
-                            <span className="px-2 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-[9px] font-bold font-mono">
+                            <span className="px-2 py-0.5 rounded-md bg-panel-alt text-ink text-[9px] font-semibold font-mono">
                               {s.messageCount || s.messages.length} messages
                             </span>
                           </div>
-                          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate font-sans">
+                          <p className="text-[11px] text-muted truncate font-sans">
                             {s.summarySnippet || 'Conversation snapshot'}
                           </p>
-                          <p className="text-[9px] text-neutral-400 font-mono">
+                          <p className="text-[9px] text-faint font-mono">
                             Saved {formatDraftTimestamp(s.updatedAt)}
                           </p>
                         </div>
@@ -1427,7 +1427,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                           <button
                             type="button"
                             onClick={() => handleLoadSession(s)}
-                            className="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
+                            className="px-3.5 py-1.5 rounded-xl bg-agent-integration hover:bg-agent-integration/90 text-on-ink text-xs font-semibold uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
                             title="Restore this session into active chat"
                           >
                             <RotateCcw className="w-3 h-3 stroke-[3]" />
@@ -1437,7 +1437,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                           <button
                             type="button"
                             onClick={() => handleDeleteSession(s.id)}
-                            className="p-1.5 rounded-xl glass-button-secondary text-neutral-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-xl glass-button-secondary text-faint hover:text-error transition-colors cursor-pointer"
                             title="Delete this saved session"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1450,11 +1450,11 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               )}
 
               {/* Drawer Bottom Bar */}
-              <div className="p-3.5 glass-card border-t border-neutral-200/80 dark:border-neutral-800/80 flex items-center justify-between gap-2 shrink-0">
+              <div className="p-3.5 glass-card border-t border-border flex items-center justify-between gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowClearConfirmModal(true)}
-                  className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-rose-600 dark:text-rose-400 text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-error text-xs font-semibold uppercase flex items-center gap-1.5 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Clear Chat</span>
@@ -1463,7 +1463,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowHistoryDrawer(false)}
-                  className="px-4 py-2 rounded-xl glass-button-primary text-xs font-bold uppercase cursor-pointer"
+                  className="px-4 py-2 rounded-xl glass-button-primary text-xs font-semibold uppercase cursor-pointer"
                 >
                   Back to Live Chat
                 </button>
@@ -1473,27 +1473,27 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
 
           {/* ================= CLEAR CONFIRMATION MODAL ================= */}
           {showClearConfirmModal && (
-            <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="w-full max-w-sm rounded-2xl glass-card bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/80 dark:border-neutral-700/80 p-5 shadow-xl space-y-3 font-sans">
-                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs uppercase tracking-wider">
+            <div className="absolute inset-0 z-40 bg-base/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="w-full max-w-sm rounded-2xl glass-card bg-panel/95 border border-border p-5 shadow-xl space-y-3 font-sans">
+                <div className="flex items-center gap-2 text-error font-semibold text-xs uppercase tracking-wider">
                   <RotateCcw className="w-4 h-4" />
                   <span>Reset Conversation History?</span>
                 </div>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400 font-sans leading-relaxed">
+                <p className="text-xs text-muted font-sans leading-relaxed">
                   This will reset the active chat transcript for this initiative. Any calibrated parameters already recorded in the matrix will be retained.
                 </p>
                 <div className="flex items-center justify-end gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setShowClearConfirmModal(false)}
-                    className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-neutral-700 dark:text-neutral-300 font-bold text-xs uppercase cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-ink font-semibold text-xs uppercase cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleClearHistory}
-                    className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs uppercase cursor-pointer shadow-xs"
+                    className="px-4 py-1.5 rounded-xl bg-error hover:bg-error/90 text-on-ink font-semibold text-xs uppercase cursor-pointer shadow-xs"
                   >
                     Yes, Reset Chat
                   </button>
@@ -1504,13 +1504,13 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
 
           {/* ================= SAVE SNAPSHOT MODAL ================= */}
           {showSaveSnapshotModal && (
-            <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="w-full max-w-sm rounded-2xl glass-card bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/80 dark:border-neutral-700/80 p-5 shadow-xl space-y-3 font-sans">
-                <div className="flex items-center gap-2 text-neutral-900 dark:text-white font-bold text-xs uppercase tracking-wider">
-                  <Bookmark className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <div className="absolute inset-0 z-40 bg-base/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="w-full max-w-sm rounded-2xl glass-card bg-panel/95 border border-border p-5 shadow-xl space-y-3 font-sans">
+                <div className="flex items-center gap-2 text-ink font-semibold text-xs uppercase tracking-wider">
+                  <Bookmark className="w-4 h-4 text-agent-integration" />
                   <span>Save Chat History Snapshot</span>
                 </div>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400 font-sans leading-relaxed">
+                <p className="text-xs text-muted font-sans leading-relaxed">
                   Give this conversation snapshot a label to easily retrieve it later:
                 </p>
                 <input
@@ -1519,21 +1519,21 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   onChange={(e) => setSnapshotTitleInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveSnapshot()}
                   placeholder="e.g. Microservices vs Monolith Discussion"
-                  className="w-full rounded-xl bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 p-2.5 text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                  className="w-full rounded-xl bg-panel/80 border border-border p-2.5 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/30"
                   autoFocus
                 />
                 <div className="flex items-center justify-end gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setShowSaveSnapshotModal(false)}
-                    className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-neutral-700 dark:text-neutral-300 font-bold text-xs uppercase cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl glass-button-secondary text-ink font-semibold text-xs uppercase cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleSaveSnapshot}
-                    className="px-4 py-1.5 rounded-xl glass-button-primary font-bold text-xs uppercase cursor-pointer"
+                    className="px-4 py-1.5 rounded-xl glass-button-primary font-semibold text-xs uppercase cursor-pointer"
                   >
                     Save Snapshot
                   </button>
@@ -1544,9 +1544,9 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
 
           {/* Context-Aware Suggested Answers Bar (Strictly based on chat questions) */}
           {quickReplies.length > 0 && (
-            <div className="px-3.5 py-2 border-t border-neutral-200 dark:border-neutral-800 bg-teal-50/50 dark:bg-teal-950/20 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
-              <span className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider shrink-0 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            <div className="px-3.5 py-2 border-t border-border bg-agent-integration/20 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+              <span className="text-[10px] font-semibold text-agent-integration uppercase tracking-wider shrink-0 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-agent-integration" />
                 <span>Suggested Answers:</span>
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -1556,7 +1556,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                     type="button"
                     onClick={() => handleQuickReplyClick(reply)}
                     disabled={isAiThinking}
-                    className="px-2.5 py-1 rounded-lg border border-teal-300/80 dark:border-teal-700/70 bg-white dark:bg-neutral-800 text-teal-900 dark:text-teal-200 text-xs font-semibold hover:bg-teal-50 dark:hover:bg-teal-900/50 hover:border-teal-400 cursor-pointer disabled:opacity-50 transition-all shadow-2xs whitespace-nowrap active:scale-95"
+                    className="px-2.5 py-1 rounded-lg border border-agent-integration/80 bg-panel text-agent-integration text-xs font-semibold hover:bg-agent-integration/20 hover:border-agent-integration/30 cursor-pointer disabled:opacity-50 transition-all shadow-2xs whitespace-nowrap active:scale-95"
                     title={`Click to answer: "${reply}"`}
                   >
                     {reply}
@@ -1567,8 +1567,8 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
           )}
 
           {/* Quick Artifact Deck Ribbon (Explicit analysis triggers) */}
-          <div className="px-3.5 py-1.5 border-t border-neutral-200/60 dark:border-neutral-800/60 bg-neutral-50/70 dark:bg-neutral-900/40 flex items-center justify-between text-[11px] shrink-0">
-            <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium">
+          <div className="px-3.5 py-1.5 border-t border-border bg-ink/10 flex items-center justify-between text-[11px] shrink-0">
+            <span className="text-[10px] text-faint font-medium">
               Artifact Triggers:
             </span>
             <div className="flex items-center gap-1.5">
@@ -1576,7 +1576,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 type="button"
                 onClick={() => handleSendMessage('Give me an audio briefing summarizing the architecture so far.')}
                 disabled={isAiThinking}
-                className="px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-teal-600 dark:hover:text-teal-400 text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+                className="px-2 py-0.5 rounded-md border border-border bg-panel text-muted hover:text-agent-integration text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50"
               >
                 Audio Brief
               </button>
@@ -1584,7 +1584,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 type="button"
                 onClick={() => handleSendMessage('Map the microservices and database topology for this architecture.')}
                 disabled={isAiThinking}
-                className="px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-teal-600 dark:hover:text-teal-400 text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+                className="px-2 py-0.5 rounded-md border border-border bg-panel text-muted hover:text-agent-integration text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50"
               >
                 System Topology
               </button>
@@ -1592,7 +1592,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 type="button"
                 onClick={() => handleSendMessage('Draft an INVEST user story with acceptance criteria.')}
                 disabled={isAiThinking}
-                className="px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-teal-600 dark:hover:text-teal-400 text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+                className="px-2 py-0.5 rounded-md border border-border bg-panel text-muted hover:text-agent-integration text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50"
               >
                 INVEST Story
               </button>
@@ -1600,7 +1600,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
           </div>
 
           {/* Chat Input & Voice Trigger */}
-          <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex items-center gap-2 shrink-0">
+          <div className="p-3 border-t border-border bg-panel flex items-center gap-2 shrink-0">
             <input
               type="text"
               value={inputValue}
@@ -1613,7 +1613,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               }}
               placeholder="Clarify architectural scope, tech stack, constraints..."
               disabled={isAiThinking}
-              className="flex-1 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 px-3.5 py-2 text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 disabled:opacity-50 shadow-2xs"
+              className="flex-1 rounded-xl bg-panel border border-border px-3.5 py-2 text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-agent-integration/30 focus:border-agent-integration/30 disabled:opacity-50 shadow-2xs"
             />
 
             <VoiceInputButton
@@ -1627,7 +1627,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               type="button"
               onClick={() => handleSendMessage()}
               disabled={!inputValue.trim() || isAiThinking}
-              className="h-8 px-3.5 rounded-xl bg-neutral-900 hover:bg-black dark:bg-teal-600 dark:hover:bg-teal-500 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-8 px-3.5 rounded-xl bg-ink hover:bg-ink text-on-ink text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Send</span>
@@ -1637,16 +1637,16 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
       </div>
 
       {/* Bottom Action Footer with Direct Synthesis Trigger & Draft Controls */}
-      <div className="px-4 py-2.5 bg-neutral-50/90 dark:bg-neutral-900/90 border-t border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="px-4 py-2.5 bg-ink/10 border-t border-border flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-neutral-700 dark:text-neutral-300">
+            <span className="font-semibold text-ink">
               Calibration State:
             </span>
-            <span className="font-medium text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2.5 py-0.5 rounded-md border border-teal-500/20 text-xs">
+            <span className="font-medium text-agent-integration bg-agent-integration/10 px-2.5 py-0.5 rounded-md border border-agent-integration/20 text-xs">
               {Object.keys(answers).length} Calibrated
             </span>
-            <span className="text-[11px] text-neutral-400 font-mono hidden sm:inline">
+            <span className="text-[11px] text-faint font-mono hidden sm:inline">
               ({convergenceScore}% converged)
             </span>
           </div>
@@ -1658,8 +1658,8 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               onClick={onSaveDraft}
               className={`h-7 px-3 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
                 isDraftSaved
-                  ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                  : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50'
+                  ? 'bg-ok text-on-ink border-ok/30 shadow-xs'
+                  : 'bg-panel border-border text-ink hover:bg-ink/5'
               }`}
               title="Save current survey progress"
             >
@@ -1670,7 +1670,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 </>
               ) : (
                 <>
-                  <Save className="w-3.5 h-3.5 text-neutral-500" />
+                  <Save className="w-3.5 h-3.5 text-muted" />
                   <span>Save Draft</span>
                 </>
               )}
@@ -1683,9 +1683,9 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
             <button
               type="button"
               onClick={onSwitchToSummary}
-              className="h-8 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 text-xs font-semibold flex items-center gap-1.5 text-neutral-800 dark:text-neutral-200 cursor-pointer transition-colors"
+              className="h-8 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink cursor-pointer transition-colors"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-agent-integration" />
               <span>Review Matrix</span>
             </button>
           )}
@@ -1694,16 +1694,16 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
             type="button"
             onClick={onGenerate}
             disabled={isGenerating}
-            className="h-8 px-4 rounded-xl bg-neutral-900 hover:bg-black dark:bg-teal-600 dark:hover:bg-teal-500 text-white text-xs font-semibold shadow-xs active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="h-8 px-4 rounded-xl bg-ink hover:bg-ink text-on-ink text-xs font-semibold shadow-xs active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {isGenerating ? (
               <>
-                <Zap className="w-3.5 h-3.5 animate-spin text-amber-300" />
+                <Zap className="w-3.5 h-3.5 animate-spin text-warn" />
                 <span>Synthesizing...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <Sparkles className="w-3.5 h-3.5 text-warn" />
                 <span>Synthesize Agile Board</span>
                 <ArrowRight className="w-3 h-3 ml-0.5" />
               </>

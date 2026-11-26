@@ -45,12 +45,12 @@ const fromLines = (text: string) =>
 function ListField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs text-slate-400">{label}</span>
+      <span className="text-xs text-faint">{label}</span>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
-        className="rounded bg-slate-800 px-2 py-1 font-mono text-xs"
+        className="rounded bg-panel-alt px-2 py-1 font-mono text-xs"
       />
     </label>
   )
@@ -262,7 +262,7 @@ export default function PromptStudioPage() {
           <section>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium">Templates</h2>
-              <button onClick={startNew} className="rounded-full bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700">
+              <button onClick={startNew} className="rounded-full bg-panel-alt px-3 py-1 text-xs hover:bg-surface-high">
                 New template
               </button>
             </div>
@@ -281,50 +281,50 @@ export default function PromptStudioPage() {
                   whileTap={{ scale: 0.97 }}
                   className={`rounded-full px-3 py-1 text-xs ${
                     selected?.role === t.role && selected?.version === t.version
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-800 hover:bg-slate-700'
+                      ? 'bg-ok text-on-ink'
+                      : 'bg-panel-alt hover:bg-surface-high'
                   }`}
                 >
                   {t.role} / {t.version}
                 </motion.button>
               ))}
-              {!templates.length && <p className="text-slate-400">No templates yet — create one to get started.</p>}
+              {!templates.length && <p className="text-faint">No templates yet — create one to get started.</p>}
             </motion.div>
 
             {(selected || isNew) && (
               <motion.div
-                className="mt-4 space-y-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+                className="mt-4 space-y-3 rounded-lg border border-border bg-base/70 p-4"
                 initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
                 <div className="flex gap-3">
                   <label className="flex flex-1 flex-col gap-1">
-                    <span className="text-xs text-slate-400">Role</span>
+                    <span className="text-xs text-faint">Role</span>
                     <input
                       value={form.role}
                       onChange={(e) => setForm({ ...form, role: e.target.value })}
                       disabled={!isNew}
-                      className="rounded bg-slate-800 px-2 py-1 disabled:opacity-60"
+                      className="rounded bg-panel-alt px-2 py-1 disabled:opacity-60"
                     />
                   </label>
                   <label className="flex flex-1 flex-col gap-1">
-                    <span className="text-xs text-slate-400">Version</span>
+                    <span className="text-xs text-faint">Version</span>
                     <input
                       value={form.version}
                       onChange={(e) => setForm({ ...form, version: e.target.value })}
                       disabled={!isNew}
-                      className="rounded bg-slate-800 px-2 py-1 disabled:opacity-60"
+                      className="rounded bg-panel-alt px-2 py-1 disabled:opacity-60"
                     />
                   </label>
                 </div>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-400">Identity</span>
+                  <span className="text-xs text-faint">Identity</span>
                   <textarea
                     value={form.identity}
                     onChange={(e) => setForm({ ...form, identity: e.target.value })}
                     rows={2}
-                    className="rounded bg-slate-800 px-2 py-1"
+                    className="rounded bg-panel-alt px-2 py-1"
                   />
                 </label>
                 <ListField label="Responsibilities" value={form.responsibilities} onChange={(v) => setForm({ ...form, responsibilities: v })} />
@@ -332,25 +332,25 @@ export default function PromptStudioPage() {
                 <ListField label="Constraints" value={form.constraints} onChange={(v) => setForm({ ...form, constraints: v })} />
                 <ListField label="Required inputs" value={form.required_inputs} onChange={(v) => setForm({ ...form, required_inputs: v })} />
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-400">Output format</span>
+                  <span className="text-xs text-faint">Output format</span>
                   <textarea
                     value={form.output_format}
                     onChange={(e) => setForm({ ...form, output_format: e.target.value })}
                     rows={2}
-                    className="rounded bg-slate-800 px-2 py-1"
+                    className="rounded bg-panel-alt px-2 py-1"
                   />
                 </label>
                 <ListField label="Quality rules" value={form.quality_rules} onChange={(v) => setForm({ ...form, quality_rules: v })} />
                 <div className="flex items-center gap-3">
-                  <motion.button onClick={saveTemplate} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500" {...presets.button}>
+                  <motion.button onClick={saveTemplate} className="rounded bg-ok px-3 py-1 hover:bg-ok/90" {...presets.button}>
                     {isNew ? 'Create' : 'Save'}
                   </motion.button>
                   {!isNew && (
-                    <button onClick={deleteTemplate} className="rounded bg-rose-700/70 px-3 py-1 hover:bg-rose-600">
+                    <button onClick={deleteTemplate} className="rounded bg-error/20 px-3 py-1 hover:bg-error/90">
                       Delete
                     </button>
                   )}
-                  {editorStatus && <span className="text-xs text-slate-400">{editorStatus}</span>}
+                  {editorStatus && <span className="text-xs text-faint">{editorStatus}</span>}
                 </div>
               </motion.div>
             )}
@@ -359,13 +359,13 @@ export default function PromptStudioPage() {
           {/* Playground column */}
           <section>
             <h2 className="text-lg font-medium">Preview</h2>
-             <p className="mt-1 text-xs text-slate-400">
+             <p className="mt-1 text-xs text-faint">
                Preview the exact prompt an agent receives.
              </p>
-            <div className="mt-3 space-y-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+            <div className="mt-3 space-y-3 rounded-lg border border-border bg-base/70 p-4">
               <div className="flex gap-3">
                 <label className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs text-slate-400">Agent role</span>
+                  <span className="text-xs text-faint">Agent role</span>
                   <select
                     value={pgRole}
                     onChange={(e) => {
@@ -373,85 +373,85 @@ export default function PromptStudioPage() {
                       const first = templates.find(t => t.role === e.target.value)
                       if (first) setPgVersion(first.version)
                     }}
-                    className="rounded bg-slate-800 px-2 py-1"
+                    className="rounded bg-panel-alt px-2 py-1"
                   >
                     {roles.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </label>
                 <label className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs text-slate-400">Template version</span>
+                  <span className="text-xs text-faint">Template version</span>
                   <select
                     value={pgVersion}
                     onChange={(e) => setPgVersion(e.target.value)}
-                    className="rounded bg-slate-800 px-2 py-1"
+                    className="rounded bg-panel-alt px-2 py-1"
                   >
                     {versionsForRole.map((v) => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </label>
               </div>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-400">Task</span>
+                <span className="text-xs text-faint">Task</span>
                 <textarea
                   value={pgTask}
                   onChange={(e) => setPgTask(e.target.value)}
                   rows={2}
                    placeholder="For example, implement the login endpoint"
-                  className="rounded bg-slate-800 px-2 py-1"
+                  className="rounded bg-panel-alt px-2 py-1"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-400">User request</span>
+                <span className="text-xs text-faint">User request</span>
                 <textarea
                   value={pgUserRequest}
                   onChange={(e) => setPgUserRequest(e.target.value)}
                   rows={2}
-                  className="rounded bg-slate-800 px-2 py-1"
+                  className="rounded bg-panel-alt px-2 py-1"
                 />
               </label>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-400">Project name</span>
-                  <input value={pgProjectName} onChange={(e) => setPgProjectName(e.target.value)} className="rounded bg-slate-800 px-2 py-1" />
+                  <span className="text-xs text-faint">Project name</span>
+                  <input value={pgProjectName} onChange={(e) => setPgProjectName(e.target.value)} className="rounded bg-panel-alt px-2 py-1" />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-400">Tech stack (comma-separated)</span>
-                  <input value={pgTechStack} onChange={(e) => setPgTechStack(e.target.value)} placeholder="react, fastapi" className="rounded bg-slate-800 px-2 py-1" />
+                  <span className="text-xs text-faint">Tech stack (comma-separated)</span>
+                  <input value={pgTechStack} onChange={(e) => setPgTechStack(e.target.value)} placeholder="react, fastapi" className="rounded bg-panel-alt px-2 py-1" />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-400">Architecture summary</span>
-                  <input value={pgArchitecture} onChange={(e) => setPgArchitecture(e.target.value)} className="rounded bg-slate-800 px-2 py-1" />
+                  <span className="text-xs text-faint">Architecture summary</span>
+                  <input value={pgArchitecture} onChange={(e) => setPgArchitecture(e.target.value)} className="rounded bg-panel-alt px-2 py-1" />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-400">Current milestone</span>
-                  <input value={pgMilestone} onChange={(e) => setPgMilestone(e.target.value)} className="rounded bg-slate-800 px-2 py-1" />
+                  <span className="text-xs text-faint">Current milestone</span>
+                  <input value={pgMilestone} onChange={(e) => setPgMilestone(e.target.value)} className="rounded bg-panel-alt px-2 py-1" />
                 </label>
               </div>
               <div className="flex items-center gap-3">
-                <motion.button onClick={runPreview} disabled={pgBusy || !pgRole} className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500 disabled:opacity-50" {...presets.button}>
+                <motion.button onClick={runPreview} disabled={pgBusy || !pgRole} className="rounded bg-ok px-3 py-1 hover:bg-ok/90 disabled:opacity-50" {...presets.button}>
                   Preview prompt
                 </motion.button>
-                <button onClick={runValidate} disabled={pgBusy || !pgRole} className="rounded-full bg-slate-800 px-3 py-1 hover:bg-slate-700 disabled:opacity-50">
+                <button onClick={runValidate} disabled={pgBusy || !pgRole} className="rounded-full bg-panel-alt px-3 py-1 hover:bg-surface-high disabled:opacity-50">
                   Validate context
                 </button>
-                 {pgBusy && <span className="text-xs text-slate-400">Working</span>}
+                 {pgBusy && <span className="text-xs text-faint">Working</span>}
               </div>
-              {pgError && <p className="text-xs text-rose-400">{pgError}</p>}
+              {pgError && <p className="text-xs text-error">{pgError}</p>}
             </div>
 
             {validation && (
               <motion.div
-                className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+                className="mt-4 rounded-lg border border-border bg-base/70 p-4"
                 initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
-                 <p className={validation.is_valid ? 'text-emerald-400' : 'text-rose-400'}>
+                 <p className={validation.is_valid ? 'text-ok' : 'text-error'}>
                    {validation.is_valid ? 'All good.' : 'Found some issues:'}
                  </p>
                 {validation.errors.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs">
                     {validation.errors.map((e, i) => (
-                      <li key={i} className={e.severity === 'error' ? 'text-rose-300' : 'text-amber-300'}>
+                      <li key={i} className={e.severity === 'error' ? 'text-error' : 'text-warn'}>
                         [{e.severity}] {e.code}: {e.message}
                       </li>
                     ))}
@@ -462,20 +462,20 @@ export default function PromptStudioPage() {
 
             {preview && (
               <motion.div
-                className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+                className="mt-4 rounded-lg border border-border bg-base/70 p-4"
                 initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
-                <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                  <span className="rounded-full bg-slate-800 px-2 py-1">~{preview.metadata.estimated_tokens} tokens</span>
-                  <span className="rounded-full bg-slate-800 px-2 py-1">{preview.metadata.build_time_ms.toFixed(1)} ms build</span>
-                  <span className="rounded-full bg-slate-800 px-2 py-1">hash {preview.metadata.prompt_hash}</span>
+                <div className="flex flex-wrap gap-2 text-xs text-faint">
+                  <span className="rounded-full bg-panel-alt px-2 py-1">~{preview.metadata.estimated_tokens} tokens</span>
+                  <span className="rounded-full bg-panel-alt px-2 py-1">{preview.metadata.build_time_ms.toFixed(1)} ms build</span>
+                  <span className="rounded-full bg-panel-alt px-2 py-1">hash {preview.metadata.prompt_hash}</span>
                   {preview.metadata.context_sources.map((s) => (
-                    <span key={s} className="rounded-full bg-indigo-500/20 px-2 py-1 text-indigo-300">{s}</span>
+                    <span key={s} className="rounded-full bg-agent-business-improver/20 px-2 py-1 text-agent-business-improver">{s}</span>
                   ))}
                 </div>
-                <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-slate-950 p-3 font-mono text-xs text-slate-300">
+                <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-panel-alt p-3 font-mono text-xs text-muted">
                   {preview.prompt}
                 </pre>
               </motion.div>

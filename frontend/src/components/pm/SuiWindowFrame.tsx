@@ -96,7 +96,7 @@ export function SuiWindowFrame({
                 type="button"
                 onClick={primaryAction.onClick}
                 disabled={primaryAction.disabled || primaryAction.loading}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-accent px-3.5 text-xs font-medium text-white transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-accent px-3.5 text-xs font-medium text-on-ink transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer whitespace-nowrap"
               >
                 {primaryAction.icon}
                 <span>{primaryAction.label}</span>

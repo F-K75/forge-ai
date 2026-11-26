@@ -79,8 +79,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Pull Request Automation", "Issue Sync", "Branch Linking", "Status Checks"],
     docsUrl: "https://docs.github.com/en/rest",
     defaultProjectName: "GitHub Repository",
-    iconBg: "bg-neutral-900 text-white dark:bg-white dark:text-neutral-950",
-    iconColor: "text-white dark:text-neutral-950",
+    iconBg: "bg-ink text-on-ink ",
+    iconColor: "text-ink",
     iconType: "github",
     fields: {
       requiresRepo: true,
@@ -96,8 +96,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Merge Requests", "CI Pipelines", "Issue Boards"],
     docsUrl: "https://docs.gitlab.com/ee/api/",
     defaultProjectName: "GitLab Group",
-    iconBg: "bg-orange-500 text-white",
-    iconColor: "text-white",
+    iconBg: "bg-accent text-on-ink",
+    iconColor: "text-ink",
     iconType: "gitlab",
     fields: {
       requiresRepo: true,
@@ -113,8 +113,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Cycle Sync", "Team Projects", "Issue Triage", "Milestone Tracking"],
     docsUrl: "https://developers.linear.app/docs/graphql/working-with-the-graphql-api",
     defaultProjectName: "Linear Team",
-    iconBg: "bg-indigo-600 text-white",
-    iconColor: "text-white",
+    iconBg: "bg-ink text-on-ink",
+    iconColor: "text-ink",
     iconType: "linear",
     fields: {
       projectLabel: "Linear Team Key / Project ID",
@@ -129,8 +129,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Epic Hierarchy", "Sprint Boards", "JQL Filters", "Status Mapping"],
     docsUrl: "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
     defaultProjectName: "Jira Project",
-    iconBg: "bg-blue-600 text-white",
-    iconColor: "text-white",
+    iconBg: "bg-ink text-on-ink",
+    iconColor: "text-ink",
     iconType: "jira",
     fields: {
       projectLabel: "Jira Project Key / Board ID",
@@ -145,8 +145,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Agent Alerts", "Blocker Pings", "Approval Buttons", "Daily Standup Digests"],
     docsUrl: "https://api.slack.com/",
     defaultProjectName: "Slack Workspace",
-    iconBg: "bg-emerald-600 text-white",
-    iconColor: "text-white",
+    iconBg: "bg-ok text-on-ink",
+    iconColor: "text-ink",
     iconType: "slack",
     fields: {
       requiresChannel: true,
@@ -162,8 +162,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Rich Embeds", "Build Notifications", "Release Announcements"],
     docsUrl: "https://discord.com/developers/docs/intro",
     defaultProjectName: "Discord Server",
-    iconBg: "bg-indigo-500 text-white",
-    iconColor: "text-white",
+    iconBg: "bg-ink text-on-ink",
+    iconColor: "text-ink",
     iconType: "discord",
     fields: {
       requiresChannel: true,
@@ -179,8 +179,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["APM Metrics", "Monitor Triggers", "Synthetic Tests"],
     docsUrl: "https://docs.datadoghq.com/api/",
     defaultProjectName: "Datadog Org",
-    iconBg: "bg-purple-600 text-white",
-    iconColor: "text-white",
+    iconBg: "bg-ink text-on-ink",
+    iconColor: "text-ink",
     iconType: "datadog",
     fields: {
       projectLabel: "Datadog Service Name",
@@ -195,8 +195,8 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Release Health", "Exception Tracking", "Crash Free Sessions"],
     docsUrl: "https://docs.sentry.io/api/",
     defaultProjectName: "Sentry Project",
-    iconBg: "bg-amber-600 text-white",
-    iconColor: "text-white",
+    iconBg: "bg-warn text-on-ink",
+    iconColor: "text-ink",
     iconType: "sentry",
     fields: {
       projectLabel: "Sentry Organization Slug",
@@ -604,26 +604,26 @@ export default function IntegrationsTab() {
   return (
     <div
       id="integrations-page-container"
-      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-neutral-900 dark:text-neutral-100 transition-colors"
+      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-ink transition-colors"
     >
       {/* 1. EXECUTIVE HEADER & ACTION CONTROLS */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200/90 dark:border-neutral-800 pb-5">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold shadow-xs">
-              <Plug size={18} className="text-amber-400" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-on-ink font-semibold shadow-xs">
+              <Plug size={18} className="text-warn" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                <h1 className="text-xl font-semibold tracking-tight text-ink">
                   Integrations & Ecosystem Orchestration
                 </h1>
-                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-ok/10 text-ok border border-ok/20">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />
                   Live Sync Engine
                 </span>
               </div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted">
                 Connect external issue trackers, Git repositories, ChatOps webhooks, and observability sinks to autonomous agent workstreams.
               </p>
             </div>
@@ -637,10 +637,10 @@ export default function IntegrationsTab() {
             id="btn-open-webhooks-modal"
             type="button"
             onClick={() => setShowWebhookModal(true)}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
             title="Manage incoming and outgoing HTTP webhook endpoints"
           >
-            <Webhook size={13} className="text-neutral-500" />
+            <Webhook size={13} className="text-muted" />
             <span>Webhooks</span>
           </button>
 
@@ -650,12 +650,12 @@ export default function IntegrationsTab() {
             type="button"
             onClick={handleSyncAll}
             disabled={syncingAll || integrations.length === 0}
-            className="h-9 px-3.5 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3.5 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
             title="Synchronize all active connectors immediately"
           >
             <RefreshCw
               size={13}
-              className={syncingAll ? "animate-spin text-amber-400" : ""}
+              className={syncingAll ? "animate-spin text-warn" : ""}
             />
             <span>{syncingAll ? "Syncing Fleet..." : "Sync All Active"}</span>
           </button>
@@ -668,86 +668,86 @@ export default function IntegrationsTab() {
         className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
       >
         {/* Metric 1: Connected Services */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Connected Connectors
             </span>
-            <Plug size={15} className="text-emerald-500" />
+            <Plug size={15} className="text-ok" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.connectedCount}
             </span>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               of {telemetry.totalAvailable} cataloged
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-2 text-[11px] text-neutral-500">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+            <span className="text-ok font-semibold">
               {telemetry.vcsConnected} Repositories
             </span>
             <span>·</span>
-            <span className="text-sky-600 dark:text-sky-400 font-semibold">
+            <span className="text-accent font-semibold">
               {telemetry.chatConnected} Chat Channels
             </span>
           </div>
         </div>
 
         {/* Metric 2: Sync Status */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Sync Health
             </span>
-            <ShieldCheck size={15} className="text-emerald-500" />
+            <ShieldCheck size={15} className="text-ok" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.health}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-neutral-500 flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <div className="mt-2 text-[11px] text-muted flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-ok" />
             <span>Bi-directional webhooks verified</span>
           </div>
         </div>
 
         {/* Metric 3: Event Throughput */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Agent PR Pipeline
             </span>
-            <GitBranch size={15} className="text-sky-500" />
+            <GitBranch size={15} className="text-accent" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               Autonomous
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-neutral-500 truncate">
+          <div className="mt-2 text-[11px] text-muted truncate">
             Auto-branching enabled on completed tasks
           </div>
         </div>
 
         {/* Metric 4: API Rate Limit Quotas */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               API Quota Safety
             </span>
-            <Zap size={15} className="text-amber-500" />
+            <Zap size={15} className="text-warn" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               99.8%
             </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <span className="text-xs text-ok font-semibold">
               Optimal Headroom
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-neutral-500 truncate">
+          <div className="mt-2 text-[11px] text-muted truncate">
             Zero 429 throttling backoffs recorded
           </div>
         </div>
@@ -759,7 +759,7 @@ export default function IntegrationsTab() {
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-faint"
           />
           <input
             id="integrations-search-input"
@@ -767,13 +767,13 @@ export default function IntegrationsTab() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by provider, capability, or repository..."
-            className="w-full h-9 pl-9 pr-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20 transition-all shadow-2xs"
+            className="w-full h-9 pl-9 pr-3 rounded-xl border border-border bg-panel text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-border transition-all shadow-2xs"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-faint hover:text-muted cursor-pointer"
             >
               <X size={12} />
             </button>
@@ -783,7 +783,7 @@ export default function IntegrationsTab() {
         {/* Filter Pills */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Category Tabs */}
-          <div className="flex items-center gap-0.5 bg-neutral-100 dark:bg-neutral-800/80 p-0.5 rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 text-xs">
+          <div className="flex items-center gap-0.5 bg-panel-alt p-0.5 rounded-xl border border-border text-xs">
             {[
               { id: "all", label: "All Integrations" },
               { id: "vcs", label: "Source Git" },
@@ -797,8 +797,8 @@ export default function IntegrationsTab() {
                 onClick={() => setSelectedCategory(cat.id as ProviderCategory)}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                   selectedCategory === cat.id
-                    ? "bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs font-bold"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    ? "bg-panel text-ink shadow-2xs font-semibold"
+                    : "text-muted hover:text-ink"
                 }`}
               >
                 {cat.label}
@@ -811,7 +811,7 @@ export default function IntegrationsTab() {
             id="filter-connection-status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] text-xs font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-400 cursor-pointer shadow-2xs"
+            className="h-9 px-3 rounded-xl border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
           >
             <option value="all">All States</option>
             <option value="connected">Connected Only</option>
@@ -823,15 +823,15 @@ export default function IntegrationsTab() {
       {/* 4. INTEGRATIONS GRID */}
       <section aria-label="Ecosystem Integrations Catalog">
         {filteredCatalog.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800 p-12 text-center space-y-4 bg-neutral-50/50 dark:bg-neutral-900/20">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-4 bg-ink/10">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-panel-alt text-muted">
               <Plug size={22} />
             </div>
             <div className="space-y-1 max-w-sm mx-auto">
-              <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+              <h3 className="text-sm font-semibold text-ink">
                 No integrations found
               </h3>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted">
                 No cataloged connectors match your search term or category filters.
               </p>
             </div>
@@ -842,7 +842,7 @@ export default function IntegrationsTab() {
                 setSelectedCategory("all");
                 setStatusFilter("all");
               }}
-              className="h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 cursor-pointer shadow-2xs"
+              className="h-8 px-3 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
             >
               Reset Filters
             </button>
@@ -860,10 +860,10 @@ export default function IntegrationsTab() {
                 <article
                   key={prov.id}
                   id={`integration-card-${prov.id}`}
-                  className={`rounded-2xl border bg-white dark:bg-[#141722] p-5 shadow-xs transition-all duration-150 flex flex-col justify-between ${
+                  className={`rounded-2xl border bg-panel p-5 shadow-xs transition-all duration-150 flex flex-col justify-between ${
                     isConnected
-                      ? "border-emerald-500/30 dark:border-emerald-500/20 ring-1 ring-emerald-500/10"
-                      : "border-neutral-200/90 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
+                      ? "border-ok/30 ring-1 ring-ok/10"
+                      : "border-border hover:border-border"
                   }`}
                 >
                   <div className="space-y-4">
@@ -871,20 +871,20 @@ export default function IntegrationsTab() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold shadow-xs ${prov.iconBg}`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-semibold shadow-xs ${prov.iconBg}`}
                         >
                           {renderProviderIcon(prov.iconType, 20)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-50">
+                            <h2 className="text-sm font-semibold text-ink">
                               {prov.name}
                             </h2>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-faint">
                               {prov.category}
                             </span>
                           </div>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1">
+                          <p className="text-xs text-muted line-clamp-1">
                             {prov.description}
                           </p>
                         </div>
@@ -893,12 +893,12 @@ export default function IntegrationsTab() {
                       {/* Status Indicator */}
                       <div className="shrink-0">
                         {isConnected ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-ok/10 text-ok border border-ok/20">
+                            <span className="h-1.5 w-1.5 rounded-full bg-ok" />
                             Connected
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-panel-alt text-muted border border-border">
                             Available
                           </span>
                         )}
@@ -907,20 +907,20 @@ export default function IntegrationsTab() {
 
                     {/* Connected Bindings or Capabilities */}
                     {isConnected && record ? (
-                      <div className="rounded-xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/50 p-3 space-y-2 text-xs">
+                      <div className="rounded-xl border border-border bg-ink/10 p-3 space-y-2 text-xs">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold text-neutral-700 dark:text-neutral-300">
+                          <span className="font-semibold text-ink">
                             Workspace: {record.external_project_name || record.external_project_id}
                           </span>
-                          <span className="text-[11px] font-mono text-neutral-400 flex items-center gap-1">
+                          <span className="text-[11px] font-mono text-faint flex items-center gap-1">
                             <Clock size={11} />
                             Synced {formatRelativeTime(record.last_synced_at)}
                           </span>
                         </div>
 
                         {record.external_repo_name && (
-                          <div className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400">
-                            <GitBranch size={13} className="text-sky-500" />
+                          <div className="flex items-center gap-1.5 text-muted">
+                            <GitBranch size={13} className="text-accent" />
                             <span className="font-mono text-[11px]">
                               Repo: {record.external_repo_name}
                             </span>
@@ -928,8 +928,8 @@ export default function IntegrationsTab() {
                         )}
 
                         {record.channel_name && (
-                          <div className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400">
-                            <Hash size={13} className="text-emerald-500" />
+                          <div className="flex items-center gap-1.5 text-muted">
+                            <Hash size={13} className="text-ok" />
                             <span className="font-mono text-[11px]">
                               Channel: {record.channel_name}
                             </span>
@@ -941,7 +941,7 @@ export default function IntegrationsTab() {
                         {prov.capabilities.map((cap) => (
                           <span
                             key={cap}
-                            className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-400 border border-neutral-200/60 dark:border-neutral-700/60"
+                            className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-panel-alt text-muted border border-border"
                           >
                             {cap}
                           </span>
@@ -951,12 +951,12 @@ export default function IntegrationsTab() {
                   </div>
 
                   {/* Bottom Action Footer */}
-                  <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between gap-2">
+                  <div className="mt-4 pt-3 border-t border-border-soft flex items-center justify-between gap-2">
                     <a
                       href={prov.docsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[11px] text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 flex items-center gap-1"
+                      className="text-[11px] text-faint hover:text-ink flex items-center gap-1"
                     >
                       <span>Documentation</span>
                       <ArrowUpRight size={11} />
@@ -969,12 +969,12 @@ export default function IntegrationsTab() {
                             type="button"
                             onClick={() => handleSyncProvider(prov.id)}
                             disabled={isSyncing}
-                            className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+                            className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
                             title="Synchronize now"
                           >
                             <RefreshCw
                               size={12}
-                              className={isSyncing ? "animate-spin text-emerald-500" : ""}
+                              className={isSyncing ? "animate-spin text-ok" : ""}
                             />
                             <span>{isSyncing ? "Syncing..." : "Sync"}</span>
                           </button>
@@ -982,7 +982,7 @@ export default function IntegrationsTab() {
                           <button
                             type="button"
                             onClick={() => handleOpenConfigure(prov)}
-                            className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+                            className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
                             title="Configure integration bindings"
                           >
                             <SlidersHorizontal size={12} />
@@ -992,7 +992,7 @@ export default function IntegrationsTab() {
                           <button
                             type="button"
                             onClick={() => handleDisconnect(prov.id)}
-                            className="h-8 w-8 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-400 hover:text-rose-600 hover:border-rose-300 dark:hover:border-rose-900 flex items-center justify-center cursor-pointer shadow-2xs transition-all"
+                            className="h-8 w-8 rounded-lg border border-border bg-panel text-faint hover:text-error hover:border-error/30 flex items-center justify-center cursor-pointer shadow-2xs transition-all"
                             title="Disconnect service"
                           >
                             <Trash2 size={13} />
@@ -1002,7 +1002,7 @@ export default function IntegrationsTab() {
                         <button
                           type="button"
                           onClick={() => handleOpenConfigure(prov)}
-                          className="h-8 px-3.5 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs hover:opacity-90 transition-all active:scale-[0.98]"
+                          className="h-8 px-3.5 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs hover:opacity-90 transition-all active:scale-[0.98]"
                         >
                           <Plus size={13} />
                           <span>Connect</span>
@@ -1027,30 +1027,30 @@ export default function IntegrationsTab() {
         >
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setActiveDrawerProvider(null)}
           />
 
           <div
             id="drawer-integration-config"
-            className="relative w-full max-w-lg bg-white dark:bg-[#141722] text-neutral-900 dark:text-neutral-100 shadow-2xl border-l border-neutral-200/90 dark:border-neutral-800 flex flex-col h-full z-10 overflow-hidden"
+            className="relative w-full max-w-lg bg-panel text-ink shadow-2xl border-l border-border flex flex-col h-full z-10 overflow-hidden"
           >
             {/* Drawer Header */}
-            <div className="px-6 py-4 border-b border-neutral-200/90 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/60">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-3">
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl font-bold ${activeDrawerProvider.iconBg}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl font-semibold ${activeDrawerProvider.iconBg}`}
                 >
                   {renderProviderIcon(activeDrawerProvider.iconType, 18)}
                 </div>
                 <div>
                   <h3
                     id="drawer-integration-title"
-                    className="text-sm font-bold text-neutral-900 dark:text-neutral-50"
+                    className="text-sm font-semibold text-ink"
                   >
                     Configure {activeDrawerProvider.name}
                   </h3>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     {activeDrawerProvider.category.toUpperCase()} Connector Setup
                   </p>
                 </div>
@@ -1059,7 +1059,7 @@ export default function IntegrationsTab() {
               <button
                 type="button"
                 onClick={() => setActiveDrawerProvider(null)}
-                className="h-8 w-8 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                className="h-8 w-8 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -1069,7 +1069,7 @@ export default function IntegrationsTab() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-xs">
               {/* Workspace / Project Name */}
               <div className="space-y-1.5">
-                <label className="block font-semibold text-neutral-700 dark:text-neutral-300">
+                <label className="block font-semibold text-ink">
                   {activeDrawerProvider.fields.projectLabel || "Workspace / Project Name"}
                 </label>
                 <input
@@ -1082,9 +1082,9 @@ export default function IntegrationsTab() {
                     })
                   }
                   placeholder={activeDrawerProvider.defaultProjectName}
-                  className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                  className="w-full h-9 px-3 rounded-xl border border-border bg-panel text-xs text-ink focus:outline-none focus:ring-2 focus:ring-border"
                 />
-                <p className="text-[11px] text-neutral-400">
+                <p className="text-[11px] text-faint">
                   Identifies the external workspace or account tenant.
                 </p>
               </div>
@@ -1092,7 +1092,7 @@ export default function IntegrationsTab() {
               {/* Repository Name (if applicable) */}
               {activeDrawerProvider.fields.requiresRepo && (
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300">
+                  <label className="block font-semibold text-ink">
                     Repository Name (owner/repo)
                   </label>
                   <input
@@ -1105,9 +1105,9 @@ export default function IntegrationsTab() {
                       })
                     }
                     placeholder={activeDrawerProvider.fields.repoPlaceholder}
-                    className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-mono text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    className="w-full h-9 px-3 rounded-xl border border-border bg-panel text-xs font-mono text-ink focus:outline-none focus:ring-2 focus:ring-border"
                   />
-                  <p className="text-[11px] text-neutral-400">
+                  <p className="text-[11px] text-faint">
                     Target Git repository for pull requests and commit triggers.
                   </p>
                 </div>
@@ -1116,7 +1116,7 @@ export default function IntegrationsTab() {
               {/* Channel Name (if applicable) */}
               {activeDrawerProvider.fields.requiresChannel && (
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300">
+                  <label className="block font-semibold text-ink">
                     Notification Channel
                   </label>
                   <input
@@ -1129,9 +1129,9 @@ export default function IntegrationsTab() {
                       })
                     }
                     placeholder={activeDrawerProvider.fields.channelPlaceholder}
-                    className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    className="w-full h-9 px-3 rounded-xl border border-border bg-panel text-xs text-ink focus:outline-none focus:ring-2 focus:ring-border"
                   />
-                  <p className="text-[11px] text-neutral-400">
+                  <p className="text-[11px] text-faint">
                     Target channel for automated agent standups and blocker alerts.
                   </p>
                 </div>
@@ -1140,10 +1140,10 @@ export default function IntegrationsTab() {
               {/* API Token / Secret */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300">
+                  <label className="block font-semibold text-ink">
                     API Token / Personal Access Key
                   </label>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="text-[10px] text-ok font-semibold flex items-center gap-1">
                     <Lock size={10} /> Encrypted at rest
                   </span>
                 </div>
@@ -1154,13 +1154,13 @@ export default function IntegrationsTab() {
                     setDrawerForm({ ...drawerForm, api_token: e.target.value })
                   }
                   placeholder="ghp_••••••••••••••••••••••••••••••••"
-                  className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-mono text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                  className="w-full h-9 px-3 rounded-xl border border-border bg-panel text-xs font-mono text-ink focus:outline-none focus:ring-2 focus:ring-border"
                 />
               </div>
 
               {/* Sync Direction */}
               <div className="space-y-1.5">
-                <label className="block font-semibold text-neutral-700 dark:text-neutral-300">
+                <label className="block font-semibold text-ink">
                   Data Synchronization Direction
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1171,14 +1171,14 @@ export default function IntegrationsTab() {
                     }
                     className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       drawerForm.direction === "bi_directional"
-                        ? "border-neutral-900 dark:border-white bg-neutral-100 dark:bg-neutral-800 font-bold"
-                        : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                        ? "border-border bg-panel-alt font-semibold"
+                        : "border-border hover:bg-ink/5"
                     }`}
                   >
-                    <div className="font-semibold text-neutral-900 dark:text-neutral-100">
+                    <div className="font-semibold text-ink">
                       Bi-directional
                     </div>
-                    <div className="text-[11px] text-neutral-500 font-normal">
+                    <div className="text-[11px] text-muted font-normal">
                       Sync state back and forth
                     </div>
                   </button>
@@ -1190,14 +1190,14 @@ export default function IntegrationsTab() {
                     }
                     className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       drawerForm.direction === "push_only"
-                        ? "border-neutral-900 dark:border-white bg-neutral-100 dark:bg-neutral-800 font-bold"
-                        : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                        ? "border-border bg-panel-alt font-semibold"
+                        : "border-border hover:bg-ink/5"
                     }`}
                   >
-                    <div className="font-semibold text-neutral-900 dark:text-neutral-100">
+                    <div className="font-semibold text-ink">
                       Push Only
                     </div>
-                    <div className="text-[11px] text-neutral-500 font-normal">
+                    <div className="text-[11px] text-muted font-normal">
                       Export notifications only
                     </div>
                   </button>
@@ -1206,7 +1206,7 @@ export default function IntegrationsTab() {
 
               {/* Event Triggers Checklist */}
               <div className="space-y-2 pt-1">
-                <label className="block font-semibold text-neutral-700 dark:text-neutral-300">
+                <label className="block font-semibold text-ink">
                   Active Event Subscriptions
                 </label>
                 <div className="space-y-2">
@@ -1220,7 +1220,7 @@ export default function IntegrationsTab() {
                     return (
                       <label
                         key={evt.id}
-                        className="flex items-center gap-2.5 text-xs text-neutral-700 dark:text-neutral-300 cursor-pointer select-none"
+                        className="flex items-center gap-2.5 text-xs text-ink cursor-pointer select-none"
                       >
                         <input
                           type="checkbox"
@@ -1240,7 +1240,7 @@ export default function IntegrationsTab() {
                               });
                             }
                           }}
-                          className="rounded border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white focus:ring-0"
+                          className="rounded border-border text-ink focus:ring-0"
                         />
                         <span>{evt.label}</span>
                       </label>
@@ -1250,22 +1250,22 @@ export default function IntegrationsTab() {
               </div>
 
               {/* Test Connection Banner */}
-              <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 p-3 space-y-2">
+              <div className="rounded-xl border border-border bg-panel p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-neutral-700 dark:text-neutral-300">
+                  <span className="font-semibold text-ink">
                     Connectivity Probe
                   </span>
                   <button
                     type="button"
                     onClick={handleTestPing}
                     disabled={pingStatus?.testing}
-                    className="px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-[11px] font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 cursor-pointer shadow-2xs disabled:opacity-50"
+                    className="px-2.5 py-1 rounded-lg border border-border bg-panel text-[11px] font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs disabled:opacity-50"
                   >
                     {pingStatus?.testing ? "Pinging..." : "Test Connection"}
                   </button>
                 </div>
                 {pingStatus && !pingStatus.testing && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <div className="flex items-center gap-1.5 text-[11px] text-ok font-semibold">
                     <CheckCircle2 size={13} />
                     <span>
                       Connection verified: 200 OK (Latency: {pingStatus.latency}ms)
@@ -1276,11 +1276,11 @@ export default function IntegrationsTab() {
             </div>
 
             {/* Drawer Footer */}
-            <div className="px-6 py-4 border-t border-neutral-200/90 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/60">
+            <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-ink/10">
               <button
                 type="button"
                 onClick={() => setActiveDrawerProvider(null)}
-                className="h-9 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 cursor-pointer shadow-2xs"
+                className="h-9 px-4 rounded-xl border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
               >
                 Cancel
               </button>
@@ -1289,7 +1289,7 @@ export default function IntegrationsTab() {
                 type="button"
                 onClick={handleSaveDrawer}
                 disabled={isSavingDrawer}
-                className="h-9 px-5 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 disabled:opacity-50"
+                className="h-9 px-5 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 disabled:opacity-50"
               >
                 {isSavingDrawer ? (
                   <span>Saving...</span>
@@ -1314,27 +1314,27 @@ export default function IntegrationsTab() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
         >
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs"
             onClick={() => setShowWebhookModal(false)}
           />
 
           <div
             id="modal-webhooks-container"
-            className="relative w-full max-w-xl bg-white dark:bg-[#141722] rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-2xl p-6 space-y-5 z-10"
+            className="relative w-full max-w-xl bg-panel rounded-2xl border border-border shadow-2xl p-6 space-y-5 z-10"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warn/10 text-warn">
                   <Webhook size={20} />
                 </div>
                 <div>
                   <h3
                     id="modal-webhook-title"
-                    className="text-base font-bold text-neutral-900 dark:text-neutral-50"
+                    className="text-base font-semibold text-ink"
                   >
                     Initiative Webhook Endpoint
                   </h3>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     Receive inbound notifications or pipe events to external pipelines.
                   </p>
                 </div>
@@ -1343,7 +1343,7 @@ export default function IntegrationsTab() {
               <button
                 type="button"
                 onClick={() => setShowWebhookModal(false)}
-                className="h-8 w-8 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                className="h-8 w-8 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -1351,7 +1351,7 @@ export default function IntegrationsTab() {
 
             {/* Webhook URL */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              <label className="block text-xs font-semibold text-ink">
                 Inbound Payload URL
               </label>
               <div className="flex items-center gap-2">
@@ -1359,7 +1359,7 @@ export default function IntegrationsTab() {
                   type="text"
                   readOnly
                   value={`https://api.forge.dev/v1/initiatives/${initiativeId}/webhooks/inbound`}
-                  className="flex-1 h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs font-mono text-neutral-800 dark:text-neutral-200 select-all"
+                  className="flex-1 h-9 px-3 rounded-xl border border-border bg-panel text-xs font-mono text-ink select-all"
                 />
                 <button
                   type="button"
@@ -1371,9 +1371,9 @@ export default function IntegrationsTab() {
                     toast.success("Webhook URL copied");
                     setTimeout(() => setWebhookUrlCopied(false), 2000);
                   }}
-                  className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  className="h-9 px-3 rounded-xl border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer flex items-center gap-1.5 shadow-2xs"
                 >
-                  {webhookUrlCopied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                  {webhookUrlCopied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
                   <span>{webhookUrlCopied ? "Copied" : "Copy"}</span>
                 </button>
               </div>
@@ -1385,10 +1385,10 @@ export default function IntegrationsTab() {
                 initiatives share one key. Real secrets are generated per
                 webhook by POST /webhooks/ and shown once at creation. */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              <label className="block text-xs font-semibold text-ink">
                 HMAC SHA-256 Signing Secret
               </label>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted">
                 Each webhook gets its own signing secret, shown once when you create it in
                 Settings → Integrations. Use it to verify the X-Forge-Signature header.
               </p>
@@ -1396,34 +1396,34 @@ export default function IntegrationsTab() {
 
             {/* Supported Event Payloads */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              <label className="block text-xs font-semibold text-ink">
                 Dispatched JSON Payloads
               </label>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-xl border border-neutral-200/80 dark:border-neutral-800 p-2.5 bg-neutral-50/50 dark:bg-neutral-900/30">
-                  <div className="font-mono font-semibold text-[11px] text-neutral-800 dark:text-neutral-200">
+                <div className="rounded-xl border border-border p-2.5 bg-ink/10">
+                  <div className="font-mono font-semibold text-[11px] text-ink">
                     agent.execution.completed
                   </div>
-                  <div className="text-[10px] text-neutral-500">
+                  <div className="text-[10px] text-muted">
                     Fires when an autonomous worker finishes code changes.
                   </div>
                 </div>
-                <div className="rounded-xl border border-neutral-200/80 dark:border-neutral-800 p-2.5 bg-neutral-50/50 dark:bg-neutral-900/30">
-                  <div className="font-mono font-semibold text-[11px] text-neutral-800 dark:text-neutral-200">
+                <div className="rounded-xl border border-border p-2.5 bg-ink/10">
+                  <div className="font-mono font-semibold text-[11px] text-ink">
                     decision.bottleneck_detected
                   </div>
-                  <div className="text-[10px] text-neutral-500">
+                  <div className="text-[10px] text-muted">
                     Fires when neural decision engine identifies blocked critical paths.
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-soft">
               <button
                 type="button"
                 onClick={() => setShowWebhookModal(false)}
-                className="h-9 px-4 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold cursor-pointer hover:opacity-90"
+                className="h-9 px-4 rounded-xl bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
               >
                 Done
               </button>

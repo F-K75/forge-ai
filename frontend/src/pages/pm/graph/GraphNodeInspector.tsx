@@ -56,14 +56,14 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
 
   return (
     <aside
-      className="absolute top-4 right-4 z-30 w-80 md:w-96 max-h-[calc(100%-32px)] flex flex-col rounded-2xl border border-inlay bg-[#111119]/95 backdrop-blur-md shadow-2xl overflow-hidden text-xs transition-all animate-in slide-in-from-right-4 duration-200"
+      className="absolute top-4 right-4 z-30 w-80 md:w-96 max-h-[calc(100%-32px)] flex flex-col rounded-2xl border border-inlay bg-base/95 backdrop-blur-md shadow-2xl overflow-hidden text-xs transition-all animate-in slide-in-from-right-4 duration-200"
       aria-label="Node Inspector"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-inlay p-3.5 bg-inlay/30">
         <div className="flex items-center gap-2">
           <span
-            className="flex h-6 w-6 items-center justify-center rounded-lg text-white"
+            className="flex h-6 w-6 items-center justify-center rounded-lg text-ink"
             style={{ backgroundColor: layerCfg.color }}
           >
             <Layers size={13} />
@@ -81,7 +81,7 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
             title="Copy Node ID"
             aria-label="Copy Node ID"
           >
-            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
           </button>
           <button
             type="button"
@@ -116,9 +116,9 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
               <span
                 className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${
                   node.status === "done"
-                    ? "bg-emerald-500/20 text-emerald-300"
+                    ? "bg-ok/20 text-ok"
                     : node.status === "in_progress" || node.status === "running"
-                    ? "bg-cyan-500/20 text-cyan-300"
+                    ? "bg-info/20 text-info"
                     : "bg-inlay text-faint"
                 }`}
               >
@@ -127,13 +127,13 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
             )}
 
             {node.blocked && (
-              <span className="flex items-center gap-0.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+              <span className="flex items-center gap-0.5 rounded bg-warn/20 px-1.5 py-0.5 text-[10px] font-semibold text-warn">
                 <AlertTriangle size={10} /> Blocked
               </span>
             )}
 
             {node.isCriticalPath && (
-              <span className="flex items-center gap-0.5 rounded bg-pink-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-pink-300">
+              <span className="flex items-center gap-0.5 rounded bg-agent-designer/20 px-1.5 py-0.5 text-[10px] font-semibold text-agent-designer">
                 <Flame size={10} /> Critical Path
               </span>
             )}
@@ -204,7 +204,7 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-faint flex items-center gap-1">
-              <ArrowUpRight size={12} className="text-sky-400" />
+              <ArrowUpRight size={12} className="text-accent" />
               Upstream Prerequisites ({upstreamNodes.length})
             </span>
           </div>
@@ -242,7 +242,7 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-faint flex items-center gap-1">
-              <ArrowDownRight size={12} className="text-emerald-400" />
+              <ArrowDownRight size={12} className="text-ok" />
               Downstream Impact ({downstreamNodes.length})
             </span>
           </div>
@@ -293,7 +293,7 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
           <button
             type="button"
             onClick={handleNavigateToBoard}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-accent py-1.5 text-xs font-medium text-white hover:bg-accent/90 transition-all active:scale-95"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-accent py-1.5 text-xs font-medium text-on-ink hover:bg-accent/90 transition-all active:scale-95"
           >
             <ExternalLink size={12} />
             <span>Open Board</span>

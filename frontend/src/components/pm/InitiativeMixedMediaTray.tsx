@@ -323,70 +323,70 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
   const renderDeckContent = () => (
     <div className="space-y-4">
       {/* Sub-Tabs Navigation */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200/80 dark:border-neutral-800 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={() => setActiveTab('audio')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'audio'
-                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 shadow-xs'
-                : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                ? 'bg-ink text-on-ink shadow-xs'
+                : 'bg-panel-alt text-muted hover:bg-ink/5'
             }`}
           >
-            <Volume2 size={13} className={activeTab === 'audio' ? 'text-amber-400' : 'text-neutral-400'} />
+            <Volume2 size={13} className={activeTab === 'audio' ? 'text-warn' : 'text-faint'} />
             <span>Voice Standup</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('topology')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'topology'
-                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 shadow-xs'
-                : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                ? 'bg-ink text-on-ink shadow-xs'
+                : 'bg-panel-alt text-muted hover:bg-ink/5'
             }`}
           >
-            <Layers size={13} className={activeTab === 'topology' ? 'text-indigo-400' : 'text-neutral-400'} />
+            <Layers size={13} className={activeTab === 'topology' ? 'text-agent-business-improver' : 'text-faint'} />
             <span>Architecture Mesh</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('velocity')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'velocity'
-                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 shadow-xs'
-                : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                ? 'bg-ink text-on-ink shadow-xs'
+                : 'bg-panel-alt text-muted hover:bg-ink/5'
             }`}
           >
-            <BarChart3 size={13} className={activeTab === 'velocity' ? 'text-sky-400' : 'text-neutral-400'} />
+            <BarChart3 size={13} className={activeTab === 'velocity' ? 'text-accent' : 'text-faint'} />
             <span>Burndown & Velocity</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('stories')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'stories'
-                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 shadow-xs'
-                : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                ? 'bg-ink text-on-ink shadow-xs'
+                : 'bg-panel-alt text-muted hover:bg-ink/5'
             }`}
           >
-            <CheckCircle2 size={13} className={activeTab === 'stories' ? 'text-emerald-400' : 'text-neutral-400'} />
+            <CheckCircle2 size={13} className={activeTab === 'stories' ? 'text-ok' : 'text-faint'} />
             <span>INVEST Story Deck</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('risk')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'risk'
-                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 shadow-xs'
-                : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                ? 'bg-ink text-on-ink shadow-xs'
+                : 'bg-panel-alt text-muted hover:bg-ink/5'
             }`}
           >
-            <AlertTriangle size={13} className={activeTab === 'risk' ? 'text-rose-400' : 'text-neutral-400'} />
+            <AlertTriangle size={13} className={activeTab === 'risk' ? 'text-error' : 'text-faint'} />
             <span>Risk Simulation</span>
           </button>
         </div>
@@ -394,15 +394,15 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
         {/* Narrator Voice Picker (when on Audio tab) */}
         {activeTab === 'audio' && (
           <div className="flex items-center gap-1 text-xs font-medium">
-            <span className="text-neutral-400 text-[11px] font-semibold">Narrator:</span>
-            <div className="flex items-center p-0.5 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200/80 dark:border-neutral-700">
+            <span className="text-faint text-[11px] font-semibold">Narrator:</span>
+            <div className="flex items-center p-0.5 bg-panel-alt rounded-lg border border-border">
               <button
                 type="button"
                 onClick={() => setActiveNarrator('architect')}
-                className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-all ${
+                className={`px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer transition-all ${
                   activeNarrator === 'architect'
-                    ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-2xs'
-                    : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'bg-panel text-ink shadow-2xs'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Architect
@@ -410,10 +410,10 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
               <button
                 type="button"
                 onClick={() => setActiveNarrator('pm')}
-                className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-all ${
+                className={`px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer transition-all ${
                   activeNarrator === 'pm'
-                    ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-2xs'
-                    : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'bg-panel text-ink shadow-2xs'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Product
@@ -421,10 +421,10 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
               <button
                 type="button"
                 onClick={() => setActiveNarrator('security')}
-                className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-all ${
+                className={`px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer transition-all ${
                   activeNarrator === 'security'
-                    ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-2xs'
-                    : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'bg-panel text-ink shadow-2xs'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Security
@@ -432,10 +432,10 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
               <button
                 type="button"
                 onClick={() => setActiveNarrator('coach')}
-                className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-all ${
+                className={`px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer transition-all ${
                   activeNarrator === 'coach'
-                    ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-2xs'
-                    : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'bg-panel text-ink shadow-2xs'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Agile
@@ -451,24 +451,24 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
         {activeTab === 'audio' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             <div className="lg:col-span-8">
-              <div className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-850/60 p-4 space-y-3.5">
+              <div className="rounded-xl border border-border bg-ink/10 dark:bg-neutral-850/60 p-4 space-y-3.5">
                 {/* Audio Header */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warn/10 text-warn border border-warn/20">
                       <Volume2 size={18} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100 truncate">
+                        <span className="text-xs font-semibold text-ink truncate">
                           {audioBriefing.title}
                         </span>
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-warn/10 text-warn border border-warn/20">
                           AI VOICED
                         </span>
                       </div>
-                      <span className="text-[11px] text-neutral-500 block truncate">
-                        Narrator: <strong className="text-neutral-700 dark:text-neutral-300">{audioBriefing.narrator}</strong> · {audioBriefing.duration}
+                      <span className="text-[11px] text-muted block truncate">
+                        Narrator: <strong className="text-ink">{audioBriefing.narrator}</strong> · {audioBriefing.duration}
                       </span>
                     </div>
                   </div>
@@ -478,7 +478,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <button
                       type="button"
                       onClick={cycleSpeed}
-                      className="h-7 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 text-xs font-bold transition-all cursor-pointer"
+                      className="h-7 px-2.5 rounded-lg border border-border bg-panel hover:bg-ink/5 text-xs font-semibold transition-all cursor-pointer"
                       title="Playback speed"
                     >
                       {playbackSpeed}x
@@ -486,16 +486,16 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <button
                       type="button"
                       onClick={() => setIsMuted(!isMuted)}
-                      className="h-7 w-7 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 flex items-center justify-center text-neutral-600 dark:text-neutral-300 transition-all cursor-pointer"
+                      className="h-7 w-7 rounded-lg border border-border bg-panel hover:bg-ink/5 flex items-center justify-center text-muted transition-all cursor-pointer"
                       title={isMuted ? 'Unmute' : 'Mute'}
                     >
-                      {isMuted ? <VolumeX size={13} className="text-rose-500" /> : <Volume2 size={13} />}
+                      {isMuted ? <VolumeX size={13} className="text-error" /> : <Volume2 size={13} />}
                     </button>
                   </div>
                 </div>
 
                 {/* Animated Equalizer Waveform */}
-                <div className="flex items-end gap-1 h-10 px-3 py-1.5 bg-neutral-900 dark:bg-black rounded-lg border border-neutral-800 overflow-hidden">
+                <div className="flex items-end gap-1 h-10 px-3 py-1.5 bg-panel-alt rounded-lg border border-border overflow-hidden">
                   {frequencies.map((f, i) => {
                     const dynamicHeight = isPlaying
                       ? Math.max(20, Math.min(100, f + Math.sin(Date.now() / 150 + i * 0.8) * 35))
@@ -504,7 +504,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                       <div
                         key={i}
                         className={`flex-1 rounded-t-xs transition-all duration-150 ${
-                          isPlaying ? 'bg-amber-400' : 'bg-neutral-600'
+                          isPlaying ? 'bg-warn' : 'bg-ink/30'
                         }`}
                         style={{
                           height: `${dynamicHeight}%`,
@@ -517,17 +517,17 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
                 {/* Progress bar */}
                 <div className="space-y-1">
-                  <div className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-surface-high rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                      className="h-full bg-warn rounded-full transition-all duration-300"
                       style={{ width: `${audioProgress}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[10px] font-semibold text-neutral-500">
+                  <div className="flex justify-between text-[10px] font-semibold text-muted">
                     <span className="flex items-center gap-1.5">
                       <span
                         className={`h-1.5 w-1.5 rounded-full ${
-                          isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'
+                          isPlaying ? 'bg-ok animate-pulse' : 'bg-ink/30'
                         }`}
                       />
                       {isPlaying ? 'Streaming speech briefing' : audioProgress > 0 ? 'Paused' : 'Ready'}
@@ -537,14 +537,14 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 </div>
 
                 {/* Main Action Buttons */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200/80 dark:border-neutral-800">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
                   <button
                     type="button"
                     onClick={handleTogglePlay}
-                    className={`h-8 px-4 rounded-lg flex items-center gap-2 text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                    className={`h-8 px-4 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
                       isPlaying
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                        : 'bg-neutral-900 hover:bg-black text-white dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200'
+                        ? 'bg-error hover:bg-error/90 text-on-ink'
+                        : 'bg-ink hover:bg-ink text-on-ink '
                     }`}
                   >
                     {isPlaying ? <Pause size={13} /> : <Play size={13} fill="currentColor" />}
@@ -555,7 +555,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <button
                       type="button"
                       onClick={() => setShowTranscript(!showTranscript)}
-                      className="h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 text-xs font-semibold flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300 transition-all cursor-pointer"
+                      className="h-8 px-3 rounded-lg border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer"
                     >
                       <span>{showTranscript ? 'Hide Script' : 'Transcript'}</span>
                       {showTranscript ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -563,19 +563,19 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <button
                       type="button"
                       onClick={copyTranscript}
-                      className="h-8 w-8 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 flex items-center justify-center text-neutral-700 dark:text-neutral-300 transition-all cursor-pointer"
+                      className="h-8 w-8 rounded-lg border border-border bg-panel hover:bg-ink/5 flex items-center justify-center text-ink transition-all cursor-pointer"
                       title="Copy script"
                     >
-                      {transcriptCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                      {transcriptCopied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
                     </button>
                   </div>
                 </div>
 
                 {/* Collapsible Transcript */}
                 {showTranscript && (
-                  <div className="p-3 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200/80 dark:border-neutral-800 text-xs space-y-1.5">
-                    <span className="text-[10px] font-bold text-neutral-400 uppercase block">Transcript</span>
-                    <p className="text-neutral-800 dark:text-neutral-200 leading-relaxed font-normal">
+                  <div className="p-3 bg-panel rounded-lg border border-border text-xs space-y-1.5">
+                    <span className="text-[10px] font-semibold text-faint uppercase block">Transcript</span>
+                    <p className="text-ink leading-relaxed font-normal">
                       {audioBriefing.script}
                     </p>
                   </div>
@@ -585,33 +585,33 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
             {/* Standup Side Metrics */}
             <div className="lg:col-span-4 space-y-3">
-              <div className="p-4 rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-850/60 space-y-3">
+              <div className="p-4 rounded-xl border border-border bg-ink/10 dark:bg-neutral-850/60 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-                    <Activity size={14} className="text-amber-500" />
+                  <span className="text-xs font-semibold uppercase text-ink flex items-center gap-1.5">
+                    <Activity size={14} className="text-warn" />
                     <span>Executive Metrics</span>
                   </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ok/10 text-ok font-semibold border border-ok/20">
                     ON TRACK
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                    <span className="text-[10px] text-neutral-400 uppercase font-medium block">Sprint Focus</span>
-                    <span className="font-bold text-neutral-900 dark:text-neutral-100 truncate block mt-0.5">
+                  <div className="p-2.5 rounded-lg bg-panel border border-border">
+                    <span className="text-[10px] text-faint uppercase font-medium block">Sprint Focus</span>
+                    <span className="font-semibold text-ink truncate block mt-0.5">
                       {sprints[0]?.name || 'Sprint 1'} Scope
                     </span>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                    <span className="text-[10px] text-neutral-400 uppercase font-medium block">INVEST Score</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                  <div className="p-2.5 rounded-lg bg-panel border border-border">
+                    <span className="text-[10px] text-faint uppercase font-medium block">INVEST Score</span>
+                    <span className="font-semibold text-ok block mt-0.5">
                       96% Ready
                     </span>
                   </div>
                 </div>
 
-                <p className="text-[11px] text-neutral-500 leading-relaxed pt-1">
+                <p className="text-[11px] text-muted leading-relaxed pt-1">
                   {perspective === 'business'
                     ? 'Highlights user journey milestones, launch runway, and beta feedback readiness.'
                     : 'Evaluates zero-trust security boundaries, database indexing, and async queue reliability.'}
@@ -624,20 +624,20 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
         {/* TAB 2: ARCHITECTURE & SERVICE TOPOLOGY MESH */}
         {activeTab === 'topology' && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-850/60 p-4 space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-neutral-200/80 dark:border-neutral-800">
+            <div className="rounded-xl border border-border bg-ink/10 dark:bg-neutral-850/60 p-4 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
                 <div>
-                  <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+                  <h4 className="text-xs font-semibold text-ink">
                     {topologyData.title}
                   </h4>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="text-[11px] text-muted">
                     {topologyData.description}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowDiagramModal(true)}
-                  className="px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold flex items-center gap-1 text-neutral-700 dark:text-neutral-300 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg border border-border bg-panel text-xs font-semibold flex items-center gap-1 text-ink cursor-pointer"
                 >
                   <Maximize2 size={12} />
                   <span>Blueprint Specs</span>
@@ -654,20 +654,20 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                       onClick={() => setSelectedTopologyNode(isSelected ? null : node.id)}
                       className={`p-3 rounded-xl border transition-all cursor-pointer relative ${
                         isSelected
-                          ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 shadow-xs'
-                          : 'border-neutral-200/90 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-neutral-300'
+                          ? 'border-agent-business-improver/30 bg-agent-business-improver/20 shadow-xs'
+                          : 'border-border bg-panel hover:border-border'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold uppercase text-neutral-400">
+                        <span className="text-[10px] font-semibold uppercase text-faint">
                           Tier 0{idx + 1}
                         </span>
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span className="h-2 w-2 rounded-full bg-ok" />
                       </div>
-                      <span className="text-xs font-bold block text-neutral-900 dark:text-neutral-100">
+                      <span className="text-xs font-semibold block text-ink">
                         {node.label}
                       </span>
-                      <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block mt-1">
+                      <span className="text-[11px] text-muted block mt-1">
                         {node.tech}
                       </span>
                     </div>
@@ -676,14 +676,14 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
               </div>
 
               {/* Protocol Connectors Legend */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs border-t border-neutral-200/80 dark:border-neutral-800">
-                <div className="flex items-center gap-3 text-neutral-500 text-[11px]">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs border-t border-border">
+                <div className="flex items-center gap-3 text-muted text-[11px]">
                   <span>Protocols: <strong>HTTPS / WSS</strong> → <strong>gRPC mTLS</strong> → <strong>TCP Pool</strong></span>
                 </div>
                 <button
                   type="button"
                   onClick={() => onOpenCopilot('Generate complete OpenAPI 3.1 contract and database schema migration for this architecture.')}
-                  className="h-7 px-3 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="h-7 px-3 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                 >
                   <FileCode2 size={12} />
                   <span>Generate OpenAPI & Schemas</span>
@@ -697,23 +697,23 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
         {activeTab === 'velocity' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             <div className="lg:col-span-8">
-              <div className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-850/60 p-4 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-neutral-200/80 dark:border-neutral-800">
+              <div className="rounded-xl border border-border bg-ink/10 dark:bg-neutral-850/60 p-4 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
                   <div>
-                    <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+                    <h4 className="text-xs font-semibold text-ink">
                       {burndownChartData.title}
                     </h4>
-                    <p className="text-[11px] text-neutral-500">{burndownChartData.description}</p>
+                    <p className="text-[11px] text-muted">{burndownChartData.description}</p>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase border border-emerald-500/20">
+                  <span className="px-2 py-0.5 rounded-full bg-ok/10 text-ok text-[10px] font-semibold uppercase border border-ok/20">
                     Live Telemetry
                   </span>
                 </div>
 
                 {/* SVG Chart Bars */}
-                <div className="h-44 w-full relative pt-3 pb-6 px-3 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200/80 dark:border-neutral-800">
+                <div className="h-44 w-full relative pt-3 pb-6 px-3 bg-panel rounded-lg border border-border">
                   <div className="h-full flex items-end justify-between gap-1.5 pt-4 relative">
-                    <div className="absolute left-0 right-0 bottom-6 border-b border-dashed border-neutral-200 dark:border-neutral-800" />
+                    <div className="absolute left-0 right-0 bottom-6 border-b border-dashed border-border" />
                     {burndownChartData.data.map((item, idx) => {
                       const maxVal = 50;
                       const idealH = Math.min(100, Math.max(8, (item.ideal / maxVal) * 100));
@@ -723,16 +723,16 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                           <div className="w-full flex items-end justify-center gap-1 h-[80%]">
                             <div
                               style={{ height: `${idealH}%` }}
-                              className="w-2 sm:w-2.5 bg-neutral-200 dark:bg-neutral-700 rounded-t-xs"
+                              className="w-2 sm:w-2.5 bg-surface-high rounded-t-xs"
                               title={`Ideal: ${item.ideal} pts`}
                             />
                             <div
                               style={{ height: `${actualH}%` }}
-                              className="w-2.5 sm:w-3.5 bg-emerald-500 rounded-t-xs"
+                              className="w-2.5 sm:w-3.5 bg-ok rounded-t-xs"
                               title={`Actual: ${item.actual} pts`}
                             />
                           </div>
-                          <span className="text-[10px] font-semibold mt-1.5 truncate max-w-full text-center text-neutral-500">
+                          <span className="text-[10px] font-semibold mt-1.5 truncate max-w-full text-center text-muted">
                             {item.day.replace('Day ', 'D')}
                           </span>
                         </div>
@@ -741,10 +741,10 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-neutral-500 pt-1">
+                <div className="flex items-center justify-between text-xs text-muted pt-1">
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Actual Burn</span>
-                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700" /> Target Curve</span>
+                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ok" /> Actual Burn</span>
+                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-surface-high" /> Target Curve</span>
                   </div>
                   <span>100% on pace for milestone deployment</span>
                 </div>
@@ -753,30 +753,30 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
             {/* Velocity Metrics Panel */}
             <div className="lg:col-span-4 space-y-3">
-              <div className="p-4 rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-850/60 space-y-3">
-                <span className="text-xs font-bold uppercase text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-                  <TrendingUp size={14} className="text-sky-500" />
+              <div className="p-4 rounded-xl border border-border bg-ink/10 dark:bg-neutral-850/60 space-y-3">
+                <span className="text-xs font-semibold uppercase text-ink flex items-center gap-1.5">
+                  <TrendingUp size={14} className="text-accent" />
                   <span>Velocity Statistics</span>
                 </span>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                    <span className="text-neutral-500">Target Points:</span>
-                    <strong className="text-neutral-900 dark:text-neutral-100">50 pts</strong>
+                  <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-panel border border-border">
+                    <span className="text-muted">Target Points:</span>
+                    <strong className="text-ink">50 pts</strong>
                   </div>
-                  <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                    <span className="text-neutral-500">Current Velocity:</span>
-                    <strong className="text-emerald-600 dark:text-emerald-400">42 pts / sprint</strong>
+                  <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-panel border border-border">
+                    <span className="text-muted">Current Velocity:</span>
+                    <strong className="text-ok">42 pts / sprint</strong>
                   </div>
-                  <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                    <span className="text-neutral-500">Milestone ETA:</span>
-                    <strong className="text-neutral-900 dark:text-neutral-100">Day 10 (On Schedule)</strong>
+                  <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-panel border border-border">
+                    <span className="text-muted">Milestone ETA:</span>
+                    <strong className="text-ink">Day 10 (On Schedule)</strong>
                   </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => onOpenCopilot('Analyze sprint burndown velocity and suggest resource reallocations to avoid slippage.')}
-                  className="w-full h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 text-xs font-semibold text-neutral-800 dark:text-neutral-200 flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full h-8 px-3 rounded-lg border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Bot size={13} />
                   <span>Analyze Velocity in Copilot</span>
@@ -789,32 +789,32 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
         {/* TAB 4: INVEST USER STORIES */}
         {activeTab === 'stories' && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-850/60 p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-neutral-200/80 dark:border-neutral-800">
+            <div className="rounded-xl border border-border bg-ink/10 dark:bg-neutral-850/60 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-border">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 rounded bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded bg-ink text-on-ink text-[10px] font-semibold">
                       {sampleStory.id}
                     </span>
-                    <span className="text-[11px] font-bold text-neutral-500">
+                    <span className="text-[11px] font-semibold text-muted">
                       Epic: {sampleStory.epic}
                     </span>
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-ok/10 text-ok border border-ok/20">
                       INVEST: {sampleStory.investScore}%
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  <h4 className="text-sm font-semibold text-ink">
                     {sampleStory.title}
                   </h4>
                 </div>
-                <span className="px-2 py-1 rounded-lg bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 text-xs font-bold">
+                <span className="px-2 py-1 rounded-lg bg-surface-high text-ink text-xs font-semibold">
                   {sampleStory.points} pts
                 </span>
               </div>
 
               {/* Acceptance Criteria Checklist */}
               <div className="space-y-2">
-                <span className="text-[11px] font-bold uppercase text-neutral-400 block">
+                <span className="text-[11px] font-semibold uppercase text-faint block">
                   Acceptance Criteria (Checkable):
                 </span>
                 {sampleStory.acceptanceCriteria.map((c, idx) => {
@@ -823,15 +823,15 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <div
                       key={idx}
                       onClick={() => setCheckedCriteria((prev) => ({ ...prev, [idx]: !prev[idx] }))}
-                      className="flex items-start gap-2.5 p-2 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 cursor-pointer hover:border-neutral-300 text-xs"
+                      className="flex items-start gap-2.5 p-2 rounded-lg bg-panel border border-border cursor-pointer hover:border-border text-xs"
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}}
-                        className="mt-0.5 h-3.5 w-3.5 rounded text-indigo-600 focus:ring-0 cursor-pointer"
+                        className="mt-0.5 h-3.5 w-3.5 rounded text-agent-business-improver focus:ring-0 cursor-pointer"
                       />
-                      <span className={isChecked ? 'line-through text-neutral-400' : 'text-neutral-800 dark:text-neutral-200'}>
+                      <span className={isChecked ? 'line-through text-faint' : 'text-ink'}>
                         {c}
                       </span>
                     </div>
@@ -839,14 +839,14 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 })}
               </div>
 
-              <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200/80 dark:border-neutral-800">
-                <span className="text-xs text-neutral-500">
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+                <span className="text-xs text-muted">
                   {Object.values(checkedCriteria).filter(Boolean).length} of {sampleStory.acceptanceCriteria.length} criteria satisfied
                 </span>
                 <button
                   type="button"
                   onClick={() => onOpenCopilot('Generate 5 more INVEST-compliant user stories with automated Gherkin test criteria.')}
-                  className="h-8 px-3.5 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="h-8 px-3.5 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <BookmarkPlus size={13} />
                   <span>Generate More Stories</span>
@@ -858,52 +858,52 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
         {/* TAB 5: RISK & BOTTLENECK SIMULATION */}
         {activeTab === 'risk' && (
-          <div className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-850/60 p-4 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-neutral-200/80 dark:border-neutral-800">
+          <div className="rounded-xl border border-border bg-ink/10 dark:bg-neutral-850/60 p-4 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-error/10 text-error border border-error/20">
                   <AlertTriangle size={15} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+                  <h4 className="text-xs font-semibold text-ink">
                     Monte Carlo Sprint Delivery Risk Simulation
                   </h4>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="text-[11px] text-muted">
                     1,000 simulated sprint paths assessing dependency bottlenecks & developer velocity
                   </p>
                 </div>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-ok/10 text-ok border border-ok/20 text-[10px] font-semibold">
                 LOW RISK (14% Variance)
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 space-y-1">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase">Schema Migration</span>
-                <strong className="block text-neutral-900 dark:text-neutral-100 text-sm">Low Impact · 4%</strong>
-                <p className="text-[11px] text-neutral-500">PostgreSQL migration scripts isolated with zero-downtime column additions.</p>
+              <div className="p-3 rounded-lg bg-panel border border-border space-y-1">
+                <span className="text-[10px] font-semibold text-faint uppercase">Schema Migration</span>
+                <strong className="block text-ink text-sm">Low Impact · 4%</strong>
+                <p className="text-[11px] text-muted">PostgreSQL migration scripts isolated with zero-downtime column additions.</p>
               </div>
-              <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 space-y-1">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase">API Rate Limits</span>
-                <strong className="block text-amber-600 dark:text-amber-400 text-sm">Medium Impact · 18%</strong>
-                <p className="text-[11px] text-neutral-500">Third-party service quotas require client-side token bucket buffering.</p>
+              <div className="p-3 rounded-lg bg-panel border border-border space-y-1">
+                <span className="text-[10px] font-semibold text-faint uppercase">API Rate Limits</span>
+                <strong className="block text-warn text-sm">Medium Impact · 18%</strong>
+                <p className="text-[11px] text-muted">Third-party service quotas require client-side token bucket buffering.</p>
               </div>
-              <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 space-y-1">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase">RBAC Policy Coverage</span>
-                <strong className="block text-emerald-600 dark:text-emerald-400 text-sm">Zero Risk · 2%</strong>
-                <p className="text-[11px] text-neutral-500">Zero-trust policies pre-audited and covered with integration suites.</p>
+              <div className="p-3 rounded-lg bg-panel border border-border space-y-1">
+                <span className="text-[10px] font-semibold text-faint uppercase">RBAC Policy Coverage</span>
+                <strong className="block text-ok text-sm">Zero Risk · 2%</strong>
+                <p className="text-[11px] text-muted">Zero-trust policies pre-audited and covered with integration suites.</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200/80 dark:border-neutral-800">
-              <span className="text-[11px] text-neutral-500">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+              <span className="text-[11px] text-muted">
                 Recommendation: Add a 2-day buffer for third-party webhook rate-limiting soak tests.
               </span>
               <button
                 type="button"
                 onClick={() => onOpenCopilot('Formulate an actionable risk mitigation plan and sprint buffer strategy for these bottlenecks.')}
-                className="h-8 px-3.5 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="h-8 px-3.5 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Zap size={13} />
                 <span>Apply Risk Mitigation in Copilot</span>
@@ -914,9 +914,9 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
       </div>
 
       {/* Row: Mixed Media Prompt Action Chips */}
-      <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-neutral-200/80 dark:border-neutral-800">
-        <span className="text-[11px] font-bold uppercase text-neutral-400 mr-1 flex items-center gap-1">
-          <Bot size={13} className="text-amber-500" />
+      <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-border">
+        <span className="text-[11px] font-semibold uppercase text-faint mr-1 flex items-center gap-1">
+          <Bot size={13} className="text-warn" />
           <span>Copilot Directives:</span>
         </span>
         {quickPrompts.map((item, idx) => (
@@ -924,7 +924,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             key={idx}
             type="button"
             onClick={() => onOpenCopilot(item.prompt)}
-            className="text-xs h-7 px-2.5 rounded-md bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 border border-neutral-200/80 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 cursor-pointer transition-all flex items-center gap-1"
+            className="text-xs h-7 px-2.5 rounded-md bg-panel-alt hover:bg-ink/5 border border-border text-ink cursor-pointer transition-all flex items-center gap-1"
           >
             <span>{item.label}</span>
           </button>
@@ -936,17 +936,17 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
   return (
     <>
       {/* PERSISTENT INLINE EXECUTIVE BAR */}
-      <div className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-white/95 dark:bg-[#10121A]/95 shadow-xs p-3.5 font-sans space-y-3">
+      <div className="rounded-xl border border-border bg-panel/95 shadow-xs p-3.5 font-sans space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold shrink-0">
-              <Sparkles size={14} className="text-amber-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink font-semibold shrink-0">
+              <Sparkles size={14} className="text-warn" />
             </div>
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink flex items-center gap-1.5">
                 <span>MEDIA INTELLIGENCE HUB</span>
               </h3>
-              <p className="text-[11px] text-neutral-500">
+              <p className="text-[11px] text-muted">
                 {initiative.name} · Executive Telemetry & Synthetic Artifacts
               </p>
             </div>
@@ -954,14 +954,14 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Perspective Switcher */}
-            <div className="flex items-center p-0.5 bg-neutral-200/70 dark:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-700">
+            <div className="flex items-center p-0.5 bg-ink/10 rounded-lg border border-border">
               <button
                 type="button"
                 onClick={() => handlePerspectiveToggle('business')}
                 className={`px-2 py-0.5 text-xs font-semibold rounded transition-all cursor-pointer flex items-center gap-1 ${
                   perspective === 'business'
-                    ? 'bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs font-bold'
-                    : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-950'
+                    ? 'bg-panel text-ink shadow-2xs font-semibold'
+                    : 'text-muted hover:text-ink'
                 }`}
                 title="Business View: Customer outcomes & milestones"
               >
@@ -972,8 +972,8 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 onClick={() => handlePerspectiveToggle('technical')}
                 className={`px-2 py-0.5 text-xs font-semibold rounded transition-all cursor-pointer flex items-center gap-1 ${
                   perspective === 'technical'
-                    ? 'bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs font-bold'
-                    : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-950'
+                    ? 'bg-panel text-ink shadow-2xs font-semibold'
+                    : 'text-muted hover:text-ink'
                 }`}
                 title="Technical View: Architecture, schemas & SLAs"
               >
@@ -983,11 +983,11 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
             {/* Key Telemetry Badges */}
             <div className="hidden sm:flex items-center gap-2 text-xs font-semibold">
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px]">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-ok/10 text-ok border border-ok/20 text-[11px]">
+                <span className="h-1.5 w-1.5 rounded-full bg-ok" />
                 96% INVEST
               </span>
-              <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20 text-[11px]">
+              <span className="px-2 py-0.5 rounded bg-info/10 text-info border border-info/20 text-[11px]">
                 88% Confidence
               </span>
             </div>
@@ -996,7 +996,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             <button
               type="button"
               onClick={() => setIsExpandedInline((v) => !v)}
-              className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 text-xs font-bold flex items-center gap-1.5 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 cursor-pointer"
+              className="h-8 px-2.5 rounded-lg border border-border text-xs font-semibold flex items-center gap-1.5 bg-panel hover:bg-ink/5 cursor-pointer"
               title={isExpandedInline ? 'Collapse Intelligence Hub' : 'Expand Intelligence Hub inline'}
             >
               {isExpandedInline ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -1007,7 +1007,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 text-xs font-bold flex items-center gap-1.5 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 cursor-pointer"
+              className="h-8 px-2.5 rounded-lg border border-border text-xs font-semibold flex items-center gap-1.5 bg-panel hover:bg-ink/5 cursor-pointer"
               title="Open full slide-over drawer"
             >
               <Maximize2 size={13} />
@@ -1018,14 +1018,14 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             <button
               type="button"
               onClick={() => onOpenCopilot()}
-              className={`h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+              className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
                 copilotOpen
-                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                  : 'border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50'
+                  ? 'bg-ink text-on-ink '
+                  : 'border border-border bg-panel text-ink hover:bg-ink/5'
               }`}
               title="Ask Copilot about this initiative"
             >
-              <Bot size={13} className={copilotOpen ? 'text-amber-400' : 'text-neutral-500'} />
+              <Bot size={13} className={copilotOpen ? 'text-warn' : 'text-muted'} />
               <span className="hidden sm:inline">Copilot</span>
             </button>
           </div>
@@ -1033,7 +1033,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
         {/* If expanded inline or on overview tab, render deck content */}
         {(isExpandedInline || isOverviewTab) && (
-          <div className="pt-2 border-t border-neutral-200/80 dark:border-neutral-800">
+          <div className="pt-2 border-t border-border">
             {renderDeckContent()}
           </div>
         )}
@@ -1048,26 +1048,26 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
         >
           {/* Backdrop overlay */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setDrawerOpen(false)}
           />
 
           {/* Drawer Sheet */}
-          <div className="relative w-full max-w-2xl sm:max-w-3xl bg-white dark:bg-[#10121A] text-neutral-900 dark:text-neutral-100 shadow-2xl border-l border-neutral-200/90 dark:border-neutral-800 flex flex-col h-full z-10 overflow-hidden">
+          <div className="relative w-full max-w-2xl sm:max-w-3xl bg-panel text-ink shadow-2xl border-l border-border flex flex-col h-full z-10 overflow-hidden">
             {/* Drawer Header */}
-            <div className="px-5 py-3.5 border-b border-neutral-200/80 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-3 bg-neutral-50/80 dark:bg-neutral-900/80">
+            <div className="px-5 py-3.5 border-b border-border flex flex-wrap items-center justify-between gap-3 bg-ink/10">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold">
-                  <Sparkles size={14} className="text-amber-400" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink font-semibold">
+                  <Sparkles size={14} className="text-warn" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-ink flex items-center gap-1.5">
                     <span>MEDIA INTELLIGENCE HUB</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-bold uppercase">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-warn/10 text-warn border border-warn/20 font-semibold uppercase">
                       Drawer
                     </span>
                   </h3>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="text-[11px] text-muted">
                     {initiative.name} · Executive Telemetry & Synthetic Artifacts
                   </p>
                 </div>
@@ -1075,14 +1075,14 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
               <div className="flex items-center gap-2">
                 {/* Perspective Switcher */}
-                <div className="flex items-center p-0.5 bg-neutral-200/70 dark:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-700">
+                <div className="flex items-center p-0.5 bg-ink/10 rounded-lg border border-border">
                   <button
                     type="button"
                     onClick={() => handlePerspectiveToggle('business')}
                     className={`px-2 py-0.5 text-xs font-semibold rounded transition-all cursor-pointer flex items-center gap-1 ${
                       perspective === 'business'
-                        ? 'bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs font-bold'
-                        : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-950'
+                        ? 'bg-panel text-ink shadow-2xs font-semibold'
+                        : 'text-muted hover:text-ink'
                     }`}
                     title="Business View: Customer outcomes & milestones"
                   >
@@ -1093,8 +1093,8 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     onClick={() => handlePerspectiveToggle('technical')}
                     className={`px-2 py-0.5 text-xs font-semibold rounded transition-all cursor-pointer flex items-center gap-1 ${
                       perspective === 'technical'
-                        ? 'bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs font-bold'
-                        : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-950'
+                        ? 'bg-panel text-ink shadow-2xs font-semibold'
+                        : 'text-muted hover:text-ink'
                     }`}
                     title="Technical View: Architecture, schemas & SLAs"
                   >
@@ -1106,14 +1106,14 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 <button
                   type="button"
                   onClick={() => onOpenCopilot()}
-                  className={`h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                  className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
                     copilotOpen
-                      ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                      : 'border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50'
+                      ? 'bg-ink text-on-ink '
+                      : 'border border-border bg-panel text-ink hover:bg-ink/5'
                   }`}
                   title="Ask Copilot about this initiative"
                 >
-                  <Bot size={13} className={copilotOpen ? 'text-amber-400' : 'text-neutral-500'} />
+                  <Bot size={13} className={copilotOpen ? 'text-warn' : 'text-muted'} />
                   <span className="hidden sm:inline">Copilot</span>
                 </button>
 
@@ -1121,7 +1121,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(false)}
-                  className="h-8 w-8 rounded-lg border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                  className="h-8 w-8 rounded-lg border border-border text-muted flex items-center justify-center hover:bg-ink/5 cursor-pointer"
                   title="Close Drawer"
                 >
                   <X size={15} />
@@ -1130,13 +1130,13 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             </div>
 
             {/* Quick Voice & Telemetry Strip */}
-            <div className="px-5 py-2.5 bg-neutral-100/60 dark:bg-neutral-900/40 border-b border-neutral-200/80 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="px-5 py-2.5 bg-ink/10 border-b border-border flex flex-wrap items-center justify-between gap-3 text-xs">
               {/* Mini Audio Player */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleTogglePlay}
-                  className="h-6 w-6 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center cursor-pointer hover:opacity-90"
+                  className="h-6 w-6 rounded-full bg-ink text-on-ink flex items-center justify-center cursor-pointer hover:opacity-90"
                   title={isPlaying ? 'Pause audio' : 'Play audio standup'}
                 >
                   {isPlaying ? <Pause size={10} /> : <Play size={10} fill="currentColor" />}
@@ -1148,7 +1148,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <div
                       key={i}
                       className={`flex-1 rounded-t-xs transition-all ${
-                        isPlaying ? 'bg-amber-500 animate-pulse' : 'bg-neutral-300 dark:bg-neutral-600'
+                        isPlaying ? 'bg-warn animate-pulse' : 'bg-surface-high'
                       }`}
                       style={{
                         height: isPlaying ? `${Math.max(25, (h + (i % 3) * 15) % 100)}%` : '30%',
@@ -1157,21 +1157,21 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                   ))}
                 </div>
 
-                <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">
+                <span className="text-[11px] font-semibold text-ink">
                   Voice Standup ({audioBriefing.narrator.split('·')[0].trim()})
                 </span>
               </div>
 
               {/* Key Telemetry Badges */}
               <div className="flex items-center gap-2 text-xs font-semibold">
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-ok/10 text-ok border border-ok/20 text-[11px]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ok" />
                   96% INVEST
                 </span>
-                <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20 text-[11px]">
+                <span className="px-2 py-0.5 rounded bg-info/10 text-info border border-info/20 text-[11px]">
                   88% Confidence
                 </span>
-                <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20 text-[11px]">
+                <span className="px-2 py-0.5 rounded bg-agent-business-improver/10 text-agent-business-improver border border-agent-business-improver/20 text-[11px]">
                   {sprints.length || 4}/{sprints.length || 4} Sprints
                 </span>
               </div>
@@ -1187,18 +1187,18 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
 
       {/* FULLSCREEN BLUEPRINT SPECIFICATION MODAL */}
       {showDiagramModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
-          <div className="w-full max-w-2xl rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141D] p-6 shadow-2xl text-neutral-900 dark:text-neutral-100 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-200/80 dark:border-neutral-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs font-sans">
+          <div className="w-full max-w-2xl rounded-2xl border border-border bg-panel p-6 shadow-2xl text-ink space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-base font-bold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-agent-business-improver/10 text-agent-business-improver border border-agent-business-improver/20 text-base font-semibold">
                   🏛️
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  <h3 className="text-sm font-semibold text-ink">
                     {initiative.name} · Full Architecture Blueprint
                   </h3>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="text-[11px] text-muted">
                     Multi-tier service mesh specification and protocol boundaries
                   </p>
                 </div>
@@ -1206,41 +1206,41 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
               <button
                 type="button"
                 onClick={() => setShowDiagramModal(false)}
-                className="h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-700 text-xs font-semibold cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                className="h-8 px-3 rounded-lg border border-border text-xs font-semibold cursor-pointer hover:bg-ink/5"
               >
                 Close
               </button>
             </div>
 
-            <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200/80 dark:border-neutral-750 space-y-3">
+            <div className="p-4 rounded-xl bg-panel dark:bg-neutral-850 border border-border dark:border-neutral-750 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-center text-xs">
-                <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                  <span className="text-[10px] font-bold uppercase block text-neutral-400">Presentation</span>
-                  <span className="font-bold text-sm block mt-1 text-neutral-900 dark:text-neutral-100">Web Client</span>
-                  <span className="text-[11px] block mt-1 text-neutral-500">React 18 · Vite · Tailwind</span>
+                <div className="p-3 rounded-lg bg-panel border border-border">
+                  <span className="text-[10px] font-semibold uppercase block text-faint">Presentation</span>
+                  <span className="font-semibold text-sm block mt-1 text-ink">Web Client</span>
+                  <span className="text-[11px] block mt-1 text-muted">React 18 · Vite · Tailwind</span>
                 </div>
-                <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                  <span className="text-[10px] font-bold uppercase block text-neutral-400">Routing & Auth</span>
-                  <span className="font-bold text-sm block mt-1 text-neutral-900 dark:text-neutral-100">API Gateway</span>
-                  <span className="text-[11px] block mt-1 text-neutral-500">OAuth2 · Rate Limiting</span>
+                <div className="p-3 rounded-lg bg-panel border border-border">
+                  <span className="text-[10px] font-semibold uppercase block text-faint">Routing & Auth</span>
+                  <span className="font-semibold text-sm block mt-1 text-ink">API Gateway</span>
+                  <span className="text-[11px] block mt-1 text-muted">OAuth2 · Rate Limiting</span>
                 </div>
-                <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                  <span className="text-[10px] font-bold uppercase block text-neutral-400">Computation</span>
-                  <span className="font-bold text-sm block mt-1 text-neutral-900 dark:text-neutral-100">Agent Fleet</span>
-                  <span className="text-[11px] block mt-1 text-neutral-500">Worker Queues</span>
+                <div className="p-3 rounded-lg bg-panel border border-border">
+                  <span className="text-[10px] font-semibold uppercase block text-faint">Computation</span>
+                  <span className="font-semibold text-sm block mt-1 text-ink">Agent Fleet</span>
+                  <span className="text-[11px] block mt-1 text-muted">Worker Queues</span>
                 </div>
-                <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700">
-                  <span className="text-[10px] font-bold uppercase block text-neutral-400">Data Layer</span>
-                  <span className="font-bold text-sm block mt-1 text-neutral-900 dark:text-neutral-100">PostgreSQL</span>
-                  <span className="text-[11px] block mt-1 text-neutral-500">Prisma ORM · Redis Cache</span>
+                <div className="p-3 rounded-lg bg-panel border border-border">
+                  <span className="text-[10px] font-semibold uppercase block text-faint">Data Layer</span>
+                  <span className="font-semibold text-sm block mt-1 text-ink">PostgreSQL</span>
+                  <span className="text-[11px] block mt-1 text-muted">Prisma ORM · Redis Cache</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 text-xs leading-relaxed space-y-1">
-                <span className="font-bold text-neutral-900 dark:text-neutral-100 text-[11px] block">
+              <div className="p-3 rounded-lg bg-panel border border-border text-xs leading-relaxed space-y-1">
+                <span className="font-semibold text-ink text-[11px] block">
                   System Specifications & Protocols:
                 </span>
-                <ul className="list-disc list-inside space-y-1 text-neutral-600 dark:text-neutral-300 text-xs">
+                <ul className="list-disc list-inside space-y-1 text-muted text-xs">
                   <li>Zero-trust inter-service communications over encrypted gRPC / TLS.</li>
                   <li>Target SLA: sub-50ms p99 response times on edge endpoints.</li>
                   <li>Multi-tenant row-level security enforced in the PostgreSQL connection pool.</li>
@@ -1255,7 +1255,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                   setShowDiagramModal(false);
                   onOpenCopilot('Generate complete OpenAPI specification and schema files for this architecture.');
                 }}
-                className="h-8 px-4 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-bold text-xs cursor-pointer shadow-xs"
+                className="h-8 px-4 rounded-lg bg-ink text-on-ink font-semibold text-xs cursor-pointer shadow-xs"
               >
                 Ask Copilot to Generate Specs
               </button>

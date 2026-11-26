@@ -145,8 +145,8 @@ const INITIAL_PROJECT_TREE: TreeNode[] = [
         type: "folder",
         path: "src/api",
         children: [
-          { name: "auth.ts", type: "file", path: "src/api/auth.ts", badge: "PKCE", badgeColor: "bg-emerald-400 text-black" },
-          { name: "checkout.ts", type: "file", path: "src/api/checkout.ts", badge: "Stripe", badgeColor: "bg-cyan-400 text-black" },
+          { name: "auth.ts", type: "file", path: "src/api/auth.ts", badge: "PKCE", badgeColor: "bg-ok text-on-ink" },
+          { name: "checkout.ts", type: "file", path: "src/api/checkout.ts", badge: "Stripe", badgeColor: "bg-info text-on-ink" },
           { name: "webhooks.ts", type: "file", path: "src/api/webhooks.ts" },
         ],
       },
@@ -165,7 +165,7 @@ const INITIAL_PROJECT_TREE: TreeNode[] = [
         type: "folder",
         path: "src/db",
         children: [
-          { name: "schema.ts", type: "file", path: "src/db/schema.ts", badge: "Neon", badgeColor: "bg-purple-400 text-black" },
+          { name: "schema.ts", type: "file", path: "src/db/schema.ts", badge: "Neon", badgeColor: "bg-panel-alt text-ink" },
           { name: "migrations.ts", type: "file", path: "src/db/migrations.ts" },
         ],
       },
@@ -174,7 +174,7 @@ const INITIAL_PROJECT_TREE: TreeNode[] = [
         type: "folder",
         path: "src/tests",
         children: [
-          { name: "auth.test.ts", type: "file", path: "src/tests/auth.test.ts", badge: "42/42", badgeColor: "bg-emerald-400 text-black" },
+          { name: "auth.test.ts", type: "file", path: "src/tests/auth.test.ts", badge: "42/42", badgeColor: "bg-ok text-on-ink" },
           { name: "billing.test.ts", type: "file", path: "src/tests/billing.test.ts" },
         ],
       },
@@ -306,13 +306,13 @@ function addSynthesizedFilesToTree(currentTree: TreeNode[], files: SynthesizedFi
       let badgeColor: string | undefined;
       if (fileName.includes("Map")) {
         badge = "Maps";
-        badgeColor = "bg-emerald-400 text-black";
+        badgeColor = "bg-ok text-on-ink";
       } else if (fileName.includes("maps")) {
         badge = "API";
-        badgeColor = "bg-amber-400 text-black";
+        badgeColor = "bg-warn text-on-ink";
       } else if (fileName.endsWith(".test.tsx") || fileName.endsWith(".test.ts")) {
         badge = "QA";
-        badgeColor = "bg-cyan-400 text-black";
+        badgeColor = "bg-info text-on-ink";
       }
       currentLevel.push({
         name: fileName,
@@ -340,7 +340,7 @@ const LIVING_AGENTS_DATA = [
     name: "Architect Agent",
     role: "System Topology & RFC 7636 PKCE",
     status: "Active in Memory",
-    color: "bg-amber-400",
+    color: "bg-warn",
     token: "4.2k tokens",
     confidence: "98.4%",
     task: "DAG topology validated · 0 circular dependencies",
@@ -349,7 +349,7 @@ const LIVING_AGENTS_DATA = [
     name: "Builder Agent",
     role: "Code Synthesis & Router Handlers",
     status: "Synthesis Complete",
-    color: "bg-cyan-400",
+    color: "bg-info",
     token: "8.7k tokens",
     confidence: "99.1%",
     task: "Generated 14 files with strict TypeScript validation",
@@ -358,7 +358,7 @@ const LIVING_AGENTS_DATA = [
     name: "QA Engine",
     role: "Vitest Assertions & Coverage",
     status: "42/42 Tests Passing",
-    color: "bg-emerald-400",
+    color: "bg-ok",
     token: "2.1k tokens",
     confidence: "100%",
     task: "Zero regressions across Auth & Billing test matrices",
@@ -367,7 +367,7 @@ const LIVING_AGENTS_DATA = [
     name: "Security Auditor",
     role: "OAuth 2.1 & Token Sanitization",
     status: "Zero Vulnerabilities",
-    color: "bg-purple-400",
+    color: "bg-panel-alt",
     token: "3.8k tokens",
     confidence: "99.9%",
     task: "Passed OWASP Top 10 + timing-attack constant-time checks",
@@ -847,17 +847,17 @@ export default function WorkspacePage() {
             {/* Minimal Bottom Prompt Bar */}
             <div
               id="workspace-command-deck"
-              className="rounded-xl border border-border bg-[#0B0F19] text-slate-200 p-2.5 shadow-apple font-mono space-y-2.5 shrink-0"
+              className="rounded-xl border border-border bg-ink text-muted p-2.5 shadow-apple font-mono space-y-2.5 shrink-0"
             >
               {logsExpanded && (
-                <div className="p-3 bg-black/50 border border-white/10 rounded-lg max-h-40 overflow-y-auto space-y-1.5 text-xs text-slate-300">
+                <div className="p-3 bg-base/60 border border-border rounded-lg max-h-40 overflow-y-auto space-y-1.5 text-xs text-muted">
                   {logsList.map((log, idx) => (
                     <div key={idx} className="flex items-start gap-2">
-                      <span className="text-slate-500 shrink-0 tabular-nums">[{log.time}]</span>
-                      <span className="text-sky-400 font-medium shrink-0">&lt;{log.agent}&gt;</span>
+                      <span className="text-muted shrink-0 tabular-nums">[{log.time}]</span>
+                      <span className="text-accent font-medium shrink-0">&lt;{log.agent}&gt;</span>
                       <span
                         className={
-                          log.level === "success" ? "text-emerald-400" : "text-slate-200"
+                          log.level === "success" ? "text-ok" : "text-muted"
                         }
                       >
                         {log.message}
@@ -874,8 +874,8 @@ export default function WorkspacePage() {
                 }}
                 className="flex items-center gap-2"
               >
-                <div className="relative flex-1 h-10 flex items-center rounded-lg border border-white/15 bg-white/[0.04] focus-within:border-accent/70 focus-within:ring-2 focus-within:ring-accent/30 transition-colors">
-                  <span className="pl-3 pr-1 text-emerald-400 font-semibold text-sm select-none">
+                <div className="relative flex-1 h-10 flex items-center rounded-lg border border-border bg-ink/[0.04] focus-within:border-accent/70 focus-within:ring-2 focus-within:ring-accent/30 transition-colors">
+                  <span className="pl-3 pr-1 text-ok font-semibold text-sm select-none">
                     &gt;
                   </span>
                   <input
@@ -884,7 +884,7 @@ export default function WorkspacePage() {
                     value={intentInput}
                     onChange={(e) => setIntentInput(e.target.value)}
                     placeholder="Describe a feature or change to synthesize..."
-                    className="w-full h-full px-2 bg-transparent text-xs sm:text-sm text-white placeholder-slate-500 outline-none font-mono"
+                    className="w-full h-full px-2 bg-transparent text-xs sm:text-sm text-ink placeholder-faint outline-none font-mono"
                   />
                   <div className="pr-2">
                     <VoiceInputButton
@@ -907,8 +907,8 @@ export default function WorkspacePage() {
                   title={logsExpanded ? "Hide logs" : "Show logs"}
                   className={`h-10 px-3 rounded-lg border text-xs font-sans font-medium inline-flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer ${
                     logsExpanded
-                      ? "bg-white/15 text-white border-white/25"
-                      : "bg-white/5 text-slate-300 border-white/15 hover:bg-white/10"
+                      ? "bg-ink/15 text-ink border-border"
+                      : "bg-ink/5 text-muted border-border hover:bg-ink/10"
                   }`}
                 >
                   <Terminal size={13} />
@@ -919,7 +919,7 @@ export default function WorkspacePage() {
                   type="submit"
                   id="ws-execute-btn"
                   disabled={!intentInput.trim() || isBuilding}
-                  className="h-10 px-4 rounded-lg bg-accent hover:bg-ember-glow text-white font-sans font-medium text-xs disabled:opacity-40 inline-flex items-center gap-2 shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className="h-10 px-4 rounded-lg bg-accent hover:bg-ember-glow text-on-ink font-sans font-medium text-xs disabled:opacity-40 inline-flex items-center gap-2 shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   {isBuilding ? (
                     <>
@@ -941,7 +941,7 @@ export default function WorkspacePage() {
 
       {/* Files Explorer Modal */}
       {filesExplorerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-base/60 backdrop-blur-xs p-4">
           <div
             role="dialog"
             aria-modal="true"
@@ -1081,7 +1081,7 @@ export default function WorkspacePage() {
 
       {/* Living Agents Modal */}
       {agentsInspectorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-base/60 backdrop-blur-xs p-4">
           <div
             role="dialog"
             aria-modal="true"

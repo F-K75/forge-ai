@@ -190,35 +190,35 @@ function getStatusBadge(status?: string) {
   if (s === "generating" || s === "planning") {
     return {
       label: "Planning",
-      bg: "bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-      dot: "bg-blue-600 animate-ping",
+      bg: "bg-info/10 text-info border-info/30",
+      dot: "bg-panel-alt animate-ping",
     };
   }
   if (s === "completed" || s === "done") {
     return {
       label: "Completed",
-      bg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
-      dot: "bg-emerald-500",
+      bg: "bg-ok/10 text-ok border-ok/30",
+      dot: "bg-ok",
     };
   }
   if (s === "failed") {
     return {
       label: "Failed",
-      bg: "bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border-rose-200 dark:border-rose-800",
-      dot: "bg-rose-500",
+      bg: "bg-error/10 text-error border-error/30",
+      dot: "bg-error",
     };
   }
   if (s === "draft") {
     return {
       label: "Draft",
-      bg: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700",
-      dot: "bg-neutral-400",
+      bg: "bg-panel-alt text-ink border-border",
+      dot: "bg-ink/30",
     };
   }
   return {
     label: "Active",
-    bg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
-    dot: "bg-emerald-500 animate-pulse",
+    bg: "bg-ok/10 text-ok border-ok/30",
+    dot: "bg-ok animate-pulse",
   };
 }
 
@@ -232,7 +232,7 @@ const SPECIALISTS = [
     name: "Sophia",
     role: "Chief AI Architect",
     color: "#10B981",
-    tagBg: "bg-[#10B981] text-white",
+    tagBg: "bg-ok text-on-ink",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     icon: Bot,
     coords: { x: "28%", y: "18%" },
@@ -242,7 +242,7 @@ const SPECIALISTS = [
     name: "Rakib",
     role: "Lead Systems Engineer",
     color: "#2563EB",
-    tagBg: "bg-[#2563EB] text-white",
+    tagBg: "bg-ink text-on-ink",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     icon: Code2,
     coords: { x: "74%", y: "12%" },
@@ -252,7 +252,7 @@ const SPECIALISTS = [
     name: "Parves",
     role: "Principal UX Designer",
     color: "#F59E0B",
-    tagBg: "bg-[#F59E0B] text-white",
+    tagBg: "bg-accent text-on-ink",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     icon: Palette,
     coords: { x: "20%", y: "62%" },
@@ -262,7 +262,7 @@ const SPECIALISTS = [
     name: "Shoaib",
     role: "Reliability & QA Lead",
     color: "#9333EA",
-    tagBg: "bg-[#9333EA] text-white",
+    tagBg: "bg-ink text-on-ink",
     avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
     icon: ShieldCheck,
     coords: { x: "68%", y: "66%" },
@@ -294,7 +294,7 @@ function InitiativeCard({
             onOpen();
           }
         }}
-        className="group relative flex flex-col justify-between h-full cursor-pointer bg-white dark:bg-[#141722] border border-neutral-200/90 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+        className="group relative flex flex-col justify-between h-full cursor-pointer bg-panel border border-border hover:border-border rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-border"
       >
         <div>
           {/* Header Row: Status & Timeline Badge */}
@@ -306,19 +306,19 @@ function InitiativeCard({
               {badge.label}
             </span>
 
-            <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/80 px-3 py-1 rounded-full">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-muted bg-panel-alt px-3 py-1 rounded-full">
               <Calendar size={12} strokeWidth={2} />
               {initiative.timeline}
             </span>
           </div>
 
           {/* Title */}
-          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-50 tracking-tight leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+          <h3 className="text-lg font-semibold text-ink tracking-tight leading-snug group-hover:text-accent transition-colors line-clamp-2">
             {initiative.name}
           </h3>
 
           {/* Vision description */}
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300 line-clamp-2 leading-relaxed">
+          <p className="mt-2 text-sm text-muted line-clamp-2 leading-relaxed">
             {initiative.description}
           </p>
 
@@ -327,9 +327,9 @@ function InitiativeCard({
             {initiative.techStack?.slice(0, 4).map((tech, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/60"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-panel-alt text-ink border border-border"
               >
-                <Tag size={10} strokeWidth={2} className="text-neutral-400" />
+                <Tag size={10} strokeWidth={2} className="text-faint" />
                 {tech}
               </span>
             ))}
@@ -337,13 +337,13 @@ function InitiativeCard({
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-6 border-t border-neutral-100 dark:border-neutral-800/80 pt-4 flex items-center justify-between">
-          <span className="text-xs font-medium text-neutral-400 dark:text-neutral-400">
+        <div className="mt-6 border-t border-border-soft pt-4 flex items-center justify-between">
+          <span className="text-xs font-medium text-faint">
             Updated {formatRelativeTime(initiative.updated_at ?? initiative.created_at)}
           </span>
           <button
             type="button"
-            className="h-8 px-4 bg-neutral-900 hover:bg-black dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 font-semibold text-xs rounded-full flex items-center gap-1.5 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
+            className="h-8 px-4 bg-ink hover:bg-ink text-on-ink font-semibold text-xs rounded-full flex items-center gap-1.5 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
           >
             <span>Open Board</span>
             <ArrowRight size={13} strokeWidth={2.2} />
@@ -375,11 +375,11 @@ function InitiativeListRow({
             onOpen();
           }
         }}
-        className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer bg-white dark:bg-[#141722] hover:border-neutral-400 dark:hover:border-neutral-600 border border-neutral-200/90 dark:border-neutral-800 rounded-2xl p-4 text-left transition-all duration-200 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+        className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer bg-panel hover:border-border border border-border rounded-2xl p-4 text-left transition-all duration-200 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-border"
       >
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink shadow-xs"
             style={{ background: coverGradient(initiative.id) }}
             aria-hidden="true"
           >
@@ -394,12 +394,12 @@ function InitiativeListRow({
                 <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
                 {badge.label}
               </span>
-              <h4 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+              <h4 className="text-sm font-semibold text-ink group-hover:text-accent transition-colors truncate">
                 {initiative.name}
               </h4>
             </div>
 
-            <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-300 truncate max-w-xl leading-relaxed">
+            <p className="mt-1 text-xs text-muted truncate max-w-xl leading-relaxed">
               {initiative.description}
             </p>
           </div>
@@ -410,20 +410,20 @@ function InitiativeListRow({
             {initiative.techStack?.slice(0, 3).map((tech, i) => (
               <span
                 key={i}
-                className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
+                className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-panel-alt text-ink"
               >
                 {tech}
               </span>
             ))}
           </div>
 
-          <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800">
+          <span className="text-xs font-medium text-muted px-3 py-1 rounded-full bg-panel-alt">
             {initiative.timeline}
           </span>
 
           <button
             type="button"
-            className="h-8 px-4 bg-neutral-900 text-white hover:bg-black dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100 text-xs font-semibold rounded-full flex items-center gap-1 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
+            className="h-8 px-4 bg-ink text-on-ink hover:bg-ink text-xs font-semibold rounded-full flex items-center gap-1 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
           >
             <span>Inspect</span>
             <ChevronRight size={14} strokeWidth={2.2} />
@@ -699,7 +699,7 @@ export default function InitiativesListPage() {
   ], [totalInitiatives, activeCount, planningCount, completedCount, statusFilter, creating, handleSound]);
 
   return (
-    <div className="relative min-h-screen w-full bg-[#E5EEF8] dark:bg-[#07090E] p-1.5 sm:p-3 md:p-4 font-sans antialiased text-[#111827] dark:text-[#F3F4F6] transition-colors duration-200 flex flex-col items-stretch justify-start">
+    <div className="relative min-h-screen w-full bg-info/10 p-1.5 sm:p-3 md:p-4 font-sans antialiased text-ink transition-colors duration-200 flex flex-col items-stretch justify-start">
       <div className="w-full flex-1 flex flex-col">
         <SuiWindowFrame
           title="Forge Initiatives 2026"
@@ -710,7 +710,7 @@ export default function InitiativesListPage() {
           bottomNavItems={bottomNavItems}
           primaryAction={{
             label: "Create Initiative",
-            icon: <Sparkles size={14} className="text-amber-400" />,
+            icon: <Sparkles size={14} className="text-warn" />,
             onClick: () => {
               handleSound();
               inputRef.current?.focus();
@@ -729,15 +729,15 @@ export default function InitiativesListPage() {
               {/* Left Column: Bold Typography & Signature Paired CTA */}
               <div className="lg:col-span-7 space-y-5">
                 <div>
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-neutral-950 dark:text-white leading-[1.08]">
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-ink leading-[1.08]">
                     Forge Swarm 2026
                   </h1>
-                  <p className="mt-2 text-base sm:text-lg font-semibold text-neutral-700 dark:text-neutral-300">
+                  <p className="mt-2 text-base sm:text-lg font-semibold text-ink">
                     February–August, 2026
                   </p>
                 </div>
 
-                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-300 max-w-xl leading-relaxed">
+                <p className="text-sm sm:text-base text-muted max-w-xl leading-relaxed">
                   Turn visionary ideas into production-ready software systems. 8 coordinated AI specialist agents architect PRDs, manage epics, orchestrate autonomous sprints, and verify deployment.
                 </p>
 
@@ -752,7 +752,7 @@ export default function InitiativesListPage() {
                       const el = document.getElementById("prd-synthesizer");
                       el?.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="h-11 sm:h-12 px-7 sm:px-8 bg-[#1A1A1A] hover:bg-black text-white rounded-lg text-sm sm:text-base font-bold tracking-tight shadow-[2px_2px_0_#000] active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+                    className="h-11 sm:h-12 px-7 sm:px-8 bg-ink hover:bg-ink text-on-ink rounded-lg text-sm sm:text-base font-semibold tracking-tight active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <span>Register Initiative</span>
                   </button>
@@ -764,7 +764,7 @@ export default function InitiativesListPage() {
                       handleSound();
                       handleOpenClarification();
                     }}
-                    className="h-11 sm:h-12 w-11 sm:w-12 bg-[#D7E9FE] hover:bg-[#BAE6FD] text-neutral-900 border-2 border-neutral-900 rounded-lg shadow-[2px_2px_0_#000] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+                    className="h-11 sm:h-12 w-11 sm:w-12 bg-info/10 hover:bg-info/20 text-ink border-2 border-border rounded-lg active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center cursor-pointer"
                     title="Launch Guided Architecture Survey"
                     aria-label="Open Guided Architecture Survey"
                   >
@@ -774,17 +774,17 @@ export default function InitiativesListPage() {
 
                 {/* Micro Stats Row */}
                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-panel border border-border text-xs font-semibold text-ink">
+                    <span className="h-2 w-2 rounded-full bg-ok animate-pulse" />
                     <span>8 Specialist Agents Active</span>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
-                    <Star size={13} className="text-amber-500 fill-amber-500" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-panel border border-border text-xs font-semibold text-ink">
+                    <Star size={13} className="text-warn fill-warn" />
                     <span>{totalInitiatives} Initiatives</span>
                   </div>
                   {creditPreview && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-900/15 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                      <Coins size={13} className="text-amber-500" />
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-panel border border-border text-xs font-semibold text-accent">
+                      <Coins size={13} className="text-warn" />
                       <span>{creditPreview.credits_remaining} Credits</span>
                     </div>
                   )}
@@ -793,7 +793,7 @@ export default function InitiativesListPage() {
 
               {/* Right Column: 3D Candy Keycaps & Cursors Graphic */}
               <div className="lg:col-span-5 flex justify-center">
-                <div className="w-full max-w-[440px] bg-white/80 dark:bg-neutral-900/60 rounded-2xl border-2 border-neutral-900 p-4 shadow-[4px_4px_0_#1a1a1a]">
+                <div className="w-full max-w-[440px] bg-panel/80 rounded-2xl border-2 border-border p-4">
                   <SuiKeycapVisual
                     title="OVERFLOW"
                     onKeyClick={(char) => {
@@ -808,25 +808,25 @@ export default function InitiativesListPage() {
         {/* =========================================================================
             3. PRD SYNTHESIZER WORKBENCH (INTERACTIVE CREATION BAR)
         ========================================================================= */}
-        <section aria-label="PRD Synthesizer Workbench" className="bg-white dark:bg-[#141722] rounded-3xl p-5 sm:p-6 border border-neutral-200/90 dark:border-neutral-800 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 dark:border-neutral-800/80 pb-3">
+        <section aria-label="PRD Synthesizer Workbench" className="bg-panel rounded-3xl p-5 sm:p-6 border border-border shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-soft pb-3">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10 text-info">
                 <Sparkles size={15} />
               </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink">
                 Autonomous PRD Synthesizer
               </span>
             </div>
 
             {creditPreview && (
-              <div className="flex items-center gap-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                <Coins size={13} className="text-amber-500" />
+              <div className="flex items-center gap-2 text-xs font-medium text-muted">
+                <Coins size={13} className="text-warn" />
                 <span>
                   {creditPreview.free_available ? "First Run Free" : `${creditPreview.cost} Credits/Run`}
                 </span>
                 <span>•</span>
-                <span className="text-blue-600 dark:text-blue-400 font-bold">
+                <span className="text-accent font-semibold">
                   {creditPreview.credits_remaining} credits remaining
                 </span>
               </div>
@@ -839,7 +839,7 @@ export default function InitiativesListPage() {
               e.preventDefault();
               handleCreate();
             }}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-neutral-50 dark:bg-[#0E1017] p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 focus-within:border-neutral-400 dark:focus-within:border-neutral-600 transition"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-panel p-2 rounded-2xl border border-border focus-within:border-border transition"
           >
             <input
               ref={inputRef}
@@ -848,7 +848,7 @@ export default function InitiativesListPage() {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe a product to plan end-to-end (e.g. Telehealth Portal, FinTech Ledger)…"
               aria-label="Describe a product to plan end-to-end…"
-              className="flex-1 bg-transparent px-3 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none min-w-0"
+              className="flex-1 bg-transparent px-3 py-2 text-sm font-medium text-ink placeholder:text-faint focus:outline-none min-w-0"
             />
 
             <div className="flex items-center gap-2 shrink-0">
@@ -864,7 +864,7 @@ export default function InitiativesListPage() {
                 type="submit"
                 disabled={creating || !prompt.trim()}
                 aria-label="Generate Plan"
-                className="h-10 px-6 bg-neutral-900 hover:bg-black dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 font-semibold text-xs rounded-full shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-10 px-6 bg-ink hover:bg-ink text-on-ink font-semibold text-xs rounded-full shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Sparkles size={13} strokeWidth={2.4} />
                 <span>{creating ? "Synthesizing…" : "Generate Plan ↵"}</span>
@@ -874,7 +874,7 @@ export default function InitiativesListPage() {
 
           {/* Quick Recipe Chips */}
           <div className="flex items-center gap-2 overflow-x-auto text-xs pt-1 scrollbar-none">
-            <span className="font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider text-[11px] shrink-0">
+            <span className="font-semibold text-faint uppercase tracking-wider text-[11px] shrink-0">
               Quick Starters:
             </span>
             {SUGGESTIONS.map((suggestion) => (
@@ -886,7 +886,7 @@ export default function InitiativesListPage() {
                   setPrompt(suggestion);
                   handleOpenClarification(suggestion);
                 }}
-                className="shrink-0 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 font-medium transition cursor-pointer text-xs"
+                className="shrink-0 px-3 py-1 rounded-full bg-panel-alt text-ink hover:bg-ink/5 font-medium transition cursor-pointer text-xs"
               >
                 {suggestion}
               </button>
@@ -895,12 +895,12 @@ export default function InitiativesListPage() {
 
           {/* Live Generating Signal */}
           {creating && (
-            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 flex items-center justify-between gap-3 text-xs">
-              <span className="flex items-center gap-2 font-bold text-blue-900 dark:text-blue-200">
-                <span className="h-2 w-2 rounded-full bg-blue-600 animate-ping" />
+            <div className="p-4 rounded-2xl bg-info/10 border border-info/30 flex items-center justify-between gap-3 text-xs">
+              <span className="flex items-center gap-2 font-semibold text-accent">
+                <span className="h-2 w-2 rounded-full bg-info animate-ping" />
                 <span>{generationPhase || "8 Autonomous Specialist Agents Active..."}</span>
               </span>
-              <span className="text-blue-600 dark:text-blue-400 font-medium text-[11px]">
+              <span className="text-accent font-medium text-[11px]">
                 Deterministic PRD Decomposition · ~20s
               </span>
             </div>
@@ -915,12 +915,12 @@ export default function InitiativesListPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Kanban size={18} className="text-neutral-900 dark:text-white" />
-                <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                <Kanban size={18} className="text-ink" />
+                <h2 className="text-xl font-semibold tracking-tight text-ink">
                   Initiative Repository
                 </h2>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-semibold">
+              <span className="px-2.5 py-0.5 rounded-full bg-surface-high text-ink text-xs font-semibold">
                 {visibleInitiatives.length} Plans
               </span>
             </div>
@@ -931,7 +931,7 @@ export default function InitiativesListPage() {
               <div className="relative min-w-[220px]">
                 <Search
                   size={14}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint"
                   aria-hidden="true"
                 />
                 <input
@@ -940,12 +940,12 @@ export default function InitiativesListPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search library…"
                   aria-label="Search initiatives"
-                  className="h-9 w-full rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] pl-9 pr-3 text-xs font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+                  className="h-9 w-full rounded-full border border-border bg-panel pl-9 pr-3 text-xs font-medium text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-border"
                 />
               </div>
 
               {/* Status Filter Buttons */}
-              <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-full">
+              <div className="flex items-center gap-1 bg-panel-alt p-1 rounded-full">
                 {(
                   [
                     { id: "all", label: `All (${totalInitiatives})` },
@@ -965,8 +965,8 @@ export default function InitiativesListPage() {
                       }}
                       className={`px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer whitespace-nowrap ${
                         isActive
-                          ? "bg-white dark:bg-[#141722] text-neutral-900 dark:text-white shadow-xs"
-                          : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                          ? "bg-panel text-ink shadow-xs"
+                          : "text-muted hover:text-ink"
                       }`}
                     >
                       {filter.label}
@@ -998,7 +998,7 @@ export default function InitiativesListPage() {
                   setSortKey(e.target.value as SortKey);
                 }}
                 aria-label="Sort by"
-                className="h-9 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] px-3 text-xs font-semibold text-neutral-700 dark:text-neutral-300 focus:outline-none cursor-pointer"
+                className="h-9 rounded-full border border-border bg-panel px-3 text-xs font-semibold text-ink focus:outline-none cursor-pointer"
               >
                 <option value="recent">Recent</option>
                 <option value="name">Name</option>
@@ -1007,7 +1007,7 @@ export default function InitiativesListPage() {
 
               {/* View Mode Toggle */}
               <div
-                className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-full"
+                className="flex items-center gap-1 bg-panel-alt p-1 rounded-full"
                 role="group"
                 aria-label="View mode"
               >
@@ -1021,8 +1021,8 @@ export default function InitiativesListPage() {
                   aria-pressed={viewMode === "icons"}
                   className={`h-7 w-7 rounded-full flex items-center justify-center transition cursor-pointer ${
                     viewMode === "icons"
-                      ? "bg-white dark:bg-[#141722] text-neutral-900 dark:text-white shadow-xs"
-                      : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                      ? "bg-panel text-ink shadow-xs"
+                      : "text-muted hover:text-ink"
                   }`}
                 >
                   <LayoutGrid size={14} aria-hidden="true" strokeWidth={2.2} />
@@ -1037,8 +1037,8 @@ export default function InitiativesListPage() {
                   aria-pressed={viewMode === "list"}
                   className={`h-7 w-7 rounded-full flex items-center justify-center transition cursor-pointer ${
                     viewMode === "list"
-                      ? "bg-white dark:bg-[#141722] text-neutral-900 dark:text-white shadow-xs"
-                      : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                      ? "bg-panel text-ink shadow-xs"
+                      : "text-muted hover:text-ink"
                   }`}
                 >
                   <List size={14} aria-hidden="true" strokeWidth={2.2} />
@@ -1054,7 +1054,7 @@ export default function InitiativesListPage() {
                 <SkeletonCard count={3} />
               </div>
             ) : initiatives.length === 0 ? (
-              <div className="py-14 bg-white dark:bg-[#141722] rounded-3xl border border-neutral-200/80 dark:border-neutral-800 p-8 text-center">
+              <div className="py-14 bg-panel rounded-3xl border border-border p-8 text-center">
                 <EmptyState
                   icon={Rocket}
                   title="No initiatives yet"
@@ -1066,7 +1066,7 @@ export default function InitiativesListPage() {
                 />
               </div>
             ) : visibleInitiatives.length === 0 ? (
-              <div className="py-14 bg-white dark:bg-[#141722] rounded-3xl border border-neutral-200/80 dark:border-neutral-800 p-8 text-center">
+              <div className="py-14 bg-panel rounded-3xl border border-border p-8 text-center">
                 <EmptyState
                   icon={FolderSearch}
                   title="No matches"

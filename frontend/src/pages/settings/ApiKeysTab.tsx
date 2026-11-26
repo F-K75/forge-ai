@@ -184,7 +184,7 @@ export function ApiKeysTab() {
         {/* CLI Hint */}
         <div className="mt-4 p-3 rounded-lg bg-base/60 border border-border-soft flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
           <div className="text-muted flex items-center gap-2">
-            <span className="text-accent font-bold">$</span>
+            <span className="text-accent font-semibold">$</span>
             <span>export FORGE_API_KEY=&quot;sk_forge_...&quot; && forge build</span>
           </div>
           <ClipboardCopyButton
@@ -285,7 +285,7 @@ export function ApiKeysTab() {
 
       {/* Create Key Modal Dialog */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="w-full max-w-lg rounded-xl border border-border bg-panel p-6 shadow-2xl space-y-5">
             <div>
               <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
@@ -383,7 +383,7 @@ export function ApiKeysTab() {
 
       {/* One-Time Revealed Key Modal */}
       {revealedKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/70 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="w-full max-w-lg rounded-xl border border-ok/40 bg-panel p-6 shadow-2xl space-y-5">
             <div className="flex items-center gap-3 text-ok">
               <Check className="h-6 w-6 rounded-full bg-ok/15 p-1" />
@@ -427,7 +427,7 @@ export function ApiKeysTab() {
 
       {/* Revoke Confirmation Modal */}
       {keyToRevoke && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="w-full max-w-md rounded-xl border border-error/30 bg-panel p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-error">
               <AlertTriangle className="h-6 w-6" />

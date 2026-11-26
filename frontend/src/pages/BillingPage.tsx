@@ -529,11 +529,11 @@ export default function BillingPage() {
                         <div>
                           {plan.custom_pricing ? (
                             <div className="flex items-baseline gap-1 font-mono">
-                              <span className="text-3xl font-bold text-ink">Custom</span>
+                              <span className="text-3xl font-semibold text-ink">Custom</span>
                             </div>
                           ) : (
                             <div className="flex items-baseline gap-1 font-mono">
-                              <span className="text-3xl font-bold text-ink">${displayPrice}</span>
+                              <span className="text-3xl font-semibold text-ink">${displayPrice}</span>
                               <span className="text-xs text-muted uppercase">/mo</span>
                             </div>
                           )}
@@ -633,7 +633,7 @@ export default function BillingPage() {
                       {creditUsagePercent}% USED
                     </span>
                   </div>
-                  <p className="text-2xl font-mono font-bold text-ink">
+                  <p className="text-2xl font-mono font-semibold text-ink">
                     {creditsRemaining.toLocaleString()}{" "}
                     <span className="text-xs font-normal text-muted">
                       / {totalCredits.toLocaleString()}
@@ -658,7 +658,7 @@ export default function BillingPage() {
                       30D CYCLE
                     </span>
                   </div>
-                  <p className="text-2xl font-mono font-bold text-ink">
+                  <p className="text-2xl font-mono font-semibold text-ink">
                     {usage?.builds_count ?? 18}{" "}
                     <span className="text-xs font-normal text-muted">BUILDS</span>
                   </p>
@@ -678,7 +678,7 @@ export default function BillingPage() {
                       {billingInterval}
                     </span>
                   </div>
-                  <p className="text-2xl font-mono font-bold text-ink">
+                  <p className="text-2xl font-mono font-semibold text-ink">
                     {(() => {
                       const current = plansToDisplay.find((p) => p.tier === activeTier);
                       if (current?.custom_pricing) return "Custom";
@@ -704,7 +704,7 @@ export default function BillingPage() {
                     </span>
                     <span className="w-2 h-2 rounded-full bg-ok" />
                   </div>
-                  <p className="text-2xl font-mono font-bold text-ink">
+                  <p className="text-2xl font-mono font-semibold text-ink">
                     {LIVE_MODE ? (daysUntilReset === null ? "—" : `${daysUntilReset} DAYS`) : "22 DAYS"}
                   </p>
                   <p className="text-[10px] font-mono text-muted">
@@ -851,7 +851,7 @@ export default function BillingPage() {
       {creditModalOpen && (
         <div
           id="credit-topup-modal-backdrop"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs select-none"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-base/60 backdrop-blur-xs select-none"
         >
           <div
             id="credit-topup-modal-window"
@@ -906,7 +906,7 @@ export default function BillingPage() {
                     </div>
 
                     <div className="pt-2 border-t border-border flex items-center justify-between">
-                      <span className="text-base font-bold text-ink font-mono">${pkg.price}</span>
+                      <span className="text-base font-semibold text-ink font-mono">${pkg.price}</span>
                       <button
                         type="button"
                         id={`btn-buy-pkg-${pkg.id}`}

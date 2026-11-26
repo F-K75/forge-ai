@@ -126,7 +126,7 @@ export default function RoadmapTab() {
   if (!initiative) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
-        <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center text-slate-400">
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center text-faint">
           No initiative loaded. Select an initiative to view its product roadmap.
         </div>
       </div>

@@ -372,7 +372,7 @@ export function ForgeBuildCanvas({
                   }}
                   className={`h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                     active
-                      ? "bg-accent text-white"
+                      ? "bg-accent text-on-ink"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -484,7 +484,7 @@ export function ForgeBuildCanvas({
             }}
             className={`h-7 px-2.5 rounded-md border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 cursor-pointer ${
               inspectorOpen
-                ? "bg-accent text-white border-accent"
+                ? "bg-accent text-on-ink border-accent"
                 : "bg-panel text-ink border-border hover:bg-panel-alt"
             }`}
             title="Toggle node inspector drawer"
@@ -942,7 +942,7 @@ export function ForgeBuildCanvas({
                   </div>
 
                   {selectedNode.details.sampleCode ? (
-                    <div className="bg-[#0B0F19] text-slate-200 border border-border p-3.5 font-mono text-xs rounded-lg overflow-x-auto leading-relaxed">
+                    <div className="bg-ink text-muted border border-border p-3.5 font-mono text-xs rounded-lg overflow-x-auto leading-relaxed">
                       <pre>{selectedNode.details.sampleCode}</pre>
                     </div>
                   ) : (
@@ -955,7 +955,7 @@ export function ForgeBuildCanvas({
                     <button
                       type="button"
                       onClick={() => onSelectNodeFile?.(selectedNode.files[0])}
-                      className="w-full h-9 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="w-full h-9 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Code2 size={13} />
                       <span>Edit {selectedNode.files[0]} in Code Studio</span>
@@ -1012,18 +1012,18 @@ export function ForgeBuildCanvas({
                     <span className="text-ok font-mono text-[11px]">Active</span>
                   </div>
 
-                  <div className="bg-[#0B0F19] text-slate-200 border border-border p-3.5 font-mono text-[11px] rounded-lg overflow-x-auto space-y-2 leading-relaxed">
+                  <div className="bg-ink text-muted border border-border p-3.5 font-mono text-[11px] rounded-lg overflow-x-auto space-y-2 leading-relaxed">
                     {selectedNode.details.diagnostics && selectedNode.details.diagnostics.length > 0 ? (
                       selectedNode.details.diagnostics.map((log, idx) => (
                         <div key={idx} className="flex items-start gap-2">
-                          <Terminal size={12} className="text-slate-500 shrink-0 mt-0.5" />
-                          <span className="text-slate-300">{log}</span>
+                          <Terminal size={12} className="text-muted shrink-0 mt-0.5" />
+                          <span className="text-muted">{log}</span>
                         </div>
                       ))
                     ) : (
-                      <div className="text-slate-400">Node AST verification idle.</div>
+                      <div className="text-faint">Node AST verification idle.</div>
                     )}
-                    <div className="text-emerald-400 pt-1">
+                    <div className="text-ok pt-1">
                       → Verified AST invariants for {selectedNode.id}
                     </div>
                   </div>
@@ -1051,7 +1051,7 @@ export function ForgeBuildCanvas({
                 type="button"
                 onClick={() => handleSynthesizeNode(selectedNode.id)}
                 disabled={synthesizingNodeId === selectedNode.id}
-                className="flex-1 h-8 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 h-8 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Sparkles size={13} />
                 <span>{synthesizingNodeId === selectedNode.id ? "Synthesizing…" : "Re-Synthesize"}</span>

@@ -1917,7 +1917,7 @@ export function MultiAgentKernelPanel({
                 type="button"
                 onClick={() => void handleExecute()}
                 disabled={planning}
-                className="px-3.5 py-1.5 rounded-md bg-accent text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md bg-accent text-on-ink text-xs font-semibold hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Play size={13} />
                 Execute Parallel Waves
@@ -1970,7 +1970,7 @@ export function MultiAgentKernelPanel({
               type="button"
               disabled={resolvingGate}
               onClick={() => void handleResolveGate(true)}
-              className="px-3 py-1.5 rounded-md bg-accent text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-3 py-1.5 rounded-md bg-accent text-on-ink text-xs font-semibold hover:opacity-90 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
             >
               Approve & Resume
             </button>
@@ -2170,7 +2170,7 @@ export function MultiAgentKernelPanel({
               type="button"
               disabled={askingLead}
               onClick={() => void handleAskProductLead("why")}
-              className="px-3 py-1.5 rounded-md bg-accent text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-3 py-1.5 rounded-md bg-accent text-on-ink text-xs font-semibold hover:opacity-90 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
             >
               Ask Why
             </button>

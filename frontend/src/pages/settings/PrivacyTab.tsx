@@ -203,7 +203,7 @@ export function PrivacyTab() {
 
       {/* Delete Account Modal */}
       {isDeleteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/70 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="w-full max-w-md rounded-xl border border-error/40 bg-panel p-6 shadow-2xl space-y-5">
             <div className="flex items-center gap-3 text-error">
               <Trash2 className="h-6 w-6" />

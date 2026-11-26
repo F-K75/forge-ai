@@ -211,7 +211,7 @@ export default function AuthPage() {
           <section className="lg:col-span-5 flex flex-col justify-center">
             <div className="rounded-xl border border-border bg-panel p-6 sm:p-8 shadow-apple">
               <div className="mb-6">
-                <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+                <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
                   {mfaToken ? "Two-factor verification" : "Sign in to Forge AI"}
                 </h1>
                 <p className="mt-1.5 text-sm text-muted">
@@ -259,7 +259,7 @@ export default function AuthPage() {
                     id="mfa-submit-btn"
                     type="submit"
                     disabled={loading || !mfaCode.trim()}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
                   >
                     {loading ? (
                       <>
@@ -437,7 +437,7 @@ export default function AuthPage() {
                     id="auth-submit-btn"
                     type="submit"
                     disabled={loading}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
                   >
                     {loading ? (
                       <>
@@ -508,7 +508,7 @@ export default function AuthPage() {
           </section>
 
           {/* Right: Live Interactive Three.js 3D Architecture Showcase */}
-          <aside className="hidden lg:flex lg:col-span-7 flex-col overflow-hidden rounded-xl border border-border bg-[#0B101B] shadow-apple">
+          <aside className="hidden lg:flex lg:col-span-7 flex-col overflow-hidden rounded-xl border border-border bg-panel-alt shadow-apple">
             <div className="flex-1 min-h-[480px] w-full">
               <ForgeScene3D
                 mode="embedded"
@@ -517,17 +517,17 @@ export default function AuthPage() {
                 showControls
               />
             </div>
-            <div className="border-t border-slate-800 bg-[#0F172A] px-6 py-4 text-slate-200">
+            <div className="border-t border-border bg-ink px-6 py-4 text-muted">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-sm font-semibold text-white">
+                  <h2 className="font-display text-sm font-semibold text-ink">
                     Deterministic Multi-Agent Runtime
                   </h2>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-faint">
                     Click any specialist node in the 3D topology above to inspect live build roles.
                   </p>
                 </div>
-                <span className="font-mono text-xs text-slate-400 tabular-nums">
+                <span className="font-mono text-xs text-faint tabular-nums">
                   TLS 1.3 · RBAC Enforced
                 </span>
               </div>

@@ -98,16 +98,16 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
   return (
     <div id="sprint-charts-view" className="space-y-4">
       {/* Sub-tab Navigation */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/90 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-        <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 gap-1 overflow-x-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-panel p-2.5 rounded-2xl border border-border shadow-2xs">
+        <div className="inline-flex p-1 rounded-xl bg-panel-alt gap-1 overflow-x-auto">
           <button
             id="chart-tab-burndown"
             type="button"
             onClick={() => setChartMode("burndown")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               chartMode === "burndown"
-                ? "bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-2xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-panel text-agent-integration shadow-2xs"
+                : "text-muted hover:text-ink"
             }`}
           >
             <TrendingDown size={14} />
@@ -118,10 +118,10 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
             id="chart-tab-velocity"
             type="button"
             onClick={() => setChartMode("velocity")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               chartMode === "velocity"
-                ? "bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-2xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-panel text-agent-integration shadow-2xs"
+                : "text-muted hover:text-ink"
             }`}
           >
             <BarChart2 size={14} />
@@ -132,10 +132,10 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
             id="chart-tab-allocation"
             type="button"
             onClick={() => setChartMode("allocation")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               chartMode === "allocation"
-                ? "bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-2xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-panel text-agent-integration shadow-2xs"
+                : "text-muted hover:text-ink"
             }`}
           >
             <Users size={14} />
@@ -143,20 +143,20 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
           </button>
         </div>
 
-        <span className="text-xs text-slate-500 dark:text-slate-400 px-2 text-right">
+        <span className="text-xs text-muted px-2 text-right">
           Sprint {selectedSprint.sprint_number} · {sprintTasks.length} active tasks · {allSprints.length} cycles
         </span>
       </div>
 
       {/* Main Chart Container */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-6 shadow-2xs space-y-6">
+      <div className="rounded-2xl border border-border bg-panel p-6 shadow-2xs space-y-6">
         {chartMode === "burndown" && (
           <div id="chart-content-burndown" className="space-y-4">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">
                 Sprint {selectedSprint.sprint_number} Story Points Burndown
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 Ideal linear burn trajectory vs actual remaining story points across the 14-day sprint cycle.
               </p>
             </div>
@@ -199,8 +199,8 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
               </ResponsiveContainer>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-              <Info size={15} className="text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-panel border border-border flex items-start gap-2.5 text-xs text-muted">
+              <Info size={15} className="text-agent-integration shrink-0 mt-0.5" />
               <p>
                 <strong>Burn Rate Analysis:</strong> The team is burning points at an average rate of{" "}
                 <strong>{Math.round((completedPoints / 7) * 10) / 10} pts/day</strong>. At this current cadence, remaining commitments are projected to finish ahead of the final cycle gate.
@@ -212,10 +212,10 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
         {chartMode === "velocity" && (
           <div id="chart-content-velocity" className="space-y-4">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">
                 Multi-Sprint Velocity vs Planned Capacity
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 Historical delivery consistency, planned commitment accuracy, and team capacity limits.
               </p>
             </div>
@@ -243,8 +243,8 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
               </ResponsiveContainer>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-              <Info size={15} className="text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-panel border border-border flex items-start gap-2.5 text-xs text-muted">
+              <Info size={15} className="text-agent-integration shrink-0 mt-0.5" />
               <p>
                 <strong>Velocity Stability:</strong> Sprints demonstrate sustained throughput averaging{" "}
                 <strong>38-42 points</strong> per 2-week iteration with zero unplanned scope creep.
@@ -256,10 +256,10 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
         {chartMode === "allocation" && (
           <div id="chart-content-allocation" className="space-y-4">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">
                 AI Agent Workload & Story Point Allocation
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 Distribution of assigned tasks and estimated story points across active autonomous agent roles.
               </p>
             </div>
@@ -286,8 +286,8 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
               </ResponsiveContainer>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-              <Info size={15} className="text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-panel border border-border flex items-start gap-2.5 text-xs text-muted">
+              <Info size={15} className="text-agent-integration shrink-0 mt-0.5" />
               <p>
                 <strong>Autonomous Swarm Allocation:</strong> Story points are evenly balanced across systems and backend execution without agent saturation.
               </p>

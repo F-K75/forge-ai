@@ -571,15 +571,15 @@ export default function MarketplacePage() {
     >
       {/* 1. Header Section */}
       <header className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-black dark:border-white/80 pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-border pb-5">
           <div>
             <div className="flex items-center gap-2.5">
               <BrandLogo size="md" />
-              <h1 className="font-mono text-2xl sm:text-3xl font-black tracking-tight text-ink uppercase">
+              <h1 className="font-mono text-2xl sm:text-3xl font-semibold tracking-tight text-ink uppercase">
                 marketplace &amp; starters
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border-2 border-black bg-brutal-yellow text-black text-[11px] font-black uppercase shadow-[2px_2px_0px_#000]">
-                <Sparkles size={12} className="text-black" />
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border-2 border-border bg-brutal-yellow text-ink text-[11px] font-semibold uppercase">
+                <Sparkles size={12} className="text-ink" />
                 Verified Starters
               </span>
             </div>
@@ -593,7 +593,7 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => setPublishModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-black bg-brutal-yellow text-black text-xs font-black uppercase hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000]"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-border bg-brutal-yellow text-ink text-xs font-semibold uppercase hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
             >
               <Plus size={14} strokeWidth={2.5} />
               <span>Publish Starter</span>
@@ -602,7 +602,7 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => navigate("/workspace")}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-black bg-black text-white dark:bg-white dark:text-black text-xs font-mono font-black uppercase hover:bg-neutral-800 dark:hover:bg-neutral-200 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-border bg-ink text-on-ink text-xs font-mono font-semibold uppercase hover:bg-ink/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all "
             >
               <span>Active Workspace</span>
               <ArrowUpRight size={13} strokeWidth={2.5} />
@@ -613,16 +613,16 @@ export default function MarketplacePage() {
         {/* 2. Telemetry KPI Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Curated Blueprints */}
-          <div className="relative overflow-hidden border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] transition-all">
+          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black bg-brutal-cyan text-black shadow-[1px_1px_0px_#000]">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-cyan text-ink">
                 <Boxes size={14} strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
-                <div className="font-mono text-lg font-black leading-none text-ink">
+                <div className="font-mono text-lg font-semibold leading-none text-ink">
                   {templates.length} <span className="text-[11px] font-normal text-muted">starters</span>
                 </div>
-                <div className="mt-1 truncate font-mono text-[10px] font-black uppercase tracking-wider text-muted">
+                <div className="mt-1 truncate font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
                   Total Starters
                 </div>
               </div>
@@ -630,17 +630,17 @@ export default function MarketplacePage() {
           </div>
 
           {/* Total Installs */}
-          <div className="relative overflow-hidden border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] transition-all">
+          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black bg-brutal-green text-black shadow-[1px_1px_0px_#000]">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-green text-ink">
                 <Download size={14} strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
-                <div className="font-mono text-lg font-black leading-none text-ink">
+                <div className="font-mono text-lg font-semibold leading-none text-ink">
                   {LIVE_MODE ? totalInstallsCount.toLocaleString() : `${(totalInstallsCount / 1000).toFixed(1)}k+`}{" "}
                   <span className="text-[11px] font-normal text-muted">{LIVE_MODE ? "downloads" : "runs"}</span>
                 </div>
-                <div className="mt-1 truncate font-mono text-[10px] font-black uppercase tracking-wider text-muted">
+                <div className="mt-1 truncate font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
                   Deployments
                 </div>
               </div>
@@ -648,16 +648,16 @@ export default function MarketplacePage() {
           </div>
 
           {/* Quality Score */}
-          <div className="relative overflow-hidden border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] transition-all">
+          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black bg-brutal-yellow text-black shadow-[1px_1px_0px_#000]">
-                <Star size={14} strokeWidth={2.5} className="fill-black text-black" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-yellow text-ink">
+                <Star size={14} strokeWidth={2.5} className="fill-ink text-ink" />
               </span>
               <div className="min-w-0">
-                <div className="font-mono text-lg font-black leading-none text-ink">
+                <div className="font-mono text-lg font-semibold leading-none text-ink">
                   4.8 <span className="text-[11px] font-normal text-muted">/ 5.0</span>
                 </div>
-                <div className="mt-1 truncate font-mono text-[10px] font-black uppercase tracking-wider text-muted">
+                <div className="mt-1 truncate font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
                   Avg Rating
                 </div>
               </div>
@@ -665,16 +665,16 @@ export default function MarketplacePage() {
           </div>
 
           {/* Frontier Engines */}
-          <div className="relative overflow-hidden border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-3 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] transition-all">
+          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black bg-brutal-pink text-black shadow-[1px_1px_0px_#000]">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-pink text-ink">
                 <Cpu size={14} strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
-                <div className="font-mono text-lg font-black leading-none text-ink truncate">
+                <div className="font-mono text-lg font-semibold leading-none text-ink truncate">
                   Gemini 2.5
                 </div>
-                <div className="mt-1 truncate font-mono text-[10px] font-black uppercase tracking-wider text-muted">
+                <div className="mt-1 truncate font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
                   Multi-Agent Ready
                 </div>
               </div>
@@ -684,9 +684,9 @@ export default function MarketplacePage() {
       </header>
 
       {/* 3. Filter, Search & View Bar */}
-      <section className="border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-4 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] space-y-3.5">
+      <section className="border-2 border-border bg-panel p-4 space-y-3.5">
         {/* Category Pills Row */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-mono font-bold">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-mono font-semibold">
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -697,8 +697,8 @@ export default function MarketplacePage() {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none border-2 transition shrink-0 uppercase text-[11px] font-mono ${
                   isSelected
-                    ? "bg-brutal-yellow text-black border-black font-black shadow-[1px_1px_0px_#000]"
-                    : "bg-white dark:bg-[#141419] text-muted dark:text-neutral-300 border-black/40 dark:border-white/40 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white font-bold"
+                    ? "bg-brutal-yellow text-ink border-border font-semibold"
+                    : "bg-panel text-muted border-border hover:border-border hover:text-ink font-semibold"
                 }`}
               >
                 <Icon size={13} strokeWidth={2.2} />
@@ -709,7 +709,7 @@ export default function MarketplacePage() {
         </div>
 
         {/* Search, Source Filter & Sorting Bar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-2 border-t-2 border-black/10 dark:border-white/20">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-2 border-t-2 border-border">
           {/* Search Box */}
           <div className="relative w-full md:w-80">
             <Search
@@ -721,13 +721,13 @@ export default function MarketplacePage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search starters, tags, stacks..."
-              className="w-full bg-neutral-50 dark:bg-[#141419] text-xs font-bold font-mono text-ink placeholder-muted/60 pl-9 pr-7 py-2 rounded-none border-2 border-black dark:border-white/80 focus:outline-none focus:bg-brutal-yellow/10 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+              className="w-full bg-panel text-xs font-semibold font-mono text-ink placeholder-muted/60 pl-9 pr-7 py-2 rounded-none border-2 border-border focus:outline-none focus:bg-brutal-yellow/10 "
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted hover:text-black dark:hover:text-white"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted hover:text-ink"
               >
                 <X size={13} />
               </button>
@@ -737,7 +737,7 @@ export default function MarketplacePage() {
           {/* Right Filters */}
           <div className="flex flex-wrap items-center justify-between md:justify-end w-full md:w-auto gap-2.5">
             {/* Source tabs */}
-            <div className="flex items-center rounded-none border-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#121218] p-0.5 text-xs font-mono font-bold shadow-[1px_1px_0px_#000]">
+            <div className="flex items-center rounded-none border-2 border-border bg-panel-alt p-0.5 text-xs font-mono font-semibold">
               {(["all", "official", "community"] as const).map((source) => (
                 <button
                   key={source}
@@ -745,8 +745,8 @@ export default function MarketplacePage() {
                   onClick={() => setSourceFilter(source)}
                   className={`px-2.5 py-1 transition uppercase text-[10px] ${
                     sourceFilter === source
-                      ? "bg-white dark:bg-[#181820] text-black dark:text-white border border-black dark:border-white shadow-[1px_1px_0px_#000] font-black"
-                      : "text-muted hover:text-black dark:hover:text-white font-bold"
+                      ? "bg-panel text-ink border border-border font-semibold"
+                      : "text-muted hover:text-ink font-semibold"
                   }`}
                 >
                   {source}
@@ -755,12 +755,12 @@ export default function MarketplacePage() {
             </div>
 
             {/* Sort dropdown */}
-            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-muted">
+            <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted">
               <span className="uppercase text-[10px]">Sort:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-white dark:bg-[#141419] text-xs font-mono font-bold text-black dark:text-white border-2 border-black dark:border-white/80 rounded-none px-2 py-1 focus:outline-none shadow-[1px_1px_0px_#000]"
+                className="bg-panel text-xs font-mono font-semibold text-ink border-2 border-border rounded-none px-2 py-1 focus:outline-none"
               >
                 <option value="popular">Most Installed</option>
                 <option value="rating">Highest Rated</option>
@@ -769,14 +769,14 @@ export default function MarketplacePage() {
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#141419] p-0.5 shadow-[1px_1px_0px_#000]">
+            <div className="flex items-center rounded-none border-2 border-border bg-panel p-0.5">
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 transition ${
                   viewMode === "grid"
-                    ? "bg-brutal-yellow text-black border border-black"
-                    : "text-muted hover:text-black dark:hover:text-white"
+                    ? "bg-brutal-yellow text-ink border border-border"
+                    : "text-muted hover:text-ink"
                 }`}
                 title="Grid view"
               >
@@ -787,8 +787,8 @@ export default function MarketplacePage() {
                 onClick={() => setViewMode("list")}
                 className={`p-1.5 transition ${
                   viewMode === "list"
-                    ? "bg-brutal-yellow text-black border border-black"
-                    : "text-muted hover:text-black dark:hover:text-white"
+                    ? "bg-brutal-yellow text-ink border border-border"
+                    : "text-muted hover:text-ink"
                 }`}
                 title="List view"
               >
@@ -817,26 +817,26 @@ export default function MarketplacePage() {
                       handleOpenDetails(template);
                     }
                   }}
-                  className="group relative flex flex-col justify-between rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-5 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] hover:shadow-[5px_5px_0px_#000] dark:hover:shadow-[5px_5px_0px_#fff] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+                  className="group relative flex flex-col justify-between rounded-none border-2 border-border bg-panel p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
                 >
                   {/* Card Header */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
                         <div
-                          className="h-10 w-10 shrink-0 rounded-none border-2 border-black flex items-center justify-center font-mono font-black text-base shadow-[2px_2px_0px_#000] text-black"
+                          className="h-10 w-10 shrink-0 rounded-none border-2 border-border flex items-center justify-center font-mono font-semibold text-base text-ink"
                           style={{ backgroundColor: template.hue }}
                         >
                           {template.name[0]}
                         </div>
                         <div>
-                          <h3 className="font-mono text-sm sm:text-base font-black text-ink line-clamp-1 group-hover:text-amber-500 transition">
+                          <h3 className="font-mono text-sm sm:text-base font-semibold text-ink line-clamp-1 group-hover:text-warn transition">
                             {template.name}
                           </h3>
                           <div className="flex items-center gap-2 text-[11px] font-mono text-muted">
                             <span>{template.author}</span>
                             <span>•</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-black dark:border-white/40 bg-neutral-100 dark:bg-neutral-800 font-bold uppercase text-ink">
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-border bg-panel-alt font-semibold uppercase text-ink">
                               {template.source}
                             </span>
                           </div>
@@ -847,16 +847,16 @@ export default function MarketplacePage() {
                       <button
                         type="button"
                         onClick={(e) => toggleBookmark(template.id, e)}
-                        className={`p-1.5 rounded-none border-2 border-black transition ${
+                        className={`p-1.5 rounded-none border-2 border-border transition ${
                           isBookmarked
-                            ? "bg-brutal-yellow text-black shadow-[1px_1px_0px_#000]"
-                            : "bg-white dark:bg-[#141419] text-muted hover:text-black dark:hover:text-white"
+                            ? "bg-brutal-yellow text-ink"
+                            : "bg-panel text-muted hover:text-ink"
                         }`}
                         title={isBookmarked ? "Saved" : "Save blueprint"}
                       >
                         <Bookmark
                           size={13}
-                          className={isBookmarked ? "fill-black" : ""}
+                          className={isBookmarked ? "fill-ink" : ""}
                         />
                       </button>
                     </div>
@@ -871,7 +871,7 @@ export default function MarketplacePage() {
                       {template.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-bold rounded-none border border-black dark:border-white/40 bg-neutral-100 dark:bg-neutral-800 text-ink"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-semibold rounded-none border border-border bg-panel-alt text-ink"
                         >
                           <Tag size={9} className="text-muted" />
                           {tag}
@@ -886,15 +886,15 @@ export default function MarketplacePage() {
                   </div>
 
                   {/* Card Footer */}
-                  <div className="mt-5 pt-3.5 border-t-2 border-black dark:border-white/80 flex items-center justify-between">
-                    <div className="flex items-center gap-3 text-xs font-mono font-bold">
+                  <div className="mt-5 pt-3.5 border-t-2 border-border flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-xs font-mono font-semibold">
                       {LIVE_MODE && template.builtIn ? (
                         <span className="text-muted uppercase text-[10px]">Built-in starter</span>
                       ) : (
                         <>
                           {(!LIVE_MODE || template.ratingKnown) && (
-                            <span className="flex items-center gap-1 text-black dark:text-white">
-                              <Star size={12} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
+                            <span className="flex items-center gap-1 text-ink">
+                              <Star size={12} className="fill-brutal-yellow text-ink dark:text-brutal-yellow" />
                               {template.rating}
                             </span>
                           )}
@@ -913,7 +913,7 @@ export default function MarketplacePage() {
                           e.stopPropagation();
                           handleOpenDetails(template);
                         }}
-                        className="px-2.5 py-1 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#141419] text-ink hover:bg-neutral-100 dark:hover:bg-neutral-800 transition active:translate-x-[1px] active:translate-y-[1px]"
+                        className="px-2.5 py-1 text-xs font-mono font-semibold rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5 transition active:translate-x-[1px] active:translate-y-[1px]"
                       >
                         Inspect
                       </button>
@@ -921,7 +921,7 @@ export default function MarketplacePage() {
                       <button
                         type="button"
                         onClick={(e) => handleInstall(template, e)}
-                        className="flex items-center gap-1 px-3 py-1 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000]"
+                        className="flex items-center gap-1 px-3 py-1 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
                       >
                         <span>Deploy</span>
                         <ArrowUpRight size={12} strokeWidth={2.5} />
@@ -934,7 +934,7 @@ export default function MarketplacePage() {
           </div>
         ) : (
           /* List View */
-          <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] overflow-hidden divide-y-2 divide-black dark:divide-white/40">
+          <div className="rounded-none border-2 border-border bg-panel overflow-hidden divide-y-2 divide-border">
             {filteredTemplates.map((template) => {
               const isBookmarked = bookmarkedIds.includes(template.id);
               return (
@@ -949,25 +949,25 @@ export default function MarketplacePage() {
                       handleOpenDetails(template);
                     }
                   }}
-                  className="group flex flex-col md:flex-row md:items-center justify-between p-4 hover:bg-neutral-50 dark:hover:bg-[#141419] transition cursor-pointer gap-4"
+                  className="group flex flex-col md:flex-row md:items-center justify-between p-4 hover:bg-ink/5 transition cursor-pointer gap-4"
                 >
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                     <div
-                      className="h-10 w-10 shrink-0 rounded-none border-2 border-black flex items-center justify-center font-mono font-black text-base shadow-[2px_2px_0px_#000] text-black"
+                      className="h-10 w-10 shrink-0 rounded-none border-2 border-border flex items-center justify-center font-mono font-semibold text-base text-ink"
                       style={{ backgroundColor: template.hue }}
                     >
                       {template.name[0]}
                     </div>
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-mono text-sm sm:text-base font-black text-ink truncate group-hover:text-amber-500 transition">
+                        <h3 className="font-mono text-sm sm:text-base font-semibold text-ink truncate group-hover:text-warn transition">
                           {template.name}
                         </h3>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-black dark:border-white/40 bg-neutral-100 dark:bg-neutral-800 font-bold uppercase text-muted">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-border bg-panel-alt font-semibold uppercase text-muted">
                           {template.source}
                         </span>
                         {template.featured && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-black bg-brutal-yellow font-black uppercase text-black">
+                          <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-border bg-brutal-yellow font-semibold uppercase text-ink">
                             Featured
                           </span>
                         )}
@@ -979,7 +979,7 @@ export default function MarketplacePage() {
                         {template.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="text-[10px] font-mono px-1.5 py-0.2 rounded-none bg-neutral-100 dark:bg-neutral-800 text-muted border border-black/20 dark:border-white/20"
+                            className="text-[10px] font-mono px-1.5 py-0.2 rounded-none bg-panel-alt text-muted border border-border"
                           >
                             #{tag}
                           </span>
@@ -989,15 +989,15 @@ export default function MarketplacePage() {
                   </div>
 
                   {/* List Row Right Stats & Actions */}
-                  <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-black/20 dark:border-white/20">
-                    <div className="flex items-center gap-3 text-xs font-mono font-bold">
+                  <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border">
+                    <div className="flex items-center gap-3 text-xs font-mono font-semibold">
                       {LIVE_MODE && template.builtIn ? (
                         <span className="text-muted uppercase text-[10px]">Built-in starter</span>
                       ) : (
                         <>
                           {(!LIVE_MODE || template.ratingKnown) && (
-                            <span className="flex items-center gap-1 text-black dark:text-white">
-                              <Star size={12} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
+                            <span className="flex items-center gap-1 text-ink">
+                              <Star size={12} className="fill-brutal-yellow text-ink dark:text-brutal-yellow" />
                               {template.rating}
                             </span>
                           )}
@@ -1013,23 +1013,23 @@ export default function MarketplacePage() {
                       <button
                         type="button"
                         onClick={(e) => toggleBookmark(template.id, e)}
-                        className={`p-1.5 rounded-none border-2 border-black transition ${
+                        className={`p-1.5 rounded-none border-2 border-border transition ${
                           isBookmarked
-                            ? "bg-brutal-yellow text-black shadow-[1px_1px_0px_#000]"
-                            : "bg-white dark:bg-[#141419] text-muted hover:text-black dark:hover:text-white"
+                            ? "bg-brutal-yellow text-ink"
+                            : "bg-panel text-muted hover:text-ink"
                         }`}
                         title={isBookmarked ? "Saved" : "Save blueprint"}
                       >
                         <Bookmark
                           size={13}
-                          className={isBookmarked ? "fill-black" : ""}
+                          className={isBookmarked ? "fill-ink" : ""}
                         />
                       </button>
 
                       <button
                         type="button"
                         onClick={(e) => handleInstall(template, e)}
-                        className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000]"
+                        className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
                       >
                         <span>Deploy</span>
                         <ArrowUpRight size={12} strokeWidth={2.5} />
@@ -1043,11 +1043,11 @@ export default function MarketplacePage() {
         )
       ) : (
         /* Empty State */
-        <div className="rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] p-12 text-center shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-3">
-          <div className="h-12 w-12 mx-auto rounded-none border-2 border-black bg-brutal-yellow flex items-center justify-center font-mono font-black text-xl shadow-[2px_2px_0px_#000] text-black">
+        <div className="rounded-none border-2 border-border bg-panel p-12 text-center space-y-3">
+          <div className="h-12 w-12 mx-auto rounded-none border-2 border-border bg-brutal-yellow flex items-center justify-center font-mono font-semibold text-xl text-ink">
             !
           </div>
-          <h3 className="font-mono text-base font-black uppercase text-ink">
+          <h3 className="font-mono text-base font-semibold uppercase text-ink">
             No starters found matching your filters
           </h3>
           <p className="text-xs font-mono text-muted max-w-md mx-auto">
@@ -1060,7 +1060,7 @@ export default function MarketplacePage() {
               setSelectedCategory("all");
               setSourceFilter("all");
             }}
-            className="px-4 py-2 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] transition shadow-[2px_2px_0px_#000]"
+            className="px-4 py-2 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 transition"
           >
             Reset Filters
           </button>
@@ -1070,27 +1070,27 @@ export default function MarketplacePage() {
       {/* 5. Starter Details & Architecture Modal */}
       <AnimatePresence>
         {detailsModalOpen && selectedTemplate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-base/70 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-2xl max-h-[90vh] rounded-none border-3 border-black dark:border-white bg-white dark:bg-[#181820] shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_#fff] overflow-hidden flex flex-col"
+              className="w-full max-w-2xl max-h-[90vh] rounded-none border-3 border-border bg-panel overflow-hidden flex flex-col"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
             >
               {/* Modal Header */}
               <div
-                className="flex items-center justify-between p-4 border-b-2 border-black"
+                className="flex items-center justify-between p-4 border-b-2 border-border"
                 style={{ backgroundColor: selectedTemplate.hue }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-none border-2 border-black bg-white flex items-center justify-center font-mono font-black text-base shadow-[2px_2px_0px_#000] text-black">
+                  <div className="h-9 w-9 rounded-none border-2 border-border bg-panel flex items-center justify-center font-mono font-semibold text-base text-ink">
                     {selectedTemplate.name[0]}
                   </div>
                   <div>
-                    <h2 className="font-mono font-black text-base text-black uppercase">
+                    <h2 className="font-mono font-semibold text-base text-ink uppercase">
                       {selectedTemplate.name}
                     </h2>
-                    <p className="text-xs font-mono text-neutral-900 font-bold">
+                    <p className="text-xs font-mono text-ink font-semibold">
                       by {selectedTemplate.author} • {selectedTemplate.version}
                     </p>
                   </div>
@@ -1098,7 +1098,7 @@ export default function MarketplacePage() {
                 <button
                   type="button"
                   onClick={() => setDetailsModalOpen(false)}
-                  className="p-1 rounded-none border-2 border-black bg-white text-black hover:bg-neutral-100 shadow-[1px_1px_0px_#000]"
+                  className="p-1 rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5"
                 >
                   <X size={16} strokeWidth={2.5} />
                 </button>
@@ -1108,7 +1108,7 @@ export default function MarketplacePage() {
               <div className="p-5 overflow-y-auto space-y-5 flex-1">
                 {/* Description */}
                 <div>
-                  <h4 className="text-xs font-mono font-black uppercase text-muted tracking-wider mb-1">
+                  <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-1">
                     Overview
                   </h4>
                   <p className="text-xs sm:text-sm font-mono text-ink leading-relaxed">
@@ -1119,38 +1119,38 @@ export default function MarketplacePage() {
                 {/* Architecture & Stack Matrix */}
                 {selectedTemplate.architecture && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono font-black uppercase text-muted tracking-wider">
+                  <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
                     Architectural Specifications
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 font-mono text-xs">
-                    <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
-                      <span className="text-muted block text-[10px] uppercase font-bold">Frontend UI</span>
-                      <span className="font-bold text-ink">
+                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                      <span className="text-muted block text-[10px] uppercase font-semibold">Frontend UI</span>
+                      <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.frontend}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
-                      <span className="text-muted block text-[10px] uppercase font-bold">Backend Server</span>
-                      <span className="font-bold text-ink">
+                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                      <span className="text-muted block text-[10px] uppercase font-semibold">Backend Server</span>
+                      <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.backend}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
-                      <span className="text-muted block text-[10px] uppercase font-bold">Database / State</span>
-                      <span className="font-bold text-ink">
+                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                      <span className="text-muted block text-[10px] uppercase font-semibold">Database / State</span>
+                      <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.database}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419]">
-                      <span className="text-muted block text-[10px] uppercase font-bold">Authentication</span>
-                      <span className="font-bold text-ink">
+                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                      <span className="text-muted block text-[10px] uppercase font-semibold">Authentication</span>
+                      <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.auth}
                       </span>
                     </div>
                     {selectedTemplate.architecture!.aiEngine && (
-                      <div className="p-2.5 rounded-none border-2 border-black bg-brutal-yellow sm:col-span-2 shadow-[2px_2px_0px_#000]">
-                        <span className="text-black block text-[10px] font-black uppercase">Autonomous AI Engine</span>
-                        <span className="font-black text-black">
+                      <div className="p-2.5 rounded-none border-2 border-border bg-brutal-yellow sm:col-span-2">
+                        <span className="text-ink block text-[10px] font-semibold uppercase">Autonomous AI Engine</span>
+                        <span className="font-semibold text-ink">
                           {selectedTemplate.architecture!.aiEngine}
                         </span>
                       </div>
@@ -1162,13 +1162,13 @@ export default function MarketplacePage() {
                 {/* File Manifest */}
                 {selectedTemplate.filesList.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono font-black uppercase text-muted tracking-wider">
+                  <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
                     Included File Manifest
                   </h4>
-                  <div className="rounded-none border-2 border-black dark:border-white/60 bg-neutral-50 dark:bg-[#141419] p-2.5 font-mono text-xs space-y-1">
+                  <div className="rounded-none border-2 border-border bg-panel p-2.5 font-mono text-xs space-y-1">
                     {selectedTemplate.filesList.map((file) => (
-                      <div key={file} className="flex items-center gap-2 text-ink font-bold">
-                        <FileCode2 size={13} className="text-black dark:text-white" />
+                      <div key={file} className="flex items-center gap-2 text-ink font-semibold">
+                        <FileCode2 size={13} className="text-ink" />
                         <span>{file}</span>
                       </div>
                     ))}
@@ -1179,35 +1179,35 @@ export default function MarketplacePage() {
                 {/* System Prompt Blueprint with Copy */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-mono font-black uppercase text-muted tracking-wider">
+                    <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
                       Synthesis Prompt Blueprint
                     </h4>
                     <button
                       type="button"
                       onClick={() => handleCopyPrompt(selectedTemplate.prompt)}
-                      className="flex items-center gap-1 text-[11px] font-mono font-black uppercase text-black dark:text-white hover:text-amber-500"
+                      className="flex items-center gap-1 text-[11px] font-mono font-semibold uppercase text-ink hover:text-warn"
                     >
-                      {copiedPrompt ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                      {copiedPrompt ? <Check size={12} className="text-ok" /> : <Copy size={12} />}
                       <span>{copiedPrompt ? "Copied" : "Copy Prompt"}</span>
                     </button>
                   </div>
-                  <div className="p-3 rounded-none border-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] font-mono text-xs text-ink whitespace-pre-wrap max-h-36 overflow-y-auto shadow-[2px_2px_0px_#000]">
+                  <div className="p-3 rounded-none border-2 border-border bg-panel-alt font-mono text-xs text-ink whitespace-pre-wrap max-h-36 overflow-y-auto">
                     {selectedTemplate.prompt}
                   </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t-2 border-black dark:border-white/80 bg-neutral-100 dark:bg-[#141419] flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3 text-xs font-mono font-bold text-muted">
+              <div className="p-4 border-t-2 border-border bg-panel-alt flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3 text-xs font-mono font-semibold text-muted">
                   {LIVE_MODE && selectedTemplate.builtIn ? (
                     <span>Built-in starter</span>
                   ) : (
                     <>
                       {(!LIVE_MODE || selectedTemplate.ratingKnown) && (
                         <>
-                          <span className="flex items-center gap-1 text-black dark:text-white">
-                            <Star size={13} className="fill-brutal-yellow text-black dark:text-brutal-yellow" />
+                          <span className="flex items-center gap-1 text-ink">
+                            <Star size={13} className="fill-brutal-yellow text-ink dark:text-brutal-yellow" />
                             {selectedTemplate.rating} ({selectedTemplate.ratingCount} reviews)
                           </span>
                           <span>•</span>
@@ -1222,7 +1222,7 @@ export default function MarketplacePage() {
                   <button
                     type="button"
                     onClick={() => setDetailsModalOpen(false)}
-                    className="px-3.5 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000]"
+                    className="px-3.5 py-1.5 text-xs font-mono font-semibold rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5 transition"
                   >
                     Close
                   </button>
@@ -1232,7 +1232,7 @@ export default function MarketplacePage() {
                       setDetailsModalOpen(false);
                       handleInstall(selectedTemplate);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000]"
+                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
                   >
                     <ArrowUpRight size={13} strokeWidth={2.5} />
                     <span>Scaffold Blueprint</span>
@@ -1247,23 +1247,23 @@ export default function MarketplacePage() {
       {/* 6. Publish Starter Modal */}
       <AnimatePresence>
         {publishModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-base/70 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-lg rounded-none border-3 border-black dark:border-white bg-white dark:bg-[#181820] shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_#fff] overflow-hidden flex flex-col"
+              className="w-full max-w-lg rounded-none border-3 border-border bg-panel overflow-hidden flex flex-col"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b-2 border-black bg-brutal-yellow">
-                <div className="flex items-center gap-2 font-mono font-black text-sm text-black uppercase">
+              <div className="flex items-center justify-between p-4 border-b-2 border-border bg-brutal-yellow">
+                <div className="flex items-center gap-2 font-mono font-semibold text-sm text-ink uppercase">
                   <Plus size={16} strokeWidth={2.5} />
                   <span>Publish Community Starter</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPublishModalOpen(false)}
-                  className="p-1 rounded-none border-2 border-black bg-white text-black hover:bg-neutral-100 shadow-[1px_1px_0px_#000]"
+                  className="p-1 rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5"
                 >
                   <X size={15} strokeWidth={2.5} />
                 </button>
@@ -1272,7 +1272,7 @@ export default function MarketplacePage() {
               {/* Modal Form */}
               <form onSubmit={handlePublishSubmit} className="p-5 space-y-4">
                 <div className="space-y-1">
-                  <label htmlFor="starter-title" className="font-mono text-xs font-black uppercase text-muted">
+                  <label htmlFor="starter-title" className="font-mono text-xs font-semibold uppercase text-muted">
                     Starter Title
                   </label>
                   <input
@@ -1282,20 +1282,20 @@ export default function MarketplacePage() {
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. Next.js SaaS with LemonSqueezy"
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none focus:bg-brutal-yellow/10 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-none border-2 border-border focus:outline-none focus:bg-brutal-yellow/10 "
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label htmlFor="starter-category" className="font-mono text-xs font-black uppercase text-muted">
+                    <label htmlFor="starter-category" className="font-mono text-xs font-semibold uppercase text-muted">
                       Category
                     </label>
                     <select
                       id="starter-category"
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value as any)}
-                      className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                      className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
                     >
                       <option value="ai">AI &amp; Agents</option>
                       <option value="saas">SaaS &amp; Billing</option>
@@ -1308,7 +1308,7 @@ export default function MarketplacePage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label htmlFor="starter-author" className="font-mono text-xs font-black uppercase text-muted">
+                    <label htmlFor="starter-author" className="font-mono text-xs font-semibold uppercase text-muted">
                       Author Handle
                     </label>
                     <input
@@ -1317,13 +1317,13 @@ export default function MarketplacePage() {
                       value={newAuthor}
                       onChange={(e) => setNewAuthor(e.target.value)}
                       placeholder="e.g. devsmith"
-                      className="w-full bg-white dark:bg-[#141419] text-xs font-mono font-bold text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                      className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="starter-desc" className="font-mono text-xs font-black uppercase text-muted">
+                  <label htmlFor="starter-desc" className="font-mono text-xs font-semibold uppercase text-muted">
                     Summary Description
                   </label>
                   <textarea
@@ -1333,12 +1333,12 @@ export default function MarketplacePage() {
                     value={newDescription}
                     onChange={(e) => setNewDescription(e.target.value)}
                     placeholder="Describe the architectural pattern and core features..."
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="starter-tags" className="font-mono text-xs font-black uppercase text-muted">
+                  <label htmlFor="starter-tags" className="font-mono text-xs font-semibold uppercase text-muted">
                     Tags (comma separated)
                   </label>
                   <input
@@ -1347,12 +1347,12 @@ export default function MarketplacePage() {
                     value={newTags}
                     onChange={(e) => setNewTags(e.target.value)}
                     placeholder="e.g. saas, stripe, react, tailwind"
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="starter-prompt" className="font-mono text-xs font-black uppercase text-muted">
+                  <label htmlFor="starter-prompt" className="font-mono text-xs font-semibold uppercase text-muted">
                     Scaffolding Synthesis Prompt
                   </label>
                   <textarea
@@ -1362,22 +1362,22 @@ export default function MarketplacePage() {
                     value={newPrompt}
                     onChange={(e) => setNewPrompt(e.target.value)}
                     placeholder="Detailed prompt that instructs the autonomous agent fleet how to build this stack..."
-                    className="w-full bg-white dark:bg-[#141419] text-xs font-mono text-ink p-2.5 rounded-none border-2 border-black dark:border-white/80 focus:outline-none focus:bg-brutal-yellow/10 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]"
+                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-none border-2 border-border focus:outline-none focus:bg-brutal-yellow/10 "
                   />
                 </div>
 
                 {/* Modal Footer */}
-                <div className="pt-3 border-t-2 border-black dark:border-white/80 flex items-center justify-end gap-2">
+                <div className="pt-3 border-t-2 border-border flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setPublishModalOpen(false)}
-                    className="px-3.5 py-1.5 text-xs font-mono font-bold rounded-none border-2 border-black dark:border-white/80 bg-white dark:bg-[#181820] text-ink hover:bg-neutral-200 dark:hover:bg-neutral-800 transition shadow-[1px_1px_0px_#000]"
+                    className="px-3.5 py-1.5 text-xs font-mono font-semibold rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-black uppercase rounded-none border-2 border-black bg-brutal-yellow text-black hover:bg-[#2DD4BF] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shadow-[2px_2px_0px_#000]"
+                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
                   >
                     <Send size={13} strokeWidth={2.5} />
                     <span>Publish Starter</span>

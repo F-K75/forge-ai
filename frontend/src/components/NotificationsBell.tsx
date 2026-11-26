@@ -47,7 +47,7 @@ export function NotificationsBell({ className }: NotificationsBellProps = {}) {
         aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
         className={
           className ||
-          "relative flex items-center justify-center w-7 h-7 bg-white dark:bg-[#252530] border-2 border-black dark:border-white/80 text-ink shadow-[1px_1px_0px_#000] dark:shadow-[1px_1px_0px_#fff] hover:bg-brutal-yellow hover:text-black active:translate-x-[1px] active:translate-y-[1px] focus:outline-none"
+          "relative flex items-center justify-center w-7 h-7 bg-panel border-2 border-border text-ink hover:bg-brutal-yellow hover:text-ink active:translate-x-[1px] active:translate-y-[1px] focus:outline-none"
         }
         whileHover={reduceMotion ? {} : { scale: 1.05 }}
         whileTap={reduceMotion ? {} : { scale: 0.95 }}
@@ -58,7 +58,7 @@ export function NotificationsBell({ className }: NotificationsBellProps = {}) {
           {unread > 0 && (
             <motion.span
               key="badge"
-              className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-brutal-pink border border-black"
+              className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-brutal-pink border border-border"
               aria-hidden="true"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -75,18 +75,18 @@ export function NotificationsBell({ className }: NotificationsBellProps = {}) {
             ref={dropdownRef}
             role="region"
             aria-label="Notifications"
-            className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden bg-white border-2 border-black rounded-sm shadow-brutal-lg z-20 flex flex-col"
+            className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden bg-panel border-2 border-border rounded-sm z-20 flex flex-col"
             initial={reduceMotion ? false : presets.notification.initial}
             animate={presets.notification.animate}
             exit={presets.notification.exit}
             transition={{ type: "spring", stiffness: 450, damping: 24 }}
           >
-            <div className="px-4 py-2.5 border-b-2 border-black bg-brutal-cream shrink-0">
-              <p className="text-xs font-black uppercase tracking-wider text-black">Notifications</p>
+            <div className="px-4 py-2.5 border-b-2 border-border bg-brutal-cream shrink-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink">Notifications</p>
             </div>
             {notifications.length === 0 ? (
               <motion.p
-                className="px-4 py-6 text-xs font-bold text-muted text-center"
+                className="px-4 py-6 text-xs font-semibold text-muted text-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
@@ -94,7 +94,7 @@ export function NotificationsBell({ className }: NotificationsBellProps = {}) {
                 All caught up.
               </motion.p>
             ) : (
-              <ul className="overflow-y-auto flex-1 divide-y-2 divide-black/10">
+              <ul className="overflow-y-auto flex-1 divide-y-2 divide-border">
                 {notifications.map((n, idx) => (
                   <motion.li
                     key={n.id}
@@ -105,14 +105,14 @@ export function NotificationsBell({ className }: NotificationsBellProps = {}) {
                     <motion.button
                       onClick={() => handleRead(n.id)}
                       className={`w-full text-left px-4 py-3 focus:outline-none transition-colors ${
-                        n.read_at ? "opacity-60 bg-neutral-50" : "hover:bg-brutal-yellow/20 bg-white"
+                        n.read_at ? "opacity-60 bg-panel" : "hover:bg-brutal-yellow/20 bg-panel"
                       }`}
                       whileHover={reduceMotion ? {} : { x: 2 }}
                       transition={{ duration: 0.1 }}
                     >
                       <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <p className="text-xs font-bold text-black truncate">{n.title}</p>
-                        <span className="text-[10px] font-mono font-bold text-muted shrink-0">{formatRelativeTime(n.created_at)}</span>
+                        <p className="text-xs font-semibold text-ink truncate">{n.title}</p>
+                        <span className="text-[10px] font-mono font-semibold text-muted shrink-0">{formatRelativeTime(n.created_at)}</span>
                       </div>
                       <p className="text-[11px] text-ink leading-relaxed">{n.message}</p>
                     </motion.button>

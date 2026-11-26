@@ -52,7 +52,7 @@ export function ForgeDebugSurface() {
                 onClick={() => setFilter(s)}
                 className={`h-7 px-2.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                   filter === s
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-on-ink"
                     : "text-muted hover:text-ink"
                 }`}
               >
@@ -66,7 +66,7 @@ export function ForgeDebugSurface() {
           type="button"
           disabled={isRunning}
           onClick={handleRerun}
-          className="h-8 px-3 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+          className="h-8 px-3 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
         >
           <RotateCcw size={12} className={isRunning ? "animate-spin" : ""} />
           <span>{isRunning ? "Running…" : "Re-run Suite"}</span>
@@ -107,18 +107,18 @@ export function ForgeDebugSurface() {
         </div>
 
         {/* Console Output */}
-        <div className="rounded-xl border border-border bg-[#0B0F19] text-slate-200 p-4 font-mono text-xs space-y-1.5">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-[11px] text-slate-400">
-            <span className="inline-flex items-center gap-1.5 text-slate-200 font-medium">
+        <div className="rounded-xl border border-border bg-ink text-muted p-4 font-mono text-xs space-y-1.5">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-border text-[11px] text-faint">
+            <span className="inline-flex items-center gap-1.5 text-muted font-medium">
               <Terminal size={13} className="text-accent" />
               Vitest Runner Output
             </span>
             <span className="tabular-nums">Vitest 2.1.8 · Node v20.18</span>
           </div>
-          <p className="text-emerald-400">✓ 42 tests passed across 10 test files</p>
-          <p className="text-slate-400 tabular-nums">  Duration: 142ms total (11ms setup, 131ms execution)</p>
-          <p className="text-slate-400 tabular-nums">  Snapshots: 0 failed, 12 passed</p>
-          <p className="text-emerald-400 tabular-nums">  Coverage: 98.4% statements, 96.1% branches</p>
+          <p className="text-ok">✓ 42 tests passed across 10 test files</p>
+          <p className="text-faint tabular-nums">  Duration: 142ms total (11ms setup, 131ms execution)</p>
+          <p className="text-faint tabular-nums">  Snapshots: 0 failed, 12 passed</p>
+          <p className="text-ok tabular-nums">  Coverage: 98.4% statements, 96.1% branches</p>
         </div>
       </div>
     </div>

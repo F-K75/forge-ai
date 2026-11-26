@@ -121,7 +121,7 @@ export function MCPAppFrame({ title, loadResource, initialHeight = MCP_APP_DEFAU
           srcDoc={payload.html}
           allow=""
           referrerPolicy="no-referrer"
-          className="h-full w-full bg-white"
+          className="h-full w-full bg-panel"
         />
       </div>
       {payload.warnings.length > 0 && (

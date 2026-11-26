@@ -487,7 +487,7 @@ export default function HistoryPage() {
             <button
               type="button"
               onClick={() => setNewRunModalOpen(true)}
-              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Play size={12} fill="currentColor" />
               <span>Trigger Run</span>
@@ -596,7 +596,7 @@ export default function HistoryPage() {
                   onClick={() => setFilterStatus(tab)}
                   className={`h-7 px-2.5 text-xs font-medium capitalize rounded-md transition-colors cursor-pointer ${
                     filterStatus === tab
-                      ? "bg-accent text-white"
+                      ? "bg-accent text-on-ink"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -627,7 +627,7 @@ export default function HistoryPage() {
                 onClick={() => setViewMode("cards")}
                 className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                   viewMode === "cards"
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-on-ink"
                     : "text-muted hover:text-ink"
                 }`}
                 title="Timeline view"
@@ -640,7 +640,7 @@ export default function HistoryPage() {
                 onClick={() => setViewMode("table")}
                 className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                   viewMode === "table"
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-on-ink"
                     : "text-muted hover:text-ink"
                 }`}
                 title="Table view"
@@ -669,7 +669,7 @@ export default function HistoryPage() {
                 setFilterStatus("all");
                 setFilterAgent("all");
               }}
-              className="h-8 px-4 rounded-lg bg-accent hover:bg-ember-glow text-xs font-medium text-white transition-colors cursor-pointer"
+              className="h-8 px-4 rounded-lg bg-accent hover:bg-ember-glow text-xs font-medium text-on-ink transition-colors cursor-pointer"
             >
               Reset Filters
             </button>
@@ -769,7 +769,7 @@ export default function HistoryPage() {
                         setSelectedRun(item);
                         setInspectModalOpen(true);
                       }}
-                      className="h-8 inline-flex items-center gap-1.5 px-3.5 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors cursor-pointer"
+                      className="h-8 inline-flex items-center gap-1.5 px-3.5 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors cursor-pointer"
                     >
                       <Eye size={13} />
                       <span>Inspect</span>
@@ -848,7 +848,7 @@ export default function HistoryPage() {
                           setSelectedRun(item);
                           setInspectModalOpen(true);
                         }}
-                        className="h-7 px-2.5 text-xs font-medium rounded-md bg-accent hover:bg-ember-glow text-white transition-colors cursor-pointer"
+                        className="h-7 px-2.5 text-xs font-medium rounded-md bg-accent hover:bg-ember-glow text-on-ink transition-colors cursor-pointer"
                       >
                         Inspect
                       </button>
@@ -864,7 +864,7 @@ export default function HistoryPage() {
       {/* 5. Detailed Execution Trace Inspector Modal */}
       <AnimatePresence>
         {inspectModalOpen && selectedRun && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs">
             <motion.div
               role="dialog"
               aria-modal="true"
@@ -989,7 +989,7 @@ export default function HistoryPage() {
                     <Terminal size={14} className="text-accent" />
                     Agent Output Logs
                   </h4>
-                  <pre className="p-3.5 rounded-xl border border-border bg-[#0B0F19] text-slate-200 font-mono text-xs leading-relaxed max-h-44 overflow-y-auto whitespace-pre-wrap">
+                  <pre className="p-3.5 rounded-xl border border-border bg-ink text-muted font-mono text-xs leading-relaxed max-h-44 overflow-y-auto whitespace-pre-wrap">
                     {selectedRun.logs.join("\n")}
                   </pre>
                 </div>
@@ -1030,7 +1030,7 @@ export default function HistoryPage() {
                       setInspectModalOpen(false);
                       handleRerun(selectedRun);
                     }}
-                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors cursor-pointer"
+                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors cursor-pointer"
                   >
                     <RotateCcw size={12} />
                     <span>Re-run Directive</span>
@@ -1045,7 +1045,7 @@ export default function HistoryPage() {
       {/* 6. Dispatch New Run Modal */}
       <AnimatePresence>
         {newRunModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs">
             <motion.div
               role="dialog"
               aria-modal="true"
@@ -1142,7 +1142,7 @@ export default function HistoryPage() {
                     type="button"
                     disabled={triggeringRun || !newRunPrompt.trim()}
                     onClick={handleCreateNewRun}
-                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-white transition-colors disabled:opacity-45 cursor-pointer"
+                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
                   >
                     {triggeringRun ? (
                       <>

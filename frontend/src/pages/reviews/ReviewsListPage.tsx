@@ -58,7 +58,7 @@ const AVAILABLE_AGENTS = [
  { id: "security_agent", name: "Security Sentinel", icon: ShieldCheck, desc: "OWASP & secret leaks", color: "bg-error/20 text-error" },
  { id: "performance_agent", name: "Performance Profiler", icon: Sparkles, desc: "Bottlenecks & memory", color: "bg-info/20 text-info" },
  { id: "architecture_agent", name: "Architecture Analyst", icon: Layers, desc: "Coupling & modularity", color: "bg-accent/20 text-accent" },
- { id: "code_quality_agent", name: "Quality Linter", icon: FileCode2, desc: "Strict typing & dead code", color: "bg-accent text-[#09090B]" },
+ { id: "code_quality_agent", name: "Quality Linter", icon: FileCode2, desc: "Strict typing & dead code", color: "bg-accent text-on-ink" },
  { id: "qa_agent", name: "QA & Edge Case Inspector", icon: CheckCircle2, desc: "Assertions & regressions", color: "bg-ok/20 text-ok" },
 ];
 
@@ -94,13 +94,13 @@ function KpiCard({
  <div className="relative overflow-hidden border border-border bg-panel p-3 shadow-m3 transition-all">
  <div className="flex items-center gap-2.5">
         <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center border border-border ${accentColor} text-black shadow-m3`}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center border border-border ${accentColor} text-ink shadow-m3`}
         >
  <Icon size={14} strokeWidth={2.5} aria-hidden="true" />
         </span>
  <div className="min-w-0">
- <div className="font-mono text-lg font-black leading-none text-ink">{value}</div>
- <div className="mt-1 truncate font-mono text-[10px] font-black uppercase tracking-wider text-muted">{label}</div>
+ <div className="font-mono text-lg font-semibold leading-none text-ink">{value}</div>
+ <div className="mt-1 truncate font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</div>
         </div>
       </div>
     </div>
@@ -450,7 +450,7 @@ export default function ReviewsListPage() {
  inputRef.current?.scrollIntoView({ behavior: "smooth" });
                   inputRef.current?.focus();
                 }}
- className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-md bg-accent text-[#09090B] hover:bg-ember-glow text-xs font-semibold transition-colors cursor-pointer"
+ className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-md bg-accent text-on-ink hover:bg-ember-glow text-xs font-semibold transition-colors cursor-pointer"
               >
  <Play size={13} fill="currentColor" />
                 New Audit
@@ -478,10 +478,10 @@ export default function ReviewsListPage() {
  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-border pb-3">
             <div>
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border border-border bg-warn/20 text-warn shadow-m3 font-mono text-xs font-black">
+ <span className="flex h-6 w-6 items-center justify-center border border-border bg-warn/20 text-warn shadow-m3 font-mono text-xs font-semibold">
                   #
                 </span>
- <h2 id="initiator-heading" className="font-mono text-base font-black uppercase text-ink">
+ <h2 id="initiator-heading" className="font-mono text-base font-semibold uppercase text-ink">
                   Launch Multi-Agent Code Audit
                 </h2>
               </div>
@@ -495,9 +495,9 @@ export default function ReviewsListPage() {
               <button
  type="button"
  onClick={() => setMode("full")}
-                className={`h-7 px-3 border border-border font-mono text-xs font-black uppercase transition-all ${
+                className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
  mode === "full"
- ? "bg-accent text-[#09090B] shadow-m3"
+ ? "bg-accent text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                 }`}
               >
@@ -506,9 +506,9 @@ export default function ReviewsListPage() {
               <button
  type="button"
  onClick={() => setMode("diff")}
-                className={`h-7 px-3 border border-border font-mono text-xs font-black uppercase transition-all ${
+                className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
  mode === "diff"
- ? "bg-accent text-[#09090B] shadow-m3"
+ ? "bg-accent text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                 }`}
               >
@@ -518,11 +518,11 @@ export default function ReviewsListPage() {
           </div>
 
           {LIVE_MODE && !isConfigured && (
- <div className="mt-3 border border-border bg-amber-50 dark:bg-amber-950/30 p-3 shadow-m3 flex items-start gap-2.5">
- <AlertTriangle size={16} className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+ <div className="mt-3 border border-border bg-warn/10 p-3 shadow-m3 flex items-start gap-2.5">
+ <AlertTriangle size={16} className="shrink-0 text-warn mt-0.5" />
  <div className="font-mono text-xs text-ink">
- <span className="font-black uppercase">Service Notice: </span>
- Review Board orchestrator is not connected. Configure <code className="bg-black/10 dark:bg-white/10 px-1 py-0.5 font-bold">VITE_ORCHESTRATOR_URL</code> to dispatch audits to a live orchestrator daemon.
+ <span className="font-semibold uppercase">Service Notice: </span>
+ Review Board orchestrator is not connected. Configure <code className="bg-ink/10 px-1 py-0.5 font-semibold">VITE_ORCHESTRATOR_URL</code> to dispatch audits to a live orchestrator daemon.
               </div>
             </div>
           )}
@@ -530,7 +530,7 @@ export default function ReviewsListPage() {
  <div className="mt-4 space-y-4">
             {/* Repo / File Target Input */}
             <div>
- <label htmlFor="repo-target-input" className="block font-mono text-xs font-black uppercase tracking-wider text-ink mb-1.5">
+ <label htmlFor="repo-target-input" className="block font-mono text-xs font-semibold uppercase tracking-wider text-ink mb-1.5">
                 Target Repository or Path
               </label>
  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -546,14 +546,14 @@ export default function ReviewsListPage() {
                     onChange={(e) => setRepoPath(e.target.value)}
  onKeyDown={(e) => e.key === "Enter" && !isStarting && handleStartAudit()}
  placeholder="e.g. /workspaces/forge-ai or github.com/user/repo"
- className="h-7 w-full border border-border bg-white dark:bg-[#1E1E28] pl-8 pr-3 font-mono text-xs font-bold text-ink placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-black shadow-m3"
+ className="h-7 w-full border border-border bg-panel pl-8 pr-3 font-mono text-xs font-semibold text-ink placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-border shadow-m3"
                   />
                 </div>
                 <button
  type="button"
                   disabled={isStarting}
                   onClick={handleStartAudit}
- className="h-7 px-4 inline-flex items-center justify-center gap-1.5 border border-border bg-accent text-[#09090B] font-mono text-xs font-black uppercase tracking-wider text-black shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 disabled:opacity-50 transition-all shrink-0"
+ className="h-7 px-4 inline-flex items-center justify-center gap-1.5 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase tracking-wider text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 disabled:opacity-50 transition-all shrink-0"
                 >
  <Play size={13} fill="currentColor" />
  {isStarting ? "Auditing..." : "Start Review"}
@@ -562,7 +562,7 @@ export default function ReviewsListPage() {
 
               {/* Quick suggestion chips */}
  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
- <span className="font-mono text-[10px] font-black text-muted uppercase">Suggestions:</span>
+ <span className="font-mono text-[10px] font-semibold text-muted uppercase">Suggestions:</span>
                 {SUGGESTED_TARGETS.map((target) => (
                   <button
                     key={target}
@@ -571,7 +571,7 @@ export default function ReviewsListPage() {
                       setRepoPath(target);
  if (target.includes("diff")) setMode("diff");
                     }}
- className="h-7 px-2 border border-border bg-white dark:bg-[#20202a] font-mono text-[10px] font-black uppercase text-ink hover:bg-accent text-[#09090B] hover:text-black shadow-m3 transition-colors inline-flex items-center"
+ className="h-7 px-2 border border-border bg-panel font-mono text-[10px] font-semibold uppercase text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 transition-colors inline-flex items-center"
                   >
                     {target}
                   </button>
@@ -581,16 +581,16 @@ export default function ReviewsListPage() {
 
             {/* Diff editor when in diff mode */}
  {mode === "diff" && (
- <div className="border border-border bg-neutral-900 p-3.5 text-white shadow-m3">
+ <div className="border border-border bg-ink p-3.5 text-on-ink shadow-m3">
  <div className="flex items-center justify-between mb-2">
- <span className="font-mono text-xs font-bold uppercase tracking-wider text-brutal-yellow flex items-center gap-1.5">
+ <span className="font-mono text-xs font-semibold uppercase tracking-wider text-brutal-yellow flex items-center gap-1.5">
                     <GitPullRequest size={13} />
                     Unified Patch Diff Contents
                   </span>
                   <button
  type="button"
                     onClick={() => setDiffText(SAMPLE_DIFF_CODE)}
- className="h-7 px-2.5 border border-border bg-white font-mono text-[10px] font-black uppercase text-black hover:bg-info/20 text-info shadow-m3 transition-colors"
+ className="h-7 px-2.5 border border-border bg-panel font-mono text-[10px] font-semibold uppercase text-ink hover:bg-info/20 text-info shadow-m3 transition-colors"
                   >
                     Load Test Vulnerability Diff
                   </button>
@@ -600,7 +600,7 @@ export default function ReviewsListPage() {
                   onChange={(e) => setDiffText(e.target.value)}
                   rows={6}
  placeholder="Paste git diff or patch (e.g. diff --git a/src/app.ts b/src/app.ts)..."
- className="w-full border-2 border-neutral-700 bg-neutral-950 p-2.5 font-mono text-xs text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-brutal-yellow"
+ className="w-full border-2 border-border bg-ink p-2.5 font-mono text-xs text-muted placeholder:text-muted focus:outline-none focus:border-brutal-yellow"
                 />
               </div>
             )}
@@ -608,21 +608,21 @@ export default function ReviewsListPage() {
             {/* Multi-Agent Fleet Selection */}
             <div>
  <div className="flex items-center justify-between mb-2">
- <span className="font-mono text-xs font-black uppercase tracking-wider text-ink">
+ <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink">
                   Select Autonomous Audit Fleet ({selectedAgents.length}/{AVAILABLE_AGENTS.length} active)
                 </span>
  <div className="flex gap-1.5">
                   <button
  type="button"
                     onClick={() => setSelectedAgents(AVAILABLE_AGENTS.map((a) => a.id))}
- className="h-7 px-2.5 border border-border bg-white dark:bg-[#20202a] font-mono text-[10px] font-black uppercase shadow-m3 text-ink hover:bg-neutral-100 transition-colors"
+ className="h-7 px-2.5 border border-border bg-panel font-mono text-[10px] font-semibold uppercase shadow-m3 text-ink hover:bg-ink/5 transition-colors"
                   >
                     Select All
                   </button>
                   <button
  type="button"
  onClick={() => setSelectedAgents(["security_agent"])}
- className="h-7 px-2.5 border border-border bg-white dark:bg-[#20202a] font-mono text-[10px] font-black uppercase shadow-m3 text-ink hover:bg-neutral-100 transition-colors"
+ className="h-7 px-2.5 border border-border bg-panel font-mono text-[10px] font-semibold uppercase shadow-m3 text-ink hover:bg-ink/5 transition-colors"
                   >
                     Security Only
                   </button>
@@ -640,16 +640,16 @@ export default function ReviewsListPage() {
                       onClick={() => toggleAgent(agent.id)}
                       className={`flex items-start gap-2 border border-border p-2.5 text-left transition-all ${
                         isChecked
-                          ? `${agent.color} shadow-m3 text-black -translate-x-0.5 -translate-y-0.5`
+                          ? `${agent.color} shadow-m3 text-ink -translate-x-0.5 -translate-y-0.5`
  : "bg-panel opacity-70 hover:opacity-100 shadow-m3"
                       }`}
                     >
- <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-white text-black">
+ <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-panel text-ink">
                         <Icon size={13} strokeWidth={2.5} />
                       </span>
  <div className="min-w-0 flex-1">
- <div className="font-mono text-xs font-black leading-tight text-ink">{agent.name}</div>
- <div className="mt-0.5 truncate font-mono text-[10px] font-bold text-black/75 dark:text-white/75">{agent.desc}</div>
+ <div className="font-mono text-xs font-semibold leading-tight text-ink">{agent.name}</div>
+ <div className="mt-0.5 truncate font-mono text-[10px] font-semibold text-ink">{agent.desc}</div>
                       </div>
                     </button>
                   );
@@ -673,13 +673,13 @@ export default function ReviewsListPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
  placeholder="Search by repo path, run ID, or gate verdict..."
- className="h-7 w-full border border-border bg-white dark:bg-[#1E1E28] pl-8 pr-7 font-mono text-xs font-bold text-ink placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-black shadow-m3"
+ className="h-7 w-full border border-border bg-panel pl-8 pr-7 font-mono text-xs font-semibold text-ink placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-border shadow-m3"
                 />
                 {search && (
                   <button
  type="button"
  onClick={() => setSearch("")}
- className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-black"
+ className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
                   >
                     <X size={13} />
                   </button>
@@ -701,9 +701,9 @@ export default function ReviewsListPage() {
                     key={f.key}
  type="button"
                     onClick={() => setStatusFilter(f.key)}
-                    className={`h-7 px-3 border border-border font-mono text-xs font-black uppercase transition-all ${
+                    className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
                       statusFilter === f.key
- ? "bg-accent text-[#09090B] shadow-m3"
+ ? "bg-accent text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                     }`}
                   >
@@ -717,7 +717,7 @@ export default function ReviewsListPage() {
                 <select
                   value={sortKey}
                   onChange={(e) => setSortKey(e.target.value as SortKey)}
- className="h-7 border border-border bg-panel-alt px-2 font-mono text-xs font-black text-ink shadow-m3 focus:outline-none"
+ className="h-7 border border-border bg-panel-alt px-2 font-mono text-xs font-semibold text-ink shadow-m3 focus:outline-none"
                 >
  <option value="recent">Sort: Most Recent</option>
  <option value="score-desc">Sort: Highest Score</option>
@@ -732,7 +732,7 @@ export default function ReviewsListPage() {
  onClick={() => setViewMode("grid")}
                     className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "grid"
- ? "bg-accent text-[#09090B]"
+ ? "bg-accent text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
                     }`}
  title="Grid View"
@@ -744,7 +744,7 @@ export default function ReviewsListPage() {
  onClick={() => setViewMode("list")}
                     className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "list"
- ? "bg-accent text-[#09090B]"
+ ? "bg-accent text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
                     }`}
  title="Table / List View"
@@ -760,14 +760,14 @@ export default function ReviewsListPage() {
           {loading ? (
  <div className="border border-border bg-panel p-12 text-center shadow-m3">
  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent mb-3" />
- <div className="font-mono text-sm font-black text-ink">Scanning audit records...</div>
+ <div className="font-mono text-sm font-semibold text-ink">Scanning audit records...</div>
             </div>
           ) : LIVE_MODE && !isConfigured ? (
  <div className="border border-border bg-panel p-8 md:p-12 text-center shadow-m3">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-accent text-[#09090B] text-black shadow-m3">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
                 <ShieldAlert size={28} strokeWidth={2.5} />
               </div>
- <h3 className="font-mono text-base md:text-lg font-black uppercase text-ink">
+ <h3 className="font-mono text-base md:text-lg font-semibold uppercase text-ink">
                 Review Board service not configured
               </h3>
  <p className="mt-2 font-mono text-xs text-muted max-w-lg mx-auto leading-relaxed">
@@ -780,20 +780,20 @@ export default function ReviewsListPage() {
                     setRuns(SAMPLE_REVIEWS);
  toast.success("Loaded demo review sample data for preview");
                   }}
- className="h-8 px-4 inline-flex items-center gap-2 border border-border bg-accent text-[#09090B] font-mono text-xs font-black uppercase text-black shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-8 px-4 inline-flex items-center gap-2 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                 >
                   <Sparkles size={13} />
                   Preview Demo Reviews
                 </button>
               </div>
  <p className="mt-4 font-mono text-[11px] text-muted">
- To enable live orchestration audits, configure the <code className="border border-border bg-panel-alt px-1.5 py-0.5 font-bold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
+ To enable live orchestration audits, configure the <code className="border border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
               </p>
             </div>
           ) : filteredRuns.length === 0 ? (
  <div className="border border-border bg-panel p-12 text-center shadow-m3">
  <ShieldAlert size={36} className="mx-auto text-muted mb-3" />
- <h3 className="font-mono text-base font-black uppercase text-ink">No review audits match your filter</h3>
+ <h3 className="font-mono text-base font-semibold uppercase text-ink">No review audits match your filter</h3>
  <p className="mt-1 font-mono text-xs text-muted max-w-sm mx-auto">
                 Try loosening your search query or launch a new audit with the workbench above.
               </p>
@@ -803,7 +803,7 @@ export default function ReviewsListPage() {
  setSearch("");
  setStatusFilter("all");
                 }}
- className="mt-4 h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-accent text-[#09090B] font-mono text-xs font-black uppercase shadow-m3 transition-all"
+ className="mt-4 h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase shadow-m3 transition-all"
               >
                 Clear Filters
               </button>
@@ -817,12 +817,12 @@ export default function ReviewsListPage() {
  const isRunning = run.status === "running" || run.status === "consolidating";
 
                 const badgeBg = isGo
- ? "bg-ok/20 text-ok text-black"
+ ? "bg-ok/20 text-ok text-ink"
                   : isNoGo
- ? "bg-error/20 text-error text-black"
+ ? "bg-error/20 text-error text-ink"
                   : isFixes
- ? "bg-accent text-[#09090B] text-black"
- : "bg-info/20 text-info text-black";
+ ? "bg-accent text-on-ink text-on-ink"
+ : "bg-info/20 text-info text-ink";
 
  const score = run.consolidated?.overall_score ?? (isRunning ? "..." : "N/A");
 
@@ -840,15 +840,15 @@ export default function ReviewsListPage() {
  <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
  <div className="flex items-center gap-2">
                           <span
-                            className={`border border-border px-2 py-0.5 font-mono text-[10px] font-black uppercase shadow-m3 ${badgeBg}`}
+                            className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${badgeBg}`}
                           >
                             {run.consolidated?.recommendation || run.status}
                           </span>
- <span className="border border-border bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase text-muted">
+ <span className="border border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted">
                             {run.mode}
                           </span>
                         </div>
- <span className="font-mono text-[11px] text-muted flex items-center gap-1 font-bold">
+ <span className="font-mono text-[11px] text-muted flex items-center gap-1 font-semibold">
                           <Clock size={12} />
                           {formatRelativeTime(run.created_at)}
                         </span>
@@ -857,11 +857,11 @@ export default function ReviewsListPage() {
                       {/* Main Title & Path */}
  <div className="mt-3">
  <div className="flex items-start gap-2">
- <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-accent text-[#09090B] text-black shadow-m3">
+ <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
  {run.mode === "diff" ? <GitPullRequest size={11} /> : <FolderGit2 size={11} />}
                           </span>
  <div className="min-w-0">
- <h3 className="font-mono text-sm font-black text-ink truncate group-hover:text-brutal-orange transition-colors">
+ <h3 className="font-mono text-sm font-semibold text-ink truncate group-hover:text-brutal-orange transition-colors">
                               {run.repo_path}
                             </h3>
  <div className="font-mono text-[11px] text-muted truncate">ID: {run.run_id}</div>
@@ -870,17 +870,17 @@ export default function ReviewsListPage() {
 
                         {/* Recommendation Note */}
                         {run.consolidated?.summary && (
- <p className="mt-3 font-mono text-xs text-muted line-clamp-2 leading-relaxed bg-neutral-50 dark:bg-neutral-900 p-2 border-2 border-neutral-200 dark:border-neutral-800">
+ <p className="mt-3 font-mono text-xs text-muted line-clamp-2 leading-relaxed bg-panel p-2 border-2 border-border">
                             {run.consolidated.summary}
                           </p>
                         )}
                       </div>
 
                       {/* Quality Score Bar */}
- <div className="mt-4 border border-border bg-neutral-100 dark:bg-neutral-800/80 p-2.5 shadow-m3">
+ <div className="mt-4 border border-border bg-panel-alt p-2.5 shadow-m3">
  <div className="flex items-center justify-between font-mono text-xs">
- <span className="font-black text-muted uppercase">Audit Score</span>
- <span className="font-black text-ink text-sm">
+ <span className="font-semibold text-muted uppercase">Audit Score</span>
+ <span className="font-semibold text-ink text-sm">
                             {score}
  {typeof score === "number" ? "/100" : ""}
                           </span>
@@ -889,7 +889,7 @@ export default function ReviewsListPage() {
  <div className="mt-1.5 h-2 w-full overflow-hidden border border-border bg-panel-alt">
                             <div
                               className={`h-full ${
- score >= 85 ? "bg-ok/20 text-ok" : score >= 70 ? "bg-accent text-[#09090B]" : "bg-error/20 text-error"
+ score >= 85 ? "bg-ok/20 text-ok" : score >= 70 ? "bg-accent text-on-ink" : "bg-error/20 text-error"
                               }`}
                               style={{ width: `${score}%` }}
                             />
@@ -902,7 +902,7 @@ export default function ReviewsListPage() {
                         {run.triggered_agents.map((agentId) => (
                           <span
                             key={agentId}
- className="border border-border bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-mono text-[10px] font-black text-ink"
+ className="border border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
                           >
  {agentId.replace("_agent", "")}
                           </span>
@@ -912,7 +912,7 @@ export default function ReviewsListPage() {
 
                     {/* Card Footer Actions */}
  <div className="mt-5 pt-3 border-t border-border flex items-center justify-between">
- <div className="flex items-center gap-1.5 font-mono text-xs font-black">
+ <div className="flex items-center gap-1.5 font-mono text-xs font-semibold">
  <ShieldAlert size={14} className={run.backlog?.length ? "text-error" : "text-ok"} />
                         <span>
  {run.backlog?.length ?? 0} {run.backlog?.length === 1 ? "issue" : "issues"}
@@ -927,7 +927,7 @@ export default function ReviewsListPage() {
                               e.stopPropagation();
                               setActiveBacklogModal(run);
                             }}
- className="h-7 px-2.5 border border-border bg-white dark:bg-[#20202a] font-mono text-[11px] font-black uppercase text-ink hover:bg-accent text-[#09090B] hover:text-black shadow-m3 active:translate-x-[1px] active:translate-y-[1px] transition-all"
+ className="h-7 px-2.5 border border-border bg-panel font-mono text-[11px] font-semibold uppercase text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 active:translate-x-[1px] active:translate-y-[1px] transition-all"
                           >
                             Quick Backlog
                           </button>
@@ -935,7 +935,7 @@ export default function ReviewsListPage() {
                         <button
  type="button"
                           onClick={(e) => handleDeleteRun(e, run.run_id)}
- className="h-7 w-7 border border-border bg-white dark:bg-[#20202a] flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
+ className="h-7 w-7 border border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
  title="Delete record"
                         >
                           <Trash2 size={12} />
@@ -950,7 +950,7 @@ export default function ReviewsListPage() {
             /* Dense Table / List View */
  <div className="overflow-x-auto border border-border bg-panel shadow-m3">
  <table className="w-full text-left font-mono text-xs">
- <thead className="border-b border-border bg-panel-alt text-ink uppercase tracking-wider font-mono font-black">
+ <thead className="border-b border-border bg-panel-alt text-ink uppercase tracking-wider font-mono font-semibold">
                   <tr>
  <th className="px-4 py-3">Audit ID / Time</th>
  <th className="px-4 py-3">Target Repository</th>
@@ -967,12 +967,12 @@ export default function ReviewsListPage() {
  const isNoGo = run.consolidated?.recommendation === "NO_GO";
  const isFixes = run.consolidated?.recommendation === "GO_WITH_FIXES";
                     const badgeBg = isGo
- ? "bg-ok/20 text-ok text-black"
+ ? "bg-ok/20 text-ok text-ink"
                       : isNoGo
- ? "bg-error/20 text-error text-black"
+ ? "bg-error/20 text-error text-ink"
                       : isFixes
- ? "bg-accent text-[#09090B] text-black"
- : "bg-info/20 text-info text-black";
+ ? "bg-accent text-on-ink text-on-ink"
+ : "bg-info/20 text-info text-ink";
 
  const score = run.consolidated?.overall_score ?? (run.status === "running" ? "..." : "—");
 
@@ -980,34 +980,34 @@ export default function ReviewsListPage() {
                       <tr
                         key={run.run_id}
                         onClick={() => navigate(`/reviews/${run.run_id}`)}
- className="hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer transition-colors"
+ className="hover:bg-ink/5 cursor-pointer transition-colors"
                       >
- <td className="px-4 py-3 font-black text-ink">
+ <td className="px-4 py-3 font-semibold text-ink">
                           <div>{run.run_id}</div>
  <div className="text-[10px] text-muted font-normal">{formatRelativeTime(run.created_at)}</div>
                         </td>
- <td className="px-4 py-3 font-black text-ink max-w-[240px] truncate">
+ <td className="px-4 py-3 font-semibold text-ink max-w-[240px] truncate">
  <div className="flex items-center gap-1.5">
  {run.mode === "diff" ? <GitPullRequest size={13} /> : <FolderGit2 size={13} />}
  <span className="truncate">{run.repo_path}</span>
                           </div>
                         </td>
- <td className="px-4 py-3 font-black uppercase text-muted">{run.mode}</td>
+ <td className="px-4 py-3 font-semibold uppercase text-muted">{run.mode}</td>
  <td className="px-4 py-3">
                           <span
-                            className={`border border-border px-2 py-0.5 font-mono font-black uppercase text-[10px] shadow-m3 ${badgeBg}`}
+                            className={`border border-border px-2 py-0.5 font-mono font-semibold uppercase text-[10px] shadow-m3 ${badgeBg}`}
                           >
                             {run.consolidated?.recommendation || run.status}
                           </span>
                         </td>
- <td className="px-4 py-3 font-black text-ink">
+ <td className="px-4 py-3 font-semibold text-ink">
                           {score}
  {typeof score === "number" ? "/100" : ""}
                         </td>
- <td className="px-4 py-3 font-black">
+ <td className="px-4 py-3 font-semibold">
                           <span
                             className={
- (run.backlog?.length ?? 0) > 0 ? "text-error font-black" : "text-muted font-normal"
+ (run.backlog?.length ?? 0) > 0 ? "text-error font-semibold" : "text-muted font-normal"
                             }
                           >
                             {run.backlog?.length ?? 0}
@@ -1021,14 +1021,14 @@ export default function ReviewsListPage() {
                                 e.stopPropagation();
                                 navigate(`/reviews/${run.run_id}`);
                               }}
- className="h-7 px-2.5 border border-border bg-accent text-[#09090B] font-mono font-black uppercase text-[11px] text-black shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 px-2.5 border border-border bg-accent text-on-ink font-mono font-semibold uppercase text-[11px] text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                             >
                               Inspect
                             </button>
                             <button
  type="button"
                               onClick={(e) => handleDeleteRun(e, run.run_id)}
- className="h-7 w-7 border border-border bg-white dark:bg-[#20202a] flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
+ className="h-7 w-7 border border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
  title="Delete run"
                             >
                               <Trash2 size={12} />
@@ -1050,7 +1050,7 @@ export default function ReviewsListPage() {
       {/* ========================================================= */}
       <AnimatePresence>
         {activeBacklogModal && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1061,10 +1061,10 @@ export default function ReviewsListPage() {
  <div className="flex items-start justify-between border-b border-border pb-3">
                 <div>
  <div className="flex items-center gap-2">
- <span className="border border-border bg-accent text-[#09090B] px-2 py-0.5 font-mono text-xs font-black uppercase shadow-m3 text-black">
+ <span className="border border-border bg-accent text-on-ink px-2 py-0.5 font-mono text-xs font-semibold uppercase shadow-m3 text-on-ink">
                       Backlog
                     </span>
- <h3 className="font-mono text-base font-black text-ink">{activeBacklogModal.repo_path}</h3>
+ <h3 className="font-mono text-base font-semibold text-ink">{activeBacklogModal.repo_path}</h3>
                   </div>
  <div className="mt-1 font-mono text-xs text-muted">
  Run: {activeBacklogModal.run_id} · Gate Verdict:{" "}
@@ -1075,7 +1075,7 @@ export default function ReviewsListPage() {
                 <button
  type="button"
                   onClick={() => setActiveBacklogModal(null)}
- className="h-7 w-7 border border-border bg-white dark:bg-[#20202a] flex items-center justify-center text-black dark:text-white shadow-m3 hover:bg-neutral-100 transition-colors"
+ className="h-7 w-7 border border-border bg-panel flex items-center justify-center text-ink shadow-m3 hover:bg-ink/5 transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -1090,30 +1090,30 @@ export default function ReviewsListPage() {
                   activeBacklogModal.backlog.map((item) => {
                     const sevColor =
  item.severity === "critical"
- ? "bg-error/20 text-error text-black"
+ ? "bg-error/20 text-error text-ink"
  : item.severity === "high"
- ? "bg-warn/20 text-warn text-black"
+ ? "bg-warn/20 text-warn text-ink"
  : item.severity === "medium"
- ? "bg-accent text-[#09090B] text-black"
- : "bg-neutral-200 text-black";
+ ? "bg-accent text-on-ink text-on-ink"
+ : "bg-surface-high text-ink";
 
                     return (
- <div key={item.id} className="border border-border bg-neutral-50 dark:bg-neutral-900 p-3.5 space-y-2 shadow-m3">
+ <div key={item.id} className="border border-border bg-panel p-3.5 space-y-2 shadow-m3">
  <div className="flex items-center justify-between">
                           <span
-                            className={`border border-border px-2 py-0.5 font-mono text-[10px] font-black uppercase shadow-m3 ${sevColor}`}
+                            className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${sevColor}`}
                           >
                             {item.severity}
                           </span>
- <div className="font-mono text-[10px] font-bold text-muted">
+ <div className="font-mono text-[10px] font-semibold text-muted">
                             Impact: {item.impact}/10 · Effort: {item.effort}
                           </div>
                         </div>
- <h4 className="font-mono text-xs font-black text-ink">{item.title}</h4>
+ <h4 className="font-mono text-xs font-semibold text-ink">{item.title}</h4>
  <p className="font-mono text-xs text-muted leading-relaxed">{item.description}</p>
                         {item.fix && (
- <div className="border border-border bg-white dark:bg-black p-2 text-xs font-mono text-neutral-800 dark:text-neutral-200">
- <span className="font-black text-brutal-orange">Suggested Fix: </span>
+ <div className="border border-border bg-panel p-2 text-xs font-mono text-ink">
+ <span className="font-semibold text-brutal-orange">Suggested Fix: </span>
                             {item.fix}
                           </div>
                         )}
@@ -1136,7 +1136,7 @@ export default function ReviewsListPage() {
                     navigator.clipboard.writeText(json);
  toast.success("Backlog JSON copied to clipboard");
                   }}
- className="h-7 px-3 inline-flex items-center gap-1.5 border border-border bg-white dark:bg-[#20202a] font-mono text-xs font-black uppercase text-ink shadow-m3 hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] transition-all"
+ className="h-7 px-3 inline-flex items-center gap-1.5 border border-border bg-panel font-mono text-xs font-semibold uppercase text-ink shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all"
                 >
                   <Copy size={12} />
                   Copy JSON
@@ -1148,7 +1148,7 @@ export default function ReviewsListPage() {
                     setActiveBacklogModal(null);
                     navigate(`/reviews/${id}`);
                   }}
- className="h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-accent text-[#09090B] font-mono text-xs font-black uppercase text-black shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                 >
                   Open Full Audit Page
                   <ExternalLink size={12} />

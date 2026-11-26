@@ -524,26 +524,26 @@ export default function AnalyticsTab() {
   return (
     <div
       id="analytics-page-container"
-      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-neutral-900 dark:text-neutral-100 transition-colors"
+      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-ink transition-colors"
     >
       {/* 1. EXECUTIVE HEADER & ACTION BAR */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200/90 dark:border-neutral-800 pb-5">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold shadow-xs">
-              <BarChart3 size={18} className="text-sky-400" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-on-ink font-semibold shadow-xs">
+              <BarChart3 size={18} className="text-accent" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                <h1 className="text-xl font-semibold tracking-tight text-ink">
                   Engineering Velocity & Fleet Analytics
                 </h1>
-                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-info/10 text-info border border-info/20">
+                  <span className="h-1.5 w-1.5 rounded-full bg-info animate-pulse" />
                   Real-time Telemetry
                 </span>
               </div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted">
                 Continuous performance observability across sprint burn rates, autonomous agent throughput, and LLM inference budgets.
               </p>
             </div>
@@ -553,13 +553,13 @@ export default function AnalyticsTab() {
         {/* Global Controls: Timeframe, Refresh & Export */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Timeframe Dropdown */}
-          <div className="flex items-center gap-1 bg-white dark:bg-[#141722] border border-neutral-200 dark:border-neutral-800 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-            <Calendar size={13} className="text-neutral-400" />
+          <div className="flex items-center gap-1 bg-panel border border-border rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+            <Calendar size={13} className="text-faint" />
             <select
               id="analytics-timeframe-filter"
               value={timeframe}
               onChange={(e) => setTimeframe(e.target.value as TimeframeFilter)}
-              className="bg-transparent font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none cursor-pointer text-xs"
+              className="bg-transparent font-semibold text-ink focus:outline-none cursor-pointer text-xs"
             >
               <option value="7d">Trailing 7 Days</option>
               <option value="14d">Trailing 14 Days</option>
@@ -574,12 +574,12 @@ export default function AnalyticsTab() {
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
             title="Recalculate metrics from store & backend"
           >
             <RefreshCw
               size={13}
-              className={isRefreshing ? "animate-spin text-sky-500" : "text-neutral-500"}
+              className={isRefreshing ? "animate-spin text-accent" : "text-muted"}
             />
             <span>{isRefreshing ? "Aggregating..." : "Sync"}</span>
           </button>
@@ -589,7 +589,7 @@ export default function AnalyticsTab() {
             id="btn-export-analytics"
             type="button"
             onClick={() => setShowExportModal(true)}
-            className="h-9 px-3.5 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
+            className="h-9 px-3.5 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
             title="Export analytics dataset for reporting"
           >
             <Download size={13} />
@@ -606,23 +606,23 @@ export default function AnalyticsTab() {
         {/* KPI 1: Sprint Velocity Burndown */}
         <div
           id="kpi-sprint-velocity"
-          className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs"
+          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
         >
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Sprint Velocity
             </span>
-            <TrendingUp size={15} className="text-sky-500" />
+            <TrendingUp size={15} className="text-accent" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {executiveKPIs.completedPoints}
             </span>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               of {executiveKPIs.totalPoints} pts ({executiveKPIs.velocityPct}%)
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-ok font-semibold">
             <ArrowUpRight size={13} />
             <span>+14.2% velocity sprint-over-sprint</span>
           </div>
@@ -631,24 +631,24 @@ export default function AnalyticsTab() {
         {/* KPI 2: Autonomous Fleet Success */}
         <div
           id="kpi-agent-autonomy"
-          className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs"
+          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
         >
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Fleet Autonomy Rate
             </span>
-            <Bot size={15} className="text-emerald-500" />
+            <Bot size={15} className="text-ok" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {executiveKPIs.autonomyRate}%
             </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <span className="text-xs text-ok font-semibold">
               First-Run Success
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-neutral-500 flex items-center gap-1.5">
-            <CheckCircle2 size={13} className="text-emerald-500" />
+          <div className="mt-2 text-[11px] text-muted flex items-center gap-1.5">
+            <CheckCircle2 size={13} className="text-ok" />
             <span>{executiveKPIs.completedTasks} tasks auto-verified</span>
           </div>
         </div>
@@ -656,24 +656,24 @@ export default function AnalyticsTab() {
         {/* KPI 3: Compute Burn & Inference Cost */}
         <div
           id="kpi-compute-tokens"
-          className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs"
+          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
         >
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Compute & Tokens
             </span>
-            <Cpu size={15} className="text-amber-500" />
+            <Cpu size={15} className="text-warn" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {executiveKPIs.totalTokens.toLocaleString()}
             </span>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               tokens (${executiveKPIs.totalCostUsd})
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-neutral-500 flex items-center gap-1.5">
-            <Zap size={13} className="text-amber-500" />
+          <div className="mt-2 text-[11px] text-muted flex items-center gap-1.5">
+            <Zap size={13} className="text-warn" />
             <span>Avg ${executiveKPIs.avgCostPerTask} per delivered task</span>
           </div>
         </div>
@@ -681,30 +681,30 @@ export default function AnalyticsTab() {
         {/* KPI 4: Mean Turnaround / Cycle Time */}
         <div
           id="kpi-cycle-latency"
-          className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs"
+          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
         >
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Mean Cycle Turnaround
             </span>
-            <Clock size={15} className="text-purple-500" />
+            <Clock size={15} className="text-agent-business-improver" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {Math.floor(executiveKPIs.avgDurationSeconds / 60)}m {executiveKPIs.avgDurationSeconds % 60}s
             </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <span className="text-xs text-ok font-semibold">
               Within SLA
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-neutral-500 truncate">
+          <div className="mt-2 text-[11px] text-muted truncate">
             {executiveKPIs.blockedTasks === 0 ? "Zero critical blockers" : `${executiveKPIs.blockedTasks} active blocker requiring triage`}
           </div>
         </div>
       </section>
 
       {/* 3. NAVIGATION VIEW TABS */}
-      <nav aria-label="Analytics Views" className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800">
+      <nav aria-label="Analytics Views" className="flex items-center justify-between border-b border-border">
         <div className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none">
           {[
             { id: "velocity", label: "Velocity & Burndown", icon: TrendingUp },
@@ -723,8 +723,8 @@ export default function AnalyticsTab() {
                 onClick={() => setActiveTab(tab.id as AnalyticsSubTab)}
                 className={`px-3.5 py-2.5 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 shadow-xs font-bold"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+                    ? "bg-ink text-on-ink shadow-xs font-semibold"
+                    : "text-muted hover:text-ink hover:bg-ink/5"
                 }`}
               >
                 <Icon size={14} />
@@ -742,28 +742,28 @@ export default function AnalyticsTab() {
           <section aria-label="Velocity and Burndown Analysis" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Primary Chart: Sprint Planned vs Completed Points */}
-              <div className="lg:col-span-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs space-y-4">
+              <div className="lg:col-span-2 rounded-2xl border border-border bg-panel p-5 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                      <TrendingUp size={15} className="text-sky-500" />
+                    <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+                      <TrendingUp size={15} className="text-accent" />
                       Sprint Story Points & Velocity Burndown
                     </h2>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-muted">
                       Planned capacity vs actual delivered story points across engineering cycles.
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] font-medium text-neutral-500">
+                  <div className="flex items-center gap-3 text-[11px] font-medium text-muted">
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm bg-sky-600" />
+                      <span className="h-2.5 w-2.5 rounded-sm bg-info" />
                       Delivered Points
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm bg-neutral-300 dark:bg-neutral-700" />
+                      <span className="h-2.5 w-2.5 rounded-sm bg-surface-high" />
                       Planned
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-3 bg-amber-500 rounded-full" />
+                      <span className="h-1.5 w-3 bg-warn rounded-full" />
                       Capacity
                     </span>
                   </div>
@@ -796,13 +796,13 @@ export default function AnalyticsTab() {
               </div>
 
               {/* Epic Allocation Breakdown */}
-              <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs space-y-4">
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                    <Layers size={15} className="text-indigo-500" />
+                  <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                    <Layers size={15} className="text-agent-business-improver" />
                     Epic Completion Progress
                   </h3>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     Milestone allocation and verified tasks by functional workstream.
                   </p>
                 </div>
@@ -811,26 +811,26 @@ export default function AnalyticsTab() {
                   {epicProgressList.map((epic) => (
                     <div key={epic.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-neutral-800 dark:text-neutral-200 truncate max-w-[200px]" title={epic.title}>
+                        <span className="font-semibold text-ink truncate max-w-[200px]" title={epic.title}>
                           {epic.title}
                         </span>
-                        <span className="text-[11px] font-mono text-neutral-500">
+                        <span className="text-[11px] font-mono text-muted">
                           {epic.completedCount}/{epic.totalCount} ({epic.percent}%)
                         </span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+                      <div className="h-2 w-full rounded-full bg-panel-alt overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             epic.percent >= 80
-                              ? "bg-emerald-500"
+                              ? "bg-ok"
                               : epic.percent >= 50
-                              ? "bg-sky-500"
-                              : "bg-amber-500"
+                              ? "bg-panel-alt"
+                              : "bg-warn"
                           }`}
                           style={{ width: `${Math.min(epic.percent, 100)}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-neutral-400">
+                      <div className="flex items-center justify-between text-[10px] text-faint">
                         <span>{epic.points} story points</span>
                         <span className="uppercase font-semibold tracking-wider">{epic.priority}</span>
                       </div>
@@ -847,14 +847,14 @@ export default function AnalyticsTab() {
           <section aria-label="Agent Fleet Compute and Cost Analysis" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Agent Token Consumption Chart */}
-              <div className="lg:col-span-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs space-y-4">
+              <div className="lg:col-span-2 rounded-2xl border border-border bg-panel p-5 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                      <Cpu size={15} className="text-amber-500" />
+                    <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+                      <Cpu size={15} className="text-warn" />
                       Agent Compute & Token Consumption by Persona
                     </h2>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-muted">
                       Total LLM token distribution across specialized autonomous agents.
                     </p>
                   </div>
@@ -890,13 +890,13 @@ export default function AnalyticsTab() {
               </div>
 
               {/* Inference Cost Ledger Summary */}
-              <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs space-y-4">
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                    <Zap size={15} className="text-amber-500" />
+                  <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                    <Zap size={15} className="text-warn" />
                     Inference Cost & SLA Ledger
                   </h3>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     Run counts, average turnarounds, and dollar burn per agent.
                   </p>
                 </div>
@@ -905,7 +905,7 @@ export default function AnalyticsTab() {
                   {agentPerformanceData.map((agent) => (
                     <div
                       key={agent.name}
-                      className="p-3 rounded-xl border border-neutral-100 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/40 space-y-1.5"
+                      className="p-3 rounded-xl border border-border-soft bg-ink/10 space-y-1.5"
                     >
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
@@ -913,15 +913,15 @@ export default function AnalyticsTab() {
                             className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: agent.color }}
                           />
-                          <span className="font-bold text-neutral-900 dark:text-neutral-100">
+                          <span className="font-semibold text-ink">
                             {agent.name}
                           </span>
                         </div>
-                        <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <span className="font-mono text-ok font-semibold">
                           ${agent.cost.toFixed(4)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-neutral-500">
+                      <div className="flex items-center justify-between text-[11px] text-muted">
                         <span>{agent.runs} runs ({agent.completed} success)</span>
                         <span>Avg {agent.avgDuration}s SLA</span>
                       </div>
@@ -938,13 +938,13 @@ export default function AnalyticsTab() {
           <section aria-label="Workstream Throughput and Bottlenecks" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Task Status Donut Distribution */}
-              <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs space-y-4">
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                    <PieChartIcon size={15} className="text-emerald-500" />
+                  <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+                    <PieChartIcon size={15} className="text-ok" />
                     Task Status Flow Distribution
                   </h2>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     Proportion of tasks across the delivery pipeline.
                   </p>
                 </div>
@@ -978,12 +978,12 @@ export default function AnalyticsTab() {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-soft">
                   {taskStatusDistribution.map((status) => (
                     <div key={status.name} className="flex items-center gap-2 text-xs">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: status.color }} />
-                      <span className="text-neutral-600 dark:text-neutral-400 truncate">
-                        {status.name}: <strong className="text-neutral-900 dark:text-neutral-100">{status.value}</strong>
+                      <span className="text-muted truncate">
+                        {status.name}: <strong className="text-ink">{status.value}</strong>
                       </span>
                     </div>
                   ))}
@@ -991,14 +991,14 @@ export default function AnalyticsTab() {
               </div>
 
               {/* Autonomous Decisions & Bottlenecks Feed */}
-              <div className="lg:col-span-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs space-y-4">
+              <div className="lg:col-span-2 rounded-2xl border border-border bg-panel p-5 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                      <AlertTriangle size={15} className="text-amber-500" />
+                    <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                      <AlertTriangle size={15} className="text-warn" />
                       Active Architectural Bottlenecks & Triage Feed
                     </h3>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-muted">
                       Identified friction points and automated remediation recommendations from the decision engine.
                     </p>
                   </div>
@@ -1009,19 +1009,19 @@ export default function AnalyticsTab() {
                     decisionFeed.map((decision, idx) => (
                       <div
                         key={idx}
-                        className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-2"
+                        className="rounded-xl border border-warn/20 bg-warn/[0.08] p-4 space-y-2"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-warn/20 text-warn">
                               <AlertTriangle size={11} />
                             </span>
-                            <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+                            <span className="text-xs font-semibold text-ink">
                               {decision.summary}
                             </span>
                           </div>
                           {decision.at && (
-                            <span className="text-[10px] font-mono text-neutral-400">
+                            <span className="text-[10px] font-mono text-faint">
                               {new Date(decision.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           )}
@@ -1032,7 +1032,7 @@ export default function AnalyticsTab() {
                             {decision.bottlenecks.map((b, bIdx) => (
                               <span
                                 key={bIdx}
-                                className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20"
+                                className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-error/10 text-error border border-error/20"
                               >
                                 {b}
                               </span>
@@ -1041,8 +1041,8 @@ export default function AnalyticsTab() {
                         )}
 
                         {decision.recommendedNextTasks && decision.recommendedNextTasks.length > 0 && (
-                          <div className="pt-1 text-xs text-neutral-600 dark:text-neutral-400">
-                            <strong className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">
+                          <div className="pt-1 text-xs text-muted">
+                            <strong className="text-[11px] font-semibold text-ink">
                               Recommended Next Step:{" "}
                             </strong>
                             {decision.recommendedNextTasks.join(", ")}
@@ -1051,12 +1051,12 @@ export default function AnalyticsTab() {
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-xl border border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30 p-6 text-center space-y-2">
-                      <CheckCircle2 size={24} className="mx-auto text-emerald-500" />
-                      <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                    <div className="rounded-xl border border-border-soft bg-ink/10 p-6 text-center space-y-2">
+                      <CheckCircle2 size={24} className="mx-auto text-ok" />
+                      <p className="text-xs font-semibold text-ink">
                         Zero Critical Blockers Detected
                       </p>
-                      <p className="text-[11px] text-neutral-500">
+                      <p className="text-[11px] text-muted">
                         Autonomous agent pipeline is progressing according to milestone SLAs without dependency deadlocks.
                       </p>
                     </div>
@@ -1077,35 +1077,35 @@ export default function AnalyticsTab() {
         {/* VIEW 5: TELEMETRY AUDIT LOG */}
         {activeTab === "audit" && (
           <section aria-label="Raw Telemetry Audit Events" className="space-y-4">
-            <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs space-y-4">
+            <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs space-y-4">
               {/* Filter and Search Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                    <Activity size={15} className="text-sky-500" />
+                  <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+                    <Activity size={15} className="text-accent" />
                     Telemetry Events & Execution Audit
                   </h2>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     Granular system event logs captured across the initiative lifecycle.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="relative min-w-[200px]">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
                     <input
                       type="text"
                       value={eventSearchQuery}
                       onChange={(e) => setEventSearchQuery(e.target.value)}
                       placeholder="Search events..."
-                      className="w-full h-8 pl-8 pr-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full h-8 pl-8 pr-3 rounded-lg border border-border bg-panel text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-info/40"
                     />
                   </div>
 
                   <select
                     value={eventCategoryFilter}
                     onChange={(e) => setEventCategoryFilter(e.target.value)}
-                    className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none cursor-pointer"
+                    className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink focus:outline-none cursor-pointer"
                   >
                     <option value="all">All Categories</option>
                     <option value="Initiative">Initiative</option>
@@ -1122,23 +1122,23 @@ export default function AnalyticsTab() {
                 {filteredEvents.map((event) => (
                   <div
                     key={event.event_name}
-                    className="p-4 rounded-xl border border-neutral-100 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/40 space-y-2 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
+                    className="p-4 rounded-xl border border-border-soft bg-ink/10 space-y-2 hover:border-border transition-colors"
                   >
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-sky-600 dark:text-sky-400">
+                      <span className="font-mono text-[10px] uppercase font-semibold tracking-wider text-accent">
                         {event.category || "General"}
                       </span>
                       {event.last_at && (
-                        <span className="text-[10px] text-neutral-400">
+                        <span className="text-[10px] text-faint">
                           {new Date(event.last_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-baseline justify-between">
-                      <h4 className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 font-mono">
+                      <h4 className="text-xs font-semibold text-ink font-mono">
                         {event.event_name}
                       </h4>
-                      <span className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+                      <span className="text-lg font-semibold text-ink">
                         {event.count.toLocaleString()}
                       </span>
                     </div>
@@ -1159,24 +1159,24 @@ export default function AnalyticsTab() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
         >
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setShowExportModal(false)}
           />
 
           <div
             id="modal-analytics-export"
-            className="relative w-full max-w-xl bg-white dark:bg-[#141722] rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 p-6 space-y-5 z-10"
+            className="relative w-full max-w-xl bg-panel rounded-2xl shadow-2xl border border-border p-6 space-y-5 z-10"
           >
-            <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-3">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/10 text-info font-semibold">
                   <Download size={16} />
                 </div>
                 <div>
-                  <h3 id="modal-export-title" className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  <h3 id="modal-export-title" className="text-sm font-semibold text-ink">
                     Export Engineering Analytics Dataset
                   </h3>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     Full JSON payload containing KPIs, sprint velocity burndown, and telemetry counters.
                   </p>
                 </div>
@@ -1184,7 +1184,7 @@ export default function AnalyticsTab() {
               <button
                 type="button"
                 onClick={() => setShowExportModal(false)}
-                className="h-7 w-7 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                className="h-7 w-7 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
               >
                 <X size={15} />
               </button>
@@ -1192,29 +1192,29 @@ export default function AnalyticsTab() {
 
             {/* Code Preview Box */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              <label className="text-xs font-semibold text-ink">
                 Payload Preview
               </label>
-              <pre className="h-56 overflow-y-auto p-3.5 rounded-xl bg-neutral-900 text-neutral-200 font-mono text-[11px] leading-relaxed select-all">
+              <pre className="h-56 overflow-y-auto p-3.5 rounded-xl bg-ink text-muted font-mono text-[11px] leading-relaxed select-all">
                 {exportPayloadJson}
               </pre>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border-soft">
               <button
                 type="button"
                 onClick={handleCopyReport}
-                className="h-9 px-3.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="h-9 px-3.5 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
-                {copiedExport ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                {copiedExport ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
                 <span>{copiedExport ? "Copied!" : "Copy JSON"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleDownloadJson}
-                className="h-9 px-4 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all"
+                className="h-9 px-4 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all"
               >
                 <Download size={13} />
                 <span>Download .json</span>

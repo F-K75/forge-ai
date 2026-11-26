@@ -56,19 +56,19 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
       role="dialog"
       aria-modal="true"
       id="create-sprint-dialog"
-      className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-base/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
     >
       <div
         id="create-sprint-modal-content"
-        className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-lg rounded-2xl bg-panel border border-border p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between pb-3.5 border-b border-border-soft">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-agent-integration/10 border border-agent-integration/30 text-agent-integration flex items-center justify-center">
               <Zap size={16} className="fill-current" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-ink">
               PLAN NEW SPRINT CYCLE
             </h3>
           </div>
@@ -76,7 +76,7 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
             id="close-create-sprint-modal-btn"
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-faint hover:text-ink hover:bg-ink/5 transition-colors cursor-pointer"
           >
             <X size={17} />
           </button>
@@ -87,7 +87,7 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
           <div>
             <label
               htmlFor="new-sprint-name-input"
-              className="block font-bold uppercase tracking-wider mb-1.5 text-slate-700 dark:text-slate-300"
+              className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
             >
               Sprint Name
             </label>
@@ -98,14 +98,14 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
               onChange={(e) => setSprintName(e.target.value)}
               placeholder={`Sprint ${currentSprintCount + 1}: Feature Delivery`}
               required
-              className="w-full h-9.5 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              className="w-full h-9.5 px-3.5 rounded-xl bg-panel border border-border text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
             />
           </div>
 
           <div>
             <label
               htmlFor="new-sprint-goal-input"
-              className="block font-bold uppercase tracking-wider mb-1.5 text-slate-700 dark:text-slate-300"
+              className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
             >
               Sprint Goal
             </label>
@@ -115,7 +115,7 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
               onChange={(e) => setSprintGoal(e.target.value)}
               rows={3}
               placeholder="What is the high-level objective and release milestone for this sprint?"
-              className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              className="w-full p-3.5 rounded-xl bg-panel border border-border text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
             />
           </div>
 
@@ -123,7 +123,7 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
             <div>
               <label
                 htmlFor="new-sprint-capacity-input"
-                className="block font-bold uppercase tracking-wider mb-1.5 text-slate-700 dark:text-slate-300"
+                className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
               >
                 Capacity (Story Pts)
               </label>
@@ -134,14 +134,14 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                 max={200}
                 value={capacity}
                 onChange={(e) => setCapacity(Number(e.target.value))}
-                className="w-full h-9.5 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full h-9.5 px-3.5 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
               />
             </div>
 
             <div>
               <label
                 htmlFor="new-sprint-duration-select"
-                className="block font-bold uppercase tracking-wider mb-1.5 text-slate-700 dark:text-slate-300"
+                className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
               >
                 Duration (Days)
               </label>
@@ -149,7 +149,7 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                 id="new-sprint-duration-select"
                 value={durationDays}
                 onChange={(e) => setDurationDays(Number(e.target.value))}
-                className="w-full h-9.5 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer"
+                className="w-full h-9.5 px-3.5 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30 cursor-pointer"
               >
                 <option value={7}>1 Week (7 days)</option>
                 <option value={14}>2 Weeks (14 days)</option>
@@ -160,19 +160,19 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border-soft">
             <button
               id="cancel-create-sprint-btn"
               type="button"
               onClick={onClose}
-              className="h-9 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+              className="h-9 px-4 rounded-xl border border-border bg-panel text-ink font-semibold hover:bg-ink/5 cursor-pointer"
             >
               Cancel
             </button>
             <button
               id="submit-create-sprint-btn"
               type="submit"
-              className="h-9 px-5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold uppercase tracking-wider cursor-pointer shadow-sm"
+              className="h-9 px-5 rounded-xl bg-agent-integration hover:bg-agent-integration/90 text-on-ink font-semibold uppercase tracking-wider cursor-pointer shadow-sm"
             >
               Create Sprint
             </button>
