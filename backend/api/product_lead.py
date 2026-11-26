@@ -9,7 +9,7 @@ from core.models import User
 from core.permissions import has_project_access
 from services.product_lead import ProductLead
 
-router = APIRouter(prefix="/v1/product-lead", tags=["product-lead"])
+router = APIRouter(prefix="/product-lead", tags=["product-lead"])
 _lead = ProductLead()
 
 

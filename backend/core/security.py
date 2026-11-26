@@ -386,6 +386,8 @@ _CSRF_EXCLUDED_PATHS = [
     "/v1/email/unsubscribe",  # signed-token link; mail clients POST one-click unsubscribes with no session
     "/billing/webhook",  # Stripe webhook has its own signature verification
     "/billing/webhook/payment",  # Stripe payment webhook — signature-verified, no session cookie
+    "/v1/billing/webhook",
+    "/v1/billing/webhook/payment",
     "/razorpay/webhook",
     "/v1/razorpay/webhook",
     "/cashfree/webhook",

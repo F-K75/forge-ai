@@ -21,26 +21,32 @@ from api.billing import router as billing_router
 from api.budget import router as budget_router
 from api.builds import router as builds_router
 from api.cashfree import router as cashfree_router
+from api.decision_log import router as decision_log_router
 from api.deployments import router as deployments_router
 from api.email_prefs import router as email_prefs_router
 from api.engineering import router as engineering_router
+from api.enterprise import router as enterprise_router
 from api.epics import router as epics_router
 from api.gdpr import router as gdpr_router
 from api.growth import router as growth_router
 from api.initiatives import router as initiatives_router
+from api.kernel import router as kernel_router
 from api.llm import router as llm_router
 from api.marketplace import router as marketplace_router
 from api.monitoring_webhook import router as monitoring_webhook_router
 from api.optimizer import router as optimizer_router
 from api.org_llm_policy import router as org_llm_policy_router
 from api.planning import router as planning_router
+from api.product_lead import router as product_lead_router
 from api.projects import router as projects_router
 from api.prompts import router as prompts_router
+from api.protocols import router as protocols_router
 from api.razorpay import router as razorpay_router
 from api.releases import router as releases_router
 from api.repo_memory import router as repo_memory_router
 from api.repos import router as repos_router
 from api.retrieval import router as retrieval_router
+from api.skills import router as skills_router
 from api.sprints import router as sprints_router
 from api.stories import router as stories_router
 from api.support import router as support_router
@@ -63,26 +69,32 @@ v1_router.include_router(billing_router)
 v1_router.include_router(budget_router)
 v1_router.include_router(builds_router)
 v1_router.include_router(cashfree_router)
+v1_router.include_router(decision_log_router)
 v1_router.include_router(deployments_router)
 v1_router.include_router(email_prefs_router)
 v1_router.include_router(engineering_router)
+v1_router.include_router(enterprise_router)
 v1_router.include_router(epics_router)
 v1_router.include_router(gdpr_router)
 v1_router.include_router(growth_router)
 v1_router.include_router(initiatives_router)
+v1_router.include_router(kernel_router)
 v1_router.include_router(llm_router)
 v1_router.include_router(marketplace_router)
 v1_router.include_router(monitoring_webhook_router)
 v1_router.include_router(optimizer_router)
 v1_router.include_router(org_llm_policy_router)
 v1_router.include_router(planning_router)
+v1_router.include_router(product_lead_router)
 v1_router.include_router(projects_router)
 v1_router.include_router(prompts_router)
+v1_router.include_router(protocols_router)
 v1_router.include_router(razorpay_router)
 v1_router.include_router(releases_router)
 v1_router.include_router(repo_memory_router)
 v1_router.include_router(repos_router)
 v1_router.include_router(retrieval_router)
+v1_router.include_router(skills_router)
 v1_router.include_router(sprints_router)
 v1_router.include_router(stories_router)
 v1_router.include_router(support_router)

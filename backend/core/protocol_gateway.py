@@ -1,0 +1,881 @@
+"""Protocol Gateway — P0 Streaming & Interoperability Layer:
+1. AG-UI Event Stream Broker (server-authoritative async pub/sub with monotonic
+   event IDs, bounded replay buffer for idempotent reconnection, and SSE wire formatting).
+2. MCP Tool Gateway (governed external/built-in tool registry, per-department
+   allowlists, SSRF-safe endpoint URL validation, and immutable invocation audit trail).
+3. A2UI Generative Surface Builder (declarative, XSS-safe structured UI component
+   trees synthesized from KernelRun state for approval cards, conflicts, and scorecards).
+
+Pure-Python stdlib implementation so it runs cleanly in both FastAPI production
+and standalone unit tests.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import ipaddress
+import json
+import logging
+import socket
+import uuid
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, FrozenSet, List, Optional, Set, Tuple
+from urllib import request as urllib_request
+from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _new_id(prefix: str) -> str:
+    return f"{prefix}_{uuid.uuid4().hex[:12]}"
+
+
+# --------------------------------------------------------------------------- #
+# 1. AG-UI Event Stream Broker (Server-Authoritative SSE / Real-Time Protocol)
+# --------------------------------------------------------------------------- #
+
+KERNEL_TO_AGUI_TYPE: Dict[str, str] = {
+    "kernel_run_started": "RUN_STARTED",
+    "kernel_wave_started": "STEP_STARTED",
+    "kernel_task_updated": "STATE_DELTA",
+    "kernel_delegation": "TOOL_CALL_RESULT",
+    "kernel_skill_activated": "CUSTOM",
+    "kernel_artifact_published": "STATE_DELTA",
+    "kernel_conflict_detected": "CUSTOM",
+    "kernel_wave_reconciled": "STATE_DELTA",
+    "kernel_repair_cycle": "CUSTOM",
+    "kernel_approval_required": "CUSTOM",
+    "kernel_approval_resolved": "CUSTOM",
+    "kernel_run_completed": "RUN_FINISHED",
+}
+
+
+@dataclass
+class AGUIEvent:
+    event_id: int
+    agui_type: str
+    kernel_event: str
+    project_id: str
+    run_id: str
+    payload: Dict[str, Any]
+    timestamp: str = field(default_factory=_utc_now)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+    def to_sse(self) -> str:
+        body = json.dumps(self.to_dict(), default=str)
+        return f"id: {self.event_id}\nevent: {self.agui_type}\ndata: {body}\n\n"
+
+
+class AGUIStreamBroker:
+    """In-process async event broker with replay buffer & optional Redis Pub/Sub bridge."""
+
+    def __init__(self, *, max_history_per_run: int = 250) -> None:
+        self._max_history = max(20, max_history_per_run)
+        self._history: Dict[str, List[AGUIEvent]] = {}
+        self._counters: Dict[str, int] = {}
+        self._subscribers: Dict[str, Set[asyncio.Queue[Optional[AGUIEvent]]]] = {}
+        self._redis_publisher: Optional[Callable[[str, str], Awaitable[Any]]] = None
+
+    @staticmethod
+    def redis_channel_for_run(run_id: str) -> str:
+        return f"forge:agui:run:{run_id}"
+
+    def attach_redis_publisher(
+        self, publisher: Optional[Callable[[str, str], Awaitable[Any]]]
+    ) -> None:
+        """Attach an async `(channel, json_payload)` publisher for multi-worker Redis Pub/Sub."""
+        self._redis_publisher = publisher
+
+    async def publish(
+        self,
+        *,
+        project_id: str,
+        run_id: str,
+        kernel_event: str,
+        payload: Dict[str, Any],
+    ) -> AGUIEvent:
+        seq = self._counters.get(run_id, 0) + 1
+        self._counters[run_id] = seq
+        event = AGUIEvent(
+            event_id=seq,
+            agui_type=KERNEL_TO_AGUI_TYPE.get(kernel_event, "CUSTOM"),
+            kernel_event=kernel_event,
+            project_id=project_id,
+            run_id=run_id,
+            payload=dict(payload),
+        )
+        buf = self._history.setdefault(run_id, [])
+        buf.append(event)
+        if len(buf) > self._max_history:
+            del buf[: len(buf) - self._max_history]
+
+        for queue in list(self._subscribers.get(run_id, set())):
+            try:
+                queue.put_nowait(event)
+            except asyncio.QueueFull:
+                logger.debug("AG-UI subscriber queue full for run %s", run_id)
+
+        if self._redis_publisher is not None:
+            try:
+                await self._redis_publisher(
+                    self.redis_channel_for_run(run_id),
+                    json.dumps(event.to_dict(), default=str),
+                )
+            except Exception:
+                logger.debug("AG-UI Redis fanout failed open for run %s", run_id, exc_info=True)
+
+        if kernel_event == "kernel_run_completed":
+            for queue in list(self._subscribers.get(run_id, set())):
+                try:
+                    queue.put_nowait(None)
+                except asyncio.QueueFull:
+                    pass
+        return event
+
+    def get_history(self, run_id: str, *, after_event_id: int = 0) -> List[AGUIEvent]:
+        return [e for e in self._history.get(run_id, []) if e.event_id > after_event_id]
+
+    async def subscribe(
+        self,
+        run_id: str,
+        *,
+        after_event_id: int = 0,
+        heartbeat_seconds: float = 15.0,
+    ) -> AsyncIterator[AGUIEvent]:
+        """Yield replay events after `after_event_id`, then live events until run completion."""
+        queue: asyncio.Queue[Optional[AGUIEvent]] = asyncio.Queue(maxsize=200)
+        subs = self._subscribers.setdefault(run_id, set())
+        subs.add(queue)
+        seen_id = after_event_id
+        try:
+            for past in self.get_history(run_id, after_event_id=after_event_id):
+                seen_id = max(seen_id, past.event_id)
+                yield past
+                if past.kernel_event == "kernel_run_completed":
+                    return
+
+            while True:
+                try:
+                    item = await asyncio.wait_for(queue.get(), timeout=heartbeat_seconds)
+                except asyncio.TimeoutError:
+                    # Emit keepalive event to prevent proxy timeouts without advancing event_id
+                    yield AGUIEvent(
+                        event_id=seen_id,
+                        agui_type="HEARTBEAT",
+                        kernel_event="heartbeat",
+                        project_id="",
+                        run_id=run_id,
+                        payload={"status": "alive"},
+                    )
+                    continue
+                if item is None:
+                    return
+                if item.event_id <= seen_id:
+                    continue
+                seen_id = item.event_id
+                yield item
+                if item.kernel_event == "kernel_run_completed":
+                    return
+        finally:
+            subs.discard(queue)
+            if not subs:
+                self._subscribers.pop(run_id, None)
+
+
+# --------------------------------------------------------------------------- #
+# 2. MCP Tool Gateway (Governed External & Built-In Tool Invocation + P1 Apps)
+# --------------------------------------------------------------------------- #
+
+
+def validate_mcp_endpoint_url(url: str) -> Tuple[bool, Optional[str]]:
+    """Validate an external MCP server URL against SSRF and unsafe schemes."""
+    parsed = urlparse((url or "").strip())
+    if parsed.scheme not in ("https",):
+        return False, "External MCP server endpoints must use https://"
+    hostname = (parsed.hostname or "").strip().lower()
+    if not hostname:
+        return False, "Missing hostname in MCP endpoint URL"
+    blocked_hosts = {"localhost", "metadata.google.internal", "169.254.169.254"}
+    if hostname in blocked_hosts or hostname.endswith(".local") or hostname.endswith(".internal"):
+        return False, f"Blocked private/internal MCP host '{hostname}'"
+
+    # Check literal IP addresses directly
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
+            return False, f"Blocked non-public IP address '{hostname}'"
+    except ValueError:
+        # Resolve DNS best-effort when running online; block if it resolves to private ranges
+        try:
+            infos = socket.getaddrinfo(hostname, None)
+            for info in infos:
+                resolved_ip = ipaddress.ip_address(info[4][0])
+                if (
+                    resolved_ip.is_private
+                    or resolved_ip.is_loopback
+                    or resolved_ip.is_link_local
+                    or resolved_ip.is_reserved
+                ):
+                    return False, f"Host '{hostname}' resolves to non-public IP"
+        except OSError:
+            pass
+    return True, None
+
+
+class _NoRedirectHandler(urllib_request.HTTPRedirectHandler):
+    """Block 3xx redirects on outbound external MCP requests to prevent redirect-based SSRF."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError(f"External MCP server attempted disallowed HTTP redirect ({code})")
+
+
+class StreamableHTTPMCPClient:
+    """Hardened Streamable HTTP JSON-RPC 2.0 client for external MCP servers."""
+
+    MAX_RESPONSE_BYTES = 512 * 1024  # 512 KB cap
+
+    def __init__(
+        self,
+        *,
+        timeout_seconds: float = 8.0,
+        transport_fn: Optional[Callable[[str, Dict[str, Any]], Dict[str, Any]]] = None,
+    ) -> None:
+        self._timeout = min(10.0, max(1.0, float(timeout_seconds)))
+        self._transport_fn = transport_fn
+
+    def _post_jsonrpc_sync(self, endpoint_url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        ok, err = validate_mcp_endpoint_url(endpoint_url)
+        if not ok:
+            raise ValueError(err or "Invalid external MCP endpoint URL")
+        if self._transport_fn is not None:
+            return self._transport_fn(endpoint_url, payload)
+
+        body = json.dumps(payload).encode("utf-8")
+        req = urllib_request.Request(
+            endpoint_url,
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "ForgeAI-MCP-Gateway/1.0",
+            },
+            method="POST",
+        )
+        opener = urllib_request.build_opener(_NoRedirectHandler())
+        with opener.open(req, timeout=self._timeout) as resp:
+            raw = resp.read(self.MAX_RESPONSE_BYTES + 1)
+            if len(raw) > self.MAX_RESPONSE_BYTES:
+                raise ValueError("External MCP response exceeded 512 KB safety limit")
+            parsed = json.loads(raw.decode("utf-8", errors="replace"))
+            if not isinstance(parsed, dict):
+                raise ValueError("External MCP server returned non-object JSON-RPC payload")
+            return parsed
+
+    async def list_tools(self, endpoint_url: str) -> List[Dict[str, Any]]:
+        rpc = {"jsonrpc": "2.0", "id": _new_id("rpc"), "method": "tools/list", "params": {}}
+        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        if "error" in res:
+            raise ValueError(str(res["error"])[:240])
+        tools = (res.get("result") or {}).get("tools") or []
+        return [t for t in tools if isinstance(t, dict) and t.get("name")]
+
+    async def call_tool(
+        self, endpoint_url: str, tool_name: str, arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        rpc = {
+            "jsonrpc": "2.0",
+            "id": _new_id("rpc"),
+            "method": "tools/call",
+            "params": {"name": tool_name, "arguments": arguments},
+        }
+        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        if "error" in res:
+            raise ValueError(str(res["error"])[:240])
+        return dict(res.get("result") or {})
+
+
+MCPToolHandler = Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[Dict[str, Any]]]
+
+
+@dataclass
+class MCPToolSpec:
+    name: str
+    server_id: str
+    description: str
+    allowed_departments: FrozenSet[str]
+    input_schema: Dict[str, Any]
+    read_only: bool = True
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "server_id": self.server_id,
+            "description": self.description,
+            "allowed_departments": sorted(self.allowed_departments),
+            "input_schema": self.input_schema,
+            "read_only": self.read_only,
+        }
+
+
+@dataclass
+class MCPAppSpec:
+    """P1 MCP App — declarative, XSS-safe interactive tool view bound to a governed MCP tool."""
+
+    app_id: str
+    title: str
+    tool_name: str
+    server_id: str
+    description: str
+    ui_schema: Dict[str, Any]
+    protocol: str = "mcp-apps/v1"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class MCPInvocationAudit:
+    invocation_id: str
+    tool_name: str
+    server_id: str
+    role: str
+    department: str
+    project_id: str
+    status: str  # succeeded | denied | error
+    reason: Optional[str] = None
+    created_at: str = field(default_factory=_utc_now)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+class MCPGateway:
+    """Governed MCP tool registry with per-department RBAC, external HTTP transport, P1 MCP Apps, and audit trail."""
+
+    def __init__(self, *, http_client: Optional[StreamableHTTPMCPClient] = None) -> None:
+        self._tools: Dict[str, Tuple[MCPToolSpec, MCPToolHandler]] = {}
+        self._apps: Dict[str, MCPAppSpec] = {}
+        self._http_client = http_client or StreamableHTTPMCPClient()
+        self._audit_persister: Optional[Callable[[Dict[str, Any]], Awaitable[Any]]] = None
+        self._servers: Dict[str, Dict[str, Any]] = {
+            "forge-workspace-mcp": {
+                "server_id": "forge-workspace-mcp",
+                "transport": "in-process",
+                "status": "connected",
+            }
+        }
+        self._audit_log: List[MCPInvocationAudit] = []
+        self._register_builtin_tools()
+        self._register_builtin_apps()
+
+    def attach_audit_persister(
+        self, persister: Optional[Callable[[Dict[str, Any]], Awaitable[Any]]]
+    ) -> None:
+        """Attach an async MongoDB persister for immutable MCP invocation audits."""
+        self._audit_persister = persister
+
+    def _register_builtin_apps(self) -> None:
+        builtins = [
+            MCPAppSpec(
+                app_id="app_security_hygiene",
+                title="Security Hygiene Inspector",
+                tool_name="security.static_scan",
+                server_id="forge-workspace-mcp",
+                description="Interactive static scanner checking code snippets for hardcoded credentials, unsafe HTML sinks, and shell injection.",
+                ui_schema={
+                    "input_field": "code",
+                    "input_label": "Code Snippet",
+                    "action_label": "Run Static Scan",
+                    "result_view": "findings_list",
+                },
+            ),
+            MCPAppSpec(
+                app_id="app_skill_router",
+                title="Skill Router Workbench",
+                tool_name="skills.route",
+                server_id="forge-workspace-mcp",
+                description="Inspect live 9-domain SKILL.md activation scores, transitive dependencies, and permission boundaries for any role.",
+                ui_schema={
+                    "input_field": "objective",
+                    "input_label": "Engineering Objective",
+                    "action_label": "Route Skills",
+                    "result_view": "skill_table",
+                },
+            ),
+            MCPAppSpec(
+                app_id="app_blackboard_explorer",
+                title="Shared Blackboard Explorer",
+                tool_name="blackboard.query",
+                server_id="forge-workspace-mcp",
+                description="Query versioned cross-agent artifacts published by active multi-agent DAG runs within this project.",
+                ui_schema={
+                    "input_field": "run_id",
+                    "input_label": "Kernel Run ID",
+                    "action_label": "Query Blackboard",
+                    "result_view": "artifact_feed",
+                },
+            ),
+        ]
+        for app in builtins:
+            self._apps[app.app_id] = app
+
+    def list_apps(self) -> List[Dict[str, Any]]:
+        return [a.to_dict() for a in self._apps.values()]
+
+    def _register_builtin_tools(self) -> None:
+        all_depts = frozenset(
+            {
+                "leadership",
+                "business",
+                "architecture",
+                "design",
+                "engineering",
+                "infrastructure",
+                "security",
+                "quality",
+                "delivery",
+            }
+        )
+
+        async def _list_blackboard_summary(args: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
+            from core.agent_kernel import get_agent_kernel
+
+            run_id = str(args.get("run_id") or "")
+            active = get_agent_kernel().get_active_run(run_id)
+            if active is None or active.project_id != ctx.get("project_id"):
+                return {"run_id": run_id, "artifact_count": 0, "artifacts": []}
+            return {
+                "run_id": run_id,
+                "artifact_count": len(active.artifacts),
+                "artifacts": active.artifacts[-10:],
+            }
+
+        async def _route_skills_tool(args: Dict[str, Any], _ctx: Dict[str, Any]) -> Dict[str, Any]:
+            from core.skill_engine import get_skill_router
+
+            router = get_skill_router()
+            matches = router.route_for_task(
+                role=str(args.get("role") or "backend_engineer"),
+                department=str(args.get("department") or "engineering"),
+                objective=str(args.get("objective") or ""),
+                top_k=min(5, max(1, int(args.get("top_k") or 3))),
+            )
+            return {"skills": [m.to_dict() for m in matches]}
+
+        async def _security_hygiene_check(args: Dict[str, Any], _ctx: Dict[str, Any]) -> Dict[str, Any]:
+            from core.execution_sandbox import run_static_security_hygiene_scan
+
+            snippet = str(args.get("code") or "")[:10000]
+            findings = run_static_security_hygiene_scan(snippet)
+            return {"finding_count": len(findings), "findings": findings}
+
+        self.register_tool(
+            MCPToolSpec(
+                name="blackboard.query",
+                server_id="forge-workspace-mcp",
+                description="Inspect published Shared Blackboard artifacts for an active project kernel run.",
+                allowed_departments=all_depts,
+                input_schema={"type": "object", "properties": {"run_id": {"type": "string"}}},
+                read_only=True,
+            ),
+            _list_blackboard_summary,
+        )
+        self.register_tool(
+            MCPToolSpec(
+                name="skills.route",
+                server_id="forge-workspace-mcp",
+                description="Resolve relevant SKILL.md capabilities and permissions for an agent role.",
+                allowed_departments=all_depts,
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "role": {"type": "string"},
+                        "department": {"type": "string"},
+                        "objective": {"type": "string"},
+                    },
+                },
+                read_only=True,
+            ),
+            _route_skills_tool,
+        )
+        self.register_tool(
+            MCPToolSpec(
+                name="security.static_scan",
+                server_id="forge-workspace-mcp",
+                description="Run static security hygiene checks for hardcoded secrets, unsafe HTML sinks, or shell execution.",
+                allowed_departments=frozenset({"security", "quality", "engineering", "architecture"}),
+                input_schema={"type": "object", "properties": {"code": {"type": "string"}}},
+                read_only=True,
+            ),
+            _security_hygiene_check,
+        )
+
+    def register_external_server(self, server_id: str, endpoint_url: str) -> Dict[str, Any]:
+        ok, err = validate_mcp_endpoint_url(endpoint_url)
+        if not ok:
+            raise ValueError(err or "Invalid MCP server URL")
+        clean_id = "".join(ch for ch in (server_id or "").strip() if ch.isalnum() or ch in "-_")[:48]
+        if not clean_id:
+            raise ValueError("Invalid MCP server_id")
+        entry = {
+            "server_id": clean_id,
+            "endpoint_url": endpoint_url.strip(),
+            "transport": "streamable-http",
+            "status": "registered",
+        }
+        self._servers[clean_id] = entry
+        return entry
+
+    async def discover_external_tools(
+        self,
+        server_id: str,
+        *,
+        allowed_departments: Optional[FrozenSet[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Discover and register tools from a registered external Streamable HTTP MCP server."""
+        server = self._servers.get(server_id)
+        if not server or server.get("transport") != "streamable-http":
+            raise ValueError(f"External Streamable HTTP MCP server '{server_id}' not found")
+        endpoint_url = str(server["endpoint_url"])
+        raw_tools = await self._http_client.list_tools(endpoint_url)
+        depts = allowed_departments or frozenset({"engineering", "architecture", "security", "quality"})
+        registered: List[Dict[str, Any]] = []
+
+        for raw in raw_tools[:30]:
+            remote_name = str(raw.get("name") or "").strip()[:64]
+            if not remote_name:
+                continue
+            scoped_name = f"{server_id}.{remote_name}"
+            desc = str(raw.get("description") or f"External MCP tool {remote_name}")[:280]
+            schema = raw.get("inputSchema") if isinstance(raw.get("inputSchema"), dict) else {"type": "object"}
+
+            def _make_proxy(ep: str, rname: str) -> MCPToolHandler:
+                async def _proxy_handler(args: Dict[str, Any], _ctx: Dict[str, Any]) -> Dict[str, Any]:
+                    return await self._http_client.call_tool(ep, rname, args)
+                return _proxy_handler
+
+            spec = MCPToolSpec(
+                name=scoped_name,
+                server_id=server_id,
+                description=desc,
+                allowed_departments=depts,
+                input_schema=schema,
+                read_only=bool(raw.get("readOnly", True)),
+            )
+            self.register_tool(spec, _make_proxy(endpoint_url, remote_name))
+            registered.append(spec.to_dict())
+
+        server["status"] = "connected"
+        server["discovered_tools"] = len(registered)
+        return registered
+
+    def register_tool(self, spec: MCPToolSpec, handler: MCPToolHandler) -> None:
+        self._tools[spec.name] = (spec, handler)
+
+    def list_tools(self, *, department: Optional[str] = None) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        for spec, _ in sorted(self._tools.values(), key=lambda pair: pair[0].name):
+            if department and department not in spec.allowed_departments:
+                continue
+            out.append(spec.to_dict())
+        return out
+
+    def list_servers(self) -> List[Dict[str, Any]]:
+        return list(self._servers.values())
+
+    def get_audit_log(self, *, project_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        entries = self._audit_log
+        if project_id:
+            entries = [e for e in entries if e.project_id == project_id]
+        return [e.to_dict() for e in entries[-limit:]]
+
+    async def _record_audit(self, audit: MCPInvocationAudit) -> None:
+        self._audit_log.append(audit)
+        if len(self._audit_log) > 500:
+            del self._audit_log[: len(self._audit_log) - 500]
+        if self._audit_persister is not None:
+            try:
+                await self._audit_persister(audit.to_dict())
+            except Exception:
+                logger.debug("MCP audit persistence failed open", exc_info=True)
+
+    async def invoke_tool(
+        self,
+        *,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        role: str,
+        department: str,
+        project_id: str,
+    ) -> Dict[str, Any]:
+        entry = self._tools.get(tool_name)
+        if entry is None:
+            audit = MCPInvocationAudit(
+                invocation_id=_new_id("mcp"),
+                tool_name=tool_name,
+                server_id="unknown",
+                role=role,
+                department=department,
+                project_id=project_id,
+                status="denied",
+                reason=f"Unknown MCP tool '{tool_name}'",
+            )
+            await self._record_audit(audit)
+            return {"ok": False, "error": audit.reason, "audit": audit.to_dict()}
+
+        spec, handler = entry
+        if department not in spec.allowed_departments:
+            audit = MCPInvocationAudit(
+                invocation_id=_new_id("mcp"),
+                tool_name=tool_name,
+                server_id=spec.server_id,
+                role=role,
+                department=department,
+                project_id=project_id,
+                status="denied",
+                reason=f"Department '{department}' is not permitted to invoke '{tool_name}'",
+            )
+            await self._record_audit(audit)
+            return {"ok": False, "error": audit.reason, "audit": audit.to_dict()}
+
+        try:
+            result = await handler(
+                dict(arguments or {}),
+                {"role": role, "department": department, "project_id": project_id},
+            )
+            audit = MCPInvocationAudit(
+                invocation_id=_new_id("mcp"),
+                tool_name=tool_name,
+                server_id=spec.server_id,
+                role=role,
+                department=department,
+                project_id=project_id,
+                status="succeeded",
+            )
+            await self._record_audit(audit)
+            return {"ok": True, "result": result, "audit": audit.to_dict()}
+        except Exception as exc:
+            audit = MCPInvocationAudit(
+                invocation_id=_new_id("mcp"),
+                tool_name=tool_name,
+                server_id=spec.server_id,
+                role=role,
+                department=department,
+                project_id=project_id,
+                status="error",
+                reason=str(exc)[:300],
+            )
+            await self._record_audit(audit)
+            return {"ok": False, "error": audit.reason, "audit": audit.to_dict()}
+
+
+# --------------------------------------------------------------------------- #
+# 3. A2UI Declarative Generative Surface Builder (XSS-Safe Typed Components)
+# --------------------------------------------------------------------------- #
+
+ALLOWED_A2UI_COMPONENTS: FrozenSet[str] = frozenset(
+    {"heading", "metric_row", "checklist", "approval_card", "conflict_list", "eval_table"}
+)
+
+
+def build_a2ui_surfaces_for_run(run_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Synthesize declarative A2UI surfaces from a KernelRun snapshot."""
+    surfaces: List[Dict[str, Any]] = []
+    metrics = run_dict.get("metrics") or {}
+    gates = run_dict.get("approval_gates") or []
+    conflicts = run_dict.get("conflicts") or []
+    evaluations = run_dict.get("evaluations") or []
+    repairs = run_dict.get("repair_cycles") or []
+
+    # 1. Pending Governance Approval Surface (interactive A2UI card)
+    pending_gates = [g for g in gates if g.get("status") == "pending"]
+    for gate in pending_gates:
+        surfaces.append(
+            {
+                "surface_id": f"a2ui_gate_{gate.get('gate_id')}",
+                "protocol": "a2ui/v1",
+                "title": f"Approval Required: {gate.get('gate_name')}",
+                "components": [
+                    {
+                        "type": "approval_card",
+                        "gate_id": gate.get("gate_id"),
+                        "gate_name": gate.get("gate_name"),
+                        "reason": gate.get("reason"),
+                        "wave_index": gate.get("wave_index"),
+                        "risk_level": run_dict.get("risk_level", "medium"),
+                        "actions": ["approve", "reject"],
+                    }
+                ],
+            }
+        )
+
+    # 2. Execution & Quality Summary Surface
+    summary_components: List[Dict[str, Any]] = [
+        {
+            "type": "metric_row",
+            "items": [
+                {"label": "Tasks Completed", "value": f"{metrics.get('completed_tasks', 0)}/{metrics.get('total_tasks', 0)}"},
+                {"label": "Blackboard Artifacts", "value": str(metrics.get("artifact_count", 0))},
+                {"label": "Repair Cycles", "value": str(len(repairs))},
+                {"label": "Avg Quality", "value": f"{int(round(float(metrics.get('avg_quality_score', 0)) * 100))}%"},
+                {"label": "Estimated Cost", "value": f"${float(metrics.get('total_cost_usd', 0.0)):.4f}"},
+            ],
+        }
+    ]
+    if conflicts:
+        summary_components.append(
+            {
+                "type": "conflict_list",
+                "items": [
+                    {
+                        "file_path": c.get("file_path"),
+                        "wave_index": c.get("wave_index"),
+                        "roles": c.get("roles", []),
+                        "status": c.get("status", "detected"),
+                    }
+                    for c in conflicts
+                ],
+            }
+        )
+    if evaluations:
+        summary_components.append(
+            {
+                "type": "eval_table",
+                "rows": [
+                    {
+                        "role": ev.get("producer_role"),
+                        "artifact_type": ev.get("artifact_type"),
+                        "score": ev.get("overall_score"),
+                        "passed": ev.get("passed"),
+                    }
+                    for ev in evaluations[-8:]
+                ],
+            }
+        )
+
+    surfaces.append(
+        {
+            "surface_id": f"a2ui_summary_{run_dict.get('id', 'run')}",
+            "protocol": "a2ui/v1",
+            "title": "Run Execution & Quality Surface",
+            "components": summary_components,
+        }
+    )
+    return surfaces
+
+
+# --------------------------------------------------------------------------- #
+# 4. P1 AI SDK UI Stream Protocol v1 Adapter (x-vercel-ai-ui-message-stream)
+# --------------------------------------------------------------------------- #
+
+
+def agui_event_to_ai_sdk_chunks(event: AGUIEvent) -> List[str]:
+    """Translate an AGUIEvent into AI SDK UI Stream Protocol v1 SSE data frames."""
+    chunks: List[str] = []
+
+    def _frame(obj: Dict[str, Any]) -> str:
+        return f"data: {json.dumps(obj, default=str)}\n\n"
+
+    if event.agui_type == "HEARTBEAT":
+        return chunks
+
+    if event.kernel_event == "kernel_run_started":
+        chunks.append(_frame({"type": "start", "messageId": f"msg_{event.run_id}"}))
+        chunks.append(
+            _frame(
+                {
+                    "type": "data-kernel-state",
+                    "id": f"ev_{event.event_id}",
+                    "data": {
+                        "event_id": event.event_id,
+                        "kernel_event": event.kernel_event,
+                        "payload": event.payload,
+                    },
+                }
+            )
+        )
+    elif event.kernel_event == "kernel_wave_started":
+        chunks.append(_frame({"type": "start-step"}))
+        chunks.append(
+            _frame(
+                {
+                    "type": "data-kernel-state",
+                    "id": f"ev_{event.event_id}",
+                    "data": {
+                        "event_id": event.event_id,
+                        "kernel_event": event.kernel_event,
+                        "payload": event.payload,
+                    },
+                }
+            )
+        )
+    elif event.kernel_event == "kernel_delegation":
+        chunks.append(
+            _frame(
+                {
+                    "type": "tool-output-available",
+                    "toolCallId": str(
+                        event.payload.get("delegation_id") or f"del_{event.event_id}"
+                    ),
+                    "output": event.payload,
+                }
+            )
+        )
+    elif event.kernel_event == "kernel_run_completed":
+        chunks.append(_frame({"type": "finish-step"}))
+        chunks.append(
+            _frame(
+                {
+                    "type": "data-kernel-state",
+                    "id": f"ev_{event.event_id}",
+                    "data": {
+                        "event_id": event.event_id,
+                        "kernel_event": event.kernel_event,
+                        "status": event.payload.get("status", "completed"),
+                    },
+                }
+            )
+        )
+        chunks.append(_frame({"type": "finish"}))
+        chunks.append("data: [DONE]\n\n")
+    else:
+        chunks.append(
+            _frame(
+                {
+                    "type": "data-kernel-state",
+                    "id": f"ev_{event.event_id}",
+                    "data": {
+                        "event_id": event.event_id,
+                        "agui_type": event.agui_type,
+                        "kernel_event": event.kernel_event,
+                        "payload": event.payload,
+                    },
+                }
+            )
+        )
+    return chunks
+
+
+_agui_broker: Optional[AGUIStreamBroker] = None
+_mcp_gateway: Optional[MCPGateway] = None
+
+
+def get_agui_broker() -> AGUIStreamBroker:
+    global _agui_broker
+    if _agui_broker is None:
+        _agui_broker = AGUIStreamBroker()
+    return _agui_broker
+
+
+def get_mcp_gateway() -> MCPGateway:
+    global _mcp_gateway
+    if _mcp_gateway is None:
+        _mcp_gateway = MCPGateway()
+    return _mcp_gateway

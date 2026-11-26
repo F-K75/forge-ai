@@ -1,10 +1,8 @@
 # Forge AI — Engineering Task Board (`engineering/TASK_BOARD.md`)
 
-**Current Approval Gate**: `G0` / `G1` Complete — **Awaiting Explicit CTO Approval for Gate `G2` (Implementation Plan)**  
+**Current Status**: Core Agentic Engineering OS (Phases 1–6, P1 A2A/MCP Apps, Milestones #1–#3) + Tracks #1–#3 Production Hardening **VERIFIED**  
 **Board Owner**: Lead Engineering Orchestrator (`orchestrator`)  
 **Supported States**: `TODO` | `IN_PROGRESS` | `BLOCKED` | `REVIEW` | `VERIFIED`
-
-> **Governance Rule**: No task below may transition from `TODO` to `IN_PROGRESS` until the CTO explicitly approves Gate `G2`. All `IN_PROGRESS` tasks must execute in isolated Git worktrees (`/Users/keshav/forge-ai.worktrees/<agent>-<task-id>`) with strictly disjoint `Affected Files`.
 
 ---
 
@@ -12,11 +10,11 @@
 
 | Status | Count | Task IDs |
 | :--- | :---: | :--- |
-| `TODO` | 16 | `TASK-001` through `TASK-016` |
-| `IN_PROGRESS` | 0 | *None (Locked pending CTO Gate `G2` approval)* |
-| `BLOCKED` | 0 | *None (Dependencies documented in column)* |
+| `VERIFIED` | 15 | `TASK-000`, `TASK-002`, `TASK-003`, `TASK-004`, `TASK-005`, `TASK-006`, `TASK-007`, `TASK-008`, `TASK-009`, `TASK-010`, `TASK-012`, `TASK-013`, `OS-M1`, `OS-M2`, `OS-M3`, `OS-HARDENING` |
+| `TODO` | 4 | `TASK-001` (local git repo cleanup), `TASK-011` (AI gateway dedup), `TASK-014` (remaining page a11y), `TASK-015`/`TASK-016` (K8s dry-run & legacy dir retirement) |
+| `IN_PROGRESS` | 0 | *None* |
+| `BLOCKED` | 0 | *None* |
 | `REVIEW` | 0 | *None* |
-| `VERIFIED` | 1 | `TASK-000` (Multi-Agent Engineering Organisation Installation & Initial Audit) |
 
 ---
 

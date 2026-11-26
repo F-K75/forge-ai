@@ -22,6 +22,15 @@ logger = logging.getLogger(__name__)
 
 
 _SHORTHAND_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+_BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+_ALLOWED_GIT_HOSTS = {
+    "github.com",
+    "www.github.com",
+    "gitlab.com",
+    "www.gitlab.com",
+    "bitbucket.org",
+    "www.bitbucket.org",
+}
 
 
 class ImportRepoRequest(BaseModel):
@@ -36,14 +45,22 @@ class ImportRepoRequest(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("repo_url is required")
-        if value.startswith(("http://", "https://")):
+        if value.startswith("-"):
+            raise ValueError("repo_url must not start with '-'")
+        if value.startswith("https://"):
             parsed = urlparse(value)
-            if parsed.netloc not in {"github.com", "www.github.com", "gitlab.com", "www.gitlab.com", "bitbucket.org", "www.bitbucket.org"}:
-                raise ValueError("repo_url must be a github.com, gitlab.com, or bitbucket.org URL")
+            if parsed.username or parsed.password:
+                raise ValueError("repo_url must not include embedded credentials")
+            host = (parsed.hostname or "").lower()
+            if host not in _ALLOWED_GIT_HOSTS:
+                raise ValueError("repo_url must be a github.com, gitlab.com, or bitbucket.org HTTPS URL")
             parts = [p for p in parsed.path.split("/") if p]
-            if len(parts) < 2:
+            if len(parts) < 2 or any(p in {".", ".."} for p in parts):
                 raise ValueError("repo_url must be in the form https://host/owner/repo")
-            return value
+            clean_path = "/" + "/".join(parts)
+            return f"https://{host}{clean_path}"
+        if value.startswith("http://"):
+            raise ValueError("repo_url must use https://")
         if ":" in value or not _SHORTHAND_RE.fullmatch(value):
             raise ValueError("repo_url must be in the form owner/repo or https://host/owner/repo")
         owner, repo = value.split("/", 1)
@@ -51,6 +68,14 @@ class ImportRepoRequest(BaseModel):
             raise ValueError("repo_url must be in the form owner/repo or https://host/owner/repo")
         repo_slug = repo[:-4] if repo.endswith(".git") else repo
         return f"https://github.com/{owner}/{repo_slug}.git"
+
+    @field_validator("branch")
+    @classmethod
+    def validate_branch(cls, value: str) -> str:
+        branch = (value or "").strip()
+        if not branch or not _BRANCH_RE.fullmatch(branch) or ".." in branch or branch.endswith(".lock"):
+            raise ValueError("Invalid git branch name")
+        return branch
 
 
 class ImportRepoResponse(BaseModel):
@@ -60,15 +85,24 @@ class ImportRepoResponse(BaseModel):
 
 def _clone_repo_sync(repo_url: str, target_dir: str, branch: str, github_token: Optional[str]) -> None:
     env = os.environ.copy()
-    if github_token:
-        askpass = os.path.join(target_dir, ".git-askpass.sh")
-        with open(askpass, "w") as f:
-            f.write("#!/bin/sh\necho \"$GITHUB_TOKEN\"\n")
-        os.chmod(askpass, 0o700)
-        env["GIT_ASKPASS"] = askpass
-        env["GITHUB_TOKEN"] = github_token
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    askpass_path: Optional[str] = None
+    try:
+        if github_token:
+            fd, askpass_path = tempfile.mkstemp(prefix="forge-askpass-", suffix=".sh")
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write("#!/bin/sh\necho \"$GITHUB_TOKEN\"\n")
+            os.chmod(askpass_path, 0o700)
+            env["GIT_ASKPASS"] = askpass_path
+            env["GITHUB_TOKEN"] = github_token
 
-    Repo.clone_from(repo_url, target_dir, branch=branch, env=env, depth=1)
+        Repo.clone_from(repo_url, target_dir, branch=branch, env=env, depth=1)
+    finally:
+        if askpass_path and os.path.exists(askpass_path):
+            try:
+                os.unlink(askpass_path)
+            except OSError:
+                pass
 
 
 async def _clone_repo(repo_url: str, target_dir: str, branch: str, github_token: Optional[str]) -> None:

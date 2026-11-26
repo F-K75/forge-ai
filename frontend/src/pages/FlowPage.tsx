@@ -39,9 +39,11 @@ import {
   ArrowUpRight,
   Box,
 } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { ForgeScene3D } from "../components/three/ForgeScene3D";
+import { MultiAgentKernelPanel } from "../components/MultiAgentKernelPanel";
 
-type ViewMode = "graph" | "spatial" | "timeline" | "roster" | "artifacts";
+type ViewMode = "kernel" | "graph" | "spatial" | "timeline" | "roster" | "artifacts";
 
 interface TelemetryMetric {
   id: string;
@@ -96,8 +98,9 @@ const DEFAULT_METRICS: TelemetryMetric[] = [
 ];
 
 export default function FlowPage() {
+  const { projectId } = useParams<{ projectId?: string }>();
   // Navigation & View state
-  const [viewMode, setViewMode] = useState<ViewMode>("graph");
+  const [viewMode, setViewMode] = useState<ViewMode>("kernel");
   const [selectedStage, setSelectedStage] = useState<FlowStageId | "all">("all");
   const [selectedAgent, setSelectedAgent] = useState<CatalogAgent | null>(null);
   const [activeArtifactTab, setActiveArtifactTab] = useState<keyof typeof MOCK_ARTIFACT_PREVIEWS>("brief");
@@ -542,6 +545,7 @@ export default function FlowPage() {
             >
               {(
                 [
+                  { id: "kernel" as const, label: "Orchestration Kernel", icon: Cpu },
                   { id: "graph" as const, label: "Visual Graph", icon: GitBranch },
                   { id: "spatial" as const, label: "3D Topology", icon: Box },
                   { id: "timeline" as const, label: "Execution Timeline", icon: ListOrdered },
@@ -825,12 +829,14 @@ export default function FlowPage() {
           <div className="h-11 px-4 bg-panel-alt/60 border-b border-border flex items-center justify-between gap-2 shrink-0 text-xs">
             <div className="flex items-center gap-2 truncate">
               <span className="font-semibold text-ink flex items-center gap-2">
+                {viewMode === "kernel" && <Cpu size={14} className="text-accent" />}
                 {viewMode === "graph" && <GitBranch size={14} className="text-accent" />}
                 {viewMode === "spatial" && <Box size={14} className="text-accent" />}
                 {viewMode === "timeline" && <ListOrdered size={14} className="text-accent" />}
                 {viewMode === "roster" && <Grid size={14} className="text-accent" />}
                 {viewMode === "artifacts" && <FileCode size={14} className="text-accent" />}
                 <span>
+                  {viewMode === "kernel" && "Multi-Agent Orchestration Kernel"}
                   {viewMode === "graph" && "Topology Graph"}
                   {viewMode === "spatial" && "3D Spatial Swarm Topology"}
                   {viewMode === "timeline" && `Execution Waterfall · ${currentScenario.name}`}
@@ -839,6 +845,8 @@ export default function FlowPage() {
                 </span>
               </span>
               <span className="text-muted text-xs hidden md:inline">
+                {viewMode === "kernel" &&
+                  "— Plan DAG waves, execute 9-department specialist teams in parallel, and inspect governed delegations"}
                 {viewMode === "graph" && "— Click nodes to inspect autonomous dependencies"}
                 {viewMode === "spatial" && "— Drag to orbit, click agent nodes to inspect live pipeline state"}
                 {viewMode === "timeline" && "— Step-by-step verification waterfall"}
@@ -851,6 +859,11 @@ export default function FlowPage() {
               {viewMode}
             </span>
           </div>
+
+          {/* VIEW 0: MULTI-AGENT ORCHESTRATION KERNEL */}
+          {viewMode === "kernel" && (
+            <MultiAgentKernelPanel projectId={projectId || "demo-project"} />
+          )}
 
           {/* VIEW 1: GRAPH VIEW */}
           {viewMode === "graph" && (

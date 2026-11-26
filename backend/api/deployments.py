@@ -1,12 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, List, Any
 import asyncio
 import logging
 import os
+import re
 import tempfile
 import shutil
 import hashlib
+from urllib.parse import urlparse
 
 import docker
 from git import Repo, Actor
@@ -86,13 +88,49 @@ class DomainUpdateRequest(BaseModel):
     domain: str
 
 
+_PUSH_BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+_ALLOWED_PUSH_HOSTS = {
+    "github.com",
+    "www.github.com",
+    "gitlab.com",
+    "www.gitlab.com",
+    "bitbucket.org",
+    "www.bitbucket.org",
+}
+
+
 class GitHubPushRequest(BaseModel):
     project_id: str
     build_id: str
-    repo_url: str
-    branch: str = "main"
-    commit_message: str = "feat: deploy via Forge"
-    github_token: str
+    repo_url: str = Field(..., max_length=500)
+    branch: str = Field("main", max_length=100)
+    commit_message: str = Field("feat: deploy via Forge", max_length=500)
+    github_token: str = Field(..., max_length=300)
+
+    @field_validator("repo_url")
+    @classmethod
+    def validate_repo_url(cls, value: str) -> str:
+        url = (value or "").strip()
+        if not url or url.startswith("-") or not url.startswith("https://"):
+            raise ValueError("repo_url must be a valid https:// Git repository URL")
+        parsed = urlparse(url)
+        if parsed.username or parsed.password:
+            raise ValueError("repo_url must not include embedded credentials")
+        host = (parsed.hostname or "").lower()
+        if host not in _ALLOWED_PUSH_HOSTS:
+            raise ValueError("repo_url must point to github.com, gitlab.com, or bitbucket.org")
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 2 or any(p in {".", ".."} for p in parts):
+            raise ValueError("repo_url must be in the form https://host/owner/repo")
+        return f"https://{host}/" + "/".join(parts)
+
+    @field_validator("branch")
+    @classmethod
+    def validate_branch(cls, value: str) -> str:
+        branch = (value or "").strip()
+        if not branch or not _PUSH_BRANCH_RE.fullmatch(branch) or ".." in branch or branch.endswith(".lock"):
+            raise ValueError("Invalid git branch name")
+        return branch
 
 
 class DeploymentListResponse(BaseModel):
@@ -629,18 +667,21 @@ async def _github_push_background(
 
     try:
         temp_dir = tempfile.mkdtemp(prefix="forge-github-push-")
+        askpass_script: Optional[str] = None
         try:
-            # Use GIT_ASKPASS to pass token securely instead of embedding in URL
-            askpass_script = os.path.join(temp_dir, ".git-askpass.sh")
-
-            def _write_askpass_sync():
-                with open(askpass_script, "w") as f:
+            # Use GIT_ASKPASS outside the repo directory so git clone succeeds
+            # on an empty target dir and the helper can never be committed.
+            def _write_askpass_sync() -> str:
+                fd, path = tempfile.mkstemp(prefix="forge-push-askpass-", suffix=".sh")
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
                     f.write("#!/bin/sh\necho \"$GITHUB_TOKEN\"\n")
-                os.chmod(askpass_script, 0o700)
+                os.chmod(path, 0o700)
+                return path
 
-            await asyncio.to_thread(_write_askpass_sync)
+            askpass_script = await asyncio.to_thread(_write_askpass_sync)
 
             env = os.environ.copy()
+            env["GIT_TERMINAL_PROMPT"] = "0"
             env["GIT_ASKPASS"] = askpass_script
             env["GITHUB_TOKEN"] = github_token
 
@@ -690,6 +731,11 @@ async def _github_push_background(
                 )
             )
         finally:
+            if askpass_script and os.path.exists(askpass_script):
+                try:
+                    os.unlink(askpass_script)
+                except OSError:
+                    pass
             shutil.rmtree(temp_dir, ignore_errors=True)
     except Exception as e:
         await manager.emit(

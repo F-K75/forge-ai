@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import asyncio
 import logging
+import secrets
 import time
 from typing import Optional
 
@@ -163,6 +164,18 @@ async def lifespan(app: FastAPI):
             raise
         except Exception:
             logger.warning("Prompt template overlay load did not complete; continuing", exc_info=True)
+
+        # Hydrate Enterprise OS stores (Knowledge Fabric, Policies, Traces, Marketplace, Benchmarks)
+        # and attach fail-open MongoDB persisters + optional OTLP trace exporter.
+        try:
+            from core.enterprise_persistence import bootstrap_enterprise_os_persistence
+
+            hydrated = await bootstrap_enterprise_os_persistence(db)
+            logger.info("Enterprise OS persistence bootstrapped: %s", hydrated)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("Enterprise OS persistence bootstrap skipped; continuing in-memory", exc_info=True)
 
     startup_task = asyncio.create_task(_background_startup_init())
 
@@ -500,7 +513,8 @@ async def metrics(authorization: Optional[str] = Header(None)):
     """
     if not settings.metrics_token:
         raise HTTPException(status_code=404, detail="Metrics not enabled")
-    if authorization != f"Bearer {settings.metrics_token}":
+    expected_auth = f"Bearer {settings.metrics_token}"
+    if not authorization or not secrets.compare_digest(authorization, expected_auth):
         raise HTTPException(status_code=401, detail="Invalid metrics token")
     if PROMETHEUS_ENABLED:
         from fastapi.responses import Response

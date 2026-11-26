@@ -28,6 +28,17 @@ class OrgEventType(str, Enum):
     FINDING_RESOLVED = "finding_resolved"
     PLAN_CREATED = "plan_created"
     PLAN_DECIDED = "plan_decided"
+    KERNEL_RUN_STARTED = "kernel_run_started"
+    KERNEL_WAVE_STARTED = "kernel_wave_started"
+    KERNEL_TASK_UPDATED = "kernel_task_updated"
+    KERNEL_DELEGATION = "kernel_delegation"
+    KERNEL_SKILL_ACTIVATED = "kernel_skill_activated"
+    KERNEL_ARTIFACT_PUBLISHED = "kernel_artifact_published"
+    KERNEL_CONFLICT_DETECTED = "kernel_conflict_detected"
+    KERNEL_REPAIR_CYCLE = "kernel_repair_cycle"
+    KERNEL_APPROVAL_REQUIRED = "kernel_approval_required"
+    KERNEL_APPROVAL_RESOLVED = "kernel_approval_resolved"
+    KERNEL_RUN_COMPLETED = "kernel_run_completed"
 
 
 class OrgEvent(BaseModel):

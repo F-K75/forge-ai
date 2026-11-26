@@ -1,8 +1,8 @@
 """API surface for the unified decision_log (Phase A)."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Literal, Optional, List
 
 from api.auth import get_current_user
 from core.database import get_db
@@ -10,7 +10,7 @@ from core.models import User
 from core.permissions import has_project_access
 from services.decision_log import DecisionLogService
 
-router = APIRouter(prefix="/v1/decision-log", tags=["decision-log"])
+router = APIRouter(prefix="/decision-log", tags=["decision-log"])
 _service = DecisionLogService()
 
 
@@ -49,29 +49,39 @@ async def list_initiative_decisions(
 
 
 class CreateDecisionRequest(BaseModel):
-    project_id: Optional[str] = None
-    initiative_id: Optional[str] = None
-    task_id: Optional[str] = None
-    trigger: str = ""
-    actions: List[str] = []
-    category: Optional[str] = None
-    rationale: Optional[str] = None
+    project_id: Optional[str] = Field(None, max_length=128)
+    initiative_id: Optional[str] = Field(None, max_length=128)
+    task_id: Optional[str] = Field(None, max_length=128)
+    trigger: str = Field("", max_length=500)
+    actions: List[str] = Field(default_factory=list, max_length=50)
+    category: Optional[str] = Field(None, max_length=64)
+    rationale: Optional[str] = Field(None, max_length=4000)
     alternatives_considered: Optional[List[str]] = None
-    approver: Optional[str] = None
-    status: Optional[str] = None
-    confidence_score: Optional[float] = None
-    superseded_by: Optional[str] = None
-    last_validated_at: Optional[str] = None
-    source_ref: Optional[str] = None
-    source_type: Optional[str] = None
+    approver: Optional[str] = Field(None, max_length=128)
+    status: Optional[Literal["pending", "accepted", "rejected", "superseded"]] = None
+    confidence_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    superseded_by: Optional[str] = Field(None, max_length=128)
+    last_validated_at: Optional[str] = Field(None, max_length=64)
+    source_ref: Optional[str] = Field(None, max_length=256)
+    source_type: Optional[str] = Field(None, max_length=64)
     tags: Optional[List[str]] = None
 
 
 @router.post("/decisions")
 async def create_decision(req: CreateDecisionRequest, current_user: User = Depends(get_current_user)):
+    if not req.project_id and not req.initiative_id:
+        raise HTTPException(status_code=400, detail="Either project_id or initiative_id is required")
+    db = await get_db()
+    if req.project_id:
+        await _assert_project_access(db, req.project_id, current_user.id)
+    if req.initiative_id:
+        initiative = await db.initiatives.find_one({"id": req.initiative_id}, {"_id": 0})
+        if not initiative or not await has_project_access(db, current_user.id, initiative):
+            raise HTTPException(status_code=404, detail="Initiative not found")
+
     doc = req.model_dump()
     doc["approver"] = doc.get("approver") or current_user.id
-    doc.setdefault("status", "pending")
+    doc["status"] = doc.get("status") or "pending"
     await _service.record_decision(doc)
     return {"ok": True}
 
