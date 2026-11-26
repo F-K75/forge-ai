@@ -1250,7 +1250,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                           onClick={() => setHistoryRoleFilter(mode)}
                           className={`px-2.5 py-1 rounded-lg uppercase font-semibold transition-all cursor-pointer ${
                             historyRoleFilter === mode
-                              ? 'bg-agent-integration text-on-ink shadow-xs'
+                              ? 'bg-ink text-on-ink'
                               : 'glass-button-secondary text-ink'
                           }`}
                         >
@@ -1427,7 +1427,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                           <button
                             type="button"
                             onClick={() => handleLoadSession(s)}
-                            className="px-3.5 py-1.5 rounded-xl bg-agent-integration hover:bg-agent-integration/90 text-on-ink text-xs font-semibold uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
+                            className="px-3.5 py-1.5 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-semibold uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
                             title="Restore this session into active chat"
                           >
                             <RotateCcw className="w-3 h-3 stroke-[3]" />

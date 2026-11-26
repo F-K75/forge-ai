@@ -1644,7 +1644,7 @@ export default function KanbanTab() {
               }}
               placeholder="Search tasks by keyword, assignee, or priority (P0, P1...)..."
               aria-label="Search tasks by keyword, assignee, or priority"
-              className="h-9 w-full rounded-xl border border-border bg-panel-alt pl-9.5 pr-14 text-xs font-medium text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent transition-all shadow-xs"
+              className="h-9 w-full rounded-pill border border-glass-border bg-glass pl-9 pr-14 text-xs font-medium text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent transition-all shadow-xs"
             />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {search ? (

@@ -218,7 +218,7 @@ export default function SprintsTab() {
             id="empty-state-new-sprint-btn"
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="h-10 px-5 rounded-xl bg-agent-integration hover:bg-agent-integration/90 text-on-ink text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+            className="h-10 px-5 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium inline-flex items-center gap-2 transition-all shadow-sm cursor-pointer"
           >
             <Zap size={14} className="fill-current" />
             <span>Plan First Sprint</span>

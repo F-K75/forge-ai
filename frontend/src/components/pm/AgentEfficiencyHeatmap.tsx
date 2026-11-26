@@ -942,7 +942,7 @@ export default function AgentEfficiencyHeatmap() {
                   {/* Agent Info Header Cell */}
                   <td className="p-3 border-r-2 border-border bg-ink/10">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 shrink-0 rounded-pill bg-ink text-on-ink flex items-center justify-center font-mono text-xs font-semibold">
+                      <div className="w-7 h-7 shrink-0 rounded-md bg-ink/[0.06] text-ink flex items-center justify-center font-mono text-xs font-semibold">
                         <Bot size={14} />
                       </div>
                       <div className="min-w-0">
@@ -1066,7 +1066,7 @@ export default function AgentEfficiencyHeatmap() {
           {/* Inspector Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-pill bg-ink text-on-ink flex items-center justify-center font-mono text-lg font-semibold">
+              <div className="w-10 h-10 rounded-md bg-ink/[0.06] text-ink flex items-center justify-center font-mono text-lg font-semibold">
                 <Bot size={20} />
               </div>
               <div>

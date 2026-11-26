@@ -512,7 +512,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                   <span>{copied ? 'Copied' : 'Copy All Markdown'}</span>
                 </button>
               </div>
-              <pre className="p-4 rounded-pill bg-ink text-on-ink text-[11px] font-mono leading-relaxed overflow-x-auto max-h-96 border border-border selection:bg-agent-integration">
+              <pre className="p-4 rounded-xl bg-base text-ink text-[11px] font-mono leading-relaxed overflow-x-auto max-h-96 border border-border selection:bg-agent-integration">
                 {blueprintMarkdown}
               </pre>
             </div>

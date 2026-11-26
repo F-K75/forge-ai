@@ -14,7 +14,6 @@ import {
   ArrowUpRight,
   Calendar,
   Tag,
-  Kanban,
   Volume2,
   VolumeX,
   ChevronRight,
@@ -42,7 +41,6 @@ import { generateInitiativeWithGemini } from "../../lib/geminiPM";
 import { RequirementsSurvey } from "../../components/pm/RequirementsSurvey";
 import { VoiceInputButton } from "../../components/pm/VoiceInputButton";
 import { SuiWindowFrame, BottomNavItem } from "../../components/pm/SuiWindowFrame";
-import { SuiKeycapVisual } from "../../components/pm/SuiKeycapVisual";
 
 /* ------------------------------------------------------------------ */
 /* Subtle Audio Synthesizer                                           */
@@ -343,7 +341,7 @@ function InitiativeCard({
           </span>
           <button
             type="button"
-            className="h-8 px-4 bg-ink hover:bg-ink text-on-ink font-semibold text-xs rounded-full flex items-center gap-1.5 transition-transform duration-150 active:scale-95 cursor-pointer shadow-xs"
+            className="h-8 px-4 border border-glass-border bg-glass hover:bg-ink/10 text-ink font-medium text-xs rounded-pill flex items-center gap-1.5 transition-transform duration-150 active:scale-95 cursor-pointer"
           >
             <span>Open Board</span>
             <ArrowRight size={13} strokeWidth={2.2} />
@@ -699,7 +697,7 @@ export default function InitiativesListPage() {
   ], [totalInitiatives, activeCount, planningCount, completedCount, statusFilter, creating, handleSound]);
 
   return (
-    <div className="relative min-h-screen w-full bg-info/10 p-1.5 sm:p-3 md:p-4 font-sans antialiased text-ink transition-colors duration-200 flex flex-col items-stretch justify-start">
+    <div className="relative min-h-screen w-full bg-base p-0 sm:p-2 md:p-4 font-sans antialiased text-ink transition-colors duration-200 flex flex-col items-stretch justify-start">
       <div className="w-full flex-1 flex flex-col">
         <SuiWindowFrame
           title="Forge Initiatives 2026"
@@ -710,7 +708,7 @@ export default function InitiativesListPage() {
           bottomNavItems={bottomNavItems}
           primaryAction={{
             label: "Create Initiative",
-            icon: <Sparkles size={14} className="text-warn" />,
+            icon: <Sparkles size={14} />,
             onClick: () => {
               handleSound();
               inputRef.current?.focus();
@@ -721,29 +719,27 @@ export default function InitiativesListPage() {
         >
           <div className="space-y-8 sm:space-y-10">
             {/* =========================================================================
-                HERO SECTION: SUI OVERFLOW 2025 AESTHETIC
-                - Left: Bold Headline + Subtitle + Signature Dual CTA Unit
-                - Right: Chunky 3D Candy Keycaps + Code Key + Speech Bubble + Cursors
+                HEADER: two-tone heading, muted subline, one ink CTA + glass pill,
+                and a compact portfolio summary on an atmospheric panel
             ========================================================================= */}
-            <section aria-label="Initiatives Hero" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-2">
-              {/* Left Column: Bold Typography & Signature Paired CTA */}
-              <div className="lg:col-span-7 space-y-5">
+            <section aria-label="Initiatives Hero" className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+              <div className="lg:col-span-7 flex flex-col justify-center gap-5 py-2">
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-accent/[0.12] px-2.5 py-1 text-xs font-medium text-accent">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                  01 Plan
+                </span>
                 <div>
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-ink leading-[1.08]">
-                    Forge Swarm 2026
+                  <h1 className="text-headline sm:text-display font-medium tracking-tight text-ink">
+                    Forge Swarm 2026.{" "}
+                    <span className="text-muted">Turn ideas into shipped systems.</span>
                   </h1>
-                  <p className="mt-2 text-base sm:text-lg font-semibold text-ink">
-                    February–August, 2026
+                  <p className="mt-2 text-caption text-faint">February–August, 2026</p>
+                  <p className="mt-3 text-body text-muted max-w-xl">
+                    Turn visionary ideas into production-ready software systems. 8 coordinated AI specialist agents architect PRDs, manage epics, orchestrate autonomous sprints, and verify deployment.
                   </p>
                 </div>
 
-                <p className="text-sm sm:text-base text-muted max-w-xl leading-relaxed">
-                  Turn visionary ideas into production-ready software systems. 8 coordinated AI specialist agents architect PRDs, manage epics, orchestrate autonomous sprints, and verify deployment.
-                </p>
-
-                {/* Signature Sui Overflow Paired CTA Unit */}
-                <div className="flex items-center gap-2 pt-1">
-                  {/* Primary Black Rectangular Button */}
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -752,55 +748,85 @@ export default function InitiativesListPage() {
                       const el = document.getElementById("prd-synthesizer");
                       el?.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="h-11 sm:h-12 px-7 sm:px-8 bg-ink hover:bg-ink text-on-ink rounded-pill text-sm sm:text-base font-semibold tracking-tight active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+                    className="inline-flex h-10 items-center gap-2 rounded-pill bg-ink px-5 text-sm font-medium text-on-ink transition hover:bg-ink/90 active:scale-[0.98] cursor-pointer"
                   >
                     <span>Register Initiative</span>
                   </button>
-
-                  {/* Adjacent Sky-Blue Square Button with Arrow */}
                   <button
                     type="button"
                     onClick={() => {
                       handleSound();
                       handleOpenClarification();
                     }}
-                    className="h-11 sm:h-12 w-11 sm:w-12 bg-info/10 hover:bg-info/20 text-ink border-2 border-border rounded-lg active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-pill border border-glass-border bg-glass text-ink backdrop-blur-[5px] transition hover:bg-ink/10 cursor-pointer"
                     title="Launch Guided Architecture Survey"
                     aria-label="Open Guided Architecture Survey"
                   >
-                    <ArrowUpRight size={20} strokeWidth={2.6} />
+                    <ArrowUpRight size={16} />
                   </button>
                 </div>
 
-                {/* Micro Stats Row */}
-                <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-panel border border-border text-xs font-semibold text-ink">
-                    <span className="h-2 w-2 rounded-full bg-ok animate-pulse" />
-                    <span>8 Specialist Agents Active</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-panel border border-border text-xs font-semibold text-ink">
-                    <Star size={13} className="text-warn fill-warn" />
-                    <span>{totalInitiatives} Initiatives</span>
-                  </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-caption text-muted">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-ok" aria-hidden="true" />
+                    8 Specialist Agents Active
+                  </span>
+                  <span className="text-faint" aria-hidden="true">·</span>
+                  <span>
+                    <span className="font-mono tabular text-ink">{totalInitiatives}</span> Initiatives
+                  </span>
                   {creditPreview && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-panel border border-border text-xs font-semibold text-accent">
-                      <Coins size={13} className="text-warn" />
-                      <span>{creditPreview.credits_remaining} Credits</span>
-                    </div>
+                    <>
+                      <span className="text-faint" aria-hidden="true">·</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Coins size={13} className="text-muted" />
+                        <span className="font-mono tabular text-ink">{creditPreview.credits_remaining}</span> Credits
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
 
-              {/* Right Column: 3D Candy Keycaps & Cursors Graphic */}
-              <div className="lg:col-span-5 flex justify-center">
-                <div className="w-full max-w-[440px] bg-panel/80 rounded-2xl border-2 border-border p-4">
-                  <SuiKeycapVisual
-                    title="OVERFLOW"
-                    onKeyClick={(char) => {
-                      synth.playClick(600);
-                      toast(`Key ${char} selected · AI Agent Assigned`);
-                    }}
-                  />
+              {/* Right column: portfolio summary on an atmospheric panel */}
+              <div className="lg:col-span-5">
+                <div
+                  aria-label="Portfolio summary"
+                  className="ember-atmosphere h-full overflow-hidden rounded-xl border border-border p-5 sm:p-6 flex flex-col gap-5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-caption font-medium text-ink">Portfolio</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-accent/[0.12] px-2.5 py-0.5 text-xs font-medium text-accent">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+                      Sprint 04 active
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      { label: "Total", value: totalInitiatives },
+                      { label: "Active", value: activeCount },
+                      { label: "Planning", value: planningCount },
+                      { label: "Completed", value: completedCount },
+                    ].map((stat) => (
+                      <div key={stat.label} className="rounded-lg border border-border bg-base/40 p-3 backdrop-blur-[5px]">
+                        <p className="text-xs text-muted">{stat.label}</p>
+                        <p className="mt-1 font-mono text-headline tabular text-ink">{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted">Delivery</span>
+                      <span className="font-mono tabular text-ink">
+                        {totalInitiatives ? Math.round((completedCount / totalInitiatives) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-pill bg-ink/[0.08]">
+                      <div
+                        className="h-full rounded-pill bg-ok"
+                        style={{ width: `${totalInitiatives ? Math.round((completedCount / totalInitiatives) * 100) : 0}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -808,26 +834,26 @@ export default function InitiativesListPage() {
         {/* =========================================================================
             3. PRD SYNTHESIZER WORKBENCH (INTERACTIVE CREATION BAR)
         ========================================================================= */}
-        <section aria-label="PRD Synthesizer Workbench" className="bg-panel rounded-3xl p-5 sm:p-6 border border-border shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-soft pb-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10 text-info">
+        <section aria-label="PRD Synthesizer Workbench" className="bg-panel rounded-xl p-5 sm:p-6 border border-border space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-ink/[0.06] text-ink">
                 <Sparkles size={15} />
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink">
+              <span className="text-title text-ink">
                 Autonomous PRD Synthesizer
               </span>
             </div>
 
             {creditPreview && (
               <div className="flex items-center gap-2 text-xs font-medium text-muted">
-                <Coins size={13} className="text-warn" />
+                <Coins size={13} className="text-muted" />
                 <span>
                   {creditPreview.free_available ? "First Run Free" : `${creditPreview.cost} Credits/Run`}
                 </span>
-                <span>•</span>
-                <span className="text-accent font-semibold">
-                  {creditPreview.credits_remaining} credits remaining
+                <span className="text-faint" aria-hidden="true">·</span>
+                <span>
+                  <span className="font-mono tabular text-ink">{creditPreview.credits_remaining}</span> credits remaining
                 </span>
               </div>
             )}
@@ -839,7 +865,7 @@ export default function InitiativesListPage() {
               e.preventDefault();
               handleCreate();
             }}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-panel p-2 rounded-2xl border border-border focus-within:border-border transition"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 rounded-2xl border border-glass-border bg-glass p-2 backdrop-blur-[5px] transition focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20"
           >
             <input
               ref={inputRef}
@@ -848,7 +874,7 @@ export default function InitiativesListPage() {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe a product to plan end-to-end (e.g. Telehealth Portal, FinTech Ledger)…"
               aria-label="Describe a product to plan end-to-end…"
-              className="flex-1 bg-transparent px-3 py-2 text-sm font-medium text-ink placeholder:text-faint focus:outline-none min-w-0"
+              className="flex-1 bg-transparent px-3 py-2 text-body text-ink placeholder:text-faint focus:outline-none focus-visible:outline-none min-w-0"
             />
 
             <div className="flex items-center gap-2 shrink-0">
@@ -864,7 +890,7 @@ export default function InitiativesListPage() {
                 type="submit"
                 disabled={creating || !prompt.trim()}
                 aria-label="Generate Plan"
-                className="h-10 px-6 bg-ink hover:bg-ink text-on-ink font-semibold text-xs rounded-full shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-9 px-5 bg-ink hover:bg-ink/90 text-on-ink font-medium text-xs rounded-pill transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Sparkles size={13} strokeWidth={2.4} />
                 <span>{creating ? "Synthesizing…" : "Generate Plan ↵"}</span>
@@ -874,8 +900,8 @@ export default function InitiativesListPage() {
 
           {/* Quick Recipe Chips */}
           <div className="flex items-center gap-2 overflow-x-auto text-xs pt-1 scrollbar-none">
-            <span className="font-semibold text-faint uppercase tracking-wider text-[11px] shrink-0">
-              Quick Starters:
+            <span className="text-xs text-faint shrink-0">
+              Quick starters
             </span>
             {SUGGESTIONS.map((suggestion) => (
               <button
@@ -886,7 +912,7 @@ export default function InitiativesListPage() {
                   setPrompt(suggestion);
                   handleOpenClarification(suggestion);
                 }}
-                className="shrink-0 px-3 py-1 rounded-full bg-panel-alt text-ink hover:bg-ink/5 font-medium transition cursor-pointer text-xs"
+                className="shrink-0 px-3 py-1 rounded-pill border border-border-soft bg-ink/[0.04] text-muted hover:text-ink hover:bg-ink/[0.08] transition cursor-pointer text-xs"
               >
                 {suggestion}
               </button>
@@ -914,12 +940,9 @@ export default function InitiativesListPage() {
           {/* Header & Controls Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Kanban size={18} className="text-ink" />
-                <h2 className="text-xl font-semibold tracking-tight text-ink">
-                  Initiative Repository
-                </h2>
-              </div>
+              <h2 className="text-title text-ink">
+                Initiative Repository
+              </h2>
               <span className="px-2.5 py-0.5 rounded-full bg-surface-high text-ink text-xs font-semibold">
                 {visibleInitiatives.length} Plans
               </span>
@@ -945,7 +968,7 @@ export default function InitiativesListPage() {
               </div>
 
               {/* Status Filter Buttons */}
-              <div className="flex items-center gap-1 bg-panel-alt p-1 rounded-full">
+              <div className="flex items-center gap-1 bg-ink/[0.06] p-1 rounded-pill">
                 {(
                   [
                     { id: "all", label: `All (${totalInitiatives})` },
@@ -965,7 +988,7 @@ export default function InitiativesListPage() {
                       }}
                       className={`px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer whitespace-nowrap ${
                         isActive
-                          ? "bg-panel text-ink shadow-xs"
+                          ? "bg-ink text-on-ink"
                           : "text-muted hover:text-ink"
                       }`}
                     >
@@ -1007,7 +1030,7 @@ export default function InitiativesListPage() {
 
               {/* View Mode Toggle */}
               <div
-                className="flex items-center gap-1 bg-panel-alt p-1 rounded-full"
+                className="flex items-center gap-1 bg-ink/[0.06] p-1 rounded-pill"
                 role="group"
                 aria-label="View mode"
               >
@@ -1021,7 +1044,7 @@ export default function InitiativesListPage() {
                   aria-pressed={viewMode === "icons"}
                   className={`h-7 w-7 rounded-full flex items-center justify-center transition cursor-pointer ${
                     viewMode === "icons"
-                      ? "bg-panel text-ink shadow-xs"
+                      ? "bg-ink text-on-ink"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -1037,7 +1060,7 @@ export default function InitiativesListPage() {
                   aria-pressed={viewMode === "list"}
                   className={`h-7 w-7 rounded-full flex items-center justify-center transition cursor-pointer ${
                     viewMode === "list"
-                      ? "bg-panel text-ink shadow-xs"
+                      ? "bg-ink text-on-ink"
                       : "text-muted hover:text-ink"
                   }`}
                 >

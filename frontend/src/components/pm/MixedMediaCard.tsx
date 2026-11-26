@@ -677,7 +677,7 @@ export const CodeSnippetMediaCard: React.FC<{
   };
 
   return (
-    <div className="rounded-pill border border-border bg-ink text-on-ink p-4 shadow-xs font-mono text-xs">
+    <div className="rounded-xl border border-border bg-base text-ink p-4 font-mono text-xs">
       <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-panel-alt text-warn border border-border text-[10px]">

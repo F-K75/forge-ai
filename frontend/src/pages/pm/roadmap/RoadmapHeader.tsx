@@ -57,7 +57,7 @@ export function RoadmapHeader({
       className="rounded-2xl border border-border bg-panel shadow-sm overflow-hidden"
     >
       {/* Top Banner Row */}
-      <div className="p-5 sm:p-6 border-b border-border-soft bg-gradient-to-r from-panel via-panel to-info/30 ">
+      <div className="p-5 sm:p-6 border-b border-border-soft ember-atmosphere">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">

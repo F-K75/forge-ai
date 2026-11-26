@@ -939,7 +939,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
       <div className="rounded-xl border border-border bg-panel/95 shadow-xs p-3.5 font-sans space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold shrink-0">
               <Sparkles size={14} className="text-warn" />
             </div>
             <div>
@@ -1057,7 +1057,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             {/* Drawer Header */}
             <div className="px-5 py-3.5 border-b border-border flex flex-wrap items-center justify-between gap-3 bg-ink/10">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
                   <Sparkles size={14} className="text-warn" />
                 </div>
                 <div>

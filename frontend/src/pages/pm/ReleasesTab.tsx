@@ -658,7 +658,7 @@ export default function ReleasesTab() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
               <Rocket size={18} className="text-warn" />
             </div>
             <div>
@@ -1396,7 +1396,7 @@ export default function ReleasesTab() {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-on-ink ">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-ink/[0.06] text-ink ">
                   <Rocket size={14} className="text-warn" />
                 </div>
                 <h3
@@ -1617,7 +1617,7 @@ export default function ReleasesTab() {
             {/* Drawer Header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold">
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
                   <Rocket size={16} className="text-warn" />
                 </div>
                 <div>
@@ -2052,7 +2052,7 @@ ${
             {/* Header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-on-ink ">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-ink/[0.06] text-ink ">
                   <FileText size={14} className="text-warn" />
                 </div>
                 <div>

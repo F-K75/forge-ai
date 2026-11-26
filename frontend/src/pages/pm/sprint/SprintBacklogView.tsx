@@ -141,7 +141,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
                 onClick={() => setStatusFilter(st)}
                 className={`px-2.5 py-1 text-xs rounded-xl font-medium transition-all cursor-pointer shrink-0 border ${
                   statusFilter === st
-                    ? "bg-agent-integration text-on-ink border-agent-integration/30 shadow-2xs"
+                    ? "bg-ink text-on-ink border-transparent"
                     : "bg-panel text-muted border-border hover:border-agent-integration/50"
                 }`}
               >
@@ -163,7 +163,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
                 onClick={() => setPriorityFilter(pr)}
                 className={`px-2 py-1 text-xs rounded-xl font-medium transition-all cursor-pointer shrink-0 border ${
                   priorityFilter === pr
-                    ? "bg-agent-integration text-on-ink border-agent-integration/30 shadow-2xs"
+                    ? "bg-ink text-on-ink border-transparent"
                     : "bg-panel text-muted border-border hover:border-agent-integration/50"
                 }`}
               >
@@ -219,7 +219,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             <button
               type="button"
               onClick={clearFilters}
-              className="h-8.5 px-4 rounded-pill bg-agent-integration text-on-ink text-xs font-semibold hover:bg-agent-integration/90 cursor-pointer shadow-2xs"
+              className="h-8.5 px-4 rounded-pill bg-ink text-on-ink text-xs font-medium hover:bg-ink/90 cursor-pointer shadow-2xs"
             >
               Clear All Filters
             </button>
@@ -227,7 +227,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             <button
               type="button"
               onClick={onOpenCreateTaskModal}
-              className="h-8.5 px-4 rounded-pill bg-agent-integration text-on-ink text-xs font-semibold hover:bg-agent-integration/90 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+              className="h-8.5 px-4 rounded-pill bg-ink text-on-ink text-xs font-medium hover:bg-ink/90 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
             >
               <Plus size={14} />
               <span>Add First Task</span>

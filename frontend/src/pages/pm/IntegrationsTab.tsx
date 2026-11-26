@@ -610,7 +610,7 @@ export default function IntegrationsTab() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
               <Plug size={18} className="text-warn" />
             </div>
             <div>

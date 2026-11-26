@@ -155,7 +155,7 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
   return (
     <div
       id="agent-console-root"
-      className="rounded-pill border border-border bg-ink text-on-ink shadow-xl overflow-hidden font-mono flex flex-col h-[580px]"
+      className="rounded-xl border border-border bg-base text-ink overflow-hidden font-mono flex flex-col h-[580px]"
     >
       {/* Terminal Top Window Bar */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-panel-alt border-b border-border text-xs select-none shrink-0">
