@@ -177,6 +177,57 @@ describe("A2UI renderer", () => {
     expect(onAction).toHaveBeenCalledWith("gate_1", "approve")
   })
 
+  it("requires an inline confirmation before emitting reject", () => {
+    const onAction = vi.fn()
+    render(<A2UISurfaceView surface={surface([ALL_COMPONENTS[3]])} onApprovalAction={onAction} />)
+    fireEvent.click(screen.getByRole("button", { name: /^reject/i }))
+    expect(onAction).not.toHaveBeenCalled()
+    // Cancel backs out without a decision
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
+    expect(onAction).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: /^reject/i }))
+    fireEvent.click(screen.getByRole("button", { name: /confirm reject/i }))
+    expect(onAction).toHaveBeenCalledTimes(1)
+    expect(onAction).toHaveBeenCalledWith("gate_1", "reject")
+  })
+
+  it("disables actions while pending, shows errors, and hides actions once resolved", () => {
+    const onAction = vi.fn()
+    const { rerender } = render(
+      <A2UISurfaceView
+        surface={surface([ALL_COMPONENTS[3]])}
+        onApprovalAction={onAction}
+        approvalState={{ gate_1: { pending: "approve" } }}
+      />
+    )
+    const approve = screen.getByRole("button", { name: /^approve/i })
+    expect(approve).toBeDisabled()
+    expect(approve).toHaveTextContent("Approving…")
+    expect(screen.getByRole("button", { name: /^reject/i })).toBeDisabled()
+    fireEvent.click(approve)
+    expect(onAction).not.toHaveBeenCalled()
+
+    rerender(
+      <A2UISurfaceView
+        surface={surface([ALL_COMPONENTS[3]])}
+        onApprovalAction={onAction}
+        approvalState={{ gate_1: { error: "Approval gate already rejected" } }}
+      />
+    )
+    expect(screen.getByRole("alert")).toHaveTextContent("Approval gate already rejected")
+    expect(screen.getByRole("button", { name: /^approve/i })).toBeEnabled()
+
+    rerender(
+      <A2UISurfaceView
+        surface={surface([ALL_COMPONENTS[3]])}
+        onApprovalAction={onAction}
+        approvalState={{ gate_1: { resolved: "approved" } }}
+      />
+    )
+    expect(screen.getByRole("status")).toHaveTextContent("Approved")
+    expect(screen.queryByRole("button")).toBeNull()
+  })
+
   it("safeHttpUrl and parseA2UIComponent narrow untrusted input", () => {
     expect(safeHttpUrl("https://example.com/a?b=1")).toBe("https://example.com/a?b=1")
     expect(safeHttpUrl(" javascript:alert(1)")).toBeNull()

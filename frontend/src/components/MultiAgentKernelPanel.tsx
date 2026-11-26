@@ -156,37 +156,120 @@ function statusTone(status: KernelTask["status"] | KernelRun["status"]): string 
   }
 }
 
+const A2UI_TASK_STATUSES = new Set(["pending", "running", "completed", "failed", "blocked", "cancelled"]);
+
+/**
+ * Offline mirror of the backend's `build_a2ui_surfaces_for_run`: builds A2UI
+ * surfaces purely from the locally held KernelRun snapshot (no network).
+ */
 function synthesizeLocalA2UISurfaces(run: KernelRun): A2UISurface[] {
   const surfaces: A2UISurface[] = [];
   const evals = run.evaluations || [];
+  const tasks = run.tasks || [];
+  const conflicts = run.conflicts || [];
   const avgQ =
     evals.length > 0
       ? evals.reduce((acc, e) => acc + e.overall_score, 0) / evals.length
       : 0;
+
+  // 1. Interactive approval cards for pending governance gates
+  for (const gate of (run.approval_gates || []).filter((g) => g.status === "pending")) {
+    surfaces.push({
+      surface_id: `a2ui_gate_${gate.gate_id}`,
+      protocol: "a2ui/v1",
+      title: `Approval Required: ${gate.gate_name}`,
+      components: [
+        {
+          type: "approval_card",
+          gate_id: gate.gate_id,
+          gate_name: gate.gate_name,
+          reason: gate.reason || null,
+          wave_index: gate.wave_index,
+          risk_level: "medium",
+          actions: ["approve", "reject"],
+        },
+      ],
+    });
+  }
+
+  // 2. Execution & quality summary
+  const summaryComponents: Array<Record<string, unknown>> = [
+    {
+      type: "metric_row",
+      items: [
+        {
+          label: "Tasks Completed",
+          value: `${run.metrics.completed_tasks}/${run.metrics.total_tasks}`,
+        },
+        { label: "Blackboard Artifacts", value: String((run.artifacts || []).length) },
+        { label: "Repair Cycles", value: String((run.repair_cycles || []).length) },
+        { label: "Avg Quality", value: `${Math.round(avgQ * 100)}%` },
+        {
+          label: "Estimated Cost",
+          value: `$${(run.cost_summary?.spent_usd ?? 0).toFixed(4)}`,
+        },
+        { label: "Worktree Leases", value: String((run.worktrees || []).length) },
+      ],
+    },
+  ];
+  if (conflicts.length > 0) {
+    summaryComponents.push({
+      type: "conflict_list",
+      items: conflicts.slice(0, 50).map((c) => ({
+        file_path: c.file_path,
+        wave_index: c.wave_index,
+        roles: c.roles.slice(0, 20),
+        status: c.status,
+      })),
+    });
+  }
+  if (evals.length > 0) {
+    summaryComponents.push({
+      type: "eval_table",
+      rows: evals.slice(0, 50).map((e) => ({
+        role: e.producer_role,
+        artifact_type: e.artifact_type,
+        score: e.overall_score,
+        passed: e.passed,
+      })),
+    });
+  }
   surfaces.push({
     surface_id: `a2ui_summary_${run.id}`,
     protocol: "a2ui/v1",
     title: "Run Execution & Quality Surface",
-    components: [
-      {
-        type: "metric_row",
-        items: [
-          {
-            label: "Tasks Completed",
-            value: `${run.metrics.completed_tasks}/${run.metrics.total_tasks}`,
-          },
-          { label: "Blackboard Artifacts", value: String((run.artifacts || []).length) },
-          { label: "Repair Cycles", value: String((run.repair_cycles || []).length) },
-          { label: "Avg Quality", value: `${Math.round(avgQ * 100)}%` },
-          {
-            label: "Estimated Cost",
-            value: `$${(run.cost_summary?.spent_usd ?? 0).toFixed(4)}`,
-          },
-          { label: "Worktree Leases", value: String((run.worktrees || []).length) },
-        ],
-      },
-    ],
+    components: summaryComponents,
   });
+
+  // 3. Agent activity: progress + task board
+  if (tasks.length > 0) {
+    const completed = tasks.filter((t) => t.status === "completed").length;
+    const failed = tasks.some((t) => t.status === "failed");
+    surfaces.push({
+      surface_id: `a2ui_activity_${run.id}`,
+      protocol: "a2ui/v1",
+      title: "Agent Activity",
+      components: [
+        {
+          type: "progress_bar",
+          label: "Tasks completed",
+          value: completed,
+          max: tasks.length,
+          tone: failed ? "error" : completed === tasks.length ? "success" : "info",
+        },
+        {
+          type: "status_list",
+          items: tasks.slice(0, 100).map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: A2UI_TASK_STATUSES.has(t.status) ? t.status : "pending",
+            owner: t.role,
+            detail: t.error || `Wave ${t.wave_index}`,
+          })),
+        },
+      ],
+    });
+  }
   return surfaces;
 }
 
@@ -1470,6 +1553,38 @@ export function MultiAgentKernelPanel({
     }
   };
 
+  /** Approve/reject a gate from an A2UI approval_card. Throws on failure so the card can show the error. */
+  const handleA2UIGateDecision = async (gateId: string, action: "approve" | "reject") => {
+    const approved = action === "approve";
+    const gate = (activeRun.approval_gates || []).find((g) => g.gate_id === gateId);
+    if (localGateResolverRef.current && gate?.status === "pending") {
+      localGateResolverRef.current({ approved, note: gateNote.trim() });
+      setGateNote("");
+      return;
+    }
+    if (!LIVE_MODE) {
+      throw new Error("Gate is no longer awaiting a decision");
+    }
+    if (approved) {
+      await kernelApi.approveGate(projectId, activeRun.id, gateId, gateNote.trim());
+    } else {
+      await kernelApi.rejectGate(projectId, activeRun.id, gateId, gateNote.trim());
+    }
+    setGateNote("");
+    // The decision succeeded; refresh failures are non-fatal (polling will catch up).
+    try {
+      const refreshed = await kernelApi.getRun(projectId, activeRun.id);
+      setActiveRun(refreshed);
+      const res = await protocolApi.getA2UISurfaces(projectId, activeRun.id);
+      if (res?.surfaces) setA2UISurfaces(res.surfaces);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleLoadMcpAppResource = (app: MCPAppSpec, ctx: { role: string; department: string }) =>
+    protocolApi.getMcpAppResource(projectId, app.app_id, ctx);
+
   const handleCancel = async () => {
     cancelRef.current = true;
     if (localGateResolverRef.current) {
@@ -2026,6 +2141,8 @@ export function MultiAgentKernelPanel({
           marketplaceStatus={marketplaceStatus}
           tenantPolicy={tenantPolicy}
           onUpdatePolicy={handleUpdatePolicy}
+          onApprovalDecision={handleA2UIGateDecision}
+          onLoadMcpAppResource={LIVE_MODE ? handleLoadMcpAppResource : undefined}
         />
 
         <section

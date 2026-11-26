@@ -136,6 +136,31 @@ describe("MultiAgentKernelPanel", () => {
     );
   });
 
+  it("offline: A2UI approval card resolves the local gate, and local surfaces use the typed components", async () => {
+    render(<MultiAgentKernelPanel projectId="proj-test" />);
+
+    fireEvent.click(screen.getByLabelText("Pre-Delivery Approval Gate"));
+    fireEvent.click(screen.getByRole("button", { name: /Execute Parallel Waves/i }));
+    await screen.findByText(/Governance Approval Required/i, undefined, { timeout: 5000 });
+
+    fireEvent.click(screen.getByRole("tab", { name: /Protocols/i }));
+    expect(screen.getByText("Agent Activity")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: /Tasks completed/i })).toBeInTheDocument();
+
+    // Reject needs confirmation; cancel it, then approve instead.
+    fireEvent.click(screen.getByRole("button", { name: /^Reject pre_delivery_approval/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Cancel$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Approve pre_delivery_approval/i }));
+
+    await waitFor(
+      () => {
+        expect(screen.queryByText(/Governance Approval Required/i)).toBeNull();
+        expect(screen.getByText("Governance Gate History")).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+  });
+
   it("computes valid topological waves and budget defaults in planObjectiveLocally", () => {
     const plan = planObjectiveLocally(
       "proj-1",

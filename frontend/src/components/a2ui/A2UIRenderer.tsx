@@ -8,7 +8,7 @@
  * dangerouslySetInnerHTML anywhere in this file — and links are only rendered
  * for absolute http(s) URLs.
  */
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Badge, type BadgeVariant } from "../ui"
 import type { A2UIComponent, A2UISurface, A2UITone } from "../../lib/kernelApi"
 import { parseA2UIComponent } from "./parseA2UI"
@@ -111,13 +111,126 @@ function SafeMarkdown({ text }: { text: string }) {
 // Component views
 // --------------------------------------------------------------------------
 
-export interface A2UIComponentViewProps {
-  component: A2UIComponent
-  /** Optional handler for approval_card actions; without it actions are shown read-only. */
-  onApprovalAction?: (gateId: string, action: "approve" | "reject") => void
+export type A2UIApprovalAction = "approve" | "reject"
+
+/** Per-gate UI state for interactive approval cards, keyed by gate_id. */
+export interface A2UIApprovalUIState {
+  /** Decision currently being submitted; disables both actions. */
+  pending?: A2UIApprovalAction | null
+  /** Last submission error, shown inline (plain text). */
+  error?: string | null
+  /** Decision that was accepted by the server; actions are hidden afterwards. */
+  resolved?: "approved" | "rejected" | null
 }
 
-export function A2UIComponentView({ component: c, onApprovalAction }: A2UIComponentViewProps) {
+export interface A2UIComponentViewProps {
+  component: A2UIComponent
+  /**
+   * Optional handler for approval_card actions; without it actions are shown
+   * read-only. "reject" is only emitted after an inline confirmation step.
+   */
+  onApprovalAction?: (gateId: string, action: A2UIApprovalAction) => void | Promise<void>
+  /** Optional per-gate pending / error / resolved state for approval cards. */
+  approvalState?: Readonly<Record<string, A2UIApprovalUIState>>
+}
+
+const ACTION_PENDING_LABEL: Record<A2UIApprovalAction, string> = {
+  approve: "Approving…",
+  reject: "Rejecting…",
+}
+
+function ApprovalCardView({
+  card: c,
+  onApprovalAction,
+  state,
+}: {
+  card: Extract<A2UIComponent, { type: "approval_card" }>
+  onApprovalAction?: A2UIComponentViewProps["onApprovalAction"]
+  state?: A2UIApprovalUIState
+}) {
+  const [confirmingReject, setConfirmingReject] = useState(false)
+  const pending = state?.pending ?? null
+  const resolved = state?.resolved ?? null
+  const interactive = Boolean(onApprovalAction && c.gate_id) && !resolved
+  const gateId = c.gate_id
+  const label = c.gate_name ?? "approval gate"
+
+  const submit = (action: A2UIApprovalAction) => {
+    if (!onApprovalAction || !gateId || pending) return
+    setConfirmingReject(false)
+    void onApprovalAction(gateId, action)
+  }
+
+  return (
+    <div
+      className="rounded-md border border-warn/40 bg-warn/10 p-2 space-y-1 text-[11px]"
+      aria-busy={pending ? true : undefined}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold text-ink">{c.gate_name ?? "Approval gate"}</span>
+        {c.risk_level && <Badge size="sm" variant="warning">{`${c.risk_level} risk`}</Badge>}
+      </div>
+      {c.reason && <p className="text-muted whitespace-pre-wrap">{c.reason}</p>}
+      {c.wave_index !== null && c.wave_index !== undefined && (
+        <p className="font-mono text-muted">Wave {c.wave_index}</p>
+      )}
+      {resolved && (
+        <p role="status" className={resolved === "approved" ? "text-ok font-medium" : "text-error font-medium"}>
+          {resolved === "approved" ? "Approved" : "Rejected"}
+        </p>
+      )}
+      {c.actions.length > 0 && !resolved && !confirmingReject && (
+        <div className="flex gap-1.5 pt-0.5">
+          {c.actions.map((action) =>
+            interactive ? (
+              <button
+                key={action}
+                type="button"
+                disabled={Boolean(pending)}
+                aria-label={`${action === "approve" ? "Approve" : "Reject"} ${label}`}
+                onClick={() => (action === "reject" ? setConfirmingReject(true) : submit(action))}
+                className="px-2 py-0.5 rounded border border-border bg-base text-[11px] font-medium text-ink hover:border-accent/60 cursor-pointer capitalize disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {pending === action ? ACTION_PENDING_LABEL[action] : action}
+              </button>
+            ) : (
+              <Badge key={action} size="sm" variant="outlined" className="capitalize">
+                {action}
+              </Badge>
+            )
+          )}
+        </div>
+      )}
+      {interactive && confirmingReject && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5" role="group" aria-label="Confirm rejection">
+          <span className="text-ink">Reject this gate? Downstream waves will halt.</span>
+          <button
+            type="button"
+            disabled={Boolean(pending)}
+            onClick={() => submit("reject")}
+            className="px-2 py-0.5 rounded border border-error/50 bg-base text-[11px] font-semibold text-error hover:bg-error/10 cursor-pointer disabled:opacity-50"
+          >
+            Confirm reject
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmingReject(false)}
+            className="px-2 py-0.5 rounded border border-border bg-base text-[11px] text-muted hover:text-ink cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+      {state?.error && (
+        <p role="alert" className="text-error">
+          {state.error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export function A2UIComponentView({ component: c, onApprovalAction, approvalState }: A2UIComponentViewProps) {
   switch (c.type) {
     case "heading": {
       const size = c.level === 1 ? "text-sm" : c.level === 2 ? "text-[13px]" : "text-xs"
@@ -154,36 +267,11 @@ export function A2UIComponentView({ component: c, onApprovalAction }: A2UICompon
       )
     case "approval_card":
       return (
-        <div className="rounded-md border border-warn/40 bg-warn/10 p-2 space-y-1 text-[11px]">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-ink">{c.gate_name ?? "Approval gate"}</span>
-            {c.risk_level && <Badge size="sm" variant="warning">{`${c.risk_level} risk`}</Badge>}
-          </div>
-          {c.reason && <p className="text-muted whitespace-pre-wrap">{c.reason}</p>}
-          {c.wave_index !== null && c.wave_index !== undefined && (
-            <p className="font-mono text-muted">Wave {c.wave_index}</p>
-          )}
-          {c.actions.length > 0 && (
-            <div className="flex gap-1.5 pt-0.5">
-              {c.actions.map((action) =>
-                onApprovalAction && c.gate_id ? (
-                  <button
-                    key={action}
-                    type="button"
-                    onClick={() => onApprovalAction(c.gate_id as string, action)}
-                    className="px-2 py-0.5 rounded border border-border bg-base text-[11px] font-medium text-ink hover:border-accent/60 cursor-pointer capitalize"
-                  >
-                    {action}
-                  </button>
-                ) : (
-                  <Badge key={action} size="sm" variant="outlined" className="capitalize">
-                    {action}
-                  </Badge>
-                )
-              )}
-            </div>
-          )}
-        </div>
+        <ApprovalCardView
+          card={c}
+          onApprovalAction={onApprovalAction}
+          state={c.gate_id ? approvalState?.[c.gate_id] : undefined}
+        />
       )
     case "conflict_list":
       return (
@@ -463,10 +551,11 @@ export function A2UIComponentView({ component: c, onApprovalAction }: A2UICompon
 export interface A2UISurfaceViewProps {
   surface: A2UISurface
   onApprovalAction?: A2UIComponentViewProps["onApprovalAction"]
+  approvalState?: A2UIComponentViewProps["approvalState"]
 }
 
 /** Render one A2UI surface; components that fail runtime narrowing render nothing. */
-export function A2UISurfaceView({ surface, onApprovalAction }: A2UISurfaceViewProps) {
+export function A2UISurfaceView({ surface, onApprovalAction, approvalState }: A2UISurfaceViewProps) {
   const components = Array.isArray(surface.components) ? surface.components : []
   return (
     <div
@@ -485,6 +574,7 @@ export function A2UISurfaceView({ surface, onApprovalAction }: A2UISurfaceViewPr
             key={`${surface.surface_id}-${idx}`}
             component={parsed}
             onApprovalAction={onApprovalAction}
+            approvalState={approvalState}
           />
         )
       })}

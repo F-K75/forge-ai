@@ -104,3 +104,33 @@ async def has_build_access(db, user_id: str, build: dict) -> bool:
         {"org_id": org_id, "user_id": user_id}, {"_id": 0}
     )
     return membership is not None
+
+
+# Org roles allowed to decide (approve/reject) a human-in-the-loop governance
+# gate on a shared project they do not personally own. Members and viewers can
+# see a shared project's runs but cannot sign off on its governance gates.
+GATE_APPROVER_ROLES = (Role.OWNER.value, Role.ADMIN.value)
+
+
+async def can_decide_project_gates(db, user_id: str, project: dict) -> bool:
+    """Return True if `user_id` may approve or reject a kernel governance gate.
+
+    The project's owner always may. For projects shared through an org, only
+    org owners and admins may; plain members and viewers are read-only for
+    governance decisions. Unrecognized roles are denied.
+    """
+    if not project:
+        return False
+    if project.get("user_id") == user_id:
+        return True
+    org_id = project.get("org_id")
+    if not org_id:
+        return False
+    membership = await db.team_members.find_one(
+        {"org_id": org_id, "user_id": user_id}, {"_id": 0}
+    )
+    if not membership:
+        return False
+    role = membership.get("role")
+    role_value = role.value if isinstance(role, Role) else role
+    return role_value in GATE_APPROVER_ROLES
