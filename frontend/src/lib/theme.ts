@@ -4,13 +4,13 @@ export type { ThemeMode }
 
 // Single source of truth for semantic color values used as raw JS strings (charts, Three.js, canvas).
 export const COLORS = {
-  base: '#F8FAFC',
-  ink: '#0F172A',
-  muted: '#475569',
-  accent: '#2563EB',
-  ok: '#059669',
-  warn: '#D97706',
-  error: '#DC2626',
+  base: '#070707',
+  ink: '#FFFFFF',
+  muted: '#A8A8A8',
+  accent: '#FF6600',
+  ok: '#34C778',
+  warn: '#F5A623',
+  error: '#F45050',
   agentArchitect: '#2563EB',
   agentBusinessImprover: '#6366F1',
   agentDesigner: '#8B5CF6',
@@ -34,7 +34,7 @@ function clearThemeClasses(root: HTMLElement) {
   root.classList.remove(...ROOT_CLASSES)
 }
 
-/** Apply theme to <html>. Clean cool alabaster light mode is default. */
+/** Apply theme to <html>. Ember Night (dark) is the default; light is opt-in. */
 export function applyTheme(mode: ThemeMode) {
   const root = document.documentElement
   clearThemeClasses(root)
@@ -59,7 +59,7 @@ export function getStoredTheme(): ThemeMode {
   } catch {
     /* ignore */
   }
-  return 'light'
+  return 'dark'
 }
 
 export function initTheme() {

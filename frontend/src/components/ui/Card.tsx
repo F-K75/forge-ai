@@ -25,13 +25,13 @@ export function Card({
     <div
       className={twMerge(
         clsx(
-          'rounded-lg border border-border bg-panel text-ink shadow-apple transition-all duration-fast ease-in-out',
-          variant === 'stat' && 'px-5 py-4',
-          variant === 'content' && 'p-5',
+          'rounded-xl border border-border bg-panel text-ink transition-all duration-fast ease-in-out',
+          variant === 'stat' && 'px-4 py-4',
+          variant === 'content' && 'p-4 sm:p-5',
           variant === 'panel' && 'p-5',
           variant === 'empty-state' && 'p-8',
           isInteractive &&
-            'cursor-pointer hover:border-faint hover:shadow-apple-lg active:scale-[0.995]',
+            'cursor-pointer hover:border-ink/20 hover:bg-panel-alt active:scale-[0.995]',
           className
         )
       )}

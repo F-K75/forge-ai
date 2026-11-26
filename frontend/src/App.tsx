@@ -23,6 +23,10 @@ const NotFoundPage = lazyWithRetry(() => import("./pages/NotFoundPage"))
 const AppShell = lazyWithRetry(() => import("./components/AppShell"))
 const Launch = lazyWithRetry(() => import("./pages/Launch"))
 const ProjectsPage = lazyWithRetry(() => import("./pages/ProjectsPage"))
+const CommandCenterPage = lazyWithRetry(() => import("./pages/CommandCenterPage"))
+const SkillsPage = lazyWithRetry(() => import("./pages/SkillsPage"))
+const ProtocolsPage = lazyWithRetry(() => import("./pages/ProtocolsPage"))
+const ApprovalsPage = lazyWithRetry(() => import("./pages/ApprovalsPage"))
 const FlowPage = lazyWithRetry(() => import("./pages/FlowPage"))
 const FilesPage = lazyWithRetry(() => import("./pages/FilesPage"))
 const HistoryPage = lazyWithRetry(() => import("./pages/HistoryPage"))
@@ -464,6 +468,38 @@ export default function App() {
               element={
                 <Suspense fallback={<RouteSkeleton />}>
                   <Launch />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/command"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <CommandCenterPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/skills"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <SkillsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/protocols"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <ProtocolsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/approvals"
+              element={
+                <Suspense fallback={<RouteSkeleton />}>
+                  <ApprovalsPage />
                 </Suspense>
               }
             />
