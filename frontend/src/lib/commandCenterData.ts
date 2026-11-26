@@ -103,11 +103,13 @@ export interface FleetOverview {
 
 // ─── Formatting helpers ─────────────────────────────────────────────────────
 
+const ACRONYMS = new Set(["qa", "ui", "ux", "ai", "pm", "ml", "api", "sre"]);
+
 export function roleLabel(role: string): string {
   return role
     .split(/[_\s-]+/)
     .filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .map((w) => (ACRONYMS.has(w.toLowerCase()) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)))
     .join(" ");
 }
 

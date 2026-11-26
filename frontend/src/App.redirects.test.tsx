@@ -27,6 +27,9 @@ vi.mock("./pages/FlowPage", () => ({
 vi.mock("./pages/FilesPage", () => ({
   default: () => <div data-testid="files-page">Files Page</div>,
 }));
+vi.mock("./pages/CommandCenterPage", () => ({
+  default: () => <div data-testid="command-center-page">Command Center</div>,
+}));
 vi.mock("./pages/HistoryPage", () => ({
   default: () => <div data-testid="history-page">History Page</div>,
 }));
@@ -57,6 +60,22 @@ describe("Canonical Route Redirects", () => {
     { from: "/files", to: "/p/demo-project/files", testId: "files-page" },
     { from: "/history", to: "/p/demo-project/history", testId: "history-page" },
   ];
+
+  // The Command Center is the default landing for the app.
+  const landingCases: Array<{ from: string; to: string }> = [
+    { from: "/demo", to: "/command" },
+    { from: "/?app=true", to: "/command" },
+  ];
+
+  it.each(landingCases)("lands $from on the Command Center", async ({ from, to }) => {
+    window.history.pushState({}, "", from);
+    render(<App />);
+
+    expect(await screen.findByTestId("command-center-page")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(window.location.pathname).toBe(to);
+    });
+  });
 
   it.each(cases)(
     "redirects legacy route $from to canonical $to",

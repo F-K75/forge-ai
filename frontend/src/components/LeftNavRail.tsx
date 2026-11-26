@@ -45,6 +45,7 @@ import { openCommandPalette } from "../lib/commandPalette";
 import { useSwitcherProjects } from "../hooks/useSwitcherProjects";
 import { Avatar } from "./ui/Avatar";
 import { Dialog } from "./ui/Dialog";
+import { Button } from "./ui/Button";
 import BrandLogo from "./BrandLogo";
 
 export interface LeftNavRailProps {
@@ -675,6 +676,11 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
         onOpenChange={setHelpOpen}
         title="Help & keyboard shortcuts"
         description="Everything in Forge is reachable from the sidebar or the command palette."
+        footer={
+          <Button variant="secondary" size="sm" onClick={() => setHelpOpen(false)}>
+            Close
+          </Button>
+        }
       >
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-caption">
           {SHORTCUTS.map(([keys, label]) => (

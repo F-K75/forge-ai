@@ -217,7 +217,7 @@ export default function CommandCenterPage() {
               </div>
 
               {isLoading || !data ? (
-                <div className="space-y-3" aria-busy="true" aria-label="Loading runs">
+                <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading runs">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <Skeleton key={i} className="h-[88px] rounded-xl" />
                   ))}
