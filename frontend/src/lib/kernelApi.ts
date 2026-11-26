@@ -246,8 +246,159 @@ export interface A2UISurface {
   surface_id: string;
   protocol: string;
   title: string;
+  /**
+   * Wire-format components. Treat as untrusted: render through
+   * `parseA2UIComponent` (components/a2ui/A2UIRenderer), which narrows each
+   * entry to an `A2UIComponent` or drops it.
+   */
   components: Array<Record<string, unknown>>;
 }
+
+// --- A2UI typed component set (mirrors A2UI_COMPONENT_SCHEMAS in
+// backend/core/protocol_gateway.py). All strings are plain text; none of
+// these props ever carries HTML. ---------------------------------------------
+
+export type A2UITone = "info" | "success" | "warning" | "error";
+export type A2UITaskStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "blocked"
+  | "cancelled";
+export type A2UIAgentStatus = "idle" | "active" | "completed" | "failed" | "blocked";
+export type A2UITimelineStatus = A2UITaskStatus | "info" | "answered" | "rejected" | "timeout";
+
+export interface A2UIHeading {
+  type: "heading";
+  text: string;
+  level?: 1 | 2 | 3 | 4;
+}
+export interface A2UIMetricRow {
+  type: "metric_row";
+  items: Array<{ label: string; value: string }>;
+}
+export interface A2UIChecklist {
+  type: "checklist";
+  items: Array<{ label: string; checked: boolean }>;
+}
+export interface A2UIApprovalCard {
+  type: "approval_card";
+  gate_id: string | null;
+  gate_name: string | null;
+  reason?: string | null;
+  wave_index?: number | null;
+  risk_level?: string | null;
+  actions: Array<"approve" | "reject">;
+}
+export interface A2UIConflictList {
+  type: "conflict_list";
+  items: Array<{
+    file_path: string | null;
+    wave_index?: number | null;
+    roles?: string[] | null;
+    status?: string | null;
+  }>;
+}
+export interface A2UIEvalTable {
+  type: "eval_table";
+  rows: Array<{
+    role: string | null;
+    artifact_type: string | null;
+    score: number | null;
+    passed: boolean | null;
+  }>;
+}
+export interface A2UITextBlock {
+  type: "text_block";
+  text: string;
+  /** "markdown" renders a tiny safe subset (headings, bullets, paragraphs) as text nodes. */
+  format?: "plain" | "markdown";
+}
+export interface A2UIKeyValueList {
+  type: "key_value_list";
+  items: Array<{ key: string; value: string }>;
+}
+export interface A2UIProgressBar {
+  type: "progress_bar";
+  label: string;
+  value: number;
+  max: number;
+  tone?: A2UITone;
+}
+export interface A2UITimeline {
+  type: "timeline";
+  events: Array<{
+    timestamp?: string | null;
+    actor?: string | null;
+    label: string;
+    status?: A2UITimelineStatus;
+  }>;
+}
+export interface A2UIStatusList {
+  type: "status_list";
+  items: Array<{
+    id?: string;
+    title: string;
+    status: A2UITaskStatus;
+    owner?: string | null;
+    detail?: string | null;
+  }>;
+}
+export interface A2UICodeDiff {
+  type: "code_diff";
+  diff: string;
+  file_path?: string | null;
+  language?: string | null;
+}
+export interface A2UICostBreakdown {
+  type: "cost_breakdown";
+  currency: "USD";
+  total: number;
+  budget?: number | null;
+  items: Array<{ label: string; amount: number }>;
+}
+export interface A2UIAgentRoster {
+  type: "agent_roster";
+  agents: Array<{
+    role: string;
+    department?: string | null;
+    status: A2UIAgentStatus;
+    task_count?: number;
+    model?: string | null;
+  }>;
+}
+export interface A2UICallout {
+  type: "callout";
+  tone: A2UITone;
+  title?: string | null;
+  text: string;
+}
+export interface A2UILinkList {
+  type: "link_list";
+  /** Only absolute http(s) URLs are rendered; anything else is dropped. */
+  links: Array<{ label: string; url: string }>;
+}
+
+export type A2UIComponent =
+  | A2UIHeading
+  | A2UIMetricRow
+  | A2UIChecklist
+  | A2UIApprovalCard
+  | A2UIConflictList
+  | A2UIEvalTable
+  | A2UITextBlock
+  | A2UIKeyValueList
+  | A2UIProgressBar
+  | A2UITimeline
+  | A2UIStatusList
+  | A2UICodeDiff
+  | A2UICostBreakdown
+  | A2UIAgentRoster
+  | A2UICallout
+  | A2UILinkList;
+
+export type A2UIComponentType = A2UIComponent["type"];
 
 export interface MCPAppSpec {
   app_id: string;
