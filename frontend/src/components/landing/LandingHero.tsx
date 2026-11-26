@@ -41,7 +41,7 @@ function DuskScene() {
             `radial-gradient(60% 45% at 50% 64%, ${rgba("ember", 0.34)} 0%, ${rgba("rust", 0.75)} 28%, ${rgba("rust", 0)} 70%)`,
             `radial-gradient(55% 40% at 14% 30%, ${rgba("teal", 0.85)} 0%, ${rgba("teal", 0)} 70%)`,
             `radial-gradient(50% 38% at 88% 22%, ${rgba("olive", 0.55)} 0%, ${rgba("olive", 0)} 70%)`,
-            `linear-gradient(180deg, ${rgba("teal", 0.95)} 0%, ${rgba("teal", 0.55)} 30%, ${rgba("rust", 0.55)} 56%, ${rgba("olive", 0.55)} 66%, ${rgba("base", 1)} 100%)`,
+            `linear-gradient(180deg, ${rgba("teal", 0.95)} 0%, ${rgba("teal", 0.6)} 28%, ${rgba("rust", 0.5)} 52%, ${rgba("rust", 0.42)} 63%, ${rgba("olive", 0.45)} 74%, ${rgba("base", 1)} 100%)`,
           ].join(", "),
         }}
       />
@@ -78,17 +78,23 @@ function DuskScene() {
           </linearGradient>
         </defs>
       </svg>
-      {/* Horizon: a thin bright line with a warm bloom beneath it. */}
+      {/* Horizon: a soft bright seam with a warm bloom, then the olive ground. */}
       <div
-        className="absolute inset-x-0 top-[64%] h-px"
+        className="absolute inset-x-0 top-[64%] h-[90px] -translate-y-1/2 blur-2xl"
         style={{
-          background: `linear-gradient(90deg, transparent, ${rgba("ember", 0.55)} 30%, rgb(255 214 170 / 0.8) 50%, ${rgba("ember", 0.55)} 70%, transparent)`,
+          background: `radial-gradient(45% 50% at 50% 50%, ${rgba("ember", 0.55)} 0%, ${rgba("ember", 0.12)} 55%, transparent 100%)`,
         }}
       />
       <div
-        className="absolute inset-x-0 top-[64%] h-[36%]"
+        className="absolute inset-x-[8%] top-[64%] h-px opacity-70"
         style={{
-          background: `linear-gradient(180deg, ${rgba("olive", 0.5)} 0%, ${rgba("olive", 0.18)} 40%, ${rgba("base", 0)} 100%)`,
+          background: `linear-gradient(90deg, transparent, ${rgba("ember", 0.35)} 25%, rgb(255 214 170 / 0.55) 50%, ${rgba("ember", 0.35)} 75%, transparent)`,
+        }}
+      />
+      <div
+        className="absolute inset-x-0 top-[58%] h-[42%]"
+        style={{
+          background: `linear-gradient(180deg, ${rgba("olive", 0)} 0%, ${rgba("olive", 0.42)} 16%, ${rgba("olive", 0.2)} 45%, ${rgba("base", 0)} 100%)`,
         }}
       />
     </>
@@ -159,7 +165,7 @@ export function LandingHero() {
           </PillLink>
           <a
             href="#product"
-            className="inline-flex h-12 items-center gap-2 rounded-pill border border-transparent bg-ink px-6 text-[15px] font-medium text-base transition-all duration-fast hover:bg-ink/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+            className="inline-flex h-12 items-center gap-2 rounded-pill border border-transparent bg-ink px-6 text-[15px] font-medium text-[rgb(var(--bg))] transition-all duration-fast hover:bg-ink/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
           >
             See how it works
             <ArrowDown className="h-4 w-4" aria-hidden="true" />

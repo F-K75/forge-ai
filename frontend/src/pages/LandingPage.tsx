@@ -16,7 +16,7 @@ export default function LandingPage() {
     <div className="relative min-h-screen overflow-x-clip bg-base text-ink antialiased">
       <a
         href="#main"
-        className="sr-only z-[60] rounded-pill bg-ink px-4 py-2 text-base focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-[60] rounded-pill bg-ink px-4 py-2 text-[rgb(var(--bg))] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         Skip to content
       </a>

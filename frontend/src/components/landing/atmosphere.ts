@@ -20,10 +20,10 @@ export type Hue = keyof typeof HUE;
 export const rgba = (hue: Hue, alpha: number) => `rgb(${HUE[hue]} / ${alpha})`;
 
 /** Soft radial gradient used behind feature and pricing cards. */
-export function atmosphere(hue: Hue, at = "50% 100%", strength = 0.95): string {
+export function atmosphere(hue: Hue, at = "50% 100%", strength = 1): string {
   return [
-    `radial-gradient(110% 85% at ${at}, ${rgba(hue, strength)} 0%, ${rgba(hue, strength * 0.45)} 42%, ${rgba("base", 0)} 78%)`,
-    `linear-gradient(180deg, ${rgba(hue, 0.18)} 0%, ${rgba(hue, 0.42)} 100%)`,
+    `radial-gradient(110% 85% at ${at}, ${rgba(hue, strength)} 0%, ${rgba(hue, strength * 0.6)} 45%, ${rgba("base", 0)} 78%)`,
+    `linear-gradient(180deg, ${rgba(hue, 0.3)} 0%, ${rgba(hue, 0.6)} 100%)`,
   ].join(", ");
 }
 

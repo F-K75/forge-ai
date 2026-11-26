@@ -17,7 +17,7 @@ import { GRAIN, atmosphere, type Hue } from "./atmosphere";
 
 function Frame({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-base/85 p-3 text-left shadow-[0_20px_40px_-20px_rgb(0_0_0/0.7)] backdrop-blur-sm">
+    <div className="min-h-[248px] rounded-lg border border-border bg-base/85 p-3 text-left shadow-[0_20px_40px_-20px_rgb(0_0_0/0.7)] backdrop-blur-sm">
       <div className="mb-2.5 flex items-center justify-between">
         <span className="text-[11px] font-medium text-ink">{title}</span>
         <span className="flex gap-1" aria-hidden="true">
@@ -112,7 +112,7 @@ function GovernanceVignette() {
         </div>
         <p className="mt-1 text-[9px] leading-snug text-muted">Release 2.4 · 6 files · tests 312/312 · security review passed</p>
         <div className="mt-2 flex gap-1.5">
-          <span className="rounded-pill bg-ink px-2 py-0.5 text-[9px] font-medium text-base">Approve</span>
+          <span className="rounded-pill bg-ink px-2 py-0.5 text-[9px] font-medium text-[rgb(var(--bg))]">Approve</span>
           <span className="rounded-pill border border-border px-2 py-0.5 text-[9px] text-ink">Request changes</span>
         </div>
       </div>
@@ -262,7 +262,7 @@ export function FeatureCarousel() {
           ref={track}
           onScroll={update}
           aria-label="Platform capabilities"
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-5 pb-4 [scrollbar-width:none] motion-reduce:scroll-auto sm:px-8 xl:px-[max(2rem,calc((100vw-1120px)/2))] [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-5 pb-4 [scrollbar-width:none] motion-reduce:scroll-auto sm:px-8 scroll-px-5 sm:scroll-px-8 xl:px-[max(2rem,calc((100vw_-_1120px)/2))] xl:scroll-px-[max(2rem,calc((100vw_-_1120px)/2))] [&::-webkit-scrollbar]:hidden"
         >
           {FEATURES.map(({ icon: Icon, title, body, hue, at, Vignette }) => (
             <li
@@ -271,11 +271,11 @@ export function FeatureCarousel() {
             >
               <div className="absolute inset-0" aria-hidden="true" style={{ background: atmosphere(hue, at) }} />
               <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay" aria-hidden="true" style={{ backgroundImage: GRAIN }} />
-              <div className="absolute inset-0 bg-base/30" aria-hidden="true" />
+              <div className="absolute inset-0 bg-base/10" aria-hidden="true" />
               <div
                 className="relative px-5 pt-5 transition-transform duration-slow ease-spring group-hover:-translate-y-1 motion-reduce:transition-none"
                 aria-hidden="true"
-                style={{ maskImage: "linear-gradient(180deg, black 55%, transparent 100%)", WebkitMaskImage: "linear-gradient(180deg, black 55%, transparent 100%)" }}
+                style={{ maskImage: "linear-gradient(180deg, black 62%, transparent 100%)", WebkitMaskImage: "linear-gradient(180deg, black 62%, transparent 100%)" }}
               >
                 <Vignette />
               </div>
@@ -284,10 +284,11 @@ export function FeatureCarousel() {
                   <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
                   {title}
                 </h3>
-                <p className="mt-2 text-[14.5px] leading-[1.5] text-ink/85">{body}</p>
+                <p className="mt-2 text-[14.5px] leading-[1.5] text-ink">{body}</p>
               </div>
             </li>
           ))}
+          <li aria-hidden="true" className="w-px shrink-0" />
         </ul>
 
         <div className="mx-auto mt-6 flex max-w-[1120px] justify-center gap-2 px-5 sm:justify-end sm:px-8">

@@ -43,7 +43,7 @@ export function TwoTone({
   return (
     <h2
       id={id}
-      className={`mx-auto max-w-3xl text-balance text-center text-[34px] font-medium leading-[1.06] tracking-[-0.03em] text-ink sm:text-display md:text-[52px] ${className}`}
+      className={`mx-auto max-w-[980px] text-balance text-center text-[34px] font-medium leading-[1.06] tracking-[-0.03em] text-ink sm:text-display md:text-[52px] ${className}`}
     >
       {lead}
       <br className="hidden sm:block" /> <span className="text-muted">{rest}</span>

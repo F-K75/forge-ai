@@ -110,16 +110,16 @@ function Stat({
   delta: string;
 }) {
   return (
-    <div className="rounded-lg border border-border-soft bg-ink/[0.02] p-3">
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink/[0.06]">
+    <div className="min-w-0 rounded-lg border border-border-soft bg-ink/[0.02] p-2.5 sm:p-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ink/[0.06] sm:flex">
           <Icon className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
         </span>
-        <span className="text-[11px] text-muted">{label}</span>
+        <span className="truncate whitespace-nowrap text-[11px] text-muted">{label}</span>
       </div>
       <div className="mt-2 flex items-baseline gap-2">
         <span className="font-mono text-[22px] leading-none tabular-nums text-ink">{value}</span>
-        <span className="font-mono text-[10px] text-ok">↑ {delta}</span>
+        <span className="whitespace-nowrap font-mono text-[10px] text-ok">↑ {delta}</span>
       </div>
     </div>
   );
@@ -215,7 +215,7 @@ export function CommandCenterMockup({ active }: { active: StepId }) {
             return (
               <div
                 key={r.title}
-                className={`grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-lg border p-2.5 transition-all duration-slow sm:grid-cols-[36px_minmax(0,1.2fr)_minmax(0,1fr)_auto] ${
+                className={`grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-lg border p-2.5 transition-all duration-slow sm:grid-cols-[36px_minmax(0,1fr)_minmax(0,190px)_104px] ${
                   on ? "border-ink/20 bg-ink/[0.05]" : "border-border-soft bg-transparent opacity-70"
                 }`}
               >
@@ -243,7 +243,7 @@ export function CommandCenterMockup({ active }: { active: StepId }) {
                     </span>
                   </div>
                 </div>
-                <span className={`whitespace-nowrap rounded-pill px-2 py-0.5 text-[10px] ${tone.pill}`}>{r.status}</span>
+                <span className={`justify-self-end whitespace-nowrap rounded-pill px-2 py-0.5 text-[10px] ${tone.pill}`}>{r.status}</span>
               </div>
             );
           })}

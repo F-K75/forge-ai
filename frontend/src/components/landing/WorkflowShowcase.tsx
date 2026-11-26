@@ -50,7 +50,30 @@ export function WorkflowShowcase() {
       <Reveal delay={0.1} className="mx-auto mt-14 grid max-w-[1120px] gap-4 lg:grid-cols-[340px_1fr]">
         {/* Step card */}
         <div className="flex flex-col rounded-2xl border border-border bg-panel/80 p-6 sm:p-7">
-          <div role="tablist" aria-label="Lifecycle steps" className="flex flex-wrap gap-1.5">
+          <div id="step-panel" role="tabpanel" aria-labelledby={`step-tab-${step.id}`} className="min-h-[210px]">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={step.id}
+                initial={reduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, y: -8 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Badge variant="accent" size="lg">
+                  <span className="font-mono">{step.n}</span> {step.label}
+                </Badge>
+                <h3 className="mt-5 text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-ink">{step.title}</h3>
+                <p className="mt-3 text-[15px] leading-[1.55] text-muted">{step.body}</p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div
+            role="tablist"
+            aria-label="Lifecycle steps"
+            aria-orientation="vertical"
+            className="mt-8 grid grid-cols-2 gap-1.5 border-t border-border-soft pt-5 lg:mt-auto lg:grid-cols-1"
+          >
             {STEPS.map((s, i) => {
               const on = s.id === active;
               return (
@@ -67,44 +90,20 @@ export function WorkflowShowcase() {
                   tabIndex={on ? 0 : -1}
                   onClick={() => setActive(s.id)}
                   onKeyDown={(e) => onKey(e, i)}
-                  className={`rounded-pill px-2.5 py-1 text-[12px] font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                    on ? "bg-accent/[0.12] text-accent" : "text-muted hover:bg-ink/[0.06] hover:text-ink"
+                  className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                    on ? "bg-ink/[0.06] text-ink" : "text-muted hover:bg-ink/[0.03] hover:text-ink"
                   }`}
                 >
-                  <span className="font-mono">{s.n}</span> {s.label}
+                  <span className={`font-mono text-[12px] ${on ? "text-accent" : "text-muted"}`}>{s.n}</span>
+                  {s.label}
+                  <span
+                    className={`ml-auto hidden h-1.5 w-1.5 rounded-full lg:block ${on ? "bg-accent" : "bg-transparent"}`}
+                    aria-hidden="true"
+                  />
                 </button>
               );
             })}
           </div>
-
-          <div id="step-panel" role="tabpanel" aria-labelledby={`step-tab-${step.id}`} className="mt-8 min-h-[190px]">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={step.id}
-                initial={reduce ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduce ? undefined : { opacity: 0, y: -8 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <Badge variant="accent" size="lg">
-                  <span className="font-mono">{step.n}</span> {step.label}
-                </Badge>
-                <h3 className="mt-4 text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-ink">{step.title}</h3>
-                <p className="mt-3 text-[15px] leading-[1.55] text-muted">{step.body}</p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <ol className="mt-auto hidden gap-1.5 pt-8 lg:grid lg:grid-cols-4" aria-hidden="true">
-            {STEPS.map((s) => (
-              <li
-                key={s.id}
-                className={`h-1 rounded-full transition-colors duration-slow ${
-                  STEPS.findIndex((x) => x.id === s.id) <= STEPS.findIndex((x) => x.id === active) ? "bg-accent" : "bg-ink/[0.1]"
-                }`}
-              />
-            ))}
-          </ol>
         </div>
 
         {/* Product frame */}

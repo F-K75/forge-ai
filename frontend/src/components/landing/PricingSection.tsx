@@ -30,11 +30,11 @@ export function PricingSection() {
                 aria-checked={on}
                 onClick={() => setPeriod(p)}
                 className={`rounded-pill px-4 py-1.5 text-[14px] font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                  on ? "bg-ink text-base" : "text-ink/80 hover:text-ink"
+                  on ? "bg-ink text-[rgb(var(--bg))]" : "text-ink/80 hover:text-ink"
                 }`}
               >
                 {p === "monthly" ? "Monthly" : "Yearly"}
-                {p === "yearly" && <span className={`ml-1.5 text-[12px] ${on ? "text-base/70" : "text-muted"}`}>2 months free</span>}
+                {p === "yearly" && <span className={`ml-1.5 text-[12px] ${on ? "text-[rgb(var(--bg)/0.7)]" : "text-muted"}`}>2 months free</span>}
               </button>
             );
           })}

@@ -72,8 +72,8 @@ const linkCls =
 export function LandingFooter() {
   return (
     <footer className="border-t border-border-soft px-5 pb-10 pt-16 sm:px-8">
-      <div className="mx-auto grid max-w-[1120px] gap-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
-        <div>
+      <div className="mx-auto grid max-w-[1120px] grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="col-span-2 md:col-span-1">
           <Wordmark />
           <p className="mt-4 max-w-[260px] text-[14px] leading-[1.55] text-muted">
             The Agentic Software Engineering OS. From imagination to autonomous execution.
