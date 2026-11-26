@@ -97,7 +97,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         type="button"
         disabled
         title="Microphone / Speech recognition is not supported in this browser"
-        className="px-2 py-1 bg-panel-alt text-faint border border-border text-[10px] font-mono font-semibold uppercase cursor-not-allowed flex items-center gap-1 opacity-60"
+        className="h-8 px-3 rounded-pill bg-ink/[0.04] text-faint border border-border-soft text-xs font-medium cursor-not-allowed flex items-center gap-1.5 opacity-70"
       >
         <MicOff className="w-3 h-3" />
         <span>Voice Unavailable</span>
@@ -106,7 +106,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   }
 
   return (
-    <div className="relative inline-block font-mono">
+    <div className="relative inline-block">
       {/* Primary Trigger Button */}
       {variant === 'inline-sm' ? (
         <button
@@ -115,10 +115,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           onClick={handleToggle}
           disabled={isTranscribing}
           title={isListening ? 'Stop listening' : 'Dictate verbally with microphone'}
-          className={`px-2 py-0.5 text-[10px] font-semibold uppercase border transition-all flex items-center gap-1 ${
+          className={`h-7 px-2.5 rounded-pill text-[11px] font-medium border transition-all flex items-center gap-1 ${
             isListening
-              ? 'bg-error text-on-ink border-border animate-pulse'
-              : 'bg-panel hover:bg-brutal-yellow text-ink border-border'
+              ? 'bg-error/15 text-error border-error/30 animate-pulse motion-reduce:animate-none'
+              : 'bg-glass hover:bg-ink/10 text-ink border-glass-border'
           } ${className}`}
         >
           {isListening ? (
@@ -133,7 +133,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
             </>
           ) : (
             <>
-              <Mic className="w-2.5 h-2.5 text-ink" />
+              <Mic className="w-2.5 h-2.5 text-muted" />
               <span>{label || 'Dictate'}</span>
             </>
           )}
@@ -144,15 +144,15 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           type="button"
           onClick={handleToggle}
           disabled={isTranscribing}
-          className={`px-3 py-1.5 text-xs font-semibold uppercase border-2 transition-all flex items-center gap-2 ${
+          className={`h-9 px-4 rounded-pill text-xs font-medium border transition-all flex items-center gap-2 ${
             isListening
-              ? 'bg-error text-on-ink border-border'
-              : 'bg-panel hover:bg-ink/5 text-ink border-border'
+              ? 'bg-error/15 text-error border-error/30'
+              : 'bg-glass hover:bg-ink/10 text-ink border-glass-border backdrop-blur-[5px]'
           } ${className}`}
         >
           {isListening ? (
             <>
-              <span className="w-2.5 h-2.5 rounded-full bg-panel animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-error animate-ping motion-reduce:animate-none" />
               <span>Recording Voice… (Click to Finish)</span>
               <Square className="w-3.5 h-3.5 fill-current ml-1" />
             </>
@@ -163,32 +163,32 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
             </>
           ) : (
             <>
-              <Mic className="w-3.5 h-3.5 text-error" />
+              <Mic className="w-3.5 h-3.5 text-muted" />
               <span>{label}</span>
-              <span className="text-[10px] px-1.5 py-0.2 bg-panel-alt text-muted border border-border">
+              <span className="font-mono text-[10px] px-1.5 rounded-pill bg-ink/[0.06] text-muted">
                 MIC
               </span>
             </>
           )}
         </button>
       ) : (
-        /* Standard brutalist button */
+        /* Standard glass pill */
         <button
           id={id}
           type="button"
           onClick={handleToggle}
           disabled={isTranscribing}
-          className={`px-2.5 py-1 text-[11px] font-semibold uppercase border-2 transition-all flex items-center gap-1.5 ${
+          className={`h-9 px-3.5 rounded-pill text-xs font-medium border transition-all flex items-center gap-1.5 ${
             isListening
-              ? 'bg-error text-on-ink border-border'
-              : 'bg-panel hover:bg-brutal-yellow text-ink border-border active:translate-x-0.5 active:translate-y-0.5'
+              ? 'bg-error/15 text-error border-error/30'
+              : 'bg-glass hover:bg-ink/10 text-ink border-glass-border backdrop-blur-[5px]'
           } ${className}`}
         >
           {isListening ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-panel animate-pulse shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-error animate-pulse motion-reduce:animate-none shrink-0" />
               <span>Recording…</span>
-              <Square className="w-3 h-3 fill-ink ml-0.5" />
+              <Square className="w-3 h-3 fill-current ml-0.5" />
             </>
           ) : isTranscribing ? (
             <>
@@ -197,7 +197,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
             </>
           ) : (
             <>
-              <Mic className="w-3 h-3 text-error shrink-0" />
+              <Mic className="w-3 h-3 text-muted shrink-0" />
               <span>{label}</span>
             </>
           )}
@@ -208,7 +208,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       {(isListening || showLivePanel || isTranscribing || error) && (
         <div
           id={`${id}-live-panel`}
-          className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-88 p-3 bg-panel border-2 border-border space-y-2.5 text-left font-mono"
+          className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-88 p-3 rounded-xl bg-glass-strong border border-glass-strong-border backdrop-blur-md shadow-brutal-lg space-y-2.5 text-left"
         >
           {/* Header & Status */}
           <div className="flex items-center justify-between border-b border-border pb-1.5">
@@ -331,7 +331,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                     stopListening();
                     setShowLivePanel(false);
                   }}
-                  className="px-2 py-1 bg-ink text-on-ink font-semibold uppercase border border-border flex items-center gap-1 hover:bg-ink/90"
+                  className="px-2.5 py-1 rounded-pill bg-ink text-on-ink font-medium flex items-center gap-1 hover:bg-ink/90"
                 >
                   <Square className="w-2.5 h-2.5 fill-current" />
                   <span>Done Speaking</span>
@@ -340,7 +340,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                 <button
                   type="button"
                   onClick={handleToggle}
-                  className="px-2 py-1 bg-brutal-yellow text-ink font-semibold uppercase border border-border flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-pill bg-accent/[0.12] text-accent font-medium border border-accent/25 flex items-center gap-1"
                 >
                   <Sparkles className="w-2.5 h-2.5" />
                   <span>Resume Dictation</span>

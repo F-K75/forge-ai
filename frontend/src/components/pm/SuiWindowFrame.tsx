@@ -58,45 +58,39 @@ export function SuiWindowFrame({
       <nav
         aria-label="Section Navigation"
         data-testid="sui-nav-bar"
-        className={`shrink-0 ${borderClass} bg-panel px-4 sm:px-6 overflow-x-auto scrollbar-none z-10`}
+        className={`shrink-0 ${borderClass} bg-panel px-3 sm:px-5 overflow-x-auto scrollbar-none z-10`}
       >
-        <div className="flex items-center justify-between gap-4 min-w-max">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between gap-4 min-w-max py-2">
+          <div className="flex items-center gap-0.5">
             {effectiveNavItems.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={item.onClick}
                 aria-pressed={item.isActive}
-                className={`relative flex min-h-[44px] items-center gap-2 whitespace-nowrap px-3 py-2.5 text-xs sm:text-sm font-medium transition-colors duration-fast cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                  item.isActive ? "text-ink font-semibold" : "text-muted hover:text-ink"
+                className={`relative flex min-h-[36px] items-center gap-2 whitespace-nowrap rounded-pill px-3.5 py-1.5 text-xs sm:text-[13px] font-medium transition-colors duration-fast cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  item.isActive ? "bg-ink/[0.08] text-ink" : "text-muted hover:bg-ink/[0.04] hover:text-ink"
                 }`}
               >
                 {item.icon}
                 <span>{item.label}</span>
                 {item.badge !== undefined && (
-                  <span className="font-mono text-[11px] text-muted tabular-nums">
-                    ({item.badge})
+                  <span className="font-mono text-[11px] text-faint tabular-nums">
+                    {item.badge}
                   </span>
                 )}
                 {item.isExternal && <ArrowUpRight size={13} className="opacity-70" />}
-                {item.isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-accent"
-                  />
-                )}
               </button>
             ))}
           </div>
 
           {primaryAction && (
-            <div className="py-2 shrink-0">
+            <div className="shrink-0">
               <button
                 type="button"
                 onClick={primaryAction.onClick}
                 disabled={primaryAction.disabled || primaryAction.loading}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-accent px-3.5 text-xs font-medium text-on-ink transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-accent/25 bg-accent/[0.12] px-3.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50 cursor-pointer whitespace-nowrap"
               >
                 {primaryAction.icon}
                 <span>{primaryAction.label}</span>
@@ -110,7 +104,7 @@ export function SuiWindowFrame({
 
   return (
     <div className={`relative flex w-full flex-1 flex-col p-4 sm:p-6 ${className}`}>
-      <div className="relative flex w-full flex-1 min-h-[640px] flex-col overflow-hidden rounded-xl border border-border bg-panel shadow-apple">
+      <div className="relative flex w-full flex-1 min-h-[640px] flex-col overflow-hidden rounded-xl border border-border bg-panel">
         {/* Studio Header */}
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-panel px-5 py-3.5 sm:px-6">
           <div className="flex min-w-0 items-baseline gap-2.5">
@@ -139,7 +133,7 @@ export function SuiWindowFrame({
         {navPosition === "top" && renderNav("top")}
 
         {/* Main Workspace Canvas */}
-        <div className="relative flex-1 overflow-y-auto bg-base/60 p-5 sm:p-6 md:p-7">
+        <div className="relative flex-1 overflow-y-auto bg-base/40 p-5 sm:p-6 md:p-7">
           {children}
         </div>
 
