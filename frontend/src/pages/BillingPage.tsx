@@ -302,7 +302,7 @@ export default function BillingPage() {
             type="button"
             id="billing-topup-btn"
             onClick={() => setCreditModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-base font-semibold text-xs hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-on-ink font-semibold text-xs hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
           >
             <Plus size={13} />
             <span>Top-Up Credits</span>
@@ -434,7 +434,7 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={() => setCreditModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-warn text-base font-semibold text-xs hover:opacity-90 transition-opacity shrink-0 cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-warn text-on-ink font-semibold text-xs hover:opacity-90 transition-opacity shrink-0 cursor-pointer"
               >
                 Refill Now
               </button>
@@ -591,7 +591,7 @@ export default function BillingPage() {
                             isCurrent
                               ? "bg-panel text-muted border border-border"
                               : isPro
-                              ? "bg-accent text-base hover:opacity-90"
+                              ? "bg-accent text-on-ink hover:opacity-90"
                               : "bg-panel text-ink border border-border hover:border-accent/50"
                           }`}
                         >
@@ -912,7 +912,7 @@ export default function BillingPage() {
                         id={`btn-buy-pkg-${pkg.id}`}
                         disabled={purchasingCredit === pkg.id}
                         onClick={() => handleBuyCreditPackage(pkg.id)}
-                        className="px-3 py-1.5 rounded-lg bg-accent text-base text-xs font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-accent text-on-ink text-xs font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
                         {purchasingCredit === pkg.id ? "Buying..." : "Purchase"}
                       </button>

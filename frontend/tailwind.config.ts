@@ -4,6 +4,13 @@ export default {
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
+    // `text-base` must stay a font-size utility only. The `base` canvas colour would
+    // otherwise also generate a `text-base` colour rule and silently paint text the
+    // same colour as the background. Use `text-on-ink` for text on solid fills.
+    textColor: ({ theme }) => {
+      const { base: _base, ...rest } = theme("colors") as Record<string, unknown>;
+      return rest;
+    },
     extend: {
       colors: {
         base: "rgb(var(--bg) / <alpha-value>)",
@@ -24,6 +31,8 @@ export default {
         warn: "rgb(var(--warning) / <alpha-value>)",
         error: "rgb(var(--error) / <alpha-value>)",
         info: "rgb(var(--info) / <alpha-value>)",
+        // Text/icon colour that sits on solid ink or status fills (canvas colour)
+        "on-ink": "rgb(var(--bg) / <alpha-value>)",
         ember: "rgb(var(--primary) / <alpha-value>)",
         "ember-glow": "rgb(var(--primary-hover) / <alpha-value>)",
 
