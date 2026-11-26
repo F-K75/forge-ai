@@ -130,7 +130,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (LIVE_MODE && isAuthenticated) {
-    return <Navigate to="/projects" replace />
+    return <Navigate to="/command" replace />
   }
 
   return <>{children}</>
@@ -208,14 +208,13 @@ function RootRoute() {
   const wantsApp = searchParams.get("app") === "true"
 
   if (LIVE_MODE && isAuthenticated) {
-    // /projects resolves the user's real projects; a stale or foreign
-    // "last project" id from localStorage would otherwise 404.
-    return <Navigate to="/projects" replace />
+    // The Command Center is the authenticated home. It resolves the user's
+    // real projects, so a stale "last project" id from localStorage can't 404.
+    return <Navigate to="/command" replace />
   }
 
   if (wantsApp) {
-    const lastProject = localStorage.getItem("forge_last_project") || "demo-project"
-    return <Navigate to={`/p/${lastProject}/workspace`} replace />
+    return <Navigate to="/command" replace />
   }
 
   return (
@@ -340,7 +339,7 @@ export default function App() {
           <Route path="/" element={<RootRoute />} />
           <Route
             path="/demo"
-            element={<Navigate to={LIVE_MODE ? "/projects" : "/p/demo-project/workspace"} replace />}
+            element={<Navigate to="/command" replace />}
           />
 
           {/* Layer 2 & 3: Platform Hub & Project-Scoped Workspaces */}

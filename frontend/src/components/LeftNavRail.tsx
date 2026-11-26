@@ -280,7 +280,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
         className={clsx(
           "group relative flex items-center rounded-md text-caption font-medium transition-colors duration-fast",
           focusRing,
-          isMobile ? "min-h-[44px] gap-3 px-3" : collapsed ? "mx-auto h-9 w-9 justify-center" : "h-9 gap-2.5 px-2.5",
+          isMobile ? "min-h-[44px] gap-3 px-3" : collapsed ? "mx-auto h-9 w-9 justify-center" : "h-8 gap-2.5 px-2.5",
           isActive ? "bg-ink/[0.06] text-ink" : "text-muted hover:bg-ink/[0.04] hover:text-ink",
         )}
       >
@@ -408,7 +408,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                   navigate("/launch");
                 }}
                 className={clsx(
-                  "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-pill bg-ink text-xs font-medium text-base transition-colors hover:bg-ink/90",
+                  "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-pill bg-ink text-xs font-medium text-[rgb(var(--bg))] transition-colors hover:bg-ink/90",
                   focusRing,
                 )}
               >

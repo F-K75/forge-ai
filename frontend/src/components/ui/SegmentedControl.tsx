@@ -67,13 +67,13 @@ export function SegmentedControl<T extends string>({
             className={clsx(
               'inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               size === 'sm' ? 'h-7 px-3 text-xs' : 'h-8 px-3.5 text-caption',
-              active ? 'bg-ink text-base' : 'text-muted hover:text-ink'
+              active ? 'bg-ink text-[rgb(var(--bg))]' : 'text-muted hover:text-ink'
             )}
           >
             {opt.label}
             {typeof opt.count === 'number' && (
               <span
-                className={clsx('font-mono tabular-nums', active ? 'text-base/70' : 'text-faint')}
+                className={clsx('font-mono tabular-nums', active ? 'text-[rgb(var(--bg)/0.6)]' : 'text-faint')}
               >
                 {opt.count}
               </span>

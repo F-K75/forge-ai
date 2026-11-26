@@ -56,31 +56,29 @@ export function StatTile({
         )}
         <span className="truncate text-caption text-muted">{label}</span>
       </div>
-      <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-2 gap-y-1">
+      <div className="flex min-w-0 flex-col gap-1">
         <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="font-mono text-headline tabular-nums text-ink">{value}</span>
+          <span className="truncate font-mono text-headline tabular-nums text-ink">{value}</span>
           {suffix && (
             <span className="truncate font-mono text-caption tabular-nums text-faint">{suffix}</span>
           )}
         </div>
-        {(delta || hint) && (
-          <div className="flex shrink-0 items-center gap-1.5 pb-1">
-            {delta && (
-              <span
-                className={clsx(
-                  'inline-flex items-center gap-0.5 font-mono text-xs tabular-nums',
-                  good && 'text-ok',
-                  bad && 'text-error',
-                  !good && !bad && 'text-muted'
-                )}
-              >
-                {trend !== 'flat' && <Arrow size={12} aria-hidden="true" />}
-                {delta}
-              </span>
-            )}
-            {hint && <span className="text-2xs text-faint">{hint}</span>}
-          </div>
-        )}
+        <div className="flex min-h-[18px] min-w-0 items-center gap-1.5">
+          {delta && (
+            <span
+              className={clsx(
+                'inline-flex shrink-0 items-center gap-0.5 font-mono text-xs tabular-nums',
+                good && 'text-ok',
+                bad && 'text-error',
+                !good && !bad && 'text-muted'
+              )}
+            >
+              {trend !== 'flat' && <Arrow size={12} aria-hidden="true" />}
+              {delta}
+            </span>
+          )}
+          {hint && <span className="truncate text-2xs font-normal text-faint">{hint}</span>}
+        </div>
       </div>
     </div>
   )
