@@ -196,6 +196,17 @@ async def lifespan(app: FastAPI):
     await ws_manager.stop()
     await pm_manager.stop()
     await org_manager.stop()
+
+    # Release MCP sessions (DELETE on servers that issued an Mcp-Session-Id).
+    # Only touch the gateway if something in this process created it.
+    try:
+        from core import protocol_gateway as _pg
+
+        if _pg._mcp_gateway is not None:
+            await asyncio.wait_for(_pg._mcp_gateway.aclose(), timeout=5)
+    except Exception as exc:  # shutdown must never fail on cleanup
+        logger.warning("MCP gateway close failed during shutdown: %s", exc)
+
     await close_connections()
 
 
