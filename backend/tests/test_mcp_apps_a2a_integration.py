@@ -454,7 +454,7 @@ def test_inbound_task_send_runs_to_completion_with_audit(forge):
     assert rest.status_code == 200 and rest.json()["status"]["state"] == "completed"
 
     # Project isolation: same task id is invisible from another project's view
-    assert forge.a2a.get_task(project_id=OTHER_PROJECT_ID, task_id="task-ok") is None
+    assert asyncio.run(forge.a2a.get_task(project_id=OTHER_PROJECT_ID, task_id="task-ok")) is None
 
     audit = forge.client.get(f"/v1/projects/{PROJECT_ID}/protocols/a2a/audit").json()["audit_log"]
     methods = [(a["direction"], a["method"], a["status"]) for a in audit]
@@ -544,7 +544,7 @@ def test_inbound_oversized_payload_rejected(forge):
 
     res2 = forge.client.post(PROJECT_RPC, content=_chunks(), headers={"Content-Type": "application/json"})
     assert res2.status_code == 413
-    assert forge.a2a.get_task(project_id=PROJECT_ID, task_id="big") is None
+    assert asyncio.run(forge.a2a.get_task(project_id=PROJECT_ID, task_id="big")) is None
 
 
 def test_inbound_auth_and_project_access(forge):

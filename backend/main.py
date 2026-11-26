@@ -178,6 +178,18 @@ async def lifespan(app: FastAPI):
         except Exception:
             logger.warning("Enterprise OS persistence bootstrap skipped; continuing in-memory", exc_info=True)
 
+        # Shared MongoDB-backed inbound A2A task state (cross-worker idempotency,
+        # cancel, global concurrency) + fail tasks orphaned by a dead worker.
+        try:
+            from core.a2a_task_store import bootstrap_a2a_task_store
+
+            a2a_state = await bootstrap_a2a_task_store(db)
+            logger.info("A2A task store bootstrapped: %s", a2a_state)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("A2A task store bootstrap did not complete; store setup retries on first A2A request", exc_info=True)
+
     startup_task = asyncio.create_task(_background_startup_init())
 
     yield
