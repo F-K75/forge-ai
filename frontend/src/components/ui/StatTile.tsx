@@ -57,8 +57,8 @@ export function StatTile({
         <span className="truncate text-caption text-muted">{label}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="truncate font-mono text-headline tabular-nums text-ink">{value}</span>
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+          <span className="whitespace-nowrap font-mono text-headline tabular-nums text-ink">{value}</span>
           {suffix && (
             <span className="truncate font-mono text-caption tabular-nums text-faint">{suffix}</span>
           )}

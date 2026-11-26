@@ -295,10 +295,14 @@ function QuickLauncher() {
         autoComplete="off"
         className="h-9 min-w-0 flex-1 bg-transparent text-body text-ink placeholder:text-faint focus:outline-none"
       />
-      <Button type="submit" size="sm" variant="primary" aria-label="Start build" className="shrink-0">
+      <button
+        type="submit"
+        aria-label="Start build"
+        className="inline-flex h-9 min-h-[44px] shrink-0 items-center gap-1.5 rounded-pill bg-ink px-4 text-xs font-medium text-[rgb(var(--bg))] transition-colors hover:bg-ink/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel sm:min-h-[36px]"
+      >
         Build
         <ArrowUp size={14} aria-hidden="true" className="rotate-45" />
-      </Button>
+      </button>
     </form>
   );
 }
