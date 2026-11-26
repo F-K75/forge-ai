@@ -7,7 +7,6 @@ blueprint under `/v1/projects/{project_id}/kernel/*`.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
