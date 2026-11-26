@@ -26,6 +26,7 @@ import {
   type SkillManifest,
   type TenantGovernancePolicy,
 } from "../lib/kernelApi";
+import { A2UISurfaceView } from "./a2ui/A2UIRenderer";
 
 export type InspectorTab =
   | "blackboard"
@@ -380,35 +381,7 @@ export function KernelInspectorPanel({
                 A2UI Declarative Surfaces ({a2uiSurfaces.length})
               </p>
               {a2uiSurfaces.map((surface) => (
-                <div
-                  key={surface.surface_id}
-                  className="rounded-md border border-border bg-base p-2.5 text-xs space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-ink">{surface.title}</span>
-                    <span className="font-mono text-[10px] text-muted">{surface.protocol}</span>
-                  </div>
-                  {surface.components.map((comp, idx) => {
-                    if (comp.type === "metric_row" && Array.isArray(comp.items)) {
-                      return (
-                        <div
-                          key={`${surface.surface_id}-m-${idx}`}
-                          className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1"
-                        >
-                          {(comp.items as Array<{ label: string; value: string }>).map((item) => (
-                            <div key={item.label} className="text-[11px]">
-                              <div className="text-muted">{item.label}</div>
-                              <div className="font-mono tabular-nums font-semibold text-ink">
-                                {item.value}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
+                <A2UISurfaceView key={surface.surface_id} surface={surface} />
               ))}
             </div>
           )}
