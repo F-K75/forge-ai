@@ -1,20 +1,25 @@
 """Intelligent Skill Engine — SKILL.md Discovery, 9-Domain Catalog,
 Dependency Resolution, Least-Privilege Permission Validation, and Task Routing.
 
-Pure-Python stdlib implementation so it runs cleanly in both FastAPI production
-and standalone unit tests. Discovers real `.agents/skills/*/SKILL.md` files on
-disk with strict path confinement and combines them with Forge AI's canonical
-9-domain engineering skill catalog.
+Forge AI's canonical skill catalogue is file-based: one `backend/skills/<name>/SKILL.md`
+per skill (YAML frontmatter + markdown instructions). The default registry loads that
+catalogue, then discovers repo-level `.agents/skills/*/SKILL.md` files with strict path
+confinement. Malformed files are skipped with a warning; duplicate names and unknown
+domains are rejected; dependency cycles are detected at resolution time.
+
+Uses PyYAML (a pinned backend dependency) for frontmatter when available and falls
+back to a tiny stdlib parser otherwise, so it runs in both FastAPI and bare unit tests.
 """
 
 from __future__ import annotations
 
+import functools
 import logging
 import re
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, FrozenSet, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, FrozenSet, List, Optional, Pattern, Sequence, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +48,14 @@ class SkillPermissionError(SkillError):
     """Raised when a role/department lacks required permissions for a skill."""
 
 
+class SkillParseError(SkillError):
+    """Raised when a SKILL.md document is malformed or fails validation."""
+
+
+class SkillDuplicateError(SkillError):
+    """Raised when a skill name is registered twice without explicit replacement."""
+
+
 # Default least-privilege permissions granted to each autonomous department.
 DEPARTMENT_DEFAULT_PERMISSIONS: Dict[str, FrozenSet[str]] = {
     "leadership": frozenset({"read_repo", "read_blackboard", "write_decisions", "approve_gates"}),
@@ -55,6 +68,20 @@ DEPARTMENT_DEFAULT_PERMISSIONS: Dict[str, FrozenSet[str]] = {
     "quality": frozenset({"read_repo", "read_blackboard", "run_tests", "emit_findings"}),
     "delivery": frozenset({"read_repo", "read_blackboard", "write_docs", "prepare_release"}),
 }
+
+# Forge AI's canonical skill catalogue lives on disk as `backend/skills/<name>/SKILL.md`.
+# `backend/` is the Docker build context (`COPY . .`), so it ships in the image at /app/skills.
+DEFAULT_CATALOG_DIR: Path = Path(__file__).resolve().parents[1] / "skills"
+
+_SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
+_MAX_INSTRUCTIONS_CHARS = 8000
+_INFERRED_KEYWORD_STOPWORDS = frozenset(
+    {
+        "and", "the", "for", "with", "use", "using", "via", "into", "from", "that", "this",
+        "when", "whenever", "you", "your", "are", "not", "any", "all", "can", "need",
+        "skill", "skills", "rather", "than", "just",
+    }
+)
 
 
 @dataclass
@@ -69,7 +96,7 @@ class SkillManifest:
     allowed_departments: List[str] = field(default_factory=list)
     instructions: str = ""
     source_path: Optional[str] = None
-    origin: str = "builtin"  # filesystem | builtin
+    origin: str = "builtin"  # builtin (catalogue/fallback) | filesystem (.agents) | marketplace
 
     def to_dict(self, *, include_instructions: bool = False) -> Dict[str, Any]:
         d = asdict(self)
@@ -93,8 +120,10 @@ class SkillActivation:
         return asdict(self)
 
 
-# Canonical built-in skill definitions spanning all 9 Forge AI OS domains.
-BUILTIN_SKILLS: Tuple[SkillManifest, ...] = (
+# Minimal emergency fallback, used only if the on-disk catalogue is missing or yields
+# no valid skills (e.g. a broken image). Metadata mirrors the matching SKILL.md files;
+# tests assert they stay in sync.
+FALLBACK_SKILLS: Tuple[SkillManifest, ...] = (
     SkillManifest(
         name="fullstack-architecture",
         domain=SkillDomain.SOFTWARE_ENGINEERING,
@@ -103,43 +132,6 @@ BUILTIN_SKILLS: Tuple[SkillManifest, ...] = (
         required_permissions=["read_repo"],
         allowed_departments=["architecture", "engineering", "leadership"],
         instructions="Define typed API contracts first, isolate side effects behind repository interfaces, and avoid circular imports.",
-    ),
-    SkillManifest(
-        name="api-hardening",
-        domain=SkillDomain.SOFTWARE_ENGINEERING,
-        description="Input validation, bounded pagination, structured error responses, and backward-compatible routing.",
-        keywords=["api", "endpoint", "route", "fastapi", "validation", "pydantic", "rest", "backend"],
-        dependencies=["fullstack-architecture"],
-        required_permissions=["read_repo", "write_code"],
-        allowed_departments=["engineering", "architecture", "security"],
-        instructions="Validate all query/body parameters with strict bounds, enforce auth/ownership checks, and never expose stack traces.",
-    ),
-    SkillManifest(
-        name="rag-context-engineering",
-        domain=SkillDomain.AI_ENGINEERING,
-        description="Hybrid retrieval, chunking, embedding pipelines, prompt structuring, and citation grounding.",
-        keywords=["rag", "embedding", "retrieval", "llm", "prompt", "context", "vector", "ai"],
-        required_permissions=["read_repo"],
-        allowed_departments=["engineering", "architecture", "leadership"],
-        instructions="Bound retrieved context budgets, preserve source citations, and enforce grounded abstention when evidence is missing.",
-    ),
-    SkillManifest(
-        name="multi-agent-orchestration",
-        domain=SkillDomain.AGENT_ENGINEERING,
-        description="DAG wave scheduling, shared blackboard artifacts, bounded delegation, and self-healing critique loops.",
-        keywords=["agent", "multi-agent", "dag", "workflow", "orchestrate", "delegate", "blackboard"],
-        required_permissions=["read_blackboard"],
-        allowed_departments=["leadership", "architecture", "engineering"],
-        instructions="Schedule independent tasks in parallel waves, validate acyclic dependencies, and cap delegation depth and repair rounds.",
-    ),
-    SkillManifest(
-        name="container-k8s-delivery",
-        domain=SkillDomain.DEVOPS,
-        description="Dockerfiles, Kubernetes manifests, CI/CD pipelines, health probes, and rollback runbooks.",
-        keywords=["docker", "kubernetes", "k8s", "ci/cd", "deploy", "release", "rollout", "observability", "prometheus"],
-        required_permissions=["read_repo"],
-        allowed_departments=["infrastructure", "delivery", "architecture"],
-        instructions="Ensure non-root containers, explicit readiness/liveness probes, resource limits, and tested rollback steps.",
     ),
     SkillManifest(
         name="security-threat-audit",
@@ -159,34 +151,10 @@ BUILTIN_SKILLS: Tuple[SkillManifest, ...] = (
         allowed_departments=["quality", "engineering"],
         instructions="Cover happy paths, boundary conditions, failure propagation, and authorization denial paths with isolated deterministic tests.",
     ),
-    SkillManifest(
-        name="prd-product-strategy",
-        domain=SkillDomain.PRODUCT_BUSINESS,
-        description="PRD authorship, unit economics, pricing models, ICP validation, and measurable KPI definitions.",
-        keywords=["prd", "pricing", "monetiz", "revenue", "business", "roadmap", "requirement", "kpi", "market"],
-        required_permissions=["read_repo"],
-        allowed_departments=["business", "leadership"],
-        instructions="Link customer problems to measurable acceptance criteria, explicit scope boundaries, and sustainable unit economics.",
-    ),
-    SkillManifest(
-        name="database-schema-modeling",
-        domain=SkillDomain.DATA_ENGINEERING,
-        description="Schema design, composite indexing, safe non-destructive migrations, and query performance.",
-        keywords=["database", "mongo", "postgres", "sql", "schema", "migration", "index", "billing", "data"],
-        required_permissions=["read_repo"],
-        allowed_departments=["engineering", "architecture"],
-        instructions="Design idempotent, backward-compatible migrations, index hot filter keys, and parameterize every query.",
-    ),
-    SkillManifest(
-        name="accessible-design-systems",
-        domain=SkillDomain.DESIGN_TOOLS,
-        description="Semantic design tokens, WCAG AA contrast, keyboard navigation, and responsive grid layouts.",
-        keywords=["ui", "ux", "design", "token", "component", "layout", "accessibility", "wcag", "dashboard", "tailwind"],
-        required_permissions=["read_repo"],
-        allowed_departments=["design", "engineering"],
-        instructions="Use semantic CSS tokens instead of hardcoded colors, enforce WCAG AA contrast, and ensure full keyboard navigability.",
-    ),
 )
+
+# Backward-compatible alias: the full catalogue used to be hard-coded here.
+BUILTIN_SKILLS = FALLBACK_SKILLS
 
 
 def _infer_domain_from_skill(name: str, description: str) -> SkillDomain:
@@ -210,72 +178,232 @@ def _infer_domain_from_skill(name: str, description: str) -> SkillDomain:
     return SkillDomain.SOFTWARE_ENGINEERING
 
 
-def parse_skill_markdown(content: str, *, fallback_name: str, source_path: Optional[str] = None) -> SkillManifest:
-    """Parse YAML frontmatter + markdown body from a SKILL.md document without PyYAML."""
-    name = fallback_name
-    description = ""
-    version = "1.0.0"
-    dependencies: List[str] = []
-    required_permissions: List[str] = ["read_repo"]
+def _unquote(val: str) -> str:
+    val = val.strip()
+    if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+        return val[1:-1]
+    return val
+
+
+def _parse_frontmatter_minimal(block: str) -> Dict[str, Any]:
+    """Tiny YAML-subset parser used only when PyYAML is unavailable.
+
+    Supports top-level `key: scalar`, inline lists `key: [a, b]`, block lists
+    (`key:` followed by `- item` lines) and ignores nested mappings except
+    `metadata.version`.
+    """
+    data: Dict[str, Any] = {}
+    current_key: Optional[str] = None
+    for lineno, line in enumerate(block.splitlines(), start=1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        stripped = line.strip()
+        if line[:1] in (" ", "\t") or stripped.startswith("- "):
+            if current_key is None:
+                raise SkillParseError(f"frontmatter line {lineno}: unexpected indentation")
+            if stripped.startswith("- "):
+                items = data.get(current_key)
+                data[current_key] = (items if isinstance(items, list) else []) + [_unquote(stripped[2:])]
+            elif current_key == "metadata" and ":" in stripped:
+                k, v = stripped.split(":", 1)
+                meta = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
+                meta[k.strip()] = _unquote(v)
+                data["metadata"] = meta
+            continue
+        if ":" not in stripped:
+            raise SkillParseError(f"frontmatter line {lineno}: expected 'key: value'")
+        key, raw_val = stripped.split(":", 1)
+        current_key, raw_val = key.strip(), raw_val.strip()
+        if raw_val.startswith("["):
+            if not raw_val.endswith("]"):
+                raise SkillParseError(f"frontmatter line {lineno}: unterminated list for '{current_key}'")
+            data[current_key] = [_unquote(v) for v in raw_val[1:-1].split(",") if v.strip()]
+        else:
+            data[current_key] = _unquote(raw_val) if raw_val else None
+    return data
+
+
+def _load_frontmatter(block: str) -> Dict[str, Any]:
+    try:
+        import yaml
+    except ImportError:  # pragma: no cover - only without PyYAML installed
+        return _parse_frontmatter_minimal(block)
+    try:
+        data = yaml.safe_load(block)
+    except yaml.YAMLError as exc:
+        raise SkillParseError(f"invalid YAML frontmatter: {exc}") from exc
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise SkillParseError("frontmatter must be a mapping of key: value pairs")
+    return data
+
+
+def _as_str_list(value: Any, *, field_name: str) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [v.strip() for v in value.split(",") if v.strip()]
+    if isinstance(value, (list, tuple)):
+        out: List[str] = []
+        for item in value:
+            if item is None or isinstance(item, (dict, list, tuple)):
+                raise SkillParseError(f"'{field_name}' entries must be plain strings")
+            text = str(item).strip()
+            if text:
+                out.append(text)
+        return out
+    raise SkillParseError(f"'{field_name}' must be a list of strings")
+
+
+def _first(data: Dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if data.get(key) is not None:
+            return data[key]
+    return None
+
+
+def parse_skill_markdown(
+    content: str,
+    *,
+    fallback_name: str,
+    source_path: Optional[str] = None,
+    strict: bool = False,
+    origin: str = "filesystem",
+) -> SkillManifest:
+    """Parse YAML frontmatter + markdown body from a SKILL.md document.
+
+    Frontmatter fields: name, version, domain, description, keywords, dependencies,
+    permissions (alias: required_permissions), departments (alias: allowed_departments).
+
+    An explicitly declared unknown domain is always rejected. `strict=True` (used for
+    Forge's own catalogue) additionally requires frontmatter, an explicit domain, a
+    description, a non-empty body and known departments. Raises `SkillParseError`.
+    """
+    content = content.lstrip("﻿").replace("\r\n", "\n")
     body = content
+    data: Dict[str, Any] = {}
 
-    fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", content, flags=re.DOTALL)
+    fm_match = re.match(r"^---[ \t]*\n(.*?)\n---[ \t]*(?:\n(.*))?$", content, flags=re.DOTALL)
     if fm_match:
-        fm_block, body = fm_match.group(1), fm_match.group(2)
-        for line in fm_block.splitlines():
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#") or ":" not in stripped:
-                continue
-            key, raw_val = stripped.split(":", 1)
-            key = key.strip().lower()
-            val = raw_val.strip().strip('"').strip("'")
-            if key == "name" and val:
-                name = val
-            elif key == "description" and val:
-                description = val
-            elif key == "version" and val:
-                version = val
-            elif key == "dependencies" and val:
-                cleaned = val.strip("[]")
-                dependencies = [d.strip().strip('"').strip("'") for d in cleaned.split(",") if d.strip()]
-            elif key == "permissions" and val:
-                cleaned = val.strip("[]")
-                perms = [p.strip().strip('"').strip("'") for p in cleaned.split(",") if p.strip()]
-                if perms:
-                    required_permissions = perms
+        data = _load_frontmatter(fm_match.group(1))
+        body = fm_match.group(2) or ""
+    elif content.startswith("---"):
+        raise SkillParseError("unterminated frontmatter block (missing closing '---')")
+    elif strict:
+        raise SkillParseError("missing YAML frontmatter")
 
+    name = str(_first(data, "name") or fallback_name).strip()
+    if not _SKILL_NAME_RE.match(name):
+        raise SkillParseError(f"invalid skill name {name!r}: use 2-64 lowercase letters, digits or hyphens")
+
+    description = " ".join(str(_first(data, "description") or "").split())
     if not description:
+        if strict:
+            raise SkillParseError(f"skill '{name}' is missing a description")
         first_para = next((ln.strip() for ln in body.splitlines() if ln.strip() and not ln.startswith("#")), "")
         description = first_para[:300] or f"Skill definition for {name}"
 
-    domain = _infer_domain_from_skill(name, description)
-    tokens = sorted({tok for tok in re.findall(r"[a-z0-9][a-z0-9_-]{2,}", f"{name} {description}".lower())})
+    raw_domain = _first(data, "domain")
+    if raw_domain is not None:
+        try:
+            domain = SkillDomain(str(raw_domain).strip().lower())
+        except ValueError:
+            raise SkillParseError(
+                f"skill '{name}' declares unknown domain {raw_domain!r}; "
+                f"expected one of {[d.value for d in SkillDomain]}"
+            ) from None
+    elif strict:
+        raise SkillParseError(f"skill '{name}' is missing a domain")
+    else:
+        domain = _infer_domain_from_skill(name, description)
+
+    metadata = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
+    version = str(_first(data, "version") or metadata.get("version") or "1.0.0").strip()
+
+    keywords = [k.lower() for k in _as_str_list(_first(data, "keywords"), field_name="keywords")]
+    if not keywords:
+        tokens = re.findall(r"[a-z0-9][a-z0-9_-]{2,}", f"{name} {description}".lower())
+        keywords = sorted({t for t in tokens if t not in _INFERRED_KEYWORD_STOPWORDS})[:24]
+
+    dependencies = _as_str_list(_first(data, "dependencies"), field_name="dependencies")
+    if name in dependencies:
+        raise SkillParseError(f"skill '{name}' depends on itself")
+    permissions = _as_str_list(
+        _first(data, "permissions", "required_permissions"), field_name="permissions"
+    ) or ["read_repo"]
+    departments = _as_str_list(_first(data, "departments", "allowed_departments"), field_name="departments")
+    unknown_depts = [d for d in departments if d not in DEPARTMENT_DEFAULT_PERMISSIONS]
+    if strict and unknown_depts:
+        raise SkillParseError(f"skill '{name}' lists unknown department(s) {unknown_depts}")
+
+    instructions = body.strip()
+    if strict and not instructions:
+        raise SkillParseError(f"skill '{name}' has an empty instructions body")
+
     return SkillManifest(
         name=name,
         domain=domain,
         description=description[:500],
         version=version,
-        keywords=tokens[:24],
+        keywords=keywords,
         dependencies=dependencies,
-        required_permissions=required_permissions,
-        allowed_departments=[],
-        instructions=body.strip()[:1200],
+        required_permissions=permissions,
+        allowed_departments=departments,
+        instructions=instructions[:_MAX_INSTRUCTIONS_CHARS],
         source_path=source_path,
-        origin="filesystem",
+        origin=origin,
     )
+
+
+@functools.lru_cache(maxsize=4096)
+def _keyword_pattern(keyword: str) -> Pattern[str]:
+    """Match keywords at a word start. Short keywords (<=3 chars, e.g. `ui`, `ci`, `api`)
+    must be whole words (optionally plural) so `ui` no longer matches inside `build`;
+    longer keywords are prefix matches (`monetiz` matches `monetization`)."""
+    escaped = re.escape(keyword)
+    if len(keyword) <= 3:
+        return re.compile(rf"(?<![a-z0-9]){escaped}s?(?![a-z0-9])")
+    return re.compile(rf"(?<![a-z0-9]){escaped}")
+
+
+def _keyword_hits(keywords: Sequence[str], text: str) -> int:
+    return sum(1 for kw in keywords if kw and _keyword_pattern(kw).search(text))
 
 
 class SkillRegistry:
     """Central registry for discovering, validating, and resolving skills."""
 
-    def __init__(self, *, load_builtins: bool = True, skills_dir: Optional[Path] = None) -> None:
+    def __init__(
+        self,
+        *,
+        load_builtins: bool = True,
+        skills_dir: Optional[Path] = None,
+        catalog_dir: Optional[Path] = None,
+    ) -> None:
+        """`load_builtins` loads Forge's canonical catalogue from `catalog_dir`
+        (default `backend/skills/`), falling back to `FALLBACK_SKILLS` if it yields
+        nothing. `skills_dir` additionally discovers repo-level (non-strict) skills."""
         self._skills: Dict[str, SkillManifest] = {}
         self._telemetry: Dict[str, Dict[str, Any]] = {}
         if load_builtins:
-            for manifest in BUILTIN_SKILLS:
-                self.register(manifest)
+            self.load_catalog(catalog_dir if catalog_dir is not None else DEFAULT_CATALOG_DIR)
         if skills_dir is not None:
             self.discover_from_directory(skills_dir)
+
+    def load_catalog(self, catalog_dir: Path) -> List[SkillManifest]:
+        """Load the strict on-disk catalogue; fall back to FALLBACK_SKILLS if it is empty."""
+        loaded = self.discover_from_directory(catalog_dir, strict=True, origin="builtin")
+        if not loaded:
+            logger.warning(
+                "Skill catalogue at %s missing or empty; using %d fallback skills",
+                catalog_dir,
+                len(FALLBACK_SKILLS),
+            )
+            for manifest in FALLBACK_SKILLS:
+                if manifest.name not in self._skills:
+                    self.register(manifest)
+        return loaded
 
     def record_outcome(
         self,
@@ -327,14 +455,38 @@ class SkillRegistry:
             )
         ]
 
-    def register(self, manifest: SkillManifest) -> None:
+    def register(self, manifest: SkillManifest, *, replace: bool = True) -> None:
+        """Register a skill. With `replace=False`, an existing name raises SkillDuplicateError.
+
+        Programmatic callers (e.g. the marketplace) may intentionally override; file
+        discovery always registers with `replace=False`.
+        """
+        if not replace and manifest.name in self._skills:
+            existing = self._skills[manifest.name]
+            raise SkillDuplicateError(
+                f"Duplicate skill name '{manifest.name}' "
+                f"(already registered from {existing.source_path or existing.origin})"
+            )
         self._skills[manifest.name] = manifest
 
     def get(self, name: str) -> Optional[SkillManifest]:
         return self._skills.get(name)
 
-    def discover_from_directory(self, base_dir: Path) -> List[SkillManifest]:
-        """Discover SKILL.md manifests strictly confined within `base_dir`."""
+    def all_skills(self) -> List[SkillManifest]:
+        return sorted(self._skills.values(), key=lambda s: (s.domain.value, s.name))
+
+    def discover_from_directory(
+        self,
+        base_dir: Path,
+        *,
+        strict: bool = False,
+        origin: str = "filesystem",
+    ) -> List[SkillManifest]:
+        """Discover `<base_dir>/<skill>/SKILL.md` manifests strictly confined within `base_dir`.
+
+        Unreadable, malformed, or duplicate skills are skipped with a logged warning.
+        In strict mode the frontmatter `name` must equal the directory name.
+        """
         discovered: List[SkillManifest] = []
         root = base_dir.resolve()
         if not root.exists() or not root.is_dir():
@@ -350,17 +502,28 @@ class SkillRegistry:
                 continue
             if not skill_file.is_file():
                 continue
+            rel_path = str(skill_file.relative_to(root))
             try:
                 content = skill_file.read_text(encoding="utf-8", errors="replace")
                 manifest = parse_skill_markdown(
                     content,
                     fallback_name=entry.name,
-                    source_path=str(skill_file.relative_to(root)),
+                    source_path=rel_path,
+                    strict=strict,
+                    origin=origin,
                 )
-                self.register(manifest)
-                discovered.append(manifest)
+                if strict and manifest.name != entry.name:
+                    raise SkillParseError(
+                        f"skill name '{manifest.name}' does not match its directory '{entry.name}'"
+                    )
+                self.register(manifest, replace=False)
             except OSError:
-                logger.debug("Failed to read SKILL.md at %s", skill_file, exc_info=True)
+                logger.warning("Failed to read SKILL.md at %s", skill_file, exc_info=True)
+                continue
+            except SkillError as exc:
+                logger.warning("Skipping invalid skill %s: %s", rel_path, exc)
+                continue
+            discovered.append(manifest)
         return discovered
 
     def list_skills(
@@ -373,7 +536,7 @@ class SkillRegistry:
     ) -> List[Dict[str, Any]]:
         q = (search or "").strip().lower()
         results: List[Dict[str, Any]] = []
-        for skill in sorted(self._skills.values(), key=lambda s: (s.domain.value, s.name)):
+        for skill in self.all_skills():
             if domain and skill.domain.value != domain:
                 continue
             if department and skill.allowed_departments and department not in skill.allowed_departments:
@@ -400,27 +563,41 @@ class SkillRegistry:
     def resolve_dependencies(self, skill_names: Sequence[str]) -> List[SkillManifest]:
         """Resolve transitive skill dependencies in topological order with cycle detection."""
         ordered: List[SkillManifest] = []
-        visiting: Set[str] = set()
+        stack: List[str] = []
         visited: Set[str] = set()
 
         def _visit(name: str) -> None:
             if name in visited:
                 return
-            if name in visiting:
-                raise SkillDependencyError(f"Cyclic skill dependency detected at '{name}'")
+            if name in stack:
+                cycle = stack[stack.index(name):] + [name]
+                raise SkillDependencyError(
+                    f"Cyclic skill dependency detected at '{name}': {' -> '.join(cycle)}"
+                )
             manifest = self._skills.get(name)
             if manifest is None:
-                raise SkillDependencyError(f"Unknown skill dependency '{name}'")
-            visiting.add(name)
+                via = f" (required by '{stack[-1]}')" if stack else ""
+                raise SkillDependencyError(f"Unknown skill dependency '{name}'{via}")
+            stack.append(name)
             for dep in manifest.dependencies:
                 _visit(dep)
-            visiting.remove(name)
+            stack.pop()
             visited.add(name)
             ordered.append(manifest)
 
         for name in skill_names:
             _visit(name)
         return ordered
+
+    def validate(self) -> List[str]:
+        """Return human-readable problems (missing deps, cycles) across all registered skills."""
+        problems: List[str] = []
+        for skill in self.all_skills():
+            try:
+                self.resolve_dependencies([skill.name])
+            except SkillDependencyError as exc:
+                problems.append(f"{skill.name}: {exc}")
+        return problems
 
     def validate_permissions(
         self,
@@ -473,7 +650,7 @@ class SkillRouter:
             )
             if not allowed:
                 continue
-            hits = sum(1 for kw in skill.keywords if kw in query_blob)
+            hits = _keyword_hits(skill.keywords, query_blob)
             dept_bonus = 1.5 if department in skill.allowed_departments else 0.0
             base_score = hits + dept_bonus
             if base_score > 0:
@@ -518,7 +695,10 @@ def get_skill_registry() -> SkillRegistry:
     if _default_registry is None:
         repo_root = Path(__file__).resolve().parents[2]
         agents_skills_dir = repo_root / ".agents" / "skills"
-        _default_registry = SkillRegistry(load_builtins=True, skills_dir=agents_skills_dir)
+        registry = SkillRegistry(load_builtins=True, skills_dir=agents_skills_dir)
+        for problem in registry.validate():
+            logger.warning("Skill catalogue problem: %s", problem)
+        _default_registry = registry
     return _default_registry
 
 
