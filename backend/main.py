@@ -41,6 +41,7 @@ from api.retrieval import router as retrieval_router
 from api.engineering import router as engineering_router
 from engineering_plugins import register_engineering_plugins
 from api.v1 import v1_router
+from api.a2a_public import well_known_router as a2a_well_known_router
 from core.database import close_connections
 from core.config import get_settings
 from core.security import (
@@ -316,6 +317,8 @@ async def deprecation_middleware(request: Request, call_next):
         return response
     if path.startswith("/api/llm"):
         return response
+    if path.startswith("/.well-known/"):
+        return response
     if path.startswith("/razorpay"):
         return response
     if path.startswith("/cashfree"):
@@ -333,6 +336,9 @@ async def deprecation_middleware(request: Request, call_next):
 
 # Canonical /v1/ routes (BE-004).
 app.include_router(v1_router)
+
+# A2A discovery card must live at the origin root per the A2A convention.
+app.include_router(a2a_well_known_router)
 
 # Legacy root-level routes remain available during the deprecation window but
 # receive Deprecation and Link headers pointing at their /v1/ successors.

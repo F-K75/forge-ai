@@ -10,6 +10,7 @@ canonical ``/v1/`` successor.
 
 from fastapi import APIRouter
 
+from api.a2a_public import router as a2a_public_router
 from api.activity import router as activity_router
 from api.admin import router as admin_router
 from api.agent_executions import router as agent_executions_router
@@ -58,6 +59,7 @@ from api.workload import router as workload_router
 
 v1_router = APIRouter(prefix="/v1")
 
+v1_router.include_router(a2a_public_router)
 v1_router.include_router(activity_router)
 v1_router.include_router(admin_router)
 v1_router.include_router(agent_executions_router)

@@ -300,6 +300,42 @@ class StreamableHTTPMCPClient:
             raise ValueError(str(res["error"])[:240])
         return dict(res.get("result") or {})
 
+    async def read_resource(self, endpoint_url: str, uri: str) -> Dict[str, Any]:
+        """Fetch a resource (e.g. an MCP Apps `ui://` document) via `resources/read`."""
+        rpc = {
+            "jsonrpc": "2.0",
+            "id": _new_id("rpc"),
+            "method": "resources/read",
+            "params": {"uri": uri},
+        }
+        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        if "error" in res:
+            raise ValueError(str(res["error"])[:240])
+        result = res.get("result")
+        if not isinstance(result, dict):
+            raise ValueError("External MCP server returned a malformed resources/read result")
+        return result
+
+
+def extract_mcp_app_resource_uri(raw_tool: Dict[str, Any]) -> Optional[str]:
+    """Return the MCP Apps `ui://` resource a tool declares, if any.
+
+    Supports the current `_meta.ui.resourceUri` shape and the legacy flat
+    `_meta["ui/resourceUri"]` key. Non-`ui://` values are ignored.
+    """
+    meta = raw_tool.get("_meta")
+    if not isinstance(meta, dict):
+        return None
+    candidate: Any = None
+    ui = meta.get("ui")
+    if isinstance(ui, dict):
+        candidate = ui.get("resourceUri")
+    if candidate is None:
+        candidate = meta.get("ui/resourceUri")
+    if isinstance(candidate, str) and candidate.startswith("ui://") and len(candidate) <= 512:
+        return candidate
+    return None
+
 
 MCPToolHandler = Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[Dict[str, Any]]]
 
@@ -312,6 +348,7 @@ class MCPToolSpec:
     allowed_departments: FrozenSet[str]
     input_schema: Dict[str, Any]
     read_only: bool = True
+    ui_resource_uri: Optional[str] = None  # MCP Apps `ui://` resource declared by the tool
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -321,6 +358,7 @@ class MCPToolSpec:
             "allowed_departments": sorted(self.allowed_departments),
             "input_schema": self.input_schema,
             "read_only": self.read_only,
+            "ui_resource_uri": self.ui_resource_uri,
         }
 
 
@@ -335,6 +373,7 @@ class MCPAppSpec:
     description: str
     ui_schema: Dict[str, Any]
     protocol: str = "mcp-apps/v1"
+    resource_uri: Optional[str] = None  # `ui://` resource rendered in a sandboxed iframe
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -350,6 +389,8 @@ class MCPInvocationAudit:
     project_id: str
     status: str  # succeeded | denied | error
     reason: Optional[str] = None
+    action: str = "tools/call"  # tools/call | resources/read
+    resource_uri: Optional[str] = None
     created_at: str = field(default_factory=_utc_now)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -428,6 +469,23 @@ class MCPGateway:
 
     def list_apps(self) -> List[Dict[str, Any]]:
         return [a.to_dict() for a in self._apps.values()]
+
+    def register_app(self, app: MCPAppSpec) -> None:
+        self._apps[app.app_id] = app
+
+    def get_app(self, app_id: str) -> Optional[MCPAppSpec]:
+        return self._apps.get(app_id)
+
+    def get_tool_spec(self, tool_name: str) -> Optional[MCPToolSpec]:
+        entry = self._tools.get(tool_name)
+        return entry[0] if entry else None
+
+    def get_server(self, server_id: str) -> Optional[Dict[str, Any]]:
+        return self._servers.get(server_id)
+
+    @property
+    def http_client(self) -> StreamableHTTPMCPClient:
+        return self._http_client
 
     def _register_builtin_tools(self) -> None:
         all_depts = frozenset(
@@ -561,6 +619,7 @@ class MCPGateway:
                     return await self._http_client.call_tool(ep, rname, args)
                 return _proxy_handler
 
+            ui_uri = extract_mcp_app_resource_uri(raw)
             spec = MCPToolSpec(
                 name=scoped_name,
                 server_id=server_id,
@@ -568,8 +627,24 @@ class MCPGateway:
                 allowed_departments=depts,
                 input_schema=schema,
                 read_only=bool(raw.get("readOnly", True)),
+                ui_resource_uri=ui_uri,
             )
             self.register_tool(spec, _make_proxy(endpoint_url, remote_name))
+            if ui_uri:
+                app_id = "app_" + "".join(
+                    ch if ch.isalnum() else "_" for ch in scoped_name
+                )[:96]
+                self.register_app(
+                    MCPAppSpec(
+                        app_id=app_id,
+                        title=str(raw.get("title") or remote_name)[:120],
+                        tool_name=scoped_name,
+                        server_id=server_id,
+                        description=desc,
+                        ui_schema={"kind": "mcp-app-resource", "resource_uri": ui_uri},
+                        resource_uri=ui_uri,
+                    )
+                )
             registered.append(spec.to_dict())
 
         server["status"] = "connected"
@@ -595,6 +670,9 @@ class MCPGateway:
         if project_id:
             entries = [e for e in entries if e.project_id == project_id]
         return [e.to_dict() for e in entries[-limit:]]
+
+    async def record_audit(self, audit: MCPInvocationAudit) -> None:
+        await self._record_audit(audit)
 
     async def _record_audit(self, audit: MCPInvocationAudit) -> None:
         self._audit_log.append(audit)

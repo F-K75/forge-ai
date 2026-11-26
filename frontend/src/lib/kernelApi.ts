@@ -240,6 +240,8 @@ export interface MCPToolSpec {
   description: string;
   allowed_departments: string[];
   read_only: boolean;
+  /** MCP Apps `ui://` resource declared by the tool (`_meta.ui.resourceUri`). */
+  ui_resource_uri?: string | null;
 }
 
 export interface A2UISurface {
@@ -408,11 +410,61 @@ export interface MCPAppSpec {
   description: string;
   protocol: string;
   ui_schema: {
-    input_field: string;
-    input_label: string;
-    action_label: string;
-    result_view: string;
+    input_field?: string;
+    input_label?: string;
+    action_label?: string;
+    result_view?: string;
+    /** "mcp-app-resource" for apps rendered from a sandboxed `ui://` resource. */
+    kind?: string;
+    resource_uri?: string;
   };
+  resource_uri?: string | null;
+}
+
+/**
+ * Sanitized MCP App UI resource. Render ONLY as
+ * `<iframe srcdoc={html} sandbox={sandbox.iframe_sandbox} allow={sandbox.iframe_allow}
+ *  referrerPolicy={sandbox.referrer_policy}>` and never inject `html` into Forge's own DOM.
+ */
+export interface MCPAppResourcePayload {
+  app_id: string;
+  tool_name: string;
+  server_id: string;
+  resource_uri: string;
+  mime_type: "text/html;profile=mcp-app";
+  html: string;
+  size_bytes: number;
+  content_sha256: string;
+  protocol: string;
+  extension: string;
+  warnings: string[];
+  sandbox: {
+    render_mode: "iframe-srcdoc";
+    iframe_sandbox: string;
+    iframe_allow: string;
+    referrer_policy: string;
+    csp: string;
+    allowed_domains: {
+      connect_domains: string[];
+      resource_domains: string[];
+      frame_domains: string[];
+    };
+    denied_permissions: string[];
+    prefers_border: boolean;
+  };
+}
+
+/** A2A `Task` object as returned by Forge's A2A JSON-RPC / REST endpoints. */
+export interface A2ATask {
+  id: string;
+  sessionId?: string | null;
+  status: {
+    state: "submitted" | "working" | "input-required" | "completed" | "canceled" | "failed" | "unknown";
+    message?: { role: string; parts: Array<{ type: string; text?: string }> } | string;
+    timestamp: string;
+  };
+  artifacts: Array<Record<string, unknown>>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface A2AAgentCard {
@@ -432,7 +484,7 @@ export interface A2ATaskResponse {
   task_id: string;
   kernel_run_id: string;
   project_id: string;
-  state: "submitted" | "working" | "completed" | "failed";
+  state: "submitted" | "working" | "completed" | "canceled" | "failed";
   summary: string;
   wave_count: number;
   task_count: number;
@@ -767,6 +819,20 @@ export const protocolApi = {
 
   listMcpApps: (projectId: string): Promise<{ protocol: string; apps: MCPAppSpec[] }> =>
     api.get(`/v1/projects/${projectId}/protocols/mcp/apps`).then((r) => r.data),
+
+  getMcpAppResource: (
+    projectId: string,
+    appId: string,
+    params: { role: string; department: string },
+  ): Promise<MCPAppResourcePayload> =>
+    api
+      .get(`/v1/projects/${projectId}/protocols/mcp/apps/${encodeURIComponent(appId)}/resource`, { params })
+      .then((r) => r.data),
+
+  getA2ATask: (projectId: string, taskId: string): Promise<A2ATask> =>
+    api
+      .get(`/v1/projects/${projectId}/protocols/a2a/tasks/${encodeURIComponent(taskId)}`)
+      .then((r) => r.data),
 
   registerMcpServer: (
     projectId: string,
