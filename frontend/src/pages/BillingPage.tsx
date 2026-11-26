@@ -302,7 +302,7 @@ export default function BillingPage() {
             type="button"
             id="billing-topup-btn"
             onClick={() => setCreditModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-on-ink font-semibold text-xs hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-pill bg-ink text-on-ink font-semibold text-xs hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
           >
             <Plus size={13} />
             <span>Top-Up Credits</span>
@@ -591,7 +591,7 @@ export default function BillingPage() {
                             isCurrent
                               ? "bg-panel text-muted border border-border"
                               : isPro
-                              ? "bg-accent text-on-ink hover:opacity-90"
+                              ? "bg-ink text-on-ink hover:opacity-90"
                               : "bg-panel text-ink border border-border hover:border-accent/50"
                           }`}
                         >
@@ -831,7 +831,7 @@ export default function BillingPage() {
                                 toast.success(`Downloading invoice ${inv.id} PDF...`);
                               }
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-panel-alt border border-border text-ink text-[11px] font-medium hover:border-accent/50 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill bg-panel-alt border border-border text-ink text-[11px] font-medium hover:border-accent/50 transition-colors cursor-pointer"
                           >
                             <Download size={11} />
                             <span>PDF</span>
@@ -912,7 +912,7 @@ export default function BillingPage() {
                         id={`btn-buy-pkg-${pkg.id}`}
                         disabled={purchasingCredit === pkg.id}
                         onClick={() => handleBuyCreditPackage(pkg.id)}
-                        className="px-3 py-1.5 rounded-lg bg-accent text-on-ink text-xs font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                        className="px-3 py-1.5 rounded-pill bg-ink text-on-ink text-xs font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
                         {purchasingCredit === pkg.id ? "Buying..." : "Purchase"}
                       </button>

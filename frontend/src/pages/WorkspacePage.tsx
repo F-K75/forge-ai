@@ -743,7 +743,7 @@ export default function WorkspacePage() {
                     handleSound();
                     setFilesExplorerOpen(true);
                   }}
-                  className="h-8 px-2.5 rounded-lg border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium inline-flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+                  className="h-8 px-2.5 rounded-pill border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium inline-flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
                 >
                   <FileCode2 size={13} className="text-muted" />
                   <span className="tabular-nums">Files ({Object.keys(projectFiles).length})</span>
@@ -756,7 +756,7 @@ export default function WorkspacePage() {
                     handleSound();
                     setAgentsInspectorOpen(true);
                   }}
-                  className="h-8 px-2.5 rounded-lg border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium inline-flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+                  className="h-8 px-2.5 rounded-pill border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium inline-flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
                 >
                   <Bot size={13} className="text-muted" />
                   <span>Fleet</span>
@@ -783,7 +783,7 @@ export default function WorkspacePage() {
                   <button
                     type="button"
                     onClick={() => navigate("/studio-3d")}
-                    className="h-6 px-2 rounded-md border border-border bg-panel hover:bg-base text-[11px] font-medium text-ink inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                    className="h-6 px-2 rounded-pill border border-border bg-panel hover:bg-base text-[11px] font-medium text-ink inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
                   >
                     <span>3D Topology</span>
                     <ArrowUpRight size={12} className="text-muted" />
@@ -919,7 +919,7 @@ export default function WorkspacePage() {
                   type="submit"
                   id="ws-execute-btn"
                   disabled={!intentInput.trim() || isBuilding}
-                  className="h-10 px-4 rounded-lg bg-accent hover:bg-ember-glow text-on-ink font-sans font-medium text-xs disabled:opacity-40 inline-flex items-center gap-2 shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className="h-10 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink font-sans font-medium text-xs disabled:opacity-40 inline-flex items-center gap-2 shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   {isBuilding ? (
                     <>

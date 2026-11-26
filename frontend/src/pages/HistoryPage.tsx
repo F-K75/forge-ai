@@ -466,7 +466,7 @@ export default function HistoryPage() {
               type="button"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-pill border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <RefreshCw
                 size={13}
@@ -478,7 +478,7 @@ export default function HistoryPage() {
             <button
               type="button"
               onClick={handleExportAudit}
-              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-pill border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Download size={13} className="text-muted" />
               <span>Export Audit</span>
@@ -487,7 +487,7 @@ export default function HistoryPage() {
             <button
               type="button"
               onClick={() => setNewRunModalOpen(true)}
-              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Play size={12} fill="currentColor" />
               <span>Trigger Run</span>
@@ -588,15 +588,15 @@ export default function HistoryPage() {
           {/* Filters & View Switcher */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Status Filter */}
-            <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel">
+            <div className="inline-flex items-center p-0.5 rounded-pill border border-border bg-panel">
               {(["all", "success", "failed"] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setFilterStatus(tab)}
-                  className={`h-7 px-2.5 text-xs font-medium capitalize rounded-md transition-colors cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-medium capitalize rounded-pill transition-colors cursor-pointer ${
                     filterStatus === tab
-                      ? "bg-accent text-on-ink"
+                      ? "bg-ink text-on-ink"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -610,7 +610,7 @@ export default function HistoryPage() {
               aria-label="Filter by agent"
               value={filterAgent}
               onChange={(e) => setFilterAgent(e.target.value)}
-              className="h-8 bg-panel text-xs font-medium text-ink px-3 rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-8 bg-panel text-xs font-medium text-ink px-3 rounded-pill border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <option value="all">All Agents</option>
               {AGENTS.map((agent) => (
@@ -621,13 +621,13 @@ export default function HistoryPage() {
             </select>
 
             {/* View Mode Switcher */}
-            <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel">
+            <div className="inline-flex items-center p-0.5 rounded-pill border border-border bg-panel">
               <button
                 type="button"
                 onClick={() => setViewMode("cards")}
                 className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                   viewMode === "cards"
-                    ? "bg-accent text-on-ink"
+                    ? "bg-ink text-on-ink"
                     : "text-muted hover:text-ink"
                 }`}
                 title="Timeline view"
@@ -640,7 +640,7 @@ export default function HistoryPage() {
                 onClick={() => setViewMode("table")}
                 className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                   viewMode === "table"
-                    ? "bg-accent text-on-ink"
+                    ? "bg-ink text-on-ink"
                     : "text-muted hover:text-ink"
                 }`}
                 title="Table view"
@@ -669,7 +669,7 @@ export default function HistoryPage() {
                 setFilterStatus("all");
                 setFilterAgent("all");
               }}
-              className="h-8 px-4 rounded-lg bg-accent hover:bg-ember-glow text-xs font-medium text-on-ink transition-colors cursor-pointer"
+              className="h-8 px-4 rounded-pill bg-ink hover:bg-ink/90 text-xs font-medium text-on-ink transition-colors cursor-pointer"
             >
               Reset Filters
             </button>
@@ -756,7 +756,7 @@ export default function HistoryPage() {
                     <button
                       type="button"
                       onClick={(e) => handleRerun(item, e)}
-                      className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg border border-border bg-panel-alt text-ink hover:bg-base transition-colors cursor-pointer"
+                      className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-pill border border-border bg-panel-alt text-ink hover:bg-base transition-colors cursor-pointer"
                       title="Re-run this prompt"
                     >
                       <RotateCcw size={12} className="text-muted" />
@@ -769,7 +769,7 @@ export default function HistoryPage() {
                         setSelectedRun(item);
                         setInspectModalOpen(true);
                       }}
-                      className="h-8 inline-flex items-center gap-1.5 px-3.5 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors cursor-pointer"
+                      className="h-8 inline-flex items-center gap-1.5 px-3.5 text-xs font-medium rounded-pill bg-ink hover:bg-ink/90 text-on-ink transition-colors cursor-pointer"
                     >
                       <Eye size={13} />
                       <span>Inspect</span>
@@ -838,7 +838,7 @@ export default function HistoryPage() {
                       <button
                         type="button"
                         onClick={(e) => handleRerun(item, e)}
-                        className="h-7 px-2.5 text-xs font-medium rounded-md border border-border bg-panel-alt text-ink hover:bg-base transition-colors cursor-pointer"
+                        className="h-7 px-2.5 text-xs font-medium rounded-pill border border-border bg-panel-alt text-ink hover:bg-base transition-colors cursor-pointer"
                       >
                         Re-run
                       </button>
@@ -848,7 +848,7 @@ export default function HistoryPage() {
                           setSelectedRun(item);
                           setInspectModalOpen(true);
                         }}
-                        className="h-7 px-2.5 text-xs font-medium rounded-md bg-accent hover:bg-ember-glow text-on-ink transition-colors cursor-pointer"
+                        className="h-7 px-2.5 text-xs font-medium rounded-pill bg-ink hover:bg-ink/90 text-on-ink transition-colors cursor-pointer"
                       >
                         Inspect
                       </button>
@@ -999,7 +999,7 @@ export default function HistoryPage() {
                 <button
                   type="button"
                   onClick={(e) => handleCopyCommit(selectedRun.commit, e)}
-                  className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-mono rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                  className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-mono rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 >
                   <GitCommit size={13} className="text-muted" />
                   <span>Copy SHA ({selectedRun.commit})</span>
@@ -1012,7 +1012,7 @@ export default function HistoryPage() {
                       setInspectModalOpen(false);
                       navigate("/workspace");
                     }}
-                    className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                    className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                   >
                     <ExternalLink size={12} className="text-muted" />
                     <span>Workspace</span>
@@ -1020,7 +1020,7 @@ export default function HistoryPage() {
                   <button
                     type="button"
                     onClick={() => setInspectModalOpen(false)}
-                    className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                    className="h-8 px-3.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                   >
                     Close
                   </button>
@@ -1030,7 +1030,7 @@ export default function HistoryPage() {
                       setInspectModalOpen(false);
                       handleRerun(selectedRun);
                     }}
-                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors cursor-pointer"
+                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-pill bg-ink hover:bg-ink/90 text-on-ink transition-colors cursor-pointer"
                   >
                     <RotateCcw size={12} />
                     <span>Re-run Directive</span>
@@ -1134,7 +1134,7 @@ export default function HistoryPage() {
                   <button
                     type="button"
                     onClick={() => setNewRunModalOpen(false)}
-                    className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                    className="h-8 px-3.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1142,7 +1142,7 @@ export default function HistoryPage() {
                     type="button"
                     disabled={triggeringRun || !newRunPrompt.trim()}
                     onClick={handleCreateNewRun}
-                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
+                    className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-pill bg-ink hover:bg-ink/90 text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
                   >
                     {triggeringRun ? (
                       <>

@@ -100,7 +100,7 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
             onClick={() => onLayoutChange("horizontal")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
               layoutMode === "horizontal"
-                ? "bg-accent text-on-ink shadow-xs"
+                ? "bg-ink text-on-ink shadow-xs"
                 : "text-faint hover:text-ink"
             }`}
             title="Horizontal Layered Architecture (DAG)"
@@ -112,7 +112,7 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
             onClick={() => onLayoutChange("vertical")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
               layoutMode === "vertical"
-                ? "bg-accent text-on-ink shadow-xs"
+                ? "bg-ink text-on-ink shadow-xs"
                 : "text-faint hover:text-ink"
             }`}
             title="Vertical Hierarchical Tree"
@@ -124,7 +124,7 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
             onClick={() => onLayoutChange("radial")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
               layoutMode === "radial"
-                ? "bg-accent text-on-ink shadow-xs"
+                ? "bg-ink text-on-ink shadow-xs"
                 : "text-faint hover:text-ink"
             }`}
             title="Concentric Radial Cluster"

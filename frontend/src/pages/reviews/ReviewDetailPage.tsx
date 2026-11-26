@@ -29,7 +29,7 @@ import { LIVE_MODE } from "../../lib/env";
 const SEVERITY_STYLES: Record<BacklogItem["severity"], { bg: string; text: string }> = {
  critical: { bg: "bg-error/20 text-error", text: "text-ink" },
  high: { bg: "bg-warn/20 text-warn", text: "text-ink" },
- medium: { bg: "bg-accent text-on-ink", text: "text-on-ink" },
+ medium: { bg: "bg-ink text-on-ink", text: "text-on-ink" },
  low: { bg: "bg-surface-high", text: "text-ink" },
 };
 
@@ -263,7 +263,7 @@ export default function ReviewDetailPage() {
     : isNoGo
  ? "bg-error/20 text-error text-ink"
     : isFixes
- ? "bg-accent text-on-ink text-on-ink"
+ ? "bg-ink text-on-ink text-on-ink"
  : "bg-info/20 text-info text-ink";
 
  const repoTarget = fallbackData?.repo_path || "Target Repository";
@@ -273,7 +273,7 @@ export default function ReviewDetailPage() {
     return (
  <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center font-mono">
  <div className="border border-border bg-panel p-8 max-w-lg shadow-m3 ">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
             <ShieldAlert size={28} strokeWidth={2.5} />
           </div>
  <h1 className="text-lg font-semibold uppercase text-ink">
@@ -283,7 +283,7 @@ export default function ReviewDetailPage() {
  <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
  to="/reviews"
- className="h-8 px-4 inline-flex items-center justify-center border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-8 px-4 inline-flex items-center justify-center border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
             >
               Back to reviews
             </Link>
@@ -322,7 +322,7 @@ export default function ReviewDetailPage() {
  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
  <div className="space-y-1">
  <div className="flex items-center gap-2.5">
- <span className="flex h-7 w-7 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
+ <span className="flex h-7 w-7 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
  <BrandLogo size="xs" />
                 </span>
  <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
@@ -472,7 +472,7 @@ export default function ReviewDetailPage() {
               const issues = state?.issues ?? 0;
               const score = state?.score;
 
- let iconBg = "bg-accent text-on-ink";
+ let iconBg = "bg-ink text-on-ink";
  if (agentId.includes("security")) iconBg = "bg-error/20 text-error";
  else if (agentId.includes("performance")) iconBg = "bg-info/20 text-info";
  else if (agentId.includes("architecture")) iconBg = "bg-accent/20 text-accent";

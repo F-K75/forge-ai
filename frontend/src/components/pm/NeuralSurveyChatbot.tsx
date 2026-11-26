@@ -903,7 +903,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 id="neural-chat-history-btn"
                 type="button"
                 onClick={() => setShowHistoryDrawer((prev) => !prev)}
-                className={`h-7 px-2.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`h-7 px-2.5 rounded-pill border text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   showHistoryDrawer
                     ? 'bg-ink text-on-ink border-transparent shadow-xs'
                     : 'bg-panel border-border text-ink hover:bg-ink/5'
@@ -918,7 +918,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               <button
                 type="button"
                 onClick={handleCopyTranscript}
-                className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
+                className="h-7 px-2.5 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                 title="Copy full chat transcript to clipboard"
               >
                 {copiedFullTranscript ? (
@@ -1142,7 +1142,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   <button
                     type="button"
                     onClick={handleCopyTranscript}
-                    className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
+                    className="h-7 px-2.5 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                   >
                     {copiedFullTranscript ? (
                       <>
@@ -1160,7 +1160,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                   <button
                     type="button"
                     onClick={handleDownloadTranscript}
-                    className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
+                    className="h-7 px-2.5 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                     title="Download transcript as Markdown file"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1209,7 +1209,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowSaveSnapshotModal(true)}
-                  className="h-7 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
+                  className="h-7 px-2.5 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 flex items-center gap-1 cursor-pointer"
                 >
                   <Bookmark className="w-3.5 h-3.5 text-agent-integration" />
                   <span>Save Snapshot</span>
@@ -1627,7 +1627,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               type="button"
               onClick={() => handleSendMessage()}
               disabled={!inputValue.trim() || isAiThinking}
-              className="h-8 px-3.5 rounded-xl bg-ink hover:bg-ink text-on-ink text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-8 px-3.5 rounded-pill bg-ink hover:bg-ink text-on-ink text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Send</span>
@@ -1656,7 +1656,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               id="neural-save-draft-btn"
               type="button"
               onClick={onSaveDraft}
-              className={`h-7 px-3 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
+              className={`h-7 px-3 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
                 isDraftSaved
                   ? 'bg-ok text-on-ink border-ok/30 shadow-xs'
                   : 'bg-panel border-border text-ink hover:bg-ink/5'
@@ -1683,7 +1683,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
             <button
               type="button"
               onClick={onSwitchToSummary}
-              className="h-8 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink cursor-pointer transition-colors"
+              className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink cursor-pointer transition-colors"
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-agent-integration" />
               <span>Review Matrix</span>
@@ -1694,7 +1694,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
             type="button"
             onClick={onGenerate}
             disabled={isGenerating}
-            className="h-8 px-4 rounded-xl bg-ink hover:bg-ink text-on-ink text-xs font-semibold shadow-xs active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="h-8 px-4 rounded-pill bg-ink hover:bg-ink text-on-ink text-xs font-semibold shadow-xs active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {isGenerating ? (
               <>

@@ -214,7 +214,7 @@ export default function Signup() {
                     id="signup-continue-workspace-btn"
                     type="button"
                     onClick={() => navigate("/projects", { replace: true })}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ember-glow cursor-pointer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-ink px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ink/90 cursor-pointer"
                   >
                     <span>Continue to workspace</span>
                     <ArrowRight size={15} />
@@ -451,7 +451,7 @@ export default function Signup() {
                       id="signup-submit-btn"
                       type="submit"
                       disabled={loading}
-                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
+                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-ink px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ink/90 disabled:opacity-50 cursor-pointer"
                     >
                       {loading ? (
                         <>

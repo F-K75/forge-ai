@@ -79,7 +79,7 @@ export function AgentPayloadModal({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-pill border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
             >
               {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
               <span>{copied ? "Copied" : "Copy"}</span>
@@ -88,7 +88,7 @@ export function AgentPayloadModal({
             <button
               type="button"
               onClick={handleDownload}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-pill border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
             >
               <Download size={13} />
               <span>Download</span>

@@ -162,7 +162,7 @@ export const AudioBriefingCard: React.FC<{
           <button
             type="button"
             onClick={cycleSpeed}
-            className="h-7 px-2.5 rounded-lg border border-border bg-panel hover:bg-ink/5 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+            className="h-7 px-2.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
             title="Cycle playback speed"
           >
             {speed}x
@@ -225,7 +225,7 @@ export const AudioBriefingCard: React.FC<{
         <button
           type="button"
           onClick={handleTogglePlay}
-          className={`h-8 px-4 rounded-xl flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-98 ${
+          className={`h-8 px-4 rounded-pill flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-98 ${
             isPlaying
               ? 'bg-error hover:bg-error/90 text-on-ink'
               : 'bg-warn hover:bg-warn/90 text-on-ink font-semibold'
@@ -249,7 +249,7 @@ export const AudioBriefingCard: React.FC<{
             <button
               type="button"
               onClick={() => setShowTranscript(!showTranscript)}
-              className="h-8 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer shadow-2xs"
+              className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer shadow-2xs"
             >
               <FileText size={12} />
               <span>{showTranscript ? 'Hide Script' : 'Transcript'}</span>
@@ -521,7 +521,7 @@ ${story.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
         <button
           type="button"
           onClick={() => toast.success(`Task ${story.id} queued for sprint board execution`)}
-          className="h-8 px-3.5 rounded-xl bg-ink text-on-ink hover:opacity-90 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+          className="h-8 px-3.5 rounded-pill bg-ink text-on-ink hover:opacity-90 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
         >
           <BookmarkPlus size={13} />
           <span>Add to Sprint Board</span>
@@ -530,7 +530,7 @@ ${story.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
         <button
           type="button"
           onClick={copyStoryMarkdown}
-          className="h-8 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer shadow-2xs"
+          className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer shadow-2xs"
         >
           {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
           <span>{copied ? 'Copied' : 'Copy Story'}</span>
@@ -677,7 +677,7 @@ export const CodeSnippetMediaCard: React.FC<{
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-ink text-on-ink p-4 shadow-xs font-mono text-xs">
+    <div className="rounded-pill border border-border bg-ink text-on-ink p-4 shadow-xs font-mono text-xs">
       <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-panel-alt text-warn border border-border text-[10px]">
@@ -694,7 +694,7 @@ export const CodeSnippetMediaCard: React.FC<{
         <button
           type="button"
           onClick={handleCopy}
-          className="h-7 px-2.5 rounded-lg border border-border bg-ink hover:bg-ink/90 text-muted text-[10px] font-semibold uppercase flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+          className="h-7 px-2.5 rounded-pill border border-border bg-ink hover:bg-ink/90 text-muted text-[10px] font-semibold uppercase flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
         >
           {copied ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
           <span>{copied ? 'Copied' : 'Copy'}</span>

@@ -374,7 +374,7 @@ export const TaskDependencyModal: React.FC<TaskDependencyModalProps> = ({
                   id="add-dependency-btn"
                   type="submit"
                   disabled={!selectedCandidateId}
-                  className="h-9 px-4 rounded-lg glass-button-primary text-xs font-semibold uppercase disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all"
+                  className="h-9 px-4 rounded-pill glass-button-primary text-xs font-semibold uppercase disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all"
                 >
                   <Link2 className="w-3.5 h-3.5 stroke-[2.2]" />
                   <span>Link as Blocker</span>

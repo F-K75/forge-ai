@@ -259,7 +259,7 @@ export default function AuthPage() {
                     id="mfa-submit-btn"
                     type="submit"
                     disabled={loading || !mfaCode.trim()}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-ink px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ink/90 disabled:opacity-50 cursor-pointer"
                   >
                     {loading ? (
                       <>
@@ -437,7 +437,7 @@ export default function AuthPage() {
                     id="auth-submit-btn"
                     type="submit"
                     disabled={loading}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-ink px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ink/90 disabled:opacity-50 cursor-pointer"
                   >
                     {loading ? (
                       <>
@@ -458,7 +458,7 @@ export default function AuthPage() {
                       id="auth-admin-signin-btn"
                       type="button"
                       onClick={handleQuickAdminSignIn}
-                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-panel-alt px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-high cursor-pointer"
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-pill border border-border bg-panel-alt px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-high cursor-pointer"
                       title="Sign in directly with Admin privileges (admin@forge.ai)"
                     >
                       <ShieldCheck size={14} className="text-accent" />
@@ -468,7 +468,7 @@ export default function AuthPage() {
                       id="auth-demo-fill-btn"
                       type="button"
                       onClick={handleQuickDemoFill}
-                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-panel px-3 text-xs font-medium text-muted transition-colors hover:bg-panel-alt hover:text-ink cursor-pointer"
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-pill border border-border bg-panel px-3 text-xs font-medium text-muted transition-colors hover:bg-panel-alt hover:text-ink cursor-pointer"
                     >
                       <Sparkles size={13} className="text-accent" />
                       <span>Auto-fill Demo</span>

@@ -144,7 +144,7 @@ export function ForgeCodeSurface({
                 type="button"
                 onClick={() => setActivePath(p)}
                 title={p}
-                className={`h-8 px-2.5 rounded-md text-xs font-mono font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
+                className={`h-8 px-2.5 rounded-pill text-xs font-mono font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                   isActive
                     ? "bg-panel text-ink border border-border shadow-apple"
                     : "text-muted hover:text-ink hover:bg-panel/60 border border-transparent"
@@ -165,9 +165,9 @@ export function ForgeCodeSurface({
           <button
             type="button"
             onClick={() => setIsDiffMode(!isDiffMode)}
-            className={`h-8 px-2.5 rounded-md border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
+            className={`h-8 px-2.5 rounded-pill border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
               isDiffMode
-                ? "bg-accent text-on-ink border-accent"
+                ? "bg-ink text-on-ink border-transparent"
                 : "bg-panel text-ink border-border hover:bg-panel-alt"
             }`}
           >
@@ -178,7 +178,7 @@ export function ForgeCodeSurface({
           <button
             type="button"
             onClick={handleCopy}
-            className="h-8 px-2.5 rounded-md border border-border bg-panel text-ink hover:bg-panel-alt text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+            className="h-8 px-2.5 rounded-pill border border-border bg-panel text-ink hover:bg-panel-alt text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
           >
             {copied ? (
               <>

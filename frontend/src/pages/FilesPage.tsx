@@ -575,7 +575,7 @@ export default function FilesPage() {
           <button
             type="button"
             onClick={() => navigate(`/p/${filesProjectId}/workspace`)}
-            className="h-9 rounded-lg bg-accent hover:bg-ember-glow px-4 text-xs font-medium text-on-ink transition-colors cursor-pointer"
+            className="h-9 rounded-pill bg-ink hover:bg-ink/90 px-4 text-xs font-medium text-on-ink transition-colors cursor-pointer"
           >
             Open workspace
           </button>
@@ -626,7 +626,7 @@ export default function FilesPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-pill border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Upload size={13} className="text-muted" />
               <span>Upload</span>
@@ -635,7 +635,7 @@ export default function FilesPage() {
             <button
               type="button"
               onClick={handleExportAll}
-              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-pill border border-border bg-panel hover:bg-panel-alt text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Download size={13} className="text-muted" />
               <span>Export All</span>
@@ -644,7 +644,7 @@ export default function FilesPage() {
             <button
               type="button"
               onClick={() => setNewFileModalOpen(true)}
-              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Plus size={14} />
               <span>New File</span>
@@ -655,7 +655,7 @@ export default function FilesPage() {
               onClick={() =>
                 navigate(filesProjectId ? `/p/${filesProjectId}/workspace` : "/workspace")
               }
-              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-panel-alt hover:bg-base text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-pill border border-border bg-panel-alt hover:bg-base text-xs font-medium text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <span>Workspace</span>
               <ExternalLink size={12} className="text-muted" />
@@ -776,7 +776,7 @@ export default function FilesPage() {
                   onClick={() => setLanguageFilter(lang)}
                   className={`px-2 py-1 rounded-md font-medium uppercase transition-colors cursor-pointer ${
                     languageFilter === lang
-                      ? "bg-accent text-on-ink"
+                      ? "bg-ink text-on-ink"
                       : "text-muted hover:text-ink hover:bg-panel-alt"
                   }`}
                 >
@@ -936,7 +936,7 @@ export default function FilesPage() {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                className="h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 title="Copy code to clipboard"
               >
                 {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} className="text-muted" />}
@@ -946,7 +946,7 @@ export default function FilesPage() {
               <button
                 type="button"
                 onClick={() => handleDownloadFile(activeFile)}
-                className="h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                className="h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 title="Download this file"
               >
                 <Download size={13} className="text-muted" />
@@ -957,7 +957,7 @@ export default function FilesPage() {
                 type="button"
                 disabled={!isDirty}
                 onClick={handleSave}
-                className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
+                className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium rounded-pill bg-ink hover:bg-ink/90 text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
               >
                 <Save size={13} />
                 <span>Save</span>
@@ -1083,7 +1083,7 @@ export default function FilesPage() {
                 <button
                   type="button"
                   onClick={() => setNewFileModalOpen(false)}
-                  className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                  className="h-8 px-3.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1091,7 +1091,7 @@ export default function FilesPage() {
                   type="button"
                   disabled={!newFilePath.trim()}
                   onClick={handleCreateFile}
-                  className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-lg bg-accent hover:bg-ember-glow text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
+                  className="h-8 inline-flex items-center gap-1.5 px-4 text-xs font-medium rounded-pill bg-ink hover:bg-ink/90 text-on-ink transition-colors disabled:opacity-45 cursor-pointer"
                 >
                   <Plus size={13} />
                   <span>Create File</span>
@@ -1143,14 +1143,14 @@ export default function FilesPage() {
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmOpen(false)}
-                  className="h-8 px-3.5 text-xs font-medium rounded-lg border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
+                  className="h-8 px-3.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-base transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleDeleteFile}
-                  className="h-8 px-4 text-xs font-medium rounded-lg bg-error text-on-ink hover:opacity-90 transition-opacity cursor-pointer"
+                  className="h-8 px-4 text-xs font-medium rounded-pill bg-error text-on-ink hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Delete File
                 </button>

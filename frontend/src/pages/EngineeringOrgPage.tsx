@@ -127,7 +127,7 @@ function TaskRouterPanel({ projectId }: { projectId: string }) {
         <button
           onClick={handleRoute}
           disabled={loading || !request.trim()}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm bg-accent text-on-ink disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-pill text-sm bg-ink text-on-ink disabled:opacity-40"
         >
           <Send size={14} aria-hidden="true" />
           Route

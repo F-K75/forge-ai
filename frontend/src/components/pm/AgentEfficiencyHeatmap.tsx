@@ -942,7 +942,7 @@ export default function AgentEfficiencyHeatmap() {
                   {/* Agent Info Header Cell */}
                   <td className="p-3 border-r-2 border-border bg-ink/10">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 shrink-0 rounded bg-ink text-on-ink flex items-center justify-center font-mono text-xs font-semibold">
+                      <div className="w-7 h-7 shrink-0 rounded-pill bg-ink text-on-ink flex items-center justify-center font-mono text-xs font-semibold">
                         <Bot size={14} />
                       </div>
                       <div className="min-w-0">
@@ -1066,7 +1066,7 @@ export default function AgentEfficiencyHeatmap() {
           {/* Inspector Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-ink text-on-ink flex items-center justify-center font-mono text-lg font-semibold">
+              <div className="w-10 h-10 rounded-pill bg-ink text-on-ink flex items-center justify-center font-mono text-lg font-semibold">
                 <Bot size={20} />
               </div>
               <div>
@@ -1095,7 +1095,7 @@ export default function AgentEfficiencyHeatmap() {
                 type="button"
                 onClick={handleSimulateRun}
                 disabled={isSimulating}
-                className="h-8 px-3 inline-flex items-center gap-1.5 border-2 border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase hover:bg-accent/90 disabled:opacity-50 transition-transform active:translate-x-[1px] active:translate-y-[1px]"
+                className="h-8 px-3 inline-flex items-center gap-1.5 border-2 border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase hover:bg-ink/90 disabled:opacity-50 transition-transform active:translate-x-[1px] active:translate-y-[1px]"
               >
                 <RotateCw size={12} className={isSimulating ? "animate-spin" : ""} />
                 <span>{isSimulating ? "Running..." : "Simulate Diagnostic Run"}</span>

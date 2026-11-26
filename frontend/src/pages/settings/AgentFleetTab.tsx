@@ -80,7 +80,7 @@ export function AgentFleetTab() {
                     onClick={() => setFleet((f) => ({ ...f, debugIterations: count }))}
                     className={`h-7 w-8 rounded text-xs font-mono font-medium transition ${
                       fleet.debugIterations === count
-                        ? "bg-accent text-on-ink shadow-sm"
+                        ? "bg-ink text-on-ink shadow-sm"
                         : "text-muted hover:text-ink hover:bg-base"
                     }`}
                   >

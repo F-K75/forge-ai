@@ -227,7 +227,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 transition-colors flex items-center gap-1.5 cursor-pointer"
               title="Copy architectural blueprint as Markdown"
             >
               {copied ? (
@@ -247,7 +247,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             <button
               type="button"
               onClick={handleDownload}
-              className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 transition-colors flex items-center gap-1.5 cursor-pointer"
               title="Download blueprint as Markdown file"
             >
               <Download className="w-3.5 h-3.5 text-muted" />
@@ -258,7 +258,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             <button
               type="button"
               onClick={onToggle}
-              className="h-8 px-2.5 rounded-lg border border-border bg-panel text-muted hover:text-ink transition-colors flex items-center gap-1 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border bg-panel text-muted hover:text-ink transition-colors flex items-center gap-1 cursor-pointer"
               title={isOpen ? 'Collapse Blueprint Summary' : 'Expand Blueprint Summary'}
             >
               <span className="text-xs font-medium hidden sm:inline">
@@ -338,7 +338,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('cards')}
-                  className={`h-6 px-2 rounded font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
+                  className={`h-6 px-2 rounded-pill font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
                     viewMode === 'cards'
                       ? 'bg-panel text-ink shadow-2xs'
                       : 'text-muted hover:text-ink'
@@ -351,7 +351,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('raw')}
-                  className={`h-6 px-2 rounded font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
+                  className={`h-6 px-2 rounded-pill font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
                     viewMode === 'raw'
                       ? 'bg-panel text-ink shadow-2xs'
                       : 'text-muted hover:text-ink'
@@ -512,7 +512,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                   <span>{copied ? 'Copied' : 'Copy All Markdown'}</span>
                 </button>
               </div>
-              <pre className="p-4 rounded-xl bg-ink text-on-ink text-[11px] font-mono leading-relaxed overflow-x-auto max-h-96 border border-border selection:bg-agent-integration">
+              <pre className="p-4 rounded-pill bg-ink text-on-ink text-[11px] font-mono leading-relaxed overflow-x-auto max-h-96 border border-border selection:bg-agent-integration">
                 {blueprintMarkdown}
               </pre>
             </div>

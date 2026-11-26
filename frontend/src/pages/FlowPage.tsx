@@ -426,7 +426,7 @@ export default function FlowPage() {
                 id="flow-run-sim-btn"
                 type="button"
                 onClick={simPlaying ? handlePauseSim : handleStartSim}
-                className="h-9 px-4 rounded-md bg-accent hover:bg-ember-glow text-on-ink text-xs font-semibold flex items-center gap-1.5 shadow-apple transition-colors cursor-pointer"
+                className="h-9 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-semibold flex items-center gap-1.5 shadow-apple transition-colors cursor-pointer"
               >
                 {simPlaying ? (
                   <>
@@ -472,7 +472,7 @@ export default function FlowPage() {
                       setSimPlaying(false);
                       setSimLogs([]);
                     }}
-                    className={`h-8 px-3 rounded-sm border text-xs font-medium flex items-center transition-colors cursor-pointer ${
+                    className={`h-8 px-3 rounded-pill border text-xs font-medium flex items-center transition-colors cursor-pointer ${
                       isActive
                         ? "border-accent bg-accent-soft text-accent font-semibold"
                         : "border-border bg-panel-alt text-muted hover:text-ink"
@@ -651,7 +651,7 @@ export default function FlowPage() {
                   id="sim-play-toggle"
                   type="button"
                   onClick={simPlaying ? handlePauseSim : handleStartSim}
-                  className="h-8 px-3 rounded-sm bg-accent hover:bg-ember-glow text-on-ink text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-3 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   title={simPlaying ? "Pause" : "Play Simulation"}
                 >
                   {simPlaying ? (
@@ -694,7 +694,7 @@ export default function FlowPage() {
                     key={spd}
                     type="button"
                     onClick={() => setSimSpeed(spd)}
-                    className={`h-7 px-2 rounded-sm border font-mono text-[11px] font-semibold transition-colors cursor-pointer ${
+                    className={`h-7 px-2 rounded-pill border font-mono text-[11px] font-semibold transition-colors cursor-pointer ${
                       simSpeed === spd
                         ? "border-accent bg-accent-soft text-accent"
                         : "border-border bg-panel-alt text-muted hover:text-ink"
@@ -733,7 +733,7 @@ export default function FlowPage() {
                 id="toggle-console-btn"
                 type="button"
                 onClick={() => setShowConsole(!showConsole)}
-                className="h-8 px-3 rounded-sm border border-border bg-panel-alt hover:border-faint text-ink text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="h-8 px-3 rounded-pill border border-border bg-panel-alt hover:border-faint text-ink text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Terminal size={13} />
                 <span>Agent Logs</span>

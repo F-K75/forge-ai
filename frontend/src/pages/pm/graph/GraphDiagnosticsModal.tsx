@@ -214,7 +214,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-accent px-4 py-1.5 font-medium text-on-ink hover:bg-accent/90 transition-all"
+            className="rounded-pill bg-ink px-4 py-1.5 font-medium text-on-ink hover:bg-ink/90 transition-all"
           >
             Dismiss
           </button>

@@ -166,7 +166,7 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
             id="sprint-header-new-sprint-btn"
             type="button"
             onClick={onOpenCreateModal}
-            className="h-9 px-4 rounded-xl bg-agent-integration hover:bg-agent-integration/90 active:bg-agent-integration text-on-ink text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            className="h-9 px-4 rounded-pill bg-agent-integration hover:bg-agent-integration/90 active:bg-agent-integration text-on-ink text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
           >
             <Zap size={14} className="fill-current" />
             <span>NEW SPRINT</span>
@@ -246,7 +246,7 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
                   id="sprint-start-btn"
                   type="button"
                   onClick={() => onUpdateSprintStatus(selectedSprint.id, "active")}
-                  className="h-8 px-3.5 rounded-xl bg-ok hover:bg-ok/90 text-on-ink text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                  className="h-8 px-3.5 rounded-pill bg-ok hover:bg-ok/90 text-on-ink text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
                 >
                   <Play size={12} className="fill-current" />
                   <span>Start Sprint</span>
@@ -258,7 +258,7 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
                   id="sprint-complete-btn"
                   type="button"
                   onClick={() => onUpdateSprintStatus(selectedSprint.id, "completed")}
-                  className="h-8 px-3.5 rounded-xl border border-border bg-panel hover:bg-ink/5 text-ink text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                  className="h-8 px-3.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-ink text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
                 >
                   <CheckCheck size={14} className="text-agent-integration" />
                   <span>Complete Sprint</span>

@@ -44,15 +44,15 @@ export function ForgeDebugSurface() {
             42/42 Passed · 142ms
           </span>
 
-          <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel">
+          <div className="inline-flex items-center p-0.5 rounded-pill border border-border bg-panel">
             {(["all", "Auth", "Billing", "Database", "Edge"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setFilter(s)}
-                className={`h-7 px-2.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
+                className={`h-7 px-2.5 rounded-pill text-xs font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                   filter === s
-                    ? "bg-accent text-on-ink"
+                    ? "bg-ink text-on-ink"
                     : "text-muted hover:text-ink"
                 }`}
               >
@@ -66,7 +66,7 @@ export function ForgeDebugSurface() {
           type="button"
           disabled={isRunning}
           onClick={handleRerun}
-          className="h-8 px-3 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+          className="h-8 px-3 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
         >
           <RotateCcw size={12} className={isRunning ? "animate-spin" : ""} />
           <span>{isRunning ? "Running…" : "Re-run Suite"}</span>

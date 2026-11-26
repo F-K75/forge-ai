@@ -93,7 +93,7 @@ export function RoadmapHeader({
               type="button"
               onClick={onSimulateForecast}
               disabled={isForecasting}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-ink hover:bg-ink/90 text-on-ink shadow-sm transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-pill bg-ink hover:bg-ink/90 text-on-ink shadow-sm transition-all cursor-pointer disabled:opacity-50"
             >
               <Sparkles size={14} className={isForecasting ? "animate-spin" : ""} />
               <span>{isForecasting ? "Forecasting…" : "AI Horizon Forecast"}</span>

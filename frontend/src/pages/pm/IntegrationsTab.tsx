@@ -96,7 +96,7 @@ export const INTEGRATION_CATALOG: IntegrationProviderDef[] = [
     capabilities: ["Merge Requests", "CI Pipelines", "Issue Boards"],
     docsUrl: "https://docs.gitlab.com/ee/api/",
     defaultProjectName: "GitLab Group",
-    iconBg: "bg-accent text-on-ink",
+    iconBg: "bg-ink text-on-ink",
     iconColor: "text-ink",
     iconType: "gitlab",
     fields: {
@@ -610,7 +610,7 @@ export default function IntegrationsTab() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-on-ink font-semibold shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shadow-xs">
               <Plug size={18} className="text-warn" />
             </div>
             <div>
@@ -637,7 +637,7 @@ export default function IntegrationsTab() {
             id="btn-open-webhooks-modal"
             type="button"
             onClick={() => setShowWebhookModal(true)}
-            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
             title="Manage incoming and outgoing HTTP webhook endpoints"
           >
             <Webhook size={13} className="text-muted" />
@@ -650,7 +650,7 @@ export default function IntegrationsTab() {
             type="button"
             onClick={handleSyncAll}
             disabled={syncingAll || integrations.length === 0}
-            className="h-9 px-3.5 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3.5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
             title="Synchronize all active connectors immediately"
           >
             <RefreshCw
@@ -811,7 +811,7 @@ export default function IntegrationsTab() {
             id="filter-connection-status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="h-9 px-3 rounded-xl border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
+            className="h-9 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
           >
             <option value="all">All States</option>
             <option value="connected">Connected Only</option>
@@ -842,7 +842,7 @@ export default function IntegrationsTab() {
                 setSelectedCategory("all");
                 setStatusFilter("all");
               }}
-              className="h-8 px-3 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
+              className="h-8 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
             >
               Reset Filters
             </button>
@@ -969,7 +969,7 @@ export default function IntegrationsTab() {
                             type="button"
                             onClick={() => handleSyncProvider(prov.id)}
                             disabled={isSyncing}
-                            className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+                            className="h-8 px-2.5 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
                             title="Synchronize now"
                           >
                             <RefreshCw
@@ -982,7 +982,7 @@ export default function IntegrationsTab() {
                           <button
                             type="button"
                             onClick={() => handleOpenConfigure(prov)}
-                            className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+                            className="h-8 px-2.5 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
                             title="Configure integration bindings"
                           >
                             <SlidersHorizontal size={12} />
@@ -1002,7 +1002,7 @@ export default function IntegrationsTab() {
                         <button
                           type="button"
                           onClick={() => handleOpenConfigure(prov)}
-                          className="h-8 px-3.5 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs hover:opacity-90 transition-all active:scale-[0.98]"
+                          className="h-8 px-3.5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs hover:opacity-90 transition-all active:scale-[0.98]"
                         >
                           <Plus size={13} />
                           <span>Connect</span>
@@ -1280,7 +1280,7 @@ export default function IntegrationsTab() {
               <button
                 type="button"
                 onClick={() => setActiveDrawerProvider(null)}
-                className="h-9 px-4 rounded-xl border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
+                className="h-9 px-4 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
               >
                 Cancel
               </button>
@@ -1289,7 +1289,7 @@ export default function IntegrationsTab() {
                 type="button"
                 onClick={handleSaveDrawer}
                 disabled={isSavingDrawer}
-                className="h-9 px-5 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 disabled:opacity-50"
+                className="h-9 px-5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 disabled:opacity-50"
               >
                 {isSavingDrawer ? (
                   <span>Saving...</span>
@@ -1371,7 +1371,7 @@ export default function IntegrationsTab() {
                     toast.success("Webhook URL copied");
                     setTimeout(() => setWebhookUrlCopied(false), 2000);
                   }}
-                  className="h-9 px-3 rounded-xl border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  className="h-9 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer flex items-center gap-1.5 shadow-2xs"
                 >
                   {webhookUrlCopied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
                   <span>{webhookUrlCopied ? "Copied" : "Copy"}</span>
@@ -1423,7 +1423,7 @@ export default function IntegrationsTab() {
               <button
                 type="button"
                 onClick={() => setShowWebhookModal(false)}
-                className="h-9 px-4 rounded-xl bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
+                className="h-9 px-4 rounded-pill bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
               >
                 Done
               </button>

@@ -293,7 +293,7 @@ export const GraphNodeInspector: React.FC<GraphNodeInspectorProps> = ({
           <button
             type="button"
             onClick={handleNavigateToBoard}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-accent py-1.5 text-xs font-medium text-on-ink hover:bg-accent/90 transition-all active:scale-95"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-pill bg-ink py-1.5 text-xs font-medium text-on-ink hover:bg-ink/90 transition-all active:scale-95"
           >
             <ExternalLink size={12} />
             <span>Open Board</span>

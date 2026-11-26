@@ -478,7 +478,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <button
                       type="button"
                       onClick={cycleSpeed}
-                      className="h-7 px-2.5 rounded-lg border border-border bg-panel hover:bg-ink/5 text-xs font-semibold transition-all cursor-pointer"
+                      className="h-7 px-2.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold transition-all cursor-pointer"
                       title="Playback speed"
                     >
                       {playbackSpeed}x
@@ -541,7 +541,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                   <button
                     type="button"
                     onClick={handleTogglePlay}
-                    className={`h-8 px-4 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+                    className={`h-8 px-4 rounded-pill flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
                       isPlaying
                         ? 'bg-error hover:bg-error/90 text-on-ink'
                         : 'bg-ink hover:bg-ink text-on-ink '
@@ -555,7 +555,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                     <button
                       type="button"
                       onClick={() => setShowTranscript(!showTranscript)}
-                      className="h-8 px-3 rounded-lg border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer"
+                      className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer"
                     >
                       <span>{showTranscript ? 'Hide Script' : 'Transcript'}</span>
                       {showTranscript ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -683,7 +683,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 <button
                   type="button"
                   onClick={() => onOpenCopilot('Generate complete OpenAPI 3.1 contract and database schema migration for this architecture.')}
-                  className="h-7 px-3 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  className="h-7 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                 >
                   <FileCode2 size={12} />
                   <span>Generate OpenAPI & Schemas</span>
@@ -846,7 +846,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 <button
                   type="button"
                   onClick={() => onOpenCopilot('Generate 5 more INVEST-compliant user stories with automated Gherkin test criteria.')}
-                  className="h-8 px-3.5 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="h-8 px-3.5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <BookmarkPlus size={13} />
                   <span>Generate More Stories</span>
@@ -903,7 +903,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
               <button
                 type="button"
                 onClick={() => onOpenCopilot('Formulate an actionable risk mitigation plan and sprint buffer strategy for these bottlenecks.')}
-                className="h-8 px-3.5 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="h-8 px-3.5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Zap size={13} />
                 <span>Apply Risk Mitigation in Copilot</span>
@@ -924,7 +924,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             key={idx}
             type="button"
             onClick={() => onOpenCopilot(item.prompt)}
-            className="text-xs h-7 px-2.5 rounded-md bg-panel-alt hover:bg-ink/5 border border-border text-ink cursor-pointer transition-all flex items-center gap-1"
+            className="text-xs h-7 px-2.5 rounded-pill bg-panel-alt hover:bg-ink/5 border border-border text-ink cursor-pointer transition-all flex items-center gap-1"
           >
             <span>{item.label}</span>
           </button>
@@ -939,7 +939,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
       <div className="rounded-xl border border-border bg-panel/95 shadow-xs p-3.5 font-sans space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink font-semibold shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shrink-0">
               <Sparkles size={14} className="text-warn" />
             </div>
             <div>
@@ -996,7 +996,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             <button
               type="button"
               onClick={() => setIsExpandedInline((v) => !v)}
-              className="h-8 px-2.5 rounded-lg border border-border text-xs font-semibold flex items-center gap-1.5 bg-panel hover:bg-ink/5 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border text-xs font-semibold flex items-center gap-1.5 bg-panel hover:bg-ink/5 cursor-pointer"
               title={isExpandedInline ? 'Collapse Intelligence Hub' : 'Expand Intelligence Hub inline'}
             >
               {isExpandedInline ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -1007,7 +1007,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="h-8 px-2.5 rounded-lg border border-border text-xs font-semibold flex items-center gap-1.5 bg-panel hover:bg-ink/5 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border text-xs font-semibold flex items-center gap-1.5 bg-panel hover:bg-ink/5 cursor-pointer"
               title="Open full slide-over drawer"
             >
               <Maximize2 size={13} />
@@ -1018,7 +1018,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             <button
               type="button"
               onClick={() => onOpenCopilot()}
-              className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+              className={`h-8 px-2.5 rounded-pill text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
                 copilotOpen
                   ? 'bg-ink text-on-ink '
                   : 'border border-border bg-panel text-ink hover:bg-ink/5'
@@ -1057,7 +1057,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
             {/* Drawer Header */}
             <div className="px-5 py-3.5 border-b border-border flex flex-wrap items-center justify-between gap-3 bg-ink/10">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-on-ink font-semibold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold">
                   <Sparkles size={14} className="text-warn" />
                 </div>
                 <div>
@@ -1106,7 +1106,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                 <button
                   type="button"
                   onClick={() => onOpenCopilot()}
-                  className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                  className={`h-8 px-2.5 rounded-pill text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
                     copilotOpen
                       ? 'bg-ink text-on-ink '
                       : 'border border-border bg-panel text-ink hover:bg-ink/5'
@@ -1206,7 +1206,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
               <button
                 type="button"
                 onClick={() => setShowDiagramModal(false)}
-                className="h-8 px-3 rounded-lg border border-border text-xs font-semibold cursor-pointer hover:bg-ink/5"
+                className="h-8 px-3 rounded-pill border border-border text-xs font-semibold cursor-pointer hover:bg-ink/5"
               >
                 Close
               </button>
@@ -1255,7 +1255,7 @@ export const InitiativeMixedMediaTray: React.FC<InitiativeMixedMediaTrayProps> =
                   setShowDiagramModal(false);
                   onOpenCopilot('Generate complete OpenAPI specification and schema files for this architecture.');
                 }}
-                className="h-8 px-4 rounded-lg bg-ink text-on-ink font-semibold text-xs cursor-pointer shadow-xs"
+                className="h-8 px-4 rounded-pill bg-ink text-on-ink font-semibold text-xs cursor-pointer shadow-xs"
               >
                 Ask Copilot to Generate Specs
               </button>

@@ -817,7 +817,7 @@ export default function ProjectsPage() {
                     <button
                       type="submit"
                       disabled={isImporting}
-                      className="h-11 px-6 bg-ink hover:bg-ink text-on-ink font-semibold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
+                      className="h-11 px-6 bg-ink hover:bg-ink text-on-ink font-semibold text-xs rounded-pill transition cursor-pointer disabled:opacity-50"
                     >
                       {isImporting ? "Importing…" : "Import"}
                     </button>

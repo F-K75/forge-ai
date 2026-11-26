@@ -94,7 +94,7 @@ export function RoadmapEpicModal({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-pill border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
             >
               {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
               <span>{copied ? "Copied" : "Copy"}</span>
@@ -206,7 +206,7 @@ export function RoadmapEpicModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-ink text-on-ink font-semibold cursor-pointer"
+            className="px-3 py-1.5 rounded-pill bg-ink text-on-ink font-semibold cursor-pointer"
           >
             Done
           </button>

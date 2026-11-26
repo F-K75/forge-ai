@@ -644,7 +644,7 @@ export default function ActivityTab() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-on-ink font-semibold shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shadow-xs">
               <Activity size={18} className="text-warn" />
             </div>
             <div>
@@ -693,7 +693,7 @@ export default function ActivityTab() {
             type="button"
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
             title="Fetch latest execution runs and tasks"
           >
             <RefreshCw
@@ -708,7 +708,7 @@ export default function ActivityTab() {
             id="btn-export-activity"
             type="button"
             onClick={() => setShowExportModal(true)}
-            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
             title="Export filtered activity log as Markdown report"
           >
             <Download size={13} className="text-muted" />
@@ -720,7 +720,7 @@ export default function ActivityTab() {
             id="btn-simulate-agent-exec"
             type="button"
             onClick={handleSimulateExecution}
-            className="h-9 px-3.5 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
+            className="h-9 px-3.5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
             title="Dispatch a synthetic task execution through the agent fleet"
           >
             <Play size={13} fill="currentColor" />
@@ -901,7 +901,7 @@ export default function ActivityTab() {
             id="filter-agent-persona"
             value={selectedAgent}
             onChange={(e) => setSelectedAgent(e.target.value)}
-            className="h-9 px-3 rounded-xl border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
+            className="h-9 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
           >
             <option value="all">All Agents ({uniqueAgents.length})</option>
             {uniqueAgents.map((agent) => (
@@ -916,7 +916,7 @@ export default function ActivityTab() {
             id="filter-status-select"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="h-9 px-3 rounded-xl border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
+            className="h-9 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
           >
             <option value="all">All Statuses</option>
             <option value="running">Running</option>
@@ -957,7 +957,7 @@ export default function ActivityTab() {
                     setSelectedAgent("all");
                     setSelectedStatus("all");
                   }}
-                  className="h-8 px-3 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
+                  className="h-8 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
                 >
                   Reset Filters
                 </button>
@@ -965,7 +965,7 @@ export default function ActivityTab() {
               <button
                 type="button"
                 onClick={handleSimulateExecution}
-                className="h-8 px-3 rounded-lg bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
+                className="h-8 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
               >
                 Dispatch Test Agent
               </button>
@@ -1380,7 +1380,7 @@ export default function ActivityTab() {
               <button
                 type="button"
                 onClick={() => setInspectEvent(null)}
-                className="px-4 py-2 rounded-xl bg-ink text-on-ink font-semibold text-xs cursor-pointer hover:opacity-90"
+                className="px-4 py-2 rounded-pill bg-ink text-on-ink font-semibold text-xs cursor-pointer hover:opacity-90"
               >
                 Close
               </button>
@@ -1409,7 +1409,7 @@ export default function ActivityTab() {
             {/* Header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-on-ink ">
+                <div className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-on-ink ">
                   <FileText size={14} className="text-warn" />
                 </div>
                 <div>
@@ -1472,7 +1472,7 @@ export default function ActivityTab() {
                     URL.revokeObjectURL(url);
                     toast.success("Audit log downloaded!");
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-ink text-on-ink font-semibold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
+                  className="px-3.5 py-1.5 rounded-pill bg-ink text-on-ink font-semibold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
                 >
                   <Download size={13} />
                   <span>Download .md</span>

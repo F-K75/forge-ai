@@ -58,7 +58,7 @@ const AVAILABLE_AGENTS = [
  { id: "security_agent", name: "Security Sentinel", icon: ShieldCheck, desc: "OWASP & secret leaks", color: "bg-error/20 text-error" },
  { id: "performance_agent", name: "Performance Profiler", icon: Sparkles, desc: "Bottlenecks & memory", color: "bg-info/20 text-info" },
  { id: "architecture_agent", name: "Architecture Analyst", icon: Layers, desc: "Coupling & modularity", color: "bg-accent/20 text-accent" },
- { id: "code_quality_agent", name: "Quality Linter", icon: FileCode2, desc: "Strict typing & dead code", color: "bg-accent text-on-ink" },
+ { id: "code_quality_agent", name: "Quality Linter", icon: FileCode2, desc: "Strict typing & dead code", color: "bg-ink text-on-ink" },
  { id: "qa_agent", name: "QA & Edge Case Inspector", icon: CheckCircle2, desc: "Assertions & regressions", color: "bg-ok/20 text-ok" },
 ];
 
@@ -398,7 +398,7 @@ export default function ReviewsListPage() {
         {/* ========================================================= */}
  <header className="rounded-lg border border-border bg-panel p-5 space-y-4">
  <div className="flex items-center justify-between gap-3 border-b border-border pb-3 flex-wrap">
- <nav aria-label="Agents and Reviews navigation" className="inline-flex items-center gap-1 p-1 bg-panel-alt border border-border rounded-md">
+ <nav aria-label="Agents and Reviews navigation" className="inline-flex items-center gap-1 p-1 bg-panel-alt border border-border rounded-pill">
               <Link
                 to={agentsPath}
  className="px-3 py-1.5 rounded-sm text-xs font-medium text-muted hover:text-ink hover:bg-inlay-hover transition-colors"
@@ -437,7 +437,7 @@ export default function ReviewsListPage() {
               <button
  type="button"
                 onClick={handleResetSampleReviews}
- className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md border border-border bg-panel-alt text-xs font-medium text-ink hover:bg-surface-high transition-colors cursor-pointer"
+ className="h-9 px-3 inline-flex items-center gap-1.5 rounded-pill border border-border bg-panel-alt text-xs font-medium text-ink hover:bg-surface-high transition-colors cursor-pointer"
  title="Restore default test reviews"
               >
                 <RotateCcw size={13} />
@@ -450,7 +450,7 @@ export default function ReviewsListPage() {
  inputRef.current?.scrollIntoView({ behavior: "smooth" });
                   inputRef.current?.focus();
                 }}
- className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-md bg-accent text-on-ink hover:bg-ember-glow text-xs font-semibold transition-colors cursor-pointer"
+ className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-pill bg-ink text-on-ink hover:bg-ink/90 text-xs font-semibold transition-colors cursor-pointer"
               >
  <Play size={13} fill="currentColor" />
                 New Audit
@@ -497,7 +497,7 @@ export default function ReviewsListPage() {
  onClick={() => setMode("full")}
                 className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
  mode === "full"
- ? "bg-accent text-on-ink shadow-m3"
+ ? "bg-ink text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                 }`}
               >
@@ -508,7 +508,7 @@ export default function ReviewsListPage() {
  onClick={() => setMode("diff")}
                 className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
  mode === "diff"
- ? "bg-accent text-on-ink shadow-m3"
+ ? "bg-ink text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                 }`}
               >
@@ -553,7 +553,7 @@ export default function ReviewsListPage() {
  type="button"
                   disabled={isStarting}
                   onClick={handleStartAudit}
- className="h-7 px-4 inline-flex items-center justify-center gap-1.5 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase tracking-wider text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 disabled:opacity-50 transition-all shrink-0"
+ className="h-7 px-4 inline-flex items-center justify-center gap-1.5 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase tracking-wider text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 disabled:opacity-50 transition-all shrink-0"
                 >
  <Play size={13} fill="currentColor" />
  {isStarting ? "Auditing..." : "Start Review"}
@@ -703,7 +703,7 @@ export default function ReviewsListPage() {
                     onClick={() => setStatusFilter(f.key)}
                     className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
                       statusFilter === f.key
- ? "bg-accent text-on-ink shadow-m3"
+ ? "bg-ink text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
                     }`}
                   >
@@ -732,7 +732,7 @@ export default function ReviewsListPage() {
  onClick={() => setViewMode("grid")}
                     className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "grid"
- ? "bg-accent text-on-ink"
+ ? "bg-ink text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
                     }`}
  title="Grid View"
@@ -744,7 +744,7 @@ export default function ReviewsListPage() {
  onClick={() => setViewMode("list")}
                     className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "list"
- ? "bg-accent text-on-ink"
+ ? "bg-ink text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
                     }`}
  title="Table / List View"
@@ -764,7 +764,7 @@ export default function ReviewsListPage() {
             </div>
           ) : LIVE_MODE && !isConfigured ? (
  <div className="border border-border bg-panel p-8 md:p-12 text-center shadow-m3">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
                 <ShieldAlert size={28} strokeWidth={2.5} />
               </div>
  <h3 className="font-mono text-base md:text-lg font-semibold uppercase text-ink">
@@ -780,7 +780,7 @@ export default function ReviewsListPage() {
                     setRuns(SAMPLE_REVIEWS);
  toast.success("Loaded demo review sample data for preview");
                   }}
- className="h-8 px-4 inline-flex items-center gap-2 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-8 px-4 inline-flex items-center gap-2 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                 >
                   <Sparkles size={13} />
                   Preview Demo Reviews
@@ -803,7 +803,7 @@ export default function ReviewsListPage() {
  setSearch("");
  setStatusFilter("all");
                 }}
- className="mt-4 h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase shadow-m3 transition-all"
+ className="mt-4 h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase shadow-m3 transition-all"
               >
                 Clear Filters
               </button>
@@ -821,7 +821,7 @@ export default function ReviewsListPage() {
                   : isNoGo
  ? "bg-error/20 text-error text-ink"
                   : isFixes
- ? "bg-accent text-on-ink text-on-ink"
+ ? "bg-ink text-on-ink text-on-ink"
  : "bg-info/20 text-info text-ink";
 
  const score = run.consolidated?.overall_score ?? (isRunning ? "..." : "N/A");
@@ -857,7 +857,7 @@ export default function ReviewsListPage() {
                       {/* Main Title & Path */}
  <div className="mt-3">
  <div className="flex items-start gap-2">
- <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-accent text-on-ink text-on-ink shadow-m3">
+ <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
  {run.mode === "diff" ? <GitPullRequest size={11} /> : <FolderGit2 size={11} />}
                           </span>
  <div className="min-w-0">
@@ -889,7 +889,7 @@ export default function ReviewsListPage() {
  <div className="mt-1.5 h-2 w-full overflow-hidden border border-border bg-panel-alt">
                             <div
                               className={`h-full ${
- score >= 85 ? "bg-ok/20 text-ok" : score >= 70 ? "bg-accent text-on-ink" : "bg-error/20 text-error"
+ score >= 85 ? "bg-ok/20 text-ok" : score >= 70 ? "bg-ink text-on-ink" : "bg-error/20 text-error"
                               }`}
                               style={{ width: `${score}%` }}
                             />
@@ -971,7 +971,7 @@ export default function ReviewsListPage() {
                       : isNoGo
  ? "bg-error/20 text-error text-ink"
                       : isFixes
- ? "bg-accent text-on-ink text-on-ink"
+ ? "bg-ink text-on-ink text-on-ink"
  : "bg-info/20 text-info text-ink";
 
  const score = run.consolidated?.overall_score ?? (run.status === "running" ? "..." : "—");
@@ -1021,7 +1021,7 @@ export default function ReviewsListPage() {
                                 e.stopPropagation();
                                 navigate(`/reviews/${run.run_id}`);
                               }}
- className="h-7 px-2.5 border border-border bg-accent text-on-ink font-mono font-semibold uppercase text-[11px] text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 px-2.5 border border-border bg-ink text-on-ink font-mono font-semibold uppercase text-[11px] text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                             >
                               Inspect
                             </button>
@@ -1061,7 +1061,7 @@ export default function ReviewsListPage() {
  <div className="flex items-start justify-between border-b border-border pb-3">
                 <div>
  <div className="flex items-center gap-2">
- <span className="border border-border bg-accent text-on-ink px-2 py-0.5 font-mono text-xs font-semibold uppercase shadow-m3 text-on-ink">
+ <span className="border border-border bg-ink text-on-ink px-2 py-0.5 font-mono text-xs font-semibold uppercase shadow-m3 text-on-ink">
                       Backlog
                     </span>
  <h3 className="font-mono text-base font-semibold text-ink">{activeBacklogModal.repo_path}</h3>
@@ -1094,7 +1094,7 @@ export default function ReviewsListPage() {
  : item.severity === "high"
  ? "bg-warn/20 text-warn text-ink"
  : item.severity === "medium"
- ? "bg-accent text-on-ink text-on-ink"
+ ? "bg-ink text-on-ink text-on-ink"
  : "bg-surface-high text-ink";
 
                     return (
@@ -1148,7 +1148,7 @@ export default function ReviewsListPage() {
                     setActiveBacklogModal(null);
                     navigate(`/reviews/${id}`);
                   }}
- className="h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-accent text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                 >
                   Open Full Audit Page
                   <ExternalLink size={12} />

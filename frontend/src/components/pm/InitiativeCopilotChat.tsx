@@ -824,7 +824,7 @@ export const InitiativeCopilotChat: React.FC<InitiativeCopilotChatProps> = ({
               id="copilot-send-button"
               onClick={() => handleSendMessage()}
               disabled={(!inputValue.trim() && pendingAttachments.length === 0) || isThinking}
-              className="h-8 px-3 rounded-lg bg-ink text-on-ink hover:opacity-90 active:scale-95 transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-xs"
+              className="h-8 px-3 rounded-pill bg-ink text-on-ink hover:opacity-90 active:scale-95 transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-xs"
               title="Send message (Enter)"
               aria-label="Send message"
             >

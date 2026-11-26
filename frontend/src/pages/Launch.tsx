@@ -167,7 +167,7 @@ export default function Launch() {
             </Link>
             <Link
               to="/build/demo-project"
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-md bg-accent hover:bg-ember-glow text-on-ink text-[13px] font-semibold transition-colors shadow-apple"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-[13px] font-semibold transition-colors shadow-apple"
             >
               <span>Open Workspace</span>
               <ArrowRight size={14} />
@@ -245,7 +245,7 @@ export default function Launch() {
 
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-md bg-accent hover:bg-ember-glow text-on-ink text-sm font-semibold transition-colors shadow-apple shrink-0 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-sm font-semibold transition-colors shadow-apple shrink-0 cursor-pointer"
               >
                 <span>Build project</span>
                 <CornerDownLeft size={15} />
@@ -412,7 +412,7 @@ export default function Launch() {
                 <button
                   type="button"
                   onClick={() => navigate("/build/demo-project")}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm bg-ink text-panel hover:opacity-90 text-xs font-medium transition-opacity cursor-pointer"
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-pill bg-ink text-panel hover:opacity-90 text-xs font-medium transition-opacity cursor-pointer"
                 >
                   <Cpu size={13} />
                   <span>Open IDE</span>

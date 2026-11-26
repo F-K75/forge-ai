@@ -658,7 +658,7 @@ export default function ReleasesTab() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-on-ink font-semibold shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shadow-xs">
               <Rocket size={18} className="text-warn" />
             </div>
             <div>
@@ -684,7 +684,7 @@ export default function ReleasesTab() {
             id="btn-export-changelog"
             type="button"
             onClick={() => setShowChangelogModal(true)}
-            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
             title="Preview and export full markdown changelog"
           >
             <FileText size={14} className="text-muted" />
@@ -697,7 +697,7 @@ export default function ReleasesTab() {
             type="button"
             onClick={handleAutoGenerate}
             disabled={generating}
-            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
             title="Deterministically compile a new release plan from completed tasks and stories"
           >
             {generating ? (
@@ -713,7 +713,7 @@ export default function ReleasesTab() {
             id="btn-create-release"
             type="button"
             onClick={() => handleOpenCreateModal("minor")}
-            className="h-9 px-4 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
+            className="h-9 px-4 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>New Release</span>
@@ -968,7 +968,7 @@ export default function ReleasesTab() {
                 <button
                   type="button"
                   onClick={() => handleAuditRelease(activeRelease)}
-                  className="h-8 px-3 rounded-lg border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs"
                   title="Recalculate gate scores using latest task/story completion"
                 >
                   <RefreshCw size={12} />
@@ -978,7 +978,7 @@ export default function ReleasesTab() {
                 <button
                   type="button"
                   onClick={() => setSelectedRelease(activeRelease)}
-                  className="h-8 px-3 rounded-lg bg-ink text-on-ink text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-2xs hover:opacity-90"
+                  className="h-8 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-2xs hover:opacity-90"
                 >
                   <span>Inspect Plan</span>
                   <ChevronRight size={13} />
@@ -1102,14 +1102,14 @@ export default function ReleasesTab() {
             <button
               type="button"
               onClick={handleAutoGenerate}
-              className="h-8 px-3 rounded-lg border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
+              className="h-8 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
             >
               Auto-Compile from Sprints
             </button>
             <button
               type="button"
               onClick={() => handleOpenCreateModal("minor")}
-              className="h-8 px-3 rounded-lg bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
+              className="h-8 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
             >
               Create Release
             </button>
@@ -1247,7 +1247,7 @@ export default function ReleasesTab() {
                     id={`btn-inspect-release-${release.id}`}
                     type="button"
                     onClick={() => setSelectedRelease(release)}
-                    className="h-7 px-2.5 rounded-lg border border-border bg-panel hover:bg-ink/5 text-[11px] font-semibold text-ink flex items-center gap-1 cursor-pointer shadow-2xs"
+                    className="h-7 px-2.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-[11px] font-semibold text-ink flex items-center gap-1 cursor-pointer shadow-2xs"
                   >
                     <span>Manage</span>
                     <ChevronRight size={11} />
@@ -1396,7 +1396,7 @@ export default function ReleasesTab() {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-on-ink ">
+                <div className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-on-ink ">
                   <Rocket size={14} className="text-warn" />
                 </div>
                 <h3
@@ -1586,7 +1586,7 @@ export default function ReleasesTab() {
                 <button
                   id="btn-submit-create-release"
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-ink text-on-ink text-xs font-semibold hover:opacity-90 cursor-pointer shadow-xs"
+                  className="px-4 py-2 rounded-pill bg-ink text-on-ink text-xs font-semibold hover:opacity-90 cursor-pointer shadow-xs"
                 >
                   Create Plan
                 </button>
@@ -1617,7 +1617,7 @@ export default function ReleasesTab() {
             {/* Drawer Header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-on-ink font-semibold">
+                <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold">
                   <Rocket size={16} className="text-warn" />
                 </div>
                 <div>
@@ -1899,7 +1899,7 @@ export default function ReleasesTab() {
                           input.value = "";
                         }
                       }}
-                      className="h-8 px-3 rounded-lg bg-panel-alt hover:bg-ink/5 font-semibold text-ink cursor-pointer"
+                      className="h-8 px-3 rounded-pill bg-panel-alt hover:bg-ink/5 font-semibold text-ink cursor-pointer"
                     >
                       Add
                     </button>
@@ -2023,7 +2023,7 @@ ${
               <button
                 type="button"
                 onClick={() => setSelectedRelease(null)}
-                className="px-4 py-2 rounded-xl bg-ink text-on-ink font-semibold text-xs cursor-pointer hover:opacity-90"
+                className="px-4 py-2 rounded-pill bg-ink text-on-ink font-semibold text-xs cursor-pointer hover:opacity-90"
               >
                 Done
               </button>
@@ -2052,7 +2052,7 @@ ${
             {/* Header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-on-ink ">
+                <div className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-on-ink ">
                   <FileText size={14} className="text-warn" />
                 </div>
                 <div>
@@ -2118,7 +2118,7 @@ ${
                     URL.revokeObjectURL(url);
                     toast.success("Changelog downloaded!");
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-ink text-on-ink font-semibold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
+                  className="px-3.5 py-1.5 rounded-pill bg-ink text-on-ink font-semibold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
                 >
                   <Download size={13} />
                   <span>Download .md</span>

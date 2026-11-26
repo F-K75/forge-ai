@@ -303,7 +303,7 @@ export default function ProjectHistory() {
                   type="button"
                   onClick={handleRollback}
                   disabled={rollingBack}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-panel text-xs font-medium text-ink hover:bg-panel-alt transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-panel-alt transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50 cursor-pointer"
                   {...presets.button}
                 >
                   <RefreshCw size={12} aria-hidden="true" />
@@ -315,7 +315,7 @@ export default function ProjectHistory() {
                   type="button"
                   onClick={handleViewDiff}
                   disabled={diffLoading}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-accent hover:bg-ember-glow text-xs font-medium text-on-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-pill bg-ink hover:bg-ink/90 text-xs font-medium text-on-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-50 cursor-pointer"
                   {...presets.button}
                 >
                   <GitBranch size={12} aria-hidden="true" />

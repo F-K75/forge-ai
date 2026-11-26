@@ -530,7 +530,7 @@ export default function AnalyticsTab() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-on-ink font-semibold shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-on-ink font-semibold shadow-xs">
               <BarChart3 size={18} className="text-accent" />
             </div>
             <div>
@@ -574,7 +574,7 @@ export default function AnalyticsTab() {
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="h-9 px-3 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
             title="Recalculate metrics from store & backend"
           >
             <RefreshCw
@@ -589,7 +589,7 @@ export default function AnalyticsTab() {
             id="btn-export-analytics"
             type="button"
             onClick={() => setShowExportModal(true)}
-            className="h-9 px-3.5 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
+            className="h-9 px-3.5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
             title="Export analytics dataset for reporting"
           >
             <Download size={13} />
@@ -1105,7 +1105,7 @@ export default function AnalyticsTab() {
                   <select
                     value={eventCategoryFilter}
                     onChange={(e) => setEventCategoryFilter(e.target.value)}
-                    className="h-8 px-2.5 rounded-lg border border-border bg-panel text-xs font-semibold text-ink focus:outline-none cursor-pointer"
+                    className="h-8 px-2.5 rounded-pill border border-border bg-panel text-xs font-semibold text-ink focus:outline-none cursor-pointer"
                   >
                     <option value="all">All Categories</option>
                     <option value="Initiative">Initiative</option>
@@ -1205,7 +1205,7 @@ export default function AnalyticsTab() {
               <button
                 type="button"
                 onClick={handleCopyReport}
-                className="h-9 px-3.5 rounded-xl border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="h-9 px-3.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 {copiedExport ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
                 <span>{copiedExport ? "Copied!" : "Copy JSON"}</span>
@@ -1214,7 +1214,7 @@ export default function AnalyticsTab() {
               <button
                 type="button"
                 onClick={handleDownloadJson}
-                className="h-9 px-4 rounded-xl bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all"
+                className="h-9 px-4 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all"
               >
                 <Download size={13} />
                 <span>Download .json</span>

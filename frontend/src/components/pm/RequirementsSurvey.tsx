@@ -621,7 +621,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="neural-chatbot-tab-btn"
                   type="button"
                   onClick={() => setViewMode('neural-chat')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'neural-chat'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -640,7 +640,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('wizard')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'wizard'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -653,7 +653,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('full')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'full'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -667,7 +667,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="validation-summary-tab-btn"
                   type="button"
                   onClick={() => setViewMode('summary')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'summary'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -719,7 +719,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 type="button"
                 onClick={handleSaveDraft}
                 title="Save current survey responses"
-                className={`h-8 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                className={`h-8 px-2.5 sm:px-3 rounded-pill border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
                   saveSuccessFeedback
                     ? 'bg-ok text-on-ink border-ok/30'
                     : 'bg-panel border-border text-ink hover:bg-ink/5'
@@ -1022,7 +1022,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 {/* Category & Status header with Step Indicator */}
                 <div className="flex items-start justify-between gap-2 border-b-2 border-border-soft pb-3.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center px-2.5 py-1 rounded-lg bg-ink text-on-ink text-xs font-mono font-semibold">
+                    <span className="flex items-center justify-center px-2.5 py-1 rounded-pill bg-ink text-on-ink text-xs font-mono font-semibold">
                       {currentStepNumber} of {totalCount}
                     </span>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-info/10 border-2 border-border text-[11px] font-semibold uppercase text-ink ">
@@ -1365,7 +1365,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   type="button"
                   onClick={handlePrev}
                   disabled={safeCurrentIndex === 0}
-                  className="h-9 px-4 rounded-xl border-2 border-border bg-panel text-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer"
+                  className="h-9 px-4 rounded-pill border-2 border-border bg-panel text-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Previous</span>
@@ -1384,7 +1384,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="h-9 px-5 rounded-xl border-2 border-border bg-ink text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ink/90"
+                      className="h-9 px-5 rounded-pill border-2 border-border bg-ink text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ink/90"
                     >
                       <span>Next</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1393,7 +1393,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewMode('summary')}
-                      className="h-9 px-5 rounded-xl border-2 border-border bg-ok text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ok/90"
+                      className="h-9 px-5 rounded-pill border-2 border-border bg-ok text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ok/90"
                     >
                       <span>Review Validation Summary</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1781,7 +1781,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('summary')}
-                  className="h-10 px-5 rounded-xl border-2 border-border bg-ink text-on-ink font-semibold text-xs uppercase flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none"
+                  className="h-10 px-5 rounded-pill border-2 border-border bg-ink text-on-ink font-semibold text-xs uppercase flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-ok" />
                   <span>Review Validation Summary</span>
@@ -1794,7 +1794,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     type="button"
                     onClick={handleTriggerGenerate}
                     disabled={isGenerating}
-                    className="h-10 sm:h-11 px-5 sm:px-6 rounded-xl bg-ink hover:bg-ink/90 text-on-ink font-semibold text-xs sm:text-sm tracking-tight border-2 border-border active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                    className="h-10 sm:h-11 px-5 sm:px-6 rounded-pill bg-ink hover:bg-ink/90 text-on-ink font-semibold text-xs sm:text-sm tracking-tight border-2 border-border active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     {isGenerating ? (
                       <>

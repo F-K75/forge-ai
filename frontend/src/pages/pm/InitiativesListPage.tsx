@@ -252,7 +252,7 @@ const SPECIALISTS = [
     name: "Parves",
     role: "Principal UX Designer",
     color: "#F59E0B",
-    tagBg: "bg-accent text-on-ink",
+    tagBg: "bg-ink text-on-ink",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     icon: Palette,
     coords: { x: "20%", y: "62%" },
@@ -752,7 +752,7 @@ export default function InitiativesListPage() {
                       const el = document.getElementById("prd-synthesizer");
                       el?.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="h-11 sm:h-12 px-7 sm:px-8 bg-ink hover:bg-ink text-on-ink rounded-lg text-sm sm:text-base font-semibold tracking-tight active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+                    className="h-11 sm:h-12 px-7 sm:px-8 bg-ink hover:bg-ink text-on-ink rounded-pill text-sm sm:text-base font-semibold tracking-tight active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <span>Register Initiative</span>
                   </button>

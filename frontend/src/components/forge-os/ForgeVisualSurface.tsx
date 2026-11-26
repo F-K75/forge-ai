@@ -40,7 +40,7 @@ export function ForgeVisualSurface({
       {/* Preview Browser Chrome */}
       <div className="h-11 px-3 border-b border-border bg-panel-alt flex items-center justify-between gap-3 shrink-0">
         {/* Device Mode Switcher */}
-        <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel shrink-0">
+        <div className="inline-flex items-center p-0.5 rounded-pill border border-border bg-panel shrink-0">
           {(
             [
               { id: "desktop", label: "Desktop view", icon: Monitor },
@@ -59,7 +59,7 @@ export function ForgeVisualSurface({
                 aria-label={item.label}
                 className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                   active
-                    ? "bg-accent text-on-ink"
+                    ? "bg-ink text-on-ink"
                     : "text-muted hover:text-ink hover:bg-panel-alt"
                 }`}
               >
@@ -245,7 +245,7 @@ export function ForgeVisualSurface({
                       type="button"
                       disabled={isProcessing}
                       onClick={handlePay}
-                      className="w-full h-9 rounded-lg bg-accent hover:bg-ember-glow text-on-ink font-medium text-xs transition-colors duration-150 disabled:opacity-50 flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+                      className="w-full h-9 rounded-pill bg-ink hover:bg-ink/90 text-on-ink font-medium text-xs transition-colors duration-150 disabled:opacity-50 flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
                     >
                       {isProcessing ? (
                         <span>Validating payment…</span>
@@ -290,7 +290,7 @@ export function ForgeVisualSurface({
                       setAuthenticatedUser("alex.chen@forge.sh");
                       onTriggerEvent?.("auth.oauth.authenticated");
                     }}
-                    className="w-full h-10 px-4 rounded-lg bg-accent hover:bg-ember-glow text-on-ink text-xs font-medium transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full h-10 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continue with Google</span>
                   </button>

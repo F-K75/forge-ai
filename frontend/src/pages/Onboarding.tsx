@@ -108,9 +108,9 @@ export default function Onboarding() {
                         "w-8 h-8 rounded-full flex items-center justify-center",
                         "text-xs font-semibold shrink-0",
                         isDone
-                          ? "bg-accent text-on-ink"
+                          ? "bg-ink text-on-ink"
                           : isCurrent
-                          ? "bg-accent text-on-ink ring-2 ring-accent ring-offset-2 ring-offset-base"
+                          ? "bg-ink text-on-ink ring-2 ring-accent ring-offset-2 ring-offset-base"
                           : "bg-border text-faint",
                       ].join(" ")}
                     >
@@ -192,7 +192,7 @@ export default function Onboarding() {
           <motion.button
             type="button"
             onClick={handlePrimary}
-            className="px-5 py-2 text-sm font-semibold bg-accent text-on-ink rounded-lg hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+            className="px-5 py-2 text-sm font-semibold bg-ink text-on-ink rounded-pill hover:opacity-90 transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base"
             {...presets.button}
           >
             {primaryLabel}

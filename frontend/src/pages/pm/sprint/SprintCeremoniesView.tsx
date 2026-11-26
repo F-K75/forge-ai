@@ -210,7 +210,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               id="ceremony-copy-report-btn"
               type="button"
               onClick={handleCopyReport}
-              className="h-8.5 px-3.5 rounded-xl border border-border bg-panel text-ink hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="h-8.5 px-3.5 rounded-pill border border-border bg-panel text-ink hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
             >
               {isCopied ? <Check size={13} className="text-agent-integration" /> : <Copy size={13} />}
               <span>{isCopied ? "COPIED" : "COPY REPORT"}</span>
@@ -221,7 +221,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               type="button"
               onClick={() => onGenerate(activeCeremonyConfig.key, activeCeremonyConfig.action)}
               disabled={generating === selectedCeremony}
-              className="h-8.5 px-4 rounded-xl bg-agent-integration hover:bg-agent-integration/90 active:bg-agent-integration text-on-ink text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="h-8.5 px-4 rounded-pill bg-agent-integration hover:bg-agent-integration/90 active:bg-agent-integration text-on-ink text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
             >
               <RefreshCw
                 size={12}

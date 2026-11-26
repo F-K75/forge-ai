@@ -597,7 +597,7 @@ function TaskCard({
               onOpenDependencyModal?.(task as PMTask);
             }}
             title="Link tasks or manage dependencies and blockers"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-panel-alt hover:bg-ink/5 text-ink transition-colors cursor-pointer border border-border"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-pill bg-panel-alt hover:bg-ink/5 text-ink transition-colors cursor-pointer border border-border"
           >
             <Link2 size={11} className="text-muted shrink-0" />
             <span>DEPS {dependencies.length > 0 ? `(${dependencies.length})` : "+"}</span>
@@ -1613,7 +1613,7 @@ export default function KanbanTab() {
                 setCreateModalColumn("backlog");
                 setIsCreateModalOpen(true);
               }}
-              className="h-9 px-4 rounded-xl bg-accent hover:bg-accent/90 text-on-ink text-xs font-semibold shadow-m3-1 flex items-center gap-1.5 cursor-pointer border border-border transition-transform active:translate-y-0.5"
+              className="h-9 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-semibold shadow-m3-1 flex items-center gap-1.5 cursor-pointer border border-border transition-transform active:translate-y-0.5"
             >
               <Plus size={14} strokeWidth={3} />
               <span>New Task</span>
@@ -1680,7 +1680,7 @@ export default function KanbanTab() {
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
               aria-label="Filter by priority level"
-              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Priorities</option>
               <option value="p0">P0 - Critical</option>
@@ -1704,7 +1704,7 @@ export default function KanbanTab() {
               value={agentFilter}
               onChange={(e) => setAgentFilter(e.target.value)}
               aria-label="Filter by assignee"
-              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Assignees</option>
               {agents.map((a) => (
@@ -1730,7 +1730,7 @@ export default function KanbanTab() {
               value={sprintFilter}
               onChange={(e) => setSprintFilter(e.target.value)}
               aria-label="Filter by sprint"
-              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Sprints</option>
               {sprints.map((s) => (
@@ -1747,9 +1747,9 @@ export default function KanbanTab() {
               id="kanban-toggle-arrows-btn"
               type="button"
               onClick={() => setShowArrows(!showArrows)}
-              className={`flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border text-xs font-semibold cursor-pointer transition-all shadow-xs ${
+              className={`flex items-center gap-1.5 h-9 px-3 rounded-pill border border-border text-xs font-semibold cursor-pointer transition-all shadow-xs ${
                 showArrows
-                  ? "bg-accent text-on-ink"
+                  ? "bg-ink text-on-ink"
                   : "bg-panel-alt text-muted"
               }`}
               title={showArrows ? "Hide visual dependency blocker arrows" : "Show visual dependency blocker arrows"}
@@ -1763,7 +1763,7 @@ export default function KanbanTab() {
                 id="kanban-toggle-only-blockers-btn"
                 type="button"
                 onClick={() => setOnlyBlockerArrows(!onlyBlockerArrows)}
-                className={`px-3 h-9 rounded-xl text-xs font-semibold border border-border transition-all cursor-pointer shadow-xs ${
+                className={`px-3 h-9 rounded-pill text-xs font-semibold border border-border transition-all cursor-pointer shadow-xs ${
                   onlyBlockerArrows
                     ? "bg-error text-on-ink"
                     : "bg-panel-alt text-muted"
@@ -1782,7 +1782,7 @@ export default function KanbanTab() {
                 id="kanban-view-mode-grid"
                 type="button"
                 onClick={() => setViewMode("grid12")}
-                className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-pill text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === "grid12"
                     ? "bg-ink text-panel shadow-xs"
                     : "text-muted hover:text-ink"
@@ -1796,7 +1796,7 @@ export default function KanbanTab() {
                 id="kanban-view-mode-lanes"
                 type="button"
                 onClick={() => setViewMode("lanes")}
-                className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-pill text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === "lanes"
                     ? "bg-ink text-panel shadow-xs"
                     : "text-muted hover:text-ink"
@@ -1815,7 +1815,7 @@ export default function KanbanTab() {
               id="kanban-reset-filters-btn"
               type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-panel-alt hover:bg-panel text-ink text-xs font-semibold transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-pill border border-border bg-panel-alt hover:bg-panel text-ink text-xs font-semibold transition-all cursor-pointer shadow-xs"
               title="Reset all filters and search query"
             >
               <RotateCcw size={12} />
@@ -1842,7 +1842,7 @@ export default function KanbanTab() {
                   onClick={() => setPriorityFilter(priorityFilter === p && p !== "all" ? "all" : p)}
                   className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
                     isSelected
-                      ? "border-border bg-accent text-on-ink shadow-xs"
+                      ? "border-border bg-ink text-on-ink shadow-xs"
                       : "border-border bg-panel-alt text-muted hover:text-ink"
                   }`}
                   title={p === "all" ? "Show all priorities" : `Filter by ${cfg?.badgeText}`}
@@ -1886,7 +1886,7 @@ export default function KanbanTab() {
                     onClick={() => setColumnPreset(preset.id as any)}
                     className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
                       isSelected
-                        ? "border-border bg-accent text-on-ink shadow-xs"
+                        ? "border-border bg-ink text-on-ink shadow-xs"
                         : "border-border bg-panel-alt text-muted hover:text-ink"
                     }`}
                     title={preset.desc}

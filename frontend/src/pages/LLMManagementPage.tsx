@@ -587,7 +587,7 @@ export default function LLMManagementPage() {
               setPlaygroundOpen(true);
               setTestResponse(null);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-on-ink font-semibold text-xs hover:opacity-90 transition-opacity cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-pill bg-ink text-on-ink font-semibold text-xs hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Play size={12} fill="currentColor" />
             <span>Playground</span>

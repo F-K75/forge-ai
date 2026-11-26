@@ -165,14 +165,14 @@ export const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
               id="cancel-create-sprint-btn"
               type="button"
               onClick={onClose}
-              className="h-9 px-4 rounded-xl border border-border bg-panel text-ink font-semibold hover:bg-ink/5 cursor-pointer"
+              className="h-9 px-4 rounded-pill border border-border bg-panel text-ink font-semibold hover:bg-ink/5 cursor-pointer"
             >
               Cancel
             </button>
             <button
               id="submit-create-sprint-btn"
               type="submit"
-              className="h-9 px-5 rounded-xl bg-agent-integration hover:bg-agent-integration/90 text-on-ink font-semibold uppercase tracking-wider cursor-pointer shadow-sm"
+              className="h-9 px-5 rounded-pill bg-agent-integration hover:bg-agent-integration/90 text-on-ink font-semibold uppercase tracking-wider cursor-pointer shadow-sm"
             >
               Create Sprint
             </button>

@@ -188,7 +188,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             id="sprint-add-task-btn"
             type="button"
             onClick={onOpenCreateTaskModal}
-            className="h-9 px-3 rounded-xl bg-agent-integration/10 text-agent-integration border border-agent-integration/30 hover:bg-agent-integration/20 text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
+            className="h-9 px-3 rounded-pill bg-agent-integration/10 text-agent-integration border border-agent-integration/30 hover:bg-agent-integration/20 text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
           >
             <Plus size={14} />
             <span>Add Task</span>
@@ -219,7 +219,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             <button
               type="button"
               onClick={clearFilters}
-              className="h-8.5 px-4 rounded-xl bg-agent-integration text-on-ink text-xs font-semibold hover:bg-agent-integration/90 cursor-pointer shadow-2xs"
+              className="h-8.5 px-4 rounded-pill bg-agent-integration text-on-ink text-xs font-semibold hover:bg-agent-integration/90 cursor-pointer shadow-2xs"
             >
               Clear All Filters
             </button>
@@ -227,7 +227,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             <button
               type="button"
               onClick={onOpenCreateTaskModal}
-              className="h-8.5 px-4 rounded-xl bg-agent-integration text-on-ink text-xs font-semibold hover:bg-agent-integration/90 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+              className="h-8.5 px-4 rounded-pill bg-agent-integration text-on-ink text-xs font-semibold hover:bg-agent-integration/90 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
             >
               <Plus size={14} />
               <span>Add First Task</span>
