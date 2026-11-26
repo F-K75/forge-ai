@@ -4,10 +4,13 @@ Skill Telemetry feedback) and P1 Protocols (MCP Apps & A2A Agent Card / tasks/se
 
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
 from typing import Any, Dict, List
+
+import httpx
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -23,39 +26,60 @@ from core.protocol_gateway import (
     AGUIStreamBroker,
     MCPGateway,
     StreamableHTTPMCPClient,
-    _NoRedirectHandler,
 )
 from core.skill_engine import SkillRegistry, SkillRouter
+
+
+def _public_resolver(host: str, port: int):
+    return [(2, 1, 6, "", ("93.184.216.34", port))]
 
 
 class TestP1ProtocolsAndRuntime(unittest.IsolatedAsyncioTestCase):
     async def test_streamable_http_mcp_discovery_proxy_and_redirect_block(self) -> None:
         calls: List[Dict[str, Any]] = []
 
-        def fake_transport(url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-            calls.append({"url": url, "method": payload.get("method"), "params": payload.get("params")})
-            if payload.get("method") == "tools/list":
-                return {
-                    "jsonrpc": "2.0",
-                    "id": payload["id"],
-                    "result": {
-                        "tools": [
-                            {
-                                "name": "repo.search",
-                                "description": "Search indexed documentation",
-                                "inputSchema": {"type": "object"},
-                                "readOnly": True,
-                            }
-                        ]
+        def fake_server(request: httpx.Request) -> httpx.Response:
+            payload = json.loads(request.content)
+            calls.append({"url": str(request.url), "method": payload.get("method"), "params": payload.get("params")})
+            if payload.get("method") == "initialize":
+                return httpx.Response(
+                    200,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": payload["id"],
+                        "result": {
+                            "protocolVersion": payload["params"]["protocolVersion"],
+                            "capabilities": {"tools": {}},
+                            "serverInfo": {"name": "docs", "version": "1"},
+                        },
                     },
-                }
-            return {
-                "jsonrpc": "2.0",
-                "id": payload["id"],
-                "result": {"matches": ["docs/architecture.md"]},
-            }
+                )
+            if "id" not in payload:
+                return httpx.Response(202)
+            if payload.get("method") == "tools/list":
+                return httpx.Response(
+                    200,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": payload["id"],
+                        "result": {
+                            "tools": [
+                                {
+                                    "name": "repo.search",
+                                    "description": "Search indexed documentation",
+                                    "inputSchema": {"type": "object"},
+                                    "readOnly": True,
+                                }
+                            ]
+                        },
+                    },
+                )
+            return httpx.Response(
+                200,
+                json={"jsonrpc": "2.0", "id": payload["id"], "result": {"matches": ["docs/architecture.md"]}},
+            )
 
-        client = StreamableHTTPMCPClient(transport_fn=fake_transport)
+        client = StreamableHTTPMCPClient(transport=httpx.MockTransport(fake_server), resolver=_public_resolver)
         gw = MCPGateway(http_client=client)
 
         # Register & discover tools from an external HTTPS server
@@ -87,9 +111,17 @@ class TestP1ProtocolsAndRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(denied["ok"])
         self.assertEqual(denied["audit"]["status"], "denied")
 
-        # _NoRedirectHandler must reject 302 redirects (redirect SSRF defense)
-        with self.assertRaises(ValueError):
-            _NoRedirectHandler().redirect_request(None, None, 302, "Found", {}, "http://169.254.169.254")
+        self.assertEqual([c["method"] for c in calls[:2]], ["initialize", "notifications/initialized"])
+
+        # 3xx redirects are never followed (redirect SSRF defense)
+        redirecting = StreamableHTTPMCPClient(
+            transport=httpx.MockTransport(
+                lambda _req: httpx.Response(302, headers={"Location": "https://169.254.169.254/"})
+            ),
+            resolver=_public_resolver,
+        )
+        with self.assertRaisesRegex(ValueError, "redirect"):
+            await redirecting.list_tools("https://mcp.example.com/rpc")
 
     async def test_redis_and_mongo_hooks_succeed_and_fail_open(self) -> None:
         published: List[tuple[str, str]] = []

@@ -9,8 +9,9 @@ Inbound (Forge as an A2A agent):
 Outbound (Forge as an A2A client):
 3. `A2ARemoteClient` fetches remote agent cards and sends / polls / cancels tasks
    with SSRF protection (https only, no redirects, private/loopback/link-local
-   targets blocked unless the host is explicitly allowlisted), bounded timeouts,
-   response size caps and strict content-type checks.
+   targets blocked unless the host is explicitly allowlisted; DNS resolved once
+   per request and the validated IP dialled via `core.safe_http.PinnedTransport`),
+   bounded timeouts, response size caps and strict content-type checks.
 
 Every inbound and outbound call is recorded in a bounded A2A audit trail with an
 optional async persister hook (MongoDB in production).
@@ -19,7 +20,6 @@ optional async persister hook (MongoDB in production).
 from __future__ import annotations
 
 import asyncio
-import ipaddress
 import json
 import logging
 import re
@@ -41,7 +41,15 @@ from core.agent_kernel import (
     get_org_blueprint_summary,
     plan_objective_dag,
 )
-from core.protocol_gateway import validate_mcp_endpoint_url
+from core.safe_http import (
+    BlockedDestinationError,
+    PinnedTransport,
+    Resolver,
+    SafeHTTPError,
+    check_url_static,
+    read_capped_body,
+    validate_url_with_dns,
+)
 from core.skill_engine import get_skill_registry
 
 logger = logging.getLogger(__name__)
@@ -334,37 +342,20 @@ def _clamp_number(raw: Any, *, lo: float, hi: float, default: float, name: str) 
 
 
 def validate_a2a_remote_url(
-    url: str, *, allowlisted_hosts: FrozenSet[str] = frozenset()
+    url: str, *, allowlisted_hosts: FrozenSet[str] = frozenset(), resolver: Optional[Resolver] = None
 ) -> Tuple[bool, Optional[str]]:
-    """Validate a remote A2A agent URL against SSRF.
+    """Advisory SSRF check for a remote A2A agent URL (no request is made).
 
-    https only, no embedded credentials. Hosts in `allowlisted_hosts` skip the
-    private-address checks (intended for tests / explicitly trusted peers); all
-    others are checked as literal IPs (must be globally routable) and then via
-    `validate_mcp_endpoint_url` (internal hostnames + DNS resolution check).
+    https only, no embedded credentials, no internal hostnames, literal IPs must
+    be globally routable, and hostnames must not resolve to non-public
+    addresses. Hosts in `allowlisted_hosts` skip the address checks (tests /
+    explicitly trusted peers) but never the https requirement. Outbound calls
+    do not rely on this pre-check: `PinnedTransport` re-resolves and validates
+    on every request and connects to the validated IP (DNS-rebinding safe).
     """
-    raw = (url or "").strip()
-    if not raw or len(raw) > 2048:
-        return False, "Remote A2A URL is empty or too long"
-    parsed = urlparse(raw)
-    if parsed.scheme != "https":
-        return False, "Remote A2A agents must use https://"
-    if parsed.username or parsed.password:
-        return False, "Credentials in remote A2A URLs are not allowed"
-    hostname = (parsed.hostname or "").strip().lower()
-    if not hostname:
-        return False, "Missing hostname in remote A2A URL"
-    if hostname in allowlisted_hosts:
-        return True, None
-    try:
-        ip = ipaddress.ip_address(hostname)
-        if not ip.is_global or ip.is_multicast:
-            return False, f"Blocked non-public IP address '{hostname}'"
-    except ValueError:
-        pass
-    ok, err = validate_mcp_endpoint_url(raw)
+    ok, err = validate_url_with_dns(url, allowlisted_hosts=allowlisted_hosts, resolver=resolver, label="A2A")
     if not ok:
-        return False, (err or "Blocked remote A2A URL").replace("MCP", "A2A")
+        return False, (err or "Blocked remote A2A URL").replace("A2A endpoints", "Remote A2A agents")
     return True, None
 
 
@@ -450,17 +441,29 @@ class A2ARemoteClient:
         timeout_seconds: float = 8.0,
         transport: Optional[httpx.AsyncBaseTransport] = None,
         allowlisted_hosts: Optional[FrozenSet[str]] = None,
+        resolver: Optional[Resolver] = None,
+        network_backend: Any = None,
+        verify: Any = True,
     ) -> None:
+        """`transport` is an in-process test seam (ASGI / Mock): SSRF policy, DNS
+        resolution and pinning still run in `PinnedTransport` before delegating."""
         self._timeout = min(15.0, max(0.5, float(timeout_seconds)))
-        self._transport = transport
         self._allowlisted = frozenset(h.lower() for h in (allowlisted_hosts or frozenset()))
+        self._resolver = resolver
+        self._transport = PinnedTransport(
+            allowlisted_hosts=self._allowlisted,
+            resolver=resolver,
+            verify=verify,
+            network_backend=network_backend,
+            inner=transport,
+        )
 
     async def _guard(self, url: str) -> str:
-        ok, err = await asyncio.to_thread(
-            validate_a2a_remote_url, url, allowlisted_hosts=self._allowlisted
-        )
+        # DNS-free checks only: resolution + address validation happen exactly
+        # once per request inside PinnedTransport, against the IP actually dialled.
+        ok, err = check_url_static(url, allowlisted_hosts=self._allowlisted, label="A2A")
         if not ok:
-            raise A2ABlockedURLError(err or "Blocked remote A2A URL")
+            raise A2ABlockedURLError((err or "Blocked remote A2A URL").replace("A2A endpoints", "Remote A2A agents"))
         return url.strip()
 
     async def _request_json(
@@ -492,16 +495,9 @@ class A2ARemoteClient:
                     ctype = resp.headers.get("content-type", "").split(";")[0].strip().lower()
                     if ctype != "application/json":
                         raise A2ARemoteError("Remote A2A agent returned a non-JSON content type")
-                    declared = resp.headers.get("content-length")
-                    if declared and declared.isdigit() and int(declared) > self.MAX_RESPONSE_BYTES:
-                        raise A2ARemoteError("Remote A2A response exceeded the size limit")
-                    buf = bytearray()
-                    async for chunk in resp.aiter_bytes():
-                        buf.extend(chunk)
-                        if len(buf) > self.MAX_RESPONSE_BYTES:
-                            raise A2ARemoteError("Remote A2A response exceeded the size limit")
+                    raw = await read_capped_body(resp, self.MAX_RESPONSE_BYTES, label="Remote A2A")
             try:
-                return json.loads(bytes(buf).decode("utf-8"))
+                return json.loads(raw.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise A2ARemoteError("Remote A2A agent returned invalid JSON") from exc
 
@@ -510,6 +506,10 @@ class A2ARemoteClient:
             return await asyncio.wait_for(_do(), timeout=self._timeout * 2)
         except asyncio.TimeoutError as exc:
             raise A2ARemoteError("Remote A2A agent timed out") from exc
+        except BlockedDestinationError as exc:
+            raise A2ABlockedURLError(str(exc)) from exc
+        except SafeHTTPError as exc:  # resolution failure, size cap
+            raise A2ARemoteError(str(exc)) from exc
         except httpx.HTTPError as exc:
             raise A2ARemoteError(f"Remote A2A transport error ({type(exc).__name__})") from exc
 
@@ -524,7 +524,7 @@ class A2ARemoteClient:
         raw = await self._request_json("GET", self.card_url_for(agent_url), auth_token=auth_token)
         card = _sanitize_remote_card(raw)
         ok, err = await asyncio.to_thread(
-            validate_a2a_remote_url, card["url"], allowlisted_hosts=self._allowlisted
+            validate_a2a_remote_url, card["url"], allowlisted_hosts=self._allowlisted, resolver=self._resolver
         )
         card["endpoint_allowed"] = ok
         if not ok:

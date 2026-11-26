@@ -6,23 +6,35 @@
 3. A2UI Generative Surface Builder (declarative, XSS-safe structured UI component
    trees synthesized from KernelRun state for approval cards, conflicts, and scorecards).
 
-Pure-Python stdlib implementation so it runs cleanly in both FastAPI production
-and standalone unit tests.
+Outbound MCP traffic uses httpx through `core.safe_http.PinnedTransport`
+(DNS-pinned, SSRF-safe); everything else is pure Python so it runs cleanly in
+both FastAPI production and standalone unit tests.
 """
 
 from __future__ import annotations
 
 import asyncio
-import ipaddress
+import codecs
 import json
 import logging
-import socket
+import re
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, FrozenSet, List, Optional, Set, Tuple
-from urllib import request as urllib_request
 from urllib.parse import urlparse
+
+import httpx
+
+from core.safe_http import (
+    BlockedDestinationError,
+    PinnedTransport,
+    Resolver,
+    SafeHTTPError,
+    check_url_static,
+    read_capped_body,
+    validate_url_with_dns,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -195,92 +207,373 @@ class AGUIStreamBroker:
 
 
 def validate_mcp_endpoint_url(url: str) -> Tuple[bool, Optional[str]]:
-    """Validate an external MCP server URL against SSRF and unsafe schemes."""
-    parsed = urlparse((url or "").strip())
-    if parsed.scheme not in ("https",):
-        return False, "External MCP server endpoints must use https://"
-    hostname = (parsed.hostname or "").strip().lower()
-    if not hostname:
-        return False, "Missing hostname in MCP endpoint URL"
-    blocked_hosts = {"localhost", "metadata.google.internal", "169.254.169.254"}
-    if hostname in blocked_hosts or hostname.endswith(".local") or hostname.endswith(".internal"):
-        return False, f"Blocked private/internal MCP host '{hostname}'"
+    """Advisory SSRF pre-check for an external MCP server URL (registration time).
 
-    # Check literal IP addresses directly
-    try:
-        ip = ipaddress.ip_address(hostname)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
-            return False, f"Blocked non-public IP address '{hostname}'"
-    except ValueError:
-        # Resolve DNS best-effort when running online; block if it resolves to private ranges
-        try:
-            infos = socket.getaddrinfo(hostname, None)
-            for info in infos:
-                resolved_ip = ipaddress.ip_address(info[4][0])
-                if (
-                    resolved_ip.is_private
-                    or resolved_ip.is_loopback
-                    or resolved_ip.is_link_local
-                    or resolved_ip.is_reserved
-                ):
-                    return False, f"Host '{hostname}' resolves to non-public IP"
-        except OSError:
-            pass
-    return True, None
+    https only, no credentials, no internal hostnames, no non-public IP literals,
+    and (best effort) no hostname resolving to a non-public address. The
+    authoritative check runs on every request inside `PinnedTransport`, which
+    resolves once, validates every address and dials the validated IP.
+    """
+    return validate_url_with_dns(url, label="MCP")
 
 
-class _NoRedirectHandler(urllib_request.HTTPRedirectHandler):
-    """Block 3xx redirects on outbound external MCP requests to prevent redirect-based SSRF."""
+# Revisions reachable through the `initialize` handshake, newest first.
+MCP_CLIENT_PROTOCOL_VERSIONS: Tuple[str, ...] = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
+MCP_CLIENT_INFO: Dict[str, str] = {"name": "forge-ai-mcp-gateway", "version": "1.0.0"}
+_MCP_ACCEPT = "application/json, text/event-stream"
+_MCP_SESSION_ID_RE = re.compile(r"^[\x21-\x7e]{1,256}$")
+JSONRPC_METHOD_NOT_FOUND_CODE = -32601
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise ValueError(f"External MCP server attempted disallowed HTTP redirect ({code})")
+
+class MCPClientError(ValueError):
+    """Raised for any failed or rejected external MCP exchange."""
+
+
+@dataclass
+class MCPSessionState:
+    """Negotiated state for one external MCP endpoint."""
+
+    protocol_version: Optional[str] = None  # None => legacy server without `initialize`
+    session_id: Optional[str] = None
+    server_capabilities: Dict[str, Any] = field(default_factory=dict)
+    server_info: Dict[str, Any] = field(default_factory=dict)
+    legacy: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class _MCPHTTPResult:
+    status: int
+    headers: httpx.Headers
+    message: Optional[Dict[str, Any]] = None
 
 
 class StreamableHTTPMCPClient:
-    """Hardened Streamable HTTP JSON-RPC 2.0 client for external MCP servers."""
+    """Streamable HTTP MCP client (JSON-RPC 2.0) for external MCP servers.
 
-    MAX_RESPONSE_BYTES = 512 * 1024  # 512 KB cap
+    Lifecycle per endpoint (lazy, on first call): `initialize` (protocolVersion,
+    capabilities, clientInfo) -> store negotiated version + server capabilities
+    -> `notifications/initialized` -> requests carrying `Mcp-Session-Id` (when
+    the server issued one) and `MCP-Protocol-Version`. Responses may be
+    `application/json` or `text/event-stream` (SSE, bounded in bytes and time).
+    A 404 on a request bearing a session id re-initializes once and retries.
+    `close_session` / `aclose` send DELETE for open sessions.
+
+    Every HTTP request goes through `core.safe_http.PinnedTransport` (https only,
+    DNS resolved once per request, all addresses validated, TCP dialled to the
+    validated IP with TLS verified against the hostname, no redirects).
+
+    Test seams: `transport` (an in-process httpx transport; policy, DNS and
+    pinning still run before delegation), `resolver`, `network_backend`, `verify`.
+    """
+
+    MAX_RESPONSE_BYTES = 512 * 1024  # 512 KB cap (JSON body or whole SSE stream)
 
     def __init__(
         self,
         *,
         timeout_seconds: float = 8.0,
-        transport_fn: Optional[Callable[[str, Dict[str, Any]], Dict[str, Any]]] = None,
+        transport: Optional[httpx.AsyncBaseTransport] = None,
+        allowlisted_hosts: Optional[FrozenSet[str]] = None,
+        resolver: Optional[Resolver] = None,
+        network_backend: Any = None,
+        verify: Any = True,
     ) -> None:
-        self._timeout = min(10.0, max(1.0, float(timeout_seconds)))
-        self._transport_fn = transport_fn
-
-    def _post_jsonrpc_sync(self, endpoint_url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        ok, err = validate_mcp_endpoint_url(endpoint_url)
-        if not ok:
-            raise ValueError(err or "Invalid external MCP endpoint URL")
-        if self._transport_fn is not None:
-            return self._transport_fn(endpoint_url, payload)
-
-        body = json.dumps(payload).encode("utf-8")
-        req = urllib_request.Request(
-            endpoint_url,
-            data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "User-Agent": "ForgeAI-MCP-Gateway/1.0",
-            },
-            method="POST",
+        self._timeout = min(10.0, max(0.2, float(timeout_seconds)))
+        self._transport = PinnedTransport(
+            allowlisted_hosts=allowlisted_hosts or frozenset(),
+            resolver=resolver,
+            verify=verify,
+            network_backend=network_backend,
+            inner=transport,
         )
-        opener = urllib_request.build_opener(_NoRedirectHandler())
-        with opener.open(req, timeout=self._timeout) as resp:
-            raw = resp.read(self.MAX_RESPONSE_BYTES + 1)
-            if len(raw) > self.MAX_RESPONSE_BYTES:
-                raise ValueError("External MCP response exceeded 512 KB safety limit")
-            parsed = json.loads(raw.decode("utf-8", errors="replace"))
-            if not isinstance(parsed, dict):
-                raise ValueError("External MCP server returned non-object JSON-RPC payload")
-            return parsed
+        self._sessions: Dict[str, MCPSessionState] = {}
+        self._init_locks: Dict[str, asyncio.Lock] = {}
+
+    # ---- introspection ---------------------------------------------------- #
+
+    def get_session(self, endpoint_url: str) -> Optional[MCPSessionState]:
+        return self._sessions.get(self._key(endpoint_url))
+
+    @staticmethod
+    def _key(endpoint_url: str) -> str:
+        return (endpoint_url or "").strip()
+
+    # ---- HTTP ------------------------------------------------------------- #
+
+    def _headers(self, session: Optional[MCPSessionState]) -> Dict[str, str]:
+        headers = {
+            "Accept": _MCP_ACCEPT,
+            "Content-Type": "application/json",
+            "User-Agent": "ForgeAI-MCP-Gateway/1.0",
+        }
+        if session is not None:
+            if session.session_id:
+                headers["Mcp-Session-Id"] = session.session_id
+            if session.protocol_version:
+                headers["MCP-Protocol-Version"] = session.protocol_version
+        return headers
+
+    async def _send(
+        self,
+        method: str,
+        endpoint_url: str,
+        *,
+        headers: Dict[str, str],
+        payload: Optional[Dict[str, Any]] = None,
+        expect_id: Any = None,
+    ) -> _MCPHTTPResult:
+        ok, err = check_url_static(endpoint_url, allowlisted_hosts=self._transport.allowlisted_hosts, label="MCP")
+        if not ok:
+            raise BlockedDestinationError(err or "Invalid external MCP endpoint URL")
+
+        async def _do() -> _MCPHTTPResult:
+            async with httpx.AsyncClient(
+                transport=self._transport,
+                timeout=httpx.Timeout(self._timeout),
+                follow_redirects=False,
+            ) as client:
+                async with client.stream(method, endpoint_url, json=payload, headers=headers) as resp:
+                    if 300 <= resp.status_code < 400:
+                        raise BlockedDestinationError(
+                            f"External MCP server attempted disallowed HTTP redirect ({resp.status_code})"
+                        )
+                    result = _MCPHTTPResult(status=resp.status_code, headers=resp.headers)
+                    if expect_id is None or resp.status_code != 200:
+                        return result
+                    ctype = resp.headers.get("content-type", "").split(";")[0].strip().lower()
+                    if ctype == "text/event-stream":
+                        result.message = await self._read_sse_response(resp, expect_id)
+                    elif ctype == "application/json":
+                        raw = await read_capped_body(resp, self.MAX_RESPONSE_BYTES, label="External MCP")
+                        result.message = self._match_json_response(raw, expect_id)
+                    else:
+                        raise MCPClientError("External MCP server returned an unsupported content type")
+                    return result
+
+        try:
+            # Overall deadline on top of httpx per-operation timeouts (slow-drip SSE defense).
+            return await asyncio.wait_for(_do(), timeout=self._timeout * 2)
+        except asyncio.TimeoutError as exc:
+            raise MCPClientError("External MCP server timed out") from exc
+        except httpx.HTTPError as exc:
+            raise MCPClientError(f"External MCP transport error ({type(exc).__name__})") from exc
+
+    @staticmethod
+    def _is_response_for(msg: Any, expect_id: Any) -> bool:
+        return (
+            isinstance(msg, dict)
+            and msg.get("id") == expect_id
+            and ("result" in msg or "error" in msg)
+        )
+
+    def _match_json_response(self, raw: bytes, expect_id: Any) -> Dict[str, Any]:
+        try:
+            parsed = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise MCPClientError("External MCP server returned invalid JSON") from exc
+        candidates = parsed if isinstance(parsed, list) else [parsed]
+        for msg in candidates:
+            if self._is_response_for(msg, expect_id):
+                return msg
+        if not isinstance(parsed, (dict, list)):
+            raise MCPClientError("External MCP server returned non-object JSON-RPC payload")
+        raise MCPClientError("External MCP server returned no response matching the request id")
+
+    async def _read_sse_response(self, resp: httpx.Response, expect_id: Any) -> Dict[str, Any]:
+        """Parse an SSE stream and return the JSON-RPC response matching `expect_id`.
+
+        Server notifications / requests interleaved before the response are
+        skipped. The whole stream is capped at MAX_RESPONSE_BYTES; the caller's
+        deadline bounds its duration.
+        """
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
+        total = 0
+        pending = ""
+        data_lines: List[str] = []
+        event_type = ""
+
+        def _dispatch() -> Optional[Dict[str, Any]]:
+            nonlocal data_lines, event_type
+            data, etype = "\n".join(data_lines), event_type
+            data_lines, event_type = [], ""
+            if not data or etype not in ("", "message"):
+                return None
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError as exc:
+                raise MCPClientError("External MCP server sent a malformed SSE event") from exc
+            return msg if self._is_response_for(msg, expect_id) else None
+
+        def _feed_line(line: str) -> Optional[Dict[str, Any]]:
+            nonlocal event_type
+            if line == "":
+                return _dispatch()
+            if line.startswith(":"):
+                return None
+            name, _, value = line.partition(":")
+            if value.startswith(" "):
+                value = value[1:]
+            if name == "data":
+                data_lines.append(value)
+            elif name == "event":
+                event_type = value
+            return None  # `id` / `retry` are not needed without resumption
+
+        try:
+            async for chunk in resp.aiter_bytes():
+                total += len(chunk)
+                if total > self.MAX_RESPONSE_BYTES:
+                    raise MCPClientError("External MCP SSE response exceeded 512 KB safety limit")
+                pending += decoder.decode(chunk)
+                # Hold a trailing CR: it may be the first half of a CRLF.
+                hold = pending.endswith("\r")
+                work, pending = (pending[:-1], "\r") if hold else (pending, "")
+                lines = work.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+                pending = lines.pop() + pending
+                for line in lines:
+                    found = _feed_line(line)
+                    if found is not None:
+                        return found
+            pending += decoder.decode(b"", final=True)
+        except UnicodeDecodeError as exc:
+            raise MCPClientError("External MCP server sent non-UTF-8 SSE data") from exc
+        for line in pending.replace("\r\n", "\n").replace("\r", "\n").split("\n") + [""]:
+            found = _feed_line(line)
+            if found is not None:
+                return found
+        raise MCPClientError("External MCP SSE stream ended without a response")
+
+    # ---- lifecycle -------------------------------------------------------- #
+
+    def _lock_for(self, key: str) -> asyncio.Lock:
+        lock = self._init_locks.get(key)
+        if lock is None:
+            lock = self._init_locks[key] = asyncio.Lock()
+        return lock
+
+    async def _ensure_session(self, endpoint_url: str) -> MCPSessionState:
+        key = self._key(endpoint_url)
+        session = self._sessions.get(key)
+        if session is not None:
+            return session
+        async with self._lock_for(key):
+            session = self._sessions.get(key)
+            if session is None:
+                session = await self._initialize(key)
+                self._sessions[key] = session
+            return session
+
+    async def _reinitialize(self, endpoint_url: str, stale: MCPSessionState) -> MCPSessionState:
+        key = self._key(endpoint_url)
+        async with self._lock_for(key):
+            current = self._sessions.get(key)
+            if current is not None and current is not stale:
+                return current  # another caller already re-initialized
+            self._sessions.pop(key, None)
+            session = await self._initialize(key)
+            self._sessions[key] = session
+            return session
+
+    async def _initialize(self, endpoint_url: str) -> MCPSessionState:
+        rpc_id = _new_id("init")
+        res = await self._send(
+            "POST",
+            endpoint_url,
+            headers=self._headers(None),
+            payload={
+                "jsonrpc": "2.0",
+                "id": rpc_id,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": MCP_CLIENT_PROTOCOL_VERSIONS[0],
+                    "capabilities": {},
+                    "clientInfo": dict(MCP_CLIENT_INFO),
+                },
+            },
+            expect_id=rpc_id,
+        )
+        if res.status != 200 or res.message is None:
+            raise MCPClientError(f"External MCP initialize failed (HTTP {res.status})")
+        msg = res.message
+        if "error" in msg:
+            err = msg["error"] if isinstance(msg["error"], dict) else {}
+            if err.get("code") == JSONRPC_METHOD_NOT_FOUND_CODE:
+                # Pre-lifecycle stateless JSON server: keep the plain JSON-RPC mode.
+                return MCPSessionState(legacy=True)
+            raise MCPClientError(f"External MCP initialize rejected: {str(msg['error'])[:200]}")
+
+        result = msg.get("result") if isinstance(msg.get("result"), dict) else {}
+        session_id = res.headers.get("mcp-session-id")
+        if session_id is not None and not _MCP_SESSION_ID_RE.match(session_id):
+            raise MCPClientError("External MCP server issued an invalid Mcp-Session-Id")
+        version = result.get("protocolVersion")
+        session = MCPSessionState(
+            protocol_version=version if isinstance(version, str) else None,
+            session_id=session_id,
+            server_capabilities=dict(result.get("capabilities") or {})
+            if isinstance(result.get("capabilities"), dict)
+            else {},
+            server_info=dict(result.get("serverInfo") or {}) if isinstance(result.get("serverInfo"), dict) else {},
+        )
+        if version not in MCP_CLIENT_PROTOCOL_VERSIONS:
+            await self._terminate(endpoint_url, session)
+            raise MCPClientError(f"External MCP server negotiated unsupported protocol version {str(version)[:32]!r}")
+
+        notified = await self._send(
+            "POST",
+            endpoint_url,
+            headers=self._headers(session),
+            payload={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        )
+        if notified.status not in (200, 202, 204):
+            raise MCPClientError(f"External MCP server rejected notifications/initialized (HTTP {notified.status})")
+        return session
+
+    async def _terminate(self, endpoint_url: str, session: MCPSessionState) -> None:
+        if not session.session_id:
+            return
+        try:
+            await self._send("DELETE", endpoint_url, headers=self._headers(session))
+        except (MCPClientError, SafeHTTPError):
+            logger.debug("MCP session DELETE failed for %s", endpoint_url, exc_info=True)
+
+    async def close_session(self, endpoint_url: str) -> None:
+        """Forget the endpoint's session, sending DELETE if the server issued an id."""
+        session = self._sessions.pop(self._key(endpoint_url), None)
+        if session is not None:
+            await self._terminate(self._key(endpoint_url), session)
+
+    async def aclose(self) -> None:
+        for key in list(self._sessions):
+            await self.close_session(key)
+
+    # ---- JSON-RPC --------------------------------------------------------- #
+
+    async def _request(self, endpoint_url: str, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        session = await self._ensure_session(endpoint_url)
+        for attempt in range(2):
+            rpc_id = _new_id("rpc")
+            res = await self._send(
+                "POST",
+                endpoint_url,
+                headers=self._headers(session),
+                payload={"jsonrpc": "2.0", "id": rpc_id, "method": method, "params": params},
+                expect_id=rpc_id,
+            )
+            if res.status == 404 and session.session_id and attempt == 0:
+                # Session expired / terminated server-side: re-initialize once.
+                session = await self._reinitialize(endpoint_url, session)
+                continue
+            if res.status != 200 or res.message is None:
+                raise MCPClientError(f"External MCP server returned HTTP {res.status}")
+            return res.message
+        raise MCPClientError("External MCP session could not be re-established")
 
     async def list_tools(self, endpoint_url: str) -> List[Dict[str, Any]]:
-        rpc = {"jsonrpc": "2.0", "id": _new_id("rpc"), "method": "tools/list", "params": {}}
-        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        res = await self._request(endpoint_url, "tools/list", {})
         if "error" in res:
             raise ValueError(str(res["error"])[:240])
         tools = (res.get("result") or {}).get("tools") or []
@@ -289,26 +582,14 @@ class StreamableHTTPMCPClient:
     async def call_tool(
         self, endpoint_url: str, tool_name: str, arguments: Dict[str, Any]
     ) -> Dict[str, Any]:
-        rpc = {
-            "jsonrpc": "2.0",
-            "id": _new_id("rpc"),
-            "method": "tools/call",
-            "params": {"name": tool_name, "arguments": arguments},
-        }
-        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        res = await self._request(endpoint_url, "tools/call", {"name": tool_name, "arguments": arguments})
         if "error" in res:
             raise ValueError(str(res["error"])[:240])
         return dict(res.get("result") or {})
 
     async def read_resource(self, endpoint_url: str, uri: str) -> Dict[str, Any]:
         """Fetch a resource (e.g. an MCP Apps `ui://` document) via `resources/read`."""
-        rpc = {
-            "jsonrpc": "2.0",
-            "id": _new_id("rpc"),
-            "method": "resources/read",
-            "params": {"uri": uri},
-        }
-        res = await asyncio.to_thread(self._post_jsonrpc_sync, endpoint_url, rpc)
+        res = await self._request(endpoint_url, "resources/read", {"uri": uri})
         if "error" in res:
             raise ValueError(str(res["error"])[:240])
         result = res.get("result")
@@ -486,6 +767,10 @@ class MCPGateway:
     @property
     def http_client(self) -> StreamableHTTPMCPClient:
         return self._http_client
+
+    async def aclose(self) -> None:
+        """Terminate open external MCP sessions (DELETE) on shutdown."""
+        await self._http_client.aclose()
 
     def _register_builtin_tools(self) -> None:
         all_depts = frozenset(

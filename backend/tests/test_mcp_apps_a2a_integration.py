@@ -3,7 +3,8 @@
 No real network is used:
 - The fake MCP server is a real `mcp` SDK `MCPServer` with the MCP Apps
   extension, served as an in-process Streamable HTTP ASGI app and bridged into
-  Forge's `StreamableHTTPMCPClient` through its `transport_fn` seam.
+  Forge's `StreamableHTTPMCPClient` through its `transport` seam (an httpx
+  transport; SSRF policy, DNS resolution and pinning still run first).
 - The fake remote A2A agent is an in-process Starlette app reached through
   `httpx.ASGITransport`.
 - Forge's own API is driven through FastAPI's `TestClient` (and, for the
@@ -36,7 +37,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 import api.a2a_public as a2a_public_module  # noqa: E402
 import api.protocols as protocols_module  # noqa: E402
-import core.protocol_gateway as protocol_gateway_module  # noqa: E402
+import core.safe_http as safe_http_module  # noqa: E402
 from api.auth import get_current_user  # noqa: E402
 from core.a2a_adapter import (  # noqa: E402
     A2ABlockedURLError,
@@ -69,7 +70,7 @@ USER_ID = "user-1"
 # --------------------------------------------------------------------------- #
 
 
-def _fake_getaddrinfo(host, *_args, **_kwargs):
+def _fake_getaddrinfo(host, *_args, **_kwargs):  # (host, port) -> getaddrinfo tuples
     table = {"rebind.example": "10.1.2.3", "public.example": "93.184.216.34"}
     if host in table:
         return [(2, 1, 6, "", (table[host], 0))]
@@ -80,9 +81,7 @@ def _fake_getaddrinfo(host, *_args, **_kwargs):
 
 @pytest.fixture(autouse=True)
 def _offline_dns(monkeypatch):
-    monkeypatch.setattr(
-        protocol_gateway_module, "socket", SimpleNamespace(getaddrinfo=_fake_getaddrinfo)
-    )
+    monkeypatch.setattr(safe_http_module, "system_getaddrinfo", _fake_getaddrinfo)
 
 
 class FakeCollection:
@@ -187,24 +186,49 @@ def _build_fake_mcp_server() -> Starlette:
     )
 
 
+class ASGIBridgeTransport(httpx.AsyncBaseTransport):
+    """httpx transport that forwards requests to an ASGI app running in a TestClient.
+
+    The TestClient runs the app's lifespan (the SDK session manager) on its own
+    loop, so the bridge works from any event loop. Every exchange is logged.
+    """
+
+    def __init__(self, test_client: TestClient, log: List[Dict[str, Any]]) -> None:
+        self._tc = test_client
+        self.log = log
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        body = await request.aread()
+        entry: Dict[str, Any] = {
+            "http_method": request.method,
+            "url": str(request.url),
+            "headers": dict(request.headers),
+            "pinned": request.extensions.get("forge_pinned_addresses"),
+            "method": None,
+            "params": None,
+        }
+        if body:
+            payload = json.loads(body)
+            entry["method"] = payload.get("method")
+            entry["params"] = payload.get("params")
+        resp = await asyncio.to_thread(
+            self._tc.request, request.method, str(request.url), content=body, headers=dict(request.headers)
+        )
+        entry["status"] = resp.status_code
+        entry["response_content_type"] = resp.headers.get("content-type", "")
+        self.log.append(entry)
+        return httpx.Response(resp.status_code, headers=resp.headers, content=resp.content)
+
+
 @pytest.fixture
 def fake_mcp():
     calls: List[Dict[str, Any]] = []
     with TestClient(_build_fake_mcp_server(), base_url="https://mcp.test") as mcp_client:
-
-        def transport(url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-            calls.append({"url": url, "method": payload.get("method"), "params": payload.get("params")})
-            resp = mcp_client.post(
-                httpx.URL(url).path, json=payload, headers={"Accept": "application/json"}
-            )
-            assert resp.status_code == 200, resp.text
-            return resp.json()
-
-        yield SimpleNamespace(transport=transport, calls=calls)
+        yield SimpleNamespace(transport=ASGIBridgeTransport(mcp_client, calls), calls=calls)
 
 
 async def _discovered_gateway(fake_mcp) -> MCPGateway:
-    gw = MCPGateway(http_client=StreamableHTTPMCPClient(transport_fn=fake_mcp.transport))
+    gw = MCPGateway(http_client=StreamableHTTPMCPClient(transport=fake_mcp.transport))
     gw.register_external_server("apps-mcp", "https://mcp.test/mcp")
     await gw.discover_external_tools("apps-mcp")
     return gw
@@ -322,7 +346,7 @@ def forge(monkeypatch, fake_mcp):
         return db
 
     a2a_gw = A2AGateway(kernel=_stub_kernel(delay=0.01))
-    mcp_gw = MCPGateway(http_client=StreamableHTTPMCPClient(transport_fn=fake_mcp.transport))
+    mcp_gw = MCPGateway(http_client=StreamableHTTPMCPClient(transport=fake_mcp.transport))
     mcp_gw.register_external_server("apps-mcp", "https://mcp.test/mcp")
     asyncio.run(mcp_gw.discover_external_tools("apps-mcp"))
 
