@@ -133,7 +133,7 @@ export function CommandCenterMockup({ active }: { active: StepId }) {
       aria-label="Illustrative mockup of the Forge Command Center showing four active agent runs"
     >
       {/* Sidebar */}
-      <div className="hidden w-[188px] shrink-0 flex-col border-r border-border-soft p-3 md:flex" aria-hidden="true">
+      <div className="hidden w-[188px] shrink-0 flex-col border-r border-border-soft p-3 xl:flex" aria-hidden="true">
         <div className="flex items-center gap-2 px-1.5 py-1">
           <img src="/forge.svg" alt="" className="h-4 w-4" />
           <span className="text-[12px] font-medium tracking-[-0.01em] text-ink">Forge AI</span>
@@ -215,7 +215,7 @@ export function CommandCenterMockup({ active }: { active: StepId }) {
             return (
               <div
                 key={r.title}
-                className={`grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-lg border p-2.5 transition-all duration-slow sm:grid-cols-[36px_minmax(0,1fr)_minmax(0,190px)_104px] ${
+                className={`grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-lg border p-2.5 transition-all duration-slow sm:grid-cols-[36px_minmax(0,1fr)_150px_100px] ${
                   on ? "border-ink/20 bg-ink/[0.05]" : "border-border-soft bg-transparent opacity-70"
                 }`}
               >

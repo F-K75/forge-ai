@@ -47,7 +47,7 @@ export function WorkflowShowcase() {
         </p>
       </Reveal>
 
-      <Reveal delay={0.1} className="mx-auto mt-14 grid max-w-[1120px] gap-4 lg:grid-cols-[340px_1fr]">
+      <Reveal delay={0.1} className="mx-auto mt-14 grid max-w-[1120px] gap-4 lg:grid-cols-[310px_1fr]">
         {/* Step card */}
         <div className="flex flex-col rounded-2xl border border-border bg-panel/80 p-6 sm:p-7">
           <div id="step-panel" role="tabpanel" aria-labelledby={`step-tab-${step.id}`} className="min-h-[210px]">
@@ -107,7 +107,7 @@ export function WorkflowShowcase() {
         </div>
 
         {/* Product frame */}
-        <div className="relative overflow-hidden rounded-2xl border border-border p-3 sm:p-8">
+        <div className="relative overflow-hidden rounded-2xl border border-border p-3 sm:p-6">
           <div
             className="absolute inset-0 -z-0"
             aria-hidden="true"

@@ -10,11 +10,12 @@ interface RevealProps {
 
 /**
  * Fades and lifts content in once as it scrolls into view. Under
- * prefers-reduced-motion it renders a plain element with no animation.
+ * prefers-reduced-motion (or where IntersectionObserver is unavailable, which
+ * motion's whileInView needs) it renders a plain element with no animation.
  */
 export function Reveal({ children, className, delay = 0 }: RevealProps) {
   const reduce = useReducedMotion();
-  if (reduce) return <div className={className}>{children}</div>;
+  if (reduce || typeof IntersectionObserver === "undefined") return <div className={className}>{children}</div>;
   return (
     <motion.div
       className={className}
