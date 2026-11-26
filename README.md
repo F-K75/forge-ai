@@ -246,6 +246,7 @@ uvicorn main:app --reload --port 8100
 | `ANTHROPIC_API_KEY` | Default LLM provider |
 | `OPENAI_API_KEY` | Optional fallback provider |
 | `OPENROUTER_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY` / `TOGETHER_API_KEY` / `MISTRAL_API_KEY` / `AZURE_OPENAI_*` / `OLLAMA_BASE_URL` | Optional provider keys (see `backend/providers/`) |
+| `VLLM_BASE_URL` / `VLLM_*` / `LITELLM_BASE_URL` / `LITELLM_*` | Optional self-hosted OpenAI-compatible servers (see `docs/CONFIGURATION.md`) |
 | `MONGODB_URL` | Mongo connection string |
 | `REDIS_URL` | Redis connection string |
 | `JWT_SECRET` | Auth signing secret |
