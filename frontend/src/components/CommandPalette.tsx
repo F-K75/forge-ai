@@ -17,40 +17,65 @@ import {
   Terminal,
   Lock,
   Box,
+  LayoutDashboard,
+  Users,
+  Sparkles,
+  Network,
+  Brain,
+  Shield,
+  Layers,
+  Bot,
+  GitCompare,
+  FolderTree,
+  Clock,
+  SlidersHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import BrandLogo from "./BrandLogo";
 import { useAuthStore } from "../store/authStore";
+import { useActiveProject } from "../hooks/useActiveProject";
+import { OPEN_COMMAND_PALETTE_EVENT } from "../lib/commandPalette";
 
 type Command = {
   id: string;
   label: string;
   icon: ReactNode;
+  /** Absolute path, or a sub-path of the current project when `projectSub` is set. */
   href: string;
-  section: "nav" | "action";
+  projectSub?: boolean;
+  section: "nav" | "project" | "action";
   keywords?: string[];
 };
 
 const COMMANDS: Command[] = [
-  { id: "studio-3d", label: "3D Spatial Studio", icon: <Box size={15} />, href: "/studio-3d", section: "nav", keywords: ["3d", "threejs", "spatial", "core", "rig", "topology"] },
-  { id: "launch", label: "Launchpad", icon: <Rocket size={15} />, href: "/launch", section: "nav", keywords: ["launch", "prompt", "cli", "compiler"] },
-  { id: "home", label: "Home (Landing Page)", icon: <Home size={15} />, href: "/home", section: "nav", keywords: ["home", "landing", "marketing", "overview"] },
-  { id: "workspace", label: "Workspace IDE", icon: <Terminal size={15} />, href: "/build/demo-project", section: "nav", keywords: ["editor", "code", "dev", "workspace"] },
-  { id: "projects", label: "Projects", icon: <LayoutGrid size={15} />, href: "/projects", section: "nav", keywords: ["dashboard", "library"] },
-  { id: "initiatives", label: "Initiatives", icon: <Rocket size={15} />, href: "/initiatives", section: "nav", keywords: ["pm", "agile", "epics"] },
-  { id: "flow", label: "Agent Flow", icon: <Workflow size={15} />, href: "/flow", section: "nav", keywords: ["agents", "pipeline", "graph", "nodes"] },
-  { id: "reviews", label: "Reviews", icon: <ShieldCheck size={15} />, href: "/reviews", section: "nav", keywords: ["orchestrator", "qa"] },
-  { id: "marketplace", label: "Marketplace", icon: <Store size={15} />, href: "/marketplace", section: "nav", keywords: ["templates", "playbooks"] },
-  { id: "billing", label: "Billing", icon: <CreditCard size={15} />, href: "/billing", section: "nav", keywords: ["plans", "subscription", "upgrade"] },
-  { id: "admin-console", label: "Admin Console", icon: <ShieldCheck size={15} />, href: "/admin-console", section: "nav", keywords: ["admin", "governance", "system", "users"] },
+  { id: "command-center", label: "Command Center", icon: <LayoutDashboard size={15} />, href: "/command", section: "nav", keywords: ["home", "dashboard", "overview", "fleet", "runs"] },
+  { id: "projects", label: "Projects", icon: <LayoutGrid size={15} />, href: "/projects", section: "nav", keywords: ["dashboard", "library", "repos"] },
+  { id: "launch", label: "New Build", icon: <Rocket size={15} />, href: "/launch", section: "nav", keywords: ["launch", "launchpad", "prompt", "cli", "create"] },
+  { id: "approvals", label: "Approvals", icon: <ShieldCheck size={15} />, href: "/approvals", section: "nav", keywords: ["gates", "review", "pending", "approve"] },
+  { id: "agents", label: "Agents (engineering org)", icon: <Users size={15} />, href: "/agents", section: "nav", keywords: ["org", "fleet", "roles"] },
+  { id: "skills", label: "Skills", icon: <Sparkles size={15} />, href: "/skills", section: "nav", keywords: ["capabilities", "tools"] },
+  { id: "protocols", label: "Protocols", icon: <Network size={15} />, href: "/protocols", section: "nav", keywords: ["mcp", "a2a", "a2ui", "agui"] },
+  { id: "models", label: "Models", icon: <Brain size={15} />, href: "/models", section: "nav", keywords: ["llm", "providers", "gateway", "model studio"] },
+  { id: "studio-3d", label: "3D Spatial Studio", icon: <Box size={15} />, href: "/studio-3d", section: "nav", keywords: ["3d", "threejs", "spatial", "topology"] },
+  { id: "marketplace", label: "Marketplace", icon: <Store size={15} />, href: "/marketplace", section: "nav", keywords: ["templates", "playbooks", "plugins"] },
+  { id: "billing", label: "Billing", icon: <CreditCard size={15} />, href: "/billing", section: "nav", keywords: ["plans", "subscription", "upgrade", "credits"] },
+  { id: "settings", label: "Settings", icon: <Settings size={15} />, href: "/settings", section: "nav", keywords: ["preferences", "profile", "account"] },
+  { id: "admin", label: "Admin Ops", icon: <Shield size={15} />, href: "/admin", section: "nav", keywords: ["admin", "governance", "system", "users", "console"] },
   { id: "optimization-dashboard", label: "Optimization Dashboard (Admin)", icon: <Workflow size={15} />, href: "/optimization-dashboard", section: "nav", keywords: ["admin", "optimizer", "tokens", "cost"] },
   { id: "engineering-health", label: "Engineering Health (Admin)", icon: <ShieldCheck size={15} />, href: "/engineering-health", section: "nav", keywords: ["admin", "health", "metrics", "fleet"] },
   { id: "prompt-studio", label: "Prompt Studio (Admin)", icon: <Terminal size={15} />, href: "/prompt-studio", section: "nav", keywords: ["admin", "prompts", "templates"] },
-  { id: "settings", label: "Settings", icon: <Settings size={15} />, href: "/settings", section: "nav", keywords: ["preferences", "profile"] },
-  { id: "login", label: "Sign in", icon: <Lock size={15} />, href: "/login", section: "nav", keywords: ["login", "auth", "signin", "credentials"] },
-  { id: "signup", label: "Create Account", icon: <User size={15} />, href: "/signup", section: "nav", keywords: ["register", "signup", "join"] },
-  { id: "new-build", label: "New build…", icon: <FileText size={15} />, href: "/projects", section: "action", keywords: ["create", "prompt", "start"] },
+  { id: "home", label: "Forge home (landing page)", icon: <Home size={15} />, href: "/home", section: "nav", keywords: ["home", "landing", "marketing"] },
+  { id: "workspace", label: "Build (workspace IDE)", icon: <Terminal size={15} />, href: "workspace", projectSub: true, section: "project", keywords: ["editor", "code", "dev", "workspace", "ide"] },
+  { id: "initiatives", label: "Plan (initiatives)", icon: <Layers size={15} />, href: "initiatives", projectSub: true, section: "project", keywords: ["pm", "agile", "epics", "kanban", "roadmap"] },
+  { id: "flow", label: "Project agents", icon: <Bot size={15} />, href: "agents", projectSub: true, section: "project", keywords: ["agents", "pipeline", "graph", "flow", "runs"] },
+  { id: "reviews", label: "Reviews", icon: <GitCompare size={15} />, href: "reviews", projectSub: true, section: "project", keywords: ["orchestrator", "qa", "diff", "pr"] },
+  { id: "files", label: "Files", icon: <FolderTree size={15} />, href: "files", projectSub: true, section: "project", keywords: ["tree", "repo", "assets"] },
+  { id: "history", label: "History", icon: <Clock size={15} />, href: "history", projectSub: true, section: "project", keywords: ["audit", "log", "revisions"] },
+  { id: "project-settings", label: "Project settings", icon: <SlidersHorizontal size={15} />, href: "settings", projectSub: true, section: "project", keywords: ["integrations", "config"] },
+  { id: "new-build", label: "Describe a new build…", icon: <FileText size={15} />, href: "/launch", section: "action", keywords: ["create", "prompt", "start", "new project"] },
   { id: "profile", label: "Profile & account", icon: <User size={15} />, href: "/settings", section: "action", keywords: ["account", "avatar", "name"] },
+  { id: "login", label: "Sign in", icon: <Lock size={15} />, href: "/login", section: "action", keywords: ["login", "auth", "signin"] },
+  { id: "signup", label: "Create account", icon: <User size={15} />, href: "/signup", section: "action", keywords: ["register", "signup", "join"] },
   { id: "logout", label: "Sign out", icon: <LogOut size={15} />, href: "/login", section: "action", keywords: ["sign out", "logout"] },
 ];
 
@@ -61,6 +86,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuthStore();
+  const { projectPath } = useActiveProject();
   const reduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -81,8 +107,17 @@ export function CommandPalette() {
         setOpen(false);
       }
     };
+    const onOpen = () => {
+      setQuery("");
+      setActiveIndex(0);
+      setOpen(true);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
+    };
   }, []);
 
   useEffect(() => {
@@ -112,29 +147,8 @@ export function CommandPalette() {
       navigate("/login", { replace: true });
       return;
     }
-    const currentProject = localStorage.getItem("forge_last_project") || "demo-project";
-    if (cmd.id === "workspace") {
-      navigate(`/p/${currentProject}/workspace`);
-      setOpen(false);
-      return;
-    }
-    if (cmd.id === "initiatives") {
-      navigate(`/p/${currentProject}/initiatives`);
-      setOpen(false);
-      return;
-    }
-    if (cmd.id === "flow") {
-      navigate(`/p/${currentProject}/flow`);
-      setOpen(false);
-      return;
-    }
-    if (cmd.id === "reviews") {
-      navigate(`/p/${currentProject}/reviews`);
-      setOpen(false);
-      return;
-    }
-    if (cmd.id === "settings") {
-      navigate(`/p/${currentProject}/settings`);
+    if (cmd.projectSub) {
+      navigate(projectPath(cmd.href));
       setOpen(false);
       return;
     }
@@ -144,6 +158,7 @@ export function CommandPalette() {
 
   const sections = [
     { key: "nav", label: "Navigation" },
+    { key: "project", label: "Current project" },
     { key: "action", label: "Actions" },
   ] as const;
 
@@ -157,7 +172,7 @@ export function CommandPalette() {
           exit={{ opacity: 0 }}
         >
           <div
-            className="absolute inset-0 bg-slate-950/55"
+            className="absolute inset-0 bg-base/70 backdrop-blur-sm"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
@@ -236,11 +251,11 @@ export function CommandPalette() {
                             onMouseEnter={() => setActiveIndex(globalIdx)}
                             className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
                               isActive
-                                ? "bg-accent/10 text-accent font-medium"
-                                : "text-ink hover:bg-panel-alt"
+                                ? "bg-ink/[0.06] text-ink font-medium"
+                                : "text-muted hover:bg-ink/[0.04] hover:text-ink"
                             }`}
                           >
-                            <span className={isActive ? "text-accent" : "text-muted"}>
+                            <span className={isActive ? "text-ink" : "text-faint"}>
                               {cmd.icon}
                             </span>
                             <span className="flex-1 truncate">{cmd.label}</span>

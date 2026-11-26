@@ -494,3 +494,32 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Ember Night atmosphere swatches: soft radial depth for dashboard thumbnails
+   and feature cards (olive, rust, teal fading into the surface, 30% black veil). */
+:root {
+  --atmos-olive: 110 110 77;   /* #6E6E4D */
+  --atmos-rust: 97 48 32;      /* #613020 */
+  --atmos-teal: 61 87 87;      /* #3D5757 */
+  --atmos-ember: 255 102 0;    /* #FF6600 */
+}
+
+.atmos {
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(var(--surface-container));
+  background-image:
+    radial-gradient(120% 120% at 25% 15%, rgb(var(--atmos-tone) / 0.95) 0%, rgb(var(--atmos-tone) / 0.35) 45%, transparent 80%),
+    radial-gradient(90% 90% at 90% 100%, rgb(var(--atmos-tone-2) / 0.55) 0%, transparent 70%);
+}
+.atmos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.3);
+  pointer-events: none;
+}
+.atmos-olive { --atmos-tone: var(--atmos-olive); --atmos-tone-2: var(--atmos-teal); }
+.atmos-rust { --atmos-tone: var(--atmos-rust); --atmos-tone-2: var(--atmos-ember); }
+.atmos-teal { --atmos-tone: var(--atmos-teal); --atmos-tone-2: var(--atmos-olive); }
+.atmos-dusk { --atmos-tone: var(--atmos-rust); --atmos-tone-2: var(--atmos-teal); }
