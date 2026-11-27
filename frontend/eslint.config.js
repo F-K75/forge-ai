@@ -36,5 +36,38 @@ export default tseslint.config(
       "jsx-a11y/heading-has-content": "warn",
       "jsx-a11y/label-has-associated-control": "warn",
     },
+  },
+  // WS-B (Forge OS generative UI engine): generated surfaces are data, never
+  // code. No raw HTML sinks and no string-to-code paths anywhere under genui.
+  {
+    files: ["src/os/genui/**/*.{ts,tsx}"],
+    rules: {
+      "no-eval": "error",
+      "no-implied-eval": "error",
+      "no-new-func": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: "Generated UI must never inject HTML (no dangerouslySetInnerHTML in src/os/genui).",
+        },
+        {
+          selector: "Property[key.name='dangerouslySetInnerHTML']",
+          message: "Generated UI must never inject HTML (no dangerouslySetInnerHTML in src/os/genui).",
+        },
+        { selector: "CallExpression[callee.name='eval']", message: "eval is forbidden in src/os/genui." },
+        { selector: "MemberExpression[property.name='eval']", message: "eval is forbidden in src/os/genui." },
+        { selector: "NewExpression[callee.name='Function']", message: "new Function is forbidden in src/os/genui." },
+        { selector: "CallExpression[callee.name='Function']", message: "Function() is forbidden in src/os/genui." },
+        {
+          selector: "MemberExpression[property.name=/^(innerHTML|outerHTML|insertAdjacentHTML|srcdoc)$/]",
+          message: "Raw HTML sinks are forbidden in src/os/genui (MCP App HTML goes only through MCPAppFrame).",
+        },
+        {
+          selector: "MemberExpression[object.name='document'][property.name=/^(write|writeln)$/]",
+          message: "document.write is forbidden in src/os/genui.",
+        },
+      ],
+    },
   }
 );
