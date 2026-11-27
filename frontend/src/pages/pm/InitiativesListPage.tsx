@@ -41,6 +41,7 @@ import { generateInitiativeWithGemini } from "../../lib/geminiPM";
 import { RequirementsSurvey } from "../../components/pm/RequirementsSurvey";
 import { VoiceInputButton } from "../../components/pm/VoiceInputButton";
 import { SuiWindowFrame, BottomNavItem } from "../../components/pm/SuiWindowFrame";
+import { COLORS } from "../../lib/theme";
 
 /* ------------------------------------------------------------------ */
 /* Subtle Audio Synthesizer                                           */
@@ -229,7 +230,7 @@ const SPECIALISTS = [
     id: "sophia",
     name: "Sophia",
     role: "Chief AI Architect",
-    color: "#10B981",
+    color: COLORS.ok,
     tagBg: "bg-ok text-on-ink",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     icon: Bot,
@@ -239,7 +240,7 @@ const SPECIALISTS = [
     id: "rakib",
     name: "Rakib",
     role: "Lead Systems Engineer",
-    color: "#2563EB",
+    color: COLORS.info,
     tagBg: "bg-ink text-on-ink",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     icon: Code2,
@@ -249,7 +250,7 @@ const SPECIALISTS = [
     id: "parves",
     name: "Parves",
     role: "Principal UX Designer",
-    color: "#F59E0B",
+    color: COLORS.warn,
     tagBg: "bg-ink text-on-ink",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     icon: Palette,
@@ -259,7 +260,7 @@ const SPECIALISTS = [
     id: "shoaib",
     name: "Shoaib",
     role: "Reliability & QA Lead",
-    color: "#9333EA",
+    color: COLORS.agentBusinessImprover,
     tagBg: "bg-ink text-on-ink",
     avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
     icon: ShieldCheck,

@@ -22,6 +22,7 @@ import {
 import toast from "react-hot-toast";
 import { llmApi } from "../lib/api";
 import { AGENTS } from "../lib/agents";
+import { COLORS } from "../lib/theme";
 
 // Types
 export interface ProviderStatus {
@@ -1085,7 +1086,7 @@ export default function LLMManagementPage() {
                         <div className="flex items-center gap-2.5">
                           <span
                             className="h-8 w-8 border rounded-lg border-border flex items-center justify-center text-ink font-semibold"
-                            style={{ backgroundColor: agentMeta?.hue || "#2DD4BF" }}
+                            style={{ backgroundColor: agentMeta?.hue || COLORS.agentIntegration }}
                           >
                             <Icon size={16} strokeWidth={2.5} />
                           </span>

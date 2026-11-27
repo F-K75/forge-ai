@@ -32,6 +32,7 @@ import { GraphHeader } from "./graph/GraphHeader";
 import { GraphFilterBar } from "./graph/GraphFilterBar";
 import { GraphNodeInspector } from "./graph/GraphNodeInspector";
 import { GraphDiagnosticsModal } from "./graph/GraphDiagnosticsModal";
+import { COLORS } from "../../lib/theme";
 
 function GraphInner() {
   const { initiative, epics, stories, tasks, executions } = usePMStore();
@@ -334,7 +335,7 @@ function GraphInner() {
           proOptions={{ hideAttribution: true }}
           aria-label="Dependency and Lineage Graph Canvas"
         >
-          <Background color="#1C1C2C" gap={28} size={1.2} />
+          <Background color={COLORS.panelAlt} gap={28} size={1.2} />
 
           <Controls
             showInteractive={true}
@@ -344,7 +345,7 @@ function GraphInner() {
           <MiniMap
             nodeColor={(n) => {
               const type = (n.type as LayerType) || "task";
-              return LAYER_CONFIG[type]?.color || "#7C5CFF";
+              return LAYER_CONFIG[type]?.color || COLORS.agentBusinessImprover;
             }}
             nodeStrokeWidth={2}
             maskColor="rgba(10, 10, 18, 0.75)"

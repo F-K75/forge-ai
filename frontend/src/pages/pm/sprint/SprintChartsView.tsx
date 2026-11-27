@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { TrendingDown, BarChart2, Users, Info } from "lucide-react";
 import type { PMSprint, PMTask } from "../../../lib/types/api";
+import { COLORS } from "../../../lib/theme";
 
 interface SprintChartsViewProps {
   selectedSprint: PMSprint;
@@ -164,9 +165,9 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
             <div className="h-72 w-full min-h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={burndownData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.2} vertical={false} />
-                  <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.info} opacity={0.2} vertical={false} />
+                  <XAxis dataKey="day" stroke={COLORS.info} fontSize={11} tickLine={false} />
+                  <YAxis stroke={COLORS.info} fontSize={11} tickLine={false} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "rgba(15, 23, 42, 0.9)",
@@ -181,7 +182,7 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
                     type="monotone"
                     dataKey="ideal"
                     name="Ideal Burn (Target)"
-                    stroke="#94a3b8"
+                    stroke={COLORS.info}
                     strokeDasharray="5 5"
                     strokeWidth={2}
                     dot={false}
@@ -190,9 +191,9 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
                     type="monotone"
                     dataKey="actual"
                     name="Actual Remaining (Pts)"
-                    stroke="#0d9488"
+                    stroke={COLORS.agentIntegration}
                     strokeWidth={3}
-                    dot={{ r: 4, fill: "#0d9488" }}
+                    dot={{ r: 4, fill: COLORS.agentIntegration }}
                     connectNulls
                   />
                 </LineChart>
@@ -223,9 +224,9 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
             <div className="h-72 w-full min-h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={sprintChartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.2} vertical={false} />
-                  <XAxis dataKey="sprintNumber" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.info} opacity={0.2} vertical={false} />
+                  <XAxis dataKey="sprintNumber" stroke={COLORS.info} fontSize={11} tickLine={false} />
+                  <YAxis stroke={COLORS.info} fontSize={11} tickLine={false} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "rgba(15, 23, 42, 0.9)",
@@ -236,9 +237,9 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }} />
-                  <Bar dataKey="capacity" name="Capacity Limit" fill="#38bdf8" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="storyPointsPlanned" name="Story Points Planned" fill="#fbbf24" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="completed" name="Delivered Points" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="capacity" name="Capacity Limit" fill={COLORS.info} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="storyPointsPlanned" name="Story Points Planned" fill={COLORS.warn} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="completed" name="Delivered Points" fill={COLORS.agentIntegration} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -267,9 +268,9 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
             <div className="h-72 w-full min-h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart layout="vertical" data={agentWorkload} margin={{ top: 10, right: 20, left: 40, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.2} horizontal={false} />
-                  <XAxis type="number" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis dataKey="agent" type="category" stroke="#94a3b8" fontSize={11} tickLine={false} width={110} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.info} opacity={0.2} horizontal={false} />
+                  <XAxis type="number" stroke={COLORS.info} fontSize={11} tickLine={false} />
+                  <YAxis dataKey="agent" type="category" stroke={COLORS.info} fontSize={11} tickLine={false} width={110} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "rgba(15, 23, 42, 0.9)",
@@ -280,8 +281,8 @@ export const SprintChartsView: React.FC<SprintChartsViewProps> = ({
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }} />
-                  <Bar dataKey="points" name="Assigned Points" fill="#818cf8" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="tasks" name="Total Tasks" fill="#2dd4bf" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="points" name="Assigned Points" fill={COLORS.info} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="tasks" name="Total Tasks" fill={COLORS.agentIntegration} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

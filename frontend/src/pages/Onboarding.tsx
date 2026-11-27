@@ -10,6 +10,7 @@ import { getIcon } from "../lib/iconMap";
 import { useAuthStore } from "../store/authStore";
 import { LIVE_MODE } from "../lib/env";
 import { DEFAULT_SETTINGS } from "../lib/mockData";
+import { COLORS } from "../lib/theme";
 
 type Goal = string | null;
 
@@ -20,12 +21,12 @@ interface GoalOption {
 }
 
 const GOALS: GoalOption[] = [
-  { label: "SaaS dashboard", iconName: "trending-up",  hue: "#6366F1" },
-  { label: "Marketplace",    iconName: "store",         hue: "#A855F7" },
-  { label: "Internal tool",  iconName: "shield-check",  hue: "#22D3EE" },
-  { label: "AI app",         iconName: "sparkles",      hue: "#F59E0B" },
-  { label: "API backend",    iconName: "code",          hue: "#34D399" },
-  { label: "Just exploring", iconName: "compass",       hue: "#8B5CF6" },
+  { label: "SaaS dashboard", iconName: "trending-up",  hue: COLORS.info },
+  { label: "Marketplace",    iconName: "store",         hue: COLORS.agentBusinessImprover },
+  { label: "Internal tool",  iconName: "shield-check",  hue: COLORS.info },
+  { label: "AI app",         iconName: "sparkles",      hue: COLORS.warn },
+  { label: "API backend",    iconName: "code",          hue: COLORS.ok },
+  { label: "Just exploring", iconName: "compass",       hue: COLORS.agentBusinessImprover },
 ];
 
 const STEP_LABELS = ["Welcome", "Goal", "Connect", "Launch"] as const;

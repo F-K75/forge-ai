@@ -43,6 +43,7 @@ import {
 } from '../../lib/surveyDraftStorage';
 import { VoiceInputButton } from './VoiceInputButton';
 import { MixedMediaCard } from './MixedMediaCard';
+import { COLORS } from "../../lib/theme";
 
 export interface NeuralNode {
   id: string;
@@ -612,10 +613,10 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
   };
 
   const getNodeColor = (node: NeuralNode) => {
-    if (node.activation >= 0.8) return '#10B981'; // Emerald
-    if (node.activation >= 0.5) return '#06B6D4'; // Cyan
-    if (node.activation >= 0.3) return '#F59E0B'; // Amber
-    return '#64748B'; // Slate
+    if (node.activation >= 0.8) return COLORS.ok; // Emerald
+    if (node.activation >= 0.5) return COLORS.info; // Cyan
+    if (node.activation >= 0.3) return COLORS.warn; // Amber
+    return COLORS.faint; // Slate
   };
 
   return (
@@ -697,12 +698,12 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
             >
               <defs>
                 <linearGradient id="synapse-grad-active" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#10B981" stopOpacity="0.9" />
+                  <stop offset="0%" stopColor={COLORS.info} stopOpacity="0.8" />
+                  <stop offset="100%" stopColor={COLORS.ok} stopOpacity="0.9" />
                 </linearGradient>
                 <linearGradient id="synapse-grad-idle" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#334155" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#1E293B" stopOpacity="0.15" />
+                  <stop offset="0%" stopColor={COLORS.info} stopOpacity="0.25" />
+                  <stop offset="100%" stopColor={COLORS.info} stopOpacity="0.15" />
                 </linearGradient>
                 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
@@ -711,16 +712,16 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
               </defs>
 
               {/* Layer Title Headers */}
-              <text x={layerX[0]} y={18} fill="#64748B" fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
+              <text x={layerX[0]} y={18} fill={COLORS.faint} fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
                 SENSORY
               </text>
-              <text x={layerX[1]} y={18} fill="#64748B" fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
+              <text x={layerX[1]} y={18} fill={COLORS.faint} fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
                 CORE DOMAIN
               </text>
-              <text x={layerX[2]} y={18} fill="#64748B" fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
+              <text x={layerX[2]} y={18} fill={COLORS.faint} fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
                 RELIABILITY
               </text>
-              <text x={layerX[3]} y={18} fill="#64748B" fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
+              <text x={layerX[3]} y={18} fill={COLORS.faint} fontSize="9" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
                 ARTIFACTS
               </text>
 
@@ -742,7 +743,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                       strokeWidth={syn.active ? Math.max(1.5, syn.weight * 2.5) : 0.8}
                     />
                     {syn.active && (
-                      <circle r="2" fill="#2DD4BF">
+                      <circle r="2" fill={COLORS.agentIntegration}>
                         <animateMotion
                           path={`M ${fromCoords.x} ${fromCoords.y} C ${(fromCoords.x + toCoords.x) / 2} ${fromCoords.y}, ${(fromCoords.x + toCoords.x) / 2} ${toCoords.y}, ${toCoords.x} ${toCoords.y}`}
                           dur="1.4s"
@@ -774,7 +775,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                         cy={y}
                         r="14"
                         fill="none"
-                        stroke="#2DD4BF"
+                        stroke={COLORS.agentIntegration}
                         strokeWidth="1.5"
                         className="animate-ping"
                       />
@@ -785,8 +786,8 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                       cx={x}
                       cy={y}
                       r="10"
-                      fill="#0F172A"
-                      stroke={isSelected ? '#2DD4BF' : nodeColor}
+                      fill={COLORS.panelAlt}
+                      stroke={isSelected ? COLORS.agentIntegration : nodeColor}
                       strokeWidth={isSelected ? 2.5 : 1.5}
                       filter={isFiring ? 'url(#glow)' : undefined}
                     />
@@ -804,7 +805,7 @@ export const NeuralSurveyChatbot: React.FC<NeuralSurveyChatbotProps> = ({
                     <text
                       x={x}
                       y={y + 17}
-                      fill={isSelected ? '#2DD4BF' : '#CBD5E1'}
+                      fill={isSelected ? COLORS.agentIntegration : COLORS.info}
                       fontSize="8.5"
                       fontWeight="600"
                       textAnchor="middle"

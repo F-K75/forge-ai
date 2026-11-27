@@ -25,6 +25,7 @@ import { agentById } from "../lib/agents";
 import { LIVE_MODE } from "../lib/env";
 import { billingApi } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
+import { COLORS } from "../lib/theme";
 
 interface RawPlan {
   tier: string;
@@ -243,7 +244,7 @@ export default function BillingPage() {
           agentId,
           label: agent?.label || agentId,
           credits: runs,
-          hue: agent?.hue || "#2DD4BF",
+          hue: agent?.hue || COLORS.agentIntegration,
         };
       });
     }
@@ -253,7 +254,7 @@ export default function BillingPage() {
         agentId: s.agent,
         label: agent?.label || s.agent,
         credits: s.credits,
-        hue: agent?.hue || "#2DD4BF",
+        hue: agent?.hue || COLORS.agentIntegration,
       };
     });
   }, [usage]);

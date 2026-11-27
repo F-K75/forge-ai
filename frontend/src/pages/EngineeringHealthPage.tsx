@@ -11,9 +11,10 @@ import BrandLogo from "../components/BrandLogo"
 import { ChartContainer } from "../components/charts/ChartContainer"
 import { ChartTooltip } from "../components/charts/ChartTooltip"
 import { colorForIndex } from "../components/charts/palette"
+import { COLORS } from "../lib/theme";
 
-const AXIS_COLOR = "#5A5A6B" // tailwind.config.ts `faint`
-const GRID_COLOR = "#22222E" // tailwind.config.ts `border`
+const AXIS_COLOR = COLORS.faint // tailwind.config.ts `faint`
+const GRID_COLOR = COLORS.panelAlt // tailwind.config.ts `border`
 
 interface DimensionScore {
   value: number
@@ -239,12 +240,12 @@ export default function EngineeringHealthPage() {
                       allowDecimals={false}
                     />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="completed" name="Completed" stackId="a" fill="#34D399" />
+                    <Bar dataKey="completed" name="Completed" stackId="a" fill={COLORS.ok} />
                     <Bar
                       dataKey="remaining"
                       name="Remaining"
                       stackId="a"
-                      fill="#5A5A6B"
+                      fill={COLORS.faint}
                       radius={[3, 3, 0, 0]}
                     />
                   </BarChart>

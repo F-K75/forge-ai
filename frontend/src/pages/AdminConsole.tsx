@@ -34,8 +34,9 @@ import { ChartContainer } from "../components/charts/ChartContainer"
 import { ChartTooltip } from "../components/charts/ChartTooltip"
 import { colorForIndex } from "../components/charts/palette"
 import { pivotAiUsageByDate } from "../lib/chartTransforms"
+import { COLORS } from "../lib/theme";
 
-const AXIS_COLOR = "#64748B" // cool slate axis tick ink
+const AXIS_COLOR = COLORS.faint // cool slate axis tick ink
 const GRID_COLOR = "rgba(148, 163, 184, 0.18)" // hairline studio chart grid
 
 interface AdminUser {
@@ -431,8 +432,8 @@ export default function AdminConsole() {
                     type="monotone"
                     dataKey="revenue"
                     name="Revenue"
-                    stroke="#2563EB"
-                    fill="#2563EB"
+                    stroke={COLORS.info}
+                    fill={COLORS.info}
                     fillOpacity={0.14}
                     strokeWidth={2}
                   />
@@ -625,12 +626,12 @@ export default function AdminConsole() {
                 />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Bar dataKey="successful" name="Successful" stackId="a" fill="#34D399" />
+                <Bar dataKey="successful" name="Successful" stackId="a" fill={COLORS.ok} />
                 <Bar
                   dataKey="failed"
                   name="Failed"
                   stackId="a"
-                  fill="#EF4444"
+                  fill={COLORS.error}
                   radius={[3, 3, 0, 0]}
                 />
               </BarChart>
@@ -714,12 +715,12 @@ export default function AdminConsole() {
                 />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Bar dataKey="medium" name="Medium (rate limit)" stackId="a" fill="#F59E0B" />
+                <Bar dataKey="medium" name="Medium (rate limit)" stackId="a" fill={COLORS.warn} />
                 <Bar
                   dataKey="high"
                   name="High (anomaly)"
                   stackId="a"
-                  fill="#EF4444"
+                  fill={COLORS.error}
                   radius={[3, 3, 0, 0]}
                 />
               </BarChart>

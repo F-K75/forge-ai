@@ -39,6 +39,7 @@ import {
 import { initiativesApi } from "../../lib/pmApi";
 import { usePMStore } from "../../store/pmStore";
 import AgentEfficiencyHeatmap from "../../components/pm/AgentEfficiencyHeatmap";
+import { COLORS } from "../../lib/theme";
 
 export type AnalyticsSubTab =
   | "velocity"
@@ -57,13 +58,13 @@ export interface AnalyticsEventItem {
 }
 
 export const CHART_COLORS = {
-  emerald: "#10b981",
-  sky: "#0284c7",
-  amber: "#f59e0b",
-  rose: "#ef4444",
-  indigo: "#6366f1",
-  purple: "#8b5cf6",
-  slate: "#64748b",
+  emerald: COLORS.ok,
+  sky: COLORS.info,
+  amber: COLORS.warn,
+  rose: COLORS.error,
+  indigo: COLORS.info,
+  purple: COLORS.agentBusinessImprover,
+  slate: COLORS.faint,
 };
 
 export default function AnalyticsTab() {
@@ -780,7 +781,7 @@ export default function AnalyticsTab() {
                       <YAxis tick={{ fontSize: 11 }} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#171717",
+                          backgroundColor: COLORS.panelAlt,
                           borderRadius: "12px",
                           border: "none",
                           color: "#fff",
@@ -788,7 +789,7 @@ export default function AnalyticsTab() {
                         }}
                       />
                       <Bar dataKey="completed" fill={CHART_COLORS.sky} radius={[6, 6, 0, 0]} name="Delivered Points" />
-                      <Bar dataKey="planned" fill="#94a3b8" radius={[6, 6, 0, 0]} opacity={0.4} name="Planned Points" />
+                      <Bar dataKey="planned" fill={COLORS.info} radius={[6, 6, 0, 0]} opacity={0.4} name="Planned Points" />
                       <Line type="monotone" dataKey="capacity" stroke={CHART_COLORS.amber} strokeWidth={2} name="Team Capacity" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -872,7 +873,7 @@ export default function AnalyticsTab() {
                       <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={90} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#171717",
+                          backgroundColor: COLORS.panelAlt,
                           borderRadius: "12px",
                           border: "none",
                           color: "#fff",
@@ -967,7 +968,7 @@ export default function AnalyticsTab() {
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#171717",
+                          backgroundColor: COLORS.panelAlt,
                           borderRadius: "12px",
                           border: "none",
                           color: "#fff",

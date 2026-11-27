@@ -9,34 +9,35 @@ import BrandLogo from "../components/BrandLogo"
 import { motionVariants } from "../lib/animations"
 import { agentOrgApi, type AgentProfile, type RouteAssignment } from "../lib/api"
 import { LIVE_MODE } from "../lib/env"
+import { COLORS } from "../lib/theme";
 
 const LEVEL_COLOR: Record<string, string> = {
-  junior: "#8B8B9E",
-  mid: "#34D399",
-  senior: "#22D3EE",
-  lead: "#A855F7",
-  principal: "#E8823C",
+  junior: COLORS.muted,
+  mid: COLORS.ok,
+  senior: COLORS.info,
+  lead: COLORS.agentBusinessImprover,
+  principal: COLORS.accent,
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  active: "#34D399",
-  idle: "#F59E0B",
-  retired: "#5A5A6B",
+  active: COLORS.ok,
+  idle: COLORS.warn,
+  retired: COLORS.faint,
 }
 
 const GRAPH_TYPE_ORDER = ["agent", "build", "file", "decision"]
 const GRAPH_TYPE_COLOR: Record<string, string> = {
-  agent: "#E8823C",
-  build: "#22D3EE",
-  file: "#8B8B9E",
-  decision: "#A855F7",
+  agent: COLORS.accent,
+  build: COLORS.info,
+  file: COLORS.muted,
+  decision: COLORS.agentBusinessImprover,
 }
 
 function LevelBadge({ level }: { level: string }) {
   return (
     <span
       className="text-[10px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wide"
-      style={{ background: `${LEVEL_COLOR[level] ?? "#8B8B9E"}1A`, color: LEVEL_COLOR[level] ?? "#8B8B9E" }}
+      style={{ background: `${LEVEL_COLOR[level] ?? COLORS.muted}1A`, color: LEVEL_COLOR[level] ?? COLORS.muted }}
     >
       {level}
     </span>
@@ -47,7 +48,7 @@ function StatusDot({ status }: { status: string }) {
   return (
     <span
       className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
-      style={{ background: STATUS_COLOR[status] ?? "#5A5A6B" }}
+      style={{ background: STATUS_COLOR[status] ?? COLORS.faint }}
       title={status}
     />
   )
@@ -212,8 +213,8 @@ function KnowledgeGraphPanel({ projectId }: { projectId: string }) {
           data: { label: n.label },
           position: { x: layerIndex * 260, y: i * 56 },
           style: {
-            background: "#13131B",
-            border: `1px solid ${GRAPH_TYPE_COLOR[type] ?? "#22222E"}`,
+            background: COLORS.panelAlt,
+            border: `1px solid ${GRAPH_TYPE_COLOR[type] ?? COLORS.panelAlt}`,
             color: "#E8E8F0",
             fontSize: 11,
             borderRadius: 6,
@@ -228,8 +229,8 @@ function KnowledgeGraphPanel({ projectId }: { projectId: string }) {
       id: `e${i}`,
       source: e.source,
       target: e.target,
-      style: { stroke: "#22222E" },
-      markerEnd: { type: MarkerType.ArrowClosed, color: "#5A5A6B" },
+      style: { stroke: COLORS.faint },
+      markerEnd: { type: MarkerType.ArrowClosed, color: COLORS.faint },
     }))
 
     return { nodes, edges }
@@ -263,7 +264,7 @@ function KnowledgeGraphPanel({ projectId }: { projectId: string }) {
         fitView
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#22222E" gap={20} />
+        <Background color={COLORS.hairline} gap={20} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>

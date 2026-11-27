@@ -8,9 +8,10 @@ import BrandLogo from "../components/BrandLogo"
 import { ChartContainer } from "../components/charts/ChartContainer"
 import { ChartTooltip } from "../components/charts/ChartTooltip"
 import { colorForAgent, colorForIndex } from "../components/charts/palette"
+import { COLORS } from "../lib/theme";
 
-const AXIS_COLOR = "#64748b" // slate-500, matches this page's slate palette
-const GRID_COLOR = "#1e293b" // slate-800
+const AXIS_COLOR = COLORS.faint // slate-500, matches this page's slate palette
+const GRID_COLOR = COLORS.info // slate-800
 
 interface BreakdownEntry {
   provider?: string

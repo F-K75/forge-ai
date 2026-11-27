@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import type { PMTask } from "../../lib/types/api";
+import { COLORS } from "../../lib/theme";
 
 export interface DependencyArrowsOverlayProps {
   tasks: PMTask[];
@@ -153,11 +154,11 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
           isBlocked,
           stroke: isHighlighted
             ? isBlocked
-              ? "#BE123C"
-              : "#047857"
+              ? COLORS.error
+              : COLORS.ok
             : isBlocked
-            ? "#E11D48"
-            : "#10B981",
+            ? COLORS.error
+            : COLORS.ok,
           strokeDasharray: isBlocked ? "5 3" : "none",
           markerEnd: isHighlighted
             ? isBlocked
@@ -232,7 +233,7 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
           refY="4"
           orient="auto"
         >
-          <polygon points="0 1, 7.5 4, 0 7" fill="#E11D48" />
+          <polygon points="0 1, 7.5 4, 0 7" fill={COLORS.error} />
         </marker>
 
         {/* Highlighted Blocked Arrowhead */}
@@ -246,7 +247,7 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
         >
           <polygon
             points="0 1.5, 9 5, 0 8.5"
-            fill="#BE123C"
+            fill={COLORS.error}
             stroke="#000"
             strokeWidth="1"
           />
@@ -261,7 +262,7 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
           refY="4"
           orient="auto"
         >
-          <polygon points="0 1, 7.5 4, 0 7" fill="#10B981" />
+          <polygon points="0 1, 7.5 4, 0 7" fill={COLORS.ok} />
         </marker>
 
         {/* Highlighted Resolved Arrowhead */}
@@ -275,7 +276,7 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
         >
           <polygon
             points="0 1.5, 9 5, 0 8.5"
-            fill="#047857"
+            fill={COLORS.ok}
             stroke="#000"
             strokeWidth="1"
           />
@@ -292,7 +293,7 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
             <path
               d={p.d}
               fill="none"
-              stroke="#FFFFFF"
+              stroke={COLORS.ink}
               strokeWidth={strokeWidth + 2.5}
               strokeOpacity={opacity * 0.9}
             />
@@ -321,7 +322,7 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
                   width="46"
                   height="17"
                   fill="#FFE4E6"
-                  stroke="#E11D48"
+                  stroke={COLORS.error}
                   strokeWidth="1.5"
                   rx="3"
                   className="shadow-xs"
@@ -330,7 +331,7 @@ export const DependencyArrowsOverlay: React.FC<DependencyArrowsOverlayProps> = (
                   x="0"
                   y="3"
                   textAnchor="middle"
-                  fill="#9F1239"
+                  fill={COLORS.error}
                   fontSize="8.5"
                   fontWeight="900"
                   fontFamily="monospace"

@@ -46,6 +46,7 @@ import { Tabs } from "../../components/ui/Tabs";
 import SprintsTab from "./SprintsTab";
 import GraphTab from "./GraphTab";
 import ReleasesTab from "./ReleasesTab";
+import { COLORS } from "../../lib/theme";
 
 // Google Agile PM / Engineering Kanban color palette
 export const COLUMNS: {
@@ -59,64 +60,64 @@ export const COLUMNS: {
   {
     id: "backlog",
     label: "Backlog",
-    color: "#64748b",
-    dotColor: "#64748b",
+    color: COLORS.faint,
+    dotColor: COLORS.faint,
     accentBg: "bg-panel-alt",
     accentText: "text-ink",
   },
   {
     id: "ready",
     label: "Ready",
-    color: "#0284c7",
-    dotColor: "#0284c7",
+    color: COLORS.info,
+    dotColor: COLORS.info,
     accentBg: "bg-info/10",
     accentText: "text-accent",
   },
   {
     id: "in_progress",
     label: "In Progress",
-    color: "#d97706",
-    dotColor: "#d97706",
+    color: COLORS.warn,
+    dotColor: COLORS.warn,
     accentBg: "bg-warn/10",
     accentText: "text-warn",
   },
   {
     id: "code_review",
     label: "Code Review",
-    color: "#7c3aed",
-    dotColor: "#7c3aed",
+    color: COLORS.agentBusinessImprover,
+    dotColor: COLORS.agentBusinessImprover,
     accentBg: "bg-agent-business-improver/10",
     accentText: "text-agent-business-improver",
   },
   {
     id: "testing",
     label: "Testing",
-    color: "#ea580c",
-    dotColor: "#ea580c",
+    color: COLORS.accent,
+    dotColor: COLORS.accent,
     accentBg: "bg-accent/10",
     accentText: "text-accent",
   },
   {
     id: "blocked",
     label: "Blocked",
-    color: "#dc2626",
-    dotColor: "#dc2626",
+    color: COLORS.error,
+    dotColor: COLORS.error,
     accentBg: "bg-error/10",
     accentText: "text-error",
   },
   {
     id: "done",
     label: "Done",
-    color: "#16a34a",
-    dotColor: "#16a34a",
+    color: COLORS.ok,
+    dotColor: COLORS.ok,
     accentBg: "bg-ok/10",
     accentText: "text-ok",
   },
   {
     id: "support",
     label: "Support",
-    color: "#0d9488",
-    dotColor: "#0d9488",
+    color: COLORS.agentIntegration,
+    dotColor: COLORS.agentIntegration,
     accentBg: "bg-agent-integration/10",
     accentText: "text-agent-integration",
   },

@@ -42,6 +42,7 @@ import {
 import { useParams } from "react-router-dom";
 import { ForgeScene3D } from "../components/three/ForgeScene3D";
 import { MultiAgentKernelPanel } from "../components/MultiAgentKernelPanel";
+import { COLORS } from "../lib/theme";
 
 type ViewMode = "kernel" | "graph" | "spatial" | "timeline" | "roster" | "artifacts";
 
@@ -362,7 +363,7 @@ export default function FlowPage() {
         label: agentData.label,
         stage: (agentData.stage?.toLowerCase() || "execution") as FlowStageId,
         stageLabel: agentData.stage || "Execution",
-        hue: agentData.hue || "#14B8A6",
+        hue: agentData.hue || COLORS.agentIntegration,
         icon: agentData.icon || Activity,
         kind: "build",
         credits: agentData.credits || 2,
@@ -959,8 +960,8 @@ export default function FlowPage() {
                           <div
                             className="h-9 w-9 shrink-0 border rounded-lg border-border flex items-center justify-center font-mono font-semibold text-xs"
                             style={{
-                              backgroundColor: `${agentMeta?.hue || "#14B8A6"}25`,
-                              color: agentMeta?.hue || "#14B8A6",
+                              backgroundColor: `${agentMeta?.hue || COLORS.agentIntegration}25`,
+                              color: agentMeta?.hue || COLORS.agentIntegration,
                             }}
                           >
                             <AgentIcon size={18} strokeWidth={2.5} />
@@ -975,8 +976,8 @@ export default function FlowPage() {
                               <span
                                 className="font-mono text-[10px] uppercase font-semibold px-1.5 py-0.5 border rounded-lg border-border"
                                 style={{
-                                  backgroundColor: `${agentMeta?.hue || "#14B8A6"}20`,
-                                  color: agentMeta?.hue || "#14B8A6",
+                                  backgroundColor: `${agentMeta?.hue || COLORS.agentIntegration}20`,
+                                  color: agentMeta?.hue || COLORS.agentIntegration,
                                 }}
                               >
                                 {step.agentLabel}

@@ -16,6 +16,7 @@ import type {
   GraphDiagnostics,
   GraphNodePayload,
 } from "./graphTypes";
+import { COLORS } from "../../../lib/theme";
 
 export const LAYER_CONFIG: Record<
   LayerType,
@@ -23,51 +24,51 @@ export const LAYER_CONFIG: Record<
 > = {
   initiative: {
     label: "Initiative",
-    color: "#7C5CFF",
+    color: COLORS.agentBusinessImprover,
     bg: "rgba(124, 92, 255, 0.12)",
-    borderColor: "#7C5CFF",
+    borderColor: COLORS.agentBusinessImprover,
     icon: "Rocket",
   },
   epic: {
     label: "Epics",
-    color: "#A855F7",
+    color: COLORS.agentBusinessImprover,
     bg: "rgba(168, 85, 247, 0.12)",
-    borderColor: "#A855F7",
+    borderColor: COLORS.agentBusinessImprover,
     icon: "Zap",
   },
   story: {
     label: "Stories",
-    color: "#06B6D4",
+    color: COLORS.info,
     bg: "rgba(6, 182, 212, 0.12)",
-    borderColor: "#06B6D4",
+    borderColor: COLORS.info,
     icon: "BookOpen",
   },
   task: {
     label: "Tasks",
-    color: "#10B981",
+    color: COLORS.ok,
     bg: "rgba(16, 185, 129, 0.12)",
-    borderColor: "#10B981",
+    borderColor: COLORS.ok,
     icon: "CheckSquare",
   },
   agent_execution: {
     label: "Agent Runs",
-    color: "#F59E0B",
+    color: COLORS.warn,
     bg: "rgba(245, 158, 11, 0.12)",
-    borderColor: "#F59E0B",
+    borderColor: COLORS.warn,
     icon: "Bot",
   },
   file: {
     label: "Artifacts",
-    color: "#8B8B9E",
+    color: COLORS.muted,
     bg: "rgba(139, 139, 158, 0.12)",
-    borderColor: "#8B8B9E",
+    borderColor: COLORS.muted,
     icon: "FileCode",
   },
   commit: {
     label: "Git Commits",
-    color: "#71717A",
+    color: COLORS.faint,
     bg: "rgba(113, 113, 122, 0.12)",
-    borderColor: "#71717A",
+    borderColor: COLORS.faint,
     icon: "GitCommit",
   },
 };
@@ -460,26 +461,26 @@ export function synthesizeGraph(params: {
     const isHighlighted = highlightedEdgeIds.has(e.id);
     const isDimmed = selectedNodeId ? !isHighlighted : false;
 
-    let strokeColor = "#3B3B4F";
+    let strokeColor: string = COLORS.faint;
     let strokeWidth = 1.5;
     let animated = false;
 
     if (isCritical) {
-      strokeColor = "#EC4899"; // High-visibility Magenta for critical path
+      strokeColor = COLORS.agentDesigner; // High-visibility Magenta for critical path
       strokeWidth = 2.5;
       animated = true;
     } else if (isDependency) {
-      strokeColor = "#F59E0B"; // Amber for execution dependency constraints
+      strokeColor = COLORS.warn; // Amber for execution dependency constraints
       strokeWidth = 2;
       animated = true;
     } else if (e.kind === "execution") {
-      strokeColor = "#A855F7";
+      strokeColor = COLORS.agentBusinessImprover;
     } else if (e.kind === "file") {
-      strokeColor = "#64748B";
+      strokeColor = COLORS.faint;
     }
 
     if (isHighlighted) {
-      strokeColor = "#38BDF8";
+      strokeColor = COLORS.info;
       strokeWidth = 3;
       animated = true;
     }
