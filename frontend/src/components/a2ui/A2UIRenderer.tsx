@@ -9,7 +9,7 @@
  * for absolute http(s) URLs.
  */
 import { useState, type ReactNode } from "react"
-import { Badge, type BadgeVariant } from "../ui"
+import { Badge, Button, type BadgeVariant } from "../ui"
 import type { A2UIComponent, A2UISurface, A2UITone } from "../../lib/kernelApi"
 import { parseA2UIComponent } from "./parseA2UI"
 
@@ -134,6 +134,18 @@ export interface A2UIComponentViewProps {
   approvalState?: Readonly<Record<string, A2UIApprovalUIState>>
 }
 
+const ACTION_LABEL: Record<A2UIApprovalAction, string> = {
+  approve: "Approve",
+  reject: "Reject",
+}
+
+const RISK_BADGE: Record<string, BadgeVariant> = {
+  critical: "error",
+  high: "error",
+  medium: "warning",
+  low: "default",
+}
+
 const ACTION_PENDING_LABEL: Record<A2UIApprovalAction, string> = {
   approve: "Approving…",
   reject: "Rejecting…",
@@ -163,16 +175,21 @@ function ApprovalCardView({
 
   return (
     <div
-      className="rounded-md border border-warn/40 bg-warn/10 p-2 space-y-1 text-[11px]"
+      className="rounded-[12px] border border-border bg-panel p-3 space-y-2 text-[11px]"
+      data-a2ui="approval_card"
       aria-busy={pending ? true : undefined}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold text-ink">{c.gate_name ?? "Approval gate"}</span>
-        {c.risk_level && <Badge size="sm" variant="warning">{`${c.risk_level} risk`}</Badge>}
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 break-words text-caption font-medium text-ink">{c.gate_name ?? "Approval gate"}</span>
+        {c.risk_level && (
+          <Badge size="sm" variant={RISK_BADGE[c.risk_level.toLowerCase()] ?? "warning"} className="shrink-0">
+            {`${c.risk_level} risk`}
+          </Badge>
+        )}
       </div>
       {c.reason && <p className="text-muted whitespace-pre-wrap">{c.reason}</p>}
       {c.wave_index !== null && c.wave_index !== undefined && (
-        <p className="font-mono text-muted">Wave {c.wave_index}</p>
+        <p className="font-mono tabular-nums text-faint">Wave {c.wave_index}</p>
       )}
       {resolved && (
         <p role="status" className={resolved === "approved" ? "text-ok font-medium" : "text-error font-medium"}>
@@ -180,45 +197,46 @@ function ApprovalCardView({
         </p>
       )}
       {c.actions.length > 0 && !resolved && !confirmingReject && (
-        <div className="flex gap-1.5 pt-0.5">
+        <div className="flex flex-wrap items-center gap-2 border-t border-border-soft pt-2.5">
           {c.actions.map((action) =>
             interactive ? (
-              <button
+              <Button
                 key={action}
-                type="button"
+                size="sm"
+                variant={action === "approve" ? "primary" : "secondary"}
                 disabled={Boolean(pending)}
                 aria-label={`${action === "approve" ? "Approve" : "Reject"} ${label}`}
                 onClick={() => (action === "reject" ? setConfirmingReject(true) : submit(action))}
-                className="px-2 py-0.5 rounded border border-border bg-base text-[11px] font-medium text-ink hover:border-accent/60 cursor-pointer capitalize disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {pending === action ? ACTION_PENDING_LABEL[action] : action}
-              </button>
+                {pending === action ? ACTION_PENDING_LABEL[action] : ACTION_LABEL[action]}
+              </Button>
             ) : (
-              <Badge key={action} size="sm" variant="outlined" className="capitalize">
-                {action}
+              <Badge key={action} size="sm" variant="outlined">
+                {ACTION_LABEL[action]}
               </Badge>
             )
           )}
         </div>
       )}
       {interactive && confirmingReject && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-0.5" role="group" aria-label="Confirm rejection">
-          <span className="text-ink">Reject this gate? Downstream waves will halt.</span>
-          <button
-            type="button"
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-md border border-error/20 bg-error/[0.06] px-3 py-2"
+          role="group"
+          aria-label="Confirm rejection"
+        >
+          <span className="mr-auto text-ink">Reject this gate? Downstream waves will halt.</span>
+          <Button
+            size="sm"
+            variant="tonal"
             disabled={Boolean(pending)}
             onClick={() => submit("reject")}
-            className="px-2 py-0.5 rounded border border-error/50 bg-base text-[11px] font-semibold text-error hover:bg-error/10 cursor-pointer disabled:opacity-50"
+            className="border-error/30 bg-error/10 text-error hover:bg-error/20"
           >
             Confirm reject
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmingReject(false)}
-            className="px-2 py-0.5 rounded border border-border bg-base text-[11px] text-muted hover:text-ink cursor-pointer"
-          >
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setConfirmingReject(false)}>
             Cancel
-          </button>
+          </Button>
         </div>
       )}
       {state?.error && (

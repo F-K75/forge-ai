@@ -15,6 +15,13 @@ import {
   Lock,
 } from "lucide-react";
 import { LIVE_MODE } from "../lib/env";
+import { buildDemoOverview } from "../lib/commandCenterData";
+import {
+  DEEP_LINK_HIGHLIGHT_CLASS,
+  DEEP_LINK_TRANSITION_CLASS,
+  useDeepLinkHighlight,
+} from "../hooks/useDeepLinkHighlight";
+import { Button, InlineNotice } from "./ui";
 import {
   kernelApi,
   skillApi,
@@ -60,6 +67,26 @@ import { KernelInspectorPanel } from "./KernelInspectorPanel";
 
 interface MultiAgentKernelPanelProps {
   projectId?: string;
+  /**
+   * Deep link (`/p/:projectId/agents?run=<runId>`): open this kernel run as the
+   * active run (the waves board and inspector show it) and briefly highlight it.
+   */
+  focusRunId?: string | null;
+  /** Called once a `focusRunId` turns out not to exist in this project. */
+  onFocusRunMissing?: (runId: string) => void;
+}
+
+type FocusRunState =
+  | { status: "idle" }
+  | { status: "loading"; runId: string }
+  | { status: "found"; runId: string }
+  | { status: "missing"; runId: string };
+
+/** Demo-mode lookup: the Command Center's sample fleet runs, planned locally. */
+function demoRunFor(projectId: string, runId: string): KernelRun | null {
+  const fleetRun = buildDemoOverview().runs.find((r) => r.id === runId && r.projectId === projectId);
+  if (!fleetRun) return null;
+  return { ...planObjectiveLocally(projectId, fleetRun.objective), id: runId };
 }
 
 const OBJECTIVE_PRESETS = [
@@ -274,6 +301,8 @@ function synthesizeLocalA2UISurfaces(run: KernelRun): A2UISurface[] {
 }
 
 export function MultiAgentKernelPanel({
+  focusRunId = null,
+  onFocusRunMissing,
   projectId = "demo-project",
 }: MultiAgentKernelPanelProps) {
   const [blueprint, setBlueprint] = useState<OrgBlueprint>(LOCAL_ORG_BLUEPRINT);
@@ -388,6 +417,59 @@ export function MultiAgentKernelPanel({
   useEffect(() => {
     setA2UISurfaces(synthesizeLocalA2UISurfaces(activeRun));
   }, [activeRun]);
+
+  // Deep link: ?run=<runId> opens that run and highlights the waves board header.
+  const runBoardRef = useRef<HTMLDivElement>(null);
+  const { highlightKey: highlightedRunId, flash: flashRun } = useDeepLinkHighlight(
+    () => runBoardRef.current,
+  );
+  const [focusRun, setFocusRun] = useState<FocusRunState>({ status: "idle" });
+  const onFocusRunMissingRef = useRef(onFocusRunMissing);
+  onFocusRunMissingRef.current = onFocusRunMissing;
+
+  useEffect(() => {
+    if (!focusRunId) return;
+    let cancelled = false;
+    const missing = () => {
+      if (cancelled) return;
+      setFocusRun({ status: "missing", runId: focusRunId });
+      onFocusRunMissingRef.current?.(focusRunId);
+    };
+    const open = (run: KernelRun) => {
+      if (cancelled) return;
+      setActiveRun(run);
+      if (run.objective) setObjective(run.objective);
+      setFocusRun({ status: "found", runId: run.id });
+      flashRun(run.id);
+    };
+
+    if (!LIVE_MODE) {
+      const run = demoRunFor(projectId, focusRunId);
+      if (run) open(run);
+      else missing();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setFocusRun({ status: "loading", runId: focusRunId });
+    kernelApi
+      .getRun(projectId, focusRunId)
+      .then(async (run) => {
+        if (!run?.id) return missing();
+        open(run);
+        try {
+          const res = await protocolApi.getA2UISurfaces(projectId, run.id);
+          if (!cancelled && res?.surfaces) setA2UISurfaces(res.surfaces);
+        } catch {
+          /* local surfaces stay as a fallback */
+        }
+      })
+      .catch(missing);
+    return () => {
+      cancelled = true;
+    };
+  }, [focusRunId, projectId, flashRun]);
 
   useEffect(() => {
     setA2ACard(buildLocalA2AAgentCard(projectId));
@@ -1668,6 +1750,26 @@ export function MultiAgentKernelPanel({
 
   return (
     <div className="p-4 sm:p-5 space-y-5 bg-base">
+      {focusRun.status === "missing" && (
+        <InlineNotice
+          tone="info"
+          title="That run is no longer available"
+          action={
+            <Button variant="ghost" size="sm" onClick={() => setFocusRun({ status: "idle" })}>
+              Dismiss
+            </Button>
+          }
+        >
+          We couldn't find run <span className="font-mono">{focusRun.runId}</span> in this project. It
+          may have been removed. Showing a fresh plan instead.
+        </InlineNotice>
+      )}
+      {focusRun.status === "loading" && (
+        <p role="status" className="flex items-center gap-2 text-caption text-muted">
+          <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+          Opening run <span className="font-mono">{focusRun.runId}</span>…
+        </p>
+      )}
       {/* 1. 9-Department Autonomous Engineering Org Blueprint */}
       <section aria-label="Autonomous Engineering Organisation">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -1988,7 +2090,14 @@ export function MultiAgentKernelPanel({
 
       {/* 3. Parallel Execution Waves Board */}
       <section aria-label="Parallel Execution Waves" className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div
+          ref={runBoardRef}
+          data-run-id={activeRun.id}
+          data-highlighted={highlightedRunId === activeRun.id ? "true" : undefined}
+          className={`-mx-2 flex scroll-my-24 flex-wrap items-center justify-between gap-2 rounded-md border border-transparent px-2 py-1.5 ${DEEP_LINK_TRANSITION_CLASS} ${
+            highlightedRunId === activeRun.id ? DEEP_LINK_HIGHLIGHT_CLASS : ""
+          }`}
+        >
           <div className="flex items-center gap-2 text-xs">
             <GitBranch size={14} className="text-accent" />
             <span className="font-semibold text-ink">
