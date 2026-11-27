@@ -29,3 +29,14 @@ export { AvatarStack } from './AvatarStack'
 export type { AvatarStackItem } from './AvatarStack'
 export { SegmentedControl } from './SegmentedControl'
 export type { SegmentedOption } from './SegmentedControl'
+export {
+  TwoToneHeading,
+  SegmentedControl as CapabilitySegmentedControl,
+  MetricTile,
+  AtmosphereLayer,
+  CapabilityCard,
+  DataTable,
+  InlineNotice,
+} from './CapabilityPrimitives'
+export type { SegmentedItem, AtmosphereHue, DataTableColumn } from './CapabilityPrimitives'
+export { SafeMarkdown } from './SafeMarkdown'
