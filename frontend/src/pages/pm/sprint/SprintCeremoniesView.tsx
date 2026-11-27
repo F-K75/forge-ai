@@ -129,8 +129,8 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               }}
               className={`rounded-2xl p-4 flex flex-col justify-between transition-all cursor-pointer border ${
                 isSelected
-                  ? "bg-teal-50 dark:bg-teal-950/40 border-teal-500/60 ring-2 ring-teal-500/20 shadow-sm"
-                  : "bg-white dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 hover:border-teal-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs"
+                  ? "bg-agent-integration/10 border-agent-integration/60 ring-2 ring-agent-integration/20 shadow-sm"
+                  : "bg-panel border-border hover:border-agent-integration/40 hover:bg-ink/5 shadow-2xs"
               }`}
             >
               <div>
@@ -138,21 +138,21 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   <div
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
                       isSelected
-                        ? "bg-teal-600 text-white shadow-2xs"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                        ? "bg-agent-integration text-on-ink shadow-2xs"
+                        : "bg-panel-alt text-ink"
                     }`}
                   >
                     <Icon size={16} />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-panel-alt text-muted">
                     {c.badge}
                   </span>
                 </div>
 
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-ink">
                   {c.label}
                 </h4>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                <p className="text-[11px] text-muted mt-1 line-clamp-2 leading-relaxed">
                   {c.desc}
                 </p>
               </div>
@@ -166,16 +166,16 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   setSelectedCeremony(c.key);
                   onGenerate(c.key, c.action);
                 }}
-                className={`mt-3.5 w-full h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`mt-3.5 w-full h-8 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   isSelected
-                    ? "bg-teal-600 hover:bg-teal-700 text-white shadow-2xs"
-                    : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                    ? "bg-agent-integration hover:bg-agent-integration/90 text-on-ink shadow-2xs"
+                    : "bg-panel-alt hover:bg-ink/5 text-ink"
                 }`}
               >
                 {isGen ? (
                   <RefreshCw size={12} className="animate-spin" />
                 ) : (
-                  <Sparkles size={12} className="text-amber-500" />
+                  <Sparkles size={12} className="text-warn" />
                 )}
                 <span>{isGen ? "GENERATING…" : "GENERATE"}</span>
               </button>
@@ -187,19 +187,19 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
       {/* Selected Ceremony Detail Panel */}
       <div
         id="ceremony-detail-panel"
-        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-5 md:p-6 shadow-2xs space-y-5"
+        className="rounded-2xl border border-border bg-panel p-5 md:p-6 shadow-2xs space-y-5"
       >
         {/* Panel Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border-soft">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-agent-integration/10 border border-agent-integration/30 text-agent-integration flex items-center justify-center">
               <ActiveIcon size={20} />
             </div>
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900 dark:text-white">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">
                 {activeCeremonyConfig.label}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-muted">
                 Sprint {selectedSprint.sprint_number} Autonomous Telemetry Synthesis
               </p>
             </div>
@@ -210,9 +210,9 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               id="ceremony-copy-report-btn"
               type="button"
               onClick={handleCopyReport}
-              className="h-8.5 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="h-8.5 px-3.5 rounded-pill border border-border bg-panel text-ink hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
             >
-              {isCopied ? <Check size={13} className="text-teal-600" /> : <Copy size={13} />}
+              {isCopied ? <Check size={13} className="text-agent-integration" /> : <Copy size={13} />}
               <span>{isCopied ? "COPIED" : "COPY REPORT"}</span>
             </button>
 
@@ -221,7 +221,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               type="button"
               onClick={() => onGenerate(activeCeremonyConfig.key, activeCeremonyConfig.action)}
               disabled={generating === selectedCeremony}
-              className="h-8.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="h-8.5 px-4 rounded-pill bg-agent-integration hover:bg-agent-integration/90 active:bg-agent-integration text-on-ink text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
             >
               <RefreshCw
                 size={12}
@@ -240,30 +240,30 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               {standups.length > 0 ? (
                 standups.map((s, idx) => (
                   <div key={idx} className="space-y-3 text-xs">
-                    <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40">
-                      <span className="font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 block mb-1">
+                    <div className="p-4 rounded-xl bg-info/20 border border-info/30">
+                      <span className="font-semibold uppercase tracking-wider text-accent block mb-1">
                         YESTERDAY (COMPLETED WORK)
                       </span>
-                      <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                      <p className="text-ink leading-relaxed font-medium">
                         {s.yesterday || "Completed all assigned schema validations and baseline API endpoints."}
                       </p>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40">
-                      <span className="font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 block mb-1">
+                    <div className="p-4 rounded-xl bg-warn/20 border border-warn/30">
+                      <span className="font-semibold uppercase tracking-wider text-warn block mb-1">
                         TODAY (COMMITTED DELIVERABLES)
                       </span>
-                      <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                      <p className="text-ink leading-relaxed font-medium">
                         {s.today || "Implementing WebSocket telemetry stream and unit test suites."}
                       </p>
                     </div>
 
                     {s.blockers && s.blockers.length > 0 && (
-                      <div className="p-4 rounded-xl bg-red-50/60 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40">
-                        <span className="font-bold uppercase tracking-wider text-red-700 dark:text-red-300 block mb-1.5">
+                      <div className="p-4 rounded-xl bg-error/20 border border-error/30">
+                        <span className="font-semibold uppercase tracking-wider text-error block mb-1.5">
                           ACTIVE BLOCKERS
                         </span>
-                        <ul className="list-disc list-inside space-y-1 text-slate-800 dark:text-slate-200 font-medium">
+                        <ul className="list-disc list-inside space-y-1 text-ink font-medium">
                           {s.blockers.map((b: string, i: number) => (
                             <li key={i}>{b}</li>
                           ))}
@@ -271,16 +271,16 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100 dark:border-slate-800">
-                      <span className="text-slate-500">Sprint Health Indicator:</span>
-                      <span className="font-bold text-teal-600 dark:text-teal-400">
+                    <div className="flex items-center justify-between text-xs pt-3 border-t border-border-soft">
+                      <span className="text-muted">Sprint Health Indicator:</span>
+                      <span className="font-semibold text-agent-integration">
                         {s.sprint_health || "OPTIMAL · ON TRACK"}
                       </span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-400 text-xs">
+                <div className="text-center py-8 text-faint text-xs">
                   No standup report generated yet. Click "Generate" to synthesize standup data.
                 </div>
               )}
@@ -292,24 +292,24 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
             <div className="space-y-4 text-xs">
               {reports?.reviews?.[0] ? (
                 <div className="space-y-3.5">
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <span className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
+                  <div className="p-4 rounded-xl bg-panel border border-border">
+                    <span className="font-semibold uppercase tracking-wider text-muted block mb-1.5">
                       EXECUTIVE REVIEW SUMMARY
                     </span>
-                    <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                    <p className="text-ink leading-relaxed font-medium">
                       {reports.reviews[0].summary}
                     </p>
                   </div>
 
                   {reports.reviews[0].demo_items && (
-                    <div className="p-4 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/50">
-                      <span className="font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300 block mb-2">
+                    <div className="p-4 rounded-xl bg-agent-integration/20 border border-agent-integration/30">
+                      <span className="font-semibold uppercase tracking-wider text-agent-integration block mb-2">
                         SHIPPED DEMO HIGHLIGHTS
                       </span>
-                      <ul className="space-y-1.5 text-slate-800 dark:text-slate-200">
+                      <ul className="space-y-1.5 text-ink">
                         {reports.reviews[0].demo_items.map((item: string, i: number) => (
                           <li key={i} className="flex items-start gap-2">
-                            <CheckCircle2 size={13} className="text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                            <CheckCircle2 size={13} className="text-agent-integration shrink-0 mt-0.5" />
                             <span>{item}</span>
                           </li>
                         ))}
@@ -318,7 +318,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-400 text-xs">
+                <div className="text-center py-8 text-faint text-xs">
                   No review report generated yet. Click "Generate" to synthesize sprint demo review.
                 </div>
               )}
@@ -331,18 +331,18 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               {reports?.retros?.[0] ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Went Well */}
-                  <div className="rounded-xl p-4 border border-teal-200 dark:border-teal-900/50 bg-teal-50/40 dark:bg-teal-950/20">
-                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-teal-200 dark:border-teal-900/40">
-                      <CheckCircle2 size={16} className="text-teal-600 dark:text-teal-400" />
-                      <h4 className="font-bold uppercase tracking-wider text-teal-800 dark:text-teal-200">
+                  <div className="rounded-xl p-4 border border-agent-integration/30 bg-agent-integration/20">
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-agent-integration/30">
+                      <CheckCircle2 size={16} className="text-agent-integration" />
+                      <h4 className="font-semibold uppercase tracking-wider text-agent-integration">
                         WHAT WENT WELL
                       </h4>
                     </div>
-                    <ul className="space-y-2 text-slate-800 dark:text-slate-200 font-medium">
+                    <ul className="space-y-2 text-ink font-medium">
                       {(reports.retros[0].what_went_well || ["Fast release cadence", "High test coverage"]).map(
                         (s: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 leading-relaxed">
-                            <span className="text-teal-600 font-bold shrink-0">•</span>
+                            <span className="text-agent-integration font-semibold shrink-0">•</span>
                             <span>{s}</span>
                           </li>
                         )
@@ -351,18 +351,18 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   </div>
 
                   {/* Went Wrong / Action Items */}
-                  <div className="rounded-xl p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20">
-                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-amber-200 dark:border-amber-900/40">
-                      <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />
-                      <h4 className="font-bold uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                  <div className="rounded-xl p-4 border border-warn/30 bg-warn/20">
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-warn/30">
+                      <AlertTriangle size={16} className="text-warn" />
+                      <h4 className="font-semibold uppercase tracking-wider text-warn">
                         FRICTION & LEARNINGS
                       </h4>
                     </div>
-                    <ul className="space-y-2 text-slate-800 dark:text-slate-200 font-medium">
+                    <ul className="space-y-2 text-ink font-medium">
                       {(reports.retros[0].what_went_wrong || ["Flaky integration test in CI", "Unclear proto specification"]).map(
                         (s: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 leading-relaxed">
-                            <span className="text-amber-600 font-bold shrink-0">•</span>
+                            <span className="text-warn font-semibold shrink-0">•</span>
                             <span>{s}</span>
                           </li>
                         )
@@ -371,7 +371,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-400 text-xs">
+                <div className="text-center py-8 text-faint text-xs">
                   No retrospective generated yet. Click "Generate" to synthesize sprint learnings.
                 </div>
               )}
@@ -385,28 +385,28 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                 reports.risk_reports[0].risks.map((r: any, i: number) => (
                   <div
                     key={i}
-                    className="rounded-xl p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="rounded-xl p-4 border border-border bg-ink/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full border ${
+                          className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase rounded-full border ${
                             r.severity === "HIGH"
-                              ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300"
+                              ? "bg-error/10 text-error border-error/30 "
                               : r.severity === "MEDIUM"
-                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300"
-                              : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300"
+                              ? "bg-warn/10 text-warn border-warn/30 "
+                              : "bg-info/10 text-info border-info/30 "
                           }`}
                         >
                           {r.severity} RISK
                         </span>
                       </div>
-                      <p className="font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="font-semibold text-ink">
                         {r.description}
                       </p>
                       {r.mitigation && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          <strong className="text-slate-700 dark:text-slate-300 uppercase mr-1">
+                        <p className="text-[11px] text-muted">
+                          <strong className="text-ink uppercase mr-1">
                             Mitigation:
                           </strong>
                           {r.mitigation}
@@ -416,7 +416,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-400 text-xs">
+                <div className="text-center py-8 text-faint text-xs">
                   No risk report generated yet. Click "Generate" to audit potential delivery risks.
                 </div>
               )}
@@ -430,25 +430,25 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                 reports.tech_debt[0].items.map((item: any, i: number) => (
                   <div
                     key={i}
-                    className="rounded-xl p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="rounded-xl p-4 border border-border bg-ink/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        <span className="px-2.5 py-0.5 text-[10px] font-semibold uppercase rounded-full bg-panel-alt text-ink">
                           {item.severity} DEBT
                         </span>
                         {item.location && (
-                          <code className="text-[11px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                          <code className="text-[11px] font-mono text-muted bg-panel-alt px-2 py-0.5 rounded">
                             {item.location}
                           </code>
                         )}
                       </div>
-                      <p className="font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="font-semibold text-ink">
                         {item.description}
                       </p>
                       {item.impact && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          <strong className="text-slate-700 dark:text-slate-300 uppercase mr-1">
+                        <p className="text-[11px] text-muted">
+                          <strong className="text-ink uppercase mr-1">
                             Impact:
                           </strong>
                           {item.impact}
@@ -458,7 +458,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-400 text-xs">
+                <div className="text-center py-8 text-faint text-xs">
                   No technical debt audit generated yet. Click "Generate" to inspect code health.
                 </div>
               )}

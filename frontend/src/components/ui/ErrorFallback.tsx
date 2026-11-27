@@ -35,7 +35,7 @@ function ErrorFallback({ error, onRetry }: { error: Error | null; onRetry: () =>
         </p>
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-accent text-[#09090B] text-sm font-semibold hover:bg-ember-glow transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-pill bg-ink text-on-ink text-sm font-medium hover:bg-ink/90 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <RefreshCw size={14} />
           {isChunk ? 'Reload Application' : 'Retry'}

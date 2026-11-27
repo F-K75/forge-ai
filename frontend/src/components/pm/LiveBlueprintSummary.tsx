@@ -184,10 +184,10 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
   return (
     <div
       id="live-blueprint-summary-container"
-      className={`rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xs overflow-hidden font-sans transition-all ${className}`}
+      className={`rounded-2xl border border-border bg-panel shadow-xs overflow-hidden font-sans transition-all ${className}`}
     >
       {/* Top Header & Telemetry Bar */}
-      <div className="bg-neutral-50/90 dark:bg-neutral-900/90 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="bg-ink/10 border-b border-border">
         <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           {/* Left: Component Identity & Live Metrics */}
           <button
@@ -196,24 +196,24 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             className="flex items-center gap-2.5 text-left group cursor-pointer"
             aria-expanded={isOpen}
           >
-            <div className="w-8 h-8 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-105 transition-transform shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-agent-integration/10 border border-agent-integration/20 flex items-center justify-center text-agent-integration group-hover:scale-105 transition-transform shrink-0">
               <FileText className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-neutral-900 dark:text-white">
+                <span className="text-xs font-semibold text-ink">
                   Live Blueprint Summary
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 text-[10px] font-mono font-medium border border-teal-500/20">
+                <span className="px-2 py-0.5 rounded-full bg-agent-integration/10 text-agent-integration text-[10px] font-mono font-medium border border-agent-integration/20">
                   {answeredCount}/{totalCount} Specified ({percent}%)
                 </span>
                 {branchCount > 0 && (
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-[10px] font-mono font-medium border border-cyan-500/20">
+                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-info/10 text-info text-[10px] font-mono font-medium border border-info/20">
                     {branchCount} Branches
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+              <p className="text-[11px] text-muted">
                 {answeredCount === totalCount
                   ? 'All architecture dimensions tailored · Ready for sprint generation'
                   : `${pendingCount} dimension${pendingCount === 1 ? '' : 's'} using intelligent defaults`}
@@ -227,17 +227,17 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 transition-colors flex items-center gap-1.5 cursor-pointer"
               title="Copy architectural blueprint as Markdown"
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
-                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Copied</span>
+                  <Check className="w-3.5 h-3.5 text-ok stroke-[2.5]" />
+                  <span className="text-ok font-semibold">Copied</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-neutral-500" />
+                  <Copy className="w-3.5 h-3.5 text-muted" />
                   <span className="hidden sm:inline">Copy Spec</span>
                 </>
               )}
@@ -247,10 +247,10 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             <button
               type="button"
               onClick={handleDownload}
-              className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 transition-colors flex items-center gap-1.5 cursor-pointer"
               title="Download blueprint as Markdown file"
             >
-              <Download className="w-3.5 h-3.5 text-neutral-500" />
+              <Download className="w-3.5 h-3.5 text-muted" />
               <span className="hidden sm:inline">Export</span>
             </button>
 
@@ -258,7 +258,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             <button
               type="button"
               onClick={onToggle}
-              className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+              className="h-8 px-2.5 rounded-pill border border-border bg-panel text-muted hover:text-ink transition-colors flex items-center gap-1 cursor-pointer"
               title={isOpen ? 'Collapse Blueprint Summary' : 'Expand Blueprint Summary'}
             >
               <span className="text-xs font-medium hidden sm:inline">
@@ -270,9 +270,9 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
         </div>
 
         {/* Live Convergence Progress Line */}
-        <div className="w-full h-1 bg-neutral-200 dark:bg-neutral-800 overflow-hidden">
+        <div className="w-full h-1 bg-surface-high overflow-hidden">
           <div
-            className="h-full bg-teal-500 transition-all duration-500"
+            className="h-full bg-agent-integration transition-all duration-500"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -280,18 +280,18 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
 
       {/* Expanded Blueprint Body */}
       {isOpen && (
-        <div className="p-4 sm:p-5 space-y-4 bg-neutral-50/40 dark:bg-neutral-950/20">
+        <div className="p-4 sm:p-5 space-y-4 bg-ink/10">
           {/* Subheader: Filter Chips, Search & View Switcher */}
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200/80 dark:border-neutral-700/80 text-xs">
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-panel-alt border border-border text-xs">
               <button
                 type="button"
                 onClick={() => setFilterMode('all')}
                 className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
                   filterMode === 'all'
-                    ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-2xs'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'bg-panel text-ink shadow-2xs'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 All ({totalCount})
@@ -301,8 +301,8 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                 onClick={() => setFilterMode('specified')}
                 className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
                   filterMode === 'specified'
-                    ? 'bg-white dark:bg-neutral-700 text-teal-700 dark:text-teal-300 shadow-2xs'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'bg-panel text-agent-integration shadow-2xs'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Specified ({answeredCount})
@@ -312,8 +312,8 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                 onClick={() => setFilterMode('pending')}
                 className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
                   filterMode === 'pending'
-                    ? 'bg-white dark:bg-neutral-700 text-amber-700 dark:text-amber-400 shadow-2xs'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'bg-panel text-warn shadow-2xs'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Pending Defaults ({pendingCount})
@@ -323,25 +323,25 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
             {/* Search Input & View Switch */}
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-faint absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter dimensions..."
-                  className="h-7 pl-8 pr-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="h-7 pl-8 pr-3 rounded-lg border border-border bg-panel text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-agent-integration/40"
                 />
               </div>
 
               {/* View Switch: Cards vs Raw */}
-              <div className="flex items-center p-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+              <div className="flex items-center p-0.5 rounded-lg bg-panel-alt border border-border">
                 <button
                   type="button"
                   onClick={() => setViewMode('cards')}
-                  className={`h-6 px-2 rounded font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
+                  className={`h-6 px-2 rounded-pill font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
                     viewMode === 'cards'
-                      ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-2xs'
-                      : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+                      ? 'bg-panel text-ink shadow-2xs'
+                      : 'text-muted hover:text-ink'
                   }`}
                   title="Grid cards layout"
                 >
@@ -351,10 +351,10 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('raw')}
-                  className={`h-6 px-2 rounded font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
+                  className={`h-6 px-2 rounded-pill font-medium text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
                     viewMode === 'raw'
-                      ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-2xs'
-                      : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+                      ? 'bg-panel text-ink shadow-2xs'
+                      : 'text-muted hover:text-ink'
                   }`}
                   title="Raw markdown blueprint spec"
                 >
@@ -369,9 +369,9 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
           {viewMode === 'cards' ? (
             <div className="space-y-4">
               {filteredQuestions.length === 0 ? (
-                <div className="p-8 text-center rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 bg-white/50 dark:bg-neutral-800/40">
-                  <ListFilter className="w-6 h-6 text-neutral-400 mx-auto mb-2" />
-                  <p className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                <div className="p-8 text-center rounded-xl border border-dashed border-border bg-panel/50">
+                  <ListFilter className="w-6 h-6 text-faint mx-auto mb-2" />
+                  <p className="text-xs font-medium text-muted">
                     No architecture dimensions match the current filter or search criteria.
                   </p>
                   <button
@@ -380,7 +380,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                       setFilterMode('all');
                       setSearchQuery('');
                     }}
-                    className="mt-2 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer"
+                    className="mt-2 text-xs font-semibold text-agent-integration hover:underline cursor-pointer"
                   >
                     Reset filters
                   </button>
@@ -398,20 +398,20 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                         key={q.id}
                         className={`p-3.5 rounded-xl border transition-all text-xs flex flex-col justify-between ${
                           isSpecified
-                            ? 'bg-white dark:bg-neutral-800 border-teal-500/30 shadow-2xs'
-                            : 'bg-white/70 dark:bg-neutral-850 border-neutral-200 dark:border-neutral-700'
+                            ? 'bg-panel border-agent-integration/30 shadow-2xs'
+                            : 'bg-panel/70 dark:bg-neutral-850 border-border'
                         }`}
                       >
                         <div>
                           {/* Card Header: Category & Branch Pill */}
                           <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <div className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300 font-medium">
-                              <CategoryIcon className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
-                              <span className="text-[11px] font-semibold text-neutral-800 dark:text-neutral-200">
+                            <div className="flex items-center gap-1.5 text-muted font-medium">
+                              <CategoryIcon className="w-3.5 h-3.5 text-muted" />
+                              <span className="text-[11px] font-semibold text-ink">
                                 {q.category}
                               </span>
                               {q.is_conditional_branch && (
-                                <span className="px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-[9px] font-mono border border-cyan-500/20">
+                                <span className="px-1.5 py-0.2 rounded bg-info/10 text-info text-[9px] font-mono border border-info/20">
                                   ↳ Branch
                                 </span>
                               )}
@@ -420,8 +420,8 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                             <span
                               className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
                                 isSpecified
-                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
-                                  : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
+                                  ? 'bg-ok/10 text-ok border border-ok/20'
+                                  : 'bg-panel-alt text-muted'
                               }`}
                             >
                               {isSpecified ? 'Specified' : 'Default Inference'}
@@ -429,21 +429,21 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                           </div>
 
                           {/* Requirement Question Title */}
-                          <p className="text-xs text-neutral-600 dark:text-neutral-400 font-sans line-clamp-2 mb-2">
+                          <p className="text-xs text-muted font-sans line-clamp-2 mb-2">
                             {q.business_title || q.question}
                           </p>
 
                           {/* Active Value Display */}
-                          <div className="p-2 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-700/80 mb-2">
+                          <div className="p-2 rounded-lg bg-panel border border-border mb-2">
                             {isSpecified ? (
                               <div className="flex items-start gap-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
-                                <span className="font-semibold text-neutral-900 dark:text-white font-mono break-words leading-relaxed text-xs">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-agent-integration shrink-0 mt-0.5" />
+                                <span className="font-semibold text-ink font-mono break-words leading-relaxed text-xs">
                                   {ans}
                                 </span>
                               </div>
                             ) : (
-                              <div className="flex items-start gap-1.5 text-neutral-500 dark:text-neutral-400 text-[11px]">
+                              <div className="flex items-start gap-1.5 text-muted text-[11px]">
                                 <span className="italic">
                                   {defaultVal ? `Default: ${defaultVal}` : 'Will apply autonomous safe default'}
                                 </span>
@@ -453,12 +453,12 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                         </div>
 
                         {/* Card Bottom Actions: Quick Jump & Reset */}
-                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-750">
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-soft dark:border-neutral-750">
                           {onJumpToQuestion && (
                             <button
                               type="button"
                               onClick={() => onJumpToQuestion(originalIndex)}
-                              className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
+                              className="text-xs font-semibold text-agent-integration hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <span>Tune in Survey</span>
                               <ArrowRight className="w-3 h-3" />
@@ -469,7 +469,7 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
                             <button
                               type="button"
                               onClick={() => onClearAnswer(q.id)}
-                              className="text-[11px] font-medium text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              className="text-[11px] font-medium text-faint hover:text-error flex items-center gap-1 transition-colors cursor-pointer"
                               title="Reset this specification to recommended default"
                             >
                               <RotateCcw className="w-3 h-3" />
@@ -485,14 +485,14 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
 
               {/* Architectural Directives Summary Card (If provided) */}
               {additionalNotes.trim() && (
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 space-y-1.5">
+                <div className="p-4 rounded-xl border border-border bg-panel space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                    <span className="text-xs font-semibold text-neutral-900 dark:text-white">
+                    <Sparkles className="w-3.5 h-3.5 text-agent-integration" />
+                    <span className="text-xs font-semibold text-ink">
                       Custom Architectural Directives & Constraints
                     </span>
                   </div>
-                  <p className="text-xs text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap font-mono bg-neutral-50 dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200/80 dark:border-neutral-700/80">
+                  <p className="text-xs text-ink whitespace-pre-wrap font-mono bg-panel p-2.5 rounded-lg border border-border">
                     {additionalNotes}
                   </p>
                 </div>
@@ -501,18 +501,18 @@ export const LiveBlueprintSummary: React.FC<LiveBlueprintSummaryProps> = ({
           ) : (
             /* View Mode 2: Raw Markdown Specification */
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+              <div className="flex items-center justify-between text-xs text-muted">
                 <span className="font-mono">Generated Architecture Spec Manifest</span>
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-semibold text-agent-integration hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  {copied ? <CheckCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <CheckCheck className="w-3.5 h-3.5 text-ok" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copied ? 'Copied' : 'Copy All Markdown'}</span>
                 </button>
               </div>
-              <pre className="p-4 rounded-xl bg-neutral-900 text-neutral-100 text-[11px] font-mono leading-relaxed overflow-x-auto max-h-96 border border-neutral-800 selection:bg-teal-700">
+              <pre className="p-4 rounded-xl bg-base text-ink text-[11px] font-mono leading-relaxed overflow-x-auto max-h-96 border border-border selection:bg-agent-integration">
                 {blueprintMarkdown}
               </pre>
             </div>

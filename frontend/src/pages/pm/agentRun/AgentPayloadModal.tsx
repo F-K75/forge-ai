@@ -56,22 +56,22 @@ export function AgentPayloadModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="agent-payload-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-base/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-3xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150"
+        className="w-full max-w-3xl rounded-2xl border border-border bg-panel shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border-soft bg-ink/10">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-950/80 text-teal-700 dark:text-teal-300 items-center justify-center">
+            <span className="flex h-8 w-8 rounded-lg bg-agent-integration/10 text-agent-integration items-center justify-center">
               <Code2 size={16} />
             </span>
             <div>
-              <h3 id="agent-payload-modal-title" className="font-bold text-sm text-slate-900 dark:text-slate-100">{title}</h3>
-              <p className="text-xs text-slate-500 font-mono">Agent: {agentName}</p>
+              <h3 id="agent-payload-modal-title" className="font-semibold text-sm text-ink">{title}</h3>
+              <p className="text-xs text-muted font-mono">Agent: {agentName}</p>
             </div>
           </div>
 
@@ -79,16 +79,16 @@ export function AgentPayloadModal({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-pill border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
             >
-              {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+              {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
               <span>{copied ? "Copied" : "Copy"}</span>
             </button>
 
             <button
               type="button"
               onClick={handleDownload}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-pill border border-border hover:bg-ink/5 text-ink transition-colors cursor-pointer"
             >
               <Download size={13} />
               <span>Download</span>
@@ -97,7 +97,7 @@ export function AgentPayloadModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 text-faint hover:text-ink rounded-lg hover:bg-ink/5 transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X size={16} />
@@ -106,12 +106,12 @@ export function AgentPayloadModal({
         </div>
 
         {/* Modal Code Viewer */}
-        <div className="flex-1 p-4 overflow-y-auto bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed">
+        <div className="flex-1 p-4 overflow-y-auto bg-panel-alt text-ink font-mono text-xs leading-relaxed">
           <pre className="whitespace-pre-wrap select-text">{jsonString}</pre>
         </div>
 
         {/* Modal Footer */}
-        <div className="px-5 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-5 py-2.5 border-t border-border-soft bg-ink/10 flex items-center justify-between text-xs text-muted">
           <span>Format: application/json</span>
           <span>Schema validated by AI Gateway</span>
         </div>

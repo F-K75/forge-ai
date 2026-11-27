@@ -13,18 +13,18 @@ interface KeycapData {
 }
 
 const DEFAULT_KEYS: KeycapData[] = [
-  { id: "o1", char: "O", color: "bg-[#FF7A3D] text-white", rotate: "-rotate-6" },
-  { id: "v", char: "V", color: "bg-[#8B5CF6] text-white", rotate: "rotate-3" },
-  { id: "e", char: "E", color: "bg-[#C4B5FD] text-neutral-900", rotate: "-rotate-3" },
-  { id: "r", char: "R", color: "bg-[#10B981] text-white", rotate: "rotate-6" },
-  { id: "f", char: "F", color: "bg-[#06B6D4] text-white", rotate: "-rotate-2" },
-  { id: "l", char: "L", color: "bg-[#FBBF24] text-neutral-900", rotate: "rotate-4" },
-  { id: "o2", char: "O", color: "bg-[#FF7A3D] text-white", rotate: "-rotate-4" },
-  { id: "w", char: "W", color: "bg-[#F472B6] text-white", rotate: "rotate-8" },
-  { id: "code", char: "</>", color: "bg-white text-neutral-900", icon: Code, rotate: "-rotate-12", size: "md" },
-  { id: "chat", char: "...", color: "bg-white text-neutral-900", icon: MessageSquare, rotate: "rotate-8", size: "sm" },
-  { id: "pencil", char: "draw", color: "bg-white text-neutral-900", icon: Pencil, rotate: "-rotate-8", size: "sm" },
-  { id: "bot", char: "AI", color: "bg-[#3B82F6] text-white", icon: Bot, rotate: "rotate-6", size: "sm" },
+  { id: "o1", char: "O", color: "bg-accent text-on-ink", rotate: "-rotate-6" },
+  { id: "v", char: "V", color: "bg-ink text-on-ink", rotate: "rotate-3" },
+  { id: "e", char: "E", color: "bg-agent-business-improver/10 text-ink", rotate: "-rotate-3" },
+  { id: "r", char: "R", color: "bg-ok text-on-ink", rotate: "rotate-6" },
+  { id: "f", char: "F", color: "bg-ink text-on-ink", rotate: "-rotate-2" },
+  { id: "l", char: "L", color: "bg-warn text-on-ink", rotate: "rotate-4" },
+  { id: "o2", char: "O", color: "bg-accent text-on-ink", rotate: "-rotate-4" },
+  { id: "w", char: "W", color: "bg-agent-designer/20 text-ink", rotate: "rotate-8" },
+  { id: "code", char: "</>", color: "bg-panel text-ink", icon: Code, rotate: "-rotate-12", size: "md" },
+  { id: "chat", char: "...", color: "bg-panel text-ink", icon: MessageSquare, rotate: "rotate-8", size: "sm" },
+  { id: "pencil", char: "draw", color: "bg-panel text-ink", icon: Pencil, rotate: "-rotate-8", size: "sm" },
+  { id: "bot", char: "AI", color: "bg-ink text-on-ink", icon: Bot, rotate: "rotate-6", size: "sm" },
 ];
 
 export function SuiKeycapVisual({
@@ -60,17 +60,17 @@ export function SuiKeycapVisual({
       />
 
       {/* Scattered Organic Background Shapes */}
-      <div className="absolute top-3 left-6 text-neutral-400/40 pointer-events-none" aria-hidden="true">
+      <div className="absolute top-3 left-6 text-faint pointer-events-none" aria-hidden="true">
         <Star size={22} className="rotate-12" />
       </div>
-      <div className="absolute bottom-5 right-8 text-neutral-400/40 pointer-events-none" aria-hidden="true">
+      <div className="absolute bottom-5 right-8 text-faint pointer-events-none" aria-hidden="true">
         <Sparkles size={26} className="-rotate-12" />
       </div>
 
       {/* Interactive Speech Bubble */}
       {keyBubble && (
-        <div className="absolute -top-3 sm:top-0 right-4 sm:right-12 z-30 bg-white border-2 border-neutral-900 px-3.5 py-1.5 rounded-2xl shadow-[3px_3px_0px_#1a1a1a] text-xs font-bold text-neutral-900 flex items-center gap-1.5 animate-bounce">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        <div className="absolute -top-3 sm:top-0 right-4 sm:right-12 z-30 bg-panel border-2 border-border px-3.5 py-1.5 rounded-2xl text-xs font-semibold text-ink flex items-center gap-1.5 animate-bounce">
+          <span className="h-2 w-2 rounded-full bg-ok" />
           <span>{keyBubble}</span>
         </div>
       )}
@@ -86,14 +86,14 @@ export function SuiKeycapVisual({
               type="button"
               onClick={() => handleClick(k)}
               className={`
-                group relative flex flex-col items-center justify-center font-black tracking-tight cursor-pointer
-                border-2 border-neutral-900 rounded-xl sm:rounded-2xl
+                group relative flex flex-col items-center justify-center font-semibold tracking-tight cursor-pointer
+                border-2 border-border rounded-xl sm:rounded-2xl
                 transition-all duration-100 transform
                 ${k.color}
                 ${k.rotate || ""}
                 ${isPressed 
-                  ? "translate-y-1.5 shadow-[0_1px_0_#1a1a1a]" 
-                  : "shadow-[0_6px_0_#1a1a1a] hover:-translate-y-0.5 hover:shadow-[0_8px_0_#1a1a1a]"
+                  ? "translate-y-1.5" 
+                  : "hover:-translate-y-0.5"
                 }
                 ${k.size === "sm" 
                   ? "w-10 h-10 sm:w-12 sm:h-12 text-sm" 
@@ -105,12 +105,12 @@ export function SuiKeycapVisual({
               title={`Key ${k.char}`}
             >
               {/* Convex Top Highlight Line */}
-              <span className="absolute top-1 inset-x-1.5 h-1 bg-white/30 rounded-full pointer-events-none" />
+              <span className="absolute top-1 inset-x-1.5 h-1 bg-ink/30 rounded-full pointer-events-none" />
 
               {Icon ? (
                 <Icon size={k.size === "sm" ? 16 : 20} strokeWidth={2.4} />
               ) : (
-                <span className="font-extrabold">{k.char}</span>
+                <span className="font-semibold">{k.char}</span>
               )}
             </button>
           );

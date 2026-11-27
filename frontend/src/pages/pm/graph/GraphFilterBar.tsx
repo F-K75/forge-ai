@@ -90,12 +90,12 @@ export const GraphFilterBar: React.FC<GraphFilterBarProps> = ({
             onClick={() => onFocusFilterChange("critical_path")}
             className={`flex items-center gap-1 rounded-md px-2 py-1 font-medium transition-all ${
               focusFilter === "critical_path"
-                ? "bg-pink-500/20 text-pink-300 border border-pink-500/40"
+                ? "bg-agent-designer/20 text-agent-designer border border-agent-designer/40"
                 : "text-faint hover:text-ink hover:bg-inlay/40"
             }`}
             title="Focus only on the longest dependency chain"
           >
-            <Flame size={11} className="text-pink-400" />
+            <Flame size={11} className="text-agent-designer" />
             Critical Path
           </button>
           <button
@@ -103,12 +103,12 @@ export const GraphFilterBar: React.FC<GraphFilterBarProps> = ({
             onClick={() => onFocusFilterChange("blocked")}
             className={`flex items-center gap-1 rounded-md px-2 py-1 font-medium transition-all ${
               focusFilter === "blocked"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                ? "bg-warn/20 text-warn border border-warn/40"
                 : "text-faint hover:text-ink hover:bg-inlay/40"
             }`}
             title="Focus only on tasks with pending dependencies"
           >
-            <AlertTriangle size={11} className="text-amber-400" />
+            <AlertTriangle size={11} className="text-warn" />
             Blocked ({diagnostics.blockedTasksCount})
           </button>
           <button
@@ -116,11 +116,11 @@ export const GraphFilterBar: React.FC<GraphFilterBarProps> = ({
             onClick={() => onFocusFilterChange("in_progress")}
             className={`flex items-center gap-1 rounded-md px-2 py-1 font-medium transition-all ${
               focusFilter === "in_progress"
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                ? "bg-info/20 text-info border border-info/40"
                 : "text-faint hover:text-ink hover:bg-inlay/40"
             }`}
           >
-            <Clock size={11} className="text-cyan-400" />
+            <Clock size={11} className="text-info" />
             In-Progress
           </button>
         </div>

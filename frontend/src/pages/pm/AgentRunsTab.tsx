@@ -49,8 +49,8 @@ const AGENT_EXEC_STATUS: Record<string, RunStatus> = {
 
 function EmptyPane({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-5 text-center">
-      <p className="text-xs text-slate-500 dark:text-slate-400">{children}</p>
+    <div className="rounded-xl border border-dashed border-border bg-ink/10 p-5 text-center">
+      <p className="text-xs text-muted">{children}</p>
     </div>
   );
 }
@@ -210,7 +210,7 @@ export default function AgentRunsTab() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-12 text-center text-sm text-slate-500">
+      <div className="mx-auto max-w-6xl px-4 py-12 text-center text-sm text-muted">
         Loading autonomous agent runs…
       </div>
     );
@@ -683,7 +683,7 @@ export default function AgentRunsTab() {
                     type="button"
                     onClick={runStandup}
                     disabled={standupLoading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg bg-agent-integration hover:bg-agent-integration/90 text-on-ink shadow-sm transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <RefreshCw
                       size={12}

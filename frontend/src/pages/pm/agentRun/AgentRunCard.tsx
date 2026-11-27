@@ -40,24 +40,24 @@ interface AgentRunCardProps {
 
 const STAGE_COLOR: Record<string, { bg: string; text: string; border: string }> = {
   Discovery: {
-    bg: "bg-blue-50 dark:bg-blue-950/40",
-    text: "text-blue-700 dark:text-blue-300",
-    border: "border-blue-200 dark:border-blue-800/50",
+    bg: "bg-info/10",
+    text: "text-accent",
+    border: "border-info/30",
   },
   Definition: {
-    bg: "bg-purple-50 dark:bg-purple-950/40",
-    text: "text-purple-700 dark:text-purple-300",
-    border: "border-purple-200 dark:border-purple-800/50",
+    bg: "bg-agent-business-improver/10",
+    text: "text-agent-business-improver",
+    border: "border-agent-business-improver/30",
   },
   Planning: {
-    bg: "bg-amber-50 dark:bg-amber-950/40",
-    text: "text-amber-700 dark:text-amber-300",
-    border: "border-amber-200 dark:border-amber-800/50",
+    bg: "bg-warn/10",
+    text: "text-warn",
+    border: "border-warn/30",
   },
   Execution: {
-    bg: "bg-teal-50 dark:bg-teal-950/40",
-    text: "text-teal-700 dark:text-teal-300",
-    border: "border-teal-200 dark:border-teal-800/50",
+    bg: "bg-agent-integration/10",
+    text: "text-agent-integration",
+    border: "border-agent-integration/30",
   },
 };
 
@@ -67,24 +67,24 @@ const STATUS_CONFIG: Record<
 > = {
   running: {
     label: "Running",
-    badge: "bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60",
-    dot: "bg-teal-500",
+    badge: "bg-agent-integration/10 text-agent-integration border-agent-integration/30",
+    dot: "bg-agent-integration",
     pulse: true,
   },
   needs_review: {
     label: "Needs Review",
-    badge: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
-    dot: "bg-amber-500",
+    badge: "bg-warn/10 text-warn border-warn/30",
+    dot: "bg-warn",
   },
   done: {
     label: "Completed",
-    badge: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
-    dot: "bg-emerald-500",
+    badge: "bg-ok/10 text-ok border-ok/30",
+    dot: "bg-ok",
   },
   idle: {
     label: "Standby",
-    badge: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
-    dot: "bg-slate-400",
+    badge: "bg-panel-alt text-muted border-border",
+    dot: "bg-ink/30",
   },
 };
 
@@ -128,10 +128,10 @@ export function AgentRunCard({
   return (
     <div
       id={`agent-card-${agent.id}`}
-      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700"
+      className="rounded-2xl border border-border bg-panel shadow-sm overflow-hidden transition-all duration-200 hover:border-border"
     >
       {/* Card Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/40">
+      <div className="p-4 sm:p-5 border-b border-border-soft bg-ink/10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Left: Agent Icon + Name + Stage Pill + Model */}
           <div className="flex items-start sm:items-center gap-3 min-w-0">
@@ -144,7 +144,7 @@ export function AgentRunCard({
 
             <div className="min-w-0 space-y-0.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100 tracking-tight">
+                <h3 className="font-semibold text-sm sm:text-base text-ink tracking-tight">
                   {agent.label}
                 </h3>
 
@@ -154,13 +154,13 @@ export function AgentRunCard({
                   {agent.stage}
                 </span>
 
-                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-mono">
-                  <Cpu size={10} className="text-teal-500" />
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-panel-alt text-muted font-mono">
+                  <Cpu size={10} className="text-agent-integration" />
                   {modelName}
                 </span>
               </div>
 
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xl">
+              <p className="text-xs text-muted truncate max-w-xl">
                 {agent.purpose}
               </p>
             </div>
@@ -174,7 +174,7 @@ export function AgentRunCard({
             >
               <span className="relative flex h-1.5 w-1.5">
                 {statusCfg.pulse && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-agent-integration opacity-75" />
                 )}
                 <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${statusCfg.dot}`} />
               </span>
@@ -188,11 +188,11 @@ export function AgentRunCard({
             <button
               type="button"
               onClick={handleCopy}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 text-faint hover:text-ink rounded-lg hover:bg-ink/5 transition-colors cursor-pointer"
               title="Copy output payload"
               aria-label={`Copy ${agent.label} output`}
             >
-              {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              {copied ? <Check size={14} className="text-ok" /> : <Copy size={14} />}
             </button>
 
             {/* Inspect Payload Button */}
@@ -200,7 +200,7 @@ export function AgentRunCard({
               <button
                 type="button"
                 onClick={onInspectPayload}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 text-faint hover:text-ink rounded-lg hover:bg-ink/5 transition-colors cursor-pointer"
                 title="Inspect raw schema payload"
                 aria-label={`Inspect ${agent.label} payload`}
               >
@@ -213,7 +213,7 @@ export function AgentRunCard({
               <button
                 type="button"
                 onClick={onToggleExpand}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 text-faint hover:text-ink rounded-lg hover:bg-ink/5 transition-colors cursor-pointer"
                 title={isExpanded ? "Collapse section" : "Expand section"}
                 aria-label={isExpanded ? "Collapse" : "Expand"}
               >
@@ -227,14 +227,14 @@ export function AgentRunCard({
         {typeof progressPct === "number" && (
           <div className="mt-3">
             <div className="flex items-center justify-between text-[11px] mb-1">
-              <span className="text-slate-500 font-mono">Autonomous Execution Progress</span>
-              <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">
+              <span className="text-muted font-mono">Autonomous Execution Progress</span>
+              <span className="font-semibold text-ink font-mono">
                 {progressPct}%
               </span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-panel-alt">
               <div
-                className="h-full rounded-full bg-teal-500 transition-all duration-500"
+                className="h-full rounded-full bg-agent-integration transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -244,35 +244,35 @@ export function AgentRunCard({
 
       {/* Card Body - Content & Side Metrics */}
       {isExpanded && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800/80">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] divide-y lg:divide-y-0 lg:divide-x divide-border-soft">
           {/* Main Pane Content */}
           <div className="p-4 sm:p-5 overflow-x-auto">{children}</div>
 
           {/* Side Telemetry & Meta Column */}
-          <div className="p-4 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col justify-between gap-4 text-xs">
+          <div className="p-4 bg-ink/10 flex flex-col justify-between gap-4 text-xs">
             <div className="space-y-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-faint mb-1.5">
                   Execution Meta
                 </p>
-                <p className="font-mono text-[11px] text-slate-600 dark:text-slate-400 break-all bg-white dark:bg-slate-800/60 p-1.5 rounded border border-slate-200/60 dark:border-slate-800">
+                <p className="font-mono text-[11px] text-muted break-all bg-panel p-1.5 rounded border border-border">
                   {runMeta}
                 </p>
               </div>
 
               {sideMetrics.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-faint mb-1.5">
                     Telemetry
                   </p>
                   <dl className="space-y-1">
                     {sideMetrics.map((m) => (
                       <div
                         key={m.label}
-                        className="flex items-center justify-between py-0.5 border-b border-slate-100 dark:border-slate-800/40 text-[11px]"
+                        className="flex items-center justify-between py-0.5 border-b border-border-soft text-[11px]"
                       >
-                        <dt className="text-slate-500 dark:text-slate-400">{m.label}</dt>
-                        <dd className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                        <dt className="text-muted">{m.label}</dt>
+                        <dd className="font-mono font-semibold text-ink">
                           {m.value}
                         </dd>
                       </div>
@@ -282,9 +282,9 @@ export function AgentRunCard({
               )}
             </div>
 
-            <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+            <div className="pt-2 border-t border-border text-[10px] text-faint flex items-center justify-between">
               <span>Security Level: L3</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium">Verified Sandbox</span>
+              <span className="text-ok font-medium">Verified Sandbox</span>
             </div>
           </div>
         </div>

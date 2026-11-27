@@ -68,12 +68,12 @@ interface SpendingEntry {
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <motion.div
-      className="rounded-lg border border-slate-800 bg-slate-900/70 p-4"
+      className="rounded-lg border border-border bg-base/70 p-4"
       {...presets.card}
       variants={motionVariants.staggerItem}
     >
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 font-mono text-xl text-slate-100">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 font-mono text-xl text-ink">{value}</p>
     </motion.div>
   )
 }
@@ -92,10 +92,10 @@ function BreakdownTable({
   const reduceMotion = useReducedMotion()
   return (
     <div className="mt-4">
-      <h3 className="text-sm font-medium text-slate-300">{title}</h3>
-      <div className="mt-2 max-h-64 overflow-auto rounded border border-slate-800">
+      <h3 className="text-sm font-medium text-muted">{title}</h3>
+      <div className="mt-2 max-h-64 overflow-auto rounded border border-border">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-900 text-slate-400">
+          <thead className="bg-panel-alt text-faint">
             <tr>
               <th className="p-2">{keyLabel}</th>
               <th className="p-2">Requests</th>
@@ -111,13 +111,13 @@ function BreakdownTable({
           >
             {rows.length === 0 && (
               <tr>
-                 <td colSpan={5} className="p-2 text-slate-500">
+                 <td colSpan={5} className="p-2 text-muted">
                   No data available for this window.
                 </td>
               </tr>
             )}
             {rows.map((row, idx) => (
-              <motion.tr key={idx} className="border-t border-slate-800" variants={motionVariants.staggerItem}>
+              <motion.tr key={idx} className="border-t border-border" variants={motionVariants.staggerItem}>
                 <td className="p-2">{row[keyField] ?? "—"}</td>
                 <td className="p-2">{row.requests}</td>
                 <td className="p-2">{row.prompt_tokens}</td>
@@ -259,12 +259,12 @@ export default function OptimizationDashboard() {
       </p>
 
       <div className="mt-4 flex items-center gap-3">
-        <label className="flex items-center gap-2 text-xs text-slate-400">
+        <label className="flex items-center gap-2 text-xs text-faint">
           Window
           <select
             value={days}
             onChange={(e) => setDays(parseInt(e.target.value, 10))}
-            className="rounded bg-slate-800 px-2 py-1 text-slate-200"
+            className="rounded bg-ink px-2 py-1 text-muted"
           >
             <option value={7}>7 days</option>
             <option value={30}>30 days</option>
@@ -276,7 +276,7 @@ export default function OptimizationDashboard() {
       {loading ? (
          <p className="mt-6">Loading</p>
       ) : error ? (
-        <p className="mt-6 text-rose-300">{error}</p>
+        <p className="mt-6 text-error">{error}</p>
       ) : (
         <>
           <motion.section
@@ -349,9 +349,9 @@ export default function OptimizationDashboard() {
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
           >
             <h2 className="text-lg font-medium">Per-user spend</h2>
-            <div className="mt-3 max-h-64 overflow-auto rounded border border-slate-800">
+            <div className="mt-3 max-h-64 overflow-auto rounded border border-border">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900 text-slate-400">
+                <thead className="bg-panel-alt text-faint">
                   <tr>
                     <th className="p-2">User</th>
                     <th className="p-2">Requests</th>
@@ -365,7 +365,7 @@ export default function OptimizationDashboard() {
                   animate="visible"
                 >
                   {spending.map((s) => (
-                    <motion.tr key={s.user_id} className="border-t border-slate-800" variants={motionVariants.staggerItem}>
+                    <motion.tr key={s.user_id} className="border-t border-border" variants={motionVariants.staggerItem}>
                       <td className="p-2">{s.user_id}</td>
                       <td className="p-2">{s.requests}</td>
                       <td className="p-2">{s.total_tokens}</td>
@@ -384,9 +384,9 @@ export default function OptimizationDashboard() {
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
           >
             <h2 className="text-lg font-medium">Budget limits</h2>
-            <div className="mt-3 max-h-64 overflow-auto rounded border border-slate-800">
+            <div className="mt-3 max-h-64 overflow-auto rounded border border-border">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900 text-slate-400">
+                <thead className="bg-panel-alt text-faint">
                   <tr>
                     <th className="p-2">Scope</th>
                     <th className="p-2">Scope ID</th>
@@ -403,13 +403,13 @@ export default function OptimizationDashboard() {
                 >
                   {limits.length === 0 && (
                     <tr>
-                       <td colSpan={6} className="p-2 text-slate-500">
+                       <td colSpan={6} className="p-2 text-muted">
                         No budget limits configured yet.
                       </td>
                     </tr>
                   )}
                   {limits.map((l) => (
-                    <motion.tr key={`${l.scope}-${l.scope_id}`} className="border-t border-slate-800" variants={motionVariants.staggerItem}>
+                    <motion.tr key={`${l.scope}-${l.scope_id}`} className="border-t border-border" variants={motionVariants.staggerItem}>
                       <td className="p-2">{l.scope}</td>
                       <td className="p-2">{l.scope_id}</td>
                       <td className="p-2">{l.period}</td>
@@ -418,7 +418,7 @@ export default function OptimizationDashboard() {
                       <td className="p-2">
                         <button
                           onClick={() => removeLimit(l)}
-                          className="rounded bg-slate-800 px-2 py-1 hover:bg-rose-900/60"
+                          className="rounded bg-panel-alt px-2 py-1 hover:bg-error/20"
                         >
                           Remove
                         </button>
@@ -431,11 +431,11 @@ export default function OptimizationDashboard() {
 
             <div className="mt-4 flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-400">Scope</span>
+                <span className="text-xs text-faint">Scope</span>
                 <select
                   value={scope}
                   onChange={(e) => setScope(e.target.value as typeof scope)}
-                  className="rounded bg-slate-800 px-2 py-1"
+                  className="rounded bg-panel-alt px-2 py-1"
                 >
                   <option value="org">org</option>
                   <option value="project">project</option>
@@ -443,41 +443,41 @@ export default function OptimizationDashboard() {
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-400">Scope ID</span>
+                <span className="text-xs text-faint">Scope ID</span>
                 <input
                   value={scopeId}
                   onChange={(e) => setScopeId(e.target.value)}
-                  className="rounded bg-slate-800 px-2 py-1"
+                  className="rounded bg-panel-alt px-2 py-1"
                   placeholder="org-123"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-400">Soft limit (USD)</span>
+                <span className="text-xs text-faint">Soft limit (USD)</span>
                 <input
                   value={softLimit}
                   onChange={(e) => setSoftLimit(e.target.value)}
-                  className="rounded bg-slate-800 px-2 py-1"
+                  className="rounded bg-panel-alt px-2 py-1"
                   placeholder="optional"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-400">Hard limit (USD)</span>
+                <span className="text-xs text-faint">Hard limit (USD)</span>
                 <input
                   value={hardLimit}
                   onChange={(e) => setHardLimit(e.target.value)}
-                  className="rounded bg-slate-800 px-2 py-1"
+                  className="rounded bg-panel-alt px-2 py-1"
                   placeholder="optional"
                 />
               </label>
               <motion.button
                 onClick={saveLimit}
-                className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500"
+                className="rounded bg-ok px-3 py-1 hover:bg-ok/90"
                 {...presets.button}
               >
                 Save limit
               </motion.button>
             </div>
-            {saveStatus && <p className="mt-3 text-xs text-slate-400">{saveStatus}</p>}
+            {saveStatus && <p className="mt-3 text-xs text-faint">{saveStatus}</p>}
           </motion.section>
         </>
       )}

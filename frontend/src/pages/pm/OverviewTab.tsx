@@ -55,15 +55,15 @@ function EditableList({
 
   return (
     <motion.section variants={motionVariants.fadeUp}>
-      <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs flex flex-col h-full hover:border-neutral-300 dark:hover:border-neutral-700 transition">
-        <div className="mb-3.5 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800/80 pb-3">
+      <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs flex flex-col h-full hover:border-border transition">
+        <div className="mb-3.5 flex items-center justify-between border-b border-border-soft pb-3">
           <div className="flex items-center gap-2">
             {Icon && (
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-panel-alt text-ink">
                 <Icon size={13} strokeWidth={2.2} aria-hidden="true" />
               </span>
             )}
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink">
               {label}
             </span>
           </div>
@@ -74,7 +74,7 @@ function EditableList({
                 setDraft(items.join("\n"));
                 setEditing(true);
               }}
-              className="h-7 w-7 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 flex items-center justify-center transition cursor-pointer"
+              className="h-7 w-7 rounded-full bg-panel-alt hover:bg-ink/5 text-ink flex items-center justify-center transition cursor-pointer"
               aria-label={`Edit ${label}`}
             >
               <Pencil size={12} strokeWidth={2.2} aria-hidden="true" />
@@ -85,7 +85,7 @@ function EditableList({
                 type="button"
                 onClick={save}
                 disabled={saving}
-                className="h-7 px-3 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-[11px] font-semibold flex items-center gap-1 shadow-xs cursor-pointer"
+                className="h-7 px-3 rounded-full bg-ink text-on-ink text-[11px] font-semibold flex items-center gap-1 shadow-xs cursor-pointer"
                 aria-label="Save"
               >
                 <Check size={12} strokeWidth={2.5} aria-hidden="true" />
@@ -94,7 +94,7 @@ function EditableList({
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="h-7 px-3 rounded-full border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                className="h-7 px-3 rounded-full border border-border text-ink text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                 aria-label="Cancel"
               >
                 <X size={12} strokeWidth={2.5} aria-hidden="true" />
@@ -108,12 +108,12 @@ function EditableList({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={Math.max(4, items.length + 1)}
-            className="w-full rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-[#0E1017] p-3 text-xs font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+            className="w-full rounded-xl border border-border bg-panel p-3 text-xs font-medium text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-border"
             placeholder="One item per line"
           />
         ) : items.length === 0 ? (
           <motion.p
-            className="text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase py-2"
+            className="text-xs font-medium text-faint uppercase py-2"
             variants={motionVariants.fadeIn}
           >
             Not specified yet.
@@ -128,12 +128,12 @@ function EditableList({
             {items.map((item, i) => (
               <motion.li
                 key={i}
-                className="flex items-start gap-2.5 text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed"
+                className="flex items-start gap-2.5 text-xs text-ink leading-relaxed"
                 variants={motionVariants.staggerItem}
                 custom={i}
               >
                 <span
-                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600 dark:bg-blue-400"
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-info"
                   aria-hidden="true"
                 />
                 <span className="font-medium">{item}</span>
@@ -175,15 +175,15 @@ function EditableText({
 
   return (
     <motion.section variants={motionVariants.fadeUp}>
-      <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs flex flex-col h-full hover:border-neutral-300 dark:hover:border-neutral-700 transition">
-        <div className="mb-3.5 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800/80 pb-3">
+      <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs flex flex-col h-full hover:border-border transition">
+        <div className="mb-3.5 flex items-center justify-between border-b border-border-soft pb-3">
           <div className="flex items-center gap-2">
             {Icon && (
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-panel-alt text-ink">
                 <Icon size={13} strokeWidth={2.2} aria-hidden="true" />
               </span>
             )}
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink">
               {label}
             </span>
           </div>
@@ -194,7 +194,7 @@ function EditableText({
                 setDraft(value);
                 setEditing(true);
               }}
-              className="h-7 w-7 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 flex items-center justify-center transition cursor-pointer"
+              className="h-7 w-7 rounded-full bg-panel-alt hover:bg-ink/5 text-ink flex items-center justify-center transition cursor-pointer"
               aria-label={`Edit ${label}`}
             >
               <Pencil size={12} strokeWidth={2.2} aria-hidden="true" />
@@ -205,7 +205,7 @@ function EditableText({
                 type="button"
                 onClick={save}
                 disabled={saving}
-                className="h-7 px-3 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-[11px] font-semibold flex items-center gap-1 shadow-xs cursor-pointer"
+                className="h-7 px-3 rounded-full bg-ink text-on-ink text-[11px] font-semibold flex items-center gap-1 shadow-xs cursor-pointer"
                 aria-label="Save"
               >
                 <Check size={12} strokeWidth={2.5} aria-hidden="true" />
@@ -214,7 +214,7 @@ function EditableText({
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="h-7 px-3 rounded-full border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                className="h-7 px-3 rounded-full border border-border text-ink text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                 aria-label="Cancel"
               >
                 <X size={12} strokeWidth={2.5} aria-hidden="true" />
@@ -228,11 +228,11 @@ function EditableText({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={5}
-            className="w-full rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-[#0E1017] p-3 text-xs font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+            className="w-full rounded-xl border border-border bg-panel p-3 text-xs font-medium text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-border"
           />
         ) : (
           <motion.p
-            className="whitespace-pre-wrap text-xs leading-relaxed text-neutral-700 dark:text-neutral-300 font-medium"
+            className="whitespace-pre-wrap text-xs leading-relaxed text-ink font-medium"
             variants={motionVariants.fadeIn}
           >
             {value || "Not specified yet."}
@@ -407,11 +407,11 @@ export default function OverviewTab() {
       {/* Section 1: Strategy & Vision */}
       <section className="space-y-4">
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider border border-blue-200 dark:border-blue-800">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-info/10 text-info text-xs font-semibold uppercase tracking-wider border border-info/30">
             <Target size={13} strokeWidth={2.4} aria-hidden="true" />
             <span>Strategy & Vision</span>
           </span>
-          <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+          <span className="text-xs text-faint font-medium hidden sm:inline">
             Core Architectural Intent
           </span>
         </div>
@@ -455,11 +455,11 @@ export default function OverviewTab() {
       {/* Section 2: Requirements & Specifications */}
       <section className="space-y-4">
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-ok/10 text-ok text-xs font-semibold uppercase tracking-wider border border-ok/30">
             <GitBranch size={13} strokeWidth={2.4} aria-hidden="true" />
             <span>System Requirements & Scope</span>
           </span>
-          <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+          <span className="text-xs text-faint font-medium hidden sm:inline">
             INVEST-Compliant Specifications
           </span>
         </div>
@@ -503,20 +503,20 @@ export default function OverviewTab() {
       {/* Section 3: Risks & Mitigations */}
       <section className="space-y-4">
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-200 dark:border-amber-800">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-warn/10 text-warn text-xs font-semibold uppercase tracking-wider border border-warn/30">
             <Shield size={13} strokeWidth={2.4} aria-hidden="true" />
             <span>Risks & Mitigations</span>
           </span>
-          <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+          <span className="text-xs text-faint font-medium hidden sm:inline">
             Proactive Failure Prevention
           </span>
         </div>
 
         <motion.section variants={motionVariants.fadeUp}>
-          <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-6 shadow-xs">
+          <div className="rounded-2xl border border-border bg-panel p-6 shadow-xs">
             {(initiative.risks ?? []).length === 0 ? (
               <motion.p
-                className="text-xs font-medium text-neutral-400 uppercase py-2"
+                className="text-xs font-medium text-faint uppercase py-2"
                 variants={motionVariants.fadeIn}
               >
                 No systemic risks identified.
@@ -537,31 +537,31 @@ export default function OverviewTab() {
                 ).map((r, i) => (
                   <motion.li
                     key={i}
-                    className="rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 bg-neutral-50/70 dark:bg-[#0E1017] p-4 flex flex-col justify-between"
+                    className="rounded-xl border border-border bg-ink/10 p-4 flex flex-col justify-between"
                     variants={motionVariants.staggerItem}
                     custom={i}
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span
-                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                          className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase ${
                             r.severity === "high"
-                              ? "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300"
+                              ? "bg-error/10 text-error "
                               : r.severity === "medium"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300"
-                              : "bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300"
+                              ? "bg-warn/10 text-warn "
+                              : "bg-surface-high text-ink "
                           }`}
                         >
                           {r.severity} Priority
                         </span>
                       </div>
-                      <p className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 leading-relaxed">
+                      <p className="text-xs font-semibold text-ink leading-relaxed">
                         {r.description}
                       </p>
                     </div>
                     {r.mitigation && (
-                      <div className="mt-3 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed border-t border-neutral-200/60 dark:border-neutral-700/60 pt-2.5">
-                        <span className="font-bold text-neutral-800 dark:text-neutral-200 uppercase text-[10px]">
+                      <div className="mt-3 text-xs text-muted leading-relaxed border-t border-border pt-2.5">
+                        <span className="font-semibold text-ink uppercase text-[10px]">
                           Mitigation:
                         </span>{" "}
                         {r.mitigation}
@@ -579,11 +579,11 @@ export default function OverviewTab() {
       <section className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-xs font-bold uppercase tracking-wider border border-purple-200 dark:border-purple-800">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-agent-business-improver/10 text-agent-business-improver text-xs font-semibold uppercase tracking-wider border border-agent-business-improver/30">
               <FileText size={13} strokeWidth={2.4} aria-hidden="true" />
               <span>Product Requirements Document</span>
             </span>
-            <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+            <span className="text-xs text-faint font-medium hidden sm:inline">
               Full Architecture Spec
             </span>
           </div>
@@ -591,7 +591,7 @@ export default function OverviewTab() {
             <button
               type="button"
               onClick={handleExportMarkdown}
-              className="h-8 px-4 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+              className="h-8 px-4 rounded-full border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
               aria-label="Export markdown"
             >
               <Download size={13} strokeWidth={2.2} aria-hidden="true" />
@@ -601,10 +601,10 @@ export default function OverviewTab() {
         </div>
 
         <motion.section variants={motionVariants.fadeUp}>
-          <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-6 shadow-xs">
+          <div className="rounded-2xl border border-border bg-panel p-6 shadow-xs">
             {!prd ? (
               <motion.p
-                className="text-xs font-medium text-neutral-400 uppercase py-2"
+                className="text-xs font-medium text-faint uppercase py-2"
                 variants={motionVariants.fadeIn}
               >
                 PRD not generated yet. Trigger agent to compile PRD.
@@ -626,14 +626,14 @@ export default function OverviewTab() {
                   ].map((field) => (
                     <div
                       key={field.label}
-                      className={`rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 bg-neutral-50/70 dark:bg-[#0E1017] p-4 ${
+                      className={`rounded-xl border border-border bg-ink/10 p-4 ${
                         field.span ? "md:col-span-2" : ""
                       }`}
                     >
-                      <h4 className="text-[11px] font-bold uppercase text-neutral-400 mb-1.5 tracking-wider">
+                      <h4 className="text-[11px] font-semibold uppercase text-faint mb-1.5 tracking-wider">
                         {field.label}
                       </h4>
-                      <p className="text-xs text-neutral-800 dark:text-neutral-200 leading-relaxed font-medium whitespace-pre-wrap">
+                      <p className="text-xs text-ink leading-relaxed font-medium whitespace-pre-wrap">
                         {field.value || "Not specified."}
                       </p>
                     </div>
@@ -641,38 +641,38 @@ export default function OverviewTab() {
                 </motion.div>
 
                 {/* PRD Review & Comments */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-neutral-100 dark:border-neutral-800 pt-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border-soft pt-5">
                   {/* PRD Approvals */}
-                  <div className="rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 bg-neutral-50/70 dark:bg-[#0E1017] p-4">
-                    <h4 className="text-xs font-bold uppercase text-neutral-500 mb-3 tracking-wide flex items-center gap-1.5">
+                  <div className="rounded-xl border border-border bg-ink/10 p-4">
+                    <h4 className="text-xs font-semibold uppercase text-muted mb-3 tracking-wide flex items-center gap-1.5">
                       <ThumbsUp size={12} strokeWidth={2.4} />
                       <span>PRD Spec Sign-Off</span>
                     </h4>
                     <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
                       {approvals.length === 0 ? (
-                        <p className="text-xs text-neutral-400 font-medium">
+                        <p className="text-xs text-faint font-medium">
                           No spec approvals recorded.
                         </p>
                       ) : (
                         approvals.map((a) => (
                           <div
                             key={a.id}
-                            className="rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#181B26] p-2.5 text-xs"
+                            className="rounded-lg border border-border bg-panel p-2.5 text-xs"
                           >
                             <div className="flex items-center justify-between">
                               <span
-                                className={`font-bold uppercase text-[10px] ${
-                                  a.approved ? "text-emerald-600" : "text-rose-600"
+                                className={`font-semibold uppercase text-[10px] ${
+                                  a.approved ? "text-ok" : "text-error"
                                 }`}
                               >
                                 {a.approved ? "Approved" : "Rejected"}
                               </span>
-                              <span className="text-[10px] text-neutral-400 font-medium">
+                              <span className="text-[10px] text-faint font-medium">
                                 By {a.user_id}
                               </span>
                             </div>
                             {a.comment && (
-                              <p className="mt-1 text-xs text-neutral-700 dark:text-neutral-300">
+                              <p className="mt-1 text-xs text-ink">
                                 {a.comment}
                               </p>
                             )}
@@ -686,19 +686,19 @@ export default function OverviewTab() {
                         value={approveComment}
                         onChange={(e) => setApproveComment(e.target.value)}
                         placeholder="Spec note…"
-                        className="h-8 min-w-0 flex-1 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#181B26] px-3 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none"
+                        className="h-8 min-w-0 flex-1 rounded-full border border-border bg-panel px-3 text-xs text-ink placeholder:text-faint focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => handleApprove(true)}
-                        className="h-8 px-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+                        className="h-8 px-3.5 rounded-full bg-ok hover:bg-ok/90 text-on-ink text-xs font-semibold shadow-xs cursor-pointer"
                       >
                         Approve
                       </button>
                       <button
                         type="button"
                         onClick={() => handleApprove(false)}
-                        className="h-8 px-3 rounded-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold cursor-pointer"
+                        className="h-8 px-3 rounded-full border border-border bg-panel text-xs font-semibold cursor-pointer"
                       >
                         Reject
                       </button>
@@ -706,27 +706,27 @@ export default function OverviewTab() {
                   </div>
 
                   {/* PRD Comments */}
-                  <div className="rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 bg-neutral-50/70 dark:bg-[#0E1017] p-4">
-                    <h4 className="text-xs font-bold uppercase text-neutral-500 mb-3 tracking-wide flex items-center gap-1.5">
+                  <div className="rounded-xl border border-border bg-ink/10 p-4">
+                    <h4 className="text-xs font-semibold uppercase text-muted mb-3 tracking-wide flex items-center gap-1.5">
                       <MessageSquare size={12} strokeWidth={2.4} />
                       <span>PRD Spec Notes</span>
                     </h4>
                     <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
                       {comments.length === 0 ? (
-                        <p className="text-xs text-neutral-400 font-medium">
+                        <p className="text-xs text-faint font-medium">
                           No spec comments logged.
                         </p>
                       ) : (
                         comments.map((c) => (
                           <div
                             key={c.id}
-                            className="rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#181B26] p-2.5 text-xs"
+                            className="rounded-lg border border-border bg-panel p-2.5 text-xs"
                           >
-                            <div className="flex items-center justify-between text-[10px] text-neutral-400 font-medium">
+                            <div className="flex items-center justify-between text-[10px] text-faint font-medium">
                               <span>{c.section ? `Sec: ${c.section}` : "Spec"}</span>
                               <span>By {c.user_id}</span>
                             </div>
-                            <p className="mt-1 text-xs text-neutral-700 dark:text-neutral-300">
+                            <p className="mt-1 text-xs text-ink">
                               {c.comment}
                             </p>
                           </div>
@@ -739,12 +739,12 @@ export default function OverviewTab() {
                         value={commentDraft}
                         onChange={(e) => setCommentDraft(e.target.value)}
                         placeholder="Spec comment…"
-                        className="h-8 min-w-0 flex-1 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#181B26] px-3 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none"
+                        className="h-8 min-w-0 flex-1 rounded-full border border-border bg-panel px-3 text-xs text-ink placeholder:text-faint focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={handleAddComment}
-                        className="h-8 px-4 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-semibold shadow-xs cursor-pointer"
+                        className="h-8 px-4 rounded-full bg-ink text-on-ink text-xs font-semibold shadow-xs cursor-pointer"
                       >
                         Add
                       </button>
@@ -762,40 +762,40 @@ export default function OverviewTab() {
         {/* Initiative Approvals */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-800">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-ok/10 text-ok text-xs font-semibold uppercase tracking-wider border border-ok/30">
               <ThumbsUp size={13} strokeWidth={2.4} aria-hidden="true" />
               <span>Initiative Sign-Off</span>
             </span>
           </div>
           <motion.div variants={motionVariants.fadeUp}>
-            <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs flex flex-col justify-between h-full min-h-[200px]">
+            <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs flex flex-col justify-between h-full min-h-[200px]">
               <div className="space-y-2.5 mb-4">
                 {initiativeApprovals.length === 0 ? (
-                  <p className="text-xs font-medium text-neutral-400 py-2">
+                  <p className="text-xs font-medium text-faint py-2">
                     No sign-offs recorded yet.
                   </p>
                 ) : (
                   initiativeApprovals.map((a) => (
                     <div
                       key={a.id}
-                      className="rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 bg-neutral-50/70 dark:bg-[#0E1017] p-3"
+                      className="rounded-xl border border-border bg-ink/10 p-3"
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${
                             a.approved
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300"
-                              : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300"
+                              ? "bg-ok/10 text-ok "
+                              : "bg-error/10 text-error "
                           }`}
                         >
                           {a.approved ? "Approved" : "Rejected"}
                         </span>
-                        <span className="text-[10px] text-neutral-400 font-medium">
+                        <span className="text-[10px] text-faint font-medium">
                           By {a.user_id}
                         </span>
                       </div>
                       {a.comment && (
-                        <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed font-medium mt-1">
+                        <p className="text-xs text-ink leading-relaxed font-medium mt-1">
                           {a.comment}
                         </p>
                       )}
@@ -803,25 +803,25 @@ export default function OverviewTab() {
                   ))
                 )}
               </div>
-              <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-border-soft">
                 <input
                   type="text"
                   value={initiativeApproveComment}
                   onChange={(e) => setInitiativeApproveComment(e.target.value)}
                   placeholder="Approval note (optional)…"
-                  className="h-8 min-w-0 flex-1 rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-[#0E1017] px-3 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none"
+                  className="h-8 min-w-0 flex-1 rounded-full border border-border bg-panel px-3 text-xs text-ink placeholder:text-faint focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => handleInitiativeApprove(true)}
-                  className="h-8 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
+                  className="h-8 px-4 rounded-full bg-ok hover:bg-ok/90 text-on-ink text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
                 >
                   Approve
                 </button>
                 <button
                   type="button"
                   onClick={() => handleInitiativeApprove(false)}
-                  className="h-8 px-3 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold cursor-pointer"
+                  className="h-8 px-3 rounded-full border border-border bg-panel text-xs font-semibold cursor-pointer"
                 >
                   Reject
                 </button>
@@ -833,47 +833,47 @@ export default function OverviewTab() {
         {/* Initiative Comments */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider border border-blue-200 dark:border-blue-800">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-info/10 text-info text-xs font-semibold uppercase tracking-wider border border-info/30">
               <MessageSquare size={13} strokeWidth={2.4} aria-hidden="true" />
               <span>Team Discussion</span>
             </span>
           </div>
           <motion.div variants={motionVariants.fadeUp}>
-            <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs flex flex-col justify-between h-full min-h-[200px]">
+            <div className="rounded-2xl border border-border bg-panel p-5 shadow-xs flex flex-col justify-between h-full min-h-[200px]">
               <div className="space-y-2.5 mb-4 max-h-48 overflow-y-auto">
                 {initiativeComments.length === 0 ? (
-                  <p className="text-xs font-medium text-neutral-400 py-2">
+                  <p className="text-xs font-medium text-faint py-2">
                     No comments logged.
                   </p>
                 ) : (
                   initiativeComments.map((c) => (
                     <div
                       key={c.id}
-                      className="rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 bg-neutral-50/70 dark:bg-[#0E1017] p-3"
+                      className="rounded-xl border border-border bg-ink/10 p-3"
                     >
-                      <div className="flex items-center justify-between text-[10px] font-bold text-neutral-400 mb-1">
+                      <div className="flex items-center justify-between text-[10px] font-semibold text-faint mb-1">
                         <span>{c.section ? `Sec: ${c.section}` : "General"}</span>
                         <span>By {c.user_id}</span>
                       </div>
-                      <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed font-medium">
+                      <p className="text-xs text-ink leading-relaxed font-medium">
                         {c.comment}
                       </p>
                     </div>
                   ))
                 )}
               </div>
-              <div className="flex items-center gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-2 pt-3 border-t border-border-soft">
                 <input
                   type="text"
                   value={initiativeCommentDraft}
                   onChange={(e) => setInitiativeCommentDraft(e.target.value)}
                   placeholder="Add feedback or discussion note…"
-                  className="h-8 min-w-0 flex-1 rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-[#0E1017] px-3 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none"
+                  className="h-8 min-w-0 flex-1 rounded-full border border-border bg-panel px-3 text-xs text-ink placeholder:text-faint focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleAddInitiativeComment}
-                  className="h-8 px-4 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
+                  className="h-8 px-4 rounded-full bg-ink text-on-ink text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
                 >
                   Post
                 </button>

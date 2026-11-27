@@ -351,9 +351,9 @@ export function SecurityTab() {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
               {/* QR Code */}
-              <div className="md:col-span-4 flex flex-col items-center justify-center p-3 rounded-lg bg-white shadow-sm border border-border-soft">
+              <div className="md:col-span-4 flex flex-col items-center justify-center p-3 rounded-lg bg-panel shadow-sm border border-border-soft">
                 <QRCodeSVG value={mfaSetupData.qr_code_url} size={160} level="M" />
-                <span className="text-[10px] text-slate-600 font-mono mt-2">Scan in Authenticator</span>
+                <span className="text-[10px] text-muted font-mono mt-2">Scan in Authenticator</span>
               </div>
 
               {/* Secret and Code Input */}
@@ -616,7 +616,7 @@ export function SecurityTab() {
 
       {/* Disable MFA Confirmation Modal */}
       {isDisableMfaOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="w-full max-w-md rounded-xl border border-error/30 bg-panel p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-error">
               <ShieldAlert className="h-6 w-6" />
@@ -660,7 +660,7 @@ export function SecurityTab() {
 
       {/* Completed 2FA Backup Codes Dialog */}
       {completedBackupCodes && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs">
           <div className="bg-panel border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center gap-3 text-ok">
               <ShieldCheck size={24} />

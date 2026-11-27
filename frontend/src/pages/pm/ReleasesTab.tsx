@@ -74,25 +74,25 @@ const READINESS_META: Record<
   ready: {
     label: "Ready to Ship",
     badgeCls:
-      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-    dotCls: "bg-emerald-500",
+      "bg-ok/10 text-ok border-ok/20",
+    dotCls: "bg-ok",
   },
   in_progress: {
     label: "In Staging",
-    badgeCls: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
-    dotCls: "bg-sky-500 animate-pulse",
+    badgeCls: "bg-info/10 text-info border-info/20",
+    dotCls: "bg-panel-alt animate-pulse",
   },
   blocked: {
     label: "Blocked",
     badgeCls:
-      "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
-    dotCls: "bg-rose-500",
+      "bg-error/10 text-error border-error/20",
+    dotCls: "bg-error",
   },
   not_ready: {
     label: "Pending Verification",
     badgeCls:
-      "bg-neutral-500/10 text-neutral-600 dark:text-neutral-400 border-neutral-500/20",
-    dotCls: "bg-neutral-400",
+      "bg-ink/10 text-muted border-border",
+    dotCls: "bg-ink/30",
   },
 };
 
@@ -103,17 +103,17 @@ const STATUS_META: Record<
   released: {
     label: "Released",
     badgeCls:
-      "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/30",
+      "bg-ok/15 text-ok border-ok/30",
   },
   in_progress: {
     label: "Active Release",
     badgeCls:
-      "bg-sky-500/15 text-sky-800 dark:text-sky-200 border-sky-500/30",
+      "bg-info/15 text-info border-info/30",
   },
   planned: {
     label: "Planned",
     badgeCls:
-      "bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700",
+      "bg-ink/10 text-ink border-border",
   },
 };
 
@@ -652,25 +652,25 @@ export default function ReleasesTab() {
   return (
     <div
       id="releases-page-container"
-      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-neutral-900 dark:text-neutral-100 transition-colors"
+      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-ink transition-colors"
     >
       {/* 1. EXECUTIVE HEADER & CONTROLS */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200/90 dark:border-neutral-800 pb-5">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold shadow-xs">
-              <Rocket size={18} className="text-amber-400" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
+              <Rocket size={18} className="text-warn" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                <h1 className="text-xl font-semibold tracking-tight text-ink">
                   Release Management & Orchestration
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-panel-alt text-muted border border-border">
                   SemVer Cadence
                 </span>
               </div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted">
                 Deterministic deployment gate audits, shippable sprint deliverables, and synthetic changelogs.
               </p>
             </div>
@@ -684,10 +684,10 @@ export default function ReleasesTab() {
             id="btn-export-changelog"
             type="button"
             onClick={() => setShowChangelogModal(true)}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
             title="Preview and export full markdown changelog"
           >
-            <FileText size={14} className="text-neutral-500" />
+            <FileText size={14} className="text-muted" />
             <span>Changelog</span>
           </button>
 
@@ -697,13 +697,13 @@ export default function ReleasesTab() {
             type="button"
             onClick={handleAutoGenerate}
             disabled={generating}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
             title="Deterministically compile a new release plan from completed tasks and stories"
           >
             {generating ? (
-              <Loader2 size={14} className="animate-spin text-amber-500" />
+              <Loader2 size={14} className="animate-spin text-warn" />
             ) : (
-              <Sparkles size={14} className="text-amber-500" />
+              <Sparkles size={14} className="text-warn" />
             )}
             <span>Auto-Compile</span>
           </button>
@@ -713,7 +713,7 @@ export default function ReleasesTab() {
             id="btn-create-release"
             type="button"
             onClick={() => handleOpenCreateModal("minor")}
-            className="h-9 px-4 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
+            className="h-9 px-4 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>New Release</span>
@@ -726,25 +726,25 @@ export default function ReleasesTab() {
         aria-label="Release Metrics"
         className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
       >
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Active Pipeline
             </span>
-            <Tag size={14} className="text-neutral-400" />
+            <Tag size={14} className="text-faint" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.total}
             </span>
-            <span className="text-xs text-neutral-500">releases tracked</span>
+            <span className="text-xs text-muted">releases tracked</span>
           </div>
-          <div className="mt-2 flex items-center gap-1 text-[11px] text-neutral-500">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-muted">
+            <span className="text-ok font-semibold">
               {telemetry.released} Shipped
             </span>
             <span>·</span>
-            <span className="text-sky-600 dark:text-sky-400 font-semibold">
+            <span className="text-accent font-semibold">
               {telemetry.inProgress} Staging
             </span>
             <span>·</span>
@@ -752,80 +752,80 @@ export default function ReleasesTab() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Mean Confidence
             </span>
-            <ShieldCheck size={14} className="text-emerald-500" />
+            <ShieldCheck size={14} className="text-ok" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.avgConfidence}%
             </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            <span className="text-xs text-ok font-medium">
               Deterministic
             </span>
           </div>
-          <div className="mt-2 h-1.5 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+          <div className="mt-2 h-1.5 w-full bg-panel-alt rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 telemetry.avgConfidence >= 80
-                  ? "bg-emerald-500"
+                  ? "bg-ok"
                   : telemetry.avgConfidence >= 60
-                  ? "bg-amber-500"
-                  : "bg-rose-500"
+                  ? "bg-warn"
+                  : "bg-error"
               }`}
               style={{ width: `${telemetry.avgConfidence}%` }}
             />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Shippable Scope
             </span>
-            <Layers size={14} className="text-sky-500" />
+            <Layers size={14} className="text-accent" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.totalFeatures}
             </span>
-            <span className="text-xs text-neutral-500">features & fixes</span>
+            <span className="text-xs text-muted">features & fixes</span>
           </div>
-          <p className="mt-2 text-[11px] text-neutral-500 truncate">
+          <p className="mt-2 text-[11px] text-muted truncate">
             Across {telemetry.total} SemVer milestones
           </p>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Release Blockers
             </span>
             <AlertCircle
               size={14}
               className={
-                telemetry.totalBlockers > 0 ? "text-rose-500" : "text-neutral-400"
+                telemetry.totalBlockers > 0 ? "text-error" : "text-faint"
               }
             />
           </div>
           <div className="flex items-baseline gap-2">
             <span
-              className={`text-2xl font-bold tracking-tight ${
+              className={`text-2xl font-semibold tracking-tight ${
                 telemetry.totalBlockers > 0
-                  ? "text-rose-600 dark:text-rose-400"
-                  : "text-neutral-900 dark:text-neutral-50"
+                  ? "text-error"
+                  : "text-ink"
               }`}
             >
               {telemetry.totalBlockers}
             </span>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               {telemetry.totalBlockers === 0 ? "All clear" : "Need clearance"}
             </span>
           </div>
-          <p className="mt-2 text-[11px] text-neutral-500">
+          <p className="mt-2 text-[11px] text-muted">
             {telemetry.totalBlockers === 0
               ? "Zero deployment blockers detected"
               : "Action required before production ship"}
@@ -838,21 +838,21 @@ export default function ReleasesTab() {
         <section
           id="active-release-spotlight"
           aria-label="Active Release Spotlight"
-          className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-gradient-to-r from-neutral-50/90 via-white to-neutral-50/90 dark:from-[#141722] dark:via-[#10121A] dark:to-[#141722] p-5 shadow-xs"
+          className="rounded-2xl border border-border bg-gradient-to-r from-panel/90 via-panel to-panel/90 p-5 shadow-xs"
         >
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="space-y-2 max-w-xl">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider uppercase bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wider uppercase bg-warn/15 text-warn border border-warn/30">
                   Target In-Flight Milestone
                 </span>
-                <span className="text-xs text-neutral-500 font-mono">
+                <span className="text-xs text-muted font-mono">
                   {activeRelease.target_sprint || "Sprint 2"}
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-black tracking-tight font-mono text-neutral-900 dark:text-neutral-50">
+                <h2 className="text-2xl font-semibold tracking-tight font-mono text-ink">
                   {activeRelease.version}
                 </h2>
                 <span
@@ -864,7 +864,7 @@ export default function ReleasesTab() {
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
                       READINESS_META[activeRelease.deployment_readiness]?.dotCls ||
-                      "bg-neutral-400"
+                      "bg-ink/30"
                     }`}
                   />
                   {READINESS_META[activeRelease.deployment_readiness]?.label ||
@@ -872,18 +872,18 @@ export default function ReleasesTab() {
                 </span>
               </div>
 
-              <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
+              <p className="text-xs text-muted leading-relaxed">
                 {activeRelease.notes ||
                   `Package encompassing ${activeRelease.features?.length || 0} user-facing features and structural deliverables.`}
               </p>
 
               {/* Target Date & Lead */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500 pt-1">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-muted pt-1">
                 <div className="flex items-center gap-1.5">
                   <Calendar size={13} />
                   <span>
                     Target:{" "}
-                    <strong className="text-neutral-700 dark:text-neutral-200">
+                    <strong className="text-ink">
                       {activeRelease.estimated_release_date
                         ? new Date(
                             activeRelease.estimated_release_date
@@ -900,7 +900,7 @@ export default function ReleasesTab() {
                   <ShieldCheck size={13} />
                   <span>
                     Approver:{" "}
-                    <strong className="text-neutral-700 dark:text-neutral-200">
+                    <strong className="text-ink">
                       {activeRelease.lead_approver || "Engineering Lead"}
                     </strong>
                   </span>
@@ -909,10 +909,10 @@ export default function ReleasesTab() {
             </div>
 
             {/* Quality Gates & Action Box */}
-            <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3 border-t lg:border-t-0 lg:border-l border-neutral-200 dark:border-neutral-800 pt-4 lg:pt-0 lg:pl-6">
+            <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3 border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-6">
               {/* Gate Checklist Indicators */}
               <div className="space-y-1.5 text-xs">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-faint">
                   Readiness Gate Matrix
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
@@ -921,8 +921,8 @@ export default function ReleasesTab() {
                       size={13}
                       className={
                         activeRelease.gates?.qa_suite_passed
-                          ? "text-emerald-500"
-                          : "text-neutral-300 dark:text-neutral-600"
+                          ? "text-ok"
+                          : "text-muted"
                       }
                     />
                     <span>QA Suite</span>
@@ -932,8 +932,8 @@ export default function ReleasesTab() {
                       size={13}
                       className={
                         (activeRelease.blocked_items?.length || 0) === 0
-                          ? "text-emerald-500"
-                          : "text-rose-500"
+                          ? "text-ok"
+                          : "text-error"
                       }
                     />
                     <span>Zero Blockers</span>
@@ -943,8 +943,8 @@ export default function ReleasesTab() {
                       size={13}
                       className={
                         activeRelease.gates?.staging_build_verified
-                          ? "text-emerald-500"
-                          : "text-neutral-300 dark:text-neutral-600"
+                          ? "text-ok"
+                          : "text-muted"
                       }
                     />
                     <span>Staging Build</span>
@@ -954,8 +954,8 @@ export default function ReleasesTab() {
                       size={13}
                       className={
                         activeRelease.gates?.lead_signoff
-                          ? "text-emerald-500"
-                          : "text-neutral-300 dark:text-neutral-600"
+                          ? "text-ok"
+                          : "text-muted"
                       }
                     />
                     <span>Lead Signoff</span>
@@ -968,7 +968,7 @@ export default function ReleasesTab() {
                 <button
                   type="button"
                   onClick={() => handleAuditRelease(activeRelease)}
-                  className="h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs"
                   title="Recalculate gate scores using latest task/story completion"
                 >
                   <RefreshCw size={12} />
@@ -978,7 +978,7 @@ export default function ReleasesTab() {
                 <button
                   type="button"
                   onClick={() => setSelectedRelease(activeRelease)}
-                  className="h-8 px-3 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs hover:opacity-90"
+                  className="h-8 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-2xs hover:opacity-90"
                 >
                   <span>Inspect Plan</span>
                   <ChevronRight size={13} />
@@ -996,7 +996,7 @@ export default function ReleasesTab() {
           <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search
               size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-faint"
             />
             <input
               id="release-search-input"
@@ -1004,13 +1004,13 @@ export default function ReleasesTab() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by version, deliverable, or approver..."
-              className="w-full h-9 pl-9 pr-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20 transition-all shadow-2xs"
+              className="w-full h-9 pl-9 pr-3 rounded-xl border border-border bg-panel text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-border transition-all shadow-2xs"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-faint hover:text-muted cursor-pointer"
               >
                 <X size={12} />
               </button>
@@ -1018,7 +1018,7 @@ export default function ReleasesTab() {
           </div>
 
           {/* Status Filter Pills */}
-          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800/80 p-0.5 rounded-xl border border-neutral-200/80 dark:border-neutral-700/80">
+          <div className="flex items-center gap-1 bg-panel-alt p-0.5 rounded-xl border border-border">
             {[
               { id: "all", label: "All" },
               { id: "planned", label: "Planned" },
@@ -1032,8 +1032,8 @@ export default function ReleasesTab() {
                 onClick={() => setStatusFilter(f.id)}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                   statusFilter === f.id
-                    ? "bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs font-bold"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    ? "bg-panel text-ink shadow-2xs font-semibold"
+                    : "text-muted hover:text-ink"
                 }`}
               >
                 {f.label}
@@ -1044,15 +1044,15 @@ export default function ReleasesTab() {
 
         {/* View Mode Toggle */}
         <div className="flex items-center gap-1 self-end sm:self-center">
-          <div className="flex items-center bg-neutral-100 dark:bg-neutral-800/80 p-0.5 rounded-xl border border-neutral-200/80 dark:border-neutral-700/80">
+          <div className="flex items-center bg-panel-alt p-0.5 rounded-xl border border-border">
             <button
               id="btn-view-grid"
               type="button"
               onClick={() => setViewMode("grid")}
               className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                 viewMode === "grid"
-                  ? "bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs"
-                  : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                  ? "bg-panel text-ink shadow-2xs"
+                  : "text-muted hover:text-ink"
               }`}
               title="Grid view"
               aria-label="Grid view"
@@ -1065,8 +1065,8 @@ export default function ReleasesTab() {
               onClick={() => setViewMode("table")}
               className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                 viewMode === "table"
-                  ? "bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs"
-                  : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                  ? "bg-panel text-ink shadow-2xs"
+                  : "text-muted hover:text-ink"
               }`}
               title="Table view"
               aria-label="Table view"
@@ -1080,19 +1080,19 @@ export default function ReleasesTab() {
       {/* 5. MAIN CONTENT (RELEASES GRID / TABLE) */}
       {loading ? (
         <div className="flex flex-col items-center justify-center p-16 space-y-3">
-          <Loader2 size={28} className="animate-spin text-neutral-400" />
-          <p className="text-xs text-neutral-500">Loading release milestones...</p>
+          <Loader2 size={28} className="animate-spin text-faint" />
+          <p className="text-xs text-muted">Loading release milestones...</p>
         </div>
       ) : filteredReleases.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800 p-12 text-center space-y-4 bg-neutral-50/50 dark:bg-neutral-900/20">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-4 bg-ink/10">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-panel-alt text-muted">
             <Rocket size={22} />
           </div>
           <div className="space-y-1 max-w-sm mx-auto">
-            <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+            <h3 className="text-sm font-semibold text-ink">
               No releases match criteria
             </h3>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted">
               {searchQuery || statusFilter !== "all"
                 ? "Try adjusting your search query or status filter."
                 : "No release plans currently created for this initiative."}
@@ -1102,14 +1102,14 @@ export default function ReleasesTab() {
             <button
               type="button"
               onClick={handleAutoGenerate}
-              className="h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 cursor-pointer shadow-2xs"
+              className="h-8 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
             >
               Auto-Compile from Sprints
             </button>
             <button
               type="button"
               onClick={() => handleOpenCreateModal("minor")}
-              className="h-8 px-3 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold cursor-pointer hover:opacity-90"
+              className="h-8 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
             >
               Create Release
             </button>
@@ -1122,18 +1122,18 @@ export default function ReleasesTab() {
             <article
               key={release.id}
               id={`release-card-${release.id}`}
-              className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-5 shadow-xs flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-all duration-200 group"
+              className="rounded-2xl border border-border bg-panel p-5 shadow-xs flex flex-col justify-between hover:border-border transition-all duration-200 group"
             >
               <div className="space-y-3">
                 {/* Card Top: Version, Status & Confidence */}
-                <div className="flex items-start justify-between gap-2 border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                <div className="flex items-start justify-between gap-2 border-b border-border-soft pb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold font-mono tracking-tight text-neutral-900 dark:text-neutral-50 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
+                      <h3 className="text-base font-semibold font-mono tracking-tight text-ink group-hover:text-warn transition-colors">
                         {release.version}
                       </h3>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider ${
                           STATUS_META[release.status]?.badgeCls ||
                           STATUS_META.planned.badgeCls
                         }`}
@@ -1141,17 +1141,17 @@ export default function ReleasesTab() {
                         {STATUS_META[release.status]?.label || release.status}
                       </span>
                     </div>
-                    <div className="text-[11px] text-neutral-500 font-medium mt-0.5">
+                    <div className="text-[11px] text-muted font-medium mt-0.5">
                       {release.target_sprint || "Sprint Deliverable"}
                     </div>
                   </div>
 
                   {/* Confidence Pill */}
                   <div className="text-right">
-                    <div className="text-xs font-bold font-mono text-neutral-800 dark:text-neutral-200">
+                    <div className="text-xs font-semibold font-mono text-ink">
                       {release.confidence_score}%
                     </div>
-                    <div className="text-[9px] uppercase tracking-wider text-neutral-400 font-medium">
+                    <div className="text-[9px] uppercase tracking-wider text-faint font-medium">
                       Confidence
                     </div>
                   </div>
@@ -1168,7 +1168,7 @@ export default function ReleasesTab() {
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
                         READINESS_META[release.deployment_readiness]?.dotCls ||
-                        "bg-neutral-400"
+                        "bg-ink/30"
                       }`}
                     />
                     {READINESS_META[release.deployment_readiness]?.label ||
@@ -1178,10 +1178,10 @@ export default function ReleasesTab() {
                   <span
                     className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
                       release.qa_status === "passed"
-                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                        ? "bg-ok/10 text-ok border-ok/20"
                         : release.qa_status === "at_risk"
-                        ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20"
-                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700"
+                        ? "bg-error/10 text-error border-error/20"
+                        : "bg-panel-alt text-muted border-border"
                     }`}
                   >
                     QA: {release.qa_status.toUpperCase()}
@@ -1190,25 +1190,25 @@ export default function ReleasesTab() {
 
                 {/* Features Preview List */}
                 <div className="space-y-1 pt-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-faint">
                     Included Deliverables ({release.features?.length || 0})
                   </div>
-                  <ul className="space-y-1 text-xs text-neutral-600 dark:text-neutral-300 line-clamp-3">
+                  <ul className="space-y-1 text-xs text-muted line-clamp-3">
                     {release.features && release.features.length > 0 ? (
                       release.features.slice(0, 3).map((f, i) => (
                         <li key={i} className="flex items-start gap-1.5">
-                          <span className="text-amber-500 text-xs leading-tight">›</span>
+                          <span className="text-warn text-xs leading-tight">›</span>
                           <span className="truncate">{f}</span>
                         </li>
                       ))
                     ) : (
-                      <li className="text-neutral-400 italic text-[11px]">
+                      <li className="text-faint italic text-[11px]">
                         No deliverables attached
                       </li>
                     )}
                   </ul>
                   {release.features && release.features.length > 3 && (
-                    <p className="text-[10px] text-neutral-400 font-medium">
+                    <p className="text-[10px] text-faint font-medium">
                       +{release.features.length - 3} more deliverables
                     </p>
                   )}
@@ -1216,12 +1216,12 @@ export default function ReleasesTab() {
 
                 {/* Blocked Items Warning (if any) */}
                 {release.blocked_items && release.blocked_items.length > 0 && (
-                  <div className="rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 p-2.5 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400">
+                  <div className="rounded-xl bg-error/10 border border-error/30 p-2.5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-error">
                       <AlertTriangle size={12} />
                       <span>{release.blocked_items.length} Blocked Item(s)</span>
                     </div>
-                    <p className="text-[11px] text-rose-600 dark:text-rose-300/90 truncate">
+                    <p className="text-[11px] text-error truncate">
                       {release.blocked_items[0]}
                     </p>
                   </div>
@@ -1229,8 +1229,8 @@ export default function ReleasesTab() {
               </div>
 
               {/* Card Footer: Metadata & Actions */}
-              <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1 text-[11px] text-neutral-500">
+              <div className="mt-4 pt-3 border-t border-border-soft flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1 text-[11px] text-muted">
                   <Calendar size={11} />
                   <span>
                     {release.estimated_release_date
@@ -1247,7 +1247,7 @@ export default function ReleasesTab() {
                     id={`btn-inspect-release-${release.id}`}
                     type="button"
                     onClick={() => setSelectedRelease(release)}
-                    className="h-7 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-[11px] font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1 cursor-pointer shadow-2xs"
+                    className="h-7 px-2.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-[11px] font-semibold text-ink flex items-center gap-1 cursor-pointer shadow-2xs"
                   >
                     <span>Manage</span>
                     <ChevronRight size={11} />
@@ -1259,11 +1259,11 @@ export default function ReleasesTab() {
         </div>
       ) : (
         /* TABLE VIEW */
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] overflow-hidden shadow-xs">
+        <div className="rounded-2xl border border-border bg-panel overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/60 text-neutral-500 font-bold uppercase tracking-wider text-[10px]">
+                <tr className="border-b border-border bg-ink/10 text-muted font-semibold uppercase tracking-wider text-[10px]">
                   <th className="py-3 px-4">Version</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Readiness Gate</th>
@@ -1274,19 +1274,19 @@ export default function ReleasesTab() {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/60">
+              <tbody className="divide-y divide-border-soft">
                 {filteredReleases.map((release) => (
                   <tr
                     key={release.id}
                     id={`release-row-${release.id}`}
-                    className="hover:bg-neutral-50/70 dark:hover:bg-neutral-800/40 transition-colors"
+                    className="hover:bg-ink/10 transition-colors"
                   >
-                    <td className="py-3.5 px-4 font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-ink">
                       {release.version}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider ${
                           STATUS_META[release.status]?.badgeCls ||
                           STATUS_META.planned.badgeCls
                         }`}
@@ -1304,7 +1304,7 @@ export default function ReleasesTab() {
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
                             READINESS_META[release.deployment_readiness]?.dotCls ||
-                            "bg-neutral-400"
+                            "bg-ink/30"
                           }`}
                         />
                         {READINESS_META[release.deployment_readiness]?.label ||
@@ -1313,17 +1313,17 @@ export default function ReleasesTab() {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold text-neutral-800 dark:text-neutral-200">
+                        <span className="font-mono font-semibold text-ink">
                           {release.confidence_score}%
                         </span>
-                        <div className="w-12 h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                        <div className="w-12 h-1.5 bg-panel-alt rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
                               release.confidence_score >= 80
-                                ? "bg-emerald-500"
+                                ? "bg-ok"
                                 : release.confidence_score >= 60
-                                ? "bg-amber-500"
-                                : "bg-rose-500"
+                                ? "bg-warn"
+                                : "bg-error"
                             }`}
                             style={{ width: `${release.confidence_score}%` }}
                           />
@@ -1334,16 +1334,16 @@ export default function ReleasesTab() {
                       <span
                         className={
                           release.qa_status === "passed"
-                            ? "text-emerald-600 dark:text-emerald-400"
+                            ? "text-ok"
                             : release.qa_status === "at_risk"
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-neutral-500"
+                            ? "text-error"
+                            : "text-muted"
                         }
                       >
                         {release.qa_status.toUpperCase()}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-neutral-500 text-[11px]">
+                    <td className="py-3.5 px-4 text-muted text-[11px]">
                       {release.estimated_release_date
                         ? new Date(release.estimated_release_date).toLocaleDateString(
                             "en-US",
@@ -1351,10 +1351,10 @@ export default function ReleasesTab() {
                           )
                         : "—"}
                     </td>
-                    <td className="py-3.5 px-4 text-neutral-600 dark:text-neutral-300">
+                    <td className="py-3.5 px-4 text-muted">
                       {release.features?.length || 0} items
                       {release.blocked_items && release.blocked_items.length > 0 && (
-                        <span className="ml-1 text-rose-500 font-bold">
+                        <span className="ml-1 text-error font-semibold">
                           ({release.blocked_items.length} blocked)
                         </span>
                       )}
@@ -1363,7 +1363,7 @@ export default function ReleasesTab() {
                       <button
                         type="button"
                         onClick={() => setSelectedRelease(release)}
-                        className="px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-[11px] font-semibold cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg border border-border hover:bg-ink/5 text-[11px] font-semibold cursor-pointer"
                       >
                         Manage
                       </button>
@@ -1385,23 +1385,23 @@ export default function ReleasesTab() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
         >
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setShowCreateModal(false)}
           />
 
           <div
             id="modal-create-release"
-            className="relative w-full max-w-lg bg-white dark:bg-[#141722] text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl border border-neutral-200/90 dark:border-neutral-800 overflow-hidden z-10"
+            className="relative w-full max-w-lg bg-panel text-ink rounded-2xl shadow-2xl border border-border overflow-hidden z-10"
           >
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-neutral-200/90 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/60">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950">
-                  <Rocket size={14} className="text-amber-400" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-ink/[0.06] text-ink ">
+                  <Rocket size={14} className="text-warn" />
                 </div>
                 <h3
                   id="create-release-title"
-                  className="text-sm font-bold text-neutral-900 dark:text-neutral-100"
+                  className="text-sm font-semibold text-ink"
                 >
                   Create New Release Plan
                 </h3>
@@ -1409,7 +1409,7 @@ export default function ReleasesTab() {
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="h-7 w-7 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                className="h-7 w-7 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
               >
                 <X size={15} />
               </button>
@@ -1422,12 +1422,12 @@ export default function ReleasesTab() {
                 <div className="flex items-center justify-between">
                   <label
                     htmlFor="input-release-version"
-                    className="font-bold text-neutral-700 dark:text-neutral-300"
+                    className="font-semibold text-ink"
                   >
                     Version Tag (SemVer)
                   </label>
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-neutral-400 mr-1">Bump:</span>
+                    <span className="text-[10px] text-faint mr-1">Bump:</span>
                     <button
                       id="btn-semver-patch"
                       type="button"
@@ -1439,7 +1439,7 @@ export default function ReleasesTab() {
                           )
                         )
                       }
-                      className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-[10px] font-mono cursor-pointer"
+                      className="px-1.5 py-0.5 rounded bg-panel-alt hover:bg-ink/5 text-[10px] font-mono cursor-pointer"
                     >
                       Patch
                     </button>
@@ -1454,7 +1454,7 @@ export default function ReleasesTab() {
                           )
                         )
                       }
-                      className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-[10px] font-mono cursor-pointer"
+                      className="px-1.5 py-0.5 rounded bg-panel-alt hover:bg-ink/5 text-[10px] font-mono cursor-pointer"
                     >
                       Minor
                     </button>
@@ -1469,7 +1469,7 @@ export default function ReleasesTab() {
                           )
                         )
                       }
-                      className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-[10px] font-mono cursor-pointer"
+                      className="px-1.5 py-0.5 rounded bg-panel-alt hover:bg-ink/5 text-[10px] font-mono cursor-pointer"
                     >
                       Major
                     </button>
@@ -1482,7 +1482,7 @@ export default function ReleasesTab() {
                   value={newVersion}
                   onChange={(e) => setNewVersion(e.target.value)}
                   placeholder="e.g. v1.2.0"
-                  className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                  className="w-full h-9 px-3 rounded-xl border border-border bg-ink/10 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-border"
                 />
               </div>
 
@@ -1491,7 +1491,7 @@ export default function ReleasesTab() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="input-release-target-date"
-                    className="font-bold text-neutral-700 dark:text-neutral-300"
+                    className="font-semibold text-ink"
                   >
                     Target Release Date
                   </label>
@@ -1500,14 +1500,14 @@ export default function ReleasesTab() {
                     type="date"
                     value={newTargetDate}
                     onChange={(e) => setNewTargetDate(e.target.value)}
-                    className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    className="w-full h-9 px-3 rounded-xl border border-border bg-ink/10 text-xs focus:outline-none focus:ring-2 focus:ring-border"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label
                     htmlFor="select-release-status"
-                    className="font-bold text-neutral-700 dark:text-neutral-300"
+                    className="font-semibold text-ink"
                   >
                     Initial Status
                   </label>
@@ -1517,7 +1517,7 @@ export default function ReleasesTab() {
                     onChange={(e) =>
                       setNewStatus(e.target.value as "planned" | "in_progress")
                     }
-                    className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    className="w-full h-9 px-3 rounded-xl border border-border bg-ink/10 text-xs focus:outline-none focus:ring-2 focus:ring-border"
                   >
                     <option value="planned">Planned (Upcoming)</option>
                     <option value="in_progress">In Staging (Active)</option>
@@ -1529,7 +1529,7 @@ export default function ReleasesTab() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="input-release-approver"
-                  className="font-bold text-neutral-700 dark:text-neutral-300"
+                  className="font-semibold text-ink"
                 >
                   Lead Approver / Delivery Lead
                 </label>
@@ -1539,7 +1539,7 @@ export default function ReleasesTab() {
                   value={newLeadApprover}
                   onChange={(e) => setNewLeadApprover(e.target.value)}
                   placeholder="e.g. Architecture Lead & PM"
-                  className="w-full h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                  className="w-full h-9 px-3 rounded-xl border border-border bg-ink/10 text-xs focus:outline-none focus:ring-2 focus:ring-border"
                 />
               </div>
 
@@ -1547,7 +1547,7 @@ export default function ReleasesTab() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="textarea-release-features"
-                  className="font-bold text-neutral-700 dark:text-neutral-300"
+                  className="font-semibold text-ink"
                 >
                   Deliverables & Features (One per line)
                 </label>
@@ -1557,7 +1557,7 @@ export default function ReleasesTab() {
                   value={newFeaturesText}
                   onChange={(e) => setNewFeaturesText(e.target.value)}
                   placeholder="e.g. User authentication and OAuth SSO&#10;Multi-tenant database schema migrations&#10;Staging benchmark latency reduction"
-                  className="w-full p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20 font-sans"
+                  className="w-full p-3 rounded-xl border border-border bg-ink/10 text-xs focus:outline-none focus:ring-2 focus:ring-border font-sans"
                 />
               </div>
 
@@ -1567,26 +1567,26 @@ export default function ReleasesTab() {
                   type="checkbox"
                   checked={autoIncludeStories}
                   onChange={(e) => setAutoIncludeStories(e.target.checked)}
-                  className="rounded border-neutral-300 text-neutral-900 focus:ring-0"
+                  className="rounded border-border text-ink focus:ring-0"
                 />
-                <span className="text-neutral-600 dark:text-neutral-300">
+                <span className="text-muted">
                   Automatically pull shippable user stories from initiative backlog
                 </span>
               </label>
 
               {/* Modal Actions */}
-              <div className="pt-3 border-t border-neutral-200/90 dark:border-neutral-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-border text-ink text-xs font-semibold hover:bg-ink/5 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   id="btn-submit-create-release"
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold hover:opacity-90 cursor-pointer shadow-xs"
+                  className="px-4 py-2 rounded-pill bg-ink text-on-ink text-xs font-semibold hover:opacity-90 cursor-pointer shadow-xs"
                 >
                   Create Plan
                 </button>
@@ -1606,27 +1606,27 @@ export default function ReleasesTab() {
         >
           {/* Backdrop overlay */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setSelectedRelease(null)}
           />
 
           <div
             id="drawer-release-details"
-            className="relative w-full max-w-2xl bg-white dark:bg-[#141722] text-neutral-900 dark:text-neutral-100 shadow-2xl border-l border-neutral-200/90 dark:border-neutral-800 flex flex-col h-full z-10 overflow-hidden"
+            className="relative w-full max-w-2xl bg-panel text-ink shadow-2xl border-l border-border flex flex-col h-full z-10 overflow-hidden"
           >
             {/* Drawer Header */}
-            <div className="px-6 py-4 border-b border-neutral-200/90 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/60">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold">
-                  <Rocket size={16} className="text-amber-400" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
+                  <Rocket size={16} className="text-warn" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold font-mono tracking-tight text-neutral-900 dark:text-neutral-50">
+                    <h3 className="text-lg font-semibold font-mono tracking-tight text-ink">
                       {selectedRelease.version}
                     </h3>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider ${
                         STATUS_META[selectedRelease.status]?.badgeCls ||
                         STATUS_META.planned.badgeCls
                       }`}
@@ -1635,7 +1635,7 @@ export default function ReleasesTab() {
                         selectedRelease.status}
                     </span>
                   </div>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted">
                     {selectedRelease.target_sprint || "Target Milestone"} · Approver:{" "}
                     {selectedRelease.lead_approver || "Lead"}
                   </p>
@@ -1647,7 +1647,7 @@ export default function ReleasesTab() {
                   id={`btn-delete-release-${selectedRelease.id}`}
                   type="button"
                   onClick={() => handleDeleteRelease(selectedRelease.id)}
-                  className="h-8 w-8 rounded-lg border border-neutral-200 dark:border-neutral-700 text-neutral-400 hover:text-rose-600 hover:border-rose-300 dark:hover:border-rose-800 flex items-center justify-center cursor-pointer transition-colors"
+                  className="h-8 w-8 rounded-lg border border-border text-faint hover:text-error hover:border-error/30 flex items-center justify-center cursor-pointer transition-colors"
                   title="Delete release"
                 >
                   <Trash2 size={13} />
@@ -1655,7 +1655,7 @@ export default function ReleasesTab() {
                 <button
                   type="button"
                   onClick={() => setSelectedRelease(null)}
-                  className="h-8 w-8 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                  className="h-8 w-8 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -1665,15 +1665,15 @@ export default function ReleasesTab() {
             {/* Drawer Body (Scrollable) */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
               {/* Status Promotion Bar */}
-              <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/30 space-y-3">
+              <div className="p-4 rounded-xl border border-border bg-ink/10 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
                     Release Lifecycle Progression
                   </span>
                   <button
                     type="button"
                     onClick={() => handleAuditRelease(selectedRelease)}
-                    className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                    className="text-[11px] text-warn font-semibold flex items-center gap-1 hover:underline cursor-pointer"
                   >
                     <RefreshCw size={11} />
                     <span>Audit with Live Workstream</span>
@@ -1691,8 +1691,8 @@ export default function ReleasesTab() {
                     }
                     className={`py-2 px-3 rounded-lg text-xs font-semibold border cursor-pointer transition-all ${
                       selectedRelease.status === "planned"
-                        ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 border-neutral-900 dark:border-white shadow-2xs font-bold"
-                        : "bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100"
+                        ? "bg-ink text-on-ink border-border shadow-2xs font-semibold"
+                        : "bg-panel text-muted border-border hover:bg-ink/5"
                     }`}
                   >
                     1. Planned
@@ -1707,8 +1707,8 @@ export default function ReleasesTab() {
                     }
                     className={`py-2 px-3 rounded-lg text-xs font-semibold border cursor-pointer transition-all ${
                       selectedRelease.status === "in_progress"
-                        ? "bg-sky-600 text-white border-sky-600 shadow-2xs font-bold"
-                        : "bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100"
+                        ? "bg-ink text-on-ink border-transparent shadow-2xs font-semibold"
+                        : "bg-panel text-muted border-border hover:bg-ink/5"
                     }`}
                   >
                     2. In Staging
@@ -1724,8 +1724,8 @@ export default function ReleasesTab() {
                     }
                     className={`py-2 px-3 rounded-lg text-xs font-semibold border cursor-pointer transition-all ${
                       selectedRelease.status === "released"
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs font-bold"
-                        : "bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100"
+                        ? "bg-ok text-on-ink border-ok/30 shadow-2xs font-semibold"
+                        : "bg-panel text-muted border-border hover:bg-ink/5"
                     }`}
                   >
                     3. Shipped / GA
@@ -1736,16 +1736,16 @@ export default function ReleasesTab() {
               {/* Deployment Readiness Quality Gates Checklist */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold uppercase tracking-wider text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-                    <ShieldCheck size={14} className="text-emerald-500" />
+                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-ok" />
                     <span>Deployment Readiness Gates</span>
                   </h4>
-                  <span className="text-[11px] font-mono text-neutral-500">
+                  <span className="text-[11px] font-mono text-muted">
                     Confidence: {selectedRelease.confidence_score}%
                   </span>
                 </div>
 
-                <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800/80 bg-white dark:bg-neutral-900/40">
+                <div className="rounded-xl border border-border divide-y divide-border-soft bg-panel">
                   {[
                     {
                       id: "qa_suite_passed",
@@ -1782,13 +1782,13 @@ export default function ReleasesTab() {
                   ].map((gate) => (
                     <div
                       key={gate.id}
-                      className="p-3.5 flex items-start justify-between gap-3 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/30 transition-colors"
+                      className="p-3.5 flex items-start justify-between gap-3 hover:bg-ink/10 transition-colors"
                     >
                       <div className="space-y-0.5">
-                        <div className="font-semibold text-neutral-800 dark:text-neutral-200">
+                        <div className="font-semibold text-ink">
                           {gate.label}
                         </div>
-                        <p className="text-[11px] text-neutral-500">{gate.desc}</p>
+                        <p className="text-[11px] text-muted">{gate.desc}</p>
                       </div>
 
                       <button
@@ -1808,11 +1808,11 @@ export default function ReleasesTab() {
                             gates: updatedGates,
                           });
                         }}
-                        className="mt-0.5 text-neutral-400 hover:text-neutral-800 dark:hover:text-white cursor-pointer"
+                        className="mt-0.5 text-faint hover:text-ink cursor-pointer"
                         title="Toggle verification status"
                       >
                         {gate.checked ? (
-                          <CheckCircle2 size={18} className="text-emerald-500" />
+                          <CheckCircle2 size={18} className="text-ok" />
                         ) : (
                           <Square size={18} />
                         )}
@@ -1825,8 +1825,8 @@ export default function ReleasesTab() {
               {/* Deliverables / Features List Management */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold uppercase tracking-wider text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-                    <Layers size={14} className="text-sky-500" />
+                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
+                    <Layers size={14} className="text-accent" />
                     <span>Included Deliverables ({selectedRelease.features?.length || 0})</span>
                   </h4>
                 </div>
@@ -1836,11 +1836,11 @@ export default function ReleasesTab() {
                     selectedRelease.features.map((feature, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/40 dark:bg-neutral-900/30 group"
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-ink/10 group"
                       >
                         <div className="flex items-center gap-2">
-                          <Check size={13} className="text-emerald-500 shrink-0" />
-                          <span className="text-xs text-neutral-800 dark:text-neutral-200 font-medium">
+                          <Check size={13} className="text-ok shrink-0" />
+                          <span className="text-xs text-ink font-medium">
                             {feature}
                           </span>
                         </div>
@@ -1854,7 +1854,7 @@ export default function ReleasesTab() {
                               features: filtered,
                             });
                           }}
-                          className="opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-rose-500 transition-opacity cursor-pointer p-1"
+                          className="opacity-0 group-hover:opacity-100 text-faint hover:text-error transition-opacity cursor-pointer p-1"
                           title="Remove item"
                         >
                           <X size={12} />
@@ -1862,7 +1862,7 @@ export default function ReleasesTab() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-neutral-400 italic text-[11px] p-2">
+                    <p className="text-faint italic text-[11px] p-2">
                       No deliverables added to this release plan yet.
                     </p>
                   )}
@@ -1883,7 +1883,7 @@ export default function ReleasesTab() {
                           e.currentTarget.value = "";
                         }
                       }}
-                      className="flex-1 h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                      className="flex-1 h-8 px-3 rounded-lg border border-border bg-panel text-xs focus:outline-none focus:ring-1 focus:ring-border"
                     />
                     <button
                       type="button"
@@ -1899,7 +1899,7 @@ export default function ReleasesTab() {
                           input.value = "";
                         }
                       }}
-                      className="h-8 px-3 rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 font-semibold text-neutral-700 dark:text-neutral-200 cursor-pointer"
+                      className="h-8 px-3 rounded-pill bg-panel-alt hover:bg-ink/5 font-semibold text-ink cursor-pointer"
                     >
                       Add
                     </button>
@@ -1910,8 +1910,8 @@ export default function ReleasesTab() {
               {/* Blocked Items & Remediation */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold uppercase tracking-wider text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-                    <AlertTriangle size={14} className="text-rose-500" />
+                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
+                    <AlertTriangle size={14} className="text-error" />
                     <span>
                       Blocked Items & Risks ({selectedRelease.blocked_items?.length || 0})
                     </span>
@@ -1924,11 +1924,11 @@ export default function ReleasesTab() {
                     {selectedRelease.blocked_items.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20"
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-error/30 bg-error/20"
                       >
                         <div className="flex items-center gap-2">
-                          <AlertCircle size={13} className="text-rose-500 shrink-0" />
-                          <span className="text-xs text-rose-800 dark:text-rose-200 font-medium">
+                          <AlertCircle size={13} className="text-error shrink-0" />
+                          <span className="text-xs text-error font-medium">
                             {item}
                           </span>
                         </div>
@@ -1945,7 +1945,7 @@ export default function ReleasesTab() {
                             });
                             toast.success("Resolved blocker");
                           }}
-                          className="px-2 py-0.5 rounded bg-white dark:bg-neutral-800 text-[10px] font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 cursor-pointer"
+                          className="px-2 py-0.5 rounded bg-panel text-[10px] font-semibold text-ink border border-border hover:bg-ink/5 cursor-pointer"
                         >
                           Resolve
                         </button>
@@ -1953,8 +1953,8 @@ export default function ReleasesTab() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/30 dark:bg-neutral-900/20 text-neutral-500 text-[11px] flex items-center gap-2">
-                    <CheckCircle2 size={14} className="text-emerald-500" />
+                  <div className="p-3 rounded-xl border border-border bg-ink/10 text-muted text-[11px] flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-ok" />
                     <span>No active blockers recorded for this milestone.</span>
                   </div>
                 )}
@@ -1963,8 +1963,8 @@ export default function ReleasesTab() {
               {/* Release Notes / Markdown Preview & Copy */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold uppercase tracking-wider text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-                    <FileText size={14} className="text-neutral-400" />
+                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
+                    <FileText size={14} className="text-faint" />
                     <span>Formatted Release Notes</span>
                   </h4>
                   <button
@@ -1984,14 +1984,14 @@ export default function ReleasesTab() {
                       navigator.clipboard.writeText(notes);
                       toast.success("Release notes copied to clipboard!");
                     }}
-                    className="text-[11px] text-neutral-600 dark:text-neutral-300 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                    className="text-[11px] text-muted font-semibold flex items-center gap-1 hover:underline cursor-pointer"
                   >
                     <Copy size={11} />
                     <span>Copy Markdown</span>
                   </button>
                 </div>
 
-                <div className="p-3 rounded-xl bg-neutral-900 text-neutral-200 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-40 border border-neutral-800">
+                <div className="p-3 rounded-xl bg-ink text-muted font-mono text-[11px] leading-relaxed overflow-x-auto max-h-40 border border-border">
                   <pre className="whitespace-pre-wrap">
                     {`## [${selectedRelease.version}] - ${
                       selectedRelease.estimated_release_date
@@ -2016,14 +2016,14 @@ ${
             </div>
 
             {/* Drawer Footer */}
-            <div className="px-6 py-4 border-t border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/60 flex items-center justify-between">
-              <div className="text-[11px] text-neutral-500">
+            <div className="px-6 py-4 border-t border-border bg-ink/10 flex items-center justify-between">
+              <div className="text-[11px] text-muted">
                 Initiative: {initiative?.name}
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedRelease(null)}
-                className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold text-xs cursor-pointer hover:opacity-90"
+                className="px-4 py-2 rounded-pill bg-ink text-on-ink font-semibold text-xs cursor-pointer hover:opacity-90"
               >
                 Done
               </button>
@@ -2041,28 +2041,28 @@ ${
           className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
         >
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setShowChangelogModal(false)}
           />
 
           <div
             id="modal-export-changelog"
-            className="relative w-full max-w-2xl bg-white dark:bg-[#141722] text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl border border-neutral-200/90 dark:border-neutral-800 overflow-hidden z-10 flex flex-col max-h-[85vh]"
+            className="relative w-full max-w-2xl bg-panel text-ink rounded-2xl shadow-2xl border border-border overflow-hidden z-10 flex flex-col max-h-[85vh]"
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-neutral-200/90 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/60">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950">
-                  <FileText size={14} className="text-amber-400" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-ink/[0.06] text-ink ">
+                  <FileText size={14} className="text-warn" />
                 </div>
                 <div>
                   <h3
                     id="changelog-modal-title"
-                    className="text-sm font-bold text-neutral-900 dark:text-neutral-100"
+                    className="text-sm font-semibold text-ink"
                   >
                     Initiative Changelog & Release Notes
                   </h3>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="text-[11px] text-muted">
                     Consolidated markdown formatted according to KeepAChangelog
                     specifications.
                   </p>
@@ -2071,7 +2071,7 @@ ${
               <button
                 type="button"
                 onClick={() => setShowChangelogModal(false)}
-                className="h-7 w-7 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                className="h-7 w-7 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
               >
                 <X size={15} />
               </button>
@@ -2079,14 +2079,14 @@ ${
 
             {/* Markdown Display */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="p-4 rounded-xl bg-neutral-900 text-neutral-200 font-mono text-xs leading-relaxed overflow-x-auto border border-neutral-800 select-all">
+              <div className="p-4 rounded-xl bg-ink text-muted font-mono text-xs leading-relaxed overflow-x-auto border border-border select-all">
                 <pre className="whitespace-pre-wrap">{consolidatedChangelog}</pre>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/60 flex items-center justify-between">
-              <span className="text-[11px] text-neutral-500">
+            <div className="px-6 py-4 border-t border-border bg-ink/10 flex items-center justify-between">
+              <span className="text-[11px] text-muted">
                 {releases?.length || 0} release milestone(s) documented
               </span>
               <div className="flex items-center gap-2">
@@ -2097,7 +2097,7 @@ ${
                     navigator.clipboard.writeText(consolidatedChangelog);
                     toast.success("Changelog copied to clipboard!");
                   }}
-                  className="px-3.5 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 font-semibold text-xs flex items-center gap-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer shadow-2xs"
+                  className="px-3.5 py-1.5 rounded-xl border border-border bg-panel text-ink font-semibold text-xs flex items-center gap-1.5 hover:bg-ink/5 cursor-pointer shadow-2xs"
                 >
                   <Copy size={13} />
                   <span>Copy Markdown</span>
@@ -2118,7 +2118,7 @@ ${
                     URL.revokeObjectURL(url);
                     toast.success("Changelog downloaded!");
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
+                  className="px-3.5 py-1.5 rounded-pill bg-ink text-on-ink font-semibold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
                 >
                   <Download size={13} />
                   <span>Download .md</span>

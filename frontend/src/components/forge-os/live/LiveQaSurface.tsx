@@ -25,17 +25,17 @@ interface Props {
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
-  critical: "bg-red-600 text-white",
-  high: "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300",
-  medium: "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300",
-  low: "bg-neutral-100 text-neutral-700 dark:bg-white/10 dark:text-neutral-300",
+  critical: "bg-error text-on-ink",
+  high: "bg-error/10 text-error ",
+  medium: "bg-warn/10 text-warn ",
+  low: "bg-panel-alt text-ink ",
 };
 
 function Empty({ title, body }: { title: string; body: string }) {
   return (
     <div className="h-full min-h-[320px] flex flex-col items-center justify-center gap-2 p-8 text-center font-mono">
-      <p className="text-sm font-black uppercase text-neutral-900 dark:text-white">{title}</p>
-      <p className="max-w-md text-xs text-neutral-500">{body}</p>
+      <p className="text-sm font-semibold uppercase text-ink">{title}</p>
+      <p className="max-w-md text-xs text-muted">{body}</p>
     </div>
   );
 }
@@ -58,7 +58,7 @@ export function LiveQaSurface({ buildStatus, hasBuild, validation, debugIteratio
 
   if (!validation) {
     return inProgress ? (
-      <div className="h-full min-h-[320px] flex flex-col items-center justify-center gap-3 font-mono text-xs text-neutral-500">
+      <div className="h-full min-h-[320px] flex flex-col items-center justify-center gap-3 font-mono text-xs text-muted">
         <Loader2 size={18} className="animate-spin" />
         <span>Build in progress — QA validation runs after code generation.</span>
       </div>
@@ -79,32 +79,32 @@ export function LiveQaSurface({ buildStatus, hasBuild, validation, debugIteratio
   const passed = validation.passed !== false;
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6 font-mono text-xs space-y-5 text-neutral-900 dark:text-neutral-100">
+    <div className="h-full overflow-y-auto p-4 sm:p-6 font-mono text-xs space-y-5 text-ink">
       <div className="flex flex-wrap items-center gap-3">
         <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 border-2 border-black dark:border-white/80 font-black uppercase ${
-            passed ? "bg-emerald-400 text-black" : "bg-red-500 text-white"
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 border-2 border-border font-semibold uppercase ${
+            passed ? "bg-ok text-on-ink" : "bg-error text-on-ink"
           }`}
         >
           {passed ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
           {passed ? "Passed" : "Failed"}
         </span>
         {typeof validation.score === "number" && (
-          <span className="px-3 py-1.5 border-2 border-black dark:border-white/80 font-black">
+          <span className="px-3 py-1.5 border-2 border-border font-semibold">
             Score {Math.round(validation.score)}
           </span>
         )}
-        <span className="px-3 py-1.5 border-2 border-black dark:border-white/80">
+        <span className="px-3 py-1.5 border-2 border-border">
           {issues.length} issue{issues.length === 1 ? "" : "s"} · {missing.length} missing feature
           {missing.length === 1 ? "" : "s"}
         </span>
         {debugIterations > 0 && (
-          <span className="inline-flex items-center gap-1 px-3 py-1.5 border-2 border-black dark:border-white/80">
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 border-2 border-border">
             <RotateCcw size={12} /> {debugIterations} debug pass{debugIterations === 1 ? "" : "es"}
           </span>
         )}
         {inProgress && (
-          <span className="inline-flex items-center gap-1 text-neutral-500">
+          <span className="inline-flex items-center gap-1 text-muted">
             <Loader2 size={12} className="animate-spin" /> re-validating…
           </span>
         )}
@@ -114,11 +114,11 @@ export function LiveQaSurface({ buildStatus, hasBuild, validation, debugIteratio
 
       {missing.length > 0 && (
         <section className="space-y-2">
-          <h3 className="font-black uppercase text-[11px] text-neutral-500">Missing features</h3>
+          <h3 className="font-semibold uppercase text-[11px] text-muted">Missing features</h3>
           <ul className="space-y-1.5">
             {missing.map((m, i) => (
-              <li key={i} className="flex gap-2 p-2 border border-black/20 dark:border-white/20 bg-white dark:bg-white/5">
-                <AlertTriangle size={13} className="shrink-0 text-amber-500 mt-0.5" />
+              <li key={i} className="flex gap-2 p-2 border border-border bg-panel">
+                <AlertTriangle size={13} className="shrink-0 text-warn mt-0.5" />
                 <span className="font-sans text-sm">{m}</span>
               </li>
             ))}
@@ -128,23 +128,23 @@ export function LiveQaSurface({ buildStatus, hasBuild, validation, debugIteratio
 
       {issues.length > 0 && (
         <section className="space-y-2">
-          <h3 className="font-black uppercase text-[11px] text-neutral-500">Issues</h3>
+          <h3 className="font-semibold uppercase text-[11px] text-muted">Issues</h3>
           <ul className="space-y-2">
             {issues.map((issue, i) => (
-              <li key={i} className="p-3 border border-black/20 dark:border-white/20 bg-white dark:bg-white/5 space-y-1">
+              <li key={i} className="p-3 border border-border bg-panel space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`px-1.5 py-0.5 text-[10px] font-black uppercase ${
+                    className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
                       SEVERITY_STYLES[issue.severity ?? ""] ?? SEVERITY_STYLES.low
                     }`}
                   >
                     {issue.severity ?? "issue"}
                   </span>
-                  {issue.file && <span className="text-neutral-500 break-all">{issue.file}</span>}
+                  {issue.file && <span className="text-muted break-all">{issue.file}</span>}
                 </div>
                 {issue.description && <p className="font-sans text-sm">{issue.description}</p>}
                 {issue.suggestion && (
-                  <p className="font-sans text-sm text-neutral-500">Suggested fix: {issue.suggestion}</p>
+                  <p className="font-sans text-sm text-muted">Suggested fix: {issue.suggestion}</p>
                 )}
               </li>
             ))}
@@ -153,15 +153,15 @@ export function LiveQaSurface({ buildStatus, hasBuild, validation, debugIteratio
       )}
 
       {passed && issues.length === 0 && missing.length === 0 && (
-        <p className="text-neutral-500">The PM agent found no issues or missing features.</p>
+        <p className="text-muted">The PM agent found no issues or missing features.</p>
       )}
 
       {buildStatus === "debugging" && debugErrors.length > 0 && (
         <section className="space-y-2">
-          <h3 className="font-black uppercase text-[11px] text-neutral-500">Being fixed in this debug pass</h3>
+          <h3 className="font-semibold uppercase text-[11px] text-muted">Being fixed in this debug pass</h3>
           <ul className="space-y-1">
             {debugErrors.map((e, i) => (
-              <li key={i} className="p-2 border border-black/20 dark:border-white/20 break-words">
+              <li key={i} className="p-2 border border-border break-words">
                 {e}
               </li>
             ))}

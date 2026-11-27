@@ -128,7 +128,7 @@ export function AppearanceTab() {
                   <div className="flex items-center gap-2.5">
                     <div
                       className={`h-8 w-8 rounded-lg border flex items-center justify-center ${
-                        active ? "bg-accent text-base border-accent" : "bg-panel border-border text-muted"
+                        active ? "bg-ink text-on-ink border-transparent" : "bg-panel border-border text-muted"
                       }`}
                     >
                       <Icon size={16} />
@@ -139,7 +139,7 @@ export function AppearanceTab() {
                     </div>
                   </div>
                   {active && (
-                    <span className="h-5 w-5 rounded-md bg-accent text-base flex items-center justify-center">
+                    <span className="h-5 w-5 rounded-pill bg-ink text-on-ink flex items-center justify-center">
                       <Check size={12} strokeWidth={3} />
                     </span>
                   )}
@@ -362,7 +362,7 @@ export function AppearanceTab() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-lg bg-accent text-base font-semibold text-xs px-5 py-2.5 hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 cursor-pointer"
+            className="rounded-pill bg-ink text-on-ink font-semibold text-xs px-5 py-2.5 hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 cursor-pointer"
           >
             {saving ? "Updating..." : "Save Appearance Settings"}
           </button>

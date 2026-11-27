@@ -46,9 +46,9 @@ const QUARTERS = [
 ];
 
 const PRIORITY_BADGE: Record<string, string> = {
-  p0: "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/40",
-  p1: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800/40",
-  p2: "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800/40",
+  p0: "bg-error/10 text-error border-error/30",
+  p1: "bg-warn/10 text-warn border-warn/30",
+  p2: "bg-info/10 text-info border-info/30",
 };
 
 export function RoadmapQuarterBoard({
@@ -94,26 +94,26 @@ export function RoadmapQuarterBoard({
             <div
               key={quarter.id}
               id={`quarter-col-${quarter.id}`}
-              className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 flex flex-col h-full"
+              className="rounded-2xl border border-border bg-ink/10 p-3.5 flex flex-col h-full"
             >
               {/* Column Header */}
-              <div className="pb-3 border-b border-slate-200 dark:border-slate-800/80 mb-3 space-y-1">
+              <div className="pb-3 border-b border-border mb-3 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                  <span className="text-xs font-semibold text-ink flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-info" />
                     {quarter.id} Horizon
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-[11px] font-mono text-faint">
                     {quarter.horizon}
                   </span>
                 </div>
-                <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 line-clamp-1">
+                <h4 className="text-xs font-medium text-muted line-clamp-1">
                   {quarter.label}
                 </h4>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-muted pt-1">
                   <span>{quarterEpics.length} Epics</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-ink">
                     {totalPoints} story pts
                   </span>
                 </div>
@@ -122,8 +122,8 @@ export function RoadmapQuarterBoard({
               {/* Epics List in this Quarter */}
               <div className="flex-1 space-y-2.5 overflow-y-auto">
                 {quarterEpics.length === 0 ? (
-                  <div className="h-32 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center p-4 text-center">
-                    <p className="text-xs text-slate-400">
+                  <div className="h-32 rounded-xl border border-dashed border-border flex items-center justify-center p-4 text-center">
+                    <p className="text-xs text-faint">
                       No epics assigned to {quarter.id} yet.
                     </p>
                   </div>
@@ -147,42 +147,42 @@ export function RoadmapQuarterBoard({
                         key={epic.id}
                         id={`epic-card-${epic.id}`}
                         onClick={() => onSelectEpic(epic)}
-                        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all cursor-pointer group space-y-2.5"
+                        className="rounded-xl border border-border bg-panel p-3.5 shadow-2xs hover:border-info/30 hover:shadow-md transition-all cursor-pointer group space-y-2.5"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <span
-                            className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border font-mono ${priorityClass}`}
+                            className={`text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded border font-mono ${priorityClass}`}
                           >
                             {epic.priority || "p2"}
                           </span>
 
-                          <span className="text-[10px] text-slate-400 font-mono">
+                          <span className="text-[10px] text-faint font-mono">
                             {epic.story_points || 0} pts
                           </span>
                         </div>
 
-                        <h5 className="font-semibold text-xs text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                        <h5 className="font-semibold text-xs text-ink group-hover:text-accent transition-colors line-clamp-2">
                           {epic.title}
                         </h5>
 
                         {epic.description && (
-                          <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                          <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
                             {epic.description}
                           </p>
                         )}
 
                         {/* Progress Bar & Story Count */}
-                        <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 space-y-1">
-                          <div className="flex items-center justify-between text-[10px] text-slate-500">
+                        <div className="pt-1.5 border-t border-border-soft space-y-1">
+                          <div className="flex items-center justify-between text-[10px] text-muted">
                             <span>{linkedStories.length} stories</span>
-                            <span className="font-bold text-slate-700 dark:text-slate-300">
+                            <span className="font-semibold text-ink">
                               {progress}%
                             </span>
                           </div>
 
-                          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div className="w-full bg-panel-alt h-1.5 rounded-full overflow-hidden">
                             <div
-                              className="bg-blue-500 h-full rounded-full transition-all duration-300"
+                              className="bg-panel-alt h-full rounded-full transition-all duration-300"
                               style={{ width: `${progress}%` }}
                             />
                           </div>

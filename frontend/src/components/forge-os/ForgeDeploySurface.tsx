@@ -76,7 +76,7 @@ export function ForgeDeploySurface({ projectName = "forge-app" }: { projectName?
                 type="button"
                 onClick={handleRedeploy}
                 disabled={isDeploying}
-                className="h-9 px-3.5 rounded-lg border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+                className="h-9 px-3.5 rounded-pill border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
               >
                 <RefreshCw size={13} className={isDeploying ? "animate-spin" : ""} />
                 <span>{isDeploying ? "Deploying…" : "Trigger Deploy"}</span>
@@ -86,7 +86,7 @@ export function ForgeDeploySurface({ projectName = "forge-app" }: { projectName?
                 href={deploymentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-9 px-3.5 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                className="h-9 px-3.5 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               >
                 <span>Visit Live App</span>
                 <ArrowUpRight size={14} />
@@ -103,7 +103,7 @@ export function ForgeDeploySurface({ projectName = "forge-app" }: { projectName?
             <button
               type="button"
               onClick={handleCopyUrl}
-              className="h-7 px-2.5 rounded-md border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
+              className="h-7 px-2.5 rounded-pill border border-border bg-panel-alt hover:bg-base text-ink text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               <Copy size={12} className="text-muted" />
               <span>Copy URL</span>

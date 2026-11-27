@@ -848,7 +848,7 @@ export default function AdminConsole() {
                     <button
                       onClick={() => creditMutation.mutate({ userId: u.id, amount: 100 })}
                       disabled={creditMutation.isPending}
-                      className="text-xs px-3 py-1 rounded-md bg-ink hover:bg-ink/90 text-base transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
+                      className="text-xs px-3 py-1 rounded-pill bg-ink hover:bg-ink/90 text-on-ink transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 disabled:opacity-50"
                     >
                       +100 credits
                     </button>

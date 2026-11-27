@@ -61,64 +61,64 @@ export const COLUMNS: {
     label: "Backlog",
     color: "#64748b",
     dotColor: "#64748b",
-    accentBg: "bg-slate-100 dark:bg-slate-800/80",
-    accentText: "text-slate-700 dark:text-slate-300",
+    accentBg: "bg-panel-alt",
+    accentText: "text-ink",
   },
   {
     id: "ready",
     label: "Ready",
     color: "#0284c7",
     dotColor: "#0284c7",
-    accentBg: "bg-sky-50 dark:bg-sky-950/50",
-    accentText: "text-sky-700 dark:text-sky-300",
+    accentBg: "bg-info/10",
+    accentText: "text-accent",
   },
   {
     id: "in_progress",
     label: "In Progress",
     color: "#d97706",
     dotColor: "#d97706",
-    accentBg: "bg-amber-50 dark:bg-amber-950/50",
-    accentText: "text-amber-700 dark:text-amber-300",
+    accentBg: "bg-warn/10",
+    accentText: "text-warn",
   },
   {
     id: "code_review",
     label: "Code Review",
     color: "#7c3aed",
     dotColor: "#7c3aed",
-    accentBg: "bg-purple-50 dark:bg-purple-950/50",
-    accentText: "text-purple-700 dark:text-purple-300",
+    accentBg: "bg-agent-business-improver/10",
+    accentText: "text-agent-business-improver",
   },
   {
     id: "testing",
     label: "Testing",
     color: "#ea580c",
     dotColor: "#ea580c",
-    accentBg: "bg-orange-50 dark:bg-orange-950/50",
-    accentText: "text-orange-700 dark:text-orange-300",
+    accentBg: "bg-accent/10",
+    accentText: "text-accent",
   },
   {
     id: "blocked",
     label: "Blocked",
     color: "#dc2626",
     dotColor: "#dc2626",
-    accentBg: "bg-red-50 dark:bg-red-950/50",
-    accentText: "text-red-700 dark:text-red-300",
+    accentBg: "bg-error/10",
+    accentText: "text-error",
   },
   {
     id: "done",
     label: "Done",
     color: "#16a34a",
     dotColor: "#16a34a",
-    accentBg: "bg-emerald-50 dark:bg-emerald-950/50",
-    accentText: "text-emerald-700 dark:text-emerald-300",
+    accentBg: "bg-ok/10",
+    accentText: "text-ok",
   },
   {
     id: "support",
     label: "Support",
     color: "#0d9488",
     dotColor: "#0d9488",
-    accentBg: "bg-teal-50 dark:bg-teal-950/50",
-    accentText: "text-teal-700 dark:text-teal-300",
+    accentBg: "bg-agent-integration/10",
+    accentText: "text-agent-integration",
   },
 ];
 
@@ -154,37 +154,37 @@ export const PRIORITY_CONFIG: Record<
   p0: {
     label: "P0",
     badgeText: "P0 CRITICAL",
-    bg: "bg-red-50 dark:bg-red-950/60",
-    text: "text-red-700 dark:text-red-300",
-    border: "border-red-200 dark:border-red-800",
-    dotBg: "bg-red-600",
+    bg: "bg-error/10",
+    text: "text-error",
+    border: "border-error/30",
+    dotBg: "bg-error",
     desc: "Critical",
   },
   p1: {
     label: "P1",
     badgeText: "P1 HIGH",
-    bg: "bg-amber-50 dark:bg-amber-950/60",
-    text: "text-amber-800 dark:text-amber-300",
-    border: "border-amber-200 dark:border-amber-800",
-    dotBg: "bg-amber-500",
+    bg: "bg-warn/10",
+    text: "text-warn",
+    border: "border-warn/30",
+    dotBg: "bg-warn",
     desc: "High",
   },
   p2: {
     label: "P2",
     badgeText: "P2 MEDIUM",
-    bg: "bg-blue-50 dark:bg-blue-950/60",
-    text: "text-blue-700 dark:text-blue-300",
-    border: "border-blue-200 dark:border-blue-800",
-    dotBg: "bg-blue-600",
+    bg: "bg-info/10",
+    text: "text-accent",
+    border: "border-info/30",
+    dotBg: "bg-panel-alt",
     desc: "Medium",
   },
   p3: {
     label: "P3",
     badgeText: "P3 LOW",
-    bg: "bg-neutral-100 dark:bg-neutral-800",
-    text: "text-neutral-700 dark:text-neutral-300",
-    border: "border-neutral-200 dark:border-neutral-700",
-    dotBg: "bg-neutral-500",
+    bg: "bg-panel-alt",
+    text: "text-ink",
+    border: "border-border",
+    dotBg: "bg-ink/30",
     desc: "Low",
   },
 };
@@ -208,7 +208,7 @@ function highlightMatch(text: string, query: string) {
     regex.test(part) ? (
       <mark
         key={i}
-        className="bg-amber-100 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 px-0.5 rounded font-semibold"
+        className="bg-warn/10 text-warn px-0.5 rounded font-semibold"
       >
         {part}
       </mark>
@@ -225,7 +225,7 @@ function getAgentAvatar(agent?: string) {
   if (!agent) {
     return {
       initials: "?",
-      bg: "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-300 dark:border-neutral-700",
+      bg: "bg-panel-alt text-muted border border-dashed border-border",
     };
   }
   const clean = agent.replace(/_agent$/i, "").toLowerCase();
@@ -233,34 +233,34 @@ function getAgentAvatar(agent?: string) {
     case "backend":
       return {
         initials: "BE",
-        bg: "bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800",
+        bg: "bg-agent-business-improver/10 text-agent-business-improver border border-agent-business-improver/30",
       };
     case "frontend":
       return {
         initials: "FE",
-        bg: "bg-sky-100 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800",
+        bg: "bg-info/10 text-info border border-info/30",
       };
     case "qa":
       return {
         initials: "QA",
-        bg: "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
+        bg: "bg-ok/10 text-ok border border-ok/30",
       };
     case "systems":
     case "infra":
       return {
         initials: "SY",
-        bg: "bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
+        bg: "bg-agent-business-improver/10 text-agent-business-improver border border-agent-business-improver/30",
       };
     case "pm":
     case "product":
       return {
         initials: "PM",
-        bg: "bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+        bg: "bg-warn/10 text-warn border border-warn/30",
       };
     default:
       return {
         initials: clean.slice(0, 2).toUpperCase(),
-        bg: "bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+        bg: "bg-info/10 text-info border border-info/30",
       };
   }
 }
@@ -383,21 +383,21 @@ function TaskCard({
       onMouseLeave={() => onHoverTask?.(null)}
       variants={motionVariants.staggerItem}
       custom={index}
-      className={`group relative rounded-2xl bg-white dark:bg-[#181D2A] p-4 transition-all duration-200 ease-in-out select-none cursor-grab active:cursor-grabbing w-full min-h-[165px] flex flex-col justify-between border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+      className={`group relative rounded-2xl bg-panel p-4 transition-all duration-200 ease-in-out select-none cursor-grab active:cursor-grabbing w-full min-h-[165px] flex flex-col justify-between border border-border shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
         isDragging
-          ? "opacity-90 shadow-2xl ring-2 ring-[#4DA2FE] scale-[1.02] pointer-events-none z-50"
+          ? "opacity-90 shadow-2xl ring-2 ring-info/40 scale-[1.02] pointer-events-none z-50"
           : ""
       } ${
         isBlocked
-          ? "border-l-[4px] border-l-red-500 dark:border-l-red-400"
+          ? "border-l-[4px] border-l-error/30"
           : dependencies.length > 0
-          ? "border-l-[4px] border-l-emerald-500 dark:border-l-emerald-400"
+          ? "border-l-[4px] border-l-ok/30"
           : ""
       } ${
         isCardHovered
-          ? "ring-2 ring-[#4DA2FE] dark:ring-[#4DA2FE]"
+          ? "ring-2 ring-info/40"
           : isRelatedToHovered
-          ? "ring-2 ring-amber-400 dark:ring-amber-300"
+          ? "ring-2 ring-warn/40"
           : ""
       }`}
     >
@@ -414,7 +414,7 @@ function TaskCard({
                 onFilterByPriority(normP);
               }}
               title={`Priority: ${priorityCfg.badgeText} (Click to filter)`}
-              className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border transition-transform hover:scale-105 cursor-pointer ${priorityCfg.bg} ${priorityCfg.text} ${priorityCfg.border}`}
+              className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-full border transition-transform hover:scale-105 cursor-pointer ${priorityCfg.bg} ${priorityCfg.text} ${priorityCfg.border}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${priorityCfg.dotBg}`} />
               <span>{priorityCfg.label}</span>
@@ -431,9 +431,9 @@ function TaskCard({
                 onOpenDependencyModal?.(task as PMTask);
               }}
               title={`BLOCKED by ${activeBlockers.length} incomplete prerequisite task(s)`}
-              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/70 text-red-700 dark:text-red-300 hover:bg-red-100 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-error/30 bg-error/10 text-error hover:bg-error/20 transition-colors cursor-pointer"
             >
-              <AlertTriangle className="w-2.5 h-2.5 text-red-600 shrink-0 stroke-[2.5]" />
+              <AlertTriangle className="w-2.5 h-2.5 text-error shrink-0 stroke-[2.5]" />
               <span>BLOCKED ({activeBlockers.length})</span>
             </button>
           )}
@@ -448,9 +448,9 @@ function TaskCard({
                 onOpenDependencyModal?.(task as PMTask);
               }}
               title={`All ${dependencies.length} prerequisite dependencies are completed! Task is unblocked.`}
-              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-ok/30 bg-ok/10 text-ok hover:bg-ok/20 transition-colors cursor-pointer"
             >
-              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+              <CheckCircle2 className="w-2.5 h-2.5 text-ok shrink-0 stroke-[2.5]" />
               <span>UNBLOCKED</span>
             </button>
           )}
@@ -465,16 +465,16 @@ function TaskCard({
                 onOpenDependencyModal?.(task as PMTask);
               }}
               title={`Blocks ${downstreamTasks.length} downstream task(s)`}
-              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 hover:bg-amber-100 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-warn/30 bg-warn/10 text-warn hover:bg-warn/20 transition-colors cursor-pointer"
             >
-              <GitFork className="w-2.5 h-2.5 text-amber-700 shrink-0 stroke-[2.5]" />
+              <GitFork className="w-2.5 h-2.5 text-warn shrink-0 stroke-[2.5]" />
               <span>BLOCKS {downstreamTasks.length}</span>
             </button>
           )}
 
           {/* Category Chip */}
           {task.category && (
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md uppercase tracking-tight">
+            <span className="text-[10px] font-semibold text-muted bg-panel-alt px-2 py-0.5 rounded-md uppercase tracking-tight">
               {task.category}
             </span>
           )}
@@ -482,7 +482,7 @@ function TaskCard({
 
         {/* Task ID */}
         {task.id && (
-          <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase shrink-0 ml-1">
+          <span className="text-[10px] font-mono font-semibold text-faint uppercase shrink-0 ml-1">
             #{String(task.id).replace(/^task-/, "")}
           </span>
         )}
@@ -491,14 +491,14 @@ function TaskCard({
       {/* Task Title */}
       <p
         aria-label={task.title}
-        className="text-[13px] font-bold text-slate-900 dark:text-white mb-1.5 leading-snug tracking-tight line-clamp-2 min-h-[2.3rem] group-hover:text-[#4DA2FE] dark:group-hover:text-[#4DA2FE] transition-colors"
+        className="text-[13px] font-semibold text-ink mb-1.5 leading-snug tracking-tight line-clamp-2 min-h-[2.3rem] group-hover:text-accent transition-colors"
       >
         {highlightMatch(task.title || "", searchQuery)}
       </p>
 
       {/* Task Description */}
       {task.description ? (
-        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2 leading-relaxed font-normal min-h-[2rem]">
+        <p className="text-xs text-muted line-clamp-2 mb-2 leading-relaxed font-normal min-h-[2rem]">
           {highlightMatch(task.description, searchQuery)}
         </p>
       ) : (
@@ -507,8 +507,8 @@ function TaskCard({
 
       {/* Waiting on Prerequisite Badges */}
       {dependencies.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap mb-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+        <div className="flex items-center gap-1.5 flex-wrap mb-2.5 pt-2 border-t border-border-soft">
+          <span className="text-[10px] font-medium text-faint">
             Waiting on:
           </span>
           {dependencies.map((dep) => {
@@ -519,14 +519,14 @@ function TaskCard({
                 title={`#${dep.id.replace(/^task-/, "")} ${dep.title} (${dep.status})`}
                 className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md border flex items-center gap-1 ${
                   isDone
-                    ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
-                    : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300"
+                    ? "border-ok/30 bg-ok/10 text-ok"
+                    : "border-error/30 bg-error/10 text-error"
                 }`}
               >
                 {isDone ? (
-                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                  <CheckCircle2 className="w-2.5 h-2.5 text-ok" />
                 ) : (
-                  <AlertTriangle className="w-2.5 h-2.5 text-red-600" />
+                  <AlertTriangle className="w-2.5 h-2.5 text-error" />
                 )}
                 #{dep.id.replace(/^task-/, "")}
               </span>
@@ -536,11 +536,11 @@ function TaskCard({
       )}
 
       {/* Card Footer: Assignee + Actions */}
-      <div className="flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 pt-2.5 mt-auto">
+      <div className="flex items-center justify-between gap-2 border-t border-border-soft pt-2.5 mt-auto">
         {/* Assignee chip */}
         <div className="flex items-center gap-1.5 min-w-0">
           <div
-            className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 shadow-2xs ${avatar.bg}`}
+            className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-semibold shrink-0 shadow-2xs ${avatar.bg}`}
           >
             {avatar.initials}
           </div>
@@ -552,7 +552,7 @@ function TaskCard({
                 e.stopPropagation();
                 onFilterByAssignee(task.assigned_agent);
               }}
-              className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#4DA2FE] dark:hover:text-[#4DA2FE] truncate max-w-[120px] hover:underline cursor-pointer text-left transition-colors"
+              className="text-xs font-semibold text-ink hover:text-accent truncate max-w-[120px] hover:underline cursor-pointer text-left transition-colors"
               title={`Assigned to: ${task.assigned_agent} (Click to filter)`}
             >
               {task.assigned_agent.replace("_agent", "")}
@@ -565,7 +565,7 @@ function TaskCard({
                 e.stopPropagation();
                 onFilterByAssignee("unassigned");
               }}
-              className="text-xs text-slate-400 dark:text-slate-500 italic hover:text-[#4DA2FE] dark:hover:text-[#4DA2FE] cursor-pointer transition-colors"
+              className="text-xs text-faint italic hover:text-accent cursor-pointer transition-colors"
               title="Unassigned (Click to filter)"
             >
               unassigned
@@ -578,7 +578,7 @@ function TaskCard({
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors ml-1 p-0.5 rounded"
+              className="text-faint hover:text-ink transition-colors ml-1 p-0.5 rounded"
               title="View GitHub PR"
             >
               <GitBranch size={12} aria-hidden="true" />
@@ -597,9 +597,9 @@ function TaskCard({
               onOpenDependencyModal?.(task as PMTask);
             }}
             title="Link tasks or manage dependencies and blockers"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-pill bg-panel-alt hover:bg-ink/5 text-ink transition-colors cursor-pointer border border-border"
           >
-            <Link2 size={11} className="text-slate-500 shrink-0" />
+            <Link2 size={11} className="text-muted shrink-0" />
             <span>DEPS {dependencies.length > 0 ? `(${dependencies.length})` : "+"}</span>
           </button>
 
@@ -682,14 +682,14 @@ function Column({
         viewMode === "grid12"
           ? colSpanClass || "col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3 w-full"
           : "w-[300px] shrink-0"
-      } flex flex-col rounded-2xl bg-slate-100/70 dark:bg-[#121622] border border-slate-200/80 dark:border-slate-800 shadow-xs transition-all ${
+      } flex flex-col rounded-2xl bg-ink/10 border border-border shadow-xs transition-all ${
         isOver
-          ? "border-[#4DA2FE] bg-sky-50/50 dark:bg-sky-950/20 ring-2 ring-[#4DA2FE]/30 shadow-md"
+          ? "border-info/30 bg-info/20 ring-2 ring-info/30 shadow-md"
           : ""
       }`}
     >
       {/* Column Header */}
-      <div className="sticky top-0 z-10 px-4 py-3 bg-white/80 dark:bg-[#161B28]/90 backdrop-blur-md rounded-t-2xl border-b border-slate-200/80 dark:border-slate-800">
+      <div className="sticky top-0 z-10 px-4 py-3 bg-panel/80 backdrop-blur-md rounded-t-2xl border-b border-border">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -697,20 +697,20 @@ function Column({
               style={{ backgroundColor: dotColor }}
               aria-hidden="true"
             />
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 truncate">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink truncate">
               {label}
             </h3>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 ${accentBg || "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
+            <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded-full border border-border ${accentBg || "bg-panel-alt text-ink"}`}>
               {tasks.length}
             </span>
             <button
               type="button"
               onClick={() => onQuickAddTask?.(id)}
               title={`Add task to ${label}`}
-              className="w-6 h-6 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-6 h-6 rounded-md hover:bg-ink/5 text-muted hover:text-ink flex items-center justify-center transition-colors cursor-pointer"
             >
               <Plus size={14} strokeWidth={2.5} />
             </button>
@@ -718,7 +718,7 @@ function Column({
         </div>
 
         {/* Progress bar ratio */}
-        <div className="w-full bg-slate-200/60 dark:bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
+        <div className="w-full bg-ink/10 h-1 rounded-full mt-2 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{ width: `${ratio}%`, backgroundColor: dotColor }}
@@ -751,8 +751,8 @@ function Column({
           <motion.div
             className={`flex flex-col items-center justify-center py-10 px-4 text-center rounded-xl border-2 border-dashed transition-colors min-h-[140px] ${
               isOver
-                ? "border-[#4DA2FE] bg-sky-50/50 dark:bg-sky-950/30 text-[#4DA2FE]"
-                : "border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+                ? "border-info/30 bg-info/20 text-info"
+                : "border-border text-faint"
             }`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -764,7 +764,7 @@ function Column({
               <button
                 type="button"
                 onClick={() => onQuickAddTask?.(id)}
-                className="mt-2 text-[11px] font-bold text-[#4DA2FE] hover:underline cursor-pointer flex items-center gap-1"
+                className="mt-2 text-[11px] font-semibold text-accent hover:underline cursor-pointer flex items-center gap-1"
               >
                 <Plus size={11} strokeWidth={3} />
                 <span>Create Task</span>
@@ -825,24 +825,24 @@ function TaskDetailModal({
       aria-modal="true"
       aria-labelledby="task-detail-modal-title"
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-xl bg-panel rounded-3xl border-2 border-border shadow-[var(--elevation-3)] p-6 max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b-2 border-slate-100 dark:border-slate-800 pb-4">
+        <div className="flex items-start justify-between gap-3 border-b-2 border-border-soft pb-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-panel-alt text-muted">
               #{String(task.id).replace(/^task-/, "")}
             </span>
             {pCfg && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${pCfg.bg} ${pCfg.text} ${pCfg.border}`}>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${pCfg.bg} ${pCfg.text} ${pCfg.border}`}>
                 {pCfg.label}
               </span>
             )}
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted">
               Task Details
             </span>
           </div>
@@ -850,34 +850,34 @@ function TaskDetailModal({
             type="button"
             onClick={onClose}
             aria-label="Close task details modal"
-            className="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full hover:bg-ink/5 text-muted flex items-center justify-center transition-colors cursor-pointer"
           >
             <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Title */}
-        <h2 id="task-detail-modal-title" className="text-lg font-black text-ink mt-4 mb-2 leading-snug">
+        <h2 id="task-detail-modal-title" className="text-lg font-semibold text-ink mt-4 mb-2 leading-snug">
           {task.title}
         </h2>
 
         {/* Description */}
-        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mb-5">
-          {task.description || <span className="italic text-slate-400">No description provided.</span>}
+        <div className="text-xs sm:text-sm text-muted leading-relaxed bg-panel p-4 rounded-xl border border-border mb-5">
+          {task.description || <span className="italic text-faint">No description provided.</span>}
         </div>
 
         {/* Controls Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {/* Status Selector */}
           <div>
-            <label htmlFor="task-detail-status-select" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+            <label htmlFor="task-detail-status-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1.5 block">
               Workflow Status
             </label>
             <select
               id="task-detail-status-select"
               value={task.status}
               onChange={(e) => onUpdateStatus(task.id, e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink focus:outline-none cursor-pointer"
+              className="w-full h-10 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink focus:outline-none cursor-pointer"
             >
               {COLUMNS.map((col) => (
                 <option key={col.id} value={col.id}>
@@ -889,14 +889,14 @@ function TaskDetailModal({
 
           {/* Priority Selector */}
           <div>
-            <label htmlFor="task-detail-priority-select" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+            <label htmlFor="task-detail-priority-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1.5 block">
               Priority Level
             </label>
             <select
               id="task-detail-priority-select"
               value={normP || "p2"}
               onChange={(e) => onUpdatePriority(task.id, e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink focus:outline-none cursor-pointer"
+              className="w-full h-10 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink focus:outline-none cursor-pointer"
             >
               <option value="p0">P0 - Critical</option>
               <option value="p1">P1 - High</option>
@@ -907,9 +907,9 @@ function TaskDetailModal({
         </div>
 
         {/* Dependencies Section */}
-        <div className="border-t-2 border-slate-100 dark:border-slate-800 pt-4 mb-6">
+        <div className="border-t-2 border-border-soft pt-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-ink flex items-center gap-1.5">
               <Link2 size={13} />
               <span>Dependencies & Blockers ({deps.length})</span>
             </h4>
@@ -919,7 +919,7 @@ function TaskDetailModal({
                 onClose();
                 onOpenDependencyModal(task);
               }}
-              className="text-xs font-bold text-accent hover:underline cursor-pointer flex items-center gap-1"
+              className="text-xs font-semibold text-accent hover:underline cursor-pointer flex items-center gap-1"
             >
               <span>Manage Graph</span>
               <ChevronRight size={13} />
@@ -931,39 +931,39 @@ function TaskDetailModal({
               {deps.map((dep) => (
                 <div
                   key={dep.id}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs"
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-panel text-xs"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {dep.status === "done" ? (
-                      <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                      <CheckCircle2 size={14} className="text-ok shrink-0" />
                     ) : (
-                      <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+                      <AlertTriangle size={14} className="text-warn shrink-0" />
                     )}
-                    <span className="font-bold text-slate-900 dark:text-white truncate">
+                    <span className="font-semibold text-ink truncate">
                       {dep.title}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-panel-alt text-muted shrink-0">
                     {dep.status}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-slate-400 italic">No prerequisite dependencies linked.</p>
+            <p className="text-xs text-faint italic">No prerequisite dependencies linked.</p>
           )}
 
           {downstream.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <p className="text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
-                <GitFork size={12} className="text-amber-600" />
+            <div className="mt-3 pt-3 border-t border-border-soft">
+              <p className="text-xs font-semibold text-muted mb-1.5 flex items-center gap-1">
+                <GitFork size={12} className="text-warn" />
                 <span>Blocks {downstream.length} downstream task(s):</span>
               </p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {downstream.map((t) => (
                   <span
                     key={t.id}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                    className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-warn/10 text-warn border border-warn/30"
                   >
                     #{t.id.replace(/^task-/, "")} {t.title}
                   </span>
@@ -974,11 +974,11 @@ function TaskDetailModal({
         </div>
 
         {/* Action Footer */}
-        <div className="flex items-center justify-between gap-3 border-t-2 border-slate-100 dark:border-slate-800 pt-4">
+        <div className="flex items-center justify-between gap-3 border-t-2 border-border-soft pt-4">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="px-5 py-2.5 rounded-xl border-2 border-border text-xs font-semibold text-ink hover:bg-ink/5 transition-colors cursor-pointer"
           >
             Close
           </button>
@@ -990,7 +990,7 @@ function TaskDetailModal({
                 onClose();
                 onExecuteAgent(task);
               }}
-              className="px-5 py-2.5 rounded-xl bg-ink hover:opacity-90 text-panel text-xs font-black shadow-[var(--elevation-1)] flex items-center gap-2 cursor-pointer transition-all border-2 border-border"
+              className="px-5 py-2.5 rounded-xl bg-ink hover:opacity-90 text-panel text-xs font-semibold shadow-[var(--elevation-1)] flex items-center gap-2 cursor-pointer transition-all border-2 border-border"
             >
               <Sparkles size={13} className="text-accent" />
               <span>Execute with Gemini</span>
@@ -1077,16 +1077,16 @@ function CreateTaskModal({
       aria-modal="true"
       aria-labelledby="create-task-modal-title"
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/60 backdrop-blur-xs animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-lg bg-panel rounded-3xl border-2 border-border shadow-[var(--elevation-3)] p-6"
       >
-        <div className="flex items-center justify-between pb-3 border-b-2 border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b-2 border-border-soft">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-ok border-2 border-border" />
-            <h3 id="create-task-modal-title" className="text-sm font-black uppercase tracking-wider text-ink">
+            <h3 id="create-task-modal-title" className="text-sm font-semibold uppercase tracking-wider text-ink">
               Create New Task
             </h3>
           </div>
@@ -1094,7 +1094,7 @@ function CreateTaskModal({
             type="button"
             onClick={onClose}
             aria-label="Close create task modal"
-            className="w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center cursor-pointer"
+            className="w-7 h-7 rounded-full hover:bg-ink/5 text-muted flex items-center justify-center cursor-pointer"
           >
             <X size={15} strokeWidth={2.5} />
           </button>
@@ -1102,7 +1102,7 @@ function CreateTaskModal({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label htmlFor="create-task-title-input" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+            <label htmlFor="create-task-title-input" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
               Task Title *
             </label>
             <input
@@ -1112,12 +1112,12 @@ function CreateTaskModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Implement Webhook Replay Idempotency"
-              className="w-full h-10 px-3.5 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink focus:outline-none"
+              className="w-full h-10 px-3.5 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink focus:outline-none"
             />
           </div>
 
           <div>
-            <label htmlFor="create-task-desc-input" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+            <label htmlFor="create-task-desc-input" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
               Description
             </label>
             <textarea
@@ -1132,14 +1132,14 @@ function CreateTaskModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="create-task-status-select" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+              <label htmlFor="create-task-status-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
                 Column Status
               </label>
               <select
                 id="create-task-status-select"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink cursor-pointer"
               >
                 {COLUMNS.map((col) => (
                   <option key={col.id} value={col.id}>
@@ -1150,14 +1150,14 @@ function CreateTaskModal({
             </div>
 
             <div>
-              <label htmlFor="create-task-priority-select" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+              <label htmlFor="create-task-priority-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
                 Priority
               </label>
               <select
                 id="create-task-priority-select"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink cursor-pointer"
               >
                 <option value="p0">P0 - Critical</option>
                 <option value="p1">P1 - High</option>
@@ -1169,14 +1169,14 @@ function CreateTaskModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="create-task-agent-select" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+              <label htmlFor="create-task-agent-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
                 Assignee Agent
               </label>
               <select
                 id="create-task-agent-select"
                 value={assignedAgent}
                 onChange={(e) => setAssignedAgent(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink cursor-pointer"
               >
                 <option value="frontend_agent">Frontend Agent</option>
                 <option value="backend_agent">Backend Agent</option>
@@ -1187,7 +1187,7 @@ function CreateTaskModal({
             </div>
 
             <div>
-              <label htmlFor="create-task-category-input" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+              <label htmlFor="create-task-category-input" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
                 Category Tag
               </label>
               <input
@@ -1196,21 +1196,21 @@ function CreateTaskModal({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g. backend, security"
-                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink"
               />
             </div>
           </div>
 
           {sprints && sprints.length > 0 && (
             <div>
-              <label htmlFor="create-task-sprint-select" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+              <label htmlFor="create-task-sprint-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
                 Target Sprint
               </label>
               <select
                 id="create-task-sprint-select"
                 value={sprintId}
                 onChange={(e) => setSprintId(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-bold text-ink cursor-pointer"
+                className="w-full h-9 px-3 rounded-xl border-2 border-border bg-panel-alt text-xs font-semibold text-ink cursor-pointer"
               >
                 <option value="">No specific sprint</option>
                 {sprints.map((s) => (
@@ -1222,17 +1222,17 @@ function CreateTaskModal({
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t-2 border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t-2 border-border-soft">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border-2 border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer"
+              className="px-4 py-2 rounded-xl border-2 border-border text-xs font-semibold text-muted cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-ink hover:opacity-90 text-panel text-xs font-black shadow-[var(--elevation-1)] border-2 border-border cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-ink hover:opacity-90 text-panel text-xs font-semibold shadow-[var(--elevation-1)] border-2 border-border cursor-pointer"
             >
               Create Task
             </button>
@@ -1568,7 +1568,7 @@ export default function KanbanTab() {
       ) : (
     <div className="flex flex-col h-full min-h-0 bg-panel rounded-lg border border-border font-sans antialiased text-ink">
       {/* Top Header & Filter Control Bar */}
-      <div className="px-4 py-3.5 md:px-6 shrink-0 bg-white dark:bg-[#141824] border-b-2 border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div className="px-4 py-3.5 md:px-6 shrink-0 bg-panel border-b-2 border-border shadow-xs">
         {/* Title and High-Level Status Row */}
         <div className="flex items-center justify-between gap-4 mb-3.5 flex-wrap">
           <div className="flex items-center gap-3">
@@ -1577,15 +1577,15 @@ export default function KanbanTab() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm md:text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                <h1 className="text-sm md:text-base font-semibold text-ink tracking-tight leading-tight">
                   Sprint Planning Board
                 </h1>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-ok/10 text-ok border border-ok/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
                   Active Sprint
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 {initiative?.name || "AI-Native Engineering Team"} &bull; Real-time Kanban & Dependency Graph
               </p>
             </div>
@@ -1593,18 +1593,18 @@ export default function KanbanTab() {
 
           {/* Quick Metrics Badges & Add Task Action */}
           <div className="flex items-center gap-2 text-xs font-medium flex-wrap">
-            <span className="px-3 py-1.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold">
-              Total: <strong className="font-black text-slate-900 dark:text-white ml-0.5">{tasks.length}</strong>
+            <span className="px-3 py-1.5 rounded-xl border-2 border-border bg-panel text-ink font-semibold">
+              Total: <strong className="font-semibold text-ink ml-0.5">{tasks.length}</strong>
             </span>
-            <span className="px-3 py-1.5 rounded-xl border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-bold">
-              In Progress: <strong className="font-black ml-0.5">{inProgressCount}</strong>
+            <span className="px-3 py-1.5 rounded-xl border-2 border-warn/30 bg-warn/10 text-warn font-semibold">
+              In Progress: <strong className="font-semibold ml-0.5">{inProgressCount}</strong>
             </span>
-            <span className="px-3 py-1.5 rounded-xl border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold">
-              Done: <strong className="font-black ml-0.5">{completedCount}</strong>
+            <span className="px-3 py-1.5 rounded-xl border-2 border-ok/30 bg-ok/10 text-ok font-semibold">
+              Done: <strong className="font-semibold ml-0.5">{completedCount}</strong>
             </span>
             {blockedTasksCount > 0 && (
-              <span className="px-3 py-1.5 rounded-xl border-2 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-bold">
-                Blocked: <strong className="font-black ml-0.5">{blockedTasksCount}</strong>
+              <span className="px-3 py-1.5 rounded-xl border-2 border-error/30 bg-error/10 text-error font-semibold">
+                Blocked: <strong className="font-semibold ml-0.5">{blockedTasksCount}</strong>
               </span>
             )}
             <button
@@ -1613,7 +1613,7 @@ export default function KanbanTab() {
                 setCreateModalColumn("backlog");
                 setIsCreateModalOpen(true);
               }}
-              className="h-9 px-4 rounded-xl bg-accent hover:bg-accent/90 text-[#09090B] text-xs font-black shadow-m3-1 flex items-center gap-1.5 cursor-pointer border border-border transition-transform active:translate-y-0.5"
+              className="h-9 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-semibold shadow-m3-1 flex items-center gap-1.5 cursor-pointer border border-border transition-transform active:translate-y-0.5"
             >
               <Plus size={14} strokeWidth={3} />
               <span>New Task</span>
@@ -1627,7 +1627,7 @@ export default function KanbanTab() {
           <div className="relative flex-1 min-w-[240px] sm:min-w-[300px]">
             <Search
               size={15}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint"
               aria-hidden="true"
             />
             <input
@@ -1644,7 +1644,7 @@ export default function KanbanTab() {
               }}
               placeholder="Search tasks by keyword, assignee, or priority (P0, P1...)..."
               aria-label="Search tasks by keyword, assignee, or priority"
-              className="h-9 w-full rounded-xl border border-border bg-panel-alt pl-9.5 pr-14 text-xs font-medium text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent transition-all shadow-xs"
+              className="h-9 w-full rounded-pill border border-glass-border bg-glass pl-9 pr-14 text-xs font-medium text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent transition-all shadow-xs"
             />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {search ? (
@@ -1654,12 +1654,12 @@ export default function KanbanTab() {
                   onClick={() => setSearch("")}
                   aria-label="Clear search input"
                   title="Clear search"
-                  className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  className="p-1 rounded-full text-faint hover:text-muted hover:bg-ink/5 cursor-pointer transition-colors"
                 >
                   <X size={13} strokeWidth={2.5} />
                 </button>
               ) : (
-                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-slate-400 border border-slate-300 dark:border-slate-700 rounded bg-slate-100 dark:bg-slate-800 shadow-2xs">
+                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-faint border border-border rounded bg-panel-alt shadow-2xs">
                   /
                 </kbd>
               )}
@@ -1670,9 +1670,9 @@ export default function KanbanTab() {
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="kanban-priority-filter"
-              className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 hidden sm:inline-flex items-center gap-1"
+              className="text-xs font-semibold text-muted shrink-0 hidden sm:inline-flex items-center gap-1"
             >
-              <AlertCircle size={13} className="text-slate-500" />
+              <AlertCircle size={13} className="text-muted" />
               Priority:
             </label>
             <select
@@ -1680,7 +1680,7 @@ export default function KanbanTab() {
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
               aria-label="Filter by priority level"
-              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Priorities</option>
               <option value="p0">P0 - Critical</option>
@@ -1694,9 +1694,9 @@ export default function KanbanTab() {
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="kanban-assignee-filter"
-              className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 hidden sm:inline-flex items-center gap-1"
+              className="text-xs font-semibold text-muted shrink-0 hidden sm:inline-flex items-center gap-1"
             >
-              <User size={13} className="text-slate-500" />
+              <User size={13} className="text-muted" />
               Assignee:
             </label>
             <select
@@ -1704,7 +1704,7 @@ export default function KanbanTab() {
               value={agentFilter}
               onChange={(e) => setAgentFilter(e.target.value)}
               aria-label="Filter by assignee"
-              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Assignees</option>
               {agents.map((a) => (
@@ -1720,9 +1720,9 @@ export default function KanbanTab() {
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="kanban-sprint-filter"
-              className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 hidden lg:inline-flex items-center gap-1"
+              className="text-xs font-semibold text-muted shrink-0 hidden lg:inline-flex items-center gap-1"
             >
-              <Filter size={13} className="text-slate-500" />
+              <Filter size={13} className="text-muted" />
               Sprint:
             </label>
             <select
@@ -1730,7 +1730,7 @@ export default function KanbanTab() {
               value={sprintFilter}
               onChange={(e) => setSprintFilter(e.target.value)}
               aria-label="Filter by sprint"
-              className="h-9 rounded-xl border border-border bg-panel-alt px-3 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
             >
               <option value="all">All Sprints</option>
               {sprints.map((s) => (
@@ -1742,14 +1742,14 @@ export default function KanbanTab() {
           </div>
 
           {/* Dependency Arrows Controls */}
-          <div className="flex items-center gap-1.5 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5">
+          <div className="flex items-center gap-1.5 border-l-2 border-border pl-2.5">
             <button
               id="kanban-toggle-arrows-btn"
               type="button"
               onClick={() => setShowArrows(!showArrows)}
-              className={`flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border text-xs font-black cursor-pointer transition-all shadow-xs ${
+              className={`flex items-center gap-1.5 h-9 px-3 rounded-pill border border-border text-xs font-semibold cursor-pointer transition-all shadow-xs ${
                 showArrows
-                  ? "bg-accent text-[#09090B]"
+                  ? "bg-ink text-on-ink"
                   : "bg-panel-alt text-muted"
               }`}
               title={showArrows ? "Hide visual dependency blocker arrows" : "Show visual dependency blocker arrows"}
@@ -1763,9 +1763,9 @@ export default function KanbanTab() {
                 id="kanban-toggle-only-blockers-btn"
                 type="button"
                 onClick={() => setOnlyBlockerArrows(!onlyBlockerArrows)}
-                className={`px-3 h-9 rounded-xl text-xs font-bold border border-border transition-all cursor-pointer shadow-xs ${
+                className={`px-3 h-9 rounded-pill text-xs font-semibold border border-border transition-all cursor-pointer shadow-xs ${
                   onlyBlockerArrows
-                    ? "bg-red-500 text-white"
+                    ? "bg-error text-on-ink"
                     : "bg-panel-alt text-muted"
                 }`}
                 title="Toggle between all dependency arrows or only active blockers"
@@ -1776,16 +1776,16 @@ export default function KanbanTab() {
           </div>
 
           {/* Layout Grid View Toggle */}
-          <div className="flex items-center gap-1 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5">
+          <div className="flex items-center gap-1 border-l-2 border-border pl-2.5">
             <div className="inline-flex p-1 rounded-xl bg-panel-alt border border-border shadow-xs">
               <button
                 id="kanban-view-mode-grid"
                 type="button"
                 onClick={() => setViewMode("grid12")}
-                className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-pill text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === "grid12"
                     ? "bg-ink text-panel shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                    : "text-muted hover:text-ink"
                 }`}
                 title="Strict 12-column aligned responsive grid"
               >
@@ -1796,10 +1796,10 @@ export default function KanbanTab() {
                 id="kanban-view-mode-lanes"
                 type="button"
                 onClick={() => setViewMode("lanes")}
-                className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-pill text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === "lanes"
                     ? "bg-ink text-panel shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                    : "text-muted hover:text-ink"
                 }`}
                 title="Horizontal lanes Kanban flow"
               >
@@ -1815,7 +1815,7 @@ export default function KanbanTab() {
               id="kanban-reset-filters-btn"
               type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-panel-alt hover:bg-panel text-ink text-xs font-black transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-pill border border-border bg-panel-alt hover:bg-panel text-ink text-xs font-semibold transition-all cursor-pointer shadow-xs"
               title="Reset all filters and search query"
             >
               <RotateCcw size={12} />
@@ -1825,9 +1825,9 @@ export default function KanbanTab() {
         </motion.div>
 
         {/* Quick Priority & Blocker Filter Chips Sub-bar */}
-        <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t-2 border-slate-100 dark:border-slate-800 flex-wrap">
+        <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t-2 border-border-soft flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 mr-1 tracking-wider">
+            <span className="text-[11px] font-semibold uppercase text-faint mr-1 tracking-wider">
               PRIORITY:
             </span>
             {(["all", "p0", "p1", "p2", "p3"] as const).map((p) => {
@@ -1840,9 +1840,9 @@ export default function KanbanTab() {
                   id={`kanban-priority-chip-${p}`}
                   type="button"
                   onClick={() => setPriorityFilter(priorityFilter === p && p !== "all" ? "all" : p)}
-                  className={`px-3 py-1 text-xs font-black rounded-full border transition-all cursor-pointer ${
+                  className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
                     isSelected
-                      ? "border-border bg-accent text-[#09090B] shadow-xs"
+                      ? "border-border bg-ink text-on-ink shadow-xs"
                       : "border-border bg-panel-alt text-muted hover:text-ink"
                   }`}
                   title={p === "all" ? "Show all priorities" : `Filter by ${cfg?.badgeText}`}
@@ -1857,23 +1857,23 @@ export default function KanbanTab() {
               id="kanban-blocked-only-filter-btn"
               type="button"
               onClick={() => setBlockedOnlyFilter(!blockedOnlyFilter)}
-              className={`px-3 py-1 text-xs font-black rounded-full border flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-semibold rounded-full border flex items-center gap-1.5 transition-all cursor-pointer ${
                 blockedOnlyFilter
-                  ? "border-border bg-red-600 text-white shadow-xs"
-                  : "border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100"
+                  ? "border-border bg-error text-on-ink shadow-xs"
+                  : "border-error/30 bg-error/10 text-error hover:bg-error/20"
               }`}
               title="Show only tasks with unresolved blockers"
             >
               <AlertTriangle
                 size={12}
-                className={blockedOnlyFilter ? "text-white" : "text-red-600"}
+                className={blockedOnlyFilter ? "text-ink" : "text-error"}
               />
               <span>BLOCKED ONLY ({blockedTasksCount})</span>
             </button>
 
             {/* Column Presets Filter Chips */}
-            <div className="flex items-center gap-1 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5 ml-1">
-              <span className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 mr-1 hidden sm:inline tracking-wider">
+            <div className="flex items-center gap-1 border-l-2 border-border pl-2.5 ml-1">
+              <span className="text-[11px] font-semibold uppercase text-faint mr-1 hidden sm:inline tracking-wider">
                 VIEW:
               </span>
               {COLUMN_PRESETS.map((preset) => {
@@ -1884,9 +1884,9 @@ export default function KanbanTab() {
                     id={`kanban-column-preset-${preset.id}`}
                     type="button"
                     onClick={() => setColumnPreset(preset.id as any)}
-                    className={`px-3 py-1 text-xs font-black rounded-full border transition-all cursor-pointer ${
+                    className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
                       isSelected
-                        ? "border-border bg-accent text-[#09090B] shadow-xs"
+                        ? "border-border bg-ink text-on-ink shadow-xs"
                         : "border-border bg-panel-alt text-muted hover:text-ink"
                     }`}
                     title={preset.desc}
@@ -1899,14 +1899,14 @@ export default function KanbanTab() {
           </div>
 
           {/* Results Summary Counter */}
-          <div className="text-xs text-slate-500 dark:text-slate-400 shrink-0 ml-auto font-bold">
-            SHOWING <strong className="font-black text-slate-900 dark:text-white">{filtered.length}</strong> / {tasks.length} TASKS
+          <div className="text-xs text-muted shrink-0 ml-auto font-semibold">
+            SHOWING <strong className="font-semibold text-ink">{filtered.length}</strong> / {tasks.length} TASKS
           </div>
         </div>
 
         {/* Mobile Quick Column Jump Pills */}
-        <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto py-2 px-1 border-t-2 border-slate-100 dark:border-slate-800 mt-2 scrollbar-none">
-          <span className="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 shrink-0">
+        <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto py-2 px-1 border-t-2 border-border-soft mt-2 scrollbar-none">
+          <span className="text-[10px] uppercase font-semibold text-faint shrink-0">
             JUMP:
           </span>
           {displayedColumns.map((col) => {
@@ -1919,11 +1919,11 @@ export default function KanbanTab() {
                   const el = document.getElementById(`kanban-column-${col.id}`);
                   el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
                 }}
-                className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-panel text-ink border border-border shadow-2xs"
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: col.dotColor }} />
                 <span>{col.label}</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-surface-high text-muted">
                   {count}
                 </span>
               </button>
@@ -1934,9 +1934,9 @@ export default function KanbanTab() {
 
       {/* Zero State Alert Banner */}
       {filtered.length === 0 && tasks.length > 0 && (
-        <div className="mx-4 md:mx-6 mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-800/60 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 text-xs font-bold text-amber-900 dark:text-amber-200">
-            <Search size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+        <div className="mx-4 md:mx-6 mt-4 p-4 rounded-2xl bg-warn/10 border-2 border-warn/30 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs font-semibold text-warn">
+            <Search size={16} className="text-warn shrink-0" />
             <span>
               No tasks match your search {search ? `"${search}"` : ""} with the selected filters.
             </span>
@@ -1944,7 +1944,7 @@ export default function KanbanTab() {
           <button
             type="button"
             onClick={handleResetFilters}
-            className="px-4 py-2 bg-panel-alt text-ink border border-border text-xs font-black rounded-xl shadow-m3-1 hover:bg-panel transition-colors cursor-pointer"
+            className="px-4 py-2 bg-panel-alt text-ink border border-border text-xs font-semibold rounded-xl shadow-m3-1 hover:bg-panel transition-colors cursor-pointer"
           >
             Clear All Filters
           </button>

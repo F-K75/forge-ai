@@ -155,18 +155,18 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
   return (
     <div
       id="agent-console-root"
-      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-950 text-slate-100 shadow-xl overflow-hidden font-mono flex flex-col h-[580px]"
+      className="rounded-xl border border-border bg-base text-ink overflow-hidden font-mono flex flex-col h-[580px]"
     >
       {/* Terminal Top Window Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 text-xs select-none shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-panel-alt border-b border-border text-xs select-none shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-rose-500/80 inline-block" />
-            <span className="h-3 w-3 rounded-full bg-amber-500/80 inline-block" />
-            <span className="h-3 w-3 rounded-full bg-emerald-500/80 inline-block" />
+            <span className="h-3 w-3 rounded-full bg-error/20 inline-block" />
+            <span className="h-3 w-3 rounded-full bg-warn/20 inline-block" />
+            <span className="h-3 w-3 rounded-full bg-ok/20 inline-block" />
           </div>
-          <span className="text-slate-400 text-[11px] ml-2 font-medium flex items-center gap-1.5">
-            <Terminal size={12} className="text-teal-400" />
+          <span className="text-faint text-[11px] ml-2 font-medium flex items-center gap-1.5">
+            <Terminal size={12} className="text-agent-integration" />
             ai-gateway-agent://runner.forge.internal/session/{initiativeId?.slice(0, 8) || "live"}
           </span>
         </div>
@@ -174,7 +174,7 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
         {/* Console Controls */}
         <div className="flex items-center gap-2 font-sans">
           {/* Filter Pills */}
-          <div className="flex items-center bg-slate-800/80 p-0.5 rounded-lg text-[11px]">
+          <div className="flex items-center bg-base/80 p-0.5 rounded-lg text-[11px]">
             {(["all", "thoughts", "stdout", "errors"] as LogFilter[]).map((f) => (
               <button
                 key={f}
@@ -182,8 +182,8 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
                 onClick={() => setFilter(f)}
                 className={`px-2 py-0.5 rounded capitalize transition-colors cursor-pointer ${
                   filter === f
-                    ? "bg-teal-500 text-slate-950 font-semibold"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-agent-integration text-on-ink font-semibold"
+                    : "text-faint hover:text-muted"
                 }`}
               >
                 {f}
@@ -191,12 +191,12 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
             ))}
           </div>
 
-          <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 text-[11px] text-faint cursor-pointer select-none">
             <input
               type="checkbox"
               checked={autoScroll}
               onChange={(e) => setAutoScroll(e.target.checked)}
-              className="rounded bg-slate-800 border-slate-700 text-teal-500 focus:ring-0 h-3 w-3 cursor-pointer"
+              className="rounded bg-panel-alt border-border text-agent-integration focus:ring-0 h-3 w-3 cursor-pointer"
             />
             <span>Auto-scroll</span>
           </label>
@@ -204,40 +204,40 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
           <button
             type="button"
             onClick={handleCopyBuffer}
-            className="p-1 text-slate-400 hover:text-slate-200 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 text-faint hover:text-muted rounded hover:bg-surface-high transition-colors cursor-pointer"
             title="Copy buffer"
           >
-            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
           </button>
         </div>
       </div>
 
       {/* Terminal Log Stream Area */}
       <div className="flex-1 p-4 overflow-y-auto space-y-1.5 text-[11.5px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-        <div className="text-slate-500 pb-2 border-b border-slate-800/80 text-[11px]">
+        <div className="text-muted pb-2 border-b border-border text-[11px]">
           [SYSTEM] Initialized Gemini 2.5 Multi-Agent Orchestrator Sandbox. Listening on secure telemetry channel...
         </div>
 
         {filteredLogs.map((log) => {
-          let badgeColor = "text-slate-400 bg-slate-900 border-slate-800";
-          let messageColor = "text-slate-200";
+          let badgeColor = "text-faint bg-panel-alt border-border";
+          let messageColor = "text-muted";
 
           if (log.type === "thought") {
-            badgeColor = "text-purple-300 bg-purple-950/60 border-purple-800/40";
-            messageColor = "text-purple-200/90 italic";
+            badgeColor = "text-agent-business-improver bg-agent-business-improver/20 border-agent-business-improver/40";
+            messageColor = "text-agent-business-improver italic";
           } else if (log.type === "error") {
-            badgeColor = "text-rose-300 bg-rose-950/60 border-rose-800/40";
-            messageColor = "text-rose-300 font-semibold";
+            badgeColor = "text-error bg-error/20 border-error/40";
+            messageColor = "text-error font-semibold";
           } else if (log.type === "stdout") {
-            badgeColor = "text-teal-300 bg-teal-950/60 border-teal-800/40";
+            badgeColor = "text-agent-integration bg-agent-integration/20 border-agent-integration/40";
           }
 
           return (
             <div
               key={log.id}
-              className="flex items-start gap-2.5 py-0.5 hover:bg-slate-900/50 rounded px-1.5 -mx-1.5 transition-colors group"
+              className="flex items-start gap-2.5 py-0.5 hover:bg-base/60 rounded px-1.5 -mx-1.5 transition-colors group"
             >
-              <span className="text-slate-500 select-none shrink-0 text-[10.5px]">
+              <span className="text-muted select-none shrink-0 text-[10.5px]">
                 {log.time}
               </span>
 
@@ -247,7 +247,7 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
                 {log.agent}
               </span>
 
-              <span className="text-slate-600 select-none shrink-0">
+              <span className="text-muted select-none shrink-0">
                 {log.type === "thought" ? "💭" : "❯"}
               </span>
 
@@ -260,10 +260,10 @@ export function AgentConsoleView({ executions, initiativeId }: AgentConsoleViewP
       </div>
 
       {/* Terminal Footer Bar */}
-      <div className="px-4 py-2 bg-slate-900/80 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 shrink-0 font-sans">
+      <div className="px-4 py-2 bg-base/80 border-t border-border flex items-center justify-between text-[11px] text-faint shrink-0 font-sans">
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-emerald-400">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="flex items-center gap-1 text-ok">
+            <span className="h-2 w-2 rounded-full bg-ok animate-pulse" />
             Active Session
           </span>
           <span>{filteredLogs.length} events logged</span>

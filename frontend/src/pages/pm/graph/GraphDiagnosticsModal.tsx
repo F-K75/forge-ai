@@ -32,9 +32,9 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="diagnostics-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-base/70 backdrop-blur-sm animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-2xl rounded-2xl border border-inlay bg-[#111119] shadow-2xl text-xs overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl rounded-2xl border border-inlay bg-panel-alt shadow-2xl text-xs overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-inlay p-4 bg-inlay/40">
           <div className="flex items-center gap-2.5">
@@ -71,13 +71,13 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
               <div className="flex items-center gap-1.5">
                 {diagnostics.hasCycles ? (
                   <>
-                    <AlertTriangle size={14} className="text-red-400" />
-                    <span className="font-semibold text-red-300">Cycles Found</span>
+                    <AlertTriangle size={14} className="text-error" />
+                    <span className="font-semibold text-error">Cycles Found</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={14} className="text-emerald-400" />
-                    <span className="font-semibold text-emerald-300">Strict DAG</span>
+                    <CheckCircle2 size={14} className="text-ok" />
+                    <span className="font-semibold text-ok">Strict DAG</span>
                   </>
                 )}
               </div>
@@ -88,7 +88,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
                 Critical Path
               </span>
               <div className="flex items-center gap-1.5">
-                <Flame size={14} className="text-pink-400" />
+                <Flame size={14} className="text-agent-designer" />
                 <span className="font-semibold text-ink font-mono">
                   {diagnostics.criticalPathLength} hops
                 </span>
@@ -100,7 +100,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
                 Execution Constraints
               </span>
               <div className="flex items-center gap-1.5">
-                <GitBranch size={14} className="text-amber-400" />
+                <GitBranch size={14} className="text-warn" />
                 <span className="font-semibold text-ink font-mono">
                   {diagnostics.dependencyEdges} rules
                 </span>
@@ -112,7 +112,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
                 Parallelism Index
               </span>
               <div className="flex items-center gap-1.5">
-                <TrendingUp size={14} className="text-cyan-400" />
+                <TrendingUp size={14} className="text-info" />
                 <span className="font-semibold text-ink font-mono">
                   {diagnostics.parallelismIndex}x streams
                 </span>
@@ -124,7 +124,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
           <div className="rounded-xl border border-inlay bg-inlay/20 p-4">
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1.5">
-                <Flame size={14} className="text-pink-400" />
+                <Flame size={14} className="text-agent-designer" />
                 <h3 className="font-semibold text-ink">Critical Path Dependency Sequence</h3>
               </div>
               <span className="text-[10px] text-faint">Longest delivery timeline</span>
@@ -139,7 +139,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
                     key={nodeId}
                     className="flex items-center gap-2 rounded-lg border border-inlay/60 bg-inlay/40 px-3 py-2 text-xs"
                   >
-                    <span className="font-mono text-[10px] font-semibold text-pink-400 shrink-0">
+                    <span className="font-mono text-[10px] font-semibold text-agent-designer shrink-0">
                       Step {idx + 1}
                     </span>
                     <span className="font-mono text-ink truncate select-all">{nodeId}</span>
@@ -163,7 +163,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
           <div className="rounded-xl border border-inlay bg-inlay/20 p-4">
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1.5">
-                <AlertTriangle size={14} className="text-amber-400" />
+                <AlertTriangle size={14} className="text-warn" />
                 <h3 className="font-semibold text-ink">High-Impact Bottleneck Nodes</h3>
               </div>
               <span className="text-[10px] text-faint">Nodes blocking downstream tasks</span>
@@ -182,7 +182,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] uppercase font-semibold text-amber-400">
+                        <span className="font-mono text-[10px] uppercase font-semibold text-warn">
                           {b.type}
                         </span>
                         <span className="font-medium text-ink">{b.label}</span>
@@ -214,7 +214,7 @@ export const GraphDiagnosticsModal: React.FC<GraphDiagnosticsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-accent px-4 py-1.5 font-medium text-white hover:bg-accent/90 transition-all"
+            className="rounded-pill bg-ink px-4 py-1.5 font-medium text-on-ink hover:bg-ink/90 transition-all"
           >
             Dismiss
           </button>

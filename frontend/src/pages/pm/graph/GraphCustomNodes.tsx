@@ -34,45 +34,45 @@ export const InitiativeNode: React.FC<NodeProps<GraphNodePayload>> = ({ data, se
         isDimmed ? "opacity-25" : "opacity-100"
       } ${
         selected || isHighlighted
-          ? "border-[#7C5CFF] ring-2 ring-[#7C5CFF]/30 scale-[1.02]"
-          : "border-[#7C5CFF]/40 hover:border-[#7C5CFF]"
-      } bg-[#13131F] ${data.density === "compact" ? "p-2.5 w-[200px]" : "p-3.5 w-[260px]"}`}
+          ? "border-agent-business-improver/30 ring-2 ring-agent-business-improver/30 scale-[1.02]"
+          : "border-agent-business-improver/40 hover:border-agent-business-improver/30"
+      } bg-panel-alt ${data.density === "compact" ? "p-2.5 w-[200px]" : "p-3.5 w-[260px]"}`}
       id={`graph-node-${data.id}`}
     >
       <Handle
         type="target"
         position={targetPos}
-        className="!bg-[#7C5CFF] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-agent-business-improver !w-2.5 !h-2.5 !border-2 !border-border"
       />
       <Handle
         type="source"
         position={sourcePos}
-        className="!bg-[#7C5CFF] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-agent-business-improver !w-2.5 !h-2.5 !border-2 !border-border"
       />
 
       <div className="flex items-center justify-between gap-2 mb-1.5">
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#A78BFA]">
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-agent-business-improver">
           <Rocket size={12} className="shrink-0" />
           Initiative Root
         </span>
-        <span className="rounded-full bg-[#7C5CFF]/15 px-2 py-0.5 text-[10px] font-medium text-[#C4B5FD]">
+        <span className="rounded-full bg-agent-business-improver/15 px-2 py-0.5 text-[10px] font-medium text-agent-business-improver">
           {data.status || "Active"}
         </span>
       </div>
 
-      <h4 className="font-display text-xs font-semibold text-[#F3F4F6] line-clamp-2 leading-tight">
+      <h4 className="font-display text-xs font-semibold text-ink line-clamp-2 leading-tight">
         {data.title || data.label}
       </h4>
 
       {data.density !== "compact" && data.description && (
-        <p className="mt-1.5 text-[11px] text-[#9CA3AF] line-clamp-2 leading-relaxed">
+        <p className="mt-1.5 text-[11px] text-faint line-clamp-2 leading-relaxed">
           {data.description}
         </p>
       )}
 
       {data.density !== "compact" && (
-        <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-1.5 text-[10px] text-[#9CA3AF]">
-          <span className="text-[#A78BFA] font-medium">Enterprise Scope</span>
+        <div className="mt-2.5 flex items-center justify-between border-t border-border-soft pt-1.5 text-[10px] text-faint">
+          <span className="text-agent-business-improver font-medium">Enterprise Scope</span>
           <span>Core Horizon</span>
         </div>
       )}
@@ -91,47 +91,47 @@ export const EpicNode: React.FC<NodeProps<GraphNodePayload>> = ({ data, selected
         isDimmed ? "opacity-25" : "opacity-100"
       } ${
         data.isCriticalPath
-          ? "border-pink-500/80 ring-2 ring-pink-500/20"
+          ? "border-agent-designer/80 ring-2 ring-agent-designer/20"
           : selected || isHighlighted
-          ? "border-[#A855F7] ring-2 ring-[#A855F7]/30 scale-[1.02]"
-          : "border-[#A855F7]/30 hover:border-[#A855F7]/80"
-      } bg-[#161626] ${data.density === "compact" ? "p-2 w-[180px]" : "p-3 w-[240px]"}`}
+          ? "border-agent-business-improver/30 ring-2 ring-agent-business-improver/30 scale-[1.02]"
+          : "border-agent-business-improver/30 hover:border-agent-business-improver/80"
+      } bg-panel-alt ${data.density === "compact" ? "p-2 w-[180px]" : "p-3 w-[240px]"}`}
       id={`graph-node-${data.id}`}
     >
       <Handle
         type="target"
         position={targetPos}
-        className="!bg-[#A855F7] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-agent-business-improver !w-2.5 !h-2.5 !border-2 !border-border"
       />
       <Handle
         type="source"
         position={sourcePos}
-        className="!bg-[#A855F7] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-agent-business-improver !w-2.5 !h-2.5 !border-2 !border-border"
       />
 
       <div className="flex items-center justify-between gap-1.5 mb-1">
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-[#D8B4FE]">
-          <Zap size={11} className="shrink-0 text-[#C084FC]" />
+        <span className="flex items-center gap-1 text-[10px] font-semibold text-agent-business-improver">
+          <Zap size={11} className="shrink-0 text-agent-business-improver" />
           Epic
         </span>
         <div className="flex items-center gap-1">
           {data.isCriticalPath && (
-            <span className="flex items-center gap-0.5 rounded bg-pink-500/20 px-1 py-0.2 text-[9px] font-semibold text-pink-300">
+            <span className="flex items-center gap-0.5 rounded bg-agent-designer/20 px-1 py-0.2 text-[9px] font-semibold text-agent-designer">
               <Flame size={9} /> Path
             </span>
           )}
-          <span className="rounded bg-[#A855F7]/20 px-1.5 py-0.2 text-[10px] font-mono text-[#E9D5FF]">
+          <span className="rounded bg-agent-business-improver/20 px-1.5 py-0.2 text-[10px] font-mono text-agent-business-improver">
             {data.priority || "P1"}
           </span>
         </div>
       </div>
 
-      <h4 className="text-xs font-medium text-[#F3F4F6] line-clamp-2 leading-tight">
+      <h4 className="text-xs font-medium text-ink line-clamp-2 leading-tight">
         {data.title || data.label}
       </h4>
 
       {data.density !== "compact" && (
-        <div className="mt-2 flex items-center justify-between text-[10px] text-[#9CA3AF] border-t border-white/5 pt-1">
+        <div className="mt-2 flex items-center justify-between text-[10px] text-faint border-t border-border-soft pt-1">
           <span>{data.quarter || "Q1"}</span>
           <span>{data.duration || "2 weeks"}</span>
         </div>
@@ -151,40 +151,40 @@ export const StoryNode: React.FC<NodeProps<GraphNodePayload>> = ({ data, selecte
         isDimmed ? "opacity-25" : "opacity-100"
       } ${
         data.isCriticalPath
-          ? "border-pink-500/80 ring-2 ring-pink-500/20"
+          ? "border-agent-designer/80 ring-2 ring-agent-designer/20"
           : selected || isHighlighted
-          ? "border-[#06B6D4] ring-2 ring-[#06B6D4]/30 scale-[1.02]"
-          : "border-[#06B6D4]/30 hover:border-[#06B6D4]/80"
-      } bg-[#121A24] ${data.density === "compact" ? "p-2 w-[180px]" : "p-3 w-[230px]"}`}
+          ? "border-info/30 ring-2 ring-info/30 scale-[1.02]"
+          : "border-info/30 hover:border-info/80"
+      } bg-panel-alt ${data.density === "compact" ? "p-2 w-[180px]" : "p-3 w-[230px]"}`}
       id={`graph-node-${data.id}`}
     >
       <Handle
         type="target"
         position={targetPos}
-        className="!bg-[#06B6D4] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-info !w-2.5 !h-2.5 !border-2 !border-border"
       />
       <Handle
         type="source"
         position={sourcePos}
-        className="!bg-[#06B6D4] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-info !w-2.5 !h-2.5 !border-2 !border-border"
       />
 
       <div className="flex items-center justify-between gap-1 mb-1">
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-[#67E8F9]">
+        <span className="flex items-center gap-1 text-[10px] font-semibold text-accent">
           <BookOpen size={11} className="shrink-0" />
           Story
         </span>
-        <span className="rounded bg-[#06B6D4]/20 px-1.5 py-0.2 text-[10px] font-mono text-[#A5F3FC]">
+        <span className="rounded bg-info/20 px-1.5 py-0.2 text-[10px] font-mono text-accent">
           {data.points ? `${data.points} pts` : "3 pts"}
         </span>
       </div>
 
-      <h4 className="text-xs font-medium text-[#F3F4F6] line-clamp-2 leading-tight">
+      <h4 className="text-xs font-medium text-ink line-clamp-2 leading-tight">
         {data.title || data.label}
       </h4>
 
       {data.density !== "compact" && (
-        <div className="mt-2 flex items-center justify-between text-[10px] text-[#9CA3AF] border-t border-white/5 pt-1">
+        <div className="mt-2 flex items-center justify-between text-[10px] text-faint border-t border-border-soft pt-1">
           <span className="capitalize">{data.status || "todo"}</span>
           <span>{data.priority || "P1"}</span>
         </div>
@@ -206,65 +206,65 @@ export const TaskNode: React.FC<NodeProps<GraphNodePayload>> = ({ data, selected
         isDimmed ? "opacity-25" : "opacity-100"
       } ${
         isBlocked
-          ? "border-amber-500/80 ring-2 ring-amber-500/20 bg-[#221B14]"
+          ? "border-warn/80 ring-2 ring-warn/20 bg-panel-alt"
           : data.isCriticalPath
-          ? "border-pink-500/80 ring-2 ring-pink-500/20 bg-[#1A1420]"
+          ? "border-agent-designer/80 ring-2 ring-agent-designer/20 bg-panel-alt"
           : isDone
-          ? "border-emerald-500/40 bg-[#121F1A]"
+          ? "border-ok/40 bg-panel-alt"
           : selected || isHighlighted
-          ? "border-[#10B981] ring-2 ring-[#10B981]/30 scale-[1.02] bg-[#121F1A]"
-          : "border-[#10B981]/30 hover:border-[#10B981]/70 bg-[#121E19]"
+          ? "border-ok/30 ring-2 ring-ok/30 scale-[1.02] bg-panel-alt"
+          : "border-ok/30 hover:border-ok/70 bg-panel-alt"
       } ${data.density === "compact" ? "p-2 w-[180px]" : "p-3 w-[230px]"}`}
       id={`graph-node-${data.id}`}
     >
       <Handle
         type="target"
         position={targetPos}
-        className={`!w-2.5 !h-2.5 !border-2 !border-[#0D0D14] ${
-          isBlocked ? "!bg-amber-400" : "!bg-[#10B981]"
+        className={`!w-2.5 !h-2.5 !border-2 !border-border ${
+          isBlocked ? "!bg-warn" : "!bg-ok"
         }`}
       />
       <Handle
         type="source"
         position={sourcePos}
-        className={`!w-2.5 !h-2.5 !border-2 !border-[#0D0D14] ${
-          isBlocked ? "!bg-amber-400" : "!bg-[#10B981]"
+        className={`!w-2.5 !h-2.5 !border-2 !border-border ${
+          isBlocked ? "!bg-warn" : "!bg-ok"
         }`}
       />
 
       <div className="flex items-center justify-between gap-1 mb-1">
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-[#6EE7B7]">
+        <span className="flex items-center gap-1 text-[10px] font-semibold text-ok">
           {isDone ? (
-            <CheckCircle2 size={11} className="text-emerald-400" />
+            <CheckCircle2 size={11} className="text-ok" />
           ) : (
-            <CheckSquare size={11} className="text-emerald-400" />
+            <CheckSquare size={11} className="text-ok" />
           )}
           Task
         </span>
         <div className="flex items-center gap-1">
           {isBlocked && (
-            <span className="flex items-center gap-0.5 rounded bg-amber-500/20 px-1 py-0.2 text-[9px] font-semibold text-amber-300 animate-pulse">
+            <span className="flex items-center gap-0.5 rounded bg-warn/20 px-1 py-0.2 text-[9px] font-semibold text-warn animate-pulse">
               <AlertTriangle size={9} /> Blocked
             </span>
           )}
-          <span className="rounded bg-emerald-500/15 px-1.5 py-0.2 text-[10px] font-mono text-emerald-300">
+          <span className="rounded bg-ok/15 px-1.5 py-0.2 text-[10px] font-mono text-ok">
             {data.priority || "P1"}
           </span>
         </div>
       </div>
 
-      <h4 className="text-xs font-medium text-[#F3F4F6] line-clamp-2 leading-tight">
+      <h4 className="text-xs font-medium text-ink line-clamp-2 leading-tight">
         {data.title || data.label}
       </h4>
 
       {data.density !== "compact" && (
-        <div className="mt-2 flex items-center justify-between text-[10px] text-[#9CA3AF] border-t border-white/5 pt-1">
+        <div className="mt-2 flex items-center justify-between text-[10px] text-faint border-t border-border-soft pt-1">
           <span className="flex items-center gap-1 truncate max-w-[120px]">
-            <User size={10} className="shrink-0 text-slate-400" />
+            <User size={10} className="shrink-0 text-faint" />
             {data.assignee || "AI Core"}
           </span>
           <span className="flex items-center gap-1">
-            <Clock size={10} className="shrink-0 text-slate-400" />
+            <Clock size={10} className="shrink-0 text-faint" />
             {data.duration || "4h"}
           </span>
         </div>
@@ -285,46 +285,46 @@ export const ExecutionNode: React.FC<NodeProps<GraphNodePayload>> = ({ data, sel
         isDimmed ? "opacity-25" : "opacity-100"
       } ${
         isRunning
-          ? "border-amber-400 ring-2 ring-amber-400/30 animate-pulse bg-[#241C12]"
+          ? "border-warn/30 ring-2 ring-warn/30 animate-pulse bg-panel-alt"
           : selected || isHighlighted
-          ? "border-[#F59E0B] ring-2 ring-[#F59E0B]/30 scale-[1.02] bg-[#1E1810]"
-          : "border-[#F59E0B]/30 hover:border-[#F59E0B]/80 bg-[#1C160E]"
+          ? "border-accent/30 ring-2 ring-accent/30 scale-[1.02] bg-panel-alt"
+          : "border-accent/30 hover:border-accent/80 bg-panel-alt"
       } ${data.density === "compact" ? "p-2 w-[170px]" : "p-2.5 w-[210px]"}`}
       id={`graph-node-${data.id}`}
     >
       <Handle
         type="target"
         position={targetPos}
-        className="!bg-[#F59E0B] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-accent !w-2.5 !h-2.5 !border-2 !border-border"
       />
       <Handle
         type="source"
         position={sourcePos}
-        className="!bg-[#F59E0B] !w-2.5 !h-2.5 !border-2 !border-[#0D0D14]"
+        className="!bg-accent !w-2.5 !h-2.5 !border-2 !border-border"
       />
 
       <div className="flex items-center justify-between gap-1 mb-1">
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-[#FCD34D]">
+        <span className="flex items-center gap-1 text-[10px] font-semibold text-warn">
           <Bot size={11} className="shrink-0" />
           Agent Run
         </span>
         <span
           className={`rounded px-1.5 py-0.2 text-[9px] font-mono uppercase ${
             isRunning
-              ? "bg-amber-400/20 text-amber-300"
-              : "bg-white/10 text-slate-300"
+              ? "bg-warn/20 text-warn"
+              : "bg-ink/10 text-muted"
           }`}
         >
           {data.status || "ready"}
         </span>
       </div>
 
-      <h4 className="text-xs font-medium text-[#F3F4F6] line-clamp-1 leading-tight">
+      <h4 className="text-xs font-medium text-ink line-clamp-1 leading-tight">
         {data.agent || data.label}
       </h4>
 
       {data.density !== "compact" && (
-        <p className="mt-1 text-[10px] text-[#9CA3AF] truncate">
+        <p className="mt-1 text-[10px] text-faint truncate">
           {data.description || "Synthesizing code artifact"}
         </p>
       )}
@@ -343,24 +343,24 @@ export const FileNode: React.FC<NodeProps<GraphNodePayload>> = ({ data, selected
         isDimmed ? "opacity-25" : "opacity-100"
       } ${
         selected || isHighlighted
-          ? "border-sky-400 ring-2 ring-sky-400/30 scale-[1.02] bg-[#161B24]"
-          : "border-slate-700/50 hover:border-slate-500 bg-[#12161F]"
+          ? "border-transparent ring-2 ring-info/30 scale-[1.02] bg-panel-alt"
+          : "border-border hover:border-border bg-panel-alt"
       } p-2 w-[180px]`}
       id={`graph-node-${data.id}`}
     >
       <Handle
         type="target"
         position={targetPos}
-        className="!bg-slate-400 !w-2 !h-2 !border-2 !border-[#0D0D14]"
+        className="!bg-ink/30 !w-2 !h-2 !border-2 !border-border"
       />
       <Handle
         type="source"
         position={sourcePos}
-        className="!bg-slate-400 !w-2 !h-2 !border-2 !border-[#0D0D14]"
+        className="!bg-ink/30 !w-2 !h-2 !border-2 !border-border"
       />
 
-      <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-        <FileCode size={12} className="shrink-0 text-sky-400" />
+      <div className="flex items-center gap-1.5 text-[11px] text-muted">
+        <FileCode size={12} className="shrink-0 text-accent" />
         <span className="font-mono text-[10px] truncate" title={data.title}>
           {data.label}
         </span>
@@ -380,25 +380,25 @@ export const CommitNode: React.FC<NodeProps<GraphNodePayload>> = ({ data, select
         isDimmed ? "opacity-25" : "opacity-100"
       } ${
         selected || isHighlighted
-          ? "border-purple-400 ring-2 ring-purple-400/30 scale-[1.02] bg-[#1A1624]"
-          : "border-zinc-700/50 hover:border-zinc-500 bg-[#14141C]"
+          ? "border-transparent ring-2 ring-agent-business-improver/30 scale-[1.02] bg-panel-alt"
+          : "border-border hover:border-border bg-panel-alt"
       } p-2 w-[160px]`}
       id={`graph-node-${data.id}`}
     >
       <Handle
         type="target"
         position={targetPos}
-        className="!bg-zinc-400 !w-2 !h-2 !border-2 !border-[#0D0D14]"
+        className="!bg-ink/30 !w-2 !h-2 !border-2 !border-border"
       />
       <Handle
         type="source"
         position={sourcePos}
-        className="!bg-zinc-400 !w-2 !h-2 !border-2 !border-[#0D0D14]"
+        className="!bg-ink/30 !w-2 !h-2 !border-2 !border-border"
       />
 
-      <div className="flex items-center gap-1.5 text-[11px] text-zinc-300">
-        <GitCommit size={12} className="shrink-0 text-purple-400" />
-        <span className="font-mono text-[10px] text-purple-300">{data.label}</span>
+      <div className="flex items-center gap-1.5 text-[11px] text-muted">
+        <GitCommit size={12} className="shrink-0 text-agent-business-improver" />
+        <span className="font-mono text-[10px] text-agent-business-improver">{data.label}</span>
       </div>
     </div>
   );

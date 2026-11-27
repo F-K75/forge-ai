@@ -135,24 +135,24 @@ export const AudioBriefingCard: React.FC<{
   ];
 
   return (
-    <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#12141D] p-4 text-neutral-900 dark:text-neutral-100 shadow-xs transition-all">
+    <div className="rounded-2xl border border-border bg-panel p-4 text-ink shadow-xs transition-all">
       {/* Header Row */}
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-2xs">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-warn/10 text-warn border border-warn/20 shadow-2xs">
             <Volume2 size={16} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100 truncate">
+              <span className="text-xs font-semibold text-ink truncate">
                 {audio.title}
               </span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-warn/10 text-warn border border-warn/20">
                 VOICE BRIEF
               </span>
             </div>
-            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block truncate">
-              Narrator: <strong className="text-neutral-700 dark:text-neutral-300">{audio.narrator}</strong> · {audio.duration}
+            <span className="text-[11px] text-muted block truncate">
+              Narrator: <strong className="text-ink">{audio.narrator}</strong> · {audio.duration}
             </span>
           </div>
         </div>
@@ -162,7 +162,7 @@ export const AudioBriefingCard: React.FC<{
           <button
             type="button"
             onClick={cycleSpeed}
-            className="h-7 px-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            className="h-7 px-2.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
             title="Cycle playback speed"
           >
             {speed}x
@@ -170,16 +170,16 @@ export const AudioBriefingCard: React.FC<{
           <button
             type="button"
             onClick={() => setIsMuted(!isMuted)}
-            className="h-7 w-7 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-300 transition-all cursor-pointer shadow-2xs"
+            className="h-7 w-7 rounded-lg border border-border bg-panel hover:bg-ink/5 flex items-center justify-center text-ink transition-all cursor-pointer shadow-2xs"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX size={13} className="text-rose-500" /> : <Volume2 size={13} />}
+            {isMuted ? <VolumeX size={13} className="text-error" /> : <Volume2 size={13} />}
           </button>
         </div>
       </div>
 
       {/* Reactive Frequency Equalizer */}
-      <div className="flex items-end gap-1 h-10 px-3 py-1.5 bg-amber-500/10 dark:bg-neutral-950/60 rounded-xl border border-amber-500/20 my-2.5 overflow-hidden">
+      <div className="flex items-end gap-1 h-10 px-3 py-1.5 bg-warn/10 rounded-xl border border-warn/20 my-2.5 overflow-hidden">
         {frequencies.map((f, i) => {
           const dynamicHeight = isPlaying
             ? Math.max(18, Math.min(100, f + Math.sin(Date.now() / 150 + i * 0.8) * 30))
@@ -188,7 +188,7 @@ export const AudioBriefingCard: React.FC<{
             <div
               key={i}
               className={`flex-1 rounded-t-sm transition-all duration-150 ${
-                isPlaying ? 'bg-amber-500 dark:bg-amber-400' : 'bg-neutral-300 dark:bg-neutral-700'
+                isPlaying ? 'bg-warn' : 'bg-surface-high'
               }`}
               style={{
                 height: `${dynamicHeight}%`,
@@ -201,17 +201,17 @@ export const AudioBriefingCard: React.FC<{
 
       {/* Progress Bar & Status */}
       <div className="space-y-1 mb-3">
-        <div className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-surface-high rounded-full overflow-hidden">
           <div
-            className="h-full bg-amber-500 rounded-full transition-all duration-300"
+            className="h-full bg-warn rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex justify-between text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+        <div className="flex justify-between text-[10px] font-semibold text-muted">
           <span className="flex items-center gap-1">
             <span
               className={`h-1.5 w-1.5 rounded-full ${
-                isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'
+                isPlaying ? 'bg-ok animate-pulse' : 'bg-ink/30'
               }`}
             />
             {isPlaying ? 'Playing briefing' : progress > 0 ? 'Paused' : 'Ready to stream'}
@@ -221,14 +221,14 @@ export const AudioBriefingCard: React.FC<{
       </div>
 
       {/* Control Actions */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
         <button
           type="button"
           onClick={handleTogglePlay}
-          className={`h-8 px-4 rounded-xl flex items-center gap-2 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-98 ${
+          className={`h-8 px-4 rounded-pill flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-98 ${
             isPlaying
-              ? 'bg-rose-600 hover:bg-rose-700 text-white'
-              : 'bg-amber-500 hover:bg-amber-600 text-neutral-950 font-black'
+              ? 'bg-error hover:bg-error/90 text-on-ink'
+              : 'bg-warn hover:bg-warn/90 text-on-ink font-semibold'
           }`}
         >
           {isPlaying ? (
@@ -249,7 +249,7 @@ export const AudioBriefingCard: React.FC<{
             <button
               type="button"
               onClick={() => setShowTranscript(!showTranscript)}
-              className="h-8 px-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold flex items-center gap-1.5 text-neutral-700 dark:text-neutral-200 transition-all cursor-pointer shadow-2xs"
+              className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer shadow-2xs"
             >
               <FileText size={12} />
               <span>{showTranscript ? 'Hide Script' : 'Transcript'}</span>
@@ -258,10 +258,10 @@ export const AudioBriefingCard: React.FC<{
             <button
               type="button"
               onClick={copyTranscript}
-              className="h-8 w-8 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 transition-all cursor-pointer shadow-2xs"
+              className="h-8 w-8 rounded-xl border border-border bg-panel hover:bg-ink/5 flex items-center justify-center text-ink transition-all cursor-pointer shadow-2xs"
               title="Copy transcript text"
             >
-              {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+              {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
             </button>
           </div>
         )}
@@ -269,12 +269,12 @@ export const AudioBriefingCard: React.FC<{
 
       {/* Transcript Accordion */}
       {showTranscript && (
-        <div className="mt-3 p-3.5 bg-white dark:bg-neutral-850 rounded-xl border border-neutral-200 dark:border-neutral-750 text-xs leading-relaxed space-y-1.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500 uppercase pb-1 border-b border-neutral-100 dark:border-neutral-800">
+        <div className="mt-3 p-3.5 bg-panel dark:bg-neutral-850 rounded-xl border border-border dark:border-neutral-750 text-xs leading-relaxed space-y-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-[10px] font-semibold text-muted uppercase pb-1 border-b border-border-soft">
             <span>Narrated Intelligence Script</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">VOICE SYNTHESIZED</span>
+            <span className="text-ok font-semibold">VOICE SYNTHESIZED</span>
           </div>
-          <p className="text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap text-xs font-normal">
+          <p className="text-ink whitespace-pre-wrap text-xs font-normal">
             {audio.script}
           </p>
         </div>
@@ -292,31 +292,31 @@ export const ChartMediaCard: React.FC<{
   const [selectedPoint, setSelectedPoint] = useState<any | null>(null);
 
   return (
-    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 text-neutral-900 dark:text-neutral-100 shadow-xs transition-all">
+    <div className="rounded-2xl border border-border bg-panel p-4 text-ink shadow-xs transition-all">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-neutral-100 dark:border-neutral-800">
+      <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-border-soft">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10 text-info border border-info/20">
             <BarChart3 size={15} />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+            <h4 className="text-xs font-semibold text-ink">
               {chart.title}
             </h4>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">{chart.description}</p>
+            <p className="text-[11px] text-muted">{chart.description}</p>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[10px] font-bold uppercase">
+        <span className="px-2 py-0.5 rounded-full bg-ok/10 text-ok border border-ok/20 text-[10px] font-semibold uppercase">
           Live Telemetry
         </span>
       </div>
 
       {/* SVG-based interactive chart */}
-      <div className="h-44 w-full relative pt-3 pb-6 px-3 bg-neutral-50 dark:bg-neutral-950/60 rounded-xl border border-neutral-200/80 dark:border-neutral-800/80 my-2.5">
+      <div className="h-44 w-full relative pt-3 pb-6 px-3 bg-panel rounded-xl border border-border my-2.5">
         {chart.type === 'burndown' ? (
           <div className="h-full flex items-end justify-between gap-2 pt-4 relative">
             {/* Target 0 baseline */}
-            <div className="absolute left-0 right-0 bottom-6 border-b border-dashed border-neutral-300 dark:border-neutral-700" />
+            <div className="absolute left-0 right-0 bottom-6 border-b border-dashed border-border" />
 
             {chart.data.map((item, idx) => {
               const maxVal = 50;
@@ -336,7 +336,7 @@ export const ChartMediaCard: React.FC<{
                     {/* Ideal bar */}
                     <div
                       style={{ height: `${idealH}%` }}
-                      className="w-2 sm:w-3 bg-neutral-300 dark:bg-neutral-700 rounded-t-xs transition-all group-hover:bg-neutral-400"
+                      className="w-2 sm:w-3 bg-surface-high rounded-t-xs transition-all group-hover:bg-ink/30"
                       title={`Ideal: ${item.ideal} pts`}
                     />
                     {/* Actual bar */}
@@ -344,13 +344,13 @@ export const ChartMediaCard: React.FC<{
                       style={{ height: `${actualH}%` }}
                       className={`w-3 sm:w-4 rounded-t-xs transition-all ${
                         item.actual <= item.ideal
-                          ? 'bg-emerald-500 shadow-xs'
-                          : 'bg-amber-500 shadow-xs'
+                          ? 'bg-ok shadow-xs'
+                          : 'bg-warn shadow-xs'
                       }`}
                       title={`Actual: ${item.actual} pts`}
                     />
                   </div>
-                  <span className="text-[10px] font-semibold mt-1.5 truncate max-w-full text-center text-neutral-600 dark:text-neutral-400">
+                  <span className="text-[10px] font-semibold mt-1.5 truncate max-w-full text-center text-muted">
                     {item.day}
                   </span>
                 </div>
@@ -372,11 +372,11 @@ export const ChartMediaCard: React.FC<{
                 >
                   <div
                     style={{ height: `${heightPct}%` }}
-                    className="w-8 sm:w-10 rounded-t-md bg-blue-500 group-hover:bg-blue-600 transition-all flex items-center justify-center text-[10px] font-bold text-white shadow-xs"
+                    className="w-8 sm:w-10 rounded-t-md bg-ink group-hover:bg-ink/90 transition-all flex items-center justify-center text-[10px] font-semibold text-on-ink shadow-xs"
                   >
                     {val}
                   </div>
-                  <span className="text-[10px] font-semibold mt-1.5 truncate max-w-full text-center text-neutral-600 dark:text-neutral-400">
+                  <span className="text-[10px] font-semibold mt-1.5 truncate max-w-full text-center text-muted">
                     {item.name || item.epic || `Epic ${idx + 1}`}
                   </span>
                 </div>
@@ -389,22 +389,22 @@ export const ChartMediaCard: React.FC<{
       {/* Chart Legend & Selected Point Inspector */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 font-medium text-neutral-700 dark:text-neutral-300">
-            <span className="h-2 w-2 bg-emerald-500 rounded-full inline-block" />
+          <span className="flex items-center gap-1.5 font-medium text-ink">
+            <span className="h-2 w-2 bg-ok rounded-full inline-block" />
             Actual Burn
           </span>
-          <span className="flex items-center gap-1.5 font-medium text-neutral-500 dark:text-neutral-400">
-            <span className="h-2 w-2 bg-neutral-300 dark:bg-neutral-700 rounded-full inline-block" />
+          <span className="flex items-center gap-1.5 font-medium text-muted">
+            <span className="h-2 w-2 bg-surface-high rounded-full inline-block" />
             Ideal Trajectory
           </span>
         </div>
 
         {selectedPoint ? (
-          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold">
+          <span className="px-2.5 py-0.5 rounded-full bg-info/10 text-info border border-info/30 text-xs font-semibold">
             {selectedPoint.day}: {selectedPoint.actual} pts remaining ({selectedPoint.ideal} ideal)
           </span>
         ) : (
-          <span className="text-neutral-400 text-[11px]">Click any sprint day to inspect status</span>
+          <span className="text-faint text-[11px]">Click any sprint day to inspect status</span>
         )}
       </div>
     </div>
@@ -442,32 +442,32 @@ ${story.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
   const totalCount = story.acceptanceCriteria.length;
 
   return (
-    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 text-neutral-900 dark:text-neutral-100 shadow-xs transition-all">
+    <div className="rounded-2xl border border-border bg-panel p-4 text-ink shadow-xs transition-all">
       {/* Top Header */}
-      <div className="flex items-start justify-between gap-2 mb-2.5 pb-2.5 border-b border-neutral-100 dark:border-neutral-800">
+      <div className="flex items-start justify-between gap-2 mb-2.5 pb-2.5 border-b border-border-soft">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded-md bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950 text-[10px] font-bold">
+            <span className="px-2 py-0.5 rounded-md bg-ink text-on-ink text-[10px] font-semibold">
               {story.id}
             </span>
-            <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 truncate max-w-[160px]">
+            <span className="text-[11px] font-semibold text-muted truncate max-w-[160px]">
               {story.epic}
             </span>
           </div>
-          <h4 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 leading-snug">
+          <h4 className="text-sm font-semibold text-ink leading-snug">
             {story.title}
           </h4>
         </div>
 
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-[11px] font-bold">
+          <span className="px-2.5 py-0.5 rounded-full bg-ok/10 text-ok border border-ok/30 text-[11px] font-semibold">
             {story.investScore}% INVEST
           </span>
           <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-[10px] font-bold">
+            <span className="px-2 py-0.5 rounded-md bg-warn/10 text-warn border border-warn/30 text-[10px] font-semibold">
               {story.points} PTS
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/50 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-[10px] font-bold uppercase">
+            <span className="px-2 py-0.5 rounded-md bg-error/10 text-error border border-error/30 text-[10px] font-semibold uppercase">
               {story.priority}
             </span>
           </div>
@@ -476,9 +476,9 @@ ${story.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
 
       {/* Acceptance Criteria Checklist */}
       <div className="space-y-2 my-3">
-        <div className="flex items-center justify-between text-[11px] font-bold text-neutral-500 uppercase">
+        <div className="flex items-center justify-between text-[11px] font-semibold text-muted uppercase">
           <span>Acceptance Criteria:</span>
-          <span className="text-emerald-600 dark:text-emerald-400">
+          <span className="text-ok">
             {completedCount}/{totalCount} Completed
           </span>
         </div>
@@ -492,22 +492,22 @@ ${story.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
                 onClick={() => toggleCheck(idx)}
                 className={`flex items-start gap-2.5 p-2 rounded-xl border cursor-pointer transition-all ${
                   isChecked
-                    ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300/60 dark:border-emerald-800/60 line-through opacity-75'
-                    : 'bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                    ? 'bg-ok/20 border-ok/60 line-through opacity-75'
+                    : 'bg-panel border-border hover:bg-ink/5'
                 }`}
               >
                 <button
                   type="button"
-                  className="mt-0.5 shrink-0 text-neutral-700 dark:text-neutral-300 cursor-pointer"
+                  className="mt-0.5 shrink-0 text-ink cursor-pointer"
                   aria-label={isChecked ? 'Uncheck criterion' : 'Check criterion'}
                 >
                   {isChecked ? (
-                    <CheckSquare size={15} className="text-emerald-600" />
+                    <CheckSquare size={15} className="text-ok" />
                   ) : (
                     <Square size={15} />
                   )}
                 </button>
-                <span className="text-xs text-neutral-800 dark:text-neutral-200 leading-relaxed font-normal">
+                <span className="text-xs text-ink leading-relaxed font-normal">
                   {criterion}
                 </span>
               </div>
@@ -517,11 +517,11 @@ ${story.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
       </div>
 
       {/* Action Footer */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
         <button
           type="button"
           onClick={() => toast.success(`Task ${story.id} queued for sprint board execution`)}
-          className="h-8 px-3.5 rounded-xl bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950 hover:opacity-90 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+          className="h-8 px-3.5 rounded-pill bg-ink text-on-ink hover:opacity-90 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
         >
           <BookmarkPlus size={13} />
           <span>Add to Sprint Board</span>
@@ -530,9 +530,9 @@ ${story.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
         <button
           type="button"
           onClick={copyStoryMarkdown}
-          className="h-8 px-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold flex items-center gap-1.5 text-neutral-700 dark:text-neutral-200 transition-all cursor-pointer shadow-2xs"
+          className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 text-ink transition-all cursor-pointer shadow-2xs"
         >
-          {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+          {copied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
           <span>{copied ? 'Copied' : 'Copy Story'}</span>
         </button>
       </div>
@@ -551,36 +551,36 @@ export const DiagramMediaCard: React.FC<{
   const getNodeBadge = (type: string) => {
     switch (type) {
       case 'client':
-        return 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20';
+        return 'bg-info/10 text-info border-info/20';
       case 'gateway':
-        return 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20';
+        return 'bg-warn/10 text-warn border-warn/20';
       case 'service':
-        return 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/20';
+        return 'bg-ok/10 text-ok border-ok/20';
       case 'storage':
-        return 'bg-purple-500/10 text-purple-800 dark:text-purple-300 border-purple-500/20';
+        return 'bg-agent-business-improver/10 text-agent-business-improver border-agent-business-improver/20';
       default:
-        return 'bg-neutral-100 text-neutral-800 border-neutral-300';
+        return 'bg-panel-alt text-ink border-border';
     }
   };
 
   const selectedNodeObj = diagram.nodes.find((n) => n.id === activeNode) || diagram.nodes[0];
 
   return (
-    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 text-neutral-900 dark:text-neutral-100 shadow-xs transition-all">
+    <div className="rounded-2xl border border-border bg-panel p-4 text-ink shadow-xs transition-all">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 mb-2.5 pb-2.5 border-b border-neutral-100 dark:border-neutral-800">
+      <div className="flex items-center justify-between gap-2 mb-2.5 pb-2.5 border-b border-border-soft">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-agent-business-improver/10 text-agent-business-improver border border-agent-business-improver/20">
             <Layers size={15} />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+            <h4 className="text-xs font-semibold text-ink">
               {diagram.title}
             </h4>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">{diagram.description}</p>
+            <p className="text-[11px] text-muted">{diagram.description}</p>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 text-[10px] font-bold uppercase">
+        <span className="px-2 py-0.5 rounded-full bg-agent-business-improver/10 text-agent-business-improver border border-agent-business-improver/30 text-[10px] font-semibold uppercase">
           Topology Mesh
         </span>
       </div>
@@ -596,21 +596,21 @@ export const DiagramMediaCard: React.FC<{
                 onClick={() => setActiveNode(node.id)}
                 className={`p-3 rounded-xl border transition-all cursor-pointer ${
                   isSelected
-                    ? 'border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/40 dark:bg-purple-950/30 shadow-xs'
-                    : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/40'
+                    ? 'border-agent-business-improver/30 ring-2 ring-agent-business-improver/20 bg-agent-business-improver/20 shadow-xs'
+                    : 'border-border hover:border-border bg-panel'
                 }`}
               >
-                <div className="flex items-center justify-between text-[10px] font-bold uppercase mb-1">
+                <div className="flex items-center justify-between text-[10px] font-semibold uppercase mb-1">
                   <span className={`px-1.5 py-0.2 rounded border text-[9px] ${getNodeBadge(node.type)}`}>
                     {node.type}
                   </span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-ok" />
                 </div>
-                <span className="block text-xs font-bold text-neutral-900 dark:text-neutral-100 leading-tight truncate">
+                <span className="block text-xs font-semibold text-ink leading-tight truncate">
                   {node.label}
                 </span>
                 {node.tech && (
-                  <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block mt-1 truncate">
+                  <span className="text-[11px] text-muted block mt-1 truncate">
                     {node.tech}
                   </span>
                 )}
@@ -621,35 +621,35 @@ export const DiagramMediaCard: React.FC<{
 
         {/* Selected Node Spec Details Sheet */}
         {selectedNodeObj && (
-          <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-750 text-xs space-y-1.5">
+          <div className="p-3 rounded-xl bg-panel dark:bg-neutral-850 border border-border dark:border-neutral-750 text-xs space-y-1.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 font-bold text-neutral-900 dark:text-neutral-100">
-                <Cpu size={13} className="text-purple-600 dark:text-purple-400" />
+              <div className="flex items-center gap-1.5 font-semibold text-ink">
+                <Cpu size={13} className="text-agent-business-improver" />
                 <span>Active Layer: {selectedNodeObj.label}</span>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-high text-ink font-semibold">
                 {selectedNodeObj.tech || 'Standard Protocol'}
               </span>
             </div>
-            <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
+            <p className="text-[11px] text-muted leading-relaxed">
               Target SLA: <strong>&lt; 50ms p99 latency</strong> · High-availability multi-zone deployment with circuit breakers and automated health checks.
             </p>
           </div>
         )}
 
         {/* Communication Channels Ribbon */}
-        <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-750 text-xs">
-          <span className="font-bold text-[10px] uppercase text-neutral-500 block mb-1.5">
+        <div className="p-2.5 rounded-xl bg-panel dark:bg-neutral-850 border border-border dark:border-neutral-750 text-xs">
+          <span className="font-semibold text-[10px] uppercase text-muted block mb-1.5">
             Inter-Service Data Channels:
           </span>
           <div className="flex flex-wrap items-center gap-1.5">
             {diagram.edges.map((edge, i) => (
               <span
                 key={i}
-                className="px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-[10px] font-mono font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1"
+                className="px-2 py-0.5 rounded-md border border-border bg-panel text-[10px] font-mono font-medium text-ink flex items-center gap-1"
               >
                 <span>{edge.from}</span>
-                <ArrowRight size={10} className="text-neutral-400" />
+                <ArrowRight size={10} className="text-faint" />
                 <span>{edge.to}</span>
                 {edge.label && <span className="opacity-70 text-[9px]">[{edge.label}]</span>}
               </span>
@@ -677,16 +677,16 @@ export const CodeSnippetMediaCard: React.FC<{
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 text-neutral-100 p-4 shadow-xs font-mono text-xs">
-      <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-neutral-800">
+    <div className="rounded-xl border border-border bg-base text-ink p-4 font-mono text-xs">
+      <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-800 text-amber-400 border border-neutral-700 text-[10px]">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-panel-alt text-warn border border-border text-[10px]">
             <Code2 size={13} />
           </div>
-          <span className="px-2 py-0.5 rounded bg-neutral-800 text-[10px] font-bold uppercase text-amber-400">
+          <span className="px-2 py-0.5 rounded bg-panel-alt text-[10px] font-semibold uppercase text-warn">
             {code.language}
           </span>
-          <span className="font-bold text-xs truncate text-neutral-200">
+          <span className="font-semibold text-xs truncate text-muted">
             {code.title}
           </span>
         </div>
@@ -694,19 +694,19 @@ export const CodeSnippetMediaCard: React.FC<{
         <button
           type="button"
           onClick={handleCopy}
-          className="h-7 px-2.5 rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-[10px] font-bold uppercase flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+          className="h-7 px-2.5 rounded-pill border border-border bg-ink hover:bg-ink/90 text-muted text-[10px] font-semibold uppercase flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
         >
-          {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+          {copied ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
           <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
 
-      <pre className="overflow-x-auto p-3 rounded-xl bg-black/60 border border-neutral-850 text-[11px] leading-relaxed text-emerald-400 font-mono scrollbar-thin">
+      <pre className="overflow-x-auto p-3 rounded-xl bg-base/60 border border-neutral-850 text-[11px] leading-relaxed text-ok font-mono scrollbar-thin">
         <code>{code.code}</code>
       </pre>
 
       {code.description && (
-        <p className="mt-2.5 text-[11px] text-neutral-400 font-sans leading-relaxed">
+        <p className="mt-2.5 text-[11px] text-faint font-sans leading-relaxed">
           {code.description}
         </p>
       )}
@@ -748,11 +748,11 @@ export const MixedMediaCard: React.FC<{
           {media.attachments.map((att, i) => (
             <div
               key={i}
-              className="px-2.5 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-xs font-medium flex items-center gap-1.5 shadow-2xs"
+              className="px-2.5 py-1 rounded-lg bg-panel-alt border border-border text-xs font-medium flex items-center gap-1.5 shadow-2xs"
             >
-              <FileText size={12} className="text-amber-500" />
-              <span className="font-semibold text-neutral-800 dark:text-neutral-200">{att.name}</span>
-              <span className="text-[10px] text-neutral-500">({att.size})</span>
+              <FileText size={12} className="text-warn" />
+              <span className="font-semibold text-ink">{att.name}</span>
+              <span className="text-[10px] text-muted">({att.size})</span>
             </div>
           ))}
         </div>

@@ -54,10 +54,10 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
       <div className="flex flex-wrap items-center gap-2">
         {/* Critical Path Metric */}
         <div
-          className="flex items-center gap-1.5 rounded-lg border border-pink-500/20 bg-pink-500/10 px-2.5 py-1 text-xs text-pink-300"
+          className="flex items-center gap-1.5 rounded-lg border border-agent-designer/20 bg-agent-designer/10 px-2.5 py-1 text-xs text-agent-designer"
           title={`Critical Path: longest chain is ${diagnostics.criticalPathLength} nodes`}
         >
-          <Flame size={13} className="text-pink-400" />
+          <Flame size={13} className="text-agent-designer" />
           <span className="font-medium">Path:</span>
           <span className="font-mono font-semibold">{diagnostics.criticalPathLength} hops</span>
         </div>
@@ -66,15 +66,15 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
         <div
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs ${
             diagnostics.blockedTasksCount > 0
-              ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
-              : "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+              ? "border-warn/30 bg-warn/10 text-warn"
+              : "border-ok/25 bg-ok/10 text-ok"
           }`}
           title={`${diagnostics.blockedTasksCount} tasks currently blocked by dependencies`}
         >
           {diagnostics.blockedTasksCount > 0 ? (
-            <AlertTriangle size={13} className="text-amber-400" />
+            <AlertTriangle size={13} className="text-warn" />
           ) : (
-            <CheckCircle2 size={13} className="text-emerald-400" />
+            <CheckCircle2 size={13} className="text-ok" />
           )}
           <span className="font-medium">Blocked:</span>
           <span className="font-mono font-semibold">{diagnostics.blockedTasksCount}</span>
@@ -84,8 +84,8 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
         <div
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs ${
             diagnostics.hasCycles
-              ? "border-red-500/30 bg-red-500/10 text-red-300"
-              : "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+              ? "border-error/30 bg-error/10 text-error"
+              : "border-ok/25 bg-ok/10 text-ok"
           }`}
           title={diagnostics.hasCycles ? "Circular dependency detected!" : "Acyclic DAG verified"}
         >
@@ -100,7 +100,7 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
             onClick={() => onLayoutChange("horizontal")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
               layoutMode === "horizontal"
-                ? "bg-accent text-white shadow-xs"
+                ? "bg-ink text-on-ink shadow-xs"
                 : "text-faint hover:text-ink"
             }`}
             title="Horizontal Layered Architecture (DAG)"
@@ -112,7 +112,7 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
             onClick={() => onLayoutChange("vertical")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
               layoutMode === "vertical"
-                ? "bg-accent text-white shadow-xs"
+                ? "bg-ink text-on-ink shadow-xs"
                 : "text-faint hover:text-ink"
             }`}
             title="Vertical Hierarchical Tree"
@@ -124,7 +124,7 @@ export const GraphHeader: React.FC<GraphHeaderProps> = ({
             onClick={() => onLayoutChange("radial")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
               layoutMode === "radial"
-                ? "bg-accent text-white shadow-xs"
+                ? "bg-ink text-on-ink shadow-xs"
                 : "text-faint hover:text-ink"
             }`}
             title="Concentric Radial Cluster"

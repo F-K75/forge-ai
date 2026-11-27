@@ -4,6 +4,13 @@ export default {
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
+    // `text-base` must stay a font-size utility only. The `base` canvas colour would
+    // otherwise also generate a `text-base` colour rule and silently paint text the
+    // same colour as the background. Use `text-on-ink` for text on solid fills.
+    textColor: ({ theme }) => {
+      const { base: _base, ...rest } = theme("colors") as Record<string, unknown>;
+      return rest;
+    },
     extend: {
       colors: {
         base: "rgb(var(--bg) / <alpha-value>)",
@@ -24,6 +31,8 @@ export default {
         warn: "rgb(var(--warning) / <alpha-value>)",
         error: "rgb(var(--error) / <alpha-value>)",
         info: "rgb(var(--info) / <alpha-value>)",
+        // Text/icon colour that sits on solid ink or status fills (canvas colour)
+        "on-ink": "rgb(var(--bg) / <alpha-value>)",
         ember: "rgb(var(--primary) / <alpha-value>)",
         "ember-glow": "rgb(var(--primary-hover) / <alpha-value>)",
 
@@ -41,29 +50,30 @@ export default {
           "strong-border": "var(--glass-strong-border)",
         },
 
-        "agent-architect": "#2563EB",
-        "agent-business-improver": "#6366F1",
-        "agent-designer": "#8B5CF6",
-        "agent-developer": "#059669",
-        "agent-integration": "#0284C7",
-        "agent-pm": "#D97706",
+        // Agent role hues — restrained, harmonious on the Ember Night canvas (see --agent-* in index.css)
+        "agent-architect": "rgb(var(--agent-architect) / <alpha-value>)",
+        "agent-business-improver": "rgb(var(--agent-business) / <alpha-value>)",
+        "agent-designer": "rgb(var(--agent-designer) / <alpha-value>)",
+        "agent-developer": "rgb(var(--agent-developer) / <alpha-value>)",
+        "agent-integration": "rgb(var(--agent-integration) / <alpha-value>)",
+        "agent-pm": "rgb(var(--agent-pm) / <alpha-value>)",
 
-        // Remapped legacy aliases to Precision Architectural Studio palette
+        // Legacy "brutal" aliases remapped onto Ember Night tokens
         brutal: {
           bg: "rgb(var(--bg) / <alpha-value>)",
           cream: "rgb(var(--surface-container) / <alpha-value>)",
           yellow: "rgb(var(--primary) / <alpha-value>)",
           citron: "rgb(var(--primary) / <alpha-value>)",
           logo: "rgb(var(--primary) / <alpha-value>)",
-          teal: "#0284C7",
-          pink: "#DC2626",
-          cyan: "#0284C7",
-          green: "#059669",
-          lime: "#059669",
+          teal: "rgb(var(--info) / <alpha-value>)",
+          pink: "rgb(var(--error) / <alpha-value>)",
+          cyan: "rgb(var(--info) / <alpha-value>)",
+          green: "rgb(var(--success) / <alpha-value>)",
+          lime: "rgb(var(--success) / <alpha-value>)",
           black: "rgb(var(--on-surface) / <alpha-value>)",
           white: "rgb(var(--surface) / <alpha-value>)",
-          purple: "#6366F1",
-          orange: "#D97706",
+          purple: "rgb(var(--agent-business) / <alpha-value>)",
+          orange: "rgb(var(--warning) / <alpha-value>)",
         },
 
         "land-paper": "rgb(var(--bg) / <alpha-value>)",
@@ -149,19 +159,20 @@ export default {
         m3: "0 1px 2px rgba(15, 23, 42, 0.05)",
         "m3-2": "0 4px 12px -2px rgba(15, 23, 42, 0.07)",
         "m3-3": "0 12px 28px -6px rgba(15, 23, 42, 0.10)",
-        brutal: "0 1px 2px rgba(15, 23, 42, 0.06)",
-        "brutal-xs": "0 1px 2px rgba(15, 23, 42, 0.04)",
-        "brutal-sm": "0 1px 2px rgba(15, 23, 42, 0.05)",
-        "brutal-md": "0 4px 12px -2px rgba(15, 23, 42, 0.07)",
-        "brutal-lg": "0 12px 28px -6px rgba(15, 23, 42, 0.10)",
-        "brutal-xl": "0 20px 44px -8px rgba(15, 23, 42, 0.14)",
-        "brutal-press": "0 1px 1px rgba(15, 23, 42, 0.08)",
-        "brutal-dark": "0 4px 16px rgba(0, 0, 0, 0.35)",
-        "brutal-yellow": "0 2px 10px rgba(37, 99, 235, 0.22)",
-        "brutal-logo": "0 2px 10px rgba(37, 99, 235, 0.22)",
-        "brutal-cyan": "0 2px 10px rgba(2, 132, 199, 0.22)",
-        "brutal-pink": "0 2px 10px rgba(220, 38, 38, 0.22)",
-        "brutal-green": "0 2px 10px rgba(5, 150, 105, 0.22)",
+        // Legacy brutal shadows flattened: Ember Night uses hairlines, not offset shadows
+        brutal: "none",
+        "brutal-xs": "none",
+        "brutal-sm": "none",
+        "brutal-md": "0 8px 24px -12px rgba(0, 0, 0, 0.35)",
+        "brutal-lg": "0 16px 40px -16px rgba(0, 0, 0, 0.45)",
+        "brutal-xl": "0 24px 56px -20px rgba(0, 0, 0, 0.5)",
+        "brutal-press": "none",
+        "brutal-dark": "0 8px 24px -12px rgba(0, 0, 0, 0.45)",
+        "brutal-yellow": "none",
+        "brutal-logo": "none",
+        "brutal-cyan": "none",
+        "brutal-pink": "none",
+        "brutal-green": "none",
       },
       maxWidth: {
         content: "1440px",

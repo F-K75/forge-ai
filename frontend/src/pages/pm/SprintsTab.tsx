@@ -202,15 +202,15 @@ export default function SprintsTab() {
   if (!selectedSprint || sprints.length === 0) {
     return (
       <div id="sprints-tab-empty" className="space-y-6">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-12 text-center shadow-xs space-y-4 max-w-xl mx-auto mt-12">
-          <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto">
+        <div className="rounded-2xl border border-border bg-panel p-12 text-center shadow-xs space-y-4 max-w-xl mx-auto mt-12">
+          <div className="w-14 h-14 rounded-2xl bg-agent-integration/10 border border-agent-integration/30 text-agent-integration flex items-center justify-center mx-auto">
             <Zap size={28} className="fill-current" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-lg font-semibold text-ink">
               No Sprints Planned Yet
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+            <p className="text-xs text-muted mt-1.5 leading-relaxed">
               Plan your first sprint cycle to assign story point commitments, track velocity, and generate autonomous Scrum ceremonies.
             </p>
           </div>
@@ -218,7 +218,7 @@ export default function SprintsTab() {
             id="empty-state-new-sprint-btn"
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="h-10 px-5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+            className="h-10 px-5 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium inline-flex items-center gap-2 transition-all shadow-sm cursor-pointer"
           >
             <Zap size={14} className="fill-current" />
             <span>Plan First Sprint</span>
@@ -267,24 +267,24 @@ export default function SprintsTab() {
       />
 
       {/* 3. Top-Aligned Workspace Navigation Tabs */}
-      <nav id="sprint-workspace-nav" className="flex items-center border-b border-slate-200 dark:border-slate-800 gap-1 overflow-x-auto scrollbar-none">
+      <nav id="sprint-workspace-nav" className="flex items-center border-b border-border gap-1 overflow-x-auto scrollbar-none">
         <button
           id="tab-sprint-backlog"
           type="button"
           onClick={() => setActiveTab("backlog")}
-          className={`h-11 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "backlog"
-              ? "border-teal-600 text-teal-700 dark:text-teal-300"
-              : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+              ? "border-agent-integration/30 text-agent-integration"
+              : "border-transparent text-muted hover:text-ink"
           }`}
         >
           <ListTodo size={15} />
           <span>Sprint Backlog</span>
           <span
-            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+            className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
               activeTab === "backlog"
-                ? "bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-200"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                ? "bg-agent-integration/10 text-agent-integration"
+                : "bg-panel-alt text-muted"
             }`}
           >
             {sprintTasks.length}
@@ -295,10 +295,10 @@ export default function SprintsTab() {
           id="tab-burndown-velocity"
           type="button"
           onClick={() => setActiveTab("charts")}
-          className={`h-11 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "charts"
-              ? "border-teal-600 text-teal-700 dark:text-teal-300"
-              : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+              ? "border-agent-integration/30 text-agent-integration"
+              : "border-transparent text-muted hover:text-ink"
           }`}
         >
           <TrendingDown size={15} />
@@ -309,13 +309,13 @@ export default function SprintsTab() {
           id="tab-scrum-ceremonies"
           type="button"
           onClick={() => setActiveTab("ceremonies")}
-          className={`h-11 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "ceremonies"
-              ? "border-teal-600 text-teal-700 dark:text-teal-300"
-              : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+              ? "border-agent-integration/30 text-agent-integration"
+              : "border-transparent text-muted hover:text-ink"
           }`}
         >
-          <Sparkles size={15} className="text-amber-500" />
+          <Sparkles size={15} className="text-warn" />
           <span>Scrum Ceremonies</span>
         </button>
 
@@ -323,10 +323,10 @@ export default function SprintsTab() {
           id="tab-stories-scope"
           type="button"
           onClick={() => setActiveTab("scope")}
-          className={`h-11 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "scope"
-              ? "border-teal-600 text-teal-700 dark:text-teal-300"
-              : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+              ? "border-agent-integration/30 text-agent-integration"
+              : "border-transparent text-muted hover:text-ink"
           }`}
         >
           <Layers size={15} />

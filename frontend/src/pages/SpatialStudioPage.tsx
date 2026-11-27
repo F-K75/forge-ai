@@ -14,7 +14,7 @@ export default function SpatialStudioPage() {
   const [finish, setFinish] = useState<StudioFinish>("obsidian");
 
   return (
-    <div className="relative flex flex-1 flex-col bg-[#0B101B] text-slate-100">
+    <div className="relative flex flex-1 flex-col bg-panel-alt text-ink">
       {/* Full-bleed interactive Three.js 3D Architecture Viewport */}
       <div className="relative flex-1 min-h-[calc(100dvh-56px)] w-full">
         <ForgeScene3D
@@ -28,13 +28,13 @@ export default function SpatialStudioPage() {
         {/* Compact Left Specialist Selector Rail (solid/rgba surface — zero backdrop-filter over WebGL) */}
         <aside
           aria-label="Specialist Agent Nodes"
-          className="hidden md:flex absolute left-4 top-16 z-10 w-60 flex-col gap-2 rounded-lg border border-slate-700/90 bg-[#0F172A]/95 p-3 shadow-lg"
+          className="hidden md:flex absolute left-4 top-16 z-10 w-60 flex-col gap-2 rounded-lg border border-border bg-base/95 p-3 shadow-lg"
         >
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <span className="font-display text-xs font-semibold text-white">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <span className="font-display text-xs font-semibold text-ink">
               Specialist Topology
             </span>
-            <span className="font-mono text-[10px] text-slate-400 tabular-nums">
+            <span className="font-mono text-[10px] text-faint tabular-nums">
               {FORGE_AGENT_SPECS.length} nodes
             </span>
           </div>
@@ -51,8 +51,8 @@ export default function SpatialStudioPage() {
                   }
                   className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
                     isSelected
-                      ? "bg-blue-600/20 text-white border border-blue-500/40"
-                      : "border border-transparent text-slate-300 hover:bg-slate-800/80 hover:text-white"
+                      ? "bg-info/20 text-ink border border-info/40"
+                      : "border border-transparent text-muted hover:bg-base/80 hover:text-ink"
                   }`}
                 >
                   <span className="flex items-center gap-2 min-w-0">
@@ -62,7 +62,7 @@ export default function SpatialStudioPage() {
                     />
                     <span className="truncate font-medium">{agent.name}</span>
                   </span>
-                  <span className="font-mono text-[10px] text-slate-400 tabular-nums">
+                  <span className="font-mono text-[10px] text-faint tabular-nums">
                     {agent.latencyMs}ms
                   </span>
                 </button>
@@ -70,13 +70,13 @@ export default function SpatialStudioPage() {
             })}
           </div>
 
-          <div className="mt-1 border-t border-slate-800 pt-2.5 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-1 border-t border-border pt-2.5 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-faint">
               <span className="inline-flex items-center gap-1">
-                <Cpu className="h-3 w-3 text-blue-400" />
+                <Cpu className="h-3 w-3 text-accent" />
                 Chassis Finish
               </span>
-              <span className="font-mono text-[10px] uppercase text-slate-300">
+              <span className="font-mono text-[10px] uppercase text-muted">
                 {finish}
               </span>
             </div>
@@ -88,8 +88,8 @@ export default function SpatialStudioPage() {
                   onClick={() => setFinish(f)}
                   className={`rounded px-2 py-1 text-[10px] font-medium capitalize transition-colors ${
                     finish === f
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      ? "bg-ink text-on-ink"
+                      : "bg-panel-alt text-muted hover:bg-surface-high"
                   }`}
                 >
                   {f}
@@ -98,19 +98,19 @@ export default function SpatialStudioPage() {
             </div>
           </div>
 
-          <div className="border-t border-slate-800 pt-2.5 flex items-center justify-between gap-2">
+          <div className="border-t border-border pt-2.5 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => navigate("/p/demo-project/flow")}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-700 hover:text-white"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border bg-base/90 px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-ink/90 hover:text-ink"
             >
-              <Layers className="h-3.5 w-3.5 text-blue-400" />
+              <Layers className="h-3.5 w-3.5 text-accent" />
               <span>2D Flow</span>
             </button>
             <button
               type="button"
               onClick={() => navigate("/p/demo-project/workspace")}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-panel-alt px-2.5 py-1.5 text-xs font-medium text-on-ink transition-colors hover:bg-panel-alt"
             >
               <span>Workspace</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -119,10 +119,10 @@ export default function SpatialStudioPage() {
         </aside>
 
         {/* Bottom-right architectural telemetry summary (solid surface, compact) */}
-        <div className="pointer-events-none hidden xl:flex absolute bottom-4 right-4 z-10 items-center gap-3 rounded-md border border-slate-700/80 bg-[#0F172A]/90 px-3 py-1.5 text-[11px] text-slate-300">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+        <div className="pointer-events-none hidden xl:flex absolute bottom-4 right-4 z-10 items-center gap-3 rounded-md border border-border bg-base/90 px-3 py-1.5 text-[11px] text-muted">
+          <ShieldCheck className="h-3.5 w-3.5 text-ok" />
           <span className="font-mono tabular-nums">6/6 Agents Synchronized</span>
-          <span className="text-slate-600">·</span>
+          <span className="text-muted">·</span>
           <span className="font-mono">PBR Studio IBL</span>
         </div>
       </div>

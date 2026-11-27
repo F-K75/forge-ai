@@ -1,3 +1,4 @@
+import { COLORS } from "./theme";
 import { Compass, TrendingUp, Palette, Code2, Plug, ShieldCheck, type LucideIcon } from "lucide-react";
 
 export interface Agent {
@@ -10,12 +11,12 @@ export interface Agent {
 
 // ids must match backend AgentType values (core/models.py) exactly.
 export const AGENTS: Agent[] = [
-  { id: "architect",         label: "Architect",      icon: Compass,     hue: "#0A84FF", credits: 3 },
-  { id: "business_improver", label: "Business Model", icon: TrendingUp,  hue: "#5E5CE6", credits: 2 },
-  { id: "designer",          label: "Designer",       icon: Palette,     hue: "#BF5AF2", credits: 2 },
-  { id: "developer",         label: "Developer",      icon: Code2,       hue: "#30D158", credits: 5 },
-  { id: "integration",       label: "Integration",    icon: Plug,        hue: "#64D2FF", credits: 2 },
-  { id: "pm",                label: "PM",             icon: ShieldCheck, hue: "#FF9F0A", credits: 1 },
+  { id: "architect",         label: "Architect",      icon: Compass,     hue: COLORS.agentArchitect, credits: 3 },
+  { id: "business_improver", label: "Business Model", icon: TrendingUp,  hue: COLORS.agentBusinessImprover, credits: 2 },
+  { id: "designer",          label: "Designer",       icon: Palette,     hue: COLORS.agentDesigner, credits: 2 },
+  { id: "developer",         label: "Developer",      icon: Code2,       hue: COLORS.agentDeveloper, credits: 5 },
+  { id: "integration",       label: "Integration",    icon: Plug,        hue: COLORS.agentIntegration, credits: 2 },
+  { id: "pm",                label: "PM",             icon: ShieldCheck, hue: COLORS.agentPm, credits: 1 },
 ];
 
 export const agentById = (id: string): Agent | undefined =>

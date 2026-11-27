@@ -352,7 +352,7 @@ export function ForgeBuildCanvas({
           </span>
 
           {/* View Mode Segmented Control */}
-          <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-panel">
+          <div className="inline-flex items-center p-0.5 rounded-pill border border-border bg-panel">
             {(
               [
                 { id: "dag", label: "DAG Graph", icon: Network },
@@ -370,9 +370,9 @@ export function ForgeBuildCanvas({
                     synth.playPop(720);
                     setViewMode(mode.id);
                   }}
-                  className={`h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
+                  className={`h-7 px-2.5 rounded-pill text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer ${
                     active
-                      ? "bg-accent text-white"
+                      ? "bg-ink text-on-ink"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -395,10 +395,10 @@ export function ForgeBuildCanvas({
                   synth.playPop(650);
                   setCategoryFilter(cat);
                 }}
-                className={`h-7 px-2 rounded-md text-[11px] font-medium capitalize transition-colors duration-150 cursor-pointer ${
+                className={`h-7 px-2 rounded-pill text-[11px] font-medium capitalize transition-colors duration-150 cursor-pointer ${
                   categoryFilter === cat
-                    ? "bg-accent-soft text-accent border border-accent/30"
-                    : "text-muted hover:text-ink hover:bg-panel border border-transparent"
+                    ? "bg-ink/[0.08] text-ink border border-border"
+                    : "text-muted hover:text-ink hover:bg-ink/[0.04] border border-transparent"
                 }`}
               >
                 {cat}
@@ -422,7 +422,7 @@ export function ForgeBuildCanvas({
               toast(simulationActive ? "Simulation paused" : "Simulation stream active");
             }}
             title={simulationActive ? "Pause DAG stream" : "Start DAG stream"}
-            className={`h-7 px-2.5 rounded-md border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 cursor-pointer ${
+            className={`h-7 px-2.5 rounded-pill border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 cursor-pointer ${
               simulationActive
                 ? "bg-accent-soft text-accent border-accent/30"
                 : "bg-panel text-muted border-border hover:text-ink"
@@ -433,7 +433,7 @@ export function ForgeBuildCanvas({
           </button>
 
           {/* Zoom Controls */}
-          <div className="inline-flex items-center rounded-md border border-border bg-panel divide-x divide-border">
+          <div className="inline-flex items-center rounded-pill border border-border bg-panel divide-x divide-border overflow-hidden">
             <button
               type="button"
               onClick={() => {
@@ -482,10 +482,10 @@ export function ForgeBuildCanvas({
               synth.playPop(850);
               setInspectorOpen((v) => !v);
             }}
-            className={`h-7 px-2.5 rounded-md border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 cursor-pointer ${
+            className={`h-7 px-2.5 rounded-pill border text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors duration-150 cursor-pointer ${
               inspectorOpen
-                ? "bg-accent text-white border-accent"
-                : "bg-panel text-ink border-border hover:bg-panel-alt"
+                ? "bg-ink/[0.08] text-ink border-border"
+                : "bg-glass text-muted border-glass-border hover:text-ink hover:bg-ink/10"
             }`}
             title="Toggle node inspector drawer"
           >
@@ -642,7 +642,7 @@ export function ForgeBuildCanvas({
               return (
                 <div
                   key={col.title}
-                  className="w-72 rounded-xl border border-border bg-panel flex flex-col overflow-hidden shadow-apple"
+                  className="w-72 rounded-xl border border-border bg-panel flex flex-col overflow-hidden"
                 >
                   <div className="px-3.5 py-2.5 border-b border-border bg-panel-alt flex items-center justify-between">
                     <span className="text-xs font-semibold text-ink">{col.title}</span>
@@ -698,7 +698,7 @@ export function ForgeBuildCanvas({
         {/* VIEW 3: ARCHITECTURE DEPENDENCY MATRIX */}
         {viewMode === "matrix" && (
           <div className="flex-1 overflow-auto p-5 bg-base">
-            <div className="max-w-5xl mx-auto rounded-xl border border-border bg-panel shadow-apple overflow-hidden">
+            <div className="max-w-5xl mx-auto rounded-xl border border-border bg-panel overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-panel-alt flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-ink flex items-center gap-2">
                   <TableIcon size={14} className="text-accent" />
@@ -801,7 +801,7 @@ export function ForgeBuildCanvas({
             </div>
 
             {/* Inspector Navigation Tabs */}
-            <div className="flex border-b border-border bg-panel px-2 pt-1 gap-1">
+            <div className="mx-3 my-2.5 flex rounded-pill bg-ink/[0.06] p-1 gap-0.5">
               {(["overview", "code", "endpoints", "diagnostics"] as InspectorTab[]).map((tab) => (
                 <button
                   key={tab}
@@ -810,10 +810,10 @@ export function ForgeBuildCanvas({
                     synth.playPop(650);
                     setInspectorTab(tab);
                   }}
-                  className={`flex-1 py-2 text-center text-xs font-medium capitalize border-b-2 transition-colors cursor-pointer ${
+                  className={`flex-1 h-7 rounded-pill text-center text-xs font-medium capitalize transition-colors cursor-pointer ${
                     inspectorTab === tab
-                      ? "border-accent text-accent"
-                      : "border-transparent text-muted hover:text-ink"
+                      ? "bg-ink text-on-ink"
+                      : "text-muted hover:text-ink"
                   }`}
                 >
                   {tab}
@@ -933,7 +933,7 @@ export function ForgeBuildCanvas({
                       <button
                         type="button"
                         onClick={() => handleCopyCode(selectedNode.details.sampleCode!)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border bg-panel-alt hover:bg-base text-xs text-ink cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-pill border border-border bg-panel-alt hover:bg-base text-xs text-ink cursor-pointer"
                       >
                         <Copy size={11} />
                         <span>Copy</span>
@@ -942,7 +942,7 @@ export function ForgeBuildCanvas({
                   </div>
 
                   {selectedNode.details.sampleCode ? (
-                    <div className="bg-[#0B0F19] text-slate-200 border border-border p-3.5 font-mono text-xs rounded-lg overflow-x-auto leading-relaxed">
+                    <div className="bg-ink text-muted border border-border p-3.5 font-mono text-xs rounded-lg overflow-x-auto leading-relaxed">
                       <pre>{selectedNode.details.sampleCode}</pre>
                     </div>
                   ) : (
@@ -955,7 +955,7 @@ export function ForgeBuildCanvas({
                     <button
                       type="button"
                       onClick={() => onSelectNodeFile?.(selectedNode.files[0])}
-                      className="w-full h-9 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="w-full h-9 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Code2 size={13} />
                       <span>Edit {selectedNode.files[0]} in Code Studio</span>
@@ -1012,18 +1012,18 @@ export function ForgeBuildCanvas({
                     <span className="text-ok font-mono text-[11px]">Active</span>
                   </div>
 
-                  <div className="bg-[#0B0F19] text-slate-200 border border-border p-3.5 font-mono text-[11px] rounded-lg overflow-x-auto space-y-2 leading-relaxed">
+                  <div className="bg-ink text-muted border border-border p-3.5 font-mono text-[11px] rounded-lg overflow-x-auto space-y-2 leading-relaxed">
                     {selectedNode.details.diagnostics && selectedNode.details.diagnostics.length > 0 ? (
                       selectedNode.details.diagnostics.map((log, idx) => (
                         <div key={idx} className="flex items-start gap-2">
-                          <Terminal size={12} className="text-slate-500 shrink-0 mt-0.5" />
-                          <span className="text-slate-300">{log}</span>
+                          <Terminal size={12} className="text-muted shrink-0 mt-0.5" />
+                          <span className="text-muted">{log}</span>
                         </div>
                       ))
                     ) : (
-                      <div className="text-slate-400">Node AST verification idle.</div>
+                      <div className="text-faint">Node AST verification idle.</div>
                     )}
-                    <div className="text-emerald-400 pt-1">
+                    <div className="text-ok pt-1">
                       → Verified AST invariants for {selectedNode.id}
                     </div>
                   </div>
@@ -1051,7 +1051,7 @@ export function ForgeBuildCanvas({
                 type="button"
                 onClick={() => handleSynthesizeNode(selectedNode.id)}
                 disabled={synthesizingNodeId === selectedNode.id}
-                className="flex-1 h-8 rounded-lg bg-accent hover:bg-ember-glow text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 h-8 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Sparkles size={13} />
                 <span>{synthesizingNodeId === selectedNode.id ? "Synthesizing…" : "Re-Synthesize"}</span>
@@ -1091,10 +1091,10 @@ function DAGNodeCard({
           onClick();
         }
       }}
-      className={`relative w-full max-w-sm rounded-xl border p-3.5 transition-colors duration-150 cursor-pointer select-none shadow-apple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
+      className={`relative w-full max-w-sm rounded-xl border p-3.5 transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
         isSelected
-          ? "bg-panel border-accent ring-1 ring-accent/30"
-          : "bg-panel border-border hover:border-accent/50"
+          ? "bg-panel-alt border-accent/60 ring-1 ring-accent/25"
+          : "bg-panel border-border hover:border-ink/25"
       }`}
     >
       {/* Card Header */}

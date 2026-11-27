@@ -11,12 +11,22 @@ export const COLORS = {
   ok: '#34C778',
   warn: '#F5A623',
   error: '#F45050',
-  agentArchitect: '#2563EB',
-  agentBusinessImprover: '#6366F1',
-  agentDesigner: '#8B5CF6',
-  agentDeveloper: '#059669',
-  agentIntegration: '#0284C7',
-  agentPm: '#D97706',
+  faint: '#828282',
+  panel: '#111111',
+  panelAlt: '#181818',
+  hairline: 'rgba(255,255,255,0.12)',
+  info: '#60A5FA',
+  // Agent role hues: restrained and harmonious on the Ember Night canvas
+  agentArchitect: '#7FA6D9',
+  agentBusinessImprover: '#A59AD6',
+  agentDesigner: '#D08FB4',
+  agentDeveloper: '#6FC196',
+  agentIntegration: '#6FBFC4',
+  agentPm: '#E0A15C',
+  // Atmospheric gradient stops (olive / rust / teal)
+  atmosOlive: '#6E6E4D',
+  atmosRust: '#613020',
+  atmosTeal: '#3D5757',
 } as const
 
 export const HUE_CYCLE = [

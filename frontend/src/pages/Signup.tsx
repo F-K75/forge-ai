@@ -198,7 +198,7 @@ export default function Signup() {
                     <CheckCircle2 size={16} />
                     <span>Account initialized</span>
                   </div>
-                  <h1 id="signup-verify-heading" className="font-display text-2xl font-bold tracking-tight text-ink">
+                  <h1 id="signup-verify-heading" className="font-display text-2xl font-semibold tracking-tight text-ink">
                     Check your inbox
                   </h1>
                   <div className="rounded-lg border border-border bg-panel-alt/60 p-4 text-sm text-muted space-y-2">
@@ -214,7 +214,7 @@ export default function Signup() {
                     id="signup-continue-workspace-btn"
                     type="button"
                     onClick={() => navigate("/projects", { replace: true })}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-ember-glow cursor-pointer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-ink px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ink/90 cursor-pointer"
                   >
                     <span>Continue to workspace</span>
                     <ArrowRight size={15} />
@@ -231,7 +231,7 @@ export default function Signup() {
                 <>
                   <div className="mb-5 flex items-start justify-between gap-3">
                     <div>
-                      <h1 id="signup-heading" className="font-display text-2xl font-bold tracking-tight text-ink">
+                      <h1 id="signup-heading" className="font-display text-2xl font-semibold tracking-tight text-ink">
                         Create your account
                       </h1>
                       <p className="mt-1 text-sm text-muted">
@@ -451,7 +451,7 @@ export default function Signup() {
                       id="signup-submit-btn"
                       type="submit"
                       disabled={loading}
-                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-ember-glow disabled:opacity-50 cursor-pointer"
+                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-ink px-4 text-sm font-medium text-on-ink transition-colors hover:bg-ink/90 disabled:opacity-50 cursor-pointer"
                     >
                       {loading ? (
                         <>
@@ -494,7 +494,7 @@ export default function Signup() {
 
           <aside
             id="signup-showcase-panel"
-            className="hidden lg:flex lg:col-span-7 flex-col overflow-hidden rounded-xl border border-border bg-[#0B101B] shadow-apple"
+            className="hidden lg:flex lg:col-span-7 flex-col overflow-hidden rounded-xl border border-border bg-panel-alt shadow-apple"
           >
             <div className="flex-1 min-h-[500px] w-full">
               <ForgeScene3D
@@ -504,11 +504,11 @@ export default function Signup() {
                 showControls
               />
             </div>
-            <div className="border-t border-slate-800 bg-[#0F172A] px-6 py-4 text-slate-200">
-              <h2 className="font-display text-sm font-semibold text-white">
+            <div className="border-t border-border bg-ink px-6 py-4 text-muted">
+              <h2 className="font-display text-sm font-semibold text-ink">
                 Autonomous Engine Dispatch
               </h2>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-faint">
                 Six specialist agents draft schemas, synthesize full-stack apps, and validate every
                 commit inside an inspectable environment.
               </p>

@@ -3,60 +3,68 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   Precision Architectural Studio Design System — Forge AI
-   Cool Slate & Alabaster (Light) · Obsidian & Cobalt (Dark)
-   Zero !important override hacks · Single-elevation hairline depth
+   Ember Night Design System — Forge AI
+   Near-black canvas, white-alpha hairlines, one ember accent (dark default)
+   Warm paper & ink (light) · Hairline depth, no offset shadows
    ========================================================================== */
 
 :root,
 :root.light {
   color-scheme: light;
 
-  /* Core Neutral Scale (Cool Alabaster & Slate) */
-  --bg: 250 250 249;                      /* #F8FAFC */
-  --surface: 255 255 255;                 /* #FFFFFF */
-  --surface-container: 244 244 242;       /* #F1F5F9 */
-  --surface-container-high: 232 232 229;  /* #E2E8F0 */
+  /* Core neutral scale (warm paper) */
+  --bg: 250 250 249;
+  --surface: 255 255 255;
+  --surface-container: 244 244 242;
+  --surface-container-high: 232 232 229;
 
   /* Hairline Outlines */
   --outline: 10 10 10;
   --outline-alpha: 0.1;
   --outline-soft-alpha: 0.06;
-  --outline-muted: 140 140 136;           /* #94A3B8 */
+  --outline-muted: 112 112 108;              /* faint text, ≥4.5:1 on white */
 
   /* Typography Ink (WCAG AAA / AA) */
-  --on-surface: 10 10 10;                 /* #0F172A */
-  --on-surface-variant: 82 82 78;        /* #475569 */
+  --on-surface: 10 10 10;
+  --on-surface-variant: 82 82 78;
 
-  /* Signature Accent — Precision Cobalt */
-  --primary: 214 72 0;                   /* #2563EB */
-  --primary-hover: 184 61 0;             /* #1D4ED8 */
+  /* Signature accent — Ember (deepened for AA on paper) */
+  --primary: 214 72 0;
+  --primary-hover: 184 61 0;
   --primary-container: rgba(255, 102, 0, 0.1);
-  --secondary: 38 38 36;                 /* #4F46E5 */
-  --secondary-container: rgba(79, 70, 229, 0.08);
+  --secondary: 38 38 36;
+  --secondary-container: rgba(10, 10, 10, 0.05);
 
   /* Semantic Status Colors */
-  --success: 5 150 105;                   /* #059669 */
-  --warning: 217 119 6;                   /* #D97706 */
-  --error: 220 38 38;                     /* #DC2626 */
-  --info: 2 132 199;                      /* #0284C7 */
+  --success: 5 150 105;
+  --warning: 217 119 6;
+  --error: 220 38 38;
+  --info: 2 132 199;
+
+  /* Agent role hues (restrained; deeper on light paper for contrast) */
+  --agent-architect: 59 101 158;
+  --agent-business: 102 88 160;
+  --agent-designer: 154 74 118;
+  --agent-developer: 33 122 82;
+  --agent-integration: 28 120 128;
+  --agent-pm: 166 98 22;
 
   /* Interactive States */
-  --state-hover: rgba(15, 23, 42, 0.04);
-  --state-pressed: rgba(15, 23, 42, 0.08);
+  --state-hover: rgba(10, 10, 10, 0.04);
+  --state-pressed: rgba(10, 10, 10, 0.08);
   --state-focus: rgba(214, 72, 0, 0.3);
 
   /* Surface Inlays */
-  --inlay-subtle: 248 250 252;
-  --inlay: 241 245 249;
-  --inlay-hover: 226 232 240;
-  --inlay-strong: 203 213 225;
+  --inlay-subtle: 250 250 249;
+  --inlay: 244 244 242;
+  --inlay-hover: 232 232 229;
+  --inlay-strong: 212 212 208;
 
   /* Translucent Surfaces (non-WebGL UI chrome) */
   --glass: rgba(255, 255, 255, 0.92);
-  --glass-border: rgba(226, 232, 240, 0.9);
+  --glass-border: rgba(10, 10, 10, 0.1);
   --glass-strong: rgba(255, 255, 255, 0.97);
-  --glass-strong-border: rgba(203, 213, 225, 1);
+  --glass-strong-border: rgba(10, 10, 10, 0.12);
 
   /* Material 3 compatibility aliases mapped cleanly */
   --md-sys-color-surface: var(--bg);
@@ -69,10 +77,10 @@
   --md-sys-color-on-surface-variant: var(--on-surface-variant);
   --md-sys-color-primary: var(--primary);
   --md-sys-color-on-primary: 255 255 255;
-  --md-sys-color-primary-container: 219 234 254;
-  --md-sys-color-on-primary-container: 30 58 138;
-  --md-sys-color-secondary-container: 241 245 249;
-  --md-sys-color-on-secondary-container: 15 23 42;
+  --md-sys-color-primary-container: 255 232 214;
+  --md-sys-color-on-primary-container: 122 46 0;
+  --md-sys-color-secondary-container: 244 244 242;
+  --md-sys-color-on-secondary-container: 10 10 10;
   --md-sys-color-outline: var(--outline);
   --md-sys-color-outline-variant: var(--outline);
 }
@@ -90,7 +98,7 @@
   --outline: 255 255 255;
   --outline-alpha: 0.12;
   --outline-soft-alpha: 0.06;
-  --outline-muted: 115 115 115;           /* ≈ white 40% */
+  --outline-muted: 130 130 130;           /* faint text, ≥4.5:1 on #111 */
 
   /* Ink */
   --on-surface: 255 255 255;
@@ -108,6 +116,14 @@
   --warning: 245 166 35;
   --error: 244 80 80;
   --info: 96 165 250;
+
+  /* Agent role hues — desaturated so roles stay distinct without a rainbow */
+  --agent-architect: 127 166 217;         /* steel blue */
+  --agent-business: 165 154 214;          /* muted lavender */
+  --agent-designer: 208 143 180;          /* dusty rose */
+  --agent-developer: 111 193 150;         /* sage */
+  --agent-integration: 111 191 196;       /* sea glass */
+  --agent-pm: 224 161 92;                 /* amber */
 
   /* Interactive States */
   --state-hover: rgba(255, 255, 255, 0.04);
@@ -194,15 +210,15 @@
 }
 
 /* ==========================================================================
-   Precision Studio Primitives & Legacy Compatibility Layer
+   Ember Night Primitives & Legacy Compatibility Layer
    Cleanly maps older .bb-*, .glass-*, .m3-* classes to the unified system
    ========================================================================== */
 
 .studio-surface {
   background-color: rgb(var(--surface));
   border: 1px solid rgb(var(--outline) / var(--outline-alpha));
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 16px;
+  box-shadow: none;
 }
 
 .studio-surface-subtle {
@@ -230,13 +246,17 @@
 .bb-card-sm {
   background-color: rgb(var(--surface));
   border: 1px solid rgb(var(--outline) / var(--outline-alpha));
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 16px;
+  box-shadow: none;
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
+.bb-card-sm {
+  border-radius: 12px;
+}
+
 .bb-card:hover {
-  border-color: rgb(var(--outline-muted) / 0.65);
+  border-color: rgb(var(--outline) / 0.2);
 }
 
 .bb-btn-primary {
@@ -246,18 +266,18 @@
   gap: 8px;
   padding: 0 16px;
   height: 38px;
-  border-radius: 8px;
-  background-color: rgb(var(--primary));
-  color: #ffffff;
+  border-radius: 120px;
+  background-color: rgb(var(--on-surface));
+  color: rgb(var(--bg));
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   border: 1px solid transparent;
   transition: background-color 150ms ease, transform 150ms ease;
   cursor: pointer;
 }
 
 .bb-btn-primary:hover {
-  background-color: rgb(var(--primary-hover));
+  background-color: rgb(var(--on-surface) / 0.9);
 }
 
 .bb-btn-secondary {
@@ -267,26 +287,26 @@
   gap: 8px;
   padding: 0 16px;
   height: 38px;
-  border-radius: 8px;
-  background-color: rgb(var(--surface));
+  border-radius: 120px;
+  background-color: var(--glass);
   color: rgb(var(--on-surface));
   font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgb(var(--outline) / var(--outline-alpha));
+  font-weight: 500;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(5px);
   transition: background-color 150ms ease, border-color 150ms ease;
   cursor: pointer;
 }
 
 .bb-btn-secondary:hover {
-  background-color: rgb(var(--surface-container));
-  border-color: rgb(var(--outline-muted));
+  background-color: rgb(var(--on-surface) / 0.1);
 }
 
 .bb-input {
   width: 100%;
   height: 40px;
-  padding: 0 12px;
-  border-radius: 8px;
+  padding: 0 14px;
+  border-radius: 12px;
   border: 1px solid rgb(var(--outline) / var(--outline-alpha));
   background-color: rgb(var(--surface));
   color: rgb(var(--on-surface));
@@ -305,8 +325,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 2px 10px;
+  border-radius: 120px;
   font-size: 12px;
   font-weight: 500;
   background-color: rgb(var(--surface-container));
@@ -347,8 +367,8 @@
 .neoclassical-panel-elevated {
   background-color: rgb(var(--surface));
   border: 1px solid rgb(var(--outline) / var(--outline-alpha));
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 16px;
+  box-shadow: none;
 }
 
 .neobrutal-tab-active {
@@ -370,11 +390,11 @@
   gap: 8px;
   height: 38px;
   padding: 0 18px;
-  border-radius: 8px;
+  border-radius: 120px;
   font-size: 13px;
-  font-weight: 600;
-  background-color: rgb(var(--primary));
-  color: #ffffff;
+  font-weight: 500;
+  background-color: rgb(var(--on-surface));
+  color: rgb(var(--bg));
   border: 1px solid transparent;
   transition: background-color 150ms ease;
   cursor: pointer;
@@ -382,7 +402,7 @@
 
 .glass-button-primary:hover,
 .m3-button-filled:hover {
-  background-color: rgb(var(--primary-hover));
+  background-color: rgb(var(--on-surface) / 0.9);
 }
 
 .glass-button-secondary,
@@ -394,12 +414,13 @@
   gap: 8px;
   height: 38px;
   padding: 0 18px;
-  border-radius: 8px;
+  border-radius: 120px;
   font-size: 13px;
-  font-weight: 600;
-  background-color: rgb(var(--surface));
+  font-weight: 500;
+  background-color: var(--glass);
   color: rgb(var(--on-surface));
-  border: 1px solid rgb(var(--outline) / var(--outline-alpha));
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(5px);
   transition: background-color 150ms ease, border-color 150ms ease;
   cursor: pointer;
 }
@@ -407,7 +428,7 @@
 .glass-button-secondary:hover,
 .m3-button-outlined:hover,
 .m3-button-tonal:hover {
-  background-color: rgb(var(--surface-container));
+  background-color: rgb(var(--on-surface) / 0.1);
 }
 
 .m3-button-text {
@@ -417,7 +438,7 @@
   gap: 6px;
   height: 36px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: 120px;
   font-size: 13px;
   font-weight: 500;
   background-color: transparent;
@@ -437,7 +458,7 @@
   gap: 6px;
   height: 32px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: 120px;
   font-size: 12px;
   font-weight: 500;
   border: 1px solid rgb(var(--outline) / var(--outline-alpha));
@@ -452,14 +473,14 @@
   background-color: var(--primary-container);
   color: rgb(var(--primary));
   border-color: rgb(var(--primary) / 0.35);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .m3-text-field-outlined,
 .glass-input,
 .neoclassical-input {
   height: 40px;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid rgb(var(--outline) / var(--outline-alpha));
   background-color: rgb(var(--surface));
   padding: 0 12px;
@@ -474,6 +495,36 @@
   outline: none;
   border-color: rgb(var(--primary));
   box-shadow: 0 0 0 3px var(--state-focus);
+}
+
+/* Atmospheric gradient: soft olive / rust / teal glows fading into the canvas,
+   under a 30% black veil. Use on hero panels and feature cards (never rainbow tiles). */
+.ember-atmosphere {
+  position: relative;
+  isolation: isolate;
+  background-color: rgb(var(--surface));
+  background-image:
+    radial-gradient(120% 90% at 0% 0%, rgba(110, 110, 77, 0.55), transparent 60%),
+    radial-gradient(90% 80% at 100% 10%, rgba(97, 48, 32, 0.55), transparent 62%),
+    radial-gradient(110% 90% at 60% 110%, rgba(61, 87, 87, 0.5), transparent 60%);
+}
+.ember-atmosphere::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+:root.light .ember-atmosphere {
+  background-image:
+    radial-gradient(120% 90% at 0% 0%, rgba(110, 110, 77, 0.22), transparent 60%),
+    radial-gradient(90% 80% at 100% 10%, rgba(176, 96, 64, 0.18), transparent 62%),
+    radial-gradient(110% 90% at 60% 110%, rgba(61, 87, 87, 0.18), transparent 60%);
+}
+:root.light .ember-atmosphere::before {
+  background: transparent;
 }
 
 .animate-shimmer {

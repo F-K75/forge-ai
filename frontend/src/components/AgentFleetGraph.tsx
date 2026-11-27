@@ -127,11 +127,11 @@ function runReducer(state: RunState, action: { type: "tick" }): RunState {
 
 function LaneLabelNode({ data }: NodeProps) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 border-2 border-black dark:border-white/80 bg-white dark:bg-[#1E1E28] shadow-[1.5px_1.5px_0px_#000] dark:shadow-[1.5px_1.5px_0px_#fff] select-none font-mono">
-      <span className="h-2.5 w-2.5 rounded-none border border-black dark:border-white" style={{ backgroundColor: data.color || "#14B8A6" }} />
-      <span className="font-mono text-xs font-black tracking-tight text-ink uppercase">{data.label}</span>
+    <div className="flex items-center gap-2 px-3 py-1.5 border-2 border-border bg-panel select-none font-mono">
+      <span className="h-2.5 w-2.5 rounded-none border border-border" style={{ backgroundColor: data.color || "#14B8A6" }} />
+      <span className="font-mono text-xs font-semibold tracking-tight text-ink uppercase">{data.label}</span>
       {data.badge && (
-        <span className="text-[10px] font-mono font-black px-1.5 py-0.5 border border-black bg-brutal-yellow text-black">
+        <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 border border-border bg-brutal-yellow text-ink">
           {data.badge}
         </span>
       )}
@@ -154,39 +154,39 @@ function AgentNode({ data, selected }: NodeProps) {
       className={[
         "relative min-w-[210px] border-2 transition-none select-none",
         isDimmed ? "opacity-30 grayscale" : "opacity-100",
-        isActiveSim ? "ring-2 ring-black dark:ring-white scale-[1.02]" : "",
+        isActiveSim ? "ring-2 ring-border scale-[1.02]" : "",
         isSelected
-          ? "border-black dark:border-white bg-brutal-yellow text-black shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff]"
-          : "border-black dark:border-white/80 bg-white dark:bg-[#181820] hover:border-black dark:hover:border-white shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]",
+          ? "border-border bg-brutal-yellow text-ink "
+          : "border-border bg-panel hover:border-border ",
       ].join(" ")}
     >
-      <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border-2 !border-black dark:!border-white !rounded-none" style={{ background: data.hue }} />
+      <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border-2 !border-border dark:!border-border !rounded-none" style={{ background: data.hue }} />
 
       <div className="p-3">
         <div className="flex items-center gap-2.5">
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black dark:border-white/80 font-black shadow-[1px_1px_0px_#000]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-border font-semibold"
             style={{ backgroundColor: `${data.hue}25`, color: data.hue }}
           >
             <AgentIcon size={18} strokeWidth={2.5} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <p className="truncate text-xs font-black text-ink">{data.label}</p>
+              <p className="truncate text-xs font-semibold text-ink">{data.label}</p>
               {data.stage && (
-                <span className="text-[9px] font-mono uppercase tracking-wider font-bold px-1 py-0.5 border border-black/30 dark:border-white/30 bg-black/5 dark:bg-white/5 text-muted">
+                <span className="text-[9px] font-mono uppercase tracking-wider font-semibold px-1 py-0.5 border border-border bg-ink/5 text-muted">
                   {data.stage}
                 </span>
               )}
             </div>
             <span className="flex items-center gap-1.5 text-[11px] font-mono text-muted mt-0.5">
               <StatusIcon size={11} style={{ color: statusColor }} className={data.status === "running" ? "animate-spin" : ""} />
-              <span style={{ color: statusColor }} className="font-bold">{statusInfo.label}</span>
+              <span style={{ color: statusColor }} className="font-semibold">{statusInfo.label}</span>
             </span>
           </div>
         </div>
 
-        <div className="mt-2 pt-2 border-t-2 border-black/10 dark:border-white/10 flex items-center justify-between text-[10px] font-mono text-muted">
+        <div className="mt-2 pt-2 border-t-2 border-border flex items-center justify-between text-[10px] font-mono text-muted">
           {run?.lastRun ? (
             <span className="flex items-center gap-1 truncate">
               <Clock size={10} />
@@ -196,15 +196,15 @@ function AgentNode({ data, selected }: NodeProps) {
             <span className="text-muted/60">STANDBY</span>
           )}
           {run?.successRate != null && (
-            <span className="flex items-center gap-1 font-bold text-ink">
-              <CheckCircle2 size={10} className="text-emerald-500" />
+            <span className="flex items-center gap-1 font-semibold text-ink">
+              <CheckCircle2 size={10} className="text-ok" />
               {run.successRate}%
             </span>
           )}
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border-2 !border-black dark:!border-white !rounded-none" style={{ background: data.hue }} />
+      <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border-2 !border-border dark:!border-border !rounded-none" style={{ background: data.hue }} />
     </div>
   );
 }
@@ -519,7 +519,7 @@ export function AgentFleetGraph({
     : null;
 
   const graphContent = (
-    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden border-2 border-black dark:border-white/80 bg-white dark:bg-[#121218] shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff]`}>
+    <div className={`flex flex-col ${embedded ? "h-[55vh] w-full" : "h-[75vh] w-full"} overflow-hidden border-2 border-border bg-panel `}>
       {!embedded && <GraphHeader />}
 
       <div className="flex flex-1 min-h-0">
@@ -550,7 +550,7 @@ export function AgentFleetGraph({
               type="button"
               onClick={startRun}
               disabled={active}
-              className="h-7 px-3 flex items-center gap-1.5 border-2 border-black bg-brutal-yellow text-black font-black uppercase text-[11px] shadow-[1.5px_1.5px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-7 px-3 flex items-center gap-1.5 border-2 border-border bg-brutal-yellow text-ink font-semibold uppercase text-[11px] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={11} className="fill-current" />
               {active ? "RUNNING..." : "SIMULATE DAG"}
@@ -558,7 +558,7 @@ export function AgentFleetGraph({
             <button
               type="button"
               onClick={resetRun}
-              className="h-7 px-2.5 flex items-center gap-1.5 border-2 border-black bg-white dark:bg-[#1E1E28] text-black dark:text-white font-black uppercase text-[11px] shadow-[1.5px_1.5px_0px_#000] active:translate-x-[1px] active:translate-y-[1px]"
+              className="h-7 px-2.5 flex items-center gap-1.5 border-2 border-border bg-panel text-ink font-semibold uppercase text-[11px] active:translate-x-[1px] active:translate-y-[1px]"
             >
               <RotateCcw size={11} />
               RESET

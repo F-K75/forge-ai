@@ -84,44 +84,44 @@ const AGENT_PERSONA_META: Record<
 > = {
   DevOpsAgent: {
     label: "DevOps & Infrastructure",
-    badgeCls: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
-    avatarBg: "bg-sky-600 text-white",
+    badgeCls: "bg-info/10 text-info border-info/20",
+    avatarBg: "bg-ink text-on-ink",
   },
   BackendEng: {
     label: "Backend Engineer",
     badgeCls:
-      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-    avatarBg: "bg-emerald-600 text-white",
+      "bg-ok/10 text-ok border-ok/20",
+    avatarBg: "bg-ok text-on-ink",
   },
   FrontendEng: {
     label: "Frontend Engineer",
     badgeCls:
-      "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
-    avatarBg: "bg-purple-600 text-white",
+      "bg-agent-business-improver/10 text-agent-business-improver border-agent-business-improver/20",
+    avatarBg: "bg-ink text-on-ink",
   },
   SecurityReviewer: {
     label: "Security Reviewer",
     badgeCls:
-      "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
-    avatarBg: "bg-amber-600 text-white",
+      "bg-warn/10 text-warn border-warn/20",
+    avatarBg: "bg-warn text-on-ink",
   },
   ArchitectAgent: {
     label: "System Architect",
     badgeCls:
-      "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20",
-    avatarBg: "bg-indigo-600 text-white",
+      "bg-agent-business-improver/10 text-agent-business-improver border-agent-business-improver/20",
+    avatarBg: "bg-ink text-on-ink",
   },
   QASuite: {
     label: "QA Automation",
     badgeCls:
-      "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20",
-    avatarBg: "bg-teal-600 text-white",
+      "bg-agent-integration/10 text-agent-integration border-agent-integration/20",
+    avatarBg: "bg-agent-integration text-on-ink",
   },
   DecisionEngine: {
     label: "Neural Decision Engine",
     badgeCls:
-      "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
-    avatarBg: "bg-rose-600 text-white",
+      "bg-error/10 text-error border-error/20",
+    avatarBg: "bg-error text-on-ink",
   },
 };
 
@@ -130,8 +130,8 @@ function getAgentMeta(name: string) {
     AGENT_PERSONA_META[name] || {
       label: name || "Autonomous Agent",
       badgeCls:
-        "bg-neutral-500/10 text-neutral-700 dark:text-neutral-300 border-neutral-500/20",
-      avatarBg: "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900",
+        "bg-ink/10 text-ink border-border",
+      avatarBg: "bg-ink text-on-ink ",
     }
   );
 }
@@ -638,26 +638,26 @@ export default function ActivityTab() {
   return (
     <div
       id="activity-page-container"
-      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-neutral-900 dark:text-neutral-100 transition-colors"
+      className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 font-sans space-y-6 text-ink transition-colors"
     >
       {/* 1. EXECUTIVE HEADER & ACTION CONTROLS */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200/90 dark:border-neutral-800 pb-5">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold shadow-xs">
-              <Activity size={18} className="text-amber-400" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
+              <Activity size={18} className="text-warn" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                <h1 className="text-xl font-semibold tracking-tight text-ink">
                   Activity Timeline & Agent Fleet Telemetry
                 </h1>
-                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-ok/10 text-ok border border-ok/20">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />
                   Live Audit
                 </span>
               </div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted">
                 Real-time agent execution traces, token consumption, autonomous decision logs, and workstream transitions.
               </p>
             </div>
@@ -667,20 +667,20 @@ export default function ActivityTab() {
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Auto-Refresh Toggle */}
-          <div className="flex items-center bg-neutral-100 dark:bg-neutral-800/80 p-0.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-xs">
+          <div className="flex items-center bg-panel-alt p-0.5 rounded-xl border border-border text-xs">
             <button
               type="button"
               onClick={() => setAutoRefreshInterval((prev) => (prev === 0 ? 15 : 0))}
               className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 autoRefreshInterval > 0
-                  ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-2xs"
-                  : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                  ? "bg-panel text-ink shadow-2xs"
+                  : "text-muted hover:text-ink"
               }`}
               title="Toggle automatic background stream polling"
             >
               <RefreshCw
                 size={12}
-                className={autoRefreshInterval > 0 ? "animate-spin text-emerald-500" : ""}
+                className={autoRefreshInterval > 0 ? "animate-spin text-ok" : ""}
                 style={{ animationDuration: "3s" }}
               />
               <span>{autoRefreshInterval > 0 ? `${autoRefreshInterval}s Polling` : "Paused"}</span>
@@ -693,12 +693,12 @@ export default function ActivityTab() {
             type="button"
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
             title="Fetch latest execution runs and tasks"
           >
             <RefreshCw
               size={13}
-              className={isRefreshing ? "animate-spin text-neutral-500" : "text-neutral-500"}
+              className={isRefreshing ? "animate-spin text-muted" : "text-muted"}
             />
             <span>Refresh</span>
           </button>
@@ -708,10 +708,10 @@ export default function ActivityTab() {
             id="btn-export-activity"
             type="button"
             onClick={() => setShowExportModal(true)}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
             title="Export filtered activity log as Markdown report"
           >
-            <Download size={13} className="text-neutral-500" />
+            <Download size={13} className="text-muted" />
             <span>Export Log</span>
           </button>
 
@@ -720,7 +720,7 @@ export default function ActivityTab() {
             id="btn-simulate-agent-exec"
             type="button"
             onClick={handleSimulateExecution}
-            className="h-9 px-3.5 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
+            className="h-9 px-3.5 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
             title="Dispatch a synthetic task execution through the agent fleet"
           >
             <Play size={13} fill="currentColor" />
@@ -735,35 +735,35 @@ export default function ActivityTab() {
         className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
       >
         {/* Metric 1: Fleet Executions */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Fleet Executions
             </span>
-            <Bot size={15} className="text-sky-500" />
+            <Bot size={15} className="text-accent" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.running + telemetry.completed + telemetry.failed}
             </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <span className="text-xs text-ok font-semibold">
               {telemetry.successRate}% Success
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-2 text-[11px] text-neutral-500">
-            <span className="text-sky-600 dark:text-sky-400 font-semibold">
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+            <span className="text-accent font-semibold">
               {telemetry.running} Running
             </span>
             <span>·</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            <span className="text-ok font-semibold">
               {telemetry.completed} Done
             </span>
             <span>·</span>
             <span
               className={
                 telemetry.failed > 0
-                  ? "text-rose-600 dark:text-rose-400 font-semibold"
-                  : "text-neutral-400"
+                  ? "text-error font-semibold"
+                  : "text-faint"
               }
             >
               {telemetry.failed} Failed
@@ -772,47 +772,47 @@ export default function ActivityTab() {
         </div>
 
         {/* Metric 2: LLM Tokens & Cost */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Compute & Tokens
             </span>
-            <Zap size={15} className="text-amber-500" />
+            <Zap size={15} className="text-warn" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.totalTokens.toLocaleString()}
             </span>
-            <span className="text-xs text-neutral-500">tokens</span>
+            <span className="text-xs text-muted">tokens</span>
           </div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
+          <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
             <span>Est. Cost:</span>
-            <span className="font-mono font-bold text-neutral-800 dark:text-neutral-200">
+            <span className="font-mono font-semibold text-ink">
               ${telemetry.totalCost.toFixed(4)}
             </span>
           </div>
         </div>
 
         {/* Metric 3: Decision Engine Insights */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Neural Decisions
             </span>
-            <Brain size={15} className="text-rose-500" />
+            <Brain size={15} className="text-error" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.decisionsTotal}
             </span>
-            <span className="text-xs text-neutral-500">logged pivots</span>
+            <span className="text-xs text-muted">logged pivots</span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[11px]">
             <span
               className={
                 telemetry.bottleneckCount > 0
-                  ? "text-rose-600 dark:text-rose-400 font-semibold"
-                  : "text-emerald-600 dark:text-emerald-400 font-semibold"
+                  ? "text-error font-semibold"
+                  : "text-ok font-semibold"
               }
             >
               {telemetry.bottleneckCount === 0
@@ -823,22 +823,22 @@ export default function ActivityTab() {
         </div>
 
         {/* Metric 4: Mean Turnaround Latency */}
-        <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted mb-1">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Mean Agent Latency
             </span>
-            <Clock size={15} className="text-teal-500" />
+            <Clock size={15} className="text-agent-integration" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            <span className="text-2xl font-semibold tracking-tight text-ink">
               {telemetry.avgDuration}s
             </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <span className="text-xs text-ok font-semibold">
               Fast Turnaround
             </span>
           </div>
-          <p className="mt-2 text-[11px] text-neutral-500 truncate">
+          <p className="mt-2 text-[11px] text-muted truncate">
             Average cycle per autonomous agent step
           </p>
         </div>
@@ -850,7 +850,7 @@ export default function ActivityTab() {
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-faint"
           />
           <input
             id="activity-search-input"
@@ -858,13 +858,13 @@ export default function ActivityTab() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by task, agent persona, logs, or thoughts..."
-            className="w-full h-9 pl-9 pr-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20 transition-all shadow-2xs"
+            className="w-full h-9 pl-9 pr-3 rounded-xl border border-border bg-panel text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-border transition-all shadow-2xs"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-faint hover:text-muted cursor-pointer"
             >
               <X size={12} />
             </button>
@@ -874,7 +874,7 @@ export default function ActivityTab() {
         {/* Filter Selectors */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-0.5 bg-neutral-100 dark:bg-neutral-800/80 p-0.5 rounded-xl border border-neutral-200/80 dark:border-neutral-700/80 text-xs">
+          <div className="flex items-center gap-0.5 bg-panel-alt p-0.5 rounded-xl border border-border text-xs">
             {[
               { id: "all", label: "All Activity" },
               { id: "agent_exec", label: "Agent Runs" },
@@ -887,8 +887,8 @@ export default function ActivityTab() {
                 onClick={() => setSelectedCategory(cat.id as ActivityCategory)}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                   selectedCategory === cat.id
-                    ? "bg-white dark:bg-neutral-700 text-neutral-950 dark:text-white shadow-2xs font-bold"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    ? "bg-panel text-ink shadow-2xs font-semibold"
+                    : "text-muted hover:text-ink"
                 }`}
               >
                 {cat.label}
@@ -901,7 +901,7 @@ export default function ActivityTab() {
             id="filter-agent-persona"
             value={selectedAgent}
             onChange={(e) => setSelectedAgent(e.target.value)}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] text-xs font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-400 cursor-pointer shadow-2xs"
+            className="h-9 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
           >
             <option value="all">All Agents ({uniqueAgents.length})</option>
             {uniqueAgents.map((agent) => (
@@ -916,7 +916,7 @@ export default function ActivityTab() {
             id="filter-status-select"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="h-9 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#141722] text-xs font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-400 cursor-pointer shadow-2xs"
+            className="h-9 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-border cursor-pointer shadow-2xs"
           >
             <option value="all">All Statuses</option>
             <option value="running">Running</option>
@@ -930,15 +930,15 @@ export default function ActivityTab() {
       {/* 4. CHRONOLOGICAL ACTIVITY STREAM */}
       <section aria-label="Activity Event Stream" className="space-y-6">
         {filteredEvents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800 p-12 text-center space-y-4 bg-neutral-50/50 dark:bg-neutral-900/20">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-4 bg-ink/10">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-panel-alt text-muted">
               <Activity size={22} />
             </div>
             <div className="space-y-1 max-w-sm mx-auto">
-              <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+              <h3 className="text-sm font-semibold text-ink">
                 No activity matches your filter
               </h3>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted">
                 {searchQuery || selectedCategory !== "all" || selectedAgent !== "all"
                   ? "Try resetting filters or adjusting your search term."
                   : "No agent executions or decisions logged yet for this initiative."}
@@ -957,7 +957,7 @@ export default function ActivityTab() {
                     setSelectedAgent("all");
                     setSelectedStatus("all");
                   }}
-                  className="h-8 px-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 cursor-pointer shadow-2xs"
+                  className="h-8 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
                 >
                   Reset Filters
                 </button>
@@ -965,7 +965,7 @@ export default function ActivityTab() {
               <button
                 type="button"
                 onClick={handleSimulateExecution}
-                className="h-8 px-3 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold cursor-pointer hover:opacity-90"
+                className="h-8 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold cursor-pointer hover:opacity-90"
               >
                 Dispatch Test Agent
               </button>
@@ -976,11 +976,11 @@ export default function ActivityTab() {
             <div key={dateLabel} className="space-y-3">
               {/* Date Group Heading */}
               <div className="flex items-center gap-3">
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 font-mono">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-panel-alt text-muted border border-border font-mono">
                   {dateLabel}
                 </span>
-                <div className="h-px flex-1 bg-neutral-200/80 dark:border-neutral-800" />
-                <span className="text-[11px] text-neutral-400 font-mono">
+                <div className="h-px flex-1 bg-ink/10" />
+                <span className="text-[11px] text-faint font-mono">
                   {events.length} event(s)
                 </span>
               </div>
@@ -995,17 +995,17 @@ export default function ActivityTab() {
                       key={event.id}
                       id={`activity-item-${event.id}`}
                       onClick={() => setInspectEvent(event)}
-                      className="group relative rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#141722] p-4 shadow-2xs hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-xs transition-all duration-150 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="group relative rounded-2xl border border-border bg-panel p-4 shadow-2xs hover:border-border hover:shadow-xs transition-all duration-150 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                       {/* Left: Icon, Details & Thoughts */}
                       <div className="flex items-start gap-3.5 min-w-0 flex-1">
                         {/* Avatar / Category Badge */}
                         <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold text-xs shadow-2xs ${
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-semibold text-xs shadow-2xs ${
                             event.category === "decision"
-                              ? "bg-rose-500 text-white"
+                              ? "bg-error text-on-ink"
                               : event.category === "alert"
-                              ? "bg-amber-500 text-white"
+                              ? "bg-warn text-on-ink"
                               : meta.avatarBg
                           }`}
                         >
@@ -1021,7 +1021,7 @@ export default function ActivityTab() {
                         {/* Event Content */}
                         <div className="min-w-0 space-y-1 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-bold text-neutral-900 dark:text-neutral-50 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
+                            <span className="text-xs font-semibold text-ink group-hover:text-warn transition-colors">
                               {event.title}
                             </span>
                             <span
@@ -1032,17 +1032,17 @@ export default function ActivityTab() {
                           </div>
 
                           {event.subtitle && (
-                            <p className="text-xs text-neutral-600 dark:text-neutral-300 line-clamp-2 leading-relaxed">
+                            <p className="text-xs text-muted line-clamp-2 leading-relaxed">
                               {event.subtitle}
                             </p>
                           )}
 
                           {/* Chips: Tokens, Cost, Duration */}
                           {event.category === "agent_exec" && event.metadata && (
-                            <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-mono text-neutral-500">
+                            <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-mono text-muted">
                               {event.metadata.tokens !== undefined && (
                                 <span className="flex items-center gap-1">
-                                  <Zap size={11} className="text-amber-500" />
+                                  <Zap size={11} className="text-warn" />
                                   <span>{event.metadata.tokens.toLocaleString()} tok</span>
                                 </span>
                               )}
@@ -1054,7 +1054,7 @@ export default function ActivityTab() {
                               )}
                               {event.metadata.generatedFiles &&
                                 event.metadata.generatedFiles.length > 0 && (
-                                  <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400">
+                                  <span className="flex items-center gap-1 text-accent">
                                     <FileCode size={11} />
                                     <span>
                                       {event.metadata.generatedFiles.length} file(s)
@@ -1067,7 +1067,7 @@ export default function ActivityTab() {
                           {/* Bottlenecks preview */}
                           {event.metadata?.bottlenecks &&
                             event.metadata.bottlenecks.length > 0 && (
-                              <div className="flex items-center gap-1.5 pt-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold">
+                              <div className="flex items-center gap-1.5 pt-1 text-[11px] text-error font-semibold">
                                 <AlertCircle size={12} />
                                 <span>{event.metadata.bottlenecks[0]}</span>
                               </div>
@@ -1076,13 +1076,13 @@ export default function ActivityTab() {
                       </div>
 
                       {/* Right: Timestamp & Action indicator */}
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1 text-right shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-neutral-100 dark:border-neutral-800">
-                        <span className="text-[11px] font-mono text-neutral-400 flex items-center gap-1">
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1 text-right shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-border-soft">
+                        <span className="text-[11px] font-mono text-faint flex items-center gap-1">
                           <Clock size={11} />
                           <span>{formatRelativeTime(event.timestamp)}</span>
                         </span>
 
-                        <div className="flex items-center gap-1 text-xs font-semibold text-neutral-500 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-muted group-hover:text-ink transition-colors">
                           <span className="text-[11px]">Inspect</span>
                           <ChevronRight size={13} />
                         </div>
@@ -1106,21 +1106,21 @@ export default function ActivityTab() {
         >
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setInspectEvent(null)}
           />
 
           <div
             id="drawer-activity-inspector"
-            className="relative w-full max-w-2xl bg-white dark:bg-[#141722] text-neutral-900 dark:text-neutral-100 shadow-2xl border-l border-neutral-200/90 dark:border-neutral-800 flex flex-col h-full z-10 overflow-hidden"
+            className="relative w-full max-w-2xl bg-panel text-ink shadow-2xl border-l border-border flex flex-col h-full z-10 overflow-hidden"
           >
             {/* Drawer Header */}
-            <div className="px-6 py-4 border-b border-neutral-200/90 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/60">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-3">
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl font-bold text-xs ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl font-semibold text-xs ${
                     inspectEvent.category === "decision"
-                      ? "bg-rose-500 text-white"
+                      ? "bg-error text-on-ink"
                       : getAgentMeta(inspectEvent.actor.name).avatarBg
                   }`}
                 >
@@ -1133,11 +1133,11 @@ export default function ActivityTab() {
                 <div>
                   <h3
                     id="event-drawer-title"
-                    className="text-sm font-bold text-neutral-900 dark:text-neutral-50 truncate max-w-md"
+                    className="text-sm font-semibold text-ink truncate max-w-md"
                   >
                     {inspectEvent.title}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-neutral-500">
+                  <div className="flex items-center gap-2 text-xs text-muted">
                     <span>{inspectEvent.actor.name}</span>
                     <span>·</span>
                     <span>{new Date(inspectEvent.timestamp).toLocaleTimeString()}</span>
@@ -1148,21 +1148,21 @@ export default function ActivityTab() {
               <button
                 type="button"
                 onClick={() => setInspectEvent(null)}
-                className="h-8 w-8 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                className="h-8 w-8 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
             {/* Tab Selection */}
-            <div className="px-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center gap-4 text-xs font-semibold bg-neutral-50/40 dark:bg-neutral-900/20">
+            <div className="px-6 border-b border-border flex items-center gap-4 text-xs font-semibold bg-ink/10">
               <button
                 type="button"
                 onClick={() => setActiveTab("logs")}
                 className={`py-3 border-b-2 cursor-pointer transition-colors ${
                   activeTab === "logs"
-                    ? "border-neutral-900 dark:border-white text-neutral-900 dark:text-white font-bold"
-                    : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    ? "border-border text-ink font-semibold"
+                    : "border-transparent text-muted hover:text-ink"
                 }`}
               >
                 Terminal Output & Logs
@@ -1172,8 +1172,8 @@ export default function ActivityTab() {
                 onClick={() => setActiveTab("thought")}
                 className={`py-3 border-b-2 cursor-pointer transition-colors ${
                   activeTab === "thought"
-                    ? "border-neutral-900 dark:border-white text-neutral-900 dark:text-white font-bold"
-                    : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    ? "border-border text-ink font-semibold"
+                    : "border-transparent text-muted hover:text-ink"
                 }`}
               >
                 Neural Reasoning & Context
@@ -1185,8 +1185,8 @@ export default function ActivityTab() {
                     onClick={() => setActiveTab("files")}
                     className={`py-3 border-b-2 cursor-pointer transition-colors ${
                       activeTab === "files"
-                        ? "border-neutral-900 dark:border-white text-neutral-900 dark:text-white font-bold"
-                        : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                        ? "border-border text-ink font-semibold"
+                        : "border-transparent text-muted hover:text-ink"
                     }`}
                   >
                     Artifacts ({inspectEvent.metadata.generatedFiles.length})
@@ -1197,8 +1197,8 @@ export default function ActivityTab() {
                 onClick={() => setActiveTab("metrics")}
                 className={`py-3 border-b-2 cursor-pointer transition-colors ${
                   activeTab === "metrics"
-                    ? "border-neutral-900 dark:border-white text-neutral-900 dark:text-white font-bold"
-                    : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    ? "border-border text-ink font-semibold"
+                    : "border-transparent text-muted hover:text-ink"
                 }`}
               >
                 Compute Metrics
@@ -1211,7 +1211,7 @@ export default function ActivityTab() {
               {activeTab === "logs" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
                       Standard Out / Event Stream
                     </span>
                     <button
@@ -1221,14 +1221,14 @@ export default function ActivityTab() {
                         navigator.clipboard.writeText(logs);
                         toast.success("Logs copied to clipboard!");
                       }}
-                      className="text-[11px] text-neutral-600 dark:text-neutral-300 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                      className="text-[11px] text-muted font-semibold flex items-center gap-1 hover:underline cursor-pointer"
                     >
                       <Copy size={11} />
                       <span>Copy Logs</span>
                     </button>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-neutral-950 text-neutral-200 font-mono text-xs leading-relaxed overflow-x-auto max-h-96 border border-neutral-800 space-y-1">
+                  <div className="p-4 rounded-xl bg-ink text-muted font-mono text-xs leading-relaxed overflow-x-auto max-h-96 border border-border space-y-1">
                     {inspectEvent.metadata?.logs &&
                     inspectEvent.metadata.logs.length > 0 ? (
                       inspectEvent.metadata.logs.map((line, idx) => (
@@ -1236,19 +1236,19 @@ export default function ActivityTab() {
                           key={idx}
                           className={`${
                             line.includes("[ERROR]")
-                              ? "text-rose-400 font-bold"
+                              ? "text-error font-semibold"
                               : line.includes("[WARN]")
-                              ? "text-amber-400"
+                              ? "text-warn"
                               : line.includes("[SUCCESS]")
-                              ? "text-emerald-400 font-bold"
-                              : "text-neutral-300"
+                              ? "text-ok font-semibold"
+                              : "text-muted"
                           }`}
                         >
                           {line}
                         </div>
                       ))
                     ) : (
-                      <p className="text-neutral-500 italic">No terminal logs recorded.</p>
+                      <p className="text-muted italic">No terminal logs recorded.</p>
                     )}
                   </div>
                 </div>
@@ -1257,12 +1257,12 @@ export default function ActivityTab() {
               {/* Tab: Thoughts & Neural Reasoning */}
               {activeTab === "thought" && (
                 <div className="space-y-3">
-                  <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/40 space-y-2">
-                    <h4 className="font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
-                      <Brain size={14} className="text-rose-500" />
+                  <div className="p-4 rounded-xl border border-border bg-ink/10 space-y-2">
+                    <h4 className="font-semibold text-ink flex items-center gap-1.5">
+                      <Brain size={14} className="text-error" />
                       <span>Agent Thought Stream</span>
                     </h4>
-                    <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed font-sans">
+                    <p className="text-xs text-ink leading-relaxed font-sans">
                       {inspectEvent.metadata?.currentThought ||
                         inspectEvent.subtitle ||
                         "No thought reflection recorded for this action."}
@@ -1272,12 +1272,12 @@ export default function ActivityTab() {
                   {/* Bottlenecks & Recommendations */}
                   {inspectEvent.metadata?.bottlenecks &&
                     inspectEvent.metadata.bottlenecks.length > 0 && (
-                      <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20 space-y-1.5">
-                        <h5 className="font-bold text-rose-800 dark:text-rose-300 flex items-center gap-1.5 text-xs">
+                      <div className="p-4 rounded-xl border border-error/30 bg-error/20 space-y-1.5">
+                        <h5 className="font-semibold text-error flex items-center gap-1.5 text-xs">
                           <AlertTriangle size={13} />
                           <span>Identified Bottlenecks</span>
                         </h5>
-                        <ul className="list-disc pl-4 space-y-1 text-rose-700 dark:text-rose-200">
+                        <ul className="list-disc pl-4 space-y-1 text-error">
                           {inspectEvent.metadata.bottlenecks.map((b, i) => (
                             <li key={i}>{b}</li>
                           ))}
@@ -1287,12 +1287,12 @@ export default function ActivityTab() {
 
                   {inspectEvent.metadata?.recommendedNextTasks &&
                     inspectEvent.metadata.recommendedNextTasks.length > 0 && (
-                      <div className="p-4 rounded-xl border border-sky-200 dark:border-sky-900/50 bg-sky-50/40 dark:bg-sky-950/20 space-y-1.5">
-                        <h5 className="font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1.5 text-xs">
+                      <div className="p-4 rounded-xl border border-info/30 bg-info/20 space-y-1.5">
+                        <h5 className="font-semibold text-accent flex items-center gap-1.5 text-xs">
                           <Lightbulb size={13} />
                           <span>Recommended Next Deliverables</span>
                         </h5>
-                        <ul className="list-disc pl-4 space-y-1 text-sky-700 dark:text-sky-200">
+                        <ul className="list-disc pl-4 space-y-1 text-accent">
                           {inspectEvent.metadata.recommendedNextTasks.map((t, i) => (
                             <li key={i}>{t}</li>
                           ))}
@@ -1305,20 +1305,20 @@ export default function ActivityTab() {
               {/* Tab: Generated Artifacts */}
               {activeTab === "files" && (
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
                     Code & Manifest Artifacts
                   </span>
                   <div className="space-y-1.5">
                     {inspectEvent.metadata?.generatedFiles?.map((file, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30"
+                        className="flex items-center justify-between p-3 rounded-xl border border-border bg-ink/10"
                       >
                         <div className="flex items-center gap-2 font-mono text-xs">
-                          <FileCode size={14} className="text-sky-500" />
+                          <FileCode size={14} className="text-accent" />
                           <span>{file}</span>
                         </div>
-                        <span className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">
+                        <span className="text-[10px] font-semibold uppercase text-ok">
                           Generated
                         </span>
                       </div>
@@ -1331,39 +1331,39 @@ export default function ActivityTab() {
               {activeTab === "metrics" && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30 space-y-1">
-                      <div className="text-[10px] uppercase font-bold text-neutral-400">
+                    <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
+                      <div className="text-[10px] uppercase font-semibold text-faint">
                         Token Count
                       </div>
-                      <div className="text-lg font-bold font-mono text-neutral-900 dark:text-neutral-50">
+                      <div className="text-lg font-semibold font-mono text-ink">
                         {inspectEvent.metadata?.tokens?.toLocaleString() || "—"}
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30 space-y-1">
-                      <div className="text-[10px] uppercase font-bold text-neutral-400">
+                    <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
+                      <div className="text-[10px] uppercase font-semibold text-faint">
                         Execution Cost
                       </div>
-                      <div className="text-lg font-bold font-mono text-neutral-900 dark:text-neutral-50">
+                      <div className="text-lg font-semibold font-mono text-ink">
                         {inspectEvent.metadata?.cost !== undefined
                           ? `$${inspectEvent.metadata.cost.toFixed(4)}`
                           : "—"}
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30 space-y-1">
-                      <div className="text-[10px] uppercase font-bold text-neutral-400">
+                    <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
+                      <div className="text-[10px] uppercase font-semibold text-faint">
                         Duration
                       </div>
-                      <div className="text-lg font-bold font-mono text-neutral-900 dark:text-neutral-50">
+                      <div className="text-lg font-semibold font-mono text-ink">
                         {inspectEvent.metadata?.durationSeconds !== undefined
                           ? `${inspectEvent.metadata.durationSeconds.toFixed(1)}s`
                           : "—"}
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30 space-y-1">
-                      <div className="text-[10px] uppercase font-bold text-neutral-400">
+                    <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
+                      <div className="text-[10px] uppercase font-semibold text-faint">
                         Status
                       </div>
-                      <div className="text-lg font-bold uppercase font-mono text-neutral-900 dark:text-neutral-50">
+                      <div className="text-lg font-semibold uppercase font-mono text-ink">
                         {inspectEvent.status}
                       </div>
                     </div>
@@ -1373,14 +1373,14 @@ export default function ActivityTab() {
             </div>
 
             {/* Drawer Footer */}
-            <div className="px-6 py-4 border-t border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/60 flex items-center justify-between">
-              <span className="text-[11px] text-neutral-500 font-mono">
+            <div className="px-6 py-4 border-t border-border bg-ink/10 flex items-center justify-between">
+              <span className="text-[11px] text-muted font-mono">
                 ID: {inspectEvent.id}
               </span>
               <button
                 type="button"
                 onClick={() => setInspectEvent(null)}
-                className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold text-xs cursor-pointer hover:opacity-90"
+                className="px-4 py-2 rounded-pill bg-ink text-on-ink font-semibold text-xs cursor-pointer hover:opacity-90"
               >
                 Close
               </button>
@@ -1398,28 +1398,28 @@ export default function ActivityTab() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
         >
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-base/60 backdrop-blur-xs transition-opacity"
             onClick={() => setShowExportModal(false)}
           />
 
           <div
             id="modal-export-audit"
-            className="relative w-full max-w-2xl bg-white dark:bg-[#141722] text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl border border-neutral-200/90 dark:border-neutral-800 overflow-hidden z-10 flex flex-col max-h-[85vh]"
+            className="relative w-full max-w-2xl bg-panel text-ink rounded-2xl shadow-2xl border border-border overflow-hidden z-10 flex flex-col max-h-[85vh]"
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-neutral-200/90 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/60">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-ink/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-950">
-                  <FileText size={14} className="text-amber-400" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-ink/[0.06] text-ink ">
+                  <FileText size={14} className="text-warn" />
                 </div>
                 <div>
                   <h3
                     id="export-modal-title"
-                    className="text-sm font-bold text-neutral-900 dark:text-neutral-100"
+                    className="text-sm font-semibold text-ink"
                   >
                     Export Activity & Fleet Audit Log
                   </h3>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="text-[11px] text-muted">
                     Comprehensive compliance and telemetry report of current filtered view.
                   </p>
                 </div>
@@ -1427,7 +1427,7 @@ export default function ActivityTab() {
               <button
                 type="button"
                 onClick={() => setShowExportModal(false)}
-                className="h-7 w-7 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                className="h-7 w-7 rounded-lg hover:bg-ink/5 flex items-center justify-center text-faint hover:text-ink cursor-pointer"
               >
                 <X size={15} />
               </button>
@@ -1435,14 +1435,14 @@ export default function ActivityTab() {
 
             {/* Markdown Display */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="p-4 rounded-xl bg-neutral-900 text-neutral-200 font-mono text-xs leading-relaxed overflow-x-auto border border-neutral-800 select-all max-h-[450px]">
+              <div className="p-4 rounded-xl bg-ink text-muted font-mono text-xs leading-relaxed overflow-x-auto border border-border select-all max-h-[450px]">
                 <pre className="whitespace-pre-wrap">{auditReportMarkdown}</pre>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-neutral-200/90 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/60 flex items-center justify-between">
-              <span className="text-[11px] text-neutral-500">
+            <div className="px-6 py-4 border-t border-border bg-ink/10 flex items-center justify-between">
+              <span className="text-[11px] text-muted">
                 {filteredEvents.length} event(s) included
               </span>
               <div className="flex items-center gap-2">
@@ -1452,7 +1452,7 @@ export default function ActivityTab() {
                     navigator.clipboard.writeText(auditReportMarkdown);
                     toast.success("Audit log copied to clipboard!");
                   }}
-                  className="px-3.5 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 font-semibold text-xs flex items-center gap-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer shadow-2xs"
+                  className="px-3.5 py-1.5 rounded-xl border border-border bg-panel text-ink font-semibold text-xs flex items-center gap-1.5 hover:bg-ink/5 cursor-pointer shadow-2xs"
                 >
                   <Copy size={13} />
                   <span>Copy Markdown</span>
@@ -1472,7 +1472,7 @@ export default function ActivityTab() {
                     URL.revokeObjectURL(url);
                     toast.success("Audit log downloaded!");
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-bold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
+                  className="px-3.5 py-1.5 rounded-pill bg-ink text-on-ink font-semibold text-xs flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-2xs"
                 >
                   <Download size={13} />
                   <span>Download .md</span>

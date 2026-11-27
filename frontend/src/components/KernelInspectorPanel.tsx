@@ -838,7 +838,7 @@ export function KernelInspectorPanel({
                 type="button"
                 disabled={runningBenchmarks}
                 onClick={() => void onRunBenchmarks()}
-                className="px-2.5 py-1 rounded bg-accent text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-2.5 py-1 rounded-pill bg-ink text-on-ink text-[11px] font-semibold hover:opacity-90 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 {runningBenchmarks ? "Running Suite..." : "Run Benchmark Suite"}
               </button>

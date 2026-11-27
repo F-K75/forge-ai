@@ -314,7 +314,7 @@ export function ProfileTab() {
             id="profile-save-btn"
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-accent text-base font-semibold text-xs px-5 py-2.5 hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 cursor-pointer"
+            className="rounded-pill bg-ink text-on-ink font-semibold text-xs px-5 py-2.5 hover:opacity-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 cursor-pointer"
           >
             {saving ? "Saving changes..." : "Save Profile"}
           </button>

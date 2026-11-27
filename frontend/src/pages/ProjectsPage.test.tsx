@@ -170,6 +170,7 @@ vi.mock('../lib/skillVisuals', () => ({
 
 vi.mock('../lib/coverArt', () => ({
   coverGradient: () => 'linear-gradient(to right, #000, #fff)',
+  atmosphereSwatch: () => 'linear-gradient(to right, #000, #fff)',
 }))
 
 vi.mock('../lib/format', () => ({

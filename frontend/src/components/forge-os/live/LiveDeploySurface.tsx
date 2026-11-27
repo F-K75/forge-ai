@@ -24,9 +24,9 @@ interface Props {
 const ACTIVE = new Set(["pending", "building", "deploying"]);
 
 const STATUS_STYLES: Record<string, string> = {
-  live: "bg-emerald-400 text-black",
-  failed: "bg-red-500 text-white",
-  cancelled: "bg-neutral-300 text-black",
+  live: "bg-ok text-on-ink",
+  failed: "bg-error text-on-ink",
+  cancelled: "bg-surface-high text-ink",
 };
 
 // Backend timestamps are naive UTC without a zone suffix.
@@ -93,11 +93,11 @@ export function LiveDeploySurface({ projectId, buildId, buildStatus }: Props) {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6 font-mono text-xs space-y-5 text-neutral-900 dark:text-neutral-100">
+    <div className="h-full overflow-y-auto p-4 sm:p-6 font-mono text-xs space-y-5 text-ink">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-black uppercase text-sm">Deployments</h3>
-          <p className="text-neutral-500">
+          <h3 className="font-semibold uppercase text-sm">Deployments</h3>
+          <p className="text-muted">
             {canDeploy
               ? "Deploy the latest completed build."
               : !buildId
@@ -111,7 +111,7 @@ export function LiveDeploySurface({ projectId, buildId, buildStatus }: Props) {
           type="button"
           onClick={handleDeploy}
           disabled={!canDeploy || deploying}
-          className="inline-flex items-center gap-2 h-9 px-4 border-2 border-black dark:border-white/80 bg-[#FFD731] text-black font-black uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 h-9 px-4 border-2 border-border bg-warn text-on-ink font-semibold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {deploying ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
           Deploy build
@@ -119,45 +119,45 @@ export function LiveDeploySurface({ projectId, buildId, buildStatus }: Props) {
       </div>
 
       {deployError && (
-        <p className="p-3 border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 font-sans text-sm">
+        <p className="p-3 border-2 border-error/30 bg-error/10 text-error font-sans text-sm">
           {deployError}
         </p>
       )}
 
       {loadError ? (
-        <p className="text-red-600">{loadError}</p>
+        <p className="text-error">{loadError}</p>
       ) : deployments === null ? (
-        <p className="inline-flex items-center gap-2 text-neutral-500">
+        <p className="inline-flex items-center gap-2 text-muted">
           <Loader2 size={12} className="animate-spin" /> Loading deployments…
         </p>
       ) : deployments.length === 0 ? (
-        <p className="text-neutral-500">This project hasn't been deployed yet.</p>
+        <p className="text-muted">This project hasn't been deployed yet.</p>
       ) : (
         <ul className="space-y-2">
           {deployments.map((d) => (
             <li
               key={d.id}
-              className="p-3 border border-black/20 dark:border-white/20 bg-white dark:bg-white/5 flex flex-wrap items-center justify-between gap-2"
+              className="p-3 border border-border bg-panel flex flex-wrap items-center justify-between gap-2"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase ${
-                    STATUS_STYLES[d.status] ?? "bg-amber-200 text-black"
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                    STATUS_STYLES[d.status] ?? "bg-warn/20 text-ink"
                   }`}
                 >
                   {ACTIVE.has(d.status) && <Loader2 size={10} className="animate-spin" />}
                   {d.status}
                 </span>
-                <span className="text-neutral-500">{d.target_type ?? "docker"}</span>
-                <span className="text-neutral-500">{formatRelativeTime(asUtc(d.deployed_at ?? d.created_at))}</span>
-                {d.build_id && <span className="text-neutral-400">build {d.build_id.slice(0, 8)}</span>}
+                <span className="text-muted">{d.target_type ?? "docker"}</span>
+                <span className="text-muted">{formatRelativeTime(asUtc(d.deployed_at ?? d.created_at))}</span>
+                {d.build_id && <span className="text-faint">build {d.build_id.slice(0, 8)}</span>}
               </div>
               {d.url && d.status === "live" && (
                 <a
                   href={d.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline break-all"
+                  className="inline-flex items-center gap-1 text-accent hover:underline break-all"
                 >
                   {d.url} <ExternalLink size={11} />
                 </a>

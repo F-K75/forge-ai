@@ -523,20 +523,20 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
     if (progressPercent >= 80) {
       return {
         label: 'High-Fidelity Specification',
-        color: 'bg-emerald-100 text-emerald-900 border-emerald-500',
+        color: 'bg-ok/10 text-ok border-ok/30',
         desc: 'Autonomous agents have comprehensive inputs to draft deep epics & tasks.',
       };
     }
     if (progressPercent >= 40) {
       return {
         label: 'Sufficient Scope Context',
-        color: 'bg-amber-100 text-amber-900 border-amber-500',
+        color: 'bg-warn/10 text-warn border-warn/30',
         desc: 'Good baseline. Consider clarifying architecture and user personas for precision.',
       };
     }
     return {
       label: 'Drafting Requirements',
-      color: 'bg-neutral-100 text-neutral-800 border-neutral-400',
+      color: 'bg-panel-alt text-ink border-border',
       desc: 'Answer a few key questions to prevent unrequested assumptions.',
     };
   }, [progressPercent]);
@@ -544,24 +544,24 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
   const getCategoryIcon = (category: string) => {
     const cLower = category.toLowerCase();
     if (cLower.includes('user') || cLower.includes('audience') || cLower.includes('role')) {
-      return <Users className="w-3.5 h-3.5 text-blue-600" />;
+      return <Users className="w-3.5 h-3.5 text-accent" />;
     }
     if (cLower.includes('mvp') || cLower.includes('scope') || cLower.includes('feature')) {
-      return <Target className="w-3.5 h-3.5 text-rose-600" />;
+      return <Target className="w-3.5 h-3.5 text-error" />;
     }
     if (cLower.includes('stack') || cLower.includes('architecture') || cLower.includes('tech') || cLower.includes('deep-dive')) {
-      return <Wrench className="w-3.5 h-3.5 text-indigo-600" />;
+      return <Wrench className="w-3.5 h-3.5 text-agent-business-improver" />;
     }
     if (cLower.includes('integration') || cLower.includes('api')) {
-      return <Zap className="w-3.5 h-3.5 text-amber-600" />;
+      return <Zap className="w-3.5 h-3.5 text-warn" />;
     }
     if (cLower.includes('security') || cLower.includes('compliance') || cLower.includes('sla')) {
-      return <Lock className="w-3.5 h-3.5 text-red-600" />;
+      return <Lock className="w-3.5 h-3.5 text-error" />;
     }
     if (cLower.includes('timeline') || cLower.includes('sprint') || cLower.includes('velocity')) {
-      return <Clock className="w-3.5 h-3.5 text-emerald-600" />;
+      return <Clock className="w-3.5 h-3.5 text-ok" />;
     }
-    return <Layers className="w-3.5 h-3.5 text-neutral-600" />;
+    return <Layers className="w-3.5 h-3.5 text-muted" />;
   };
 
   const handleNext = () => {
@@ -585,12 +585,12 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
       id="requirements-survey-modal"
       className={`fixed inset-0 z-50 flex items-center justify-center font-sans transition-all duration-150 ${
         isFullScreen
-          ? 'p-0 sm:p-1.5 md:p-2.5 bg-black/85'
-          : 'p-2 sm:p-4 md:p-6 bg-black/70 backdrop-blur-xs'
+          ? 'p-0 sm:p-1.5 md:p-2.5 bg-base/85'
+          : 'p-2 sm:p-4 md:p-6 bg-base/70 backdrop-blur-xs'
       }`}
     >
       <div
-        className={`relative flex flex-col bg-[#4DA2FE] dark:bg-[#1D4ED8] border-2 border-[#000F1D] shadow-[0_16px_0_#000F1D] overflow-hidden transition-all duration-150 ${
+        className={`relative flex flex-col bg-panel-alt border-2 border-border overflow-hidden transition-all duration-150 ${
           isFullScreen
             ? 'w-full h-full max-w-none max-h-none rounded-none sm:rounded-[24px] md:rounded-[32px] p-1.5 sm:p-2.5 md:p-3.5'
             : 'w-full max-w-5xl xl:max-w-6xl max-h-[94vh] rounded-[28px] sm:rounded-[36px] md:rounded-[42px] p-2.5 sm:p-4 md:p-5'
@@ -598,40 +598,40 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
       >
         {/* Inner Window Container */}
         <div
-          className={`relative flex flex-col w-full h-full bg-[#F6F6F5] dark:bg-[#0D121F] border-2 border-[#000F1D] overflow-hidden shadow-[0_6px_0_#000F1D] ${
+          className={`relative flex flex-col w-full h-full bg-panel border-2 border-border overflow-hidden ${
             isFullScreen
               ? 'flex-1 max-h-none rounded-none sm:rounded-[18px] md:rounded-[22px]'
               : 'max-h-[calc(94vh-32px)] rounded-[20px] sm:rounded-[26px]'
           }`}
         >
           {/* Top Header Bar: Unified Streamlined Toolbar */}
-          <div className="px-4 sm:px-6 py-2.5 bg-white dark:bg-[#151926] border-b-2 border-[#000F1D] flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="px-4 sm:px-6 py-2.5 bg-panel border-b-2 border-border flex flex-wrap items-center justify-between gap-3 shrink-0">
             {/* Left: Brand Title & View Tabs */}
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#10B981] border border-[#000F1D] shrink-0" />
-                <span className="font-mono font-black text-xs sm:text-sm tracking-wider text-[#000F1D] dark:text-white uppercase truncate">
+                <span className="h-2.5 w-2.5 rounded-full bg-ok border border-border shrink-0" />
+                <span className="font-mono font-semibold text-xs sm:text-sm tracking-wider text-ink uppercase truncate">
                   Requirements
                 </span>
               </div>
 
               {/* View Mode Tabs */}
-              <div className="flex items-center p-0.5 bg-[#F0F2F5] dark:bg-[#121622] rounded-xl border border-neutral-200 dark:border-neutral-700">
+              <div className="flex items-center p-0.5 bg-panel rounded-xl border border-border">
                 <button
                   id="neural-chatbot-tab-btn"
                   type="button"
                   onClick={() => setViewMode('neural-chat')}
-                  className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'neural-chat'
-                      ? 'bg-[#000F1D] text-white shadow-xs'
-                      : 'text-neutral-700 dark:text-neutral-300 hover:text-black dark:hover:text-white'
+                      ? 'bg-ink text-on-ink shadow-xs'
+                      : 'text-ink hover:text-ink'
                   }`}
                   title="Interactive Neural Network Chatbot Requirements Gathering"
                 >
-                  <Brain className="w-3.5 h-3.5 text-[#4DA2FE]" />
+                  <Brain className="w-3.5 h-3.5 text-accent" />
                   <span>AI Chat</span>
                   {chatMessages.length > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-[#4DA2FE] text-white text-[9px] font-mono font-bold">
+                    <span className="px-1.5 py-0.2 rounded-full bg-ink text-on-ink text-[9px] font-mono font-semibold">
                       {chatMessages.length}
                     </span>
                   )}
@@ -640,26 +640,26 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('wizard')}
-                  className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'wizard'
-                      ? 'bg-[#000F1D] text-white shadow-xs'
-                      : 'text-neutral-700 dark:text-neutral-300 hover:text-black dark:hover:text-white'
+                      ? 'bg-ink text-on-ink shadow-xs'
+                      : 'text-ink hover:text-ink'
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5 text-[#FF7A00]" />
+                  <Layers className="w-3.5 h-3.5 text-accent" />
                   <span>Step-by-Step</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setViewMode('full')}
-                  className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'full'
-                      ? 'bg-[#000F1D] text-white shadow-xs'
-                      : 'text-neutral-700 dark:text-neutral-300 hover:text-black dark:hover:text-white'
+                      ? 'bg-ink text-on-ink shadow-xs'
+                      : 'text-ink hover:text-ink'
                   }`}
                 >
-                  <FileText className="w-3.5 h-3.5 text-[#10B981]" />
+                  <FileText className="w-3.5 h-3.5 text-ok" />
                   <span>All ({totalCount})</span>
                 </button>
 
@@ -667,13 +667,13 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="validation-summary-tab-btn"
                   type="button"
                   onClick={() => setViewMode('summary')}
-                  className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'summary'
-                      ? 'bg-[#000F1D] text-white shadow-xs'
-                      : 'text-neutral-700 dark:text-neutral-300 hover:text-black dark:hover:text-white'
+                      ? 'bg-ink text-on-ink shadow-xs'
+                      : 'text-ink hover:text-ink'
                   }`}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-ok" />
                   <span>Summary</span>
                 </button>
               </div>
@@ -682,15 +682,15 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
             {/* Right: Actions, Mode Toggle, Full Screen & Close */}
             <div className="flex items-center gap-2 shrink-0">
               {/* Business vs Technical Perspective Switcher */}
-              <div className="flex items-center p-1 bg-neutral-200/80 dark:bg-neutral-800 rounded-xl border border-neutral-300 dark:border-neutral-700 shadow-2xs">
+              <div className="flex items-center p-1 bg-ink/10 rounded-xl border border-border shadow-2xs">
                 <button
                   id="perspective-business-toggle-btn"
                   type="button"
                   onClick={() => handlePerspectiveChange('business')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                     surveyPerspective === 'business'
-                      ? 'bg-amber-400 text-neutral-950 shadow-xs ring-1 ring-amber-500/50'
-                      : 'text-neutral-600 dark:text-neutral-300 hover:text-black dark:hover:text-white'
+                      ? 'bg-warn text-on-ink shadow-xs ring-1 ring-warn/50'
+                      : 'text-muted hover:text-ink'
                   }`}
                   title="Business View: Plain English, customer outcomes & ROI"
                 >
@@ -701,10 +701,10 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="perspective-technical-toggle-btn"
                   type="button"
                   onClick={() => handlePerspectiveChange('technical')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                     surveyPerspective === 'technical'
-                      ? 'bg-blue-600 text-white shadow-xs ring-1 ring-blue-700/50'
-                      : 'text-neutral-600 dark:text-neutral-300 hover:text-black dark:hover:text-white'
+                      ? 'bg-ink text-on-ink shadow-xs ring-1 ring-info/50'
+                      : 'text-muted hover:text-ink'
                   }`}
                   title="Technical View: System architecture, databases & APIs"
                 >
@@ -719,20 +719,20 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 type="button"
                 onClick={handleSaveDraft}
                 title="Save current survey responses"
-                className={`h-8 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                className={`h-8 px-2.5 sm:px-3 rounded-pill border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
                   saveSuccessFeedback
-                    ? 'bg-emerald-600 text-white border-emerald-700'
-                    : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-50'
+                    ? 'bg-ok text-on-ink border-ok/30'
+                    : 'bg-panel border-border text-ink hover:bg-ink/5'
                 }`}
               >
                 {saveSuccessFeedback ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                    <Check className="w-3.5 h-3.5 text-ink stroke-[2.5]" />
                     <span className="hidden sm:inline">Saved</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-3.5 h-3.5 text-neutral-500" />
+                    <Save className="w-3.5 h-3.5 text-muted" />
                     <span className="hidden sm:inline">Save</span>
                   </>
                 )}
@@ -743,7 +743,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 id="toggle-survey-fullscreen-btn"
                 type="button"
                 onClick={() => setIsFullScreen((prev) => !prev)}
-                className="h-8 w-8 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-[#000F1D] dark:text-white flex items-center justify-center cursor-pointer hover:bg-neutral-50"
+                className="h-8 w-8 rounded-xl border border-border bg-panel text-ink flex items-center justify-center cursor-pointer hover:bg-ink/5"
                 title={isFullScreen ? 'Restore windowed view' : 'Stretch to full screen'}
                 aria-label={isFullScreen ? 'Restore windowed view' : 'Stretch to full screen'}
               >
@@ -757,7 +757,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="h-8 w-8 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 text-[#000F1D] dark:text-white flex items-center justify-center cursor-pointer"
+                className="h-8 w-8 rounded-xl border border-border bg-panel hover:bg-error/20 hover:text-error hover:border-error/30 text-ink flex items-center justify-center cursor-pointer"
                 aria-label="Close Survey"
               >
                 <X className="w-4 h-4" />
@@ -775,7 +775,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <BookmarkCheck className="w-4 h-4 text-[rgb(var(--md-sys-color-tertiary))] shrink-0" />
               <div className="truncate">
                 <span>Saved draft available: </span>
-                <span className="font-bold underline">&ldquo;{detectedDraft.prompt}&rdquo;</span>
+                <span className="font-semibold underline">&ldquo;{detectedDraft.prompt}&rdquo;</span>
                 <span className="text-[11px] ml-1 opacity-80">
                   (saved {formatDraftTimestamp(detectedDraft.updatedAt)} · {detectedDraft.answeredCount}/{detectedDraft.totalCount} questions answered)
                 </span>
@@ -804,15 +804,15 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
         {/* Dynamic Branch Notification Banner (if newly unlocked) */}
         {branchToastMessage && (
-          <div className="px-6 py-2 bg-purple-50 dark:bg-purple-950/40 border-b border-purple-200 dark:border-purple-800 text-xs font-semibold text-purple-900 dark:text-purple-200 flex items-center justify-between gap-2 transition-all">
+          <div className="px-6 py-2 bg-agent-business-improver/10 border-b border-agent-business-improver/30 text-xs font-semibold text-agent-business-improver flex items-center justify-between gap-2 transition-all">
             <div className="flex items-center gap-2">
-              <GitBranch className="w-4 h-4 text-purple-600 shrink-0" />
+              <GitBranch className="w-4 h-4 text-agent-business-improver shrink-0" />
               <span>{branchToastMessage}</span>
             </div>
             <button
               type="button"
               onClick={() => setBranchToastMessage(null)}
-              className="hover:opacity-80 font-bold text-xs p-1 cursor-pointer"
+              className="hover:opacity-80 font-semibold text-xs p-1 cursor-pointer"
             >
               ×
             </button>
@@ -824,8 +824,8 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
           <div
             className={`px-6 py-2.5 border-b text-xs font-semibold flex items-center justify-between gap-2 transition-all ${
               surveyPerspective === 'business'
-                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-200'
-                : 'bg-blue-50 dark:bg-blue-950/50 border-blue-300 dark:border-blue-700 text-blue-950 dark:text-blue-200'
+                ? 'bg-warn/10 border-warn/30 text-warn'
+                : 'bg-info/10 border-info/30 text-info'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -835,7 +835,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
             <button
               type="button"
               onClick={() => setPerspectiveToast(null)}
-              className="hover:opacity-75 font-black text-sm px-1.5 cursor-pointer"
+              className="hover:opacity-75 font-semibold text-sm px-1.5 cursor-pointer"
             >
               ✕
             </button>
@@ -876,11 +876,11 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {loadingQuestions ? (
             <div className="py-20 flex flex-col items-center justify-center text-center space-y-3 font-mono">
-              <RefreshCw className="w-8 h-8 text-black animate-spin" />
-              <p className="font-black text-sm uppercase tracking-wider">
+              <RefreshCw className="w-8 h-8 text-ink animate-spin" />
+              <p className="font-semibold text-sm uppercase tracking-wider">
                 Autonomous Discovery: Formulating Domain Requirements...
               </p>
-              <p className="text-xs text-neutral-500 max-w-md">
+              <p className="text-xs text-muted max-w-md">
                 Analyzing &ldquo;{currentPrompt}&rdquo; to generate non-generic, high-relevance architectural survey questions...
               </p>
             </div>
@@ -918,13 +918,13 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
             /* ================= GUIDED WIZARD MODE ================= */
             <div className="space-y-4 w-full max-w-6xl 2xl:max-w-7xl mx-auto">
               {/* Step Roadmap & Reassurance Pipeline */}
-              <div className="p-3 rounded-2xl bg-white dark:bg-[#151926] border border-neutral-200 dark:border-neutral-800 space-y-2">
+              <div className="p-3 rounded-2xl bg-panel border border-border space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#000F1D] text-white font-bold text-xs">
+                    <span className="px-2.5 py-0.5 rounded-full bg-ink text-on-ink font-semibold text-xs">
                       Question {currentStepNumber} of {totalCount}
                     </span>
-                    <span className="text-neutral-600 dark:text-neutral-400 font-medium">
+                    <span className="text-muted font-medium">
                       {questionsAhead === 0
                         ? 'Final question'
                         : `${questionsAhead} remaining`}
@@ -959,9 +959,9 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                       >
                         <div className="min-w-0 flex items-center gap-1.5">
                           <span
-                            className={`w-4 h-4 rounded-md text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                            className={`w-4 h-4 rounded-md text-[10px] font-semibold flex items-center justify-center shrink-0 ${
                               isCurrent
-                                ? 'bg-white/20 text-current'
+                                ? 'bg-ink/20 text-current'
                                 : isDone
                                 ? isBranch
                                   ? 'bg-[rgb(var(--md-sys-color-tertiary))] text-[rgb(var(--md-sys-color-on-tertiary))]'
@@ -971,7 +971,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                           >
                             {isBranch ? '↳' : idx + 1}
                           </span>
-                          <span className="text-[9px] font-bold truncate">
+                          <span className="text-[9px] font-semibold truncate">
                             {q.category.split(' ')[0]}
                           </span>
                         </div>
@@ -993,10 +993,10 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-tertiary))] text-[rgb(var(--md-sys-color-on-tertiary))] text-[10px] font-bold uppercase tracking-wider">
+                        <span className="px-2 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-tertiary))] text-[rgb(var(--md-sys-color-on-tertiary))] text-[10px] font-semibold uppercase tracking-wider">
                           {currentQuestion.branch_badge || 'TAILORED FOLLOW-UP BRANCH'}
                         </span>
-                        <span className="text-xs font-bold">
+                        <span className="text-xs font-semibold">
                           ↳ Follow-up triggered by your choice in {currentQuestion.parent_question_label}
                         </span>
                       </div>
@@ -1008,7 +1008,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   <button
                     type="button"
                     onClick={() => handleDismissBranch(currentQuestion.id)}
-                    className="m3-button-outlined text-[10px] h-7 px-2.5 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer"
+                    className="m3-button-outlined text-[10px] h-7 px-2.5 text-error border-error/30 hover:bg-error/10 cursor-pointer"
                   >
                     Dismiss this follow-up
                   </button>
@@ -1016,33 +1016,33 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               )}
 
               {/* Single Interactive Question Card */}
-              <div className={`p-5 sm:p-6 space-y-4 rounded-2xl bg-white dark:bg-[#151926] border-2 border-[#000F1D] shadow-[4px_4px_0_#000F1D] ${
-                currentQuestion.is_conditional_branch ? 'ring-2 ring-[#FF7A00]' : ''
+              <div className={`p-5 sm:p-6 space-y-4 rounded-2xl bg-panel border-2 border-border ${
+                currentQuestion.is_conditional_branch ? 'ring-2 ring-accent/40' : ''
               }`}>
                 {/* Category & Status header with Step Indicator */}
-                <div className="flex items-start justify-between gap-2 border-b-2 border-neutral-100 dark:border-neutral-800 pb-3.5">
+                <div className="flex items-start justify-between gap-2 border-b-2 border-border-soft pb-3.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center px-2.5 py-1 rounded-lg bg-[#000F1D] text-white text-xs font-mono font-black shadow-[1.5px_1.5px_0_#000F1D]">
+                    <span className="flex items-center justify-center px-2.5 py-1 rounded-pill bg-ink text-on-ink text-xs font-mono font-semibold">
                       {currentStepNumber} of {totalCount}
                     </span>
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#E5EEF8] dark:bg-neutral-800 border-2 border-[#000F1D] text-[11px] font-black uppercase text-[#000F1D] dark:text-white shadow-[1.5px_1.5px_0_#000F1D]">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-info/10 border-2 border-border text-[11px] font-semibold uppercase text-ink ">
                       {getCategoryIcon(currentQuestion.category)}
                       <span>{currentQuestion.category}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-neutral-500 font-mono hidden sm:inline">
+                    <span className="text-[10px] text-muted font-mono hidden sm:inline">
                       {questionsAhead > 0 ? `${questionsAhead} remaining` : 'Final question'}
                     </span>
                     {toSafeString(answers[currentQuestion.id]).trim() ? (
-                      <span className="flex items-center gap-1 text-[#047857] dark:text-[#6EE7B7] font-black text-[11px] bg-[#10B981]/20 px-2.5 py-0.5 rounded-full border border-[#10B981]/40">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="flex items-center gap-1 text-ok font-semibold text-[11px] bg-ok/20 px-2.5 py-0.5 rounded-full border border-ok/40">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-ok" />
                         Clarified
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-amber-800 dark:text-amber-300 font-black text-[11px] bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="flex items-center gap-1 text-warn font-semibold text-[11px] bg-warn/15 px-2.5 py-0.5 rounded-full border border-warn/30">
+                        <AlertCircle className="w-3.5 h-3.5 text-warn" />
                         Awaiting Choice
                       </span>
                     )}
@@ -1058,24 +1058,24 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <div className="space-y-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1.5">
-                          <span className="px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-800 dark:text-teal-300 border border-teal-500/30 text-[10px] font-bold uppercase tracking-wide">
+                          <span className="px-2 py-0.5 rounded-md bg-agent-integration/10 text-agent-integration border border-agent-integration/30 text-[10px] font-semibold uppercase tracking-wide">
                             {isBusinessMode ? 'Business Goal' : 'Technical Requirement'}
                           </span>
                           {isBusinessMode && businessCatInfo && (
-                            <span className="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">
+                            <span className="text-[11px] font-semibold text-muted">
                               Focus: {businessCatInfo.businessTitle}
                             </span>
                           )}
                         </div>
 
-                        <h2 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white leading-snug">
+                        <h2 className="text-base sm:text-lg font-semibold text-ink leading-snug">
                           {isBusinessMode
                             ? (currentQuestion.business_title || currentQuestion.question)
                             : currentQuestion.question}
                         </h2>
 
                         {isBusinessMode && currentQuestion.business_title && (
-                          <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400 font-medium">
+                          <p className="mt-1 text-xs text-muted font-medium">
                             {currentQuestion.question}
                           </p>
                         )}
@@ -1085,14 +1085,14 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                       {isBusinessMode ? (
                         <div className="p-3.5 rounded-2xl bg-[rgb(var(--md-sys-color-tertiary-container))] border border-[rgb(var(--md-sys-color-outline-variant))] space-y-2">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-[rgb(var(--md-sys-color-on-tertiary-container))] uppercase">
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-[rgb(var(--md-sys-color-on-tertiary-container))] uppercase">
                               <Lightbulb className="w-4 h-4 text-[rgb(var(--md-sys-color-tertiary))] shrink-0" />
                               <span>Why this matters for your launch</span>
                             </div>
                             <button
                               type="button"
                               onClick={() => setShowJargonModal(true)}
-                              className="text-[10px] font-bold underline text-[rgb(var(--md-sys-color-on-tertiary-container))] hover:opacity-80 flex items-center gap-1 cursor-pointer"
+                              className="text-[10px] font-semibold underline text-[rgb(var(--md-sys-color-on-tertiary-container))] hover:opacity-80 flex items-center gap-1 cursor-pointer"
                             >
                               <BookOpen className="w-3 h-3" />
                               <span>Plain-English Glossary</span>
@@ -1103,27 +1103,27 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                           </p>
                           {(currentQuestion.plain_hint || businessCatInfo?.plainEnglishHint) && (
                             <div className="text-[11px] text-[rgb(var(--md-sys-color-on-tertiary-container))] pt-1.5 border-t border-[rgb(var(--md-sys-color-outline-variant))]/40 font-sans flex items-start gap-1">
-                              <span className="font-bold shrink-0">💡 Founder Tip:</span>
+                              <span className="font-semibold shrink-0">💡 Founder Tip:</span>
                               <span>{currentQuestion.plain_hint || businessCatInfo?.plainEnglishHint}</span>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="p-3.5 rounded-2xl bg-blue-500/10 dark:bg-blue-950/30 border border-blue-500/30 space-y-2">
+                        <div className="p-3.5 rounded-2xl bg-info/10 border border-info/30 space-y-2">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-200 uppercase tracking-wide">
-                              <Cpu className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-accent uppercase tracking-wide">
+                              <Cpu className="w-4 h-4 text-accent shrink-0" />
                               <span>Technical Specification Directive</span>
                             </div>
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+                            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-info/10 text-info border border-info/30">
                               SYSTEM ARCHITECTURE
                             </span>
                           </div>
-                          <p className="text-xs text-blue-950 dark:text-blue-200 leading-relaxed font-mono">
+                          <p className="text-xs text-accent leading-relaxed font-mono">
                             <strong>Why needed:</strong> {currentQuestion.why_needed}
                           </p>
-                          <div className="text-[11px] text-blue-800 dark:text-blue-300 pt-1.5 border-t border-blue-200 dark:border-blue-800/50 flex items-start gap-1 font-mono">
-                            <span className="font-bold shrink-0">⚙️ Engineering Impact:</span>
+                          <div className="text-[11px] text-accent pt-1.5 border-t border-info/30 flex items-start gap-1 font-mono">
+                            <span className="font-semibold shrink-0">⚙️ Engineering Impact:</span>
                             <span>Directly dictates data model indexing, API endpoint contracts, latency targets, and deployment containers.</span>
                           </div>
                         </div>
@@ -1135,7 +1135,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 {/* Preset Interactive Option Chips */}
                 {currentQuestion.options && currentQuestion.options.length > 0 && (
                   <div className="pt-1">
-                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[rgb(var(--md-sys-color-on-surface-variant))] mb-2">
+                    <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-[rgb(var(--md-sys-color-on-surface-variant))] mb-2">
                       <span>
                         {surveyPerspective === 'business'
                           ? 'Select the options that best match your vision:'
@@ -1171,39 +1171,39 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                               }
                               className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left flex flex-col justify-between gap-2 select-none ${
                                 isSelected
-                                  ? 'bg-[#FFD731] text-[#000F1D] border-[#000F1D] shadow-[2px_2px_0_#000F1D] translate-y-0.5'
-                                  : 'bg-white dark:bg-[#1A1F2C] text-[#000F1D] dark:text-white border-[#000F1D] shadow-[3px_3px_0_#000F1D] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#000F1D]'
+                                  ? 'bg-warn text-on-ink border-border translate-y-0.5'
+                                  : 'bg-panel text-ink border-border hover:-translate-y-0.5'
                               }`}
                             >
                               <div className="flex items-start gap-2.5">
                                 <span
-                                  className={`w-5 h-5 rounded-md border-2 border-[#000F1D] flex items-center justify-center shrink-0 mt-0.5 text-xs font-black transition-all ${
+                                  className={`w-5 h-5 rounded-md border-2 border-border flex items-center justify-center shrink-0 mt-0.5 text-xs font-semibold transition-all ${
                                     isSelected
-                                      ? 'bg-[#000F1D] text-white'
-                                      : 'bg-white'
+                                      ? 'bg-ink text-on-ink'
+                                      : 'bg-panel'
                                   }`}
                                 >
                                   {isSelected ? '✓' : ''}
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="font-bold text-sm text-[#000F1D] dark:text-white leading-tight">
+                                    <span className="font-semibold text-sm text-ink leading-tight">
                                       {optInfo.label}
                                     </span>
                                     {optInfo.badge && (
-                                      <span className="px-2 py-0.5 rounded-md bg-[#E9CCFF] text-[#000F1D] border border-[#000F1D] text-[9px] font-black uppercase tracking-wider shadow-[1px_1px_0_#000F1D]">
+                                      <span className="px-2 py-0.5 rounded-md bg-agent-business-improver/10 text-ink border border-border text-[9px] font-semibold uppercase tracking-wider">
                                         {optInfo.badge}
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-1 leading-relaxed font-sans">
+                                  <p className="text-xs text-muted mt-1 leading-relaxed font-sans">
                                     {optInfo.plainExplanation}
                                   </p>
                                 </div>
                               </div>
 
-                              <div className="pt-2 border-t border-[#000F1D]/15 flex flex-wrap items-center justify-between gap-1 text-[11px]">
-                                <span className="text-neutral-600 dark:text-neutral-400 font-sans italic text-[11px]">
+                              <div className="pt-2 border-t border-border flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                                <span className="text-muted font-sans italic text-[11px]">
                                   <strong>Ideal for:</strong> {optInfo.recommendedFor}
                                 </span>
                                 <button
@@ -1215,15 +1215,15 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                       [techKey]: !prev[techKey],
                                     }));
                                   }}
-                                  className="text-[10px] font-mono font-black text-[#000F1D] dark:text-white hover:underline cursor-pointer"
+                                  className="text-[10px] font-mono font-semibold text-ink hover:underline cursor-pointer"
                                 >
                                   {isTechOpen ? 'Hide Spec' : 'Show Spec'}
                                 </button>
                               </div>
 
                               {isTechOpen && (
-                                <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 border-2 border-[#000F1D] text-[10px] font-mono text-neutral-800 dark:text-neutral-200 break-words mt-1">
-                                  <span className="font-black text-[#000F1D] dark:text-white">TECHNICAL SPEC: </span>
+                                <div className="p-2 rounded-xl bg-panel-alt border-2 border-border text-[10px] font-mono text-ink break-words mt-1">
+                                  <span className="font-semibold text-ink">TECHNICAL SPEC: </span>
                                   {opt}
                                 </div>
                               )}
@@ -1243,17 +1243,17 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                 currentQuestion.allow_multiple
                               )
                             }
-                            className={`p-3 rounded-xl text-xs font-bold border-2 border-[#000F1D] transition-all text-left flex items-start gap-2.5 cursor-pointer ${
+                            className={`p-3 rounded-xl text-xs font-semibold border-2 border-border transition-all text-left flex items-start gap-2.5 cursor-pointer ${
                               isSelected
-                                ? 'bg-[#FFD731] text-[#000F1D] shadow-[2px_2px_0_#000F1D] translate-y-0.5'
-                                : 'bg-white dark:bg-[#1A1F2C] text-[#000F1D] dark:text-white shadow-[3px_3px_0_#000F1D] hover:-translate-y-0.5'
+                                ? 'bg-warn text-on-ink translate-y-0.5'
+                                : 'bg-panel text-ink hover:-translate-y-0.5'
                             }`}
                           >
                             <span
-                              className={`w-4 h-4 rounded-md border-2 border-[#000F1D] flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-black ${
+                              className={`w-4 h-4 rounded-md border-2 border-border flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-semibold ${
                                 isSelected
-                                  ? 'bg-[#000F1D] text-white'
-                                  : 'bg-white'
+                                  ? 'bg-ink text-on-ink'
+                                  : 'bg-panel'
                               }`}
                             >
                               {isSelected ? '✓' : ''}
@@ -1268,7 +1268,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
                 {/* Custom Details / Modification Textarea */}
                 <div className="pt-2 border-t border-[rgb(var(--md-sys-color-outline-variant))]">
-                  <div className="flex flex-wrap items-center justify-between text-[11px] font-bold uppercase text-[rgb(var(--md-sys-color-on-surface-variant))] mb-2 gap-1.5">
+                  <div className="flex flex-wrap items-center justify-between text-[11px] font-semibold uppercase text-[rgb(var(--md-sys-color-on-surface-variant))] mb-2 gap-1.5">
                     <div className="flex items-center gap-2">
                       <span>Custom Specification / Fine-Tuning:</span>
                       <VoiceInputButton
@@ -1291,7 +1291,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                             [currentQuestion.id]: toSafeString(currentQuestion.default_answer),
                           }))
                         }
-                        className="text-[rgb(var(--md-sys-color-primary))] hover:underline font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                        className="text-[rgb(var(--md-sys-color-primary))] hover:underline font-semibold text-[10px] flex items-center gap-1 cursor-pointer"
                       >
                         <Sparkles className="w-2.5 h-2.5" />
                         Use Recommended Preset
@@ -1323,7 +1323,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                       if (childBranches.length === 0) return null;
                       return (
                         <div className="flex items-center gap-2 text-xs">
-                          <span className="m3-chip text-[10px] h-6 px-2.5 bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] border-transparent font-bold uppercase flex items-center gap-1">
+                          <span className="m3-chip text-[10px] h-6 px-2.5 bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] border-transparent font-semibold uppercase flex items-center gap-1">
                             <GitBranch className="w-3 h-3 text-[rgb(var(--md-sys-color-tertiary))]" />
                             <span>{childBranches.length} Follow-up unlocked</span>
                           </span>
@@ -1349,7 +1349,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            <Sparkles className="w-3.5 h-3.5 text-warn" />
                             <span>Ask AI Follow-Up</span>
                           </>
                         )}
@@ -1360,12 +1360,12 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               </div>
 
               {/* Wizard Nav Controls */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t-2 border-neutral-100 dark:border-neutral-800">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t-2 border-border-soft">
                 <button
                   type="button"
                   onClick={handlePrev}
                   disabled={safeCurrentIndex === 0}
-                  className="h-9 px-4 rounded-xl border-2 border-[#000F1D] bg-white dark:bg-neutral-800 text-[#000F1D] dark:text-white text-xs font-black shadow-[2px_2px_0_#000F1D] active:translate-y-0.5 active:shadow-none disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer"
+                  className="h-9 px-4 rounded-pill border-2 border-border bg-panel text-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Previous</span>
@@ -1375,7 +1375,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   <button
                     type="button"
                     onClick={() => setViewMode('full')}
-                    className="text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white underline px-2 cursor-pointer"
+                    className="text-xs font-semibold text-muted hover:text-ink underline px-2 cursor-pointer"
                   >
                     View All
                   </button>
@@ -1384,7 +1384,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="h-9 px-5 rounded-xl border-2 border-[#000F1D] bg-[#000F1D] text-white text-xs font-black shadow-[2.5px_2.5px_0_#000F1D] active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-neutral-800"
+                      className="h-9 px-5 rounded-pill border-2 border-border bg-ink text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ink/90"
                     >
                       <span>Next</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1393,7 +1393,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewMode('summary')}
-                      className="h-9 px-5 rounded-xl border-2 border-[#000F1D] bg-[#10B981] text-white text-xs font-black shadow-[2.5px_2.5px_0_#000F1D] active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-[#059669]"
+                      className="h-9 px-5 rounded-pill border-2 border-border bg-ok text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ok/90"
                     >
                       <span>Review Validation Summary</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1427,25 +1427,25 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               {/* Full Mode Progress & Confidence Summary Banner */}
               <div className="m3-card-outlined p-4 flex flex-wrap items-center justify-between gap-2 text-xs bg-[rgb(var(--md-sys-color-surface))] border-[rgb(var(--md-sys-color-outline-variant))]">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-full bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] text-[11px] font-bold uppercase tracking-wider shadow-xs">
+                  <span className="px-2.5 py-1 rounded-full bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] text-[11px] font-semibold uppercase tracking-wider shadow-xs">
                     Requirements Checklist
                   </span>
                   <span className="font-semibold text-[rgb(var(--md-sys-color-on-surface))]">
                     {answeredCount} of {totalCount} Questions Specified
                   </span>
                   {activeBranchCount > 0 && (
-                    <span className="m3-chip text-[10px] h-6 px-2.5 bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] border-transparent font-bold uppercase">
+                    <span className="m3-chip text-[10px] h-6 px-2.5 bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] border-transparent font-semibold uppercase">
                       {activeBranchCount} Tailored Follow-Ups Unlocked
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-[11px] font-mono font-semibold">
                   {remainingCount === 0 ? (
-                    <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                    <span className="text-ok bg-ok/10 px-2.5 py-0.5 rounded-full border border-ok/30">
                       ✓ All {totalCount} questions answered · Ready to generate plan
                     </span>
                   ) : (
-                    <span className="text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                    <span className="text-warn bg-warn/10 px-2.5 py-0.5 rounded-full border border-warn/30">
                       {remainingCount} question{remainingCount === 1 ? '' : 's'} remaining before plan generation
                     </span>
                   )}
@@ -1460,7 +1460,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                         setViewMode('wizard');
                       }
                     }}
-                    className="underline text-[rgb(var(--md-sys-color-primary))] hover:opacity-80 ml-1 font-bold cursor-pointer"
+                    className="underline text-[rgb(var(--md-sys-color-primary))] hover:opacity-80 ml-1 font-semibold cursor-pointer"
                   >
                     Jump to next pending →
                   </button>
@@ -1490,18 +1490,18 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     {/* Header */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="w-5 h-5 rounded-md bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] text-[10px] font-bold flex items-center justify-center shrink-0">
+                        <span className="w-5 h-5 rounded-md bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] text-[10px] font-semibold flex items-center justify-center shrink-0">
                           {isBranch ? '↳' : idx + 1}
                         </span>
-                        <span className="text-xs font-bold text-[rgb(var(--md-sys-color-on-surface))] uppercase">
+                        <span className="text-xs font-semibold text-[rgb(var(--md-sys-color-on-surface))] uppercase">
                           Question {idx + 1} of {totalCount}
                         </span>
-                        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-surface-container))] border border-[rgb(var(--md-sys-color-outline-variant))] text-[10px] font-bold uppercase text-[rgb(var(--md-sys-color-on-surface))]">
+                        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-surface-container))] border border-[rgb(var(--md-sys-color-outline-variant))] text-[10px] font-semibold uppercase text-[rgb(var(--md-sys-color-on-surface))]">
                           {getCategoryIcon(q.category)}
                           <span>{q.category}</span>
                         </div>
                         {isBranch && (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] border border-[rgb(var(--md-sys-color-outline-variant))] text-[10px] font-bold uppercase">
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] border border-[rgb(var(--md-sys-color-outline-variant))] text-[10px] font-semibold uppercase">
                             <GitBranch className="w-3 h-3 text-[rgb(var(--md-sys-color-tertiary))]" />
                             <span>{q.branch_badge || 'TAILORED BRANCH'}</span>
                           </div>
@@ -1513,19 +1513,19 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                           <button
                             type="button"
                             onClick={() => handleDismissBranch(q.id)}
-                            className="px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline mr-1 cursor-pointer"
+                            className="px-2 py-0.5 text-[10px] font-semibold text-error hover:underline mr-1 cursor-pointer"
                           >
                             Dismiss branch
                           </button>
                         )}
                         {isAnswered ? (
-                          <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          <span className="flex items-center gap-1 text-ok font-semibold text-[11px] bg-ok/10 px-2.5 py-0.5 rounded-full border border-ok/30">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-ok" />
                             Specified
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-amber-700 dark:text-amber-300 font-bold text-[11px] bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                            <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="flex items-center gap-1 text-warn font-semibold text-[11px] bg-warn/10 px-2.5 py-0.5 rounded-full border border-warn/30">
+                            <AlertCircle className="w-3.5 h-3.5 text-warn" />
                             Pending
                           </span>
                         )}
@@ -1545,7 +1545,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
                       return (
                         <div className="mb-3">
-                          <h3 className="text-sm sm:text-base font-bold text-[rgb(var(--md-sys-color-on-surface))] leading-snug mb-1">
+                          <h3 className="text-sm sm:text-base font-semibold text-[rgb(var(--md-sys-color-on-surface))] leading-snug mb-1">
                             {isBusiness ? (q.business_title || q.question) : q.question}
                           </h3>
                           {isBusiness && q.business_title && (
@@ -1554,7 +1554,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                             </p>
                           )}
                           <p className="text-[11px] text-[rgb(var(--md-sys-color-on-surface-variant))] font-sans">
-                            <span className="font-bold text-[rgb(var(--md-sys-color-on-surface))]">{isBusiness ? 'Business Goal:' : 'Directive:'}</span>{' '}
+                            <span className="font-semibold text-[rgb(var(--md-sys-color-on-surface))]">{isBusiness ? 'Business Goal:' : 'Directive:'}</span>{' '}
                             {isBusiness ? (q.business_impact || businessCat?.businessImpact || q.why_needed) : q.why_needed}
                           </p>
                         </div>
@@ -1564,7 +1564,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     {/* Chips */}
                     {q.options && q.options.length > 0 && (
                       <div className="mb-3">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-[rgb(var(--md-sys-color-on-surface-variant))] mb-1.5 flex items-center justify-between">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--md-sys-color-on-surface-variant))] mb-1.5 flex items-center justify-between">
                           <span>{surveyPerspective === 'business' ? 'Choose recommended presets:' : 'Click presets:'}</span>
                           <span className="text-[rgb(var(--md-sys-color-on-surface-variant))] opacity-70 text-[9px] normal-case">
                             {q.allow_multiple ? 'Multiple allowed' : 'Single choice'}
@@ -1588,15 +1588,15 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                   }`}
                                   title={`${optInfo.plainExplanation} (Tech spec: ${opt})`}
                                 >
-                                  <span className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center text-[10px] font-bold ${
+                                  <span className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center text-[10px] font-semibold ${
                                     isSelected ? 'bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] border-[rgb(var(--md-sys-color-primary))]' : 'bg-[rgb(var(--md-sys-color-surface))] border-[rgb(var(--md-sys-color-outline))]'
                                   }`}>
                                     {isSelected ? '✓' : ''}
                                   </span>
                                   <div>
-                                    <span className="font-bold text-xs">{optInfo.label}</span>
+                                    <span className="font-semibold text-xs">{optInfo.label}</span>
                                     {optInfo.badge && (
-                                      <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] text-[8px] font-bold uppercase">
+                                      <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] text-[8px] font-semibold uppercase">
                                         {optInfo.badge}
                                       </span>
                                     )}
@@ -1627,7 +1627,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
                     {/* Custom Input */}
                     <div>
-                      <div className="flex flex-wrap items-center justify-between text-[10px] font-bold uppercase text-[rgb(var(--md-sys-color-on-surface-variant))] mb-1 gap-1">
+                      <div className="flex flex-wrap items-center justify-between text-[10px] font-semibold uppercase text-[rgb(var(--md-sys-color-on-surface-variant))] mb-1 gap-1">
                         <div className="flex items-center gap-1.5">
                           <span>Your Specification / Fine-Tuning:</span>
                           <VoiceInputButton
@@ -1648,7 +1648,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                 [q.id]: toSafeString(q.default_answer),
                               }))
                             }
-                            className="text-[rgb(var(--md-sys-color-primary))] hover:underline font-bold cursor-pointer"
+                            className="text-[rgb(var(--md-sys-color-primary))] hover:underline font-semibold cursor-pointer"
                           >
                             Reset to Recommended
                           </button>
@@ -1670,10 +1670,10 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <div className="m3-card-outlined p-5 space-y-2 bg-[rgb(var(--md-sys-color-surface))] border-[rgb(var(--md-sys-color-outline-variant))]">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-md bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] text-xs font-bold shrink-0">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-md bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] text-xs font-semibold shrink-0">
                       +
                     </div>
-                    <div className="px-2.5 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-surface-container))] border border-[rgb(var(--md-sys-color-outline-variant))] text-[10px] font-bold uppercase text-[rgb(var(--md-sys-color-on-surface))]">
+                    <div className="px-2.5 py-0.5 rounded-full bg-[rgb(var(--md-sys-color-surface-container))] border border-[rgb(var(--md-sys-color-outline-variant))] text-[10px] font-semibold uppercase text-[rgb(var(--md-sys-color-on-surface))]">
                       Additional Architectural Directives & Rules
                     </div>
                   </div>
@@ -1685,7 +1685,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     variant="inline-sm"
                   />
                 </div>
-                <h3 className="text-xs sm:text-sm font-bold text-[rgb(var(--md-sys-color-on-surface))] mb-1">
+                <h3 className="text-xs sm:text-sm font-semibold text-[rgb(var(--md-sys-color-on-surface))] mb-1">
                   Existing repositories, database schemas, budget limits, or team capacity?
                 </h3>
                 <p className="text-[11px] text-[rgb(var(--md-sys-color-on-surface-variant))] italic mb-2 font-sans">
@@ -1728,16 +1728,16 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
         {/* Modal Bottom Footer Actions (Shown in wizard, full, or summary modes) */}
         {viewMode !== 'neural-chat' && (
-          <div className="px-4 sm:px-6 py-3 bg-white dark:bg-[#141824] border-t-2 border-[#000F1D] flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="px-4 sm:px-6 py-3 bg-panel border-t-2 border-border flex flex-wrap items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-black uppercase tracking-tight text-[#000F1D] dark:text-white">
+              <span className="text-xs font-semibold uppercase tracking-tight text-ink">
                 {answeredCount} of {totalCount} Requirements Confirmed
               </span>
-              <span className="text-xs font-mono font-bold text-neutral-500 hidden md:inline">
+              <span className="text-xs font-mono font-semibold text-muted hidden md:inline">
                 ({progressPercent}% complete)
               </span>
               {lastSavedTime && (
-                <span className="text-[11px] text-neutral-500 font-mono hidden lg:flex items-center gap-1.5 border-l-2 border-neutral-300 dark:border-neutral-700 pl-3">
+                <span className="text-[11px] text-muted font-mono hidden lg:flex items-center gap-1.5 border-l-2 border-border pl-3">
                   <Clock className="w-3.5 h-3.5 opacity-70" />
                   <span>Saved locally {formatDraftTimestamp(lastSavedTime)}</span>
                 </span>
@@ -1749,10 +1749,10 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 id="save-survey-draft-bottom-btn"
                 type="button"
                 onClick={handleSaveDraft}
-                className={`text-xs h-10 px-4 font-black rounded-xl border-2 border-[#000F1D] uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-[2.5px_2.5px_0_#000F1D] active:translate-y-0.5 active:shadow-none ${
+                className={`text-xs h-10 px-4 font-semibold rounded-xl border-2 border-border uppercase transition-all flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none ${
                   saveSuccessFeedback
-                    ? 'bg-[#10B981] text-white'
-                    : 'bg-white dark:bg-neutral-800 text-[#000F1D] dark:text-white hover:bg-neutral-100'
+                    ? 'bg-ok text-on-ink'
+                    : 'bg-panel text-ink hover:bg-ink/5'
                 }`}
                 title="Save current survey progress to local storage to return later"
               >
@@ -1763,7 +1763,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   </>
                 ) : (
                   <>
-                    <Save className="w-3.5 h-3.5 text-[#4DA2FE]" />
+                    <Save className="w-3.5 h-3.5 text-accent" />
                     <span>Save Draft</span>
                   </>
                 )}
@@ -1772,7 +1772,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="h-10 px-4 rounded-xl border-2 border-[#000F1D] bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-800 dark:text-neutral-200 font-black text-xs uppercase cursor-pointer shadow-[2px_2px_0_#000F1D] active:translate-y-0.5 active:shadow-none"
+                className="h-10 px-4 rounded-xl border-2 border-border bg-panel-alt hover:bg-ink/5 text-ink font-semibold text-xs uppercase cursor-pointer active:translate-y-0.5 active:shadow-none"
               >
                 Cancel
               </button>
@@ -1781,9 +1781,9 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('summary')}
-                  className="h-10 px-5 rounded-xl border-2 border-[#000F1D] bg-[#000F1D] text-white font-black text-xs uppercase flex items-center gap-1.5 cursor-pointer shadow-[2.5px_2.5px_0_#000F1D] active:translate-y-0.5 active:shadow-none"
+                  className="h-10 px-5 rounded-pill border-2 border-border bg-ink text-on-ink font-semibold text-xs uppercase flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-ok" />
                   <span>Review Validation Summary</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -1794,16 +1794,16 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     type="button"
                     onClick={handleTriggerGenerate}
                     disabled={isGenerating}
-                    className="h-10 sm:h-11 px-5 sm:px-6 rounded-xl bg-[#000F1D] hover:bg-neutral-800 text-white font-black text-xs sm:text-sm tracking-tight border-2 border-[#000F1D] shadow-[3.5px_3.5px_0_#000F1D] active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                    className="h-10 sm:h-11 px-5 sm:px-6 rounded-pill bg-ink hover:bg-ink/90 text-on-ink font-semibold text-xs sm:text-sm tracking-tight border-2 border-border active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     {isGenerating ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                        <RefreshCw className="w-4 h-4 animate-spin text-ink" />
                         <span>Synthesizing Architecture...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4 text-amber-300" />
+                        <Sparkles className="w-4 h-4 text-warn" />
                         <span>Generate Architecture Blueprint</span>
                       </>
                     )}
@@ -1813,7 +1813,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     type="button"
                     onClick={handleTriggerGenerate}
                     disabled={isGenerating}
-                    className="h-10 sm:h-11 w-10 sm:w-11 rounded-xl bg-[#D7E9FE] hover:bg-[#BAE6FD] text-[#000F1D] border-2 border-[#000F1D] shadow-[3.5px_3.5px_0_#000F1D] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    className="h-10 sm:h-11 w-10 sm:w-11 rounded-xl bg-info/10 hover:bg-info/20 text-ink border-2 border-border active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center cursor-pointer disabled:opacity-50"
                     title="Generate Architecture Blueprint"
                   >
                     <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />
@@ -1828,14 +1828,14 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
       {/* ================= CONDITIONAL BRANCHING LOGIC MAP MODAL ================= */}
       {showBranchDiagram && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-black/50 backdrop-blur-xs font-mono">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-base/60 backdrop-blur-xs font-mono">
           <div className="w-full max-w-2xl m3-card bg-[rgb(var(--md-sys-color-surface-container-high))] border border-[rgb(var(--md-sys-color-outline-variant))] p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-[rgb(var(--md-sys-color-outline-variant))] pb-3">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))]">
                   <GitBranch className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm uppercase text-[rgb(var(--md-sys-color-on-surface))]">
+                <h3 className="font-semibold text-sm uppercase text-[rgb(var(--md-sys-color-on-surface))]">
                   Survey Conditional Branching Logic Matrix
                 </h3>
               </div>
@@ -1872,12 +1872,12 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[11px] uppercase text-[rgb(var(--md-sys-color-on-surface))]">
+                        <span className="font-semibold text-[11px] uppercase text-[rgb(var(--md-sys-color-on-surface))]">
                           {rule.branchBadge}
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase border ${
                           isActive
-                            ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
+                            ? 'bg-ok/15 text-ok border-ok/30'
                             : isDismissed
                             ? 'bg-[rgb(var(--md-sys-color-surface-container-highest))] text-[rgb(var(--md-sys-color-on-surface-variant))] border-[rgb(var(--md-sys-color-outline-variant))]'
                             : 'bg-[rgb(var(--md-sys-color-surface-container))] text-[rgb(var(--md-sys-color-on-surface-variant))] border-[rgb(var(--md-sys-color-outline-variant))]'
@@ -1890,7 +1890,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRestoreBranch(rule.id)}
-                          className="text-[10px] font-bold text-[rgb(var(--md-sys-color-primary))] hover:underline cursor-pointer"
+                          className="text-[10px] font-semibold text-[rgb(var(--md-sys-color-primary))] hover:underline cursor-pointer"
                         >
                           Restore
                         </button>
@@ -1898,7 +1898,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDismissBranch(rule.id)}
-                          className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                          className="text-[10px] font-semibold text-error hover:underline cursor-pointer"
                         >
                           Dismiss
                         </button>
@@ -1931,14 +1931,14 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
       {/* ================= SAVED DRAFTS MANAGER MODAL ================= */}
       {showDraftsModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-black/50 backdrop-blur-xs font-mono">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-base/60 backdrop-blur-xs font-mono">
           <div className="w-full max-w-2xl m3-card bg-[rgb(var(--md-sys-color-surface-container-high))] border border-[rgb(var(--md-sys-color-outline-variant))] p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-[rgb(var(--md-sys-color-outline-variant))] pb-3">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-[rgb(var(--md-sys-color-primary-container))] text-[rgb(var(--md-sys-color-on-primary-container))]">
                   <FolderOpen className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm uppercase text-[rgb(var(--md-sys-color-on-surface))]">
+                <h3 className="font-semibold text-sm uppercase text-[rgb(var(--md-sys-color-on-surface))]">
                   Saved Requirements Drafts ({allDrafts.length})
                 </h3>
               </div>
@@ -1973,11 +1973,11 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-bold text-xs text-[rgb(var(--md-sys-color-on-surface))] truncate max-w-sm">
+                        <span className="font-semibold text-xs text-[rgb(var(--md-sys-color-on-surface))] truncate max-w-sm">
                           &ldquo;{draft.prompt}&rdquo;
                         </span>
                         {draft.id === activeDraftId && (
-                          <span className="m3-chip text-[9px] h-5 px-2 bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] border-transparent font-bold uppercase">
+                          <span className="m3-chip text-[9px] h-5 px-2 bg-[rgb(var(--md-sys-color-primary))] text-[rgb(var(--md-sys-color-on-primary))] border-transparent font-semibold uppercase">
                             Currently Active
                           </span>
                         )}
@@ -1992,7 +1992,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                         {draft.answeredCount} of {draft.totalCount} questions answered
                       </span>
                       {draft.domain && (
-                        <span className="px-2 py-0.5 rounded-md bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] text-[10px] font-bold uppercase">
+                        <span className="px-2 py-0.5 rounded-md bg-[rgb(var(--md-sys-color-tertiary-container))] text-[rgb(var(--md-sys-color-on-tertiary-container))] text-[10px] font-semibold uppercase">
                           {draft.domain}
                         </span>
                       )}
@@ -2014,7 +2014,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteDraft(draft.id)}
-                        className="p-1 text-[rgb(var(--md-sys-color-on-surface-variant))] hover:text-rose-600 text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
+                        className="p-1 text-[rgb(var(--md-sys-color-on-surface-variant))] hover:text-error text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
                         title="Delete draft from browser storage"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -2031,7 +2031,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={handleClearAllDrafts}
-                  className="px-3 py-1.5 rounded-xl text-xs text-rose-600 hover:text-rose-700 font-semibold hover:bg-rose-500/10 cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-xl text-xs text-error hover:text-error font-semibold hover:bg-error/10 cursor-pointer transition-colors"
                 >
                   Clear All Drafts
                 </button>
@@ -2053,7 +2053,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
       {showJargonModal && (
         <div
           id="jargon-glossary-modal"
-          className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-xs font-mono"
+          className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-6 bg-base/60 backdrop-blur-xs font-mono"
         >
           <div className="w-full max-w-3xl m3-card bg-[rgb(var(--md-sys-color-surface-container-high))] border border-[rgb(var(--md-sys-color-outline-variant))] p-5 shadow-2xl space-y-4 max-h-[88vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-[rgb(var(--md-sys-color-outline-variant))] pb-3">
@@ -2062,7 +2062,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   📖
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm sm:text-base uppercase text-[rgb(var(--md-sys-color-on-surface))]">
+                  <h3 className="font-semibold text-sm sm:text-base uppercase text-[rgb(var(--md-sys-color-on-surface))]">
                     Plain-English Tech Jargon Glossary
                   </h3>
                   <p className="text-[11px] text-[rgb(var(--md-sys-color-on-surface-variant))] font-sans">
@@ -2094,7 +2094,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setJargonSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[rgb(var(--md-sys-color-on-surface-variant))] hover:text-[rgb(var(--md-sys-color-on-surface))] text-xs font-bold"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[rgb(var(--md-sys-color-on-surface-variant))] hover:text-[rgb(var(--md-sys-color-on-surface))] text-xs font-semibold"
                 >
                   ✕
                 </button>
@@ -2115,10 +2115,10 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-[rgb(var(--md-sys-color-on-surface))]">
+                        <span className="font-semibold text-sm text-[rgb(var(--md-sys-color-on-surface))]">
                           {item.term}
                         </span>
-                        <span className="m3-chip text-[9px] h-5 px-2 bg-[rgb(var(--md-sys-color-secondary-container))] text-[rgb(var(--md-sys-color-on-secondary-container))] border-transparent font-bold uppercase">
+                        <span className="m3-chip text-[9px] h-5 px-2 bg-[rgb(var(--md-sys-color-secondary-container))] text-[rgb(var(--md-sys-color-on-secondary-container))] border-transparent font-semibold uppercase">
                           {item.category}
                         </span>
                       </div>
@@ -2151,7 +2151,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <button
                 type="button"
                 onClick={() => setShowJargonModal(false)}
-                className="m3-button-filled text-xs h-9 px-4 uppercase cursor-pointer font-bold"
+                className="m3-button-filled text-xs h-9 px-4 uppercase cursor-pointer font-semibold"
               >
                 Got It, Back to Survey
               </button>

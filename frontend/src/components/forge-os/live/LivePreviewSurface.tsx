@@ -68,7 +68,7 @@ export function LivePreviewSurface({ files, hasBuild, buildInProgress }: Props) 
 
   if (state.kind === "loading") {
     return (
-      <div className="h-full min-h-[320px] flex flex-col items-center justify-center gap-3 font-mono text-xs text-neutral-500">
+      <div className="h-full min-h-[320px] flex flex-col items-center justify-center gap-3 font-mono text-xs text-muted">
         <Loader2 size={18} className="animate-spin" />
         <span>Preparing preview…</span>
       </div>
@@ -78,10 +78,10 @@ export function LivePreviewSurface({ files, hasBuild, buildInProgress }: Props) 
   if (state.kind === "none" || state.kind === "error") {
     return (
       <div className="h-full min-h-[320px] flex flex-col items-center justify-center gap-2 p-8 text-center font-mono">
-        <p className="text-sm font-black uppercase text-neutral-900 dark:text-white">
+        <p className="text-sm font-semibold uppercase text-ink">
           {state.kind === "error" ? "Preview failed" : "Nothing to preview"}
         </p>
-        <p className="max-w-md text-xs text-neutral-500 break-words">
+        <p className="max-w-md text-xs text-muted break-words">
           {state.kind === "error" ? state.message : state.reason}
         </p>
       </div>
@@ -90,16 +90,16 @@ export function LivePreviewSurface({ files, hasBuild, buildInProgress }: Props) 
 
   return (
     <div className="h-full min-h-[480px] flex flex-col">
-      <div className="h-9 px-3 flex items-center justify-between gap-2 border-b-2 border-black dark:border-white/80 font-mono text-[11px] text-neutral-600 dark:text-neutral-300">
+      <div className="h-9 px-3 flex items-center justify-between gap-2 border-b-2 border-border font-mono text-[11px] text-muted">
         <span className="truncate">
-          Rendering <span className="font-bold text-neutral-900 dark:text-white">{state.source}</span> from the latest
+          Rendering <span className="font-semibold text-ink">{state.source}</span> from the latest
           build · best-effort in-browser preview
           {buildInProgress && " · build still running"}
         </span>
         <button
           type="button"
           onClick={() => setNonce((n) => n + 1)}
-          className="inline-flex items-center gap-1 px-2 py-0.5 border border-black dark:border-white/50 font-bold"
+          className="inline-flex items-center gap-1 px-2 py-0.5 border border-border font-semibold"
         >
           <RefreshCw size={11} /> Reload
         </button>
@@ -111,7 +111,7 @@ export function LivePreviewSurface({ files, hasBuild, buildInProgress }: Props) 
         title="Build preview"
         sandbox="allow-scripts allow-forms allow-modals"
         srcDoc={state.html}
-        className="flex-1 w-full bg-white"
+        className="flex-1 w-full bg-panel"
       />
     </div>
   );
