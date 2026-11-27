@@ -2,9 +2,12 @@
 //
 // The page renders one `FleetOverview`. In LIVE_MODE it is assembled from the
 // kernel runs of the user's projects (kernelApi.listRuns), the LLM gateway
-// health endpoint and the projects list; in demo mode it comes from
+// health endpoint and the projects list, then the stat tiles and activity feed
+// are replaced by the backend's fleet summary (commandCenterApi.summary), which
+// carries the comparison values behind the deltas. In demo mode it comes from
 // `buildDemoOverview`, which reuses the demo project catalogue in mockData.
 
+import type { CommandCenterSummary, SummaryActivityEvent } from "./commandCenterApi";
 import type { KernelRun, KernelRunStatus } from "./kernelApi";
 import { PROJECTS } from "./mockData";
 
@@ -49,7 +52,11 @@ export type ActivityKind =
   | "gate_rejected"
   | "run_failed"
   | "run_completed"
-  | "skill_invoked";
+  | "run_cancelled"
+  | "skill_invoked"
+  | "deploy_started"
+  | "deploy_live"
+  | "deploy_failed";
 
 export interface ActivityEvent {
   id: string;
@@ -78,17 +85,25 @@ export interface GatewaySummary {
   calls24h: number;
 }
 
+/**
+ * Stat tile values. A `null` delta means there is no honest comparison (no
+ * history, no baseline): the tile shows no delta at all rather than "0".
+ */
 export interface FleetStats {
   activeRuns: number;
-  activeRunsDelta: number;
+  /** vs the same time yesterday. */
+  activeRunsDelta: number | null;
   agentsWorking: number;
-  agentsDelta: number;
+  /** vs one hour ago. */
+  agentsDelta: number | null;
   pendingApprovals: number;
   spendTodayUsd: number;
   budgetUsd: number;
-  spendDeltaPct: number;
+  /** % change vs yesterday over the same elapsed time. */
+  spendDeltaPct: number | null;
   skillsInvoked24h: number;
-  skillsDelta: number;
+  /** vs the prior 24h. */
+  skillsDelta: number | null;
 }
 
 export interface FleetOverview {
@@ -316,15 +331,81 @@ export function overviewFromKernelRuns(
     projectCount: runsByProject.length,
     stats: {
       activeRuns: activeCount,
-      activeRunsDelta: 0,
+      // Raw runs carry no history to compare against; see applyCommandCenterSummary.
+      activeRunsDelta: null,
       agentsWorking: workingRoles.size,
-      agentsDelta: 0,
+      agentsDelta: null,
       pendingApprovals: gates.length,
       spendTodayUsd: spendToday,
       budgetUsd: budget,
-      spendDeltaPct: 0,
+      spendDeltaPct: null,
       skillsInvoked24h: skills24h,
-      skillsDelta: 0,
+      skillsDelta: null,
+    },
+  };
+}
+
+// ─── Backend fleet summary ──────────────────────────────────────────────────
+
+const ORCHESTRATOR = "Lead Orchestrator";
+
+function summaryActivity(ev: SummaryActivityEvent): ActivityEvent {
+  const title = ev.title ? shortTitle(ev.title) : "";
+  const href = ev.run_id
+    ? `/p/${ev.project_id}/agents?run=${encodeURIComponent(ev.run_id)}`
+    : undefined;
+  const base = { id: ev.id, at: ev.at, projectName: ev.project_name || ev.project_id, href };
+  const decider = ev.actor === "system" ? "System" : ev.actor || "A reviewer";
+  switch (ev.kind) {
+    case "run_started":
+      return { ...base, kind: "run_started", actor: ORCHESTRATOR, text: `started “${title}”` };
+    case "run_completed":
+      return { ...base, kind: "run_completed", actor: ORCHESTRATOR, text: `shipped “${title}”` };
+    case "run_failed":
+      return { ...base, kind: "run_failed", actor: ORCHESTRATOR, text: `run failed: ${title}` };
+    case "run_cancelled":
+      return { ...base, kind: "run_cancelled", actor: ORCHESTRATOR, text: `cancelled “${title}”` };
+    case "gate_opened":
+      return { ...base, kind: "gate_opened", actor: ORCHESTRATOR, text: `requested approval: ${title}` };
+    case "gate_approved":
+      return { ...base, kind: "gate_approved", actor: decider, text: `approved ${title}` };
+    case "gate_rejected":
+      return { ...base, kind: "gate_rejected", actor: decider, text: `rejected ${title}` };
+    case "deploy_started":
+      return { ...base, kind: "deploy_started", actor: "Deploy", text: `started to ${title}` };
+    case "deploy_live":
+      return { ...base, kind: "deploy_live", actor: "Deploy", text: `went live at ${title}` };
+    case "deploy_failed":
+      return { ...base, kind: "deploy_failed", actor: "Deploy", text: `failed for ${title}` };
+  }
+}
+
+/**
+ * Overlay the backend fleet summary on an overview built from raw runs. The
+ * stat tiles (with their real comparisons; a null comparison stays null) and
+ * the activity feed come from the summary, which spans every accessible
+ * project and includes deploys. Runs, gates and gateway health are unchanged.
+ */
+export function applyCommandCenterSummary(
+  overview: FleetOverview,
+  summary: CommandCenterSummary,
+): FleetOverview {
+  const { stats } = summary;
+  const spend = stats.spend_today;
+  return {
+    ...overview,
+    activity: summary.activity.map(summaryActivity),
+    stats: {
+      activeRuns: stats.active_runs.current,
+      activeRunsDelta: stats.active_runs.delta,
+      agentsWorking: stats.agents_working.current,
+      agentsDelta: stats.agents_working.delta,
+      pendingApprovals: stats.pending_approvals.current,
+      spendTodayUsd: spend.current_usd,
+      budgetUsd: spend.daily_budget_usd ?? spend.active_run_caps_usd,
+      spendDeltaPct: spend.delta_pct === null ? null : Math.round(spend.delta_pct),
+      skillsInvoked24h: stats.skills_invoked.current,
+      skillsDelta: stats.skills_invoked.delta,
     },
   };
 }

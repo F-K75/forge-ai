@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { CommandCenterSummary } from "./commandCenterApi";
 import {
+  applyCommandCenterSummary,
   buildDemoOverview,
   firstNameOf,
   fleetSummaryLine,
@@ -101,6 +103,77 @@ describe("overviewFromKernelRuns", () => {
       skillsInvoked24h: 1,
     });
     expect(overview.activity[0].kind).toBe("gate_opened");
+    // Raw runs carry no history: no comparison is invented.
+    expect(overview.stats.activeRunsDelta).toBeNull();
+    expect(overview.stats.agentsDelta).toBeNull();
+    expect(overview.stats.spendDeltaPct).toBeNull();
+    expect(overview.stats.skillsDelta).toBeNull();
+  });
+});
+
+describe("applyCommandCenterSummary", () => {
+  const cmp = (current: number, delta: number | null) => ({
+    current,
+    previous: delta === null ? null : current - delta,
+    delta,
+    compared_to: null,
+    unavailable_reason: delta === null ? ("no_baseline" as const) : null,
+  });
+  const summary = (spend: Partial<CommandCenterSummary["stats"]["spend_today"]> = {}): CommandCenterSummary => ({
+    window: "24h",
+    generated_at: iso(0),
+    scope: { project_count: 2, projects_truncated: false, max_projects: 50, history_truncated: false },
+    stats: {
+      active_runs: cmp(5, 2),
+      agents_working: cmp(3, null),
+      pending_approvals: cmp(1, null),
+      spend_today: {
+        current_usd: 2.25,
+        previous_usd: 3,
+        delta_pct: -24.6,
+        compared_to: "yesterday_same_time",
+        unavailable_reason: null,
+        daily_budget_usd: null,
+        active_run_caps_usd: 7.5,
+        ...spend,
+      },
+      skills_invoked: cmp(12, -3),
+    },
+    activity: [
+      { id: "r1:start", kind: "run_started", at: iso(10), project_id: "p1", project_name: "Alpha", run_id: "r1", title: "Ship the thing. With details.", actor: null },
+      { id: "r1:g:decided", kind: "gate_rejected", at: iso(20), project_id: "p1", project_name: "Alpha", run_id: "r1", title: "Delivery", actor: "system" },
+      { id: "d1:failed", kind: "deploy_failed", at: iso(30), project_id: "p2", project_name: "", run_id: null, title: "docker", actor: null },
+    ],
+  });
+
+  it("takes stats and activity from the summary, keeping null comparisons null", () => {
+    const base = overviewFromKernelRuns([{ projectId: "p1", projectName: "Alpha", runs: [] }], null, NOW);
+    const merged = applyCommandCenterSummary(base, summary());
+    expect(merged.stats).toEqual({
+      activeRuns: 5,
+      activeRunsDelta: 2,
+      agentsWorking: 3,
+      agentsDelta: null,
+      pendingApprovals: 1,
+      spendTodayUsd: 2.25,
+      budgetUsd: 7.5,
+      spendDeltaPct: -25,
+      skillsInvoked24h: 12,
+      skillsDelta: -3,
+    });
+    expect(merged.activity.map((a) => [a.kind, a.actor, a.text, a.projectName, a.href])).toEqual([
+      ["run_started", "Lead Orchestrator", "started “Ship the thing”", "Alpha", "/p/p1/agents?run=r1"],
+      ["gate_rejected", "System", "rejected Delivery", "Alpha", "/p/p1/agents?run=r1"],
+      ["deploy_failed", "Deploy", "failed for docker", "p2", undefined],
+    ]);
+    expect(merged.runs).toBe(base.runs);
+  });
+
+  it("prefers a configured daily budget and passes a null spend delta through", () => {
+    const base = overviewFromKernelRuns([], null, NOW);
+    const merged = applyCommandCenterSummary(base, summary({ daily_budget_usd: 20, delta_pct: null }));
+    expect(merged.stats.budgetUsd).toBe(20);
+    expect(merged.stats.spendDeltaPct).toBeNull();
   });
 });
 

@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { kernelApi, type KernelRun } from "../lib/kernelApi";
 import { llmApi } from "../lib/api";
 import { LIVE_MODE } from "../lib/env";
+import { commandCenterApi } from "../lib/commandCenterApi";
 import {
+  applyCommandCenterSummary,
   buildDemoOverview,
   gatewayFromHealth,
   overviewFromKernelRuns,
@@ -37,6 +39,12 @@ export function useFleetOverview() {
       if (!LIVE_MODE) return buildDemoOverview();
 
       const targets = projects.slice(0, MAX_PROJECTS);
+      // The fleet summary (stat comparisons + activity across every accessible
+      // project) is fetched alongside the per-project run lists.
+      const summaryRequest = commandCenterApi.summary("24h").then(
+        (summary) => summary,
+        () => null,
+      );
       const settled = await Promise.allSettled(
         targets.map((p) => kernelApi.listRuns(p.id, 10)),
       );
@@ -66,7 +74,11 @@ export function useFleetOverview() {
       }
 
       const overview = overviewFromKernelRuns(runsByProject, gateway);
-      return { ...overview, projectCount: projects.length };
+      // Without the summary the tiles fall back to values derived from the
+      // fetched runs, with no deltas (null), rather than invented comparisons.
+      const summary = await summaryRequest;
+      const merged = summary ? applyCommandCenterSummary(overview, summary) : overview;
+      return { ...merged, projectCount: projects.length };
     },
   });
 

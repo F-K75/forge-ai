@@ -67,7 +67,11 @@ const ACTIVITY_ICONS: Record<ActivityKind, { icon: LucideIcon; className: string
   gate_rejected: { icon: X, className: "text-error" },
   run_failed: { icon: XCircle, className: "text-error" },
   run_completed: { icon: GitPullRequest, className: "text-ok" },
+  run_cancelled: { icon: X, className: "text-muted" },
   skill_invoked: { icon: Sparkles, className: "text-accent" },
+  deploy_started: { icon: Rocket, className: "text-info" },
+  deploy_live: { icon: Rocket, className: "text-ok" },
+  deploy_failed: { icon: XCircle, className: "text-error" },
 };
 
 const SWATCHES = ["atmos-olive", "atmos-rust", "atmos-teal", "atmos-dusk"];
@@ -141,17 +145,13 @@ export default function CommandCenterPage() {
                   icon={Activity}
                   label="Active runs"
                   value={data.stats.activeRuns}
-                  delta={data.stats.activeRunsDelta ? signed(data.stats.activeRunsDelta) : undefined}
-                  trend={trendOf(data.stats.activeRunsDelta)}
-                  hint={data.stats.activeRunsDelta ? "vs yesterday" : undefined}
+                  {...deltaProps(data.stats.activeRunsDelta, "vs yesterday")}
                 />
                 <StatTile
                   icon={Bot}
                   label="Agents working"
                   value={data.stats.agentsWorking}
-                  delta={data.stats.agentsDelta ? signed(data.stats.agentsDelta) : undefined}
-                  trend={trendOf(data.stats.agentsDelta)}
-                  hint={data.stats.agentsDelta ? "vs 1h ago" : undefined}
+                  {...deltaProps(data.stats.agentsDelta, "vs 1h ago")}
                 />
                 <StatTile
                   icon={ShieldCheck}
@@ -164,18 +164,14 @@ export default function CommandCenterPage() {
                   label="Spend today"
                   value={usd(data.stats.spendTodayUsd)}
                   suffix={data.stats.budgetUsd > 0 ? `/ ${usd(data.stats.budgetUsd).replace(/\.00$/, "")}` : undefined}
-                  delta={data.stats.spendDeltaPct ? `${Math.abs(data.stats.spendDeltaPct)}%` : undefined}
-                  trend={trendOf(data.stats.spendDeltaPct)}
+                  {...deltaProps(data.stats.spendDeltaPct, "vs yesterday", (n) => `${Math.abs(n)}%`)}
                   invertTrend
-                  hint={data.stats.spendDeltaPct ? "vs yesterday" : undefined}
                 />
                 <StatTile
                   icon={Sparkles}
                   label="Skills invoked (24h)"
                   value={data.stats.skillsInvoked24h}
-                  delta={data.stats.skillsDelta ? signed(data.stats.skillsDelta) : undefined}
-                  trend={trendOf(data.stats.skillsDelta)}
-                  hint={data.stats.skillsDelta ? "vs prior 24h" : undefined}
+                  {...deltaProps(data.stats.skillsDelta, "vs prior 24h")}
                   className="col-span-2 md:col-span-1"
                 />
               </>
@@ -257,11 +253,21 @@ export default function CommandCenterPage() {
 }
 
 function signed(n: number) {
+  if (n === 0) return "0";
   return `${n > 0 ? "+" : "−"}${Math.abs(n)}`;
 }
 
 function trendOf(n: number): "up" | "down" | "flat" {
   return n > 0 ? "up" : n < 0 ? "down" : "flat";
+}
+
+/**
+ * StatTile delta/trend/hint for a comparison. A null delta (nothing honest to
+ * compare against) renders no delta and no hint; a real zero renders "0".
+ */
+function deltaProps(delta: number | null, hint: string, format: (n: number) => string = signed) {
+  if (delta === null) return {};
+  return { delta: format(delta), trend: trendOf(delta), hint };
 }
 
 // ─── Quick launcher ─────────────────────────────────────────────────────────
