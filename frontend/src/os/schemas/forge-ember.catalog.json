@@ -1,0 +1,1701 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:forge:a2ui:catalog:ember:1",
+  "protocolVersion": "1.0",
+  "catalogId": "urn:forge:a2ui:catalog:ember:1",
+  "title": "Forge Ember component catalog",
+  "description": "Trusted component catalog for Forge OS generated surfaces (A2UI v1.0 catalog document layout). Every component maps to a hand-written React component in frontend/src/os/genui/registry. No renderer-side functions are exposed; actions are agent-side events only.",
+  "instructions": "Compose surfaces only from these components. Bind dynamic values with {\"@path\": \"/pointer\"}. Children are referenced by component id. Never emit HTML, scripts, styles or URLs other than http(s) links.",
+  "components": {
+    "Column": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Column"
+        },
+        "children": {
+          "$ref": "#/$defs/ChildList"
+        },
+        "gap": {
+          "type": "string",
+          "enum": [
+            "none",
+            "sm",
+            "md",
+            "lg"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "children"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Row": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Row"
+        },
+        "children": {
+          "$ref": "#/$defs/ChildList"
+        },
+        "gap": {
+          "type": "string",
+          "enum": [
+            "none",
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ]
+        },
+        "wrap": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "children"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Card": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Card"
+        },
+        "title": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "children": {
+          "$ref": "#/$defs/ChildList"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "children"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Tabs": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Tabs"
+        },
+        "tabs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "$ref": "#/$defs/DynamicString"
+              },
+              "child": {
+                "$ref": "#/$defs/ComponentId"
+              }
+            },
+            "required": [
+              "title",
+              "child"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 12,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "tabs"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Divider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Divider"
+        }
+      },
+      "required": [
+        "id",
+        "component"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Text"
+        },
+        "text": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "variant": {
+          "type": "string",
+          "enum": [
+            "body",
+            "caption",
+            "muted",
+            "mono"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "plain",
+            "markdown"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "text"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Heading": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Heading"
+        },
+        "text": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "text"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Callout": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Callout"
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "info",
+            "success",
+            "warning",
+            "error"
+          ]
+        },
+        "title": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "text": {
+          "$ref": "#/$defs/DynamicString"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "tone",
+        "text"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Badge": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Badge"
+        },
+        "text": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "neutral",
+            "accent",
+            "info",
+            "success",
+            "warning",
+            "error"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "text"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "KeyValueList": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "KeyValueList"
+        },
+        "items": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                  },
+                  "value": {
+                    "$ref": "#/$defs/DynamicString"
+                  }
+                },
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 100
+            },
+            {
+              "$ref": "#/$defs/DataBinding"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "items"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "MetricRow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "MetricRow"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              "value": {
+                "$ref": "#/$defs/DynamicString"
+              },
+              "delta": {
+                "$ref": "#/$defs/DynamicString"
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 8,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "items"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "ProgressBar": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "ProgressBar"
+        },
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "value": {
+          "$ref": "#/$defs/DynamicNumber"
+        },
+        "max": {
+          "$ref": "#/$defs/DynamicNumber"
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "info",
+            "success",
+            "warning",
+            "error"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "label",
+        "value",
+        "max"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "LinkList": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "LinkList"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              "url": {
+                "$ref": "#/$defs/HttpUrl"
+              }
+            },
+            "required": [
+              "label",
+              "url"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "links"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "CodeView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "CodeView"
+        },
+        "code": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "filePath": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "diff": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "code"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "DataTable": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "DataTable"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "number",
+                  "currency",
+                  "date",
+                  "status"
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 30,
+          "minItems": 1
+        },
+        "rows": {
+          "$ref": "#/$defs/DynamicList"
+        },
+        "pageSize": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 200
+        },
+        "sortable": {
+          "type": "boolean"
+        },
+        "rowAction": {
+          "$ref": "#/$defs/Action"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "columns",
+        "rows"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Chart": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Chart"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "bar",
+            "line",
+            "area",
+            "pie",
+            "scatter"
+          ]
+        },
+        "title": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "data": {
+          "$ref": "#/$defs/DynamicList"
+        },
+        "x": {
+          "type": "string",
+          "maxLength": 64,
+          "minLength": 1
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              }
+            },
+            "required": [
+              "key"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 8,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "kind",
+        "data",
+        "x",
+        "series"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "FilterBar": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "FilterBar"
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/ComponentId"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "select",
+                  "search",
+                  "range",
+                  "toggle"
+                ]
+              },
+              "value": {
+                "$ref": "#/$defs/DataBinding"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "label": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxItems": 100
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "kind",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 12,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "filters"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "ComparisonTable": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "ComparisonTable"
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/ComponentId"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 8,
+          "minItems": 2
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "maxItems": 8
+              },
+              "better": {
+                "type": "string",
+                "enum": [
+                  "higher",
+                  "lower",
+                  "none"
+                ]
+              }
+            },
+            "required": [
+              "label",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 60,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "subjects",
+        "rows"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Checklist": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Checklist"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 300,
+                "minLength": 1
+              },
+              "checked": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "items"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "StatusList": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "StatusList"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 128
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 300,
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "running",
+                  "completed",
+                  "failed",
+                  "blocked",
+                  "cancelled"
+                ]
+              },
+              "owner": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "title",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "items"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Timeline": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Timeline"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 300,
+                "minLength": 1
+              },
+              "timestamp": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "actor": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "running",
+                  "completed",
+                  "failed",
+                  "blocked",
+                  "cancelled",
+                  "info",
+                  "answered",
+                  "rejected",
+                  "timeout"
+                ]
+              }
+            },
+            "required": [
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "events"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "AgentRoster": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "AgentRoster"
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "idle",
+                  "active",
+                  "completed",
+                  "failed",
+                  "blocked"
+                ]
+              },
+              "department": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "taskCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "model": {
+                "type": "string",
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "role",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "agents"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "ApprovalCard": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "ApprovalCard"
+        },
+        "gateId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "gateName": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "riskLevel": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "approve": {
+          "$ref": "#/$defs/Action"
+        },
+        "reject": {
+          "$ref": "#/$defs/Action"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "gateId",
+        "gateName",
+        "approve",
+        "reject"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "ConflictList": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "ConflictList"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "filePath": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "waveIndex": {
+                "type": "integer"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "maxItems": 20
+              },
+              "status": {
+                "type": "string",
+                "maxLength": 40
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "items"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "EvalTable": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "EvalTable"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "artifactType": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "passed": {
+                "type": "boolean"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "rows"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "CostBreakdown": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "CostBreakdown"
+        },
+        "currency": {
+          "const": "USD"
+        },
+        "total": {
+          "type": "number",
+          "minimum": 0
+        },
+        "budget": {
+          "type": "number",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              "amount": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "label",
+              "amount"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "currency",
+        "total",
+        "items"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Button": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Button"
+        },
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "variant": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "secondary",
+            "tonal",
+            "ghost",
+            "danger"
+          ]
+        },
+        "disabled": {
+          "$ref": "#/$defs/DynamicBoolean"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "label",
+        "action"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "TextField": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "TextField"
+        },
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "value": {
+          "$ref": "#/$defs/DataBinding"
+        },
+        "placeholder": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "multiline": {
+          "type": "boolean"
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000
+        },
+        "secret": {
+          "const": false
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "label",
+        "value"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Select": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Select"
+        },
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "value": {
+          "$ref": "#/$defs/DataBinding"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              }
+            },
+            "required": [
+              "value",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 200,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "label",
+        "value",
+        "options"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Toggle": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Toggle"
+        },
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "value": {
+          "$ref": "#/$defs/DataBinding"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "label",
+        "value"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "Form": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "Form"
+        },
+        "children": {
+          "$ref": "#/$defs/ChildList"
+        },
+        "submit": {
+          "$ref": "#/$defs/Action"
+        },
+        "submitLabel": {
+          "type": "string",
+          "maxLength": 60,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "children",
+        "submit"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "core"
+    },
+    "LivePreview": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "LivePreview"
+        },
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "buildId": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "projectId"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "composite"
+    },
+    "DeployPanel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "DeployPanel"
+        },
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "buildId": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "projectId"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "composite"
+    },
+    "ExecutionTimeline": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "ExecutionTimeline"
+        },
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "runId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "projectId",
+        "runId"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "composite"
+    },
+    "WorkflowCanvas": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "WorkflowCanvas"
+        },
+        "nodes": {
+          "$ref": "#/$defs/DynamicList"
+        },
+        "edges": {
+          "$ref": "#/$defs/DynamicList"
+        },
+        "editable": {
+          "type": "boolean"
+        },
+        "save": {
+          "$ref": "#/$defs/Action"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "nodes",
+        "edges"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "composite"
+    },
+    "AgentConfigForm": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "AgentConfigForm"
+        },
+        "value": {
+          "$ref": "#/$defs/DataBinding"
+        },
+        "submit": {
+          "$ref": "#/$defs/Action"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "value",
+        "submit"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "composite"
+    },
+    "ProjectGrid": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "ProjectGrid"
+        },
+        "items": {
+          "$ref": "#/$defs/DynamicList"
+        },
+        "open": {
+          "$ref": "#/$defs/Action"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "items"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "composite"
+    },
+    "CapabilityLauncher": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "component": {
+          "const": "CapabilityLauncher"
+        },
+        "capabilityId": {
+          "type": "string",
+          "maxLength": 96,
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+        },
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "params": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "capabilityId",
+        "label"
+      ],
+      "additionalProperties": false,
+      "x-forge-tier": "composite"
+    }
+  },
+  "functions": {},
+  "$defs": {
+    "ComponentId": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,63}$"
+    },
+    "DataBinding": {
+      "type": "object",
+      "properties": {
+        "@path": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^/"
+        }
+      },
+      "required": [
+        "@path"
+      ],
+      "additionalProperties": false
+    },
+    "DynamicString": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 20000
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        }
+      ]
+    },
+    "DynamicNumber": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        }
+      ]
+    },
+    "DynamicBoolean": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        }
+      ]
+    },
+    "DynamicList": {
+      "anyOf": [
+        {
+          "type": "array",
+          "maxItems": 1000
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        }
+      ]
+    },
+    "ChildList": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "maxItems": 100
+        },
+        {
+          "type": "object",
+          "properties": {
+            "componentId": {
+              "$ref": "#/$defs/ComponentId"
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "componentId",
+            "path"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Action": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,63}$"
+            },
+            "context": {
+              "type": "object"
+            },
+            "userMessage": {
+              "$ref": "#/$defs/DynamicString"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event"
+      ],
+      "additionalProperties": false
+    },
+    "HttpUrl": {
+      "type": "string",
+      "maxLength": 2048,
+      "pattern": "^https?://[^\\s]+$"
+    }
+  }
+}

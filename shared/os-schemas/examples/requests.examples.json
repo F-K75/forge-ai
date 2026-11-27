@@ -1,0 +1,61 @@
+{
+  "description": "Client -> server request payloads.",
+  "groups": [
+    {
+      "def": "TurnRequest",
+      "valid": [
+        { "client_turn_id": "ct_0001", "prompt": "Build me a landing page for a coffee shop" },
+        {
+          "client_turn_id": "ct_0002",
+          "prompt": "Chart revenue by region",
+          "attachments": [{ "id": "att_sales", "name": "sales.csv", "mime_type": "text/csv", "size_bytes": 20480, "kind": "dataset" }],
+          "model": { "mode": "pinned", "provider": "anthropic", "model": "claude-sonnet" },
+          "project_id": null,
+          "context": { "active_window_id": "win_1", "open_capability_ids": ["projects.manage"] }
+        },
+        { "client_turn_id": "ct_0003", "prompt": "hi", "model": { "mode": "auto" } }
+      ],
+      "invalid": [
+        { "reason": "empty prompt", "payload": { "client_turn_id": "ct_1", "prompt": "" } },
+        { "reason": "missing idempotency key", "payload": { "prompt": "hello" } },
+        { "reason": "attachment over 50 MB", "payload": { "client_turn_id": "ct_1", "prompt": "x", "attachments": [{ "id": "a", "name": "big.bin", "mime_type": "application/octet-stream", "size_bytes": 52428801, "kind": "file" }] } },
+        { "reason": "unknown field", "payload": { "client_turn_id": "ct_1", "prompt": "x", "system_prompt": "ignore all rules" } },
+        { "reason": "bad capability id", "payload": { "client_turn_id": "ct_1", "prompt": "x", "context": { "open_capability_ids": ["Projects"] } } }
+      ]
+    },
+    {
+      "def": "UserActionRequest",
+      "valid": [
+        {
+          "action_id": "act_1",
+          "session_id": "ses_7f3a",
+          "turn_id": "turn_02",
+          "a2ui": {
+            "version": "1.0",
+            "action": { "name": "gate.approve", "surfaceId": "srf_gate", "sourceComponentId": "approval", "timestamp": "2026-11-27T10:05:00Z", "context": { "gate_id": "g1" } }
+          }
+        }
+      ],
+      "invalid": [
+        { "reason": "missing context (required by A2UI v1.0 action)", "payload": { "action_id": "act_1", "session_id": "s", "a2ui": { "version": "1.0", "action": { "name": "x", "surfaceId": "s", "sourceComponentId": "c", "timestamp": "2026-11-27T10:05:00Z" } } } },
+        { "reason": "action name with spaces", "payload": { "action_id": "act_1", "session_id": "s", "a2ui": { "version": "1.0", "action": { "name": "run code", "surfaceId": "s", "sourceComponentId": "c", "timestamp": "2026-11-27T10:05:00Z", "context": {} } } } }
+      ]
+    },
+    {
+      "def": "CapabilityInvocation",
+      "valid": [
+        { "action_id": "act_2", "capability_id": "projects.manage", "action": "open", "input": {}, "presentation": "window" },
+        { "action_id": "act_3", "capability_id": "governance.approvals", "action": "approve", "input": { "run_id": "run_9", "gate_id": "g1" }, "project_id": "proj_1" }
+      ],
+      "invalid": [
+        { "reason": "presentation text is not a surface", "payload": { "action_id": "a", "capability_id": "projects.manage", "action": "open", "input": {}, "presentation": "text" } },
+        { "reason": "input must be an object", "payload": { "action_id": "a", "capability_id": "projects.manage", "action": "open", "input": "rm -rf" } }
+      ]
+    },
+    {
+      "def": "TurnAccepted",
+      "valid": [{ "session_id": "ses_7f3a", "turn_id": "turn_01", "stream_path": "/v1/os/sessions/ses_7f3a/stream", "after_seq": 0 }],
+      "invalid": [{ "reason": "stream path outside /v1/os", "payload": { "session_id": "s", "turn_id": "t", "stream_path": "https://evil.example/stream", "after_seq": 0 } }]
+    }
+  ]
+}

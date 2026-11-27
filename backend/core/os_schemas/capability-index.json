@@ -1,0 +1,1110 @@
+{
+  "version": 1,
+  "outside_shell_routes": [
+    "/",
+    "/home",
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+    "/google-callback",
+    "/onboarding",
+    "/privacy",
+    "/terms",
+    "/docs",
+    "/docs/:slug",
+    "/demo",
+    "*"
+  ],
+  "capabilities": [
+    {
+      "id": "chat.answer",
+      "title": "Answer in plain text",
+      "category": "system",
+      "intents": [
+        "chat"
+      ],
+      "default_surface": "inline",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "new",
+      "owner": "WS-C"
+    },
+    {
+      "id": "system.capability_library",
+      "title": "Capability library",
+      "category": "system",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "new",
+      "owner": "WS-A"
+    },
+    {
+      "id": "system.sessions",
+      "title": "Conversations and history",
+      "category": "system",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "new",
+      "owner": "WS-A"
+    },
+    {
+      "id": "system.notifications",
+      "title": "Notifications",
+      "category": "system",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.new",
+      "title": "New build",
+      "category": "build",
+      "intents": [
+        "build_website"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/launch"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.workspace",
+      "title": "Build workspace",
+      "category": "build",
+      "intents": [
+        "build_website"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [
+        "/p/:projectId",
+        "/p/:projectId/workspace",
+        "/workspace",
+        "/build/:projectId"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.preview",
+      "title": "Live preview",
+      "category": "build",
+      "intents": [
+        "build_website"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.code",
+      "title": "Code view",
+      "category": "build",
+      "intents": [
+        "build_website",
+        "review_code"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.debug",
+      "title": "Debug console",
+      "category": "build",
+      "intents": [
+        "build_website"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.deploy",
+      "title": "Deploy",
+      "category": "build",
+      "intents": [
+        "build_website"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.files",
+      "title": "Files",
+      "category": "build",
+      "intents": [
+        "build_website"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [
+        "/p/:projectId/files",
+        "/files"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "build.history",
+      "title": "Build history and rollback",
+      "category": "build",
+      "intents": [
+        "build_website"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [
+        "/p/:projectId/history",
+        "/history",
+        "/project/:projectId"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "projects.manage",
+      "title": "Projects",
+      "category": "build",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/projects"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "projects.settings",
+      "title": "Project settings",
+      "category": "build",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [
+        "/p/:projectId/settings"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "fleet.overview",
+      "title": "Fleet overview",
+      "category": "agents",
+      "intents": [
+        "monitor_run"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/command"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "fleet.agent_graph",
+      "title": "Agent fleet graph",
+      "category": "agents",
+      "intents": [
+        "monitor_run"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.org",
+      "title": "Engineering org and project agents",
+      "category": "agents",
+      "intents": [
+        "create_agent",
+        "monitor_run"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/agents",
+        "/p/:projectId/agents",
+        "/p/:projectId/flow",
+        "/flow",
+        "/project/:projectId/org"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.create",
+      "title": "Create or configure an agent",
+      "category": "agents",
+      "intents": [
+        "create_agent"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.kernel_run",
+      "title": "Multi-agent run and live timeline",
+      "category": "agents",
+      "intents": [
+        "monitor_run"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.product_lead",
+      "title": "Product lead: why, what changed, what next",
+      "category": "agents",
+      "intents": [
+        "chat",
+        "monitor_run"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.memory",
+      "title": "Knowledge and episodic memory",
+      "category": "agents",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.benchmarks",
+      "title": "Benchmarks and regression gate",
+      "category": "agents",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.traces",
+      "title": "Run traces",
+      "category": "agents",
+      "intents": [
+        "monitor_run"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.workload",
+      "title": "Agent workload",
+      "category": "agents",
+      "intents": [
+        "monitor_run"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "agents.repo_memory",
+      "title": "Repository memory",
+      "category": "agents",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "skills.catalog",
+      "title": "Skills",
+      "category": "agents",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/skills"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "workflow.design",
+      "title": "Workflow canvas",
+      "category": "agents",
+      "intents": [
+        "design_workflow"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "new",
+      "owner": "WS-D"
+    },
+    {
+      "id": "data.analyze",
+      "title": "Analyze a dataset",
+      "category": "data",
+      "intents": [
+        "analyze_data"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "new",
+      "owner": "WS-D"
+    },
+    {
+      "id": "data.retrieval",
+      "title": "Knowledge retrieval index",
+      "category": "data",
+      "intents": [
+        "analyze_data"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "models.compare",
+      "title": "Compare models",
+      "category": "models",
+      "intents": [
+        "compare_models"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "new",
+      "owner": "WS-D"
+    },
+    {
+      "id": "models.admin",
+      "title": "LLM management",
+      "category": "admin",
+      "intents": [
+        "compare_models"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": true,
+      "legacy_routes": [
+        "/models",
+        "/llm-management"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "protocols.hub",
+      "title": "Protocols: MCP, A2A, audit",
+      "category": "protocols",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/protocols"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "protocols.mcp_app",
+      "title": "Run an MCP App",
+      "category": "protocols",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "window",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiatives",
+      "title": "Initiatives",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives",
+        "/p/:projectId/initiatives"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.overview",
+      "title": "Initiative overview and PRD",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId",
+        "/p/:projectId/initiatives/:initiativeId"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.board",
+      "title": "Initiative kanban board",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/board",
+        "/p/:projectId/initiatives/:initiativeId/board"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.sprints",
+      "title": "Initiative sprints",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/sprints",
+        "/p/:projectId/initiatives/:initiativeId/sprints"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.agent_runs",
+      "title": "Initiative agent runs",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/agent-runs",
+        "/p/:projectId/initiatives/:initiativeId/agent-runs"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.roadmap",
+      "title": "Initiative roadmap",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/roadmap",
+        "/p/:projectId/initiatives/:initiativeId/roadmap"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.graph",
+      "title": "Initiative dependency graph",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/graph",
+        "/p/:projectId/initiatives/:initiativeId/graph"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.releases",
+      "title": "Initiative releases",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/releases",
+        "/p/:projectId/initiatives/:initiativeId/releases"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.activity",
+      "title": "Initiative activity and decisions",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/activity",
+        "/p/:projectId/initiatives/:initiativeId/activity"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.integrations",
+      "title": "Initiative integrations",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/integrations",
+        "/p/:projectId/initiatives/:initiativeId/integrations"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.initiative.analytics",
+      "title": "Initiative analytics",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/initiatives/:initiativeId/analytics",
+        "/p/:projectId/initiatives/:initiativeId/analytics"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.decisions",
+      "title": "Decision log",
+      "category": "plan",
+      "intents": [
+        "manage_projects"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "plan.plans",
+      "title": "Execution plans (approve / reject)",
+      "category": "plan",
+      "intents": [
+        "approve_gate"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "governance.approvals",
+      "title": "Approvals",
+      "category": "governance",
+      "intents": [
+        "approve_gate"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/approvals"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "governance.policy",
+      "title": "Tenant governance policy",
+      "category": "governance",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "panel",
+      "requires_project": true,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "reviews.board",
+      "title": "Review board",
+      "category": "governance",
+      "intents": [
+        "review_code"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/reviews",
+        "/p/:projectId/reviews"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "reviews.detail",
+      "title": "Review run",
+      "category": "governance",
+      "intents": [
+        "review_code"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/reviews/:runId",
+        "/p/:projectId/reviews/:runId"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "marketplace.browse",
+      "title": "Marketplace",
+      "category": "account",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/marketplace"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.billing",
+      "title": "Billing and credits",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/billing"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.settings",
+      "title": "Settings",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/settings"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.profile",
+      "title": "Profile",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.appearance",
+      "title": "Appearance",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.byok_models",
+      "title": "AI models (bring your own key)",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.agent_fleet",
+      "title": "Agent fleet preferences",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.api_keys",
+      "title": "Developer API keys",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.integrations",
+      "title": "Integrations and webhooks",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.notifications",
+      "title": "Notification preferences",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.security",
+      "title": "Security, MFA and sessions",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.privacy",
+      "title": "Privacy and data export",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.support",
+      "title": "Support tickets",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.organization",
+      "title": "Organization and members",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "window",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "account.referrals",
+      "title": "Referrals",
+      "category": "account",
+      "intents": [
+        "account"
+      ],
+      "default_surface": "panel",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "admin.ops",
+      "title": "Admin ops console",
+      "category": "admin",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": true,
+      "legacy_routes": [
+        "/admin",
+        "/admin-console"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "admin.prompts",
+      "title": "Prompt studio",
+      "category": "admin",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": true,
+      "legacy_routes": [
+        "/prompt-studio"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "admin.optimization",
+      "title": "Optimization and budgets",
+      "category": "admin",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": true,
+      "legacy_routes": [
+        "/optimization-dashboard"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "admin.health",
+      "title": "Engineering health",
+      "category": "admin",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": true,
+      "legacy_routes": [
+        "/engineering-health"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    },
+    {
+      "id": "admin.analytics",
+      "title": "Product analytics",
+      "category": "admin",
+      "intents": [
+        "analyze_data"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": true,
+      "legacy_routes": [],
+      "origin": "existing_backend_only",
+      "owner": "WS-D"
+    },
+    {
+      "id": "studio.spatial",
+      "title": "3D spatial studio",
+      "category": "build",
+      "intents": [
+        "open_capability"
+      ],
+      "default_surface": "fullscreen",
+      "requires_project": false,
+      "admin_only": false,
+      "legacy_routes": [
+        "/studio-3d"
+      ],
+      "origin": "existing",
+      "owner": "WS-D"
+    }
+  ]
+}

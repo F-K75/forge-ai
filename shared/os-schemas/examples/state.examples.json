@@ -1,0 +1,67 @@
+{
+  "description": "Persisted state and registry payloads.",
+  "groups": [
+    {
+      "def": "WorkspaceState",
+      "valid": [
+        {
+          "id": "ws_default", "name": "Default", "version": 3, "active_session_id": "ses_7f3a", "nav_collapsed": false, "layout": "free",
+          "windows": [
+            { "id": "win_1", "kind": "surface", "title": "Sales by region", "presentation": "window", "surface_id": "srf_sales", "session_id": "ses_7f3a", "bounds": { "x": 120, "y": 80, "w": 720, "h": 480 }, "z": 2, "state": "normal" },
+            { "id": "win_2", "kind": "legacy_route", "title": "Initiatives", "presentation": "fullscreen", "route": "/p/proj_1/initiatives", "z": 1, "state": "minimized", "pinned": true },
+            { "id": "win_3", "kind": "capability", "title": "Projects", "presentation": "panel", "capability_id": "projects.manage", "params": {}, "z": 0, "state": "normal" }
+          ],
+          "updated_at": "2026-11-27T10:06:00Z"
+        }
+      ],
+      "invalid": [
+        { "reason": "inline is not a window presentation", "payload": { "id": "ws", "name": "x", "version": 0, "active_session_id": null, "nav_collapsed": false, "layout": "free", "windows": [{ "id": "w", "kind": "surface", "title": "t", "presentation": "inline", "z": 0, "state": "normal" }], "updated_at": "2026-11-27T10:06:00Z" } },
+        { "reason": "absolute URL as legacy route", "payload": { "id": "ws", "name": "x", "version": 0, "active_session_id": null, "nav_collapsed": false, "layout": "free", "windows": [{ "id": "w", "kind": "legacy_route", "title": "t", "presentation": "window", "route": "javascript:alert(1)", "z": 0, "state": "normal" }], "updated_at": "2026-11-27T10:06:00Z" } },
+        { "reason": "missing version", "payload": { "id": "ws", "name": "x", "active_session_id": null, "nav_collapsed": false, "layout": "free", "windows": [], "updated_at": "2026-11-27T10:06:00Z" } }
+      ]
+    },
+    {
+      "def": "SessionSummary",
+      "valid": [{ "id": "ses_7f3a", "title": "Coffee shop site", "project_id": "proj_1", "created_at": "2026-11-27T10:00:00Z", "updated_at": "2026-11-27T10:06:00Z", "turn_count": 4, "pinned": false, "archived": false }],
+      "invalid": [{ "reason": "turn_count negative", "payload": { "id": "s", "title": "", "project_id": null, "created_at": "2026-11-27T10:00:00Z", "updated_at": "2026-11-27T10:00:00Z", "turn_count": -1, "pinned": false, "archived": false } }]
+    },
+    {
+      "def": "SessionMessage",
+      "valid": [{ "id": "msg_a1", "session_id": "ses_7f3a", "turn_id": "turn_01", "role": "assistant", "created_at": "2026-11-27T10:00:02Z", "text": "Because light attracts bugs.", "format": "plain", "attachments": [], "surface_ids": [], "intent": "chat" }],
+      "invalid": [{ "reason": "tool role is not a chat role", "payload": { "id": "m", "session_id": "s", "turn_id": "t", "role": "tool", "created_at": "2026-11-27T10:00:02Z", "text": null, "format": "plain", "attachments": [], "surface_ids": [], "intent": null } }]
+    },
+    {
+      "def": "StoredSurface",
+      "valid": [{ "surface_id": "srf_sales", "session_id": "ses_7f3a", "turn_id": "turn_02", "catalog_id": "urn:forge:a2ui:catalog:ember:1", "title": "Sales by region", "components": [{ "id": "root", "component": "Text", "text": "hi" }], "data_model": {}, "version": 2, "updated_at": "2026-11-27T10:01:05Z" }],
+      "invalid": [{ "reason": "lowercase component name", "payload": { "surface_id": "s", "session_id": "s", "turn_id": "t", "catalog_id": "urn:forge:a2ui:catalog:ember:1", "title": "", "components": [{ "id": "root", "component": "script" }], "data_model": {}, "version": 0, "updated_at": "2026-11-27T10:01:05Z" } }]
+    },
+    {
+      "def": "CapabilityDescriptor",
+      "valid": [
+        {
+          "id": "projects.manage", "version": 1, "title": "Projects", "summary": "Create, import, rename, open and delete projects.",
+          "category": "build", "intents": ["manage_projects"], "keywords": ["projects", "repos", "import"], "permissions": ["authenticated"],
+          "requires_project": false, "admin_only": false, "min_plan": null, "entry_points": ["prompt", "palette", "library", "deeplink"],
+          "surfaces": ["panel", "window", "fullscreen"], "default_surface": "window",
+          "renderer": { "kind": "legacy_route", "route": "/projects" },
+          "actions": [
+            { "id": "open", "title": "Open projects", "permissions": ["authenticated"], "destructive": false, "requires_confirmation": false, "input_schema": {} },
+            { "id": "delete", "title": "Delete project", "permissions": ["project:write"], "destructive": true, "requires_confirmation": true, "input_schema": { "type": "object", "required": ["project_id"] } }
+          ],
+          "input_schema": {}, "output_schema": {},
+          "api_bindings": [
+            { "method": "GET", "path": "/v1/projects/", "stream": "none" },
+            { "method": "POST", "path": "/v1/projects/", "stream": "none" },
+            { "method": "DELETE", "path": "/v1/projects/{project_id}", "stream": "none" },
+            { "method": "POST", "path": "/v1/repos/import", "stream": "none" }
+          ],
+          "persistence": "server", "legacy_routes": ["/projects"], "status": "available"
+        }
+      ],
+      "invalid": [
+        { "reason": "capability id not dotted lowercase", "payload": { "id": "Projects", "version": 1, "title": "P", "summary": "s", "category": "build", "intents": [], "keywords": [], "permissions": [], "requires_project": false, "admin_only": false, "min_plan": null, "entry_points": ["palette"], "surfaces": ["window"], "default_surface": "window", "renderer": { "kind": "legacy_route", "route": "/projects" }, "actions": [], "input_schema": {}, "output_schema": {}, "api_bindings": [], "persistence": "server", "legacy_routes": [], "status": "available" } },
+        { "reason": "renderer kind code is not allowed", "payload": { "id": "x.y", "version": 1, "title": "P", "summary": "s", "category": "build", "intents": [], "keywords": [], "permissions": [], "requires_project": false, "admin_only": false, "min_plan": null, "entry_points": ["palette"], "surfaces": ["window"], "default_surface": "window", "renderer": { "kind": "code", "source": "eval('1')" }, "actions": [], "input_schema": {}, "output_schema": {}, "api_bindings": [], "persistence": "server", "legacy_routes": [], "status": "available" } }
+      ]
+    }
+  ]
+}

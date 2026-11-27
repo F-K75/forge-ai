@@ -1,0 +1,161 @@
+{
+  "def": "OsEvent",
+  "description": "Stream events. The first six form the 'tell me a joke' turn (plain text); the rest show a dataset turn that renders a generated surface in a window.",
+  "valid": [
+    {
+      "v": "forge-os/1", "seq": 1, "session_id": "ses_7f3a", "turn_id": "turn_01", "ts": "2026-11-27T10:00:00Z",
+      "type": "turn.started", "data": { "message_id": "msg_u1", "prompt_preview": "Tell me a joke" }
+    },
+    {
+      "v": "forge-os/1", "seq": 2, "session_id": "ses_7f3a", "turn_id": "turn_01", "ts": "2026-11-27T10:00:00Z",
+      "type": "intent.resolved",
+      "data": { "intent": { "kind": "chat", "confidence": 0.97, "capability_ids": [], "entities": {}, "source": "llm", "rationale": null } }
+    },
+    {
+      "v": "forge-os/1", "seq": 3, "session_id": "ses_7f3a", "turn_id": "turn_01", "ts": "2026-11-27T10:00:01Z",
+      "type": "plan.ready",
+      "data": {
+        "plan": {
+          "plan_id": "plan_01",
+          "intent": { "kind": "chat", "confidence": 0.97, "capability_ids": [], "entities": {}, "source": "llm", "rationale": null },
+          "presentation": "text",
+          "steps": [{ "id": "s1", "kind": "respond_text", "title": "Answer", "capability_id": null, "requires_approval": false }],
+          "model": { "provider": "anthropic", "model": "claude-sonnet" },
+          "fallback": false
+        }
+      }
+    },
+    {
+      "v": "forge-os/1", "seq": 4, "session_id": "ses_7f3a", "turn_id": "turn_01", "ts": "2026-11-27T10:00:01Z",
+      "type": "text.delta", "data": { "message_id": "msg_a1", "delta": "Why do programmers prefer dark mode? " }
+    },
+    {
+      "v": "forge-os/1", "seq": 5, "session_id": "ses_7f3a", "turn_id": "turn_01", "ts": "2026-11-27T10:00:02Z",
+      "type": "text.completed",
+      "data": { "message_id": "msg_a1", "text": "Why do programmers prefer dark mode? Because light attracts bugs.", "format": "plain" }
+    },
+    {
+      "v": "forge-os/1", "seq": 6, "session_id": "ses_7f3a", "turn_id": "turn_01", "ts": "2026-11-27T10:00:02Z",
+      "type": "turn.completed", "data": { "status": "completed", "usage": { "input_tokens": 42, "output_tokens": 17, "cost_usd": 0.0002 } }
+    },
+    {
+      "v": "forge-os/1", "seq": 7, "session_id": "ses_7f3a", "turn_id": "turn_02", "ts": "2026-11-27T10:01:00Z",
+      "type": "intent.resolved",
+      "data": {
+        "intent": {
+          "kind": "analyze_data", "confidence": 0.62, "capability_ids": ["data.analyze"],
+          "entities": { "attachment_id": "att_sales" }, "source": "rules", "rationale": "Dataset attachment and the word 'chart'"
+        }
+      }
+    },
+    {
+      "v": "forge-os/1", "seq": 8, "session_id": "ses_7f3a", "turn_id": "turn_02", "ts": "2026-11-27T10:01:01Z",
+      "type": "a2ui.message",
+      "data": {
+        "message": {
+          "version": "1.0",
+          "createSurface": {
+            "surfaceId": "srf_sales",
+            "catalogId": "urn:forge:a2ui:catalog:ember:1",
+            "components": [
+              { "id": "root", "component": "Column", "children": ["title", "chart", "table"], "gap": "md" },
+              { "id": "title", "component": "Heading", "text": "Sales by region", "level": 2 },
+              { "id": "chart", "component": "Chart", "kind": "bar", "data": { "@path": "/rows" }, "x": "region", "series": [{ "key": "revenue", "label": "Revenue" }] },
+              { "id": "table", "component": "DataTable", "columns": [{ "key": "region", "label": "Region" }, { "key": "revenue", "label": "Revenue", "type": "currency" }], "rows": { "@path": "/rows" }, "sortable": true }
+            ],
+            "dataModel": { "rows": [{ "region": "EMEA", "revenue": 1200 }, { "region": "APAC", "revenue": 900 }] }
+          }
+        }
+      }
+    },
+    {
+      "v": "forge-os/1", "seq": 9, "session_id": "ses_7f3a", "turn_id": "turn_02", "ts": "2026-11-27T10:01:01Z",
+      "type": "surface.placed",
+      "data": { "placement": { "surface_id": "srf_sales", "presentation": "window", "title": "Sales by region", "capability_id": "data.analyze", "size_hint": "large", "focus": true } }
+    },
+    {
+      "v": "forge-os/1", "seq": 10, "session_id": "ses_7f3a", "turn_id": "turn_02", "ts": "2026-11-27T10:01:05Z",
+      "type": "a2ui.message",
+      "data": { "message": { "version": "1.0", "updateDataModel": { "surfaceId": "srf_sales", "path": "/rows/0/revenue", "value": 1250 } } }
+    },
+    {
+      "v": "forge-os/1", "seq": 11, "session_id": "ses_7f3a", "turn_id": "turn_03", "ts": "2026-11-27T10:02:00Z",
+      "type": "agent.progress",
+      "data": { "progress": { "project_id": "proj_1", "run_id": "run_9", "agui_type": "STEP_STARTED", "kernel_event": "kernel_wave_started", "payload": { "wave_index": 1 } } }
+    },
+    {
+      "v": "forge-os/1", "seq": 12, "session_id": "ses_7f3a", "turn_id": "turn_03", "ts": "2026-11-27T10:02:01Z",
+      "type": "mcp_app.placed",
+      "data": { "placement": { "app_id": "app_weather", "server_id": "srv_ext", "tool_name": "get_forecast", "project_id": "proj_1", "presentation": "panel", "title": "Forecast" } }
+    },
+    {
+      "v": "forge-os/1", "seq": 13, "session_id": "ses_7f3a", "turn_id": null, "ts": "2026-11-27T10:02:02Z",
+      "type": "action.result", "data": { "action_id": "act_1", "status": "completed" }
+    },
+    {
+      "v": "forge-os/1", "seq": 13, "session_id": "ses_7f3a", "turn_id": null, "ts": "2026-11-27T10:02:17Z",
+      "type": "heartbeat", "data": {}
+    },
+    {
+      "v": "forge-os/1", "seq": 14, "session_id": "ses_7f3a", "turn_id": "turn_04", "ts": "2026-11-27T10:03:00Z",
+      "type": "turn.failed", "data": { "error": { "code": "llm_unavailable", "message": "No model provider is configured.", "retryable": false } }
+    },
+    {
+      "v": "forge-os/1", "seq": 15, "session_id": "ses_7f3a", "turn_id": "turn_05", "ts": "2026-11-27T10:04:00Z",
+      "type": "a2ui.message", "data": { "message": { "version": "1.0", "deleteSurface": { "surfaceId": "srf_sales" } } }
+    }
+  ],
+  "invalid": [
+    {
+      "reason": "unknown event type",
+      "payload": { "v": "forge-os/1", "seq": 1, "session_id": "ses_1", "turn_id": null, "ts": "2026-11-27T10:00:00Z", "type": "eval.code", "data": {} }
+    },
+    {
+      "reason": "wrong protocol version",
+      "payload": { "v": "forge-os/2", "seq": 1, "session_id": "ses_1", "turn_id": null, "ts": "2026-11-27T10:00:00Z", "type": "heartbeat", "data": {} }
+    },
+    {
+      "reason": "negative seq",
+      "payload": { "v": "forge-os/1", "seq": -1, "session_id": "ses_1", "turn_id": null, "ts": "2026-11-27T10:00:00Z", "type": "heartbeat", "data": {} }
+    },
+    {
+      "reason": "extra envelope key",
+      "payload": { "v": "forge-os/1", "seq": 1, "session_id": "ses_1", "turn_id": null, "ts": "2026-11-27T10:00:00Z", "type": "heartbeat", "data": {}, "html": "<b>x</b>" }
+    },
+    {
+      "reason": "A2UI surface from a foreign catalog",
+      "payload": {
+        "v": "forge-os/1", "seq": 2, "session_id": "ses_1", "turn_id": "t1", "ts": "2026-11-27T10:00:00Z", "type": "a2ui.message",
+        "data": { "message": { "version": "1.0", "createSurface": { "surfaceId": "s1", "catalogId": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json" } } }
+      }
+    },
+    {
+      "reason": "A2UI v0.8 message shape",
+      "payload": {
+        "v": "forge-os/1", "seq": 2, "session_id": "ses_1", "turn_id": "t1", "ts": "2026-11-27T10:00:00Z", "type": "a2ui.message",
+        "data": { "message": { "beginRendering": { "surfaceId": "s1", "root": "root" } } }
+      }
+    },
+    {
+      "reason": "surface.placed with text presentation",
+      "payload": {
+        "v": "forge-os/1", "seq": 3, "session_id": "ses_1", "turn_id": "t1", "ts": "2026-11-27T10:00:00Z", "type": "surface.placed",
+        "data": { "placement": { "surface_id": "s1", "presentation": "text", "title": "x" } }
+      }
+    },
+    {
+      "reason": "confidence above 1",
+      "payload": {
+        "v": "forge-os/1", "seq": 3, "session_id": "ses_1", "turn_id": "t1", "ts": "2026-11-27T10:00:00Z", "type": "intent.resolved",
+        "data": { "intent": { "kind": "chat", "confidence": 1.5, "capability_ids": [], "entities": {}, "source": "llm", "rationale": null } }
+      }
+    },
+    {
+      "reason": "unknown error code",
+      "payload": {
+        "v": "forge-os/1", "seq": 3, "session_id": "ses_1", "turn_id": "t1", "ts": "2026-11-27T10:00:00Z", "type": "turn.failed",
+        "data": { "error": { "code": "oops", "message": "x", "retryable": true } }
+      }
+    }
+  ]
+}

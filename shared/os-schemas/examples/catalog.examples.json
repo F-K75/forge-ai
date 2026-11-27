@@ -1,0 +1,28 @@
+{
+  "def": "catalog:component",
+  "description": "Components checked against forge-ember.catalog.json (the trusted registry allowlist).",
+  "valid": [
+    { "id": "root", "component": "Column", "children": ["a", "b"], "gap": "md" },
+    { "id": "rows", "component": "Column", "children": { "componentId": "row_tpl", "path": "/items" } },
+    { "id": "a", "component": "Text", "text": { "@path": "/summary" }, "variant": "muted" },
+    { "id": "b", "component": "Button", "label": "Approve", "action": { "event": { "name": "gate.approve", "context": { "gate_id": "g1" } } }, "variant": "primary" },
+    { "id": "cmp", "component": "ComparisonTable", "subjects": [{ "id": "m1", "label": "Model A" }, { "id": "m2", "label": "Model B" }], "rows": [{ "label": "Cost / 1M tokens", "values": [3, 15], "better": "lower" }, { "label": "Vision", "values": [true, false] }] },
+    { "id": "links", "component": "LinkList", "links": [{ "label": "Docs", "url": "https://example.com/docs" }] },
+    { "id": "gate", "component": "ApprovalCard", "gateId": "g1", "gateName": "Deploy to prod", "riskLevel": "high", "approve": { "event": { "name": "gate.approve" } }, "reject": { "event": { "name": "gate.reject" } } },
+    { "id": "timeline", "component": "ExecutionTimeline", "projectId": "proj_1", "runId": "run_9" },
+    { "id": "preview", "component": "LivePreview", "projectId": "proj_1" },
+    { "id": "canvas", "component": "WorkflowCanvas", "nodes": { "@path": "/nodes" }, "edges": { "@path": "/edges" }, "editable": true, "save": { "event": { "name": "workflow.save" } } },
+    { "id": "email", "component": "TextField", "label": "Email", "value": { "@path": "/form/email" } },
+    { "id": "launch", "component": "CapabilityLauncher", "capabilityId": "plan.initiatives", "label": "Open initiatives" }
+  ],
+  "invalid": [
+    { "reason": "unknown component (closed allowlist)", "payload": { "id": "x", "component": "Script", "src": "https://evil.example/x.js" } },
+    { "reason": "raw HTML prop is not declared", "payload": { "id": "x", "component": "Text", "text": "hi", "html": "<img src=x onerror=alert(1)>" } },
+    { "reason": "renderer-side functionCall actions are not allowed", "payload": { "id": "b", "component": "Button", "label": "Go", "action": { "functionCall": { "call": "openUrl", "args": { "url": "javascript:alert(1)" } } } } },
+    { "reason": "javascript: link", "payload": { "id": "l", "component": "LinkList", "links": [{ "label": "x", "url": "javascript:alert(1)" }] } },
+    { "reason": "secret text fields are not allowed in generated UI", "payload": { "id": "p", "component": "TextField", "label": "Password", "value": { "@path": "/pw" }, "secret": true } },
+    { "reason": "binding path must be a JSON pointer", "payload": { "id": "a", "component": "Text", "text": { "@path": "summary" } } },
+    { "reason": "comparison needs at least two subjects", "payload": { "id": "c", "component": "ComparisonTable", "subjects": [{ "id": "m1", "label": "A" }], "rows": [{ "label": "x", "values": [1] }] } },
+    { "reason": "missing required prop", "payload": { "id": "h", "component": "Heading" } }
+  ]
+}
