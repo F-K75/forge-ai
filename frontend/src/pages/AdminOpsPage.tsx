@@ -82,7 +82,7 @@ export default function AdminOpsPage() {
       <header className="shrink-0 bg-panel border-b border-border px-4 sm:px-6 pt-4 pb-3 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-accent-soft border border-border flex items-center justify-center text-accent shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-ink/[0.06] flex items-center justify-center text-ink shrink-0">
               <Shield size={18} aria-hidden="true" />
             </div>
             <div>
@@ -114,9 +114,9 @@ export default function AdminOpsPage() {
                 aria-selected={selected}
                 aria-controls={`admin-panel-${tab.id}`}
                 onClick={() => handleSelectTab(tab.id)}
-                className={`shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer ${
+                className={`shrink-0 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs font-medium transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer ${
                   selected
-                    ? "bg-accent-soft text-accent border border-accent/30 font-semibold"
+                    ? "bg-ink/[0.08] text-ink border border-border"
                     : "text-muted hover:text-ink hover:bg-panel-alt border border-transparent"
                 }`}
               >

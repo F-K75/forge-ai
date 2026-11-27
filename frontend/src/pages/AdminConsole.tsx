@@ -266,7 +266,7 @@ export default function AdminConsole() {
       {/* Stat cards */}
       <section aria-label="Platform statistics" className="mb-9">
         <motion.div
-          className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3"
           variants={reduceMotion ? undefined : motionVariants.staggerContainer}
           initial={reduceMotion ? false : "hidden"}
           animate="visible"
@@ -880,8 +880,8 @@ function StatCard({
   icon: typeof Users
 }) {
   return (
-    <motion.div className="glass-strong p-4" {...presets.card} variants={motionVariants.staggerItem}>
-      <div className="w-9 h-9 border border-border flex items-center justify-center mb-3">
+    <motion.div className="rounded-xl border border-border bg-panel p-4" {...presets.card} variants={motionVariants.staggerItem}>
+      <div className="w-8 h-8 rounded-md bg-ink/[0.06] flex items-center justify-center mb-3">
         <Icon size={16} className="text-ink" aria-hidden="true" />
       </div>
       <p className="font-mono text-[1.4rem] font-medium text-ink leading-none mb-1">{value}</p>
