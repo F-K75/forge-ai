@@ -147,7 +147,7 @@ export function ProfileTab() {
           <ClipboardCopyButton
             text={user?.id || "usr_forge_default"}
             successMessage="User ID copied"
-            className="rounded-lg border border-border bg-panel-alt text-ink font-mono font-medium text-xs py-1 px-2.5 h-7 hover:border-accent/50 transition-colors self-start sm:self-auto"
+            className="rounded-lg border border-border bg-panel-alt text-ink font-medium text-xs py-1 px-2.5 h-7 hover:border-accent/50 transition-colors self-start sm:self-auto"
           />
         </div>
       </div>

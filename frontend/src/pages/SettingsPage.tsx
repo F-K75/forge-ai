@@ -165,15 +165,15 @@ export default function SettingsPage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border shrink-0"
       >
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-md border border-border bg-panel flex items-center justify-center text-accent shadow-apple shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-ink/[0.06] flex items-center justify-center text-ink shrink-0">
             <Settings size={18} />
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink">
+              <h1 className="font-display text-title sm:text-headline font-medium tracking-tight text-ink">
                 Settings
               </h1>
-              <span className="text-[11px] font-mono font-medium uppercase tracking-wider text-accent">
+              <span className="rounded-pill bg-accent/[0.12] px-2.5 py-0.5 text-xs font-medium uppercase text-accent">
                 {user?.plan || "PRO"}
               </span>
             </div>
@@ -195,7 +195,7 @@ export default function SettingsPage() {
             placeholder="Quick search settings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-9 text-xs pl-9 pr-8 rounded-md bg-panel border border-border text-ink placeholder:text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+            className="w-full h-9 text-xs pl-9 pr-8 rounded-pill bg-glass border border-glass-border text-ink placeholder:text-faint focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
           />
           {searchQuery && (
             <button
@@ -215,7 +215,7 @@ export default function SettingsPage() {
         id="settings-tab-selector"
         role="tablist"
         aria-label="Settings navigation tabs"
-        className="flex items-center gap-1 overflow-x-auto scrollbar-none border-b border-border pb-px shrink-0"
+        className="flex w-fit max-w-full items-center gap-0.5 overflow-x-auto scrollbar-none rounded-pill bg-ink/[0.06] p-1 shrink-0"
       >
         {filteredTabs.length === 0 ? (
           <div className="px-3 py-2 text-xs text-muted">
@@ -234,9 +234,9 @@ export default function SettingsPage() {
                 aria-selected={selected}
                 aria-controls={`panel-${tab.id}`}
                 onClick={() => handleTabChange(tab.id)}
-                className={`relative shrink-0 px-3 py-2.5 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+                className={`relative shrink-0 h-8 px-3.5 rounded-pill text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
                   selected
-                    ? "text-accent font-semibold after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-accent"
+                    ? "bg-ink text-on-ink"
                     : "text-muted hover:text-ink"
                 }`}
               >
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                 <span>{tab.label}</span>
 
                 {tab.badge && (
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                  <span className={`text-[10px] font-mono uppercase ${selected ? "text-on-ink/70" : "text-faint"}`}>
                     {tab.badge}
                   </span>
                 )}
@@ -259,12 +259,12 @@ export default function SettingsPage() {
         id={`panel-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`tab-btn-${activeTab}`}
-        className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-apple"
+        className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-border bg-panel"
       >
         {/* Section Header Strip */}
         <div className="px-5 py-3.5 border-b border-border flex items-center justify-between gap-3 shrink-0 bg-panel-alt/50">
           <div className="flex items-center gap-2.5 truncate">
-            <activeNav.icon size={16} className="text-accent shrink-0" />
+            <activeNav.icon size={16} className="text-muted shrink-0" />
             <h2 className="font-display font-semibold text-sm text-ink">
               {activeNav.label}
             </h2>
