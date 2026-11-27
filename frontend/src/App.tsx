@@ -56,6 +56,10 @@ const ReviewDetailPage = lazyWithRetry(() => import("./pages/reviews/ReviewDetai
 // Step 5: public marketing surface (independent theme, no shell, no auth)
 const LandingPage = lazyWithRetry(() => import("./pages/LandingPage"))
 const SpatialStudioPage = lazyWithRetry(() => import("./pages/SpatialStudioPage"))
+// Public reading pages: legal + docs (landing nav/footer, no shell, no auth)
+const LegalPage = lazyWithRetry(() => import("./pages/public/LegalPage"))
+const DocsHubPage = lazyWithRetry(() => import("./pages/public/DocsHubPage"))
+const DocPage = lazyWithRetry(() => import("./pages/public/DocPage"))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -330,6 +334,48 @@ export default function App() {
               <ErrorBoundary>
                 <Suspense fallback={<RouteSkeleton />}>
                   <Onboarding />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+
+          {/* Public legal pages and docs: readable without an account */}
+          <Route
+            path="/privacy"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <LegalPage slug="privacy" />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/terms"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <LegalPage slug="terms" />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/docs"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <DocsHubPage />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/docs/:slug"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<RouteSkeleton />}>
+                  <DocPage />
                 </Suspense>
               </ErrorBoundary>
             }
