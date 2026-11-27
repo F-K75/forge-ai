@@ -157,7 +157,7 @@ export function LandingHero() {
           className="mt-5 max-w-[34rem] text-balance text-[16px] leading-[1.5] text-ink/85 sm:text-[17px]"
         >
           From imagination to autonomous execution. Forge runs a full engineering organisation of
-          AI agents that plans, builds, verifies and ships, and stops for your approval where it matters.
+          AI agents that plans, builds, verifies and ships, and can stop for your approval where it matters.
         </motion.p>
         <motion.div {...appear(0.28)} className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <PillLink to="/signup" variant="secondary" size="lg">

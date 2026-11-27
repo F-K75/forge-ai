@@ -5,22 +5,26 @@
  * marketing metric. Keep them in sync when the product changes:
  * - 40 skills / 9 domains: backend/skills/<skill>/SKILL.md and SkillDomain in
  *   backend/core/skill_engine.py
- * - 9 cloud providers: backend/core/llm (see docs/VISION_IMPLEMENTATION_AUDIT.md)
- * - 5 protocols with adapters, 13 on the roadmap: backend/core/protocol_gateway.py,
- *   backend/core/a2a_adapter.py and the audit's protocol table
+ * - 8 cloud providers: _register_default_providers in backend/core/llm/router.py
+ *   (Anthropic, OpenAI, Azure OpenAI, Gemini, Groq, Mistral, OpenRouter,
+ *   Together). Ollama, vLLM and LiteLLM are self-hosted, not counted here.
+ * - 6 protocols with adapters, 13 in scope: backend/api/protocols.py (MCP,
+ *   MCP Apps, A2A, AG-UI, A2UI, AI SDK UI stream) and the audit's protocol table
  * - Plans: FALLBACK_PLANS in src/pages/BillingPage.tsx, which mirrors
  *   PLAN_DETAILS in backend/api/billing.py
+ *
+ * Every claim is checked in docs/marketing/LANDING_CLAIMS_VERIFICATION.md.
  */
 
 export const DOCS_URL = "https://github.com/F-K75/forge-ai/tree/main/docs";
 
-export const PROTOCOLS_LIVE = ["MCP", "MCP Apps", "A2A", "AG-UI", "A2UI"] as const;
+export const PROTOCOLS_LIVE = ["MCP", "MCP Apps", "A2A", "AG-UI", "A2UI", "AI SDK UI"] as const;
 
 export const STATS = [
   { value: "40", label: "Skills in the engine", note: "SKILL.md, routed by task" },
   { value: "9", label: "Skill domains", note: "Engineering to design tools" },
-  { value: "9", label: "Cloud model providers", note: "Plus self-hosted models" },
-  { value: "5/13", label: "Protocols live / planned", note: "MCP, A2A, AG-UI and more" },
+  { value: "8", label: "Cloud model providers", note: "Plus Ollama, vLLM and LiteLLM" },
+  { value: "6/13", label: "Protocols with adapters / in scope", note: "MCP, A2A, AG-UI and more" },
 ] as const;
 
 export type StepId = "plan" | "build" | "verify" | "ship";
@@ -37,28 +41,28 @@ export const STEPS: {
     n: "01",
     label: "Plan",
     title: "Turn an idea into an approved plan.",
-    body: "The Product Lead and Architect turn a one-line brief into goals, an architecture and a task graph. You review the plan before a single line of code is written.",
+    body: "The Product Lead and Architect turn a one-line brief into goals, an architecture and a task graph. You can review and approve the plan before any code is written.",
   },
   {
     id: "build",
     n: "02",
     label: "Build",
     title: "Specialists build in parallel.",
-    body: "Frontend, backend and AI engineers each work in their own sandboxed git worktree, pulling the skills they need from the engine. Progress streams back live.",
+    body: "Frontend, backend and AI engineers each work in their own isolated workspace, pulling the skills they need from the engine. Progress streams back live.",
   },
   {
     id: "verify",
     n: "03",
     label: "Verify",
-    title: "Nothing merges unverified.",
-    body: "QA and Security agents run type checks, tests and reviews against every change. Failures loop back to the owning agent with the evidence attached.",
+    title: "Every change gets checked.",
+    body: "QA and Security agents review each change, and sandboxed checks (syntax, tests and a security scan) run against the files it touches. Failures loop back to the owning agent for a repair round.",
   },
   {
     id: "ship",
     n: "04",
     label: "Ship",
-    title: "Ship behind an approval gate.",
-    body: "Release and DevOps agents package the change, then wait at the gate. You approve, and the decision lands in the audit log and company memory.",
+    title: "Ship behind an optional approval gate.",
+    body: "Release and DevOps agents package the change. Turn on the delivery gate and they wait for your sign-off; your decision is written to the audit log and the run is recorded in the project's decision log.",
   },
 ];
 
@@ -117,15 +121,15 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Can agents ship to production without me?",
-    a: "Not unless you let them. Approval gates sit in front of consequential steps such as merging or deploying, and each decision is written to an audit log. Agents work in sandboxed git worktrees, so nothing touches your main branch until a change is approved.",
+    a: "No. Agents never push to your repository on their own: code reaches GitHub only when you push it. You can also turn on an approval gate that pauses a run before its delivery and release step, and each approval or rejection is written to the audit log. Each agent task works in its own isolated workspace.",
   },
   {
     q: "Which models does Forge use?",
-    a: "The model gateway routes across nine cloud providers, including Anthropic, OpenAI, Azure, Gemini, Groq, Mistral, OpenRouter and Together, with budgets, rate limits and circuit breakers. Self-hosted models run through Ollama, vLLM or a LiteLLM proxy, and Pro plans can bring their own API keys.",
+    a: "The model gateway routes across eight cloud providers (Anthropic, OpenAI, Azure OpenAI, Gemini, Groq, Mistral, OpenRouter and Together) with budgets, rate limits and circuit breakers. Self-hosted models run through Ollama, vLLM or a LiteLLM proxy. On Pro and Enterprise plans you can bring your own Anthropic or OpenAI-compatible API key.",
   },
   {
     q: "What happens to my code and data?",
-    a: "Your repositories stay yours. Agents work on isolated copies, secrets are encrypted at rest, and you can export or delete project data at any time. Company memory, such as decisions and conventions, is scoped to your organisation.",
+    a: "Your repositories stay yours. Agents work in isolated workspaces, and stored credentials (your GitHub token, your own LLM API key and your 2FA secret) are encrypted at rest; Forge API keys are stored only as hashes. You can export your account data, or delete your account with its projects and builds, at any time. Memory, such as decisions and lessons from earlier runs, is scoped to each project.",
   },
   {
     q: "Can I self-host Forge?",
@@ -133,6 +137,6 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How do credits work?",
-    a: "Agent runs consume credits. Every plan includes a monthly allowance, and you can buy credit packs at any time. Yearly billing costs ten months' worth of the monthly price. Enterprise plans get custom credit volume.",
+    a: "Agent runs consume credits. Free accounts get 10 credits at signup and their first build free; paid plans include a monthly allowance, and you can buy credit packs at any time. Yearly billing costs ten months' worth of the monthly price. Enterprise plans get custom credit volume.",
   },
 ];

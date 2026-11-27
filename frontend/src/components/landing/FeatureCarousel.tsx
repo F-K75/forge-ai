@@ -195,7 +195,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string; hue: Hue; at: s
   {
     icon: Plug,
     title: "Protocols",
-    body: "A gateway for MCP, MCP Apps, A2A, AG-UI and A2UI, so agents use your tools and talk to other agents.",
+    body: "A gateway for MCP, MCP Apps, A2A, AG-UI, A2UI and the AI SDK UI stream, so agents use your tools and talk to other agents.",
     hue: "rust",
     at: "70% 100%",
     Vignette: ProtocolsVignette,
@@ -203,7 +203,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string; hue: Hue; at: s
   {
     icon: ShieldCheck,
     title: "Governance",
-    body: "Approval gates, a full audit trail and sandboxed worktrees. Autonomy with a human hand on the switch.",
+    body: "Optional approval gates, an audit log and isolated workspaces per task. Autonomy with a human hand on the switch.",
     hue: "olive",
     at: "20% 100%",
     Vignette: GovernanceVignette,
@@ -211,7 +211,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string; hue: Hue; at: s
   {
     icon: Cpu,
     title: "Model gateway",
-    body: "Route across nine cloud providers or your own local models, with budgets, rate limits and circuit breakers.",
+    body: "Route across eight cloud providers or your own self-hosted models, with budgets, rate limits and circuit breakers.",
     hue: "teal",
     at: "80% 100%",
     Vignette: ModelsVignette,
@@ -219,7 +219,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string; hue: Hue; at: s
   {
     icon: BrainCircuit,
     title: "Memory",
-    body: "Decisions, conventions and architecture persist as company memory, so every run starts where the last left off.",
+    body: "Decisions, architecture and lessons persist as project memory, so each run starts where the last left off.",
     hue: "rust",
     at: "50% 100%",
     Vignette: MemoryVignette,
