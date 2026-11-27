@@ -191,6 +191,42 @@ describe("A2UI renderer", () => {
     expect(onAction).toHaveBeenCalledWith("gate_1", "reject")
   })
 
+  it("renders approval actions as Ember Night pills (primary / secondary / error-tonal / ghost)", () => {
+    const onAction = vi.fn()
+    const { container } = render(
+      <A2UISurfaceView surface={surface([ALL_COMPONENTS[3]])} onApprovalAction={onAction} />
+    )
+    const card = container.querySelector('[data-a2ui="approval_card"]')
+    expect(card).toHaveClass("rounded-[12px]", "border-border")
+    expect(card).not.toHaveClass("border-warn/40")
+    expect(screen.getByText("high risk")).toHaveClass("rounded-pill", "text-error")
+
+    const approve = screen.getByRole("button", { name: "Approve pre_delivery_approval" })
+    expect(approve).toHaveTextContent("Approve")
+    expect(approve).toHaveClass("rounded-pill", "bg-ink")
+    const reject = screen.getByRole("button", { name: "Reject pre_delivery_approval" })
+    expect(reject).toHaveClass("rounded-pill", "bg-glass")
+    expect(reject).not.toHaveClass("bg-base")
+
+    fireEvent.click(reject)
+    const group = screen.getByRole("group", { name: "Confirm rejection" })
+    expect(group).toBeInTheDocument()
+    const confirm = screen.getByRole("button", { name: "Confirm reject" })
+    expect(confirm).toHaveClass("rounded-pill", "text-error", "border-error/30")
+    expect(confirm).not.toHaveClass("text-accent")
+    const cancel = screen.getByRole("button", { name: "Cancel" })
+    expect(cancel).toHaveClass("rounded-pill", "bg-transparent", "text-muted")
+    fireEvent.click(cancel)
+    expect(screen.queryByRole("group", { name: "Confirm rejection" })).toBeNull()
+    expect(onAction).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject pre_delivery_approval" }))
+    fireEvent.click(screen.getByRole("button", { name: "Confirm reject" }))
+    expect(onAction).toHaveBeenCalledWith("gate_1", "reject")
+    fireEvent.click(screen.getByRole("button", { name: "Approve pre_delivery_approval" }))
+    expect(onAction).toHaveBeenLastCalledWith("gate_1", "approve")
+  })
+
   it("disables actions while pending, shows errors, and hides actions once resolved", () => {
     const onAction = vi.fn()
     const { rerender } = render(
