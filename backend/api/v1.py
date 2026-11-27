@@ -22,6 +22,7 @@ from api.billing import router as billing_router
 from api.budget import router as budget_router
 from api.builds import router as builds_router
 from api.cashfree import router as cashfree_router
+from api.command_center import router as command_center_router
 from api.decision_log import router as decision_log_router
 from api.deployments import router as deployments_router
 from api.email_prefs import router as email_prefs_router
@@ -71,6 +72,7 @@ v1_router.include_router(billing_router)
 v1_router.include_router(budget_router)
 v1_router.include_router(builds_router)
 v1_router.include_router(cashfree_router)
+v1_router.include_router(command_center_router)
 v1_router.include_router(decision_log_router)
 v1_router.include_router(deployments_router)
 v1_router.include_router(email_prefs_router)

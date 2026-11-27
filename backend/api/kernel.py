@@ -369,6 +369,11 @@ async def _decide_kernel_gate(
                 resource_id=gate_id,
                 changes={**audit_changes, "gate_name": resolved.gate_name, "note": resolved.note},
             )
+            # The Command Center caches its summary briefly; don't let the
+            # decider keep seeing the gate as pending.
+            from api.command_center import invalidate_summary_cache
+
+            await invalidate_summary_cache(current_user.id)
             return {"run_id": run_id, "gate": resolved.to_dict(), "idempotent": False}
         # Lost a race with another decision / timeout, or the run is no longer
         # executing (e.g. persisted snapshot after a restart). Re-read state.

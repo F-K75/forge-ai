@@ -1044,6 +1044,10 @@ class AgentKernel:
     def get_active_run(self, run_id: str) -> Optional[KernelRun]:
         return self._active_runs.get(run_id)
 
+    def list_active_runs(self) -> List[KernelRun]:
+        """Snapshot of the runs currently executing in this process."""
+        return list(self._active_runs.values())
+
     def cancel_run(self, run_id: str) -> bool:
         ev = self._cancel_events.get(run_id)
         if ev is not None:
@@ -1273,7 +1277,12 @@ class AgentKernel:
                     )
                     task.activated_skills = [a.skill_name for a in activations]
                     for act in activations:
-                        act_record = {"task_id": task.id, "role": task.role, **act.to_dict()}
+                        act_record = {
+                            "task_id": task.id,
+                            "role": task.role,
+                            "activated_at": _utc_now(),
+                            **act.to_dict(),
+                        }
                         run.skill_activations.append(act_record)
                         await self._emit(
                             "kernel_skill_activated",

@@ -209,6 +209,9 @@ async def _ensure_indexes(db):
             # AI usage indexes (AI-001)
             db.ai_usage.create_index([("user_id", 1), ("created_at", -1)]),
             db.ai_usage.create_index([("org_id", 1), ("created_at", -1)]),
+            db.ai_usage.create_index([("project_id", 1), ("created_at", -1)]),
+            # Multi-agent kernel runs (Command Center summary / per-project run lists)
+            db.kernel_runs.create_index([("project_id", 1), ("created_at", -1)]),
             # --- Agile PM layer ---
             db.initiatives.create_index([("user_id", 1), ("updated_at", -1)]),
             db.initiatives.create_index([("id", 1)]),
