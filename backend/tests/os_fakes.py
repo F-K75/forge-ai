@@ -358,6 +358,50 @@ class FakeRedis:
         return True
 
 
+def make_user(user_id: str = "alice", **kw):
+    from core.models import User
+
+    return User(id=user_id, email=f"{user_id}@example.com", name=user_id.title(), **kw)
+
+
+class UserSwitch:
+    """Mutable 'who is calling' for API tests (``dependency_overrides[get_current_user]``)."""
+
+    def __init__(self, user):
+        self.user = user
+
+    async def __call__(self):
+        if self.user is None:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        return self.user
+
+
+def make_app(rt, caller: "UserSwitch"):
+    """FastAPI app with only ``/v1/os/*``, the given runtime and a switchable caller."""
+    from fastapi import APIRouter, FastAPI
+
+    import api.os as os_api
+    from api.auth import get_current_user
+
+    app = FastAPI()
+    v1 = APIRouter(prefix="/v1")
+    v1.include_router(os_api.router)
+    app.include_router(v1)
+
+    async def _rt():
+        return rt
+
+    async def _enabled():
+        return None
+
+    app.dependency_overrides[get_current_user] = caller
+    app.dependency_overrides[os_api.get_os_runtime] = _rt
+    app.dependency_overrides[os_api.require_os_shell] = _enabled
+    return app
+
+
 async def indexed_db() -> FakeDB:
     """A FakeDB with the real ``os_*`` indexes (unique constraints enforced)."""
     from core.os.indexes import ensure_os_indexes
