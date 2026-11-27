@@ -68,9 +68,10 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-base flex flex-col items-center justify-center px-4 py-12">
+    <div className="relative isolate overflow-hidden min-h-screen bg-base flex flex-col items-center justify-center px-4 py-12">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
       <motion.div
-        className="w-full max-w-lg"
+        className="relative w-full max-w-lg"
         initial={reduceMotion ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}

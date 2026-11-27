@@ -499,8 +499,11 @@
 
 /* Atmospheric gradient: soft olive / rust / teal glows fading into the canvas,
    under a 30% black veil. Use on hero panels and feature cards (never rainbow tiles). */
-.ember-atmosphere {
+:where(.ember-atmosphere) {
+  /* zero-specificity so utilities like `absolute` can still position it */
   position: relative;
+}
+.ember-atmosphere {
   isolation: isolate;
   background-color: rgb(var(--surface));
   background-image:

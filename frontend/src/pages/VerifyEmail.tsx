@@ -67,14 +67,15 @@ export default function VerifyEmail() {
 
   if (status === "verifying") {
     return (
-      <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <motion.div {...pageMotion} className="w-full max-w-sm text-center">
+      <div className="relative isolate overflow-hidden min-h-screen bg-base text-ink flex items-center justify-center p-6">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center relative rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl">
           <div className="mb-6 inline-flex items-center justify-center">
             <BrandLogo size="lg" />
           </div>
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-6 text-land-muted" aria-hidden="true" />
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-6 text-muted" aria-hidden="true" />
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Verifying your email…</h1>
-          <p className="text-sm text-land-muted">Almost done.</p>
+          <p className="text-sm text-muted">Almost done.</p>
         </motion.div>
       </div>
     )
@@ -82,35 +83,37 @@ export default function VerifyEmail() {
 
   if (status === "success") {
     return (
-      <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <motion.div {...pageMotion} className="w-full max-w-sm text-center" role="status" aria-live="polite">
+      <div className="relative isolate overflow-hidden min-h-screen bg-base text-ink flex items-center justify-center p-6">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center relative rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl" role="status" aria-live="polite">
           <div className="mb-6 inline-flex items-center justify-center">
             <BrandLogo size="lg" />
           </div>
-          <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
-            <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
+          <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center mx-auto mb-6">
+            <Check className="w-4 h-4 text-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Email verified</h1>
-          <p className="text-sm text-land-muted">Redirecting to Forge…</p>
+          <p className="text-sm text-muted">Redirecting to Forge…</p>
         </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-      <motion.div {...pageMotion} className="w-full max-w-sm">
+    <div className="relative isolate overflow-hidden min-h-screen bg-base text-ink flex items-center justify-center p-6">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+      <motion.div {...pageMotion} className="w-full max-w-sm relative rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl">
         <div className="text-center mb-8">
           <div className="mb-6 inline-flex items-center justify-center">
             <BrandLogo size="md" />
           </div>
-          <div className="w-10 h-10 rounded-full border border-land-destructive/40 flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-4 h-4 text-land-destructive" aria-hidden="true" />
+          <div className="w-10 h-10 rounded-full border border-error/40 flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-4 h-4 text-error" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">
             {token ? "Invalid or expired link" : "Missing verification link"}
           </h1>
-          <p className="text-sm text-land-muted">
+          <p className="text-sm text-muted">
             {token
               ? "This verification link is invalid or has expired. Request a new one below."
               : "Open the verification link from your email, or request a new one below."}
@@ -118,13 +121,13 @@ export default function VerifyEmail() {
         </div>
 
         {resendSent ? (
-          <p className="text-center text-sm text-land-muted" role="status" aria-live="polite">
+          <p className="text-center text-sm text-muted" role="status" aria-live="polite">
             If an account exists for that email, a new verification link is on its way.
           </p>
         ) : (
           <form onSubmit={handleResend} noValidate className="space-y-5">
             <div className="space-y-2">
-              <label htmlFor="resend-email" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
+              <label htmlFor="resend-email" className="block text-xs uppercase tracking-[0.14em] text-muted">
                 Email
               </label>
               <input
@@ -135,7 +138,7 @@ export default function VerifyEmail() {
                 required
                 placeholder="you@example.com"
                 autoFocus
-                className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition"
+                className="w-full h-11 px-3 bg-transparent border border-border rounded-md text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
               />
             </div>
 
@@ -143,7 +146,7 @@ export default function VerifyEmail() {
             type="submit"
             disabled={resending || !resendEmail}
             {...(reduce ? {} : presets.button)}
-            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+            className="w-full h-11 rounded-pill bg-ink text-on-ink text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
           >
               {resending ? (
                 <>
@@ -160,8 +163,8 @@ export default function VerifyEmail() {
           </form>
         )}
 
-        <p className="text-center text-sm text-land-muted mt-6">
-          <Link to="/login" className="text-land-ink hover:underline underline-offset-4">
+        <p className="text-center text-sm text-muted mt-6">
+          <Link to="/login" className="text-ink hover:underline underline-offset-4">
             Back to sign in
           </Link>
         </p>

@@ -14,7 +14,6 @@ import {
 import { useAuthStore, API_URL } from "../store/authStore";
 import BrandLogo from "../components/BrandLogo";
 import { ThemeToggle } from "../components/ThemeToggle";
-import ForgeScene3D from "../components/three/ForgeScene3D";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -163,9 +162,12 @@ export default function AuthPage() {
   const mfaErrorId = mfaError ? "mfa-error" : undefined;
 
   return (
-    <div className="min-h-screen bg-base text-ink flex flex-col">
+    <div className="relative isolate min-h-screen overflow-hidden bg-base text-ink flex flex-col">
+      {/* Atmospheric backdrop: soft olive / rust / teal glows behind a glass card */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+
       {/* 3-Zone Top Bar */}
-      <header className="h-16 border-b border-border bg-panel">
+      <header className="relative h-16 border-b border-border-soft bg-base/40 backdrop-blur-md">
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/home" className="flex shrink-0 items-center gap-2.5 whitespace-nowrap">
             <BrandLogo size="sm" />
@@ -196,7 +198,7 @@ export default function AuthPage() {
             <ThemeToggle compact />
             <Link
               to="/signup"
-              className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-panel px-3.5 text-sm font-medium text-ink transition-colors hover:bg-panel-alt"
+              className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-pill border border-glass-border bg-glass px-3.5 text-sm font-medium text-ink backdrop-blur-[5px] transition-colors hover:bg-ink/10"
             >
               <span>Create account</span>
             </Link>
@@ -205,11 +207,11 @@ export default function AuthPage() {
       </header>
 
       {/* Split Studio Gateway */}
-      <main className="mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid w-full grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
+      <main className="relative mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="flex w-full justify-center">
           {/* Left: Clean Authentication Form */}
-          <section className="lg:col-span-5 flex flex-col justify-center">
-            <div className="rounded-xl border border-border bg-panel p-6 sm:p-8 shadow-apple">
+          <section className="flex w-full max-w-md flex-col justify-center">
+            <div className="rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl">
               <div className="mb-6">
                 <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
                   {mfaToken ? "Two-factor verification" : "Sign in to Forge AI"}
@@ -480,7 +482,7 @@ export default function AuthPage() {
                       <div className="w-full border-t border-border" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="bg-panel px-2.5 text-muted">or</span>
+                      <span className="rounded-pill bg-panel px-2.5 text-muted">or</span>
                     </div>
                   </div>
 
@@ -490,7 +492,7 @@ export default function AuthPage() {
                     onClick={() => {
                       window.location.href = `${API_URL}/v1/auth/google`;
                     }}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-md border border-border bg-panel px-4 text-sm font-medium text-ink transition-colors hover:bg-panel-alt cursor-pointer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-pill border border-glass-border bg-glass px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/10 cursor-pointer"
                   >
                     <GoogleIcon className="h-4 w-4" />
                     <span>Continue with Google</span>
@@ -506,33 +508,6 @@ export default function AuthPage() {
               )}
             </div>
           </section>
-
-          {/* Right: Live Interactive Three.js 3D Architecture Showcase */}
-          <aside className="hidden lg:flex lg:col-span-7 flex-col overflow-hidden rounded-xl border border-border bg-panel-alt shadow-apple">
-            <div className="flex-1 min-h-[480px] w-full">
-              <ForgeScene3D
-                mode="embedded"
-                initialFinish="blueprint"
-                initialPreset="orbit"
-                showControls
-              />
-            </div>
-            <div className="border-t border-border bg-ink px-6 py-4 text-muted">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-display text-sm font-semibold text-ink">
-                    Deterministic Multi-Agent Runtime
-                  </h2>
-                  <p className="mt-0.5 text-xs text-faint">
-                    Click any specialist node in the 3D topology above to inspect live build roles.
-                  </p>
-                </div>
-                <span className="font-mono text-xs text-faint tabular-nums">
-                  TLS 1.3 · RBAC Enforced
-                </span>
-              </div>
-            </div>
-          </aside>
         </div>
       </main>
     </div>

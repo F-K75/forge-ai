@@ -66,16 +66,17 @@ export default function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <motion.div {...pageMotion} className="w-full max-w-sm text-center">
-          <div className="w-10 h-10 rounded-full border border-land-destructive/40 flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-4 h-4 text-land-destructive" aria-hidden="true" />
+      <div className="relative isolate overflow-hidden min-h-screen bg-base text-ink flex items-center justify-center p-6">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center relative rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl">
+          <div className="w-10 h-10 rounded-full border border-error/40 flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-4 h-4 text-error" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Invalid link</h1>
-          <p className="text-sm text-land-muted mb-8">
+          <p className="text-sm text-muted mb-8">
             This password reset link is invalid or has expired. Please request a new one below.
           </p>
-          <Link to="/forgot-password" className="text-sm text-land-ink underline underline-offset-4 hover:text-land-muted transition">
+          <Link to="/forgot-password" className="text-sm text-ink underline underline-offset-4 hover:text-muted transition">
             Request new link
           </Link>
         </motion.div>
@@ -85,49 +86,51 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-        <motion.div {...pageMotion} className="w-full max-w-sm text-center" role="status" aria-live="polite">
+      <div className="relative isolate overflow-hidden min-h-screen bg-base text-ink flex items-center justify-center p-6">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+        <motion.div {...pageMotion} className="w-full max-w-sm text-center relative rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl" role="status" aria-live="polite">
           <div className="mb-6 inline-flex items-center justify-center">
             <BrandLogo size="lg" />
           </div>
-          <div className="w-10 h-10 rounded-full border border-land-border flex items-center justify-center mx-auto mb-6">
-            <Check className="w-4 h-4 text-land-ink" aria-hidden="true" />
+          <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center mx-auto mb-6">
+            <Check className="w-4 h-4 text-ink" aria-hidden="true" />
           </div>
           <h1 className="font-display text-2xl font-medium tracking-tight mb-2">Password updated</h1>
-          <p className="text-sm text-land-muted">Redirecting to sign in…</p>
+          <p className="text-sm text-muted">Redirecting to sign in…</p>
         </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-land-paper text-land-ink flex items-center justify-center p-6">
-      <motion.div {...pageMotion} className="w-full max-w-sm">
+    <div className="relative isolate overflow-hidden min-h-screen bg-base text-ink flex items-center justify-center p-6">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+      <motion.div {...pageMotion} className="w-full max-w-sm relative rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl">
         <div className="mb-8">
           <Link to="/home" className="inline-flex items-center gap-2.5 mb-6 hover:opacity-85 transition">
             <BrandLogo size="sm" />
-            <span className="font-brand text-base font-semibold tracking-tight text-land-ink">Forge</span>
+            <span className="font-brand text-base font-semibold tracking-tight text-ink">Forge</span>
           </Link>
-          <div className="text-xs uppercase tracking-[0.18em] text-land-muted mb-4 flex items-center gap-2">
-            <span className="w-6 h-px bg-land-muted/50" aria-hidden="true" /> Reset password
+          <div className="text-xs uppercase tracking-[0.18em] text-muted mb-4 flex items-center gap-2">
+            <span className="w-6 h-px bg-muted/50" aria-hidden="true" /> Reset password
           </div>
           <h1 className="font-display text-3xl font-medium tracking-tight">Set a new password</h1>
-          <p className="text-sm text-land-muted mt-2">Set a strong password to keep your account secure.</p>
+          <p className="text-sm text-muted mt-2">Set a strong password to keep your account secure.</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {error && (
-            <div role="alert" className="flex items-start gap-2 rounded-md border border-land-destructive/40 bg-land-destructive/10 p-3 text-sm text-land-destructive">
+            <div role="alert" className="flex items-start gap-2 rounded-md border border-error/40 bg-error/10 p-3 text-sm text-error">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
 
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
+            <label htmlFor="password" className="block text-xs uppercase tracking-[0.14em] text-muted">
               New password
             </label>
-            <p className="text-xs text-land-muted -mt-1">
+            <p className="text-xs text-muted -mt-1">
               12+ characters, including uppercase, lowercase, a number, and a symbol.
             </p>
             <input
@@ -139,12 +142,12 @@ export default function ResetPassword() {
               minLength={12}
               placeholder="Create a new password"
               autoFocus
-              className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition"
+              className="w-full h-11 px-3 bg-transparent border border-border rounded-md text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="confirm" className="block text-xs uppercase tracking-[0.14em] text-land-muted">
+            <label htmlFor="confirm" className="block text-xs uppercase tracking-[0.14em] text-muted">
               Confirm password
             </label>
             <input
@@ -155,7 +158,7 @@ export default function ResetPassword() {
               required
               minLength={12}
               placeholder="Confirm your password"
-              className="w-full h-11 px-3 bg-transparent border border-land-border rounded-md text-sm text-land-ink placeholder:text-land-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-land-ink/40 transition"
+              className="w-full h-11 px-3 bg-transparent border border-border rounded-md text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-ink/40 transition"
             />
           </div>
 
@@ -163,7 +166,7 @@ export default function ResetPassword() {
             type="submit"
             disabled={loading || !token}
             {...(reduce ? {} : presets.button)}
-            className="w-full h-11 rounded-md bg-land-ink text-land-paper text-sm font-medium hover:bg-land-ink/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
+            className="w-full h-11 rounded-pill bg-ink text-on-ink text-sm font-medium hover:bg-ink/90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 group"
           >
             {loading ? (
               <>
@@ -176,8 +179,8 @@ export default function ResetPassword() {
             )}
           </motion.button>
 
-          <p className="text-center text-sm text-land-muted">
-            <Link to="/login" className="text-land-ink hover:underline underline-offset-4">
+          <p className="text-center text-sm text-muted">
+            <Link to="/login" className="text-ink hover:underline underline-offset-4">
               Back to sign in
             </Link>
           </p>

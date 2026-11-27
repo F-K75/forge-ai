@@ -17,7 +17,6 @@ import { useAuthStore, API_URL } from "../store/authStore";
 import { validateNewPassword } from "../lib/passwordPolicy";
 import BrandLogo from "../components/BrandLogo";
 import { ThemeToggle } from "../components/ThemeToggle";
-import ForgeScene3D from "../components/three/ForgeScene3D";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -146,7 +145,10 @@ export default function Signup() {
   const policySpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
   return (
-    <div className="min-h-screen bg-base text-ink flex flex-col">
+    <div className="relative isolate min-h-screen overflow-hidden bg-base text-ink flex flex-col">
+      {/* Atmospheric backdrop: soft olive / rust / teal glows behind a glass card */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 ember-atmosphere opacity-90" />
+
       {/* 3-Zone Top Bar */}
       <header id="signup-header" className="h-16 border-b border-border bg-panel">
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -174,7 +176,7 @@ export default function Signup() {
             <Link
               id="signup-nav-login-link"
               to="/login"
-              className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-panel px-3.5 text-sm font-medium text-ink transition-colors hover:bg-panel-alt"
+              className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-pill border border-glass-border bg-glass px-3.5 text-sm font-medium text-ink backdrop-blur-[5px] transition-colors hover:bg-ink/10"
             >
               <span>Sign in</span>
             </Link>
@@ -184,13 +186,13 @@ export default function Signup() {
 
       <main
         id="signup-main-container"
-        className="mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-10 sm:px-6 lg:px-8"
+        className="relative mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-10 sm:px-6 lg:px-8"
       >
-        <div className="grid w-full grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
-          <section className="lg:col-span-5 flex flex-col justify-center">
+        <div className="flex w-full justify-center">
+          <section className="flex w-full max-w-md flex-col justify-center">
             <div
               id="signup-form-card"
-              className="rounded-xl border border-border bg-panel p-6 sm:p-8 shadow-apple"
+              className="rounded-2xl border border-glass-strong-border bg-glass-strong p-6 sm:p-8 backdrop-blur-xl"
             >
               {submittedEmail ? (
                 <div id="signup-verification-state" className="space-y-5">
@@ -481,7 +483,7 @@ export default function Signup() {
                       onClick={() => {
                         window.location.href = `${API_URL}/v1/auth/google`;
                       }}
-                      className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-md border border-border bg-panel px-4 text-sm font-medium text-ink transition-colors hover:bg-panel-alt cursor-pointer"
+                      className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-pill border border-glass-border bg-glass px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/10 cursor-pointer"
                     >
                       <GoogleIcon className="h-4 w-4" />
                       <span>Continue with Google</span>
@@ -491,29 +493,6 @@ export default function Signup() {
               )}
             </div>
           </section>
-
-          <aside
-            id="signup-showcase-panel"
-            className="hidden lg:flex lg:col-span-7 flex-col overflow-hidden rounded-xl border border-border bg-panel-alt shadow-apple"
-          >
-            <div className="flex-1 min-h-[500px] w-full">
-              <ForgeScene3D
-                mode="embedded"
-                initialFinish="titanium"
-                initialPreset="overview"
-                showControls
-              />
-            </div>
-            <div className="border-t border-border bg-ink px-6 py-4 text-muted">
-              <h2 className="font-display text-sm font-semibold text-ink">
-                Autonomous Engine Dispatch
-              </h2>
-              <p className="mt-0.5 text-xs text-faint">
-                Six specialist agents draft schemas, synthesize full-stack apps, and validate every
-                commit inside an inspectable environment.
-              </p>
-            </div>
-          </aside>
         </div>
       </main>
     </div>

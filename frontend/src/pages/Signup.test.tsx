@@ -32,14 +32,13 @@ describe('Signup Page', () => {
     cleanup()
   })
 
-  it('renders registration form fields and brutalist window header', () => {
+  it('renders registration form fields and heading', () => {
     render(<Signup />)
     expect(screen.getByLabelText('Full name')).toBeTruthy()
     expect(screen.getByLabelText('Email')).toBeTruthy()
     expect(screen.getByLabelText('Password')).toBeTruthy()
     expect(screen.getByLabelText('Confirm password')).toBeTruthy()
     expect(screen.getByText(/Create your account/i)).toBeTruthy()
-    expect(screen.getByText(/Autonomous Engine Dispatch/i)).toBeTruthy()
   })
 
   it('shows validation errors on empty submit', async () => {
