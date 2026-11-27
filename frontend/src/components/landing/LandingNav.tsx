@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { PillLink } from "./PillLink";
-import { DOCS_URL } from "./landingContent";
+import { useLandingHref } from "./useLandingHref";
 
 const LINKS = [
   { label: "Product", href: "#product" },
   { label: "Agents", href: "#platform" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Docs", href: DOCS_URL, external: true },
+  { label: "Docs", href: "/docs" },
 ];
 
 export function Wordmark() {
@@ -26,16 +26,32 @@ export function Wordmark() {
   );
 }
 
-function NavAnchor({ label, href, external, onClick }: (typeof LINKS)[number] & { onClick?: () => void }) {
+const navCls =
+  "rounded-pill px-3 py-1.5 text-[14px] transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+
+function NavAnchor({ label, href, onClick }: (typeof LINKS)[number] & { onClick?: () => void }) {
+  const { pathname } = useLocation();
+  const toHref = useLandingHref();
+  const resolved = toHref(href);
+  if (!resolved.startsWith("/")) {
+    return (
+      <a href={resolved} onClick={onClick} className={`${navCls} text-ink/80`}>
+        {label}
+      </a>
+    );
+  }
+  // Off the landing page a section link is a route change; the landing page
+  // scrolls to the hash once it mounts.
+  const active = !resolved.includes("#") && (pathname === resolved || pathname.startsWith(`${resolved}/`));
   return (
-    <a
-      href={href}
+    <Link
+      to={resolved}
       onClick={onClick}
-      {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-      className="rounded-pill px-3 py-1.5 text-[14px] text-ink/80 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      aria-current={active ? "page" : undefined}
+      className={`${navCls} ${active ? "bg-ink/[0.06] text-ink" : "text-ink/80"}`}
     >
       {label}
-    </a>
+    </Link>
   );
 }
 

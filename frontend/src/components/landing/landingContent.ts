@@ -12,8 +12,6 @@
  *   PLAN_DETAILS in backend/api/billing.py
  */
 
-export const DOCS_URL = "https://github.com/F-K75/forge-ai/tree/main/docs";
-
 export const PROTOCOLS_LIVE = ["MCP", "MCP Apps", "A2A", "AG-UI", "A2UI"] as const;
 
 export const STATS = [

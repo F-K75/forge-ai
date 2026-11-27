@@ -3,8 +3,10 @@ import { ArrowRight } from "lucide-react";
 import { PillLink } from "./PillLink";
 import { Reveal } from "./Reveal";
 import { Wordmark } from "./LandingNav";
-import { DOCS_URL } from "./landingContent";
 import { GRAIN, rgba } from "./atmosphere";
+import { useLandingHref } from "./useLandingHref";
+import { footerColumns } from "./footerLinks";
+import { LIVE_MODE } from "../../lib/env";
 
 export function FinalCta() {
   return (
@@ -37,65 +39,40 @@ export function FinalCta() {
   );
 }
 
-const COLUMNS: { title: string; links: { label: string; to: string; external?: boolean }[] }[] = [
-  {
-    title: "Product",
-    links: [
-      { label: "How it works", to: "#product" },
-      { label: "Platform", to: "#platform" },
-      { label: "Pricing", to: "#pricing" },
-      { label: "Live demo", to: "/demo" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { label: "Documentation", to: DOCS_URL, external: true },
-      { label: "FAQ", to: "#faq" },
-      { label: "Skills catalogue", to: "/skills" },
-      { label: "Protocols", to: "/protocols" },
-    ],
-  },
-  {
-    title: "Account",
-    links: [
-      { label: "Create account", to: "/signup" },
-      { label: "Sign in", to: "/login" },
-      { label: "Reset password", to: "/forgot-password" },
-    ],
-  },
-];
-
 const linkCls =
   "rounded-sm text-[14px] text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 export function LandingFooter() {
+  const toHref = useLandingHref();
   return (
     <footer className="border-t border-border-soft px-5 pb-10 pt-16 sm:px-8">
-      <div className="mx-auto grid max-w-[1120px] grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div className="mx-auto grid max-w-[1120px] grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-[1.4fr_repeat(4,1fr)]">
         <div className="col-span-2 md:col-span-1">
           <Wordmark />
           <p className="mt-4 max-w-[260px] text-[14px] leading-[1.55] text-muted">
             The Agentic Software Engineering OS. From imagination to autonomous execution.
           </p>
         </div>
-        {COLUMNS.map((col) => (
+        {footerColumns(LIVE_MODE).map((col) => (
           <nav key={col.title} aria-label={col.title}>
             <h2 className="text-[13px] font-medium text-ink">{col.title}</h2>
             <ul className="mt-4 space-y-3">
-              {col.links.map((l) => (
-                <li key={l.label}>
-                  {l.to.startsWith("/") ? (
-                    <Link to={l.to} className={linkCls}>
-                      {l.label}
-                    </Link>
-                  ) : (
-                    <a href={l.to} className={linkCls} {...(l.external ? { target: "_blank", rel: "noreferrer" } : {})}>
-                      {l.label}
-                    </a>
-                  )}
-                </li>
-              ))}
+              {col.links.map((l) => {
+                const href = toHref(l.to);
+                return (
+                  <li key={l.label}>
+                    {href.startsWith("/") ? (
+                      <Link to={href} className={linkCls}>
+                        {l.label}
+                      </Link>
+                    ) : (
+                      <a href={href} className={linkCls}>
+                        {l.label}
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </nav>
         ))}

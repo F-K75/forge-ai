@@ -6,12 +6,15 @@ import { LifecycleBand, ProofSection } from "../components/landing/ProofSection"
 import { PricingSection } from "../components/landing/PricingSection";
 import { FaqSection } from "../components/landing/FaqSection";
 import { FinalCta, LandingFooter } from "../components/landing/LandingFooter";
+import { useScrollToHash } from "../components/landing/useLandingHref";
 
 /**
  * Public marketing page (rendered at /home, and at / for logged-out visitors).
  * Ember Night design language: see docs/design/EMBER_NIGHT_DESIGN_LANGUAGE.md.
  */
 export default function LandingPage() {
+  // Section links from the legal and docs pages arrive as /home#pricing etc.
+  useScrollToHash();
   return (
     <div className="relative min-h-screen overflow-x-clip bg-base text-ink antialiased">
       <a
