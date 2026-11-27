@@ -334,9 +334,9 @@ export default function BillingPage() {
           role="tab"
           aria-selected={activeTab === "plans"}
           onClick={() => setActiveTab("plans")}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+          className={`shrink-0 px-3.5 py-1.5 rounded-pill text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             activeTab === "plans"
-              ? "bg-accent-soft text-accent border border-accent/30 font-semibold"
+              ? "bg-ink/[0.08] text-ink border border-border"
               : "bg-transparent text-muted border border-transparent hover:bg-panel-alt hover:text-ink"
           }`}
         >
@@ -350,9 +350,9 @@ export default function BillingPage() {
           role="tab"
           aria-selected={activeTab === "telemetry"}
           onClick={() => setActiveTab("telemetry")}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+          className={`shrink-0 px-3.5 py-1.5 rounded-pill text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             activeTab === "telemetry"
-              ? "bg-accent-soft text-accent border border-accent/30 font-semibold"
+              ? "bg-ink/[0.08] text-ink border border-border"
               : "bg-transparent text-muted border border-transparent hover:bg-panel-alt hover:text-ink"
           }`}
         >
@@ -369,9 +369,9 @@ export default function BillingPage() {
           role="tab"
           aria-selected={activeTab === "invoices"}
           onClick={() => setActiveTab("invoices")}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+          className={`shrink-0 px-3.5 py-1.5 rounded-pill text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-in-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             activeTab === "invoices"
-              ? "bg-accent-soft text-accent border border-accent/30 font-semibold"
+              ? "bg-ink/[0.08] text-ink border border-border"
               : "bg-transparent text-muted border border-transparent hover:bg-panel-alt hover:text-ink"
           }`}
         >
@@ -444,24 +444,20 @@ export default function BillingPage() {
           {/* VIEW 1: PLANS & TIERS MATRIX */}
           {activeTab === "plans" && (
             <div className="space-y-6">
-              {/* Interval Toggle & Description Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-panel-alt border border-border">
-                <div className="text-xs">
-                  <span className="font-semibold text-ink">Billing Cadence: </span>
-                  <span className="text-muted">
-                    {billingInterval === "annual" ? "Annual (20% off all tiers)" : "Monthly standard"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1 bg-panel p-1 rounded-lg border border-border">
+              {/* Interval switch (pill segmented, Monthly / Yearly) */}
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  role="group"
+                  aria-label="Billing cadence"
+                  className="inline-flex items-center gap-0.5 rounded-pill border border-border-soft bg-ink/[0.06] p-1"
+                >
                   <button
                     type="button"
                     id="billing-interval-monthly"
+                    aria-pressed={billingInterval === "monthly"}
                     onClick={() => setBillingInterval("monthly")}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                      billingInterval === "monthly"
-                        ? "bg-accent-soft text-accent font-semibold"
-                        : "text-muted hover:text-ink"
+                    className={`h-8 px-4 rounded-pill text-sm font-medium transition-all cursor-pointer ${
+                      billingInterval === "monthly" ? "bg-ink text-on-ink" : "text-muted hover:text-ink"
                     }`}
                   >
                     Monthly
@@ -469,27 +465,27 @@ export default function BillingPage() {
                   <button
                     type="button"
                     id="billing-interval-annual"
+                    aria-pressed={billingInterval === "annual"}
                     onClick={() => setBillingInterval("annual")}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                      billingInterval === "annual"
-                        ? "bg-accent-soft text-accent font-semibold"
-                        : "text-muted hover:text-ink"
+                    className={`flex h-8 items-center gap-1.5 px-4 rounded-pill text-sm font-medium transition-all cursor-pointer ${
+                      billingInterval === "annual" ? "bg-ink text-on-ink" : "text-muted hover:text-ink"
                     }`}
                   >
                     <span>Annual</span>
-                    <span className="px-1.5 py-0.5 rounded bg-ok/15 text-ok text-[9px] font-mono font-semibold">
-                      -20%
-                    </span>
+                    <span className="font-mono text-[11px] text-ok">-20%</span>
                   </button>
                 </div>
+                <p className="text-xs text-faint">
+                  <span className="sr-only">Billing Cadence: </span>
+                  {billingInterval === "annual" ? "Annual (20% off all tiers)" : "Monthly standard"}
+                </p>
               </div>
 
-              {/* 4-Column Plans Grid */}
+              {/* Plans grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {plansToDisplay.map((plan) => {
                   const isCurrent = plan.tier === activeTier;
                   const isPro = plan.tier === "pro";
-                  const isEnterprise = plan.tier === "enterprise";
 
                   const displayPrice =
                     billingInterval === "annual"
@@ -500,52 +496,42 @@ export default function BillingPage() {
                     <div
                       key={plan.tier}
                       id={`plan-card-${plan.tier}`}
-                      className={`p-5 rounded-xl bg-panel-alt border flex flex-col justify-between space-y-4 relative shadow-m3-1 ${
-                        isCurrent ? "border-accent ring-1 ring-accent/40" : "border-border"
+                      className={`relative flex flex-col justify-between gap-5 rounded-xl border bg-panel p-5 ${
+                        isCurrent ? "border-accent/50 ring-1 ring-accent/25" : "border-border"
                       }`}
                     >
-                      {/* Plan Header */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-1.5 font-mono">
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase border ${
-                              isPro
-                                ? "bg-accent-soft text-accent border-accent/30"
-                                : isEnterprise
-                                ? "bg-panel text-ink border-border"
-                                : "bg-panel text-muted border-border"
-                            }`}
-                          >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="rounded-pill bg-accent/[0.12] px-2.5 py-0.5 text-xs font-medium text-accent">
                             {plan.name}
                           </span>
                           {isCurrent && (
-                            <span className="px-1.5 py-0.5 rounded bg-ok/15 text-ok border border-ok/30 text-[10px] font-semibold uppercase">
+                            <span className="inline-flex items-center gap-1 rounded-pill bg-ok/10 px-2 py-0.5 text-[11px] font-medium text-ok">
+                              <span className="h-1.5 w-1.5 rounded-full bg-ok" aria-hidden="true" />
                               ACTIVE
                             </span>
                           )}
                         </div>
 
-                        {/* Price */}
                         <div>
                           {plan.custom_pricing ? (
-                            <div className="flex items-baseline gap-1 font-mono">
-                              <span className="text-3xl font-semibold text-ink">Custom</span>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="font-mono text-headline sm:text-display text-ink">Custom</span>
                             </div>
                           ) : (
-                            <div className="flex items-baseline gap-1 font-mono">
-                              <span className="text-3xl font-semibold text-ink">${displayPrice}</span>
-                              <span className="text-xs text-muted uppercase">/mo</span>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="font-mono text-headline sm:text-display tabular text-ink">${displayPrice}</span>
+                              <span className="text-caption text-muted">/mo</span>
                             </div>
                           )}
                           {!plan.custom_pricing && billingInterval === "annual" && plan.price_monthly > 0 && (
-                            <p className="text-[10px] font-mono text-ok font-medium mt-0.5">
-                              ${plan.price_annual}/yr billed annually
+                            <p className="mt-1 text-xs text-ok">
+                              <span className="font-mono">${plan.price_annual}/yr</span> billed annually
                             </p>
                           )}
                         </div>
 
-                        {/* Credits quota chip */}
-                        <div className="p-2 rounded-lg bg-panel border border-border text-xs font-mono font-semibold text-ink flex items-center gap-1.5">
+                        <div className="inline-flex items-center gap-1.5 rounded-pill border border-border-soft bg-ink/[0.04] px-2.5 py-1 font-mono text-xs text-ink">
                           <Zap size={12} className="text-accent shrink-0" />
                           <span>
                             {plan.custom_pricing
@@ -556,28 +542,26 @@ export default function BillingPage() {
                           </span>
                         </div>
 
-                        {/* Features checklist */}
-                        <ul className="space-y-2 pt-1 text-xs text-muted">
+                        <ul
+                          className={`space-y-2.5 rounded-lg border border-border-soft p-3.5 text-caption ${
+                            isPro ? "ember-atmosphere" : "bg-ink/[0.03]"
+                          }`}
+                        >
                           {plan.features.map((feat, idx) => (
                             <li key={idx} className="flex items-start gap-2">
-                              <Check
-                                size={13}
-                                className="text-accent shrink-0 mt-0.5"
-                                strokeWidth={2.5}
-                              />
-                              <span className="text-ink text-[12px]">{feat}</span>
+                              <Check size={14} className="mt-0.5 shrink-0 text-muted" strokeWidth={2} />
+                              <span className="text-ink">{feat}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
 
-                      {/* Select Plan Button */}
-                      <div className="pt-3 border-t border-border">
+                      <div>
                         {plan.custom_pricing && !isCurrent ? (
                           <a
                             id={`btn-select-plan-${plan.tier}`}
                             href="/settings#support"
-                            className="block w-full py-2 rounded-lg text-center text-xs font-semibold border border-border bg-panel text-ink hover:border-accent/50 transition-colors"
+                            className="flex h-10 w-full items-center justify-center rounded-pill border border-glass-border bg-glass text-sm font-medium text-ink transition-colors hover:bg-ink/10"
                           >
                             Contact us
                           </a>
@@ -587,12 +571,12 @@ export default function BillingPage() {
                           id={`btn-select-plan-${plan.tier}`}
                           disabled={isCurrent || pendingPlan === plan.tier}
                           onClick={() => handleSelectPlan(plan.tier)}
-                          className={`w-full py-2 rounded-lg text-xs font-semibold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                          className={`h-10 w-full rounded-pill text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                             isCurrent
-                              ? "bg-panel text-muted border border-border"
+                              ? "bg-ink/[0.06] text-muted border border-border-soft"
                               : isPro
-                              ? "bg-ink text-on-ink hover:opacity-90"
-                              : "bg-panel text-ink border border-border hover:border-accent/50"
+                              ? "bg-ink text-on-ink hover:bg-ink/90"
+                              : "border border-glass-border bg-glass text-ink hover:bg-ink/10"
                           }`}
                         >
                           {pendingPlan === plan.tier ? (
