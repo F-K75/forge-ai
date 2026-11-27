@@ -24,7 +24,21 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union, get_args
+from dataclasses import dataclass, field
+from typing import (
+    Annotated,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Tuple,
+    Union,
+    get_args,
+)
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
@@ -685,6 +699,46 @@ class CapabilityIndex(_Strict):
     version: Annotated[int, Field(ge=1)]
     outside_shell_routes: Annotated[List[Annotated[str, Field(max_length=300)]], Field(max_length=50)]
     capabilities: Annotated[List[CapabilityIndexEntry], Field(max_length=500)]
+
+
+# --------------------------------------------------------------------------- #
+# In-process seam between WS-C (registry/executor) and WS-D (capability handlers)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class ActionContext:
+    """What a capability action handler receives. WS-C builds it after authorising the caller."""
+
+    user: Any  # core.models.User
+    capability_id: str
+    action: str
+    session_id: Optional[str]
+    turn_id: Optional[str]
+    project_id: Optional[str]
+    # Append an event to the session stream: emit(event_type, data). WS-C fills seq/ts/ids.
+    emit: Callable[[str, Dict[str, Any]], Awaitable[None]]
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ActionOutcome:
+    status: Literal["completed", "rejected", "failed"]
+    message: Optional[str] = None
+    # Optional A2UI messages / surface placements to stream; WS-C validates them before emitting.
+    a2ui_messages: List[Dict[str, Any]] = field(default_factory=list)
+    placements: List[Dict[str, Any]] = field(default_factory=list)
+
+
+class CapabilityActionHandler(Protocol):
+    """Implemented by WS-D per ``(capability_id, action)`` and registered with WS-C's registry.
+
+    Handlers call the existing services' logic (never re-implement business
+    rules) and may assume ``input`` was already validated against the action's
+    ``input_schema`` and the caller authorised for its ``permissions``.
+    """
+
+    async def __call__(self, ctx: ActionContext, input: Dict[str, Any]) -> ActionOutcome: ...
 
 
 # Schema ``$defs`` name -> Pydantic type, for tests and the server-side validator.

@@ -545,6 +545,56 @@ export interface CapabilityIndex {
   capabilities: CapabilityIndexEntry[]
 }
 
+// ---------------------------------------------------------------------------
+// In-process seams between workstreams (TypeScript only; not on the wire)
+// ---------------------------------------------------------------------------
+
+/**
+ * Props every capability renderer receives (WS-D implements renderers, WS-A
+ * mounts them in windows/panels). `component_key` in a CapabilityRenderer
+ * resolves to a lazily loaded React component taking these props.
+ */
+export interface CapabilityRendererProps {
+  capability: CapabilityDescriptor
+  windowId: OsId
+  presentation: SurfacePresentationKind
+  /** Validated against `capability.input_schema` before mount. */
+  params: JsonObject
+  projectId: OsId | null
+  sessionId: OsId | null
+  setTitle: (title: string) => void
+  close: () => void
+}
+
+/**
+ * Props for catalog "composite" components (LivePreview, DeployPanel,
+ * WorkflowCanvas, AgentConfigForm, ProjectGrid, CapabilityLauncher are WS-D;
+ * ExecutionTimeline is WS-B). WS-B's registry resolves bindings and passes
+ * plain values; composites never see raw A2UI.
+ */
+export interface CompositeComponentProps<P extends JsonObject = JsonObject> {
+  surfaceId: OsId
+  componentId: string
+  props: P
+  /** Dispatch the agent-side A2UI action declared in prop `actionProp`. */
+  dispatch: (actionProp: string, context?: JsonObject) => void
+  /** Write a value back to a bound data-model path (inputs only). */
+  write: (binding: A2UIDataBinding, value: unknown) => void
+}
+
+/** Stream subscription API (WS-B `os/stream`) consumed by the shell (WS-A). */
+export interface OsStreamHandlers {
+  onEvent: (event: OsEvent) => void
+  /** Called with events that failed validateOsEvent; they are never applied. */
+  onInvalid?: (raw: unknown, errors: { path: string; message: string }[]) => void
+  onStatus?: (status: "connecting" | "open" | "reconnecting" | "closed") => void
+}
+export type SubscribeSession = (
+  sessionId: OsId,
+  handlers: OsStreamHandlers,
+  afterSeq?: number
+) => () => void
+
 /** Schema `$defs` names that ./validate.ts can check a payload against. */
 export const CONTRACT_DEFS = [
   "OsEvent",
