@@ -17,6 +17,7 @@ import { useAuthStore, API_URL } from "../store/authStore";
 import { validateNewPassword } from "../lib/passwordPolicy";
 import BrandLogo from "../components/BrandLogo";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { DEMO_LOGIN_ENABLED } from "../lib/env";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -240,6 +241,7 @@ export default function Signup() {
                         Deploy specialist agent workspaces in under a minute.
                       </p>
                     </div>
+                    {DEMO_LOGIN_ENABLED && (
                     <button
                       id="signup-demo-fill-btn"
                       type="button"
@@ -249,6 +251,7 @@ export default function Signup() {
                       <Sparkles size={12} className="text-accent" />
                       <span>Auto-fill test account</span>
                     </button>
+                    )}
                   </div>
 
                   <form id="signup-form" onSubmit={handleSubmit} noValidate className="space-y-4">
@@ -305,7 +308,7 @@ export default function Signup() {
                           id="email"
                           type="email"
                           autoComplete="email"
-                          placeholder="developer@forge.ai"
+                          placeholder="you@company.com"
                           value={email}
                           onChange={(e) => {
                             setEmail(e.target.value);

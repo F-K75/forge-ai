@@ -50,12 +50,14 @@ class FakeCollection:
 
     async def update_many(self, filter, update):
         class _Result:
+            matched_count = 0
             modified_count = 0
 
         result = _Result()
         for d in self.docs:
             if _matches(d, filter):
                 d.update(update.get("$set", {}))
+                result.matched_count += 1
                 result.modified_count += 1
         return result
 
@@ -94,14 +96,16 @@ def _reset_registry():
 async def test_migrations_apply_once_and_are_idempotent():
     db = FakeDB()
     await run_migrations(db)
-    # Both seeded migrations recorded as applied.
+    # Every registered migration recorded as applied, exactly once. (This used
+    # to hard-code 2 and only passed because the later migrations crashed on
+    # this fake's missing matched_count.)
     applied = [d for d in db["__forge_migrations"].docs if d.get("status") == "applied"]
-    assert len(applied) == 2
+    assert len(applied) == len(_MIGRATIONS)
 
     # Re-running is a no-op (already recorded).
     await run_migrations(db)
     applied2 = [d for d in db["__forge_migrations"].docs if d.get("status") == "applied"]
-    assert len(applied2) == 2
+    assert len(applied2) == len(_MIGRATIONS)
 
 
 @pytest.mark.asyncio

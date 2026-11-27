@@ -93,7 +93,7 @@ configured:**
 | `JWT_ALGORITHM` / `JWT_EXPIRE_MINUTES` | `HS256` / 10080 (7 days) |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_WEBHOOK_SECRET` | GitHub OAuth + repo sync + PM task webhooks |
 | `RESEND_API_KEY` / `FROM_EMAIL` | Transactional email |
-| `ADMIN_EMAILS` | Comma-separated admin allowlist |
+| `ADMIN_EMAILS` | Comma-separated admin allowlist. Empty by default (no admin until set) |
 
 ## Builds & credits
 

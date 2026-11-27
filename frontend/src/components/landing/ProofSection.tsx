@@ -63,7 +63,7 @@ const POINTS = [
   {
     icon: Rocket,
     title: "Ship",
-    body: "Verified changes wait at an approval gate, then ship with a full audit trail behind them.",
+    body: "Checked changes can wait at an approval gate, and every decision is written to the audit log.",
   },
 ];
 
