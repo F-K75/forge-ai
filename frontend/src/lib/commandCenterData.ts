@@ -529,7 +529,8 @@ export function buildDemoOverview(now: number = Date.now()): FleetOverview {
 
   const gates: FleetGate[] = [
     {
-      id: "gate-delivery-7f3a",
+      // Ids match src/lib/demo/approvalsDemo.ts so "Review" deep-links open the same gate.
+      id: "gate_delivery_7c41",
       runId: "run-7f3a",
       projectId: "demo-project",
       projectName: projectName("demo-project"),
@@ -538,12 +539,12 @@ export function buildDemoOverview(now: number = Date.now()): FleetOverview {
       createdAt: ago(now, 6),
     },
     {
-      id: "gate-schema-2c91",
+      id: "gate_budget_52aa",
       runId: "run-2c91",
       projectId: "proj-001",
       projectName: projectName("proj-001"),
-      gateName: "Schema migration",
-      reason: "Adds a streak_events table and backfills 90 days of history.",
+      gateName: "Budget overrun",
+      reason: "Projected spend $3.40 exceeds the run budget of $2.50 by 36%.",
       createdAt: ago(now, 18),
     },
   ];
