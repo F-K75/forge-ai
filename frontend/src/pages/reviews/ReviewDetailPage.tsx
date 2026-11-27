@@ -247,7 +247,7 @@ export default function ReviewDetailPage() {
   if (!hydrated) {
     return (
  <div className="flex h-full items-center justify-center p-8 bg-panel font-mono text-sm font-semibold text-ink">
- <div className="inline-block h-6 w-6 animate-spin border border-border border-t-brutal-yellow mr-3" />
+ <div className="inline-block h-6 w-6 animate-spin border rounded-lg border-border border-t-brutal-yellow mr-3" />
         HYDRATING AUDIT RUN TELEMETRY...
       </div>
     );
@@ -272,25 +272,25 @@ export default function ReviewDetailPage() {
     const isUnconfigured = !isConfigured && LIVE_MODE;
     return (
  <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center font-mono">
- <div className="border border-border bg-panel p-8 max-w-lg shadow-m3 ">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
+ <div className="border rounded-xl border-border bg-panel p-8 max-w-lg shadow-m3 ">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border rounded-lg border-border bg-ink text-on-ink text-on-ink shadow-m3">
             <ShieldAlert size={28} strokeWidth={2.5} />
           </div>
- <h1 className="text-lg font-semibold uppercase text-ink">
+ <h1 className="text-lg font-semibold text-ink">
  {isUnconfigured ? "Review Board service not configured" : "Review unavailable"}
           </h1>
  <p className="mt-2 text-xs text-muted leading-relaxed">{loadError}</p>
  <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
  to="/reviews"
- className="h-8 px-4 inline-flex items-center justify-center border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-8 px-4 inline-flex items-center justify-center border rounded-pill border-border bg-ink text-on-ink text-xs font-medium text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
             >
               Back to reviews
             </Link>
           </div>
           {isUnconfigured && (
  <p className="mt-4 font-mono text-[11px] text-muted">
- To view live audit reports, configure the <code className="border border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
+ To view live audit reports, configure the <code className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
             </p>
           )}
         </div>
@@ -305,7 +305,7 @@ export default function ReviewDetailPage() {
  <div className="flex items-center justify-between">
           <Link
  to="/reviews"
- className="h-7 inline-flex items-center gap-2 border border-border bg-panel px-3 font-mono text-xs font-semibold uppercase text-ink shadow-m3 hover:bg-ink/5 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 inline-flex items-center gap-2 border rounded-pill border-border bg-panel px-3 text-xs font-medium text-ink shadow-m3 hover:bg-ink/5 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
           >
             <ArrowLeft size={13} />
             Back to Reviews
@@ -318,23 +318,23 @@ export default function ReviewDetailPage() {
         </div>
 
         {/* Top Header Card */}
- <header className="border border-border bg-panel p-6 shadow-m3 ">
+ <header className="border rounded-xl border-border bg-panel p-6 shadow-m3 ">
  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
  <div className="space-y-1">
  <div className="flex items-center gap-2.5">
- <span className="flex h-7 w-7 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
+ <span className="flex h-7 w-7 items-center justify-center border rounded-lg border-border bg-ink text-on-ink text-on-ink shadow-m3">
  <BrandLogo size="xs" />
                 </span>
  <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
                   Audit Snapshot Report
                 </span>
               </div>
- <h1 className="font-mono text-xl font-semibold text-ink md:text-2xl break-all">
+ <h1 className=" text-xl font-semibold text-ink md:text-2xl break-all">
                 {repoTarget}
               </h1>
  <div className="flex items-center gap-2 font-mono text-xs text-muted">
  <span className="font-semibold">Run ID:</span>
- <code className="border border-border bg-panel-alt px-2 py-0.5 font-semibold text-ink shadow-m3">
+ <code className="border rounded-lg border-border bg-panel-alt px-2 py-0.5 font-semibold text-ink shadow-m3">
                   {runId}
                 </code>
               </div>
@@ -342,7 +342,7 @@ export default function ReviewDetailPage() {
 
  <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`border border-border px-3 py-1 font-mono text-xs font-semibold uppercase shadow-m3 ${
+                className={`border rounded-lg border-border px-3 py-1 font-mono text-xs font-semibold uppercase shadow-m3 ${
  status === "complete"
  ? "bg-ok/20 text-ok text-ink"
  : status === "failed"
@@ -356,7 +356,7 @@ export default function ReviewDetailPage() {
           </div>
 
           {/* Verdict Banner */}
-          <div className={`mt-5 flex items-center gap-3 border border-border p-4 shadow-m3 ${bannerColor}`}>
+          <div className={`mt-5 flex items-center gap-3 border rounded-xl border-border p-4 shadow-m3 ${bannerColor}`}>
             {isGo ? (
  <CheckCircle2 size={24} strokeWidth={2.5} className="shrink-0" />
             ) : isNoGo ? (
@@ -392,7 +392,7 @@ export default function ReviewDetailPage() {
 
         {/* Telemetry Metric Grid */}
  <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
- <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="border rounded-lg border-border bg-panel p-3.5 shadow-m3 ">
  <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <ShieldCheck size={13} />
               Overall Score
@@ -402,7 +402,7 @@ export default function ReviewDetailPage() {
             </div>
           </div>
 
- <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="border rounded-lg border-border bg-panel p-3.5 shadow-m3 ">
  <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <Files size={13} />
               Candidate Files
@@ -410,7 +410,7 @@ export default function ReviewDetailPage() {
  <div className="mt-1 font-mono text-2xl font-semibold text-ink">{candidateFiles}</div>
           </div>
 
- <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="border rounded-lg border-border bg-panel p-3.5 shadow-m3 ">
  <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <BotIcon size={13} />
               Agents Active
@@ -418,7 +418,7 @@ export default function ReviewDetailPage() {
  <div className="mt-1 font-mono text-2xl font-semibold text-ink">{triggeredAgents.length}</div>
           </div>
 
- <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="border rounded-lg border-border bg-panel p-3.5 shadow-m3 ">
  <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <ListChecks size={13} />
               Backlog Items
@@ -428,7 +428,7 @@ export default function ReviewDetailPage() {
             </div>
           </div>
 
- <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="border rounded-lg border-border bg-panel p-3.5 shadow-m3 ">
  <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <DollarSign size={13} />
               Audit Cost
@@ -436,7 +436,7 @@ export default function ReviewDetailPage() {
  <div className="mt-1 font-mono text-2xl font-semibold text-ink">${totalCostUsd.toFixed(4)}</div>
           </div>
 
- <div className="border border-border bg-panel p-3.5 shadow-m3 ">
+ <div className="border rounded-lg border-border bg-panel p-3.5 shadow-m3 ">
  <div className="flex items-center gap-1.5 text-muted font-mono text-[11px] font-semibold uppercase">
               <Zap size={13} />
               Tokens Used
@@ -446,13 +446,13 @@ export default function ReviewDetailPage() {
         </section>
 
         {/* Multi-Agent Execution Board */}
- <section className="border border-border bg-panel p-6 shadow-m3 ">
+ <section className="border rounded-xl border-border bg-panel p-6 shadow-m3 ">
  <div className="flex items-center justify-between border-b-2 border-border pb-3">
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border border-border bg-info/20 text-info text-ink shadow-m3 font-mono text-xs font-semibold">
+ <span className="flex h-6 w-6 items-center justify-center border rounded-lg border-border bg-info/20 text-info text-ink shadow-m3 font-mono text-xs font-semibold">
                 @
               </span>
- <h2 className="font-mono text-base font-semibold uppercase text-ink">
+ <h2 className=" text-base font-semibold text-ink">
                 Autonomous Review Fleet Status
               </h2>
             </div>
@@ -481,16 +481,16 @@ export default function ReviewDetailPage() {
               return (
                 <div
                   key={agentId}
- className="border border-border bg-panel p-3.5 shadow-m3 space-y-2 font-mono"
+ className="border rounded-lg border-border bg-panel p-3.5 shadow-m3 space-y-2 font-mono"
                 >
  <div className="flex items-center justify-between">
                     <span
-                      className={`flex h-7 w-7 items-center justify-center border border-border ${iconBg} text-ink font-mono text-xs font-semibold shadow-m3`}
+                      className={`flex h-7 w-7 items-center justify-center border rounded-lg border-border ${iconBg} text-ink font-mono text-xs font-semibold shadow-m3`}
                     >
                       <BotIcon size={14} />
                     </span>
                     <span
-                      className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${
+                      className={`border rounded-lg border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${
                         isDone
  ? "bg-ok/20 text-ok text-ink"
                           : isFailed
@@ -528,14 +528,14 @@ export default function ReviewDetailPage() {
         </section>
 
         {/* Prioritized Backlog Section */}
- <section className="border border-border bg-panel p-6 shadow-m3 space-y-4 font-mono">
+ <section className="border rounded-xl border-border bg-panel p-6 shadow-m3 space-y-4 font-mono">
  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b-2 border-border pb-4">
             <div>
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border border-border bg-error/20 text-error text-ink shadow-m3 font-mono text-xs font-semibold">
+ <span className="flex h-6 w-6 items-center justify-center border rounded-lg border-border bg-error/20 text-error text-ink shadow-m3 font-mono text-xs font-semibold">
                   !
                 </span>
- <h2 className="font-mono text-base font-semibold uppercase text-ink">
+ <h2 className=" text-base font-semibold text-ink">
                   Prioritized Remediation Backlog ({visibleBacklog.length} items)
                 </h2>
               </div>
@@ -549,7 +549,7 @@ export default function ReviewDetailPage() {
  type="button"
                 onClick={handleExportMarkdown}
                 disabled={!backlog || backlog.length === 0}
- className="h-7 inline-flex items-center gap-1.5 border border-border bg-panel px-3 font-mono text-xs font-semibold uppercase shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all disabled:opacity-50"
+ className="h-7 inline-flex items-center gap-1.5 border rounded-pill border-border bg-panel px-3 text-xs font-medium shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all disabled:opacity-50"
               >
                 <Download size={13} />
                 Export Markdown
@@ -565,7 +565,7 @@ export default function ReviewDetailPage() {
                   key={sev}
  type="button"
                   onClick={() => setSeverityFilter(sev)}
-                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-semibold uppercase transition-all ${
+                  className={`h-7 px-2.5 border rounded-pill border-border text-[11px] font-medium transition-all ${
                     severityFilter === sev
  ? "bg-ink text-on-ink shadow-m3 "
  : "bg-panel text-ink hover:bg-ink/5 shadow-m3"
@@ -592,7 +592,7 @@ export default function ReviewDetailPage() {
                 <button
  type="button"
  onClick={() => setSortBy("severity")}
-                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-semibold uppercase shadow-m3 ${
+                  className={`h-7 px-2.5 border rounded-pill border-border text-[11px] font-medium shadow-m3 ${
  sortBy === "severity"
  ? "bg-ink text-on-ink "
  : "bg-panel text-muted hover:text-ink"
@@ -603,7 +603,7 @@ export default function ReviewDetailPage() {
                 <button
  type="button"
  onClick={() => setSortBy("impact")}
-                  className={`h-7 px-2.5 border border-border font-mono text-[11px] font-semibold uppercase shadow-m3 ${
+                  className={`h-7 px-2.5 border rounded-pill border-border text-[11px] font-medium shadow-m3 ${
  sortBy === "impact"
  ? "bg-ink text-on-ink "
  : "bg-panel text-muted hover:text-ink"
@@ -617,7 +617,7 @@ export default function ReviewDetailPage() {
 
           {/* Issue Cards */}
           {visibleBacklog.length === 0 ? (
- <div className="border border-border bg-panel p-8 text-center shadow-m3">
+ <div className="border rounded-xl border-border bg-panel p-8 text-center shadow-m3">
  <CheckCircle2 size={32} className="mx-auto text-ok mb-2" />
  <div className="font-mono text-sm font-semibold text-ink">No unresolved issues in this filter view.</div>
  <p className="mt-1 font-mono text-xs text-muted font-semibold">All checks in this category are compliant.</p>
@@ -631,13 +631,13 @@ export default function ReviewDetailPage() {
                 return (
                   <div
                     key={item.id}
- className="border border-border bg-panel p-4 shadow-m3 transition-all space-y-3"
+ className="border rounded-xl border-border bg-panel p-4 shadow-m3 transition-all space-y-3"
                   >
                     {/* Top line with badges */}
  <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border pb-2.5">
  <div className="flex items-center gap-2">
                         <span
-                          className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${style.bg} ${style.text}`}
+                          className={`border rounded-lg border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${style.bg} ${style.text}`}
                         >
                           {item.severity}
                         </span>
@@ -654,13 +654,13 @@ export default function ReviewDetailPage() {
 
                     {/* Title & Description */}
                     <div>
- <h3 className="font-mono text-sm font-semibold text-ink">{item.title}</h3>
+ <h3 className=" text-sm font-semibold text-ink">{item.title}</h3>
  <p className="mt-1 font-mono text-xs text-muted leading-relaxed font-medium">{item.description}</p>
                     </div>
 
                     {/* Proposed Fix Box */}
                     {item.fix && (
- <div className="border border-border bg-ink text-on-ink p-3 shadow-m3">
+ <div className="border rounded-lg border-border bg-ink text-on-ink p-3 shadow-m3">
  <div className="flex items-center justify-between mb-1.5">
  <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-brutal-yellow">
                             Proposed Remediation:
@@ -668,7 +668,7 @@ export default function ReviewDetailPage() {
                           <button
  type="button"
                             onClick={() => handleCopyFix(item.id, item.fix)}
- className="h-7 px-2 inline-flex items-center gap-1 border border-border bg-panel font-mono text-[10px] font-semibold uppercase text-ink shadow-m3 hover:bg-ink/5 transition-colors"
+ className="h-7 px-2 inline-flex items-center gap-1 border rounded-pill border-border bg-panel text-xs font-medium text-ink shadow-m3 hover:bg-ink/5 transition-colors"
                           >
  {isCopied ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
  {isCopied ? "Copied" : "Copy Fix"}
@@ -688,7 +688,7 @@ export default function ReviewDetailPage() {
                           {item.files.map((file) => (
                             <span
                               key={file}
- className="border border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
+ className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
                             >
                               {file}
                             </span>

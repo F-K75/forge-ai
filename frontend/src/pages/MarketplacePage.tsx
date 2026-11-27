@@ -575,7 +575,7 @@ export default function MarketplacePage() {
           <div>
             <div className="flex items-center gap-2.5">
               <BrandLogo size="md" />
-              <h1 className="font-mono text-2xl sm:text-3xl font-semibold tracking-tight text-ink uppercase">
+              <h1 className=" text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
                 marketplace &amp; starters
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border-2 border-border bg-brutal-yellow text-ink text-[11px] font-semibold uppercase">
@@ -830,7 +830,7 @@ export default function MarketplacePage() {
                           {template.name[0]}
                         </div>
                         <div>
-                          <h3 className="font-mono text-sm sm:text-base font-semibold text-ink line-clamp-1 group-hover:text-warn transition">
+                          <h3 className=" text-sm sm:text-base font-semibold text-ink line-clamp-1 group-hover:text-warn transition">
                             {template.name}
                           </h3>
                           <div className="flex items-center gap-2 text-[11px] font-mono text-muted">
@@ -960,7 +960,7 @@ export default function MarketplacePage() {
                     </div>
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-mono text-sm sm:text-base font-semibold text-ink truncate group-hover:text-warn transition">
+                        <h3 className=" text-sm sm:text-base font-semibold text-ink truncate group-hover:text-warn transition">
                           {template.name}
                         </h3>
                         <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-border bg-panel-alt font-semibold uppercase text-muted">
@@ -1047,7 +1047,7 @@ export default function MarketplacePage() {
           <div className="h-12 w-12 mx-auto rounded-none border-2 border-border bg-brutal-yellow flex items-center justify-center font-mono font-semibold text-xl text-ink">
             !
           </div>
-          <h3 className="font-mono text-base font-semibold uppercase text-ink">
+          <h3 className=" text-base font-semibold text-ink">
             No starters found matching your filters
           </h3>
           <p className="text-xs font-mono text-muted max-w-md mx-auto">
@@ -1087,7 +1087,7 @@ export default function MarketplacePage() {
                     {selectedTemplate.name[0]}
                   </div>
                   <div>
-                    <h2 className="font-mono font-semibold text-base text-ink uppercase">
+                    <h2 className=" font-semibold text-base text-ink">
                       {selectedTemplate.name}
                     </h2>
                     <p className="text-xs font-mono text-ink font-semibold">

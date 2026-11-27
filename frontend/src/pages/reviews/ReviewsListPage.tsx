@@ -58,7 +58,7 @@ const AVAILABLE_AGENTS = [
  { id: "security_agent", name: "Security Sentinel", icon: ShieldCheck, desc: "OWASP & secret leaks", color: "bg-error/20 text-error" },
  { id: "performance_agent", name: "Performance Profiler", icon: Sparkles, desc: "Bottlenecks & memory", color: "bg-info/20 text-info" },
  { id: "architecture_agent", name: "Architecture Analyst", icon: Layers, desc: "Coupling & modularity", color: "bg-accent/20 text-accent" },
- { id: "code_quality_agent", name: "Quality Linter", icon: FileCode2, desc: "Strict typing & dead code", color: "bg-ink text-on-ink" },
+ { id: "code_quality_agent", name: "Quality Linter", icon: FileCode2, desc: "Strict typing & dead code", color: "bg-ink/[0.08] text-ink" },
  { id: "qa_agent", name: "QA & Edge Case Inspector", icon: CheckCircle2, desc: "Assertions & regressions", color: "bg-ok/20 text-ok" },
 ];
 
@@ -91,10 +91,10 @@ function KpiCard({
   accentColor: string;
 }) {
   return (
- <div className="relative overflow-hidden border border-border bg-panel p-3 shadow-m3 transition-all">
+ <div className="relative overflow-hidden border rounded-lg border-border bg-panel p-3 shadow-m3 transition-all">
  <div className="flex items-center gap-2.5">
         <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center border border-border ${accentColor} text-ink shadow-m3`}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center border rounded-lg border-border ${accentColor} text-ink shadow-m3`}
         >
  <Icon size={14} strokeWidth={2.5} aria-hidden="true" />
         </span>
@@ -450,7 +450,7 @@ export default function ReviewsListPage() {
  inputRef.current?.scrollIntoView({ behavior: "smooth" });
                   inputRef.current?.focus();
                 }}
- className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-pill bg-ink text-on-ink hover:bg-ink/90 text-xs font-semibold transition-colors cursor-pointer"
+ className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-pill bg-ink text-on-ink hover:bg-ink/90 text-xs font-medium transition-colors cursor-pointer"
               >
  <Play size={13} fill="currentColor" />
                 New Audit
@@ -473,15 +473,15 @@ export default function ReviewsListPage() {
         {/* ========================================================= */}
         <section
  aria-labelledby="initiator-heading"
- className="border border-border bg-panel p-5 shadow-m3"
+ className="border rounded-xl border-border bg-panel p-5 shadow-m3"
         >
  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-border pb-3">
             <div>
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border border-border bg-warn/20 text-warn shadow-m3 font-mono text-xs font-semibold">
+ <span className="flex h-6 w-6 items-center justify-center border rounded-lg border-border bg-warn/20 text-warn shadow-m3 font-mono text-xs font-semibold">
                   #
                 </span>
- <h2 id="initiator-heading" className="font-mono text-base font-semibold uppercase text-ink">
+ <h2 id="initiator-heading" className=" text-base font-semibold text-ink">
                   Launch Multi-Agent Code Audit
                 </h2>
               </div>
@@ -495,7 +495,7 @@ export default function ReviewsListPage() {
               <button
  type="button"
  onClick={() => setMode("full")}
-                className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
+                className={`h-7 px-3 border rounded-pill border-border text-xs font-medium transition-all ${
  mode === "full"
  ? "bg-ink text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
@@ -506,7 +506,7 @@ export default function ReviewsListPage() {
               <button
  type="button"
  onClick={() => setMode("diff")}
-                className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
+                className={`h-7 px-3 border rounded-pill border-border text-xs font-medium transition-all ${
  mode === "diff"
  ? "bg-ink text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
@@ -518,7 +518,7 @@ export default function ReviewsListPage() {
           </div>
 
           {LIVE_MODE && !isConfigured && (
- <div className="mt-3 border border-border bg-warn/10 p-3 shadow-m3 flex items-start gap-2.5">
+ <div className="mt-3 border rounded-lg border-border bg-warn/10 p-3 shadow-m3 flex items-start gap-2.5">
  <AlertTriangle size={16} className="shrink-0 text-warn mt-0.5" />
  <div className="font-mono text-xs text-ink">
  <span className="font-semibold uppercase">Service Notice: </span>
@@ -553,7 +553,7 @@ export default function ReviewsListPage() {
  type="button"
                   disabled={isStarting}
                   onClick={handleStartAudit}
- className="h-7 px-4 inline-flex items-center justify-center gap-1.5 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase tracking-wider text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 disabled:opacity-50 transition-all shrink-0"
+ className="h-7 px-4 inline-flex items-center justify-center gap-1.5 border rounded-pill border-border bg-ink text-on-ink text-xs font-medium text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 disabled:opacity-50 transition-all shrink-0"
                 >
  <Play size={13} fill="currentColor" />
  {isStarting ? "Auditing..." : "Start Review"}
@@ -571,7 +571,7 @@ export default function ReviewsListPage() {
                       setRepoPath(target);
  if (target.includes("diff")) setMode("diff");
                     }}
- className="h-7 px-2 border border-border bg-panel font-mono text-[10px] font-semibold uppercase text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 transition-colors inline-flex items-center"
+ className="h-7 px-2 border rounded-pill border-border bg-panel text-xs font-medium text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 transition-colors inline-flex items-center"
                   >
                     {target}
                   </button>
@@ -581,7 +581,7 @@ export default function ReviewsListPage() {
 
             {/* Diff editor when in diff mode */}
  {mode === "diff" && (
- <div className="border border-border bg-ink p-3.5 text-on-ink shadow-m3">
+ <div className="border rounded-lg border-border bg-ink p-3.5 text-on-ink shadow-m3">
  <div className="flex items-center justify-between mb-2">
  <span className="font-mono text-xs font-semibold uppercase tracking-wider text-brutal-yellow flex items-center gap-1.5">
                     <GitPullRequest size={13} />
@@ -590,7 +590,7 @@ export default function ReviewsListPage() {
                   <button
  type="button"
                     onClick={() => setDiffText(SAMPLE_DIFF_CODE)}
- className="h-7 px-2.5 border border-border bg-panel font-mono text-[10px] font-semibold uppercase text-ink hover:bg-info/20 text-info shadow-m3 transition-colors"
+ className="h-7 px-2.5 border rounded-pill border-border bg-panel text-xs font-medium text-ink hover:bg-info/20 text-info shadow-m3 transition-colors"
                   >
                     Load Test Vulnerability Diff
                   </button>
@@ -615,14 +615,14 @@ export default function ReviewsListPage() {
                   <button
  type="button"
                     onClick={() => setSelectedAgents(AVAILABLE_AGENTS.map((a) => a.id))}
- className="h-7 px-2.5 border border-border bg-panel font-mono text-[10px] font-semibold uppercase shadow-m3 text-ink hover:bg-ink/5 transition-colors"
+ className="h-7 px-2.5 border rounded-pill border-border bg-panel text-xs font-medium shadow-m3 text-ink hover:bg-ink/5 transition-colors"
                   >
                     Select All
                   </button>
                   <button
  type="button"
  onClick={() => setSelectedAgents(["security_agent"])}
- className="h-7 px-2.5 border border-border bg-panel font-mono text-[10px] font-semibold uppercase shadow-m3 text-ink hover:bg-ink/5 transition-colors"
+ className="h-7 px-2.5 border rounded-pill border-border bg-panel text-xs font-medium shadow-m3 text-ink hover:bg-ink/5 transition-colors"
                   >
                     Security Only
                   </button>
@@ -638,13 +638,13 @@ export default function ReviewsListPage() {
                       key={agent.id}
  type="button"
                       onClick={() => toggleAgent(agent.id)}
-                      className={`flex items-start gap-2 border border-border p-2.5 text-left transition-all ${
+                      className={`flex items-start gap-2 border rounded-lg border-border p-2.5 text-left transition-all ${
                         isChecked
-                          ? `${agent.color} shadow-m3 text-ink -translate-x-0.5 -translate-y-0.5`
+                          ? `${agent.color} shadow-m3 text-ink`
  : "bg-panel opacity-70 hover:opacity-100 shadow-m3"
                       }`}
                     >
- <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-panel text-ink">
+ <span className="flex h-6 w-6 shrink-0 items-center justify-center border rounded-lg border-border bg-panel text-ink">
                         <Icon size={13} strokeWidth={2.5} />
                       </span>
  <div className="min-w-0 flex-1">
@@ -663,7 +663,7 @@ export default function ReviewsListPage() {
         {/* Review Library & Filters Section                          */}
         {/* ========================================================= */}
  <section className="space-y-4">
- <div className="border border-border bg-panel p-4 shadow-m3">
+ <div className="border rounded-xl border-border bg-panel p-4 shadow-m3">
  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               {/* Search input */}
  <div className="relative flex-1">
@@ -701,7 +701,7 @@ export default function ReviewsListPage() {
                     key={f.key}
  type="button"
                     onClick={() => setStatusFilter(f.key)}
-                    className={`h-7 px-3 border border-border font-mono text-xs font-semibold uppercase transition-all ${
+                    className={`h-7 px-3 border rounded-pill border-border text-xs font-medium transition-all ${
                       statusFilter === f.key
  ? "bg-ink text-on-ink shadow-m3"
  : "bg-panel-alt text-ink hover:bg-panel shadow-m3"
@@ -717,7 +717,7 @@ export default function ReviewsListPage() {
                 <select
                   value={sortKey}
                   onChange={(e) => setSortKey(e.target.value as SortKey)}
- className="h-7 border border-border bg-panel-alt px-2 font-mono text-xs font-semibold text-ink shadow-m3 focus:outline-none"
+ className="h-7 border rounded-pill border-border bg-panel-alt px-2 text-xs font-medium text-ink shadow-m3 focus:outline-none"
                 >
  <option value="recent">Sort: Most Recent</option>
  <option value="score-desc">Sort: Highest Score</option>
@@ -730,7 +730,7 @@ export default function ReviewsListPage() {
                   <button
  type="button"
  onClick={() => setViewMode("grid")}
-                    className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
+                    className={`h-7 w-7 border rounded-lg border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "grid"
  ? "bg-ink text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
@@ -742,7 +742,7 @@ export default function ReviewsListPage() {
                   <button
  type="button"
  onClick={() => setViewMode("list")}
-                    className={`h-7 w-7 border border-border flex items-center justify-center font-mono shadow-m3 ${
+                    className={`h-7 w-7 border rounded-lg border-border flex items-center justify-center font-mono shadow-m3 ${
  viewMode === "list"
  ? "bg-ink text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
@@ -758,16 +758,16 @@ export default function ReviewsListPage() {
 
           {/* Audit Items Render */}
           {loading ? (
- <div className="border border-border bg-panel p-12 text-center shadow-m3">
+ <div className="border rounded-xl border-border bg-panel p-12 text-center shadow-m3">
  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent mb-3" />
  <div className="font-mono text-sm font-semibold text-ink">Scanning audit records...</div>
             </div>
           ) : LIVE_MODE && !isConfigured ? (
- <div className="border border-border bg-panel p-8 md:p-12 text-center shadow-m3">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
+ <div className="border rounded-xl border-border bg-panel p-8 md:p-12 text-center shadow-m3">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border rounded-lg border-border bg-ink text-on-ink text-on-ink shadow-m3">
                 <ShieldAlert size={28} strokeWidth={2.5} />
               </div>
- <h3 className="font-mono text-base md:text-lg font-semibold uppercase text-ink">
+ <h3 className=" text-base md:text-lg font-semibold text-ink">
                 Review Board service not configured
               </h3>
  <p className="mt-2 font-mono text-xs text-muted max-w-lg mx-auto leading-relaxed">
@@ -780,20 +780,20 @@ export default function ReviewsListPage() {
                     setRuns(SAMPLE_REVIEWS);
  toast.success("Loaded demo review sample data for preview");
                   }}
- className="h-8 px-4 inline-flex items-center gap-2 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-8 px-4 inline-flex items-center gap-2 border rounded-pill border-border bg-ink text-on-ink text-xs font-medium text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                 >
                   <Sparkles size={13} />
                   Preview Demo Reviews
                 </button>
               </div>
  <p className="mt-4 font-mono text-[11px] text-muted">
- To enable live orchestration audits, configure the <code className="border border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
+ To enable live orchestration audits, configure the <code className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
               </p>
             </div>
           ) : filteredRuns.length === 0 ? (
- <div className="border border-border bg-panel p-12 text-center shadow-m3">
+ <div className="border rounded-xl border-border bg-panel p-12 text-center shadow-m3">
  <ShieldAlert size={36} className="mx-auto text-muted mb-3" />
- <h3 className="font-mono text-base font-semibold uppercase text-ink">No review audits match your filter</h3>
+ <h3 className=" text-base font-semibold text-ink">No review audits match your filter</h3>
  <p className="mt-1 font-mono text-xs text-muted max-w-sm mx-auto">
                 Try loosening your search query or launch a new audit with the workbench above.
               </p>
@@ -803,7 +803,7 @@ export default function ReviewsListPage() {
  setSearch("");
  setStatusFilter("all");
                 }}
- className="mt-4 h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase shadow-m3 transition-all"
+ className="mt-4 h-7 px-3.5 inline-flex items-center gap-1.5 border rounded-pill border-border bg-ink text-on-ink text-xs font-medium shadow-m3 transition-all"
               >
                 Clear Filters
               </button>
@@ -833,18 +833,18 @@ export default function ReviewsListPage() {
  onKeyDown={(e) => e.key === "Enter" && navigate(`/reviews/${run.run_id}`)}
  role="button"
                     tabIndex={0}
- className="flex flex-col justify-between border border-border bg-panel p-5 shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all cursor-pointer group text-left"
+ className="flex flex-col justify-between border rounded-xl border-border bg-panel p-5 shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all cursor-pointer group text-left"
                   >
                     <div>
                       {/* Top Bar */}
  <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
  <div className="flex items-center gap-2">
                           <span
-                            className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${badgeBg}`}
+                            className={`border rounded-lg border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${badgeBg}`}
                           >
                             {run.consolidated?.recommendation || run.status}
                           </span>
- <span className="border border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted">
+ <span className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted">
                             {run.mode}
                           </span>
                         </div>
@@ -857,11 +857,11 @@ export default function ReviewsListPage() {
                       {/* Main Title & Path */}
  <div className="mt-3">
  <div className="flex items-start gap-2">
- <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-ink text-on-ink text-on-ink shadow-m3">
+ <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border rounded-lg border-border bg-ink text-on-ink text-on-ink shadow-m3">
  {run.mode === "diff" ? <GitPullRequest size={11} /> : <FolderGit2 size={11} />}
                           </span>
  <div className="min-w-0">
- <h3 className="font-mono text-sm font-semibold text-ink truncate group-hover:text-brutal-orange transition-colors">
+ <h3 className=" text-sm font-semibold text-ink truncate group-hover:text-brutal-orange transition-colors">
                               {run.repo_path}
                             </h3>
  <div className="font-mono text-[11px] text-muted truncate">ID: {run.run_id}</div>
@@ -877,7 +877,7 @@ export default function ReviewsListPage() {
                       </div>
 
                       {/* Quality Score Bar */}
- <div className="mt-4 border border-border bg-panel-alt p-2.5 shadow-m3">
+ <div className="mt-4 border rounded-lg border-border bg-panel-alt p-2.5 shadow-m3">
  <div className="flex items-center justify-between font-mono text-xs">
  <span className="font-semibold text-muted uppercase">Audit Score</span>
  <span className="font-semibold text-ink text-sm">
@@ -902,7 +902,7 @@ export default function ReviewsListPage() {
                         {run.triggered_agents.map((agentId) => (
                           <span
                             key={agentId}
- className="border border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
+ className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
                           >
  {agentId.replace("_agent", "")}
                           </span>
@@ -927,7 +927,7 @@ export default function ReviewsListPage() {
                               e.stopPropagation();
                               setActiveBacklogModal(run);
                             }}
- className="h-7 px-2.5 border border-border bg-panel font-mono text-[11px] font-semibold uppercase text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 active:translate-x-[1px] active:translate-y-[1px] transition-all"
+ className="h-7 px-2.5 border rounded-pill border-border bg-panel text-[11px] font-medium text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 active:translate-x-[1px] active:translate-y-[1px] transition-all"
                           >
                             Quick Backlog
                           </button>
@@ -935,7 +935,7 @@ export default function ReviewsListPage() {
                         <button
  type="button"
                           onClick={(e) => handleDeleteRun(e, run.run_id)}
- className="h-7 w-7 border border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
+ className="h-7 w-7 border rounded-lg border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
  title="Delete record"
                         >
                           <Trash2 size={12} />
@@ -995,7 +995,7 @@ export default function ReviewsListPage() {
  <td className="px-4 py-3 font-semibold uppercase text-muted">{run.mode}</td>
  <td className="px-4 py-3">
                           <span
-                            className={`border border-border px-2 py-0.5 font-mono font-semibold uppercase text-[10px] shadow-m3 ${badgeBg}`}
+                            className={`border rounded-lg border-border px-2 py-0.5 font-mono font-semibold uppercase text-[10px] shadow-m3 ${badgeBg}`}
                           >
                             {run.consolidated?.recommendation || run.status}
                           </span>
@@ -1021,14 +1021,14 @@ export default function ReviewsListPage() {
                                 e.stopPropagation();
                                 navigate(`/reviews/${run.run_id}`);
                               }}
- className="h-7 px-2.5 border border-border bg-ink text-on-ink font-mono font-semibold uppercase text-[11px] text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 px-2.5 border rounded-pill border-border bg-ink text-on-ink font-medium text-[11px] text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                             >
                               Inspect
                             </button>
                             <button
  type="button"
                               onClick={(e) => handleDeleteRun(e, run.run_id)}
- className="h-7 w-7 border border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
+ className="h-7 w-7 border rounded-lg border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
  title="Delete run"
                             >
                               <Trash2 size={12} />
@@ -1056,15 +1056,15 @@ export default function ReviewsListPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 8 }}
               transition={{ duration: 0.18 }}
- className="w-full max-w-2xl border border-border bg-panel p-6 shadow-m3 max-h-[85vh] flex flex-col font-mono"
+ className="w-full max-w-2xl border rounded-xl border-border bg-panel p-6 shadow-m3 max-h-[85vh] flex flex-col font-mono"
             >
  <div className="flex items-start justify-between border-b border-border pb-3">
                 <div>
  <div className="flex items-center gap-2">
- <span className="border border-border bg-ink text-on-ink px-2 py-0.5 font-mono text-xs font-semibold uppercase shadow-m3 text-on-ink">
+ <span className="border rounded-lg border-border bg-ink text-on-ink px-2 py-0.5 font-mono text-xs font-semibold uppercase shadow-m3 text-on-ink">
                       Backlog
                     </span>
- <h3 className="font-mono text-base font-semibold text-ink">{activeBacklogModal.repo_path}</h3>
+ <h3 className=" text-base font-semibold text-ink">{activeBacklogModal.repo_path}</h3>
                   </div>
  <div className="mt-1 font-mono text-xs text-muted">
  Run: {activeBacklogModal.run_id} · Gate Verdict:{" "}
@@ -1075,7 +1075,7 @@ export default function ReviewsListPage() {
                 <button
  type="button"
                   onClick={() => setActiveBacklogModal(null)}
- className="h-7 w-7 border border-border bg-panel flex items-center justify-center text-ink shadow-m3 hover:bg-ink/5 transition-colors"
+ className="h-7 w-7 border rounded-lg border-border bg-panel flex items-center justify-center text-ink shadow-m3 hover:bg-ink/5 transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -1098,10 +1098,10 @@ export default function ReviewsListPage() {
  : "bg-surface-high text-ink";
 
                     return (
- <div key={item.id} className="border border-border bg-panel p-3.5 space-y-2 shadow-m3">
+ <div key={item.id} className="border rounded-lg border-border bg-panel p-3.5 space-y-2 shadow-m3">
  <div className="flex items-center justify-between">
                           <span
-                            className={`border border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${sevColor}`}
+                            className={`border rounded-lg border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${sevColor}`}
                           >
                             {item.severity}
                           </span>
@@ -1112,7 +1112,7 @@ export default function ReviewsListPage() {
  <h4 className="font-mono text-xs font-semibold text-ink">{item.title}</h4>
  <p className="font-mono text-xs text-muted leading-relaxed">{item.description}</p>
                         {item.fix && (
- <div className="border border-border bg-panel p-2 text-xs font-mono text-ink">
+ <div className="border rounded-lg border-border bg-panel p-2 text-xs font-mono text-ink">
  <span className="font-semibold text-brutal-orange">Suggested Fix: </span>
                             {item.fix}
                           </div>
@@ -1136,7 +1136,7 @@ export default function ReviewsListPage() {
                     navigator.clipboard.writeText(json);
  toast.success("Backlog JSON copied to clipboard");
                   }}
- className="h-7 px-3 inline-flex items-center gap-1.5 border border-border bg-panel font-mono text-xs font-semibold uppercase text-ink shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all"
+ className="h-7 px-3 inline-flex items-center gap-1.5 border rounded-pill border-border bg-panel text-xs font-medium text-ink shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all"
                 >
                   <Copy size={12} />
                   Copy JSON
@@ -1148,7 +1148,7 @@ export default function ReviewsListPage() {
                     setActiveBacklogModal(null);
                     navigate(`/reviews/${id}`);
                   }}
- className="h-7 px-3.5 inline-flex items-center gap-1.5 border border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+ className="h-7 px-3.5 inline-flex items-center gap-1.5 border rounded-pill border-border bg-ink text-on-ink text-xs font-medium text-on-ink shadow-m3 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                 >
                   Open Full Audit Page
                   <ExternalLink size={12} />
