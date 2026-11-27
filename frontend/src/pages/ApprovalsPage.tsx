@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
 import { CheckCircle2, Clock3, FolderOpen, History, ShieldCheck, ShieldQuestion } from "lucide-react"
 import { AtmosphereLayer, Badge, Button, InlineNotice, CapabilitySegmentedControl, Skeleton, TwoToneHeading } from "../components/ui"
 import { A2UISurfaceView, type A2UIApprovalAction, type A2UIApprovalUIState } from "../components/a2ui/A2UIRenderer"
@@ -7,6 +8,7 @@ import { GateStatusPill } from "../components/capabilities/StatusPills"
 import { useProjectsQuery } from "../hooks/useActiveProject"
 import { formatRelativeTime } from "../lib/format"
 import { LIVE_MODE } from "../lib/env"
+import { DEEP_LINK_HIGHLIGHT_CLASS, DEEP_LINK_TRANSITION_CLASS, useDeepLinkHighlight } from "../hooks/useDeepLinkHighlight"
 import {
   decideGate,
   describeDecisionError,
@@ -28,6 +30,13 @@ export default function ApprovalsPage() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [approvalState, setApprovalState] = useState<Record<string, A2UIApprovalUIState>>({})
   const detailRef = useRef<HTMLDivElement>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const gateParam = searchParams.get("gate")
+  // The ?gate= value we've already resolved, so refetches don't re-run it.
+  const handledGateParam = useRef<string | null>(null)
+  const [missingGate, setMissingGate] = useState<string | null>(null)
+  const rowRefs = useRef(new Map<string, HTMLElement>())
+  const { highlightKey, flash } = useDeepLinkHighlight((key) => rowRefs.current.get(key))
 
   const projectIds = projects.map((p) => p.id).join(",")
   const approvals = useQuery({
@@ -68,6 +77,55 @@ export default function ApprovalsPage() {
     if (!selected || !visible.some((v) => v.key === selected.key)) setSelectedKey(visible[0]?.key ?? null)
   }, [view, projectFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const replaceGateParam = useCallback(
+    (gateId: string | null) => {
+      handledGateParam.current = gateId
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          if (gateId) next.set("gate", gateId)
+          else next.delete("gate")
+          return next
+        },
+        { replace: true }
+      )
+    },
+    [setSearchParams]
+  )
+
+  // Deep link: /approvals?gate=<gateId> (Command Center "Review" links). Declared
+  // after the effects above so its selection wins on the first loaded render.
+  useEffect(() => {
+    if (!approvals.data || !gateParam || handledGateParam.current === gateParam) return
+    handledGateParam.current = gateParam
+    const matches = items.filter((i) => i.gate.gate_id === gateParam || i.key === gateParam)
+    const target = matches.find((i) => i.gate.status === "pending") ?? matches[0]
+    setProjectFilter("all")
+    if (target) {
+      setMissingGate(null)
+      setView(target.gate.status === "pending" ? "pending" : "decided")
+      setSelectedKey(target.key)
+      flash(target.key)
+    } else {
+      setMissingGate(gateParam)
+      setView("pending")
+      const firstPending = items
+        .filter((i) => i.gate.status === "pending")
+        .sort((a, b) => a.gate.created_at.localeCompare(b.gate.created_at))[0]
+      setSelectedKey(firstPending?.key ?? null)
+      // Drop the stale id so a reload doesn't repeat the notice.
+      replaceGateParam(null)
+    }
+  }, [approvals.data, gateParam]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once ?gate= is in the URL, keep it in sync when the selection moves
+  // (e.g. switching Pending/Decided or the project filter).
+  useEffect(() => {
+    if (!selected || gateParam === null || gateParam === selected.gate.gate_id) return
+    if (handledGateParam.current !== gateParam) return
+    replaceGateParam(selected.gate.gate_id)
+  }, [selected?.key]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleDecision = useCallback(
     async (gateId: string, action: A2UIApprovalAction) => {
       const item = items.find((i) => i.key === selectedKey && i.gate.gate_id === gateId)
@@ -86,6 +144,8 @@ export default function ApprovalsPage() {
 
   const select = (key: string) => {
     setSelectedKey(key)
+    const gateId = items.find((i) => i.key === key)?.gate.gate_id
+    if (gateId && gateId !== gateParam) replaceGateParam(gateId)
     if (window.matchMedia?.("(max-width: 1023px)").matches) {
       requestAnimationFrame(() => detailRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" }))
     }
@@ -138,6 +198,21 @@ export default function ApprovalsPage() {
       </div>
 
       <div className="mt-5">
+        {missingGate && !loadError && !loading && (
+          <InlineNotice
+            tone="info"
+            className="mb-4"
+            title="That approval is no longer available"
+            action={
+              <Button variant="ghost" size="sm" onClick={() => setMissingGate(null)}>
+                Dismiss
+              </Button>
+            }
+          >
+            It may have been removed with its run, or belongs to a project you can't see.
+            {pending.length > 0 ? " Showing the oldest pending gate instead." : ""}
+          </InlineNotice>
+        )}
         {loadError ? (
           <InlineNotice
             title="Couldn't load approval gates."
@@ -172,8 +247,20 @@ export default function ApprovalsPage() {
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
             <ul className="space-y-2" aria-label={view === "pending" ? "Pending gates" : "Decided gates"}>
               {visible.map((item) => (
-                <li key={item.key}>
-                  <GateRow item={item} active={item.key === selected?.key} onSelect={() => select(item.key)} />
+                <li
+                  key={item.key}
+                  ref={(el) => {
+                    if (el) rowRefs.current.set(item.key, el)
+                    else rowRefs.current.delete(item.key)
+                  }}
+                  className="scroll-my-24"
+                >
+                  <GateRow
+                    item={item}
+                    active={item.key === selected?.key}
+                    highlighted={item.key === highlightKey}
+                    onSelect={() => select(item.key)}
+                  />
                 </li>
               ))}
             </ul>
@@ -216,15 +303,27 @@ function CalmEmpty({ decidedCount, onShowHistory }: { decidedCount: number; onSh
   )
 }
 
-function GateRow({ item, active, onSelect }: { item: ApprovalItem; active: boolean; onSelect: () => void }) {
+function GateRow({
+  item,
+  active,
+  highlighted = false,
+  onSelect,
+}: {
+  item: ApprovalItem
+  active: boolean
+  highlighted?: boolean
+  onSelect: () => void
+}) {
   const pending = item.gate.status === "pending"
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-current={active ? "true" : undefined}
-      className={`w-full rounded-xl border p-4 text-left transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-        active ? "border-ink/25 bg-panel-alt" : "border-border bg-panel hover:border-ink/20"
+      data-gate-id={item.gate.gate_id}
+      data-highlighted={highlighted ? "true" : undefined}
+      className={`w-full rounded-xl border p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${DEEP_LINK_TRANSITION_CLASS} ${
+        highlighted ? DEEP_LINK_HIGHLIGHT_CLASS : active ? "border-ink/25 bg-panel-alt" : "border-border bg-panel hover:border-ink/20"
       }`}
     >
       <div className="flex items-start gap-3">

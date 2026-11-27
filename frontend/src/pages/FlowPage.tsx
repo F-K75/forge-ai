@@ -39,7 +39,7 @@ import {
   ArrowUpRight,
   Box,
 } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { ForgeScene3D } from "../components/three/ForgeScene3D";
 import { MultiAgentKernelPanel } from "../components/MultiAgentKernelPanel";
 import { COLORS } from "../lib/theme";
@@ -100,8 +100,29 @@ const DEFAULT_METRICS: TelemetryMetric[] = [
 
 export default function FlowPage() {
   const { projectId } = useParams<{ projectId?: string }>();
+  // Deep link from the Command Center: /p/:projectId/agents?run=<runId>
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusRunId = searchParams.get("run");
   // Navigation & View state
   const [viewMode, setViewMode] = useState<ViewMode>("kernel");
+  // A ?run= link always lands on the kernel view, which owns kernel runs.
+  const [prevFocusRunId, setPrevFocusRunId] = useState(focusRunId);
+  if (focusRunId !== prevFocusRunId) {
+    setPrevFocusRunId(focusRunId);
+    if (focusRunId) setViewMode("kernel");
+  }
+  const clearMissingRunParam = useCallback(
+    () =>
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("run");
+          return next;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
   const [selectedStage, setSelectedStage] = useState<FlowStageId | "all">("all");
   const [selectedAgent, setSelectedAgent] = useState<CatalogAgent | null>(null);
   const [activeArtifactTab, setActiveArtifactTab] = useState<keyof typeof MOCK_ARTIFACT_PREVIEWS>("brief");
@@ -863,7 +884,11 @@ export default function FlowPage() {
 
           {/* VIEW 0: MULTI-AGENT ORCHESTRATION KERNEL */}
           {viewMode === "kernel" && (
-            <MultiAgentKernelPanel projectId={projectId || "demo-project"} />
+            <MultiAgentKernelPanel
+              projectId={projectId || "demo-project"}
+              focusRunId={focusRunId}
+              onFocusRunMissing={clearMissingRunParam}
+            />
           )}
 
           {/* VIEW 1: GRAPH VIEW */}

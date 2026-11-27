@@ -224,3 +224,33 @@ describe("MultiAgentKernelPanel (LIVE_MODE) MCP App view", () => {
     })
   })
 })
+
+describe("MultiAgentKernelPanel (LIVE_MODE) ?run= deep link", () => {
+  it("fetches the linked run, makes it active with its server surfaces, and highlights it", async () => {
+    const onMissing = vi.fn()
+    render(<MultiAgentKernelPanel projectId={PROJECT} focusRunId="krun_live" onFocusRunMissing={onMissing} />)
+
+    expect(screen.getByText(/Opening run/)).toHaveTextContent("Opening run krun_live")
+    const board = screen.getByRole("region", { name: "Parallel Execution Waves" })
+    await waitFor(() => expect(board.querySelector('[data-run-id="krun_live"]')).not.toBeNull())
+    expect(board.querySelector('[data-run-id="krun_live"]')).toHaveAttribute("data-highlighted", "true")
+    expect(apiMock.get).toHaveBeenCalledWith(`/v1/projects/${PROJECT}/kernel/runs/krun_live`)
+    expect(screen.queryByText(/Opening run/)).not.toBeInTheDocument()
+    // The linked run's waiting gate is actionable straight away, from its server surfaces.
+    fireEvent.click(screen.getByRole("tab", { name: /Protocols/i }))
+    expect(await screen.findByRole("button", { name: /^Approve pre_delivery_approval/i })).toBeEnabled()
+    expect(apiMock.get).toHaveBeenCalledWith(`/v1/projects/${PROJECT}/protocols/a2ui/runs/krun_live/surfaces`)
+    expect(onMissing).not.toHaveBeenCalled()
+    expect(screen.queryByText("That run is no longer available")).not.toBeInTheDocument()
+  })
+
+  it("shows a calm notice when the kernel returns 404 for the run", async () => {
+    const onMissing = vi.fn()
+    render(<MultiAgentKernelPanel projectId={PROJECT} focusRunId="krun_gone" onFocusRunMissing={onMissing} />)
+    expect(await screen.findByText("That run is no longer available")).toBeInTheDocument()
+    expect(onMissing).toHaveBeenCalledWith("krun_gone")
+    const board = screen.getByRole("region", { name: "Parallel Execution Waves" })
+    expect(board.querySelector('[data-run-id="krun_gone"]')).toBeNull()
+    expect(board.querySelector("[data-highlighted]")).toBeNull()
+  })
+})
