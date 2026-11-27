@@ -184,7 +184,7 @@ describe("RoadmapTab Redesign", () => {
     expect(screen.getAllByText("Self-Serve UI Workflow").length).toBeGreaterThan(0);
 
     // Priority filter
-    const p0Button = screen.getByRole("button", { name: /^p0$/i });
+    const p0Button = screen.getByRole("radio", { name: /^p0$/i });
     fireEvent.click(p0Button);
 
     expect(screen.getAllByText("Billing Service Integration").length).toBeGreaterThan(0);

@@ -7,6 +7,8 @@ export interface SegmentedOption<T extends string> {
   label: string
   /** Optional count rendered in mono after the label. */
   count?: number
+  /** Optional DOM id for the segment button (test / automation hook). */
+  id?: string
 }
 
 interface SegmentedControlProps<T extends string> {
@@ -55,6 +57,7 @@ export function SegmentedControl<T extends string>({
         return (
           <button
             key={opt.value}
+            id={opt.id}
             ref={(el) => {
               refs.current[idx] = el
             }}

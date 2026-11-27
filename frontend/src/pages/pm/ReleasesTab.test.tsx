@@ -144,7 +144,7 @@ describe("ReleasesTab Component (Redesigned)", () => {
     });
 
     // Click 'Staging' filter
-    const stagingBtn = screen.getByRole("button", { name: "Staging" });
+    const stagingBtn = screen.getByRole("radio", { name: "Staging" });
     fireEvent.click(stagingBtn);
 
     expect(screen.getAllByText("v1.1.0-rc1").length).toBeGreaterThan(0);
@@ -152,7 +152,7 @@ describe("ReleasesTab Component (Redesigned)", () => {
     expect(document.getElementById("release-card-rel-init-test-123-100")).toBeNull();
 
     // Click 'All' filter to restore
-    const allBtn = screen.getByRole("button", { name: "All" });
+    const allBtn = screen.getByRole("radio", { name: "All" });
     fireEvent.click(allBtn);
     expect(screen.getAllByText("v1.0.0").length).toBeGreaterThan(0);
   });

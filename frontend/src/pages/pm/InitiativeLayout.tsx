@@ -304,15 +304,18 @@ export default function InitiativeLayout() {
                 <span>All Initiatives</span>
               </Button>
               <span className="text-muted">/</span>
-              <Badge variant="success" dot>
+              <Badge
+                variant={!initiative.status || initiative.status === "active" ? "accent" : "default"}
+                dot
+              >
                 {initiative.status || "Active Plan"}
               </Badge>
               <Badge variant="default">
-                <Kanban size={12} className="text-accent" />
+                <Kanban size={12} />
                 <span>{epics?.length ?? 0} Epics</span>
               </Badge>
               <Badge variant="default">
-                <Zap size={12} className="text-warn" />
+                <Zap size={12} />
                 <span>{sprints?.length ?? 0} Sprints</span>
               </Badge>
             </div>
@@ -323,7 +326,7 @@ export default function InitiativeLayout() {
                 size="sm"
                 onClick={() => handleOpenCopilot()}
               >
-                <Sparkles size={14} className="text-accent" />
+                <Sparkles size={14} />
                 <span>Ask Copilot</span>
               </Button>
               <Button
@@ -332,7 +335,7 @@ export default function InitiativeLayout() {
                 onClick={() => setMediaDrawerOpen(true)}
                 title="Open Mixed Media Intelligence Deck"
               >
-                <Volume2 size={14} className="text-warn" />
+                <Volume2 size={14} />
                 <span>Media Intelligence</span>
               </Button>
               <Button
@@ -341,7 +344,7 @@ export default function InitiativeLayout() {
                 onClick={() => setSurveyOpen(true)}
                 title="Launch Requirements Survey & Architecture Matrix"
               >
-                <Sparkles size={14} className="text-accent" />
+                <Sparkles size={14} />
                 <span>Survey & Architecture</span>
               </Button>
               <Button
@@ -367,7 +370,7 @@ export default function InitiativeLayout() {
                 </Button>
               ) : (
                 <Button
-                  variant="primary"
+                  variant="secondary"
                   size="sm"
                   onClick={() => setConfirming(true)}
                 >
@@ -396,7 +399,7 @@ export default function InitiativeLayout() {
 
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
+              <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
                 {initiative.name}
               </h1>
               <span className="font-mono text-xs text-muted">
@@ -418,8 +421,8 @@ export default function InitiativeLayout() {
               items={tabItems}
               className="w-full sm:w-auto"
             />
-            <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-mono text-muted">
-              <span className="h-2 w-2 rounded-full bg-ok animate-pulse" />
+            <span className="hidden md:inline-flex items-center gap-1.5 text-xs text-muted">
+              <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
               8 Agent Swarm Active
             </span>
           </div>
@@ -430,7 +433,7 @@ export default function InitiativeLayout() {
           <div className="flex items-start gap-3 rounded-lg bg-error/10 p-4 text-ink border border-error/30">
             <AlertTriangle size={18} className="shrink-0 text-error mt-0.5" />
             <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-error">
+              <h4 className="text-xs font-medium text-error">
                 Plan Generation Error
               </h4>
               <p className="text-xs mt-1 text-muted">{escapeHtml(generationError)}</p>

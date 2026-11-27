@@ -17,7 +17,7 @@ export const CEREMONIES = [
   {
     key: "standup",
     label: "Daily Stand-up",
-    badge: "DAILY",
+    badge: "Daily",
     icon: Users,
     desc: "Autonomous 3-question synthesis: yesterday's commits, today's targets, and active blockers.",
     action: "standup",
@@ -25,7 +25,7 @@ export const CEREMONIES = [
   {
     key: "review",
     label: "Sprint Review",
-    badge: "DEMO",
+    badge: "Demo",
     icon: CheckCircle2,
     desc: "Shipped features demo summary, acceptance criteria verification, and release notes.",
     action: "review",
@@ -33,7 +33,7 @@ export const CEREMONIES = [
   {
     key: "retro",
     label: "Retrospective",
-    badge: "LEARNINGS",
+    badge: "Learnings",
     icon: History,
     desc: "What went well, friction vectors, and autonomous velocity improvement actions.",
     action: "retro",
@@ -41,7 +41,7 @@ export const CEREMONIES = [
   {
     key: "riskReport",
     label: "Risk Assessment",
-    badge: "SAFETY",
+    badge: "Safety",
     icon: AlertTriangle,
     desc: "Architectural vulnerabilities, dependency bottlenecks, and release timeline risks.",
     action: "riskReport",
@@ -49,7 +49,7 @@ export const CEREMONIES = [
   {
     key: "techDebt",
     label: "Technical Debt",
-    badge: "CODE HEALTH",
+    badge: "Code health",
     icon: ShieldAlert,
     desc: "Refactoring backlog, mock residue cleanup, and code architecture hotspots.",
     action: "techDebt",
@@ -127,10 +127,10 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   setSelectedCeremony(c.key);
                 }
               }}
-              className={`rounded-2xl p-4 flex flex-col justify-between transition-all cursor-pointer border ${
+              className={`rounded-xl p-4 flex flex-col justify-between transition-colors cursor-pointer border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 isSelected
-                  ? "bg-agent-integration/10 border-agent-integration/60 ring-2 ring-agent-integration/20 shadow-sm"
-                  : "bg-panel border-border hover:border-agent-integration/40 hover:bg-ink/5 shadow-2xs"
+                  ? "bg-ink/[0.06] border-ink/30"
+                  : "bg-panel border-border hover:border-ink/20 hover:bg-ink/[0.03]"
               }`}
             >
               <div>
@@ -138,18 +138,18 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   <div
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
                       isSelected
-                        ? "bg-agent-integration text-on-ink shadow-2xs"
-                        : "bg-panel-alt text-ink"
+                        ? "bg-ink/[0.12] text-ink"
+                        : "bg-ink/[0.06] text-muted"
                     }`}
                   >
                     <Icon size={16} />
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-panel-alt text-muted">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-ink/[0.06] text-muted">
                     {c.badge}
                   </span>
                 </div>
 
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-ink">
+                <h4 className="text-sm font-medium text-ink">
                   {c.label}
                 </h4>
                 <p className="text-[11px] text-muted mt-1 line-clamp-2 leading-relaxed">
@@ -166,18 +166,18 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   setSelectedCeremony(c.key);
                   onGenerate(c.key, c.action);
                 }}
-                className={`mt-3.5 w-full h-8 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`mt-3.5 w-full h-8 px-3 rounded-pill border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
                   isSelected
-                    ? "bg-agent-integration hover:bg-agent-integration/90 text-on-ink shadow-2xs"
-                    : "bg-panel-alt hover:bg-ink/5 text-ink"
+                    ? "border-glass-border bg-glass text-ink hover:bg-ink/10"
+                    : "border-transparent text-muted hover:bg-ink/5 hover:text-ink"
                 }`}
               >
                 {isGen ? (
                   <RefreshCw size={12} className="animate-spin" />
                 ) : (
-                  <Sparkles size={12} className="text-warn" />
+                  <Sparkles size={12} />
                 )}
-                <span>{isGen ? "GENERATING…" : "GENERATE"}</span>
+                <span>{isGen ? "Generating…" : "Generate"}</span>
               </button>
             </div>
           );
@@ -187,16 +187,16 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
       {/* Selected Ceremony Detail Panel */}
       <div
         id="ceremony-detail-panel"
-        className="rounded-2xl border border-border bg-panel p-5 md:p-6 shadow-2xs space-y-5"
+        className="rounded-xl border border-border bg-panel p-5 md:p-6 space-y-5"
       >
         {/* Panel Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border-soft">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-agent-integration/10 border border-agent-integration/30 text-agent-integration flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-ink/[0.06] text-muted flex items-center justify-center">
               <ActiveIcon size={20} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">
+              <h3 className="text-sm font-medium text-ink">
                 {activeCeremonyConfig.label}
               </h3>
               <p className="text-xs text-muted">
@@ -210,10 +210,10 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               id="ceremony-copy-report-btn"
               type="button"
               onClick={handleCopyReport}
-              className="h-8.5 px-3.5 rounded-pill border border-border bg-panel text-ink hover:bg-ink/5 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="h-8 px-3.5 rounded-pill border border-transparent text-muted hover:bg-ink/5 hover:text-ink text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              {isCopied ? <Check size={13} className="text-agent-integration" /> : <Copy size={13} />}
-              <span>{isCopied ? "COPIED" : "COPY REPORT"}</span>
+              {isCopied ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
+              <span>{isCopied ? "Copied" : "Copy report"}</span>
             </button>
 
             <button
@@ -221,13 +221,13 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               type="button"
               onClick={() => onGenerate(activeCeremonyConfig.key, activeCeremonyConfig.action)}
               disabled={generating === selectedCeremony}
-              className="h-8.5 px-4 rounded-pill bg-agent-integration hover:bg-agent-integration/90 active:bg-agent-integration text-on-ink text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="h-8 px-4 rounded-pill border border-glass-border bg-glass text-ink hover:bg-ink/10 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
             >
               <RefreshCw
                 size={12}
                 className={generating === selectedCeremony ? "animate-spin" : ""}
               />
-              <span>REGENERATE</span>
+              <span>Regenerate</span>
             </button>
           </div>
         </div>
@@ -240,18 +240,18 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               {standups.length > 0 ? (
                 standups.map((s, idx) => (
                   <div key={idx} className="space-y-3 text-xs">
-                    <div className="p-4 rounded-xl bg-info/20 border border-info/30">
-                      <span className="font-semibold uppercase tracking-wider text-accent block mb-1">
-                        YESTERDAY (COMPLETED WORK)
+                    <div className="p-4 rounded-xl bg-ink/[0.03] border border-border-soft">
+                      <span className="text-xs text-muted block mb-1">
+                        Yesterday (completed work)
                       </span>
                       <p className="text-ink leading-relaxed font-medium">
                         {s.yesterday || "Completed all assigned schema validations and baseline API endpoints."}
                       </p>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-warn/20 border border-warn/30">
-                      <span className="font-semibold uppercase tracking-wider text-warn block mb-1">
-                        TODAY (COMMITTED DELIVERABLES)
+                    <div className="p-4 rounded-xl bg-ink/[0.03] border border-border-soft">
+                      <span className="text-xs text-muted block mb-1">
+                        Today (committed deliverables)
                       </span>
                       <p className="text-ink leading-relaxed font-medium">
                         {s.today || "Implementing WebSocket telemetry stream and unit test suites."}
@@ -259,9 +259,9 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                     </div>
 
                     {s.blockers && s.blockers.length > 0 && (
-                      <div className="p-4 rounded-xl bg-error/20 border border-error/30">
-                        <span className="font-semibold uppercase tracking-wider text-error block mb-1.5">
-                          ACTIVE BLOCKERS
+                      <div className="p-4 rounded-xl bg-error/[0.06] border border-error/20">
+                        <span className="text-xs text-muted block mb-1.5">
+                          Active blockers
                         </span>
                         <ul className="list-disc list-inside space-y-1 text-ink font-medium">
                           {s.blockers.map((b: string, i: number) => (
@@ -273,8 +273,8 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
 
                     <div className="flex items-center justify-between text-xs pt-3 border-t border-border-soft">
                       <span className="text-muted">Sprint Health Indicator:</span>
-                      <span className="font-semibold text-agent-integration">
-                        {s.sprint_health || "OPTIMAL · ON TRACK"}
+                      <span className="font-medium text-ok">
+                        {s.sprint_health || "Optimal · on track"}
                       </span>
                     </div>
                   </div>
@@ -293,8 +293,8 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               {reports?.reviews?.[0] ? (
                 <div className="space-y-3.5">
                   <div className="p-4 rounded-xl bg-panel border border-border">
-                    <span className="font-semibold uppercase tracking-wider text-muted block mb-1.5">
-                      EXECUTIVE REVIEW SUMMARY
+                    <span className="text-xs text-muted block mb-1.5">
+                      Executive review summary
                     </span>
                     <p className="text-ink leading-relaxed font-medium">
                       {reports.reviews[0].summary}
@@ -302,14 +302,14 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   </div>
 
                   {reports.reviews[0].demo_items && (
-                    <div className="p-4 rounded-xl bg-agent-integration/20 border border-agent-integration/30">
-                      <span className="font-semibold uppercase tracking-wider text-agent-integration block mb-2">
-                        SHIPPED DEMO HIGHLIGHTS
+                    <div className="p-4 rounded-xl bg-ink/[0.03] border border-border-soft">
+                      <span className="text-xs text-muted block mb-2">
+                        Shipped demo highlights
                       </span>
                       <ul className="space-y-1.5 text-ink">
                         {reports.reviews[0].demo_items.map((item: string, i: number) => (
                           <li key={i} className="flex items-start gap-2">
-                            <CheckCircle2 size={13} className="text-agent-integration shrink-0 mt-0.5" />
+                            <CheckCircle2 size={13} className="text-ok shrink-0 mt-0.5" />
                             <span>{item}</span>
                           </li>
                         ))}
@@ -331,18 +331,18 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
               {reports?.retros?.[0] ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Went Well */}
-                  <div className="rounded-xl p-4 border border-agent-integration/30 bg-agent-integration/20">
-                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-agent-integration/30">
-                      <CheckCircle2 size={16} className="text-agent-integration" />
-                      <h4 className="font-semibold uppercase tracking-wider text-agent-integration">
-                        WHAT WENT WELL
+                  <div className="rounded-xl p-4 border border-border-soft bg-ink/[0.03]">
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border-soft">
+                      <CheckCircle2 size={16} className="text-ok" />
+                      <h4 className="font-medium text-ink">
+                        What went well
                       </h4>
                     </div>
                     <ul className="space-y-2 text-ink font-medium">
                       {(reports.retros[0].what_went_well || ["Fast release cadence", "High test coverage"]).map(
                         (s: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 leading-relaxed">
-                            <span className="text-agent-integration font-semibold shrink-0">•</span>
+                            <span className="text-faint shrink-0">•</span>
                             <span>{s}</span>
                           </li>
                         )
@@ -354,8 +354,8 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   <div className="rounded-xl p-4 border border-warn/30 bg-warn/20">
                     <div className="flex items-center gap-2 mb-3 pb-2 border-b border-warn/30">
                       <AlertTriangle size={16} className="text-warn" />
-                      <h4 className="font-semibold uppercase tracking-wider text-warn">
-                        FRICTION & LEARNINGS
+                      <h4 className="font-medium text-ink">
+                        Friction & learnings
                       </h4>
                     </div>
                     <ul className="space-y-2 text-ink font-medium">
@@ -390,7 +390,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase rounded-full border ${
+                          className={`px-2 py-0.5 text-[11px] font-medium rounded-full border ${
                             r.severity === "HIGH"
                               ? "bg-error/10 text-error border-error/30 "
                               : r.severity === "MEDIUM"
@@ -406,7 +406,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                       </p>
                       {r.mitigation && (
                         <p className="text-[11px] text-muted">
-                          <strong className="text-ink uppercase mr-1">
+                          <strong className="text-ink font-medium mr-1">
                             Mitigation:
                           </strong>
                           {r.mitigation}
@@ -434,7 +434,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 text-[10px] font-semibold uppercase rounded-full bg-panel-alt text-ink">
+                        <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-panel-alt text-ink">
                           {item.severity} DEBT
                         </span>
                         {item.location && (
@@ -448,7 +448,7 @@ export const SprintCeremoniesView: React.FC<SprintCeremoniesViewProps> = ({
                       </p>
                       {item.impact && (
                         <p className="text-[11px] text-muted">
-                          <strong className="text-ink uppercase mr-1">
+                          <strong className="text-ink font-medium mr-1">
                             Impact:
                           </strong>
                           {item.impact}

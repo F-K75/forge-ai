@@ -735,9 +735,9 @@ export default function ActivityTab() {
         className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
       >
         {/* Metric 1: Fleet Executions */}
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Fleet Executions
             </span>
             <Bot size={15} className="text-accent" />
@@ -772,9 +772,9 @@ export default function ActivityTab() {
         </div>
 
         {/* Metric 2: LLM Tokens & Cost */}
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Compute & Tokens
             </span>
             <Zap size={15} className="text-warn" />
@@ -794,9 +794,9 @@ export default function ActivityTab() {
         </div>
 
         {/* Metric 3: Decision Engine Insights */}
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Neural Decisions
             </span>
             <Brain size={15} className="text-error" />
@@ -823,9 +823,9 @@ export default function ActivityTab() {
         </div>
 
         {/* Metric 4: Mean Turnaround Latency */}
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Mean Agent Latency
             </span>
             <Clock size={15} className="text-agent-integration" />
@@ -976,7 +976,7 @@ export default function ActivityTab() {
             <div key={dateLabel} className="space-y-3">
               {/* Date Group Heading */}
               <div className="flex items-center gap-3">
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-panel-alt text-muted border border-border font-mono">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-ink/[0.06] text-muted border border-border-soft">
                   {dateLabel}
                 </span>
                 <div className="h-px flex-1 bg-ink/10" />
@@ -1211,7 +1211,7 @@ export default function ActivityTab() {
               {activeTab === "logs" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
+                    <span className="text-xs text-muted">
                       Standard Out / Event Stream
                     </span>
                     <button
@@ -1305,7 +1305,7 @@ export default function ActivityTab() {
               {/* Tab: Generated Artifacts */}
               {activeTab === "files" && (
                 <div className="space-y-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
+                  <span className="text-xs text-muted">
                     Code & Manifest Artifacts
                   </span>
                   <div className="space-y-1.5">
@@ -1318,7 +1318,7 @@ export default function ActivityTab() {
                           <FileCode size={14} className="text-accent" />
                           <span>{file}</span>
                         </div>
-                        <span className="text-[10px] font-semibold uppercase text-ok">
+                        <span className="text-xs font-medium text-ok">
                           Generated
                         </span>
                       </div>
@@ -1332,7 +1332,7 @@ export default function ActivityTab() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
-                      <div className="text-[10px] uppercase font-semibold text-faint">
+                      <div className="text-xs text-muted">
                         Token Count
                       </div>
                       <div className="text-lg font-semibold font-mono text-ink">
@@ -1340,7 +1340,7 @@ export default function ActivityTab() {
                       </div>
                     </div>
                     <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
-                      <div className="text-[10px] uppercase font-semibold text-faint">
+                      <div className="text-xs text-muted">
                         Execution Cost
                       </div>
                       <div className="text-lg font-semibold font-mono text-ink">
@@ -1350,7 +1350,7 @@ export default function ActivityTab() {
                       </div>
                     </div>
                     <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
-                      <div className="text-[10px] uppercase font-semibold text-faint">
+                      <div className="text-xs text-muted">
                         Duration
                       </div>
                       <div className="text-lg font-semibold font-mono text-ink">
@@ -1360,7 +1360,7 @@ export default function ActivityTab() {
                       </div>
                     </div>
                     <div className="p-3.5 rounded-xl border border-border bg-ink/10 space-y-1">
-                      <div className="text-[10px] uppercase font-semibold text-faint">
+                      <div className="text-xs text-muted">
                         Status
                       </div>
                       <div className="text-lg font-semibold uppercase font-mono text-ink">

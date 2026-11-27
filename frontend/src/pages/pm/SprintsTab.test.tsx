@@ -133,10 +133,10 @@ describe("SprintsTab Redesign", () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText("STORY POINTS BURN")).toBeDefined();
-    expect(screen.getByText("VELOCITY & CAPACITY")).toBeDefined();
-    expect(screen.getByText("AI FORECAST & HEALTH")).toBeDefined();
-    expect(screen.getByText("WORK ITEMS")).toBeDefined();
+    expect(screen.getByText("Story points burn")).toBeDefined();
+    expect(screen.getByText("Velocity & capacity")).toBeDefined();
+    expect(screen.getByText("AI forecast & health")).toBeDefined();
+    expect(screen.getByText("Work items")).toBeDefined();
   });
 
   it("renders sprint backlog tasks and supports search", () => {
@@ -168,9 +168,9 @@ describe("SprintsTab Redesign", () => {
     const chartsTab = screen.getByRole("button", { name: /Burndown & Velocity/i });
     fireEvent.click(chartsTab);
 
-    expect(screen.getByText("BURNDOWN SIMULATION")).toBeDefined();
-    expect(screen.getByText("VELOCITY HISTORY")).toBeDefined();
-    expect(screen.getByText("AGENT WORKLOAD")).toBeDefined();
+    expect(screen.getByText("Burndown simulation")).toBeDefined();
+    expect(screen.getByText("Velocity history")).toBeDefined();
+    expect(screen.getByText("Agent workload")).toBeDefined();
   });
 
   it("allows switching to the Scrum Ceremonies tab and viewing reports", () => {
@@ -200,7 +200,7 @@ describe("SprintsTab Redesign", () => {
     const newSprintBtn = screen.getByRole("button", { name: /NEW SPRINT/i });
     fireEvent.click(newSprintBtn);
 
-    expect(screen.getByText("PLAN NEW SPRINT CYCLE")).toBeDefined();
+    expect(screen.getByText("Plan new sprint cycle")).toBeDefined();
     expect(screen.getByLabelText(/SPRINT NAME/i)).toBeDefined();
     expect(screen.getByLabelText(/SPRINT GOAL/i)).toBeDefined();
   });

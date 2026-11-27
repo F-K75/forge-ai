@@ -1,4 +1,5 @@
 import React from "react";
+import { SegmentedControl } from "../../../components/ui/SegmentedControl";
 import {
   GanttChartSquare,
   Columns4,
@@ -6,8 +7,6 @@ import {
   ListTree,
   Search,
   X,
-  Filter,
-  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -121,53 +120,33 @@ export function RoadmapFilterBar({
         {/* Filter Pills: Quarters & Priorities */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Quarter Cadence Pills */}
-          <div className="flex items-center gap-1 bg-panel p-1 rounded-xl border border-border-soft">
-            <span className="text-[10px] font-semibold text-faint uppercase tracking-wider px-1.5 hidden sm:inline">
-              Horizon:
-            </span>
-            {(["all", "Q1", "Q2", "Q3", "Q4"] as QuarterFilter[]).map((q) => {
-              const isSelected = selectedQuarter === q;
-              return (
-                <button
-                  key={q}
-                  id={`filter-quarter-${q}`}
-                  type="button"
-                  onClick={() => onQuarterChange(q)}
-                  className={`px-2 py-0.5 text-[11px] font-medium rounded-lg transition-colors cursor-pointer ${
-                    isSelected
-                      ? "bg-panel text-accent shadow-sm font-semibold"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {q === "all" ? "All" : q}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted hidden sm:inline">Horizon</span>
+            <SegmentedControl
+              label="Filter by horizon"
+              value={selectedQuarter}
+              onChange={onQuarterChange}
+              options={(["all", "Q1", "Q2", "Q3", "Q4"] as QuarterFilter[]).map((q) => ({
+                value: q,
+                id: `filter-quarter-${q}`,
+                label: q === "all" ? "All" : q,
+              }))}
+            />
           </div>
 
           {/* Priority Filter Pills */}
-          <div className="flex items-center gap-1 bg-panel p-1 rounded-xl border border-border-soft">
-            <span className="text-[10px] font-semibold text-faint uppercase tracking-wider px-1.5 hidden sm:inline">
-              Priority:
-            </span>
-            {(["all", "p0", "p1", "p2"] as PriorityFilter[]).map((p) => {
-              const isSelected = selectedPriority === p;
-              return (
-                <button
-                  key={p}
-                  id={`filter-priority-${p}`}
-                  type="button"
-                  onClick={() => onPriorityChange(p)}
-                  className={`px-2 py-0.5 text-[11px] font-medium rounded-lg transition-colors cursor-pointer uppercase ${
-                    isSelected
-                      ? "bg-panel text-accent shadow-sm font-semibold"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {p === "all" ? "All" : p}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted hidden sm:inline">Priority</span>
+            <SegmentedControl
+              label="Filter by priority"
+              value={selectedPriority}
+              onChange={onPriorityChange}
+              options={(["all", "p0", "p1", "p2"] as PriorityFilter[]).map((p) => ({
+                value: p,
+                id: `filter-priority-${p}`,
+                label: p === "all" ? "All" : p.toUpperCase(),
+              }))}
+            />
           </div>
         </div>
       </div>

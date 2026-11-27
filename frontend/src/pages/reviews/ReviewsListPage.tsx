@@ -99,8 +99,8 @@ function KpiCard({
  <Icon size={14} strokeWidth={2.5} aria-hidden="true" />
         </span>
  <div className="min-w-0">
- <div className="font-mono text-lg font-semibold leading-none text-ink">{value}</div>
- <div className="mt-1 truncate font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</div>
+ <div className="font-mono tabular-nums text-lg font-medium leading-none text-ink">{value}</div>
+ <div className="mt-1 truncate text-xs text-muted">{label}</div>
         </div>
       </div>
     </div>
@@ -413,7 +413,7 @@ export default function ReviewsListPage() {
                 Reviews
               </Link>
             </nav>
- <span className="font-mono text-xs text-muted uppercase tracking-wider">
+ <span className="text-xs text-muted">
               Forge Autonomous Review Board
             </span>
           </div>
@@ -478,7 +478,7 @@ export default function ReviewsListPage() {
  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-border pb-3">
             <div>
  <div className="flex items-center gap-2">
- <span className="flex h-6 w-6 items-center justify-center border rounded-lg border-border bg-warn/20 text-warn shadow-m3 font-mono text-xs font-semibold">
+ <span className="flex h-6 w-6 items-center justify-center border rounded-lg border-border bg-warn/20 text-warn shadow-m3 text-xs font-semibold">
                   #
                 </span>
  <h2 id="initiator-heading" className=" text-base font-semibold text-ink">
@@ -520,8 +520,8 @@ export default function ReviewsListPage() {
           {LIVE_MODE && !isConfigured && (
  <div className="mt-3 border rounded-lg border-border bg-warn/10 p-3 shadow-m3 flex items-start gap-2.5">
  <AlertTriangle size={16} className="shrink-0 text-warn mt-0.5" />
- <div className="font-mono text-xs text-ink">
- <span className="font-semibold uppercase">Service Notice: </span>
+ <div className="text-xs text-ink">
+ <span className="font-medium">Service notice: </span>
  Review Board orchestrator is not connected. Configure <code className="bg-ink/10 px-1 py-0.5 font-semibold">VITE_ORCHESTRATOR_URL</code> to dispatch audits to a live orchestrator daemon.
               </div>
             </div>
@@ -530,7 +530,7 @@ export default function ReviewsListPage() {
  <div className="mt-4 space-y-4">
             {/* Repo / File Target Input */}
             <div>
- <label htmlFor="repo-target-input" className="block font-mono text-xs font-semibold uppercase tracking-wider text-ink mb-1.5">
+ <label htmlFor="repo-target-input" className="block text-xs text-muted mb-1.5">
                 Target Repository or Path
               </label>
  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -546,7 +546,7 @@ export default function ReviewsListPage() {
                     onChange={(e) => setRepoPath(e.target.value)}
  onKeyDown={(e) => e.key === "Enter" && !isStarting && handleStartAudit()}
  placeholder="e.g. /workspaces/forge-ai or github.com/user/repo"
- className="h-7 w-full border border-border bg-panel pl-8 pr-3 font-mono text-xs font-semibold text-ink placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-border shadow-m3"
+ className="h-7 w-full border border-border bg-panel pl-8 pr-3 font-mono text-xs text-ink placeholder:text-faint placeholder:font-sans focus:outline-none focus:ring-1 focus:ring-border shadow-m3"
                   />
                 </div>
                 <button
@@ -562,7 +562,7 @@ export default function ReviewsListPage() {
 
               {/* Quick suggestion chips */}
  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
- <span className="font-mono text-[10px] font-semibold text-muted uppercase">Suggestions:</span>
+ <span className="text-xs text-muted">Suggestions</span>
                 {SUGGESTED_TARGETS.map((target) => (
                   <button
                     key={target}
@@ -583,7 +583,7 @@ export default function ReviewsListPage() {
  {mode === "diff" && (
  <div className="border rounded-lg border-border bg-ink p-3.5 text-on-ink shadow-m3">
  <div className="flex items-center justify-between mb-2">
- <span className="font-mono text-xs font-semibold uppercase tracking-wider text-brutal-yellow flex items-center gap-1.5">
+ <span className="text-xs font-medium text-warn flex items-center gap-1.5">
                     <GitPullRequest size={13} />
                     Unified Patch Diff Contents
                   </span>
@@ -608,7 +608,7 @@ export default function ReviewsListPage() {
             {/* Multi-Agent Fleet Selection */}
             <div>
  <div className="flex items-center justify-between mb-2">
- <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink">
+ <span className="text-xs text-muted">
                   Select Autonomous Audit Fleet ({selectedAgents.length}/{AVAILABLE_AGENTS.length} active)
                 </span>
  <div className="flex gap-1.5">
@@ -648,8 +648,8 @@ export default function ReviewsListPage() {
                         <Icon size={13} strokeWidth={2.5} />
                       </span>
  <div className="min-w-0 flex-1">
- <div className="font-mono text-xs font-semibold leading-tight text-ink">{agent.name}</div>
- <div className="mt-0.5 truncate font-mono text-[10px] font-semibold text-ink">{agent.desc}</div>
+ <div className="text-xs font-medium leading-tight text-ink">{agent.name}</div>
+ <div className="mt-0.5 truncate text-[11px] text-muted">{agent.desc}</div>
                       </div>
                     </button>
                   );
@@ -673,7 +673,7 @@ export default function ReviewsListPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
  placeholder="Search by repo path, run ID, or gate verdict..."
- className="h-7 w-full border border-border bg-panel pl-8 pr-7 font-mono text-xs font-semibold text-ink placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-border shadow-m3"
+ className="h-7 w-full border border-border bg-panel pl-8 pr-7 text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-border shadow-m3"
                 />
                 {search && (
                   <button
@@ -730,7 +730,7 @@ export default function ReviewsListPage() {
                   <button
  type="button"
  onClick={() => setViewMode("grid")}
-                    className={`h-7 w-7 border rounded-lg border-border flex items-center justify-center font-mono shadow-m3 ${
+                    className={`h-7 w-7 border rounded-lg border-border flex items-center justify-center shadow-m3 ${
  viewMode === "grid"
  ? "bg-ink text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
@@ -742,7 +742,7 @@ export default function ReviewsListPage() {
                   <button
  type="button"
  onClick={() => setViewMode("list")}
-                    className={`h-7 w-7 border rounded-lg border-border flex items-center justify-center font-mono shadow-m3 ${
+                    className={`h-7 w-7 border rounded-lg border-border flex items-center justify-center shadow-m3 ${
  viewMode === "list"
  ? "bg-ink text-on-ink"
  : "bg-panel-alt text-muted hover:text-ink"
@@ -760,7 +760,7 @@ export default function ReviewsListPage() {
           {loading ? (
  <div className="border rounded-xl border-border bg-panel p-12 text-center shadow-m3">
  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent mb-3" />
- <div className="font-mono text-sm font-semibold text-ink">Scanning audit records...</div>
+ <div className="text-sm font-medium text-ink">Scanning audit records...</div>
             </div>
           ) : LIVE_MODE && !isConfigured ? (
  <div className="border rounded-xl border-border bg-panel p-8 md:p-12 text-center shadow-m3">
@@ -840,15 +840,15 @@ export default function ReviewsListPage() {
  <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
  <div className="flex items-center gap-2">
                           <span
-                            className={`border rounded-lg border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${badgeBg}`}
+                            className={`border rounded-pill border-border px-2 py-0.5 text-[11px] font-medium shadow-m3 ${badgeBg}`}
                           >
                             {run.consolidated?.recommendation || run.status}
                           </span>
- <span className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted">
+ <span className="border rounded-pill border-border bg-panel-alt px-2 py-0.5 text-[11px] font-medium capitalize text-muted">
                             {run.mode}
                           </span>
                         </div>
- <span className="font-mono text-[11px] text-muted flex items-center gap-1 font-semibold">
+ <span className="font-mono tabular-nums text-[11px] text-muted flex items-center gap-1">
                           <Clock size={12} />
                           {formatRelativeTime(run.created_at)}
                         </span>
@@ -878,9 +878,9 @@ export default function ReviewsListPage() {
 
                       {/* Quality Score Bar */}
  <div className="mt-4 border rounded-lg border-border bg-panel-alt p-2.5 shadow-m3">
- <div className="flex items-center justify-between font-mono text-xs">
- <span className="font-semibold text-muted uppercase">Audit Score</span>
- <span className="font-semibold text-ink text-sm">
+ <div className="flex items-center justify-between text-xs">
+ <span className="text-muted">Audit score</span>
+ <span className="font-mono tabular-nums font-medium text-ink text-sm">
                             {score}
  {typeof score === "number" ? "/100" : ""}
                           </span>
@@ -902,7 +902,7 @@ export default function ReviewsListPage() {
                         {run.triggered_agents.map((agentId) => (
                           <span
                             key={agentId}
- className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
+ className="border rounded-pill border-border bg-panel-alt px-2 py-0.5 text-[11px] font-medium text-ink"
                           >
  {agentId.replace("_agent", "")}
                           </span>
@@ -912,10 +912,10 @@ export default function ReviewsListPage() {
 
                     {/* Card Footer Actions */}
  <div className="mt-5 pt-3 border-t border-border flex items-center justify-between">
- <div className="flex items-center gap-1.5 font-mono text-xs font-semibold">
+ <div className="flex items-center gap-1.5 text-xs font-medium">
  <ShieldAlert size={14} className={run.backlog?.length ? "text-error" : "text-ok"} />
                         <span>
- {run.backlog?.length ?? 0} {run.backlog?.length === 1 ? "issue" : "issues"}
+ <span className="font-mono tabular-nums">{run.backlog?.length ?? 0}</span> {run.backlog?.length === 1 ? "issue" : "issues"}
                         </span>
                       </div>
 
@@ -935,7 +935,7 @@ export default function ReviewsListPage() {
                         <button
  type="button"
                           onClick={(e) => handleDeleteRun(e, run.run_id)}
- className="h-7 w-7 border rounded-lg border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
+ className="h-7 w-7 border rounded-lg border-border bg-panel flex items-center justify-center text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
  title="Delete record"
                         >
                           <Trash2 size={12} />
@@ -949,8 +949,8 @@ export default function ReviewsListPage() {
           ) : (
             /* Dense Table / List View */
  <div className="overflow-x-auto border border-border bg-panel shadow-m3">
- <table className="w-full text-left font-mono text-xs">
- <thead className="border-b border-border bg-panel-alt text-ink uppercase tracking-wider font-mono font-semibold">
+ <table className="w-full text-left text-xs">
+ <thead className="border-b border-border bg-panel-alt text-muted font-medium">
                   <tr>
  <th className="px-4 py-3">Audit ID / Time</th>
  <th className="px-4 py-3">Target Repository</th>
@@ -982,9 +982,9 @@ export default function ReviewsListPage() {
                         onClick={() => navigate(`/reviews/${run.run_id}`)}
  className="hover:bg-ink/5 cursor-pointer transition-colors"
                       >
- <td className="px-4 py-3 font-semibold text-ink">
+ <td className="px-4 py-3 font-mono text-ink">
                           <div>{run.run_id}</div>
- <div className="text-[10px] text-muted font-normal">{formatRelativeTime(run.created_at)}</div>
+ <div className="text-[11px] text-muted font-normal">{formatRelativeTime(run.created_at)}</div>
                         </td>
  <td className="px-4 py-3 font-semibold text-ink max-w-[240px] truncate">
  <div className="flex items-center gap-1.5">
@@ -992,19 +992,19 @@ export default function ReviewsListPage() {
  <span className="truncate">{run.repo_path}</span>
                           </div>
                         </td>
- <td className="px-4 py-3 font-semibold uppercase text-muted">{run.mode}</td>
+ <td className="px-4 py-3 capitalize text-muted">{run.mode}</td>
  <td className="px-4 py-3">
                           <span
-                            className={`border rounded-lg border-border px-2 py-0.5 font-mono font-semibold uppercase text-[10px] shadow-m3 ${badgeBg}`}
+                            className={`border rounded-pill border-border px-2 py-0.5 font-medium text-[11px] shadow-m3 ${badgeBg}`}
                           >
                             {run.consolidated?.recommendation || run.status}
                           </span>
                         </td>
- <td className="px-4 py-3 font-semibold text-ink">
+ <td className="px-4 py-3 font-mono tabular-nums text-ink">
                           {score}
  {typeof score === "number" ? "/100" : ""}
                         </td>
- <td className="px-4 py-3 font-semibold">
+ <td className="px-4 py-3 font-mono tabular-nums">
                           <span
                             className={
  (run.backlog?.length ?? 0) > 0 ? "text-error font-semibold" : "text-muted font-normal"
@@ -1028,7 +1028,7 @@ export default function ReviewsListPage() {
                             <button
  type="button"
                               onClick={(e) => handleDeleteRun(e, run.run_id)}
- className="h-7 w-7 border rounded-lg border-border bg-panel flex items-center justify-center font-mono text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
+ className="h-7 w-7 border rounded-lg border-border bg-panel flex items-center justify-center text-muted hover:text-error hover:border-error shadow-m3 transition-colors"
  title="Delete run"
                             >
                               <Trash2 size={12} />
@@ -1056,18 +1056,18 @@ export default function ReviewsListPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 8 }}
               transition={{ duration: 0.18 }}
- className="w-full max-w-2xl border rounded-xl border-border bg-panel p-6 shadow-m3 max-h-[85vh] flex flex-col font-mono"
+ className="w-full max-w-2xl border rounded-xl border-border bg-panel p-6 shadow-m3 max-h-[85vh] flex flex-col"
             >
  <div className="flex items-start justify-between border-b border-border pb-3">
                 <div>
  <div className="flex items-center gap-2">
- <span className="border rounded-lg border-border bg-ink text-on-ink px-2 py-0.5 font-mono text-xs font-semibold uppercase shadow-m3 text-on-ink">
+ <span className="border rounded-lg border-border bg-ink text-on-ink px-2 py-0.5 text-xs font-medium shadow-m3 text-on-ink">
                       Backlog
                     </span>
  <h3 className=" text-base font-semibold text-ink">{activeBacklogModal.repo_path}</h3>
                   </div>
- <div className="mt-1 font-mono text-xs text-muted">
- Run: {activeBacklogModal.run_id} · Gate Verdict:{" "}
+ <div className="mt-1 text-xs text-muted">
+ Run: <span className="font-mono">{activeBacklogModal.run_id}</span> · Gate Verdict:{" "}
  <strong>{activeBacklogModal.consolidated?.recommendation || "PENDING"}</strong> (Score{" "}
  {activeBacklogModal.consolidated?.overall_score ?? "N/A"}/100)
                   </div>
@@ -1083,7 +1083,7 @@ export default function ReviewsListPage() {
 
  <div className="mt-4 flex-1 overflow-y-auto space-y-3 pr-1">
                 {activeBacklogModal.backlog.length === 0 ? (
- <div className="p-8 text-center font-mono text-xs text-muted">
+ <div className="p-8 text-center text-xs text-muted">
                     No backlog issues recorded for this audit.
                   </div>
                 ) : (
@@ -1101,25 +1101,25 @@ export default function ReviewsListPage() {
  <div key={item.id} className="border rounded-lg border-border bg-panel p-3.5 space-y-2 shadow-m3">
  <div className="flex items-center justify-between">
                           <span
-                            className={`border rounded-lg border-border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase shadow-m3 ${sevColor}`}
+                            className={`border rounded-pill border-border px-2 py-0.5 text-[11px] font-medium capitalize shadow-m3 ${sevColor}`}
                           >
                             {item.severity}
                           </span>
- <div className="font-mono text-[10px] font-semibold text-muted">
-                            Impact: {item.impact}/10 · Effort: {item.effort}
+ <div className="text-[11px] text-muted">
+                            Impact <span className="font-mono tabular-nums text-ink">{item.impact}/10</span> · Effort <span className="font-mono tabular-nums text-ink">{item.effort}</span>
                           </div>
                         </div>
  <h4 className=" text-xs font-semibold text-ink">{item.title}</h4>
  <p className=" text-xs text-muted leading-relaxed">{item.description}</p>
                         {item.fix && (
- <div className="border rounded-lg border-border bg-panel p-2 text-xs font-mono text-ink">
- <span className="font-semibold text-brutal-orange">Suggested Fix: </span>
+ <div className="border rounded-lg border-border bg-panel p-2 text-xs text-ink">
+ <span className="font-medium text-muted">Suggested fix: </span>
                             {item.fix}
                           </div>
                         )}
                         {item.files.length > 0 && (
- <div className="font-mono text-[10px] text-muted truncate">
- Files: {item.files.join(", ")}
+ <div className="text-[11px] text-muted truncate">
+ Files: <span className="font-mono">{item.files.join(", ")}</span>
                           </div>
                         )}
                       </div>

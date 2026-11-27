@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
+import { Badge } from "../../components/ui/Badge";
 import toast from "react-hot-toast";
 import {
   Rocket,
@@ -659,14 +661,14 @@ export default function ReleasesTab() {
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink/[0.06] text-ink font-semibold">
-              <Rocket size={18} className="text-warn" />
+              <Rocket size={18} className="text-muted" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-semibold tracking-tight text-ink">
+                <h1 className="text-xl font-medium tracking-tight text-ink">
                   Release Management & Orchestration
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-panel-alt text-muted border border-border">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-ink/[0.06] text-muted border border-border-soft">
                   SemVer Cadence
                 </span>
               </div>
@@ -684,10 +686,10 @@ export default function ReleasesTab() {
             id="btn-export-changelog"
             type="button"
             onClick={() => setShowChangelogModal(true)}
-            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98]"
+            className="h-9 px-3 rounded-pill border border-transparent text-muted hover:bg-ink/5 hover:text-ink text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
             title="Preview and export full markdown changelog"
           >
-            <FileText size={14} className="text-muted" />
+            <FileText size={14} />
             <span>Changelog</span>
           </button>
 
@@ -697,13 +699,13 @@ export default function ReleasesTab() {
             type="button"
             onClick={handleAutoGenerate}
             disabled={generating}
-            className="h-9 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-3 rounded-pill border border-glass-border bg-glass hover:bg-ink/10 text-xs font-medium text-ink flex items-center gap-1.5 cursor-pointer transition-colors active:scale-[0.98] disabled:opacity-50"
             title="Deterministically compile a new release plan from completed tasks and stories"
           >
             {generating ? (
-              <Loader2 size={14} className="animate-spin text-warn" />
+              <Loader2 size={14} className="animate-spin" />
             ) : (
-              <Sparkles size={14} className="text-warn" />
+              <Sparkles size={14} />
             )}
             <span>Auto-Compile</span>
           </button>
@@ -713,9 +715,9 @@ export default function ReleasesTab() {
             id="btn-create-release"
             type="button"
             onClick={() => handleOpenCreateModal("minor")}
-            className="h-9 px-4 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 transition-all active:scale-[0.98]"
+            className="h-9 px-4 rounded-pill bg-ink text-on-ink text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:bg-ink/90 transition-all active:scale-[0.98]"
           >
-            <Plus size={14} strokeWidth={2.5} />
+            <Plus size={14} />
             <span>New Release</span>
           </button>
         </div>
@@ -726,41 +728,41 @@ export default function ReleasesTab() {
         aria-label="Release Metrics"
         className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
       >
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Active Pipeline
             </span>
             <Tag size={14} className="text-faint" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-ink">
+            <span className="font-mono tabular-nums text-2xl font-medium tracking-tight text-ink">
               {telemetry.total}
             </span>
             <span className="text-xs text-muted">releases tracked</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[11px] text-muted">
-            <span className="text-ok font-semibold">
-              {telemetry.released} Shipped
+            <span className="text-ok">
+              <span className="font-mono tabular-nums">{telemetry.released}</span> shipped
             </span>
             <span>·</span>
-            <span className="text-accent font-semibold">
-              {telemetry.inProgress} Staging
+            <span className="text-info">
+              <span className="font-mono tabular-nums">{telemetry.inProgress}</span> staging
             </span>
             <span>·</span>
-            <span>{telemetry.planned} Planned</span>
+            <span><span className="font-mono tabular-nums">{telemetry.planned}</span> planned</span>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Mean Confidence
             </span>
-            <ShieldCheck size={14} className="text-ok" />
+            <ShieldCheck size={14} className="text-faint" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-ink">
+            <span className="font-mono tabular-nums text-2xl font-medium tracking-tight text-ink">
               {telemetry.avgConfidence}%
             </span>
             <span className="text-xs text-ok font-medium">
@@ -781,15 +783,15 @@ export default function ReleasesTab() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Shippable Scope
             </span>
-            <Layers size={14} className="text-accent" />
+            <Layers size={14} className="text-faint" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-ink">
+            <span className="font-mono tabular-nums text-2xl font-medium tracking-tight text-ink">
               {telemetry.totalFeatures}
             </span>
             <span className="text-xs text-muted">features & fixes</span>
@@ -799,9 +801,9 @@ export default function ReleasesTab() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-panel p-4 shadow-xs">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Release Blockers
             </span>
             <AlertCircle
@@ -813,7 +815,7 @@ export default function ReleasesTab() {
           </div>
           <div className="flex items-baseline gap-2">
             <span
-              className={`text-2xl font-semibold tracking-tight ${
+              className={`font-mono tabular-nums text-2xl font-medium tracking-tight ${
                 telemetry.totalBlockers > 0
                   ? "text-error"
                   : "text-ink"
@@ -838,21 +840,19 @@ export default function ReleasesTab() {
         <section
           id="active-release-spotlight"
           aria-label="Active Release Spotlight"
-          className="rounded-2xl border border-border bg-gradient-to-r from-panel/90 via-panel to-panel/90 p-5 shadow-xs"
+          className="rounded-xl border border-border bg-panel p-5"
         >
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="space-y-2 max-w-xl">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wider uppercase bg-warn/15 text-warn border border-warn/30">
-                  Target In-Flight Milestone
-                </span>
+                <Badge variant="warning">Target In-Flight Milestone</Badge>
                 <span className="text-xs text-muted font-mono">
                   {activeRelease.target_sprint || "Sprint 2"}
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-semibold tracking-tight font-mono text-ink">
+                <h2 className="text-2xl font-medium tracking-tight font-mono text-ink">
                   {activeRelease.version}
                 </h2>
                 <span
@@ -912,7 +912,7 @@ export default function ReleasesTab() {
             <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3 border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-6">
               {/* Gate Checklist Indicators */}
               <div className="space-y-1.5 text-xs">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-faint">
+                <div className="text-xs text-muted">
                   Readiness Gate Matrix
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
@@ -968,7 +968,7 @@ export default function ReleasesTab() {
                 <button
                   type="button"
                   onClick={() => handleAuditRelease(activeRelease)}
-                  className="h-8 px-3 rounded-pill border border-border bg-panel hover:bg-ink/5 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  className="h-8 px-3 rounded-pill border border-transparent text-muted hover:bg-ink/5 hover:text-ink text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
                   title="Recalculate gate scores using latest task/story completion"
                 >
                   <RefreshCw size={12} />
@@ -978,7 +978,7 @@ export default function ReleasesTab() {
                 <button
                   type="button"
                   onClick={() => setSelectedRelease(activeRelease)}
-                  className="h-8 px-3 rounded-pill bg-ink text-on-ink text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-2xs hover:opacity-90"
+                  className="h-8 px-3 rounded-pill border border-glass-border bg-glass text-ink hover:bg-ink/10 text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <span>Inspect Plan</span>
                   <ChevronRight size={13} />
@@ -1018,28 +1018,19 @@ export default function ReleasesTab() {
           </div>
 
           {/* Status Filter Pills */}
-          <div className="flex items-center gap-1 bg-panel-alt p-0.5 rounded-xl border border-border">
-            {[
-              { id: "all", label: "All" },
-              { id: "planned", label: "Planned" },
-              { id: "in_progress", label: "Staging" },
-              { id: "released", label: "Released" },
-              { id: "ready", label: "Ready to Ship" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setStatusFilter(f.id)}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                  statusFilter === f.id
-                    ? "bg-panel text-ink shadow-2xs font-semibold"
-                    : "text-muted hover:text-ink"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Filter releases by status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            className="overflow-x-auto max-w-full"
+            options={[
+              { value: "all", label: "All" },
+              { value: "planned", label: "Planned" },
+              { value: "in_progress", label: "Staging" },
+              { value: "released", label: "Released" },
+              { value: "ready", label: "Ready to ship" },
+            ]}
+          />
         </div>
 
         {/* View Mode Toggle */}
@@ -1102,7 +1093,7 @@ export default function ReleasesTab() {
             <button
               type="button"
               onClick={handleAutoGenerate}
-              className="h-8 px-3 rounded-pill border border-border bg-panel text-xs font-semibold text-ink hover:bg-ink/5 cursor-pointer shadow-2xs"
+              className="h-8 px-3 rounded-pill border border-glass-border bg-glass text-xs font-medium text-ink hover:bg-ink/10 cursor-pointer"
             >
               Auto-Compile from Sprints
             </button>
@@ -1122,18 +1113,18 @@ export default function ReleasesTab() {
             <article
               key={release.id}
               id={`release-card-${release.id}`}
-              className="rounded-2xl border border-border bg-panel p-5 shadow-xs flex flex-col justify-between hover:border-border transition-all duration-200 group"
+              className="rounded-xl border border-border bg-panel p-5 flex flex-col justify-between hover:border-ink/20 transition-colors duration-200 group"
             >
               <div className="space-y-3">
                 {/* Card Top: Version, Status & Confidence */}
                 <div className="flex items-start justify-between gap-2 border-b border-border-soft pb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-semibold font-mono tracking-tight text-ink group-hover:text-warn transition-colors">
+                      <h3 className="text-base font-medium font-mono tracking-tight text-ink">
                         {release.version}
                       </h3>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider ${
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                           STATUS_META[release.status]?.badgeCls ||
                           STATUS_META.planned.badgeCls
                         }`}
@@ -1148,10 +1139,10 @@ export default function ReleasesTab() {
 
                   {/* Confidence Pill */}
                   <div className="text-right">
-                    <div className="text-xs font-semibold font-mono text-ink">
+                    <div className="text-xs font-medium font-mono tabular-nums text-ink">
                       {release.confidence_score}%
                     </div>
-                    <div className="text-[9px] uppercase tracking-wider text-faint font-medium">
+                    <div className="text-[11px] text-faint">
                       Confidence
                     </div>
                   </div>
@@ -1184,20 +1175,20 @@ export default function ReleasesTab() {
                         : "bg-panel-alt text-muted border-border"
                     }`}
                   >
-                    QA: {release.qa_status.toUpperCase()}
+                    QA: {release.qa_status.replace(/_/g, " ")}
                   </span>
                 </div>
 
                 {/* Features Preview List */}
                 <div className="space-y-1 pt-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-faint">
+                  <div className="text-xs text-muted">
                     Included Deliverables ({release.features?.length || 0})
                   </div>
                   <ul className="space-y-1 text-xs text-muted line-clamp-3">
                     {release.features && release.features.length > 0 ? (
                       release.features.slice(0, 3).map((f, i) => (
                         <li key={i} className="flex items-start gap-1.5">
-                          <span className="text-warn text-xs leading-tight">›</span>
+                          <span className="text-faint text-xs leading-tight">›</span>
                           <span className="truncate">{f}</span>
                         </li>
                       ))
@@ -1247,7 +1238,7 @@ export default function ReleasesTab() {
                     id={`btn-inspect-release-${release.id}`}
                     type="button"
                     onClick={() => setSelectedRelease(release)}
-                    className="h-7 px-2.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-[11px] font-semibold text-ink flex items-center gap-1 cursor-pointer shadow-2xs"
+                    className="h-7 px-2.5 rounded-pill border border-transparent text-muted hover:bg-ink/5 hover:text-ink text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     <span>Manage</span>
                     <ChevronRight size={11} />
@@ -1263,7 +1254,7 @@ export default function ReleasesTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-border bg-ink/10 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                <tr className="border-b border-border bg-ink/[0.03] text-muted font-normal text-xs">
                   <th className="py-3 px-4">Version</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Readiness Gate</th>
@@ -1286,7 +1277,7 @@ export default function ReleasesTab() {
                     </td>
                     <td className="py-3.5 px-4">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider ${
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                           STATUS_META[release.status]?.badgeCls ||
                           STATUS_META.planned.badgeCls
                         }`}
@@ -1626,7 +1617,7 @@ export default function ReleasesTab() {
                       {selectedRelease.version}
                     </h3>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider ${
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                         STATUS_META[selectedRelease.status]?.badgeCls ||
                         STATUS_META.planned.badgeCls
                       }`}
@@ -1667,7 +1658,7 @@ export default function ReleasesTab() {
               {/* Status Promotion Bar */}
               <div className="p-4 rounded-xl border border-border bg-ink/10 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
+                  <span className="text-xs text-muted">
                     Release Lifecycle Progression
                   </span>
                   <button
@@ -1736,8 +1727,8 @@ export default function ReleasesTab() {
               {/* Deployment Readiness Quality Gates Checklist */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
-                    <ShieldCheck size={14} className="text-ok" />
+                  <h4 className="font-medium text-sm text-ink flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-faint" />
                     <span>Deployment Readiness Gates</span>
                   </h4>
                   <span className="text-[11px] font-mono text-muted">
@@ -1825,8 +1816,8 @@ export default function ReleasesTab() {
               {/* Deliverables / Features List Management */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
-                    <Layers size={14} className="text-accent" />
+                  <h4 className="font-medium text-sm text-ink flex items-center gap-1.5">
+                    <Layers size={14} className="text-faint" />
                     <span>Included Deliverables ({selectedRelease.features?.length || 0})</span>
                   </h4>
                 </div>
@@ -1910,7 +1901,7 @@ export default function ReleasesTab() {
               {/* Blocked Items & Remediation */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
+                  <h4 className="font-medium text-sm text-ink flex items-center gap-1.5">
                     <AlertTriangle size={14} className="text-error" />
                     <span>
                       Blocked Items & Risks ({selectedRelease.blocked_items?.length || 0})
@@ -1963,7 +1954,7 @@ export default function ReleasesTab() {
               {/* Release Notes / Markdown Preview & Copy */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold uppercase tracking-wider text-[11px] text-ink flex items-center gap-1.5">
+                  <h4 className="font-medium text-sm text-ink flex items-center gap-1.5">
                     <FileText size={14} className="text-faint" />
                     <span>Formatted Release Notes</span>
                   </h4>

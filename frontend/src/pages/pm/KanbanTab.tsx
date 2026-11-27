@@ -24,8 +24,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Layers,
-  LayoutGrid,
-  Columns,
   Plus,
   Sparkles,
   ChevronRight,
@@ -43,6 +41,9 @@ import { motion, motionVariants } from "../../lib/animations";
 import { TaskDependencyModal } from "../../components/pm/TaskDependencyModal";
 import { DependencyArrowsOverlay } from "../../components/pm/DependencyArrowsOverlay";
 import { Tabs } from "../../components/ui/Tabs";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
+import { Badge } from "../../components/ui/Badge";
+import { Button } from "../../components/ui/Button";
 import SprintsTab from "./SprintsTab";
 import GraphTab from "./GraphTab";
 import ReleasesTab from "./ReleasesTab";
@@ -118,16 +119,16 @@ export const COLUMNS: {
     label: "Support",
     color: COLORS.agentIntegration,
     dotColor: COLORS.agentIntegration,
-    accentBg: "bg-agent-integration/10",
-    accentText: "text-agent-integration",
+    accentBg: "bg-ink/[0.06]",
+    accentText: "text-muted",
   },
 ];
 
 export const COLUMN_PRESETS = [
-  { id: "all", label: "ALL COLUMNS (8)", desc: "Show complete 8-phase sprint board" },
-  { id: "active", label: "ACTIVE SPRINT (4)", desc: "Ready, In Progress, Code Review, Testing" },
-  { id: "core", label: "CORE FLOW (4)", desc: "Backlog, Ready, In Progress, Done" },
-  { id: "qa", label: "QA & BLOCKED (4)", desc: "Code Review, Testing, Blocked, Done" },
+  { id: "all", label: "All columns (8)", desc: "Show complete 8-phase sprint board" },
+  { id: "active", label: "Active sprint (4)", desc: "Ready, In Progress, Code Review, Testing" },
+  { id: "core", label: "Core flow (4)", desc: "Backlog, Ready, In Progress, Done" },
+  { id: "qa", label: "QA & blocked (4)", desc: "Code Review, Testing, Blocked, Done" },
 ] as const;
 
 export const normalizePriority = (priority?: string): "p0" | "p1" | "p2" | "p3" | "" => {
@@ -415,7 +416,7 @@ function TaskCard({
                 onFilterByPriority(normP);
               }}
               title={`Priority: ${priorityCfg.badgeText} (Click to filter)`}
-              className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-full border transition-transform hover:scale-105 cursor-pointer ${priorityCfg.bg} ${priorityCfg.text} ${priorityCfg.border}`}
+              className={`inline-flex items-center gap-1.5 font-mono text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${priorityCfg.bg} ${priorityCfg.text} ${priorityCfg.border}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${priorityCfg.dotBg}`} />
               <span>{priorityCfg.label}</span>
@@ -432,10 +433,10 @@ function TaskCard({
                 onOpenDependencyModal?.(task as PMTask);
               }}
               title={`BLOCKED by ${activeBlockers.length} incomplete prerequisite task(s)`}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-error/30 bg-error/10 text-error hover:bg-error/20 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border border-error/20 bg-error/10 text-error hover:bg-error/20 transition-colors cursor-pointer"
             >
               <AlertTriangle className="w-2.5 h-2.5 text-error shrink-0 stroke-[2.5]" />
-              <span>BLOCKED ({activeBlockers.length})</span>
+              <span>Blocked ({activeBlockers.length})</span>
             </button>
           )}
 
@@ -449,10 +450,10 @@ function TaskCard({
                 onOpenDependencyModal?.(task as PMTask);
               }}
               title={`All ${dependencies.length} prerequisite dependencies are completed! Task is unblocked.`}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-ok/30 bg-ok/10 text-ok hover:bg-ok/20 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border border-ok/20 bg-ok/10 text-ok hover:bg-ok/20 transition-colors cursor-pointer"
             >
               <CheckCircle2 className="w-2.5 h-2.5 text-ok shrink-0 stroke-[2.5]" />
-              <span>UNBLOCKED</span>
+              <span>Unblocked</span>
             </button>
           )}
 
@@ -466,16 +467,16 @@ function TaskCard({
                 onOpenDependencyModal?.(task as PMTask);
               }}
               title={`Blocks ${downstreamTasks.length} downstream task(s)`}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-warn/30 bg-warn/10 text-warn hover:bg-warn/20 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border border-warn/20 bg-warn/10 text-warn hover:bg-warn/20 transition-colors cursor-pointer"
             >
               <GitFork className="w-2.5 h-2.5 text-warn shrink-0 stroke-[2.5]" />
-              <span>BLOCKS {downstreamTasks.length}</span>
+              <span>Blocks {downstreamTasks.length}</span>
             </button>
           )}
 
           {/* Category Chip */}
           {task.category && (
-            <span className="text-[10px] font-semibold text-muted bg-panel-alt px-2 py-0.5 rounded-md uppercase tracking-tight">
+            <span className="text-[11px] text-muted bg-ink/[0.06] px-2 py-0.5 rounded-full">
               {task.category}
             </span>
           )}
@@ -483,7 +484,7 @@ function TaskCard({
 
         {/* Task ID */}
         {task.id && (
-          <span className="text-[10px] font-mono font-semibold text-faint uppercase shrink-0 ml-1">
+          <span className="text-[11px] font-mono text-faint shrink-0 ml-1">
             #{String(task.id).replace(/^task-/, "")}
           </span>
         )}
@@ -492,7 +493,7 @@ function TaskCard({
       {/* Task Title */}
       <p
         aria-label={task.title}
-        className="text-[13px] font-semibold text-ink mb-1.5 leading-snug tracking-tight line-clamp-2 min-h-[2.3rem] group-hover:text-accent transition-colors"
+        className="text-[13px] font-medium text-ink mb-1.5 leading-snug tracking-tight line-clamp-2 min-h-[2.3rem] group-hover:text-accent transition-colors"
       >
         {highlightMatch(task.title || "", searchQuery)}
       </p>
@@ -635,7 +636,7 @@ function Column({
   label,
   tasks,
   dotColor,
-  accentBg,
+  accentBg: _accentBg,
   searchQuery,
   hasActiveFilters,
   allTasks = [],
@@ -683,14 +684,14 @@ function Column({
         viewMode === "grid12"
           ? colSpanClass || "col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3 w-full"
           : "w-[300px] shrink-0"
-      } flex flex-col rounded-2xl bg-ink/10 border border-border shadow-xs transition-all ${
+      } flex flex-col rounded-xl bg-ink/[0.03] border border-border-soft transition-all ${
         isOver
-          ? "border-info/30 bg-info/20 ring-2 ring-info/30 shadow-md"
+          ? "border-ink/30 bg-ink/[0.06] ring-2 ring-ink/10"
           : ""
       }`}
     >
       {/* Column Header */}
-      <div className="sticky top-0 z-10 px-4 py-3 bg-panel/80 backdrop-blur-md rounded-t-2xl border-b border-border">
+      <div className="sticky top-0 z-10 px-4 py-3 bg-panel/80 backdrop-blur-md rounded-t-xl border-b border-border-soft">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -698,13 +699,13 @@ function Column({
               style={{ backgroundColor: dotColor }}
               aria-hidden="true"
             />
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink truncate">
+            <h3 className="text-caption font-medium text-ink truncate">
               {label}
             </h3>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded-full border border-border ${accentBg || "bg-panel-alt text-ink"}`}>
+            <span className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-full bg-ink/[0.06] text-muted">
               {tasks.length}
             </span>
             <button
@@ -843,7 +844,7 @@ function TaskDetailModal({
                 {pCfg.label}
               </span>
             )}
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+            <span className="text-xs text-muted">
               Task Details
             </span>
           </div>
@@ -871,7 +872,7 @@ function TaskDetailModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {/* Status Selector */}
           <div>
-            <label htmlFor="task-detail-status-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1.5 block">
+            <label htmlFor="task-detail-status-select" className="text-xs text-muted mb-1.5 block">
               Workflow Status
             </label>
             <select
@@ -890,7 +891,7 @@ function TaskDetailModal({
 
           {/* Priority Selector */}
           <div>
-            <label htmlFor="task-detail-priority-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1.5 block">
+            <label htmlFor="task-detail-priority-select" className="text-xs text-muted mb-1.5 block">
               Priority Level
             </label>
             <select
@@ -910,7 +911,7 @@ function TaskDetailModal({
         {/* Dependencies Section */}
         <div className="border-t-2 border-border-soft pt-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-ink flex items-center gap-1.5">
+            <h4 className="text-sm font-medium text-ink flex items-center gap-1.5">
               <Link2 size={13} />
               <span>Dependencies & Blockers ({deps.length})</span>
             </h4>
@@ -944,7 +945,7 @@ function TaskDetailModal({
                       {dep.title}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-panel-alt text-muted shrink-0">
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-ink/[0.06] text-muted shrink-0">
                     {dep.status}
                   </span>
                 </div>
@@ -1087,7 +1088,7 @@ function CreateTaskModal({
         <div className="flex items-center justify-between pb-3 border-b-2 border-border-soft">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-ok border-2 border-border" />
-            <h3 id="create-task-modal-title" className="text-sm font-semibold uppercase tracking-wider text-ink">
+            <h3 id="create-task-modal-title" className="text-sm font-medium text-ink">
               Create New Task
             </h3>
           </div>
@@ -1103,7 +1104,7 @@ function CreateTaskModal({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label htmlFor="create-task-title-input" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
+            <label htmlFor="create-task-title-input" className="text-xs text-muted mb-1 block">
               Task Title *
             </label>
             <input
@@ -1118,7 +1119,7 @@ function CreateTaskModal({
           </div>
 
           <div>
-            <label htmlFor="create-task-desc-input" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
+            <label htmlFor="create-task-desc-input" className="text-xs text-muted mb-1 block">
               Description
             </label>
             <textarea
@@ -1133,7 +1134,7 @@ function CreateTaskModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="create-task-status-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
+              <label htmlFor="create-task-status-select" className="text-xs text-muted mb-1 block">
                 Column Status
               </label>
               <select
@@ -1151,7 +1152,7 @@ function CreateTaskModal({
             </div>
 
             <div>
-              <label htmlFor="create-task-priority-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
+              <label htmlFor="create-task-priority-select" className="text-xs text-muted mb-1 block">
                 Priority
               </label>
               <select
@@ -1170,7 +1171,7 @@ function CreateTaskModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="create-task-agent-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
+              <label htmlFor="create-task-agent-select" className="text-xs text-muted mb-1 block">
                 Assignee Agent
               </label>
               <select
@@ -1188,7 +1189,7 @@ function CreateTaskModal({
             </div>
 
             <div>
-              <label htmlFor="create-task-category-input" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
+              <label htmlFor="create-task-category-input" className="text-xs text-muted mb-1 block">
                 Category Tag
               </label>
               <input
@@ -1204,7 +1205,7 @@ function CreateTaskModal({
 
           {sprints && sprints.length > 0 && (
             <div>
-              <label htmlFor="create-task-sprint-select" className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1 block">
+              <label htmlFor="create-task-sprint-select" className="text-xs text-muted mb-1 block">
                 Target Sprint
               </label>
               <select
@@ -1569,22 +1570,21 @@ export default function KanbanTab() {
       ) : (
     <div className="flex flex-col h-full min-h-0 bg-panel rounded-lg border border-border font-sans antialiased text-ink">
       {/* Top Header & Filter Control Bar */}
-      <div className="px-4 py-3.5 md:px-6 shrink-0 bg-panel border-b-2 border-border shadow-xs">
+      <div className="px-4 py-3.5 md:px-6 shrink-0 bg-panel border-b border-border">
         {/* Title and High-Level Status Row */}
         <div className="flex items-center justify-between gap-4 mb-3.5 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-ink text-panel flex items-center justify-center border border-border shadow-m3-1">
-              <Layers size={20} strokeWidth={2.5} />
+            <div className="w-10 h-10 rounded-xl bg-ink/[0.06] text-muted flex items-center justify-center">
+              <Layers size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm md:text-base font-semibold text-ink tracking-tight leading-tight">
+                <h1 className="text-sm md:text-base font-medium text-ink tracking-tight leading-tight">
                   Sprint Planning Board
                 </h1>
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-ok/10 text-ok border border-ok/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
-                  Active Sprint
-                </span>
+                <Badge variant="accent" dot>
+                  Active sprint
+                </Badge>
               </div>
               <p className="text-xs text-muted mt-0.5">
                 {initiative?.name || "AI-Native Engineering Team"} &bull; Real-time Kanban & Dependency Graph
@@ -1594,19 +1594,19 @@ export default function KanbanTab() {
 
           {/* Quick Metrics Badges & Add Task Action */}
           <div className="flex items-center gap-2 text-xs font-medium flex-wrap">
-            <span className="px-3 py-1.5 rounded-xl border-2 border-border bg-panel text-ink font-semibold">
-              Total: <strong className="font-semibold text-ink ml-0.5">{tasks.length}</strong>
-            </span>
-            <span className="px-3 py-1.5 rounded-xl border-2 border-warn/30 bg-warn/10 text-warn font-semibold">
-              In Progress: <strong className="font-semibold ml-0.5">{inProgressCount}</strong>
-            </span>
-            <span className="px-3 py-1.5 rounded-xl border-2 border-ok/30 bg-ok/10 text-ok font-semibold">
-              Done: <strong className="font-semibold ml-0.5">{completedCount}</strong>
-            </span>
+            <Badge variant="default">
+              Total <strong className="font-mono tabular-nums font-medium text-ink">{tasks.length}</strong>
+            </Badge>
+            <Badge variant="warning">
+              In progress <strong className="font-mono tabular-nums font-medium">{inProgressCount}</strong>
+            </Badge>
+            <Badge variant="success">
+              Done <strong className="font-mono tabular-nums font-medium">{completedCount}</strong>
+            </Badge>
             {blockedTasksCount > 0 && (
-              <span className="px-3 py-1.5 rounded-xl border-2 border-error/30 bg-error/10 text-error font-semibold">
-                Blocked: <strong className="font-semibold ml-0.5">{blockedTasksCount}</strong>
-              </span>
+              <Badge variant="error">
+                Blocked <strong className="font-mono tabular-nums font-medium">{blockedTasksCount}</strong>
+              </Badge>
             )}
             <button
               type="button"
@@ -1614,9 +1614,9 @@ export default function KanbanTab() {
                 setCreateModalColumn("backlog");
                 setIsCreateModalOpen(true);
               }}
-              className="h-9 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-semibold shadow-m3-1 flex items-center gap-1.5 cursor-pointer border border-border transition-transform active:translate-y-0.5"
+              className="h-9 px-4 rounded-pill bg-ink hover:bg-ink/90 text-on-ink text-xs font-medium flex items-center gap-1.5 cursor-pointer border border-transparent transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              <Plus size={14} strokeWidth={3} />
+              <Plus size={14} />
               <span>New Task</span>
             </button>
           </div>
@@ -1671,17 +1671,17 @@ export default function KanbanTab() {
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="kanban-priority-filter"
-              className="text-xs font-semibold text-muted shrink-0 hidden sm:inline-flex items-center gap-1"
+              className="text-xs text-muted shrink-0 hidden sm:inline-flex items-center gap-1"
             >
               <AlertCircle size={13} className="text-muted" />
-              Priority:
+              Priority
             </label>
             <select
               id="kanban-priority-filter"
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
               aria-label="Filter by priority level"
-              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all"
             >
               <option value="all">All Priorities</option>
               <option value="p0">P0 - Critical</option>
@@ -1695,17 +1695,17 @@ export default function KanbanTab() {
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="kanban-assignee-filter"
-              className="text-xs font-semibold text-muted shrink-0 hidden sm:inline-flex items-center gap-1"
+              className="text-xs text-muted shrink-0 hidden sm:inline-flex items-center gap-1"
             >
               <User size={13} className="text-muted" />
-              Assignee:
+              Assignee
             </label>
             <select
               id="kanban-assignee-filter"
               value={agentFilter}
               onChange={(e) => setAgentFilter(e.target.value)}
               aria-label="Filter by assignee"
-              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all"
             >
               <option value="all">All Assignees</option>
               {agents.map((a) => (
@@ -1721,17 +1721,17 @@ export default function KanbanTab() {
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="kanban-sprint-filter"
-              className="text-xs font-semibold text-muted shrink-0 hidden lg:inline-flex items-center gap-1"
+              className="text-xs text-muted shrink-0 hidden lg:inline-flex items-center gap-1"
             >
               <Filter size={13} className="text-muted" />
-              Sprint:
+              Sprint
             </label>
             <select
               id="kanban-sprint-filter"
               value={sprintFilter}
               onChange={(e) => setSprintFilter(e.target.value)}
               aria-label="Filter by sprint"
-              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all shadow-xs"
+              className="h-9 rounded-pill border border-border bg-panel-alt px-3 text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all"
             >
               <option value="all">All Sprints</option>
               {sprints.map((s) => (
@@ -1743,71 +1743,45 @@ export default function KanbanTab() {
           </div>
 
           {/* Dependency Arrows Controls */}
-          <div className="flex items-center gap-1.5 border-l-2 border-border pl-2.5">
-            <button
+          <div className="flex items-center gap-1.5 border-l border-border-soft pl-2.5">
+            <Button
               id="kanban-toggle-arrows-btn"
-              type="button"
+              variant={showArrows ? "secondary" : "ghost"}
+              size="sm"
+              aria-pressed={showArrows}
               onClick={() => setShowArrows(!showArrows)}
-              className={`flex items-center gap-1.5 h-9 px-3 rounded-pill border border-border text-xs font-semibold cursor-pointer transition-all shadow-xs ${
-                showArrows
-                  ? "bg-ink text-on-ink"
-                  : "bg-panel-alt text-muted"
-              }`}
               title={showArrows ? "Hide visual dependency blocker arrows" : "Show visual dependency blocker arrows"}
             >
-              <GitFork size={13} strokeWidth={2.5} />
-              <span>ARROWS: {showArrows ? "ON" : "OFF"}</span>
-            </button>
+              <GitFork size={13} />
+              <span>Arrows: {showArrows ? "on" : "off"}</span>
+            </Button>
 
             {showArrows && (
-              <button
+              <Button
                 id="kanban-toggle-only-blockers-btn"
-                type="button"
+                variant="ghost"
+                size="sm"
+                aria-pressed={onlyBlockerArrows}
                 onClick={() => setOnlyBlockerArrows(!onlyBlockerArrows)}
-                className={`px-3 h-9 rounded-pill text-xs font-semibold border border-border transition-all cursor-pointer shadow-xs ${
-                  onlyBlockerArrows
-                    ? "bg-error text-on-ink"
-                    : "bg-panel-alt text-muted"
-                }`}
+                className={onlyBlockerArrows ? "text-error hover:text-error" : undefined}
                 title="Toggle between all dependency arrows or only active blockers"
               >
-                {onlyBlockerArrows ? "BLOCKERS ONLY" : "ALL ARROWS"}
-              </button>
+                {onlyBlockerArrows ? "Blockers only" : "All arrows"}
+              </Button>
             )}
           </div>
 
           {/* Layout Grid View Toggle */}
-          <div className="flex items-center gap-1 border-l-2 border-border pl-2.5">
-            <div className="inline-flex p-1 rounded-xl bg-panel-alt border border-border shadow-xs">
-              <button
-                id="kanban-view-mode-grid"
-                type="button"
-                onClick={() => setViewMode("grid12")}
-                className={`flex items-center gap-1.5 h-7 px-3 rounded-pill text-xs font-semibold transition-all cursor-pointer ${
-                  viewMode === "grid12"
-                    ? "bg-ink text-panel shadow-xs"
-                    : "text-muted hover:text-ink"
-                }`}
-                title="Strict 12-column aligned responsive grid"
-              >
-                <LayoutGrid size={13} />
-                <span className="hidden sm:inline">12-COL GRID</span>
-              </button>
-              <button
-                id="kanban-view-mode-lanes"
-                type="button"
-                onClick={() => setViewMode("lanes")}
-                className={`flex items-center gap-1.5 h-7 px-3 rounded-pill text-xs font-semibold transition-all cursor-pointer ${
-                  viewMode === "lanes"
-                    ? "bg-ink text-panel shadow-xs"
-                    : "text-muted hover:text-ink"
-                }`}
-                title="Horizontal lanes Kanban flow"
-              >
-                <Columns size={13} />
-                <span className="hidden sm:inline">LANES</span>
-              </button>
-            </div>
+          <div className="flex items-center gap-1 border-l border-border-soft pl-2.5">
+            <SegmentedControl
+              label="Board layout"
+              value={viewMode}
+              onChange={setViewMode}
+              options={[
+                { value: "grid12", label: "Grid", id: "kanban-view-mode-grid" },
+                { value: "lanes", label: "Lanes", id: "kanban-view-mode-lanes" },
+              ]}
+            />
           </div>
 
           {/* Reset Filters Action */}
@@ -1816,99 +1790,73 @@ export default function KanbanTab() {
               id="kanban-reset-filters-btn"
               type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-pill border border-border bg-panel-alt hover:bg-panel text-ink text-xs font-semibold transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-pill border border-transparent text-muted hover:bg-ink/5 hover:text-ink text-xs font-medium transition-colors cursor-pointer"
               title="Reset all filters and search query"
             >
               <RotateCcw size={12} />
-              <span>RESET</span>
+              <span>Reset</span>
             </button>
           )}
         </motion.div>
 
         {/* Quick Priority & Blocker Filter Chips Sub-bar */}
-        <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t-2 border-border-soft flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-semibold uppercase text-faint mr-1 tracking-wider">
-              PRIORITY:
-            </span>
-            {(["all", "p0", "p1", "p2", "p3"] as const).map((p) => {
-              const isSelected = priorityFilter === p;
-              const cfg = p === "all" ? null : PRIORITY_CONFIG[p];
-              const count = priorityCounts[p] || 0;
-              return (
-                <button
-                  key={p}
-                  id={`kanban-priority-chip-${p}`}
-                  type="button"
-                  onClick={() => setPriorityFilter(priorityFilter === p && p !== "all" ? "all" : p)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
-                    isSelected
-                      ? "border-border bg-ink text-on-ink shadow-xs"
-                      : "border-border bg-panel-alt text-muted hover:text-ink"
-                  }`}
-                  title={p === "all" ? "Show all priorities" : `Filter by ${cfg?.badgeText}`}
-                >
-                  {p === "all" ? "ALL" : cfg?.label} ({count})
-                </button>
-              );
-            })}
+        <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-border-soft flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted">Priority</span>
+            <SegmentedControl
+              label="Quick priority filter"
+              value={priorityFilter as "all" | "p0" | "p1" | "p2" | "p3"}
+              onChange={(p) => setPriorityFilter(priorityFilter === p && p !== "all" ? "all" : p)}
+              options={(["all", "p0", "p1", "p2", "p3"] as const).map((p) => ({
+                value: p,
+                id: `kanban-priority-chip-${p}`,
+                label: `${p === "all" ? "All" : PRIORITY_CONFIG[p]?.label} (${priorityCounts[p] || 0})`,
+              }))}
+            />
 
             {/* Blocked Only Chip */}
             <button
               id="kanban-blocked-only-filter-btn"
               type="button"
+              aria-pressed={blockedOnlyFilter}
               onClick={() => setBlockedOnlyFilter(!blockedOnlyFilter)}
-              className={`px-3 py-1 text-xs font-semibold rounded-full border flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`h-7 px-3 text-xs font-medium rounded-full border flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 blockedOnlyFilter
-                  ? "border-border bg-error text-on-ink shadow-xs"
-                  : "border-error/30 bg-error/10 text-error hover:bg-error/20"
+                  ? "border-error/40 bg-error/20 text-error"
+                  : "border-error/20 bg-error/10 text-error hover:bg-error/20"
               }`}
               title="Show only tasks with unresolved blockers"
             >
-              <AlertTriangle
-                size={12}
-                className={blockedOnlyFilter ? "text-ink" : "text-error"}
-              />
-              <span>BLOCKED ONLY ({blockedTasksCount})</span>
+              <AlertTriangle size={12} />
+              <span>Blocked only ({blockedTasksCount})</span>
             </button>
 
             {/* Column Presets Filter Chips */}
-            <div className="flex items-center gap-1 border-l-2 border-border pl-2.5 ml-1">
-              <span className="text-[11px] font-semibold uppercase text-faint mr-1 hidden sm:inline tracking-wider">
-                VIEW:
-              </span>
-              {COLUMN_PRESETS.map((preset) => {
-                const isSelected = columnPreset === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    id={`kanban-column-preset-${preset.id}`}
-                    type="button"
-                    onClick={() => setColumnPreset(preset.id as any)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-border bg-ink text-on-ink shadow-xs"
-                        : "border-border bg-panel-alt text-muted hover:text-ink"
-                    }`}
-                    title={preset.desc}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-2 border-l border-border-soft pl-2.5 ml-1">
+              <span className="text-xs text-muted hidden sm:inline">View</span>
+              <SegmentedControl
+                label="Column preset"
+                value={columnPreset as string}
+                onChange={(v) => setColumnPreset(v as any)}
+                options={COLUMN_PRESETS.map((preset) => ({
+                  value: preset.id,
+                  label: preset.label,
+                  id: `kanban-column-preset-${preset.id}`,
+                }))}
+              />
             </div>
           </div>
 
           {/* Results Summary Counter */}
-          <div className="text-xs text-muted shrink-0 ml-auto font-semibold">
-            SHOWING <strong className="font-semibold text-ink">{filtered.length}</strong> / {tasks.length} TASKS
+          <div className="text-xs text-muted shrink-0 ml-auto">
+            Showing <strong className="font-mono tabular-nums font-medium text-ink">{filtered.length}</strong> /{" "}{tasks.length} tasks
           </div>
         </div>
 
         {/* Mobile Quick Column Jump Pills */}
-        <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto py-2 px-1 border-t-2 border-border-soft mt-2 scrollbar-none">
-          <span className="text-[10px] uppercase font-semibold text-faint shrink-0">
-            JUMP:
+        <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto py-2 px-1 border-t border-border-soft mt-2 scrollbar-none">
+          <span className="text-xs text-muted shrink-0">
+            Jump to
           </span>
           {displayedColumns.map((col) => {
             const count = filtered.filter((t) => t.status === col.id).length;
@@ -1920,11 +1868,11 @@ export default function KanbanTab() {
                   const el = document.getElementById(`kanban-column-${col.id}`);
                   el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
                 }}
-                className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-panel text-ink border border-border shadow-2xs"
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full bg-panel text-ink border border-border"
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: col.dotColor }} />
                 <span>{col.label}</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-surface-high text-muted">
+                <span className="text-[10px] font-mono tabular-nums px-1.5 rounded-full bg-ink/[0.06] text-muted">
                   {count}
                 </span>
               </button>
@@ -1935,8 +1883,8 @@ export default function KanbanTab() {
 
       {/* Zero State Alert Banner */}
       {filtered.length === 0 && tasks.length > 0 && (
-        <div className="mx-4 md:mx-6 mt-4 p-4 rounded-2xl bg-warn/10 border-2 border-warn/30 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 text-xs font-semibold text-warn">
+        <div className="mx-4 md:mx-6 mt-4 p-4 rounded-xl bg-warn/10 border border-warn/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs font-medium text-warn">
             <Search size={16} className="text-warn shrink-0" />
             <span>
               No tasks match your search {search ? `"${search}"` : ""} with the selected filters.
@@ -1945,7 +1893,7 @@ export default function KanbanTab() {
           <button
             type="button"
             onClick={handleResetFilters}
-            className="px-4 py-2 bg-panel-alt text-ink border border-border text-xs font-semibold rounded-xl shadow-m3-1 hover:bg-panel transition-colors cursor-pointer"
+            className="h-8 px-4 rounded-pill border border-glass-border bg-glass text-ink text-xs font-medium hover:bg-ink/10 transition-colors cursor-pointer"
           >
             Clear All Filters
           </button>

@@ -190,7 +190,7 @@ export function ApiKeysTab() {
           <ClipboardCopyButton
             text='export FORGE_API_KEY="sk_forge_..."'
             successMessage="CLI command copied"
-            className="bb-btn bb-btn-subtle text-xs py-1 px-2.5 h-6 self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border border-glass-border bg-glass px-3 h-7 text-xs font-medium font-sans text-ink hover:bg-ink/10 transition-colors self-start sm:self-auto shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
         </div>
       </div>
@@ -402,7 +402,7 @@ export function ApiKeysTab() {
                 <ClipboardCopyButton
                   text={revealedKey}
                   successMessage="Key copied to clipboard"
-                  className="bb-btn bb-btn-primary text-xs py-1.5 px-3 shrink-0"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border border-glass-border bg-glass px-3 h-8 text-xs font-medium font-sans text-ink hover:bg-ink/10 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 />
               </div>
             </div>

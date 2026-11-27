@@ -24,6 +24,14 @@ import { llmApi } from "../lib/api";
 import { AGENTS } from "../lib/agents";
 import { COLORS } from "../lib/theme";
 
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  deepseek: "DeepSeek",
+  groq: "Groq",
+};
+
 // Types
 export interface ProviderStatus {
   name: string;
@@ -73,7 +81,7 @@ export interface AgentAssignment {
 }
 
 // Fallback catalog metadata to enrich model specifications
-const MODEL_SPECS: Record<string, Partial<ModelEntry>> = {
+const ModelS: Record<string, Partial<ModelEntry>> = {
   "gemini-2.5-pro": {
     displayName: "Gemini 2.5 Pro",
     description: "Google's most capable multimodal flagship model with deep reasoning and 2M token context.",
@@ -217,17 +225,17 @@ const DEFAULT_PROVIDERS: ProviderStatus[] = [
 ];
 
 const DEFAULT_MODELS: ModelEntry[] = [
-  { provider: "google", name: "gemini-2.5-pro", ...MODEL_SPECS["gemini-2.5-pro"] },
-  { provider: "google", name: "gemini-2.5-flash", ...MODEL_SPECS["gemini-2.5-flash"] },
-  { provider: "anthropic", name: "claude-3-7-sonnet", ...MODEL_SPECS["claude-3-7-sonnet"] },
-  { provider: "anthropic", name: "claude-3-5-sonnet", ...MODEL_SPECS["claude-3-5-sonnet"] },
-  { provider: "anthropic", name: "claude-3-5-haiku", ...MODEL_SPECS["claude-3-5-haiku"] },
-  { provider: "openai", name: "gpt-4o", ...MODEL_SPECS["gpt-4o"] },
-  { provider: "openai", name: "gpt-4o-mini", ...MODEL_SPECS["gpt-4o-mini"] },
-  { provider: "deepseek", name: "deepseek-chat", ...MODEL_SPECS["deepseek-chat"] },
-  { provider: "deepseek", name: "deepseek-reasoner", ...MODEL_SPECS["deepseek-reasoner"] },
-  { provider: "groq", name: "llama-3.3-70b-versatile", ...MODEL_SPECS["llama-3.3-70b-versatile"] },
-  { provider: "groq", name: "qwen-2.5-coder-32b", ...MODEL_SPECS["qwen-2.5-coder-32b"] },
+  { provider: "google", name: "gemini-2.5-pro", ...ModelS["gemini-2.5-pro"] },
+  { provider: "google", name: "gemini-2.5-flash", ...ModelS["gemini-2.5-flash"] },
+  { provider: "anthropic", name: "claude-3-7-sonnet", ...ModelS["claude-3-7-sonnet"] },
+  { provider: "anthropic", name: "claude-3-5-sonnet", ...ModelS["claude-3-5-sonnet"] },
+  { provider: "anthropic", name: "claude-3-5-haiku", ...ModelS["claude-3-5-haiku"] },
+  { provider: "openai", name: "gpt-4o", ...ModelS["gpt-4o"] },
+  { provider: "openai", name: "gpt-4o-mini", ...ModelS["gpt-4o-mini"] },
+  { provider: "deepseek", name: "deepseek-chat", ...ModelS["deepseek-chat"] },
+  { provider: "deepseek", name: "deepseek-reasoner", ...ModelS["deepseek-reasoner"] },
+  { provider: "groq", name: "llama-3.3-70b-versatile", ...ModelS["llama-3.3-70b-versatile"] },
+  { provider: "groq", name: "qwen-2.5-coder-32b", ...ModelS["qwen-2.5-coder-32b"] },
 ];
 
 const DEFAULT_USAGE: UsageEntry[] = [
@@ -314,7 +322,7 @@ export default function LLMManagementPage() {
 
       if (modelsRes.status === "fulfilled" && modelsRes.value?.models?.length) {
         const liveModels: ModelEntry[] = modelsRes.value.models.map((m: any) => {
-          const spec = MODEL_SPECS[m.name] || {};
+          const spec = ModelS[m.name] || {};
           return {
             provider: m.provider,
             name: m.name,
@@ -528,43 +536,43 @@ export default function LLMManagementPage() {
   return (
     <div id="models-os-view" className="h-full flex flex-col min-h-0 select-none font-sans bg-base text-ink space-y-3 p-4 sm:p-6">
       {/* Top Intelligence Control Toolbar */}
-      <div className="p-3 bg-panel border border-border rounded-xl shadow-m3-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 font-mono text-xs shrink-0">
+      <div className="p-3 bg-panel border border-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shrink-0">
         {/* Left: System Status Chips */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-panel-alt text-ink font-semibold uppercase text-[11px] border border-border">
-            <Cpu size={12} className="text-accent" />
-            <span>SYS_INTELLIGENCE</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 text-ink font-medium text-xs">
+            <Cpu size={13} className="text-muted" />
+            <span>Model fleet</span>
           </div>
 
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-ok/15 text-ok border border-ok/30 font-semibold text-[10px] uppercase">
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-pill bg-ok/10 text-ok border border-ok/20 font-medium text-[11px]">
             <ShieldCheck size={11} />
-            <span>{healthyProvidersCount}/{providers.length} GATEWAYS OK</span>
+            <span><span className="font-mono tabular-nums">{healthyProvidersCount}/{providers.length}</span> gateways OK</span>
           </span>
 
-          <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary-soft text-secondary border border-secondary/30 font-semibold text-[10px] uppercase">
+          <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-pill bg-ink/[0.06] text-muted border border-border-soft font-medium text-[11px]">
             <Gauge size={11} />
-            <span>{avgLatency}MS P95</span>
+            <span><span className="font-mono tabular-nums">{avgLatency}ms</span> p95</span>
           </span>
 
-          <span className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-md bg-panel-alt text-muted border border-border text-[10px] font-medium uppercase">
+          <span className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-pill bg-ink/[0.06] text-muted border border-border-soft text-[11px] font-medium">
             <Cpu size={11} />
-            <span>{models.length} MODELS</span>
+            <span><span className="font-mono tabular-nums">{models.length}</span> models</span>
           </span>
 
-          <span className="hidden lg:flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-soft text-accent border border-accent/30 text-[10px] font-semibold uppercase">
+          <span className="hidden lg:flex items-center gap-1 px-2 py-0.5 rounded-pill bg-ink/[0.06] text-muted border border-border-soft text-[11px] font-medium">
             <DollarSign size={11} />
-            <span>${totalCost.toFixed(2)} / {((totalTokens / 1_000_000).toFixed(1))}M TKNS</span>
+            <span><span className="font-mono tabular-nums">${totalCost.toFixed(2)} / {((totalTokens / 1_000_000).toFixed(1))}M</span> tokens</span>
           </span>
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 font-sans">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             id="models-test-fleet-btn"
             disabled={diagnosingAll}
             onClick={handleTestAllProviders}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt text-ink font-medium text-xs border border-border hover:border-accent/50 transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-muted font-medium text-xs border border-transparent hover:bg-ink/5 hover:text-ink transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Activity size={12} className={diagnosingAll ? "animate-spin text-accent" : ""} />
             <span>{diagnosingAll ? "Testing..." : "Ping Fleet"}</span>
@@ -575,7 +583,7 @@ export default function LLMManagementPage() {
             id="models-sync-router-btn"
             disabled={reloading}
             onClick={handleReloadConfig}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-panel-alt text-ink font-medium text-xs border border-border hover:border-accent/50 transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-muted font-medium text-xs border border-transparent hover:bg-ink/5 hover:text-ink transition-colors disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw size={12} className={reloading ? "animate-spin text-accent" : ""} />
             <span>Sync Router</span>
@@ -604,7 +612,7 @@ export default function LLMManagementPage() {
         id="models-tab-selector"
         role="tablist"
         aria-label="Models and Intelligence Views"
-        className="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar py-0.5 shrink-0 select-none font-mono"
+        className="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar py-0.5 shrink-0 select-none"
       >
         <div className="flex items-center gap-1.5 shrink-0">
           <button
@@ -613,15 +621,15 @@ export default function LLMManagementPage() {
             role="tab"
             aria-selected={activeTab === "catalog"}
             onClick={() => setActiveTab("catalog")}
-            className={`shrink-0 px-3 py-1.5 border rounded-lg border-border text-xs font-medium flex items-center gap-1.5 transition-none ${
+            className={`shrink-0 h-8 px-3 border rounded-pill text-xs font-medium flex items-center gap-1.5 transition-colors ${
               activeTab === "catalog"
-                ? "bg-accent/[0.12] text-accent "
-                : "bg-panel text-ink hover:bg-ink/5 "
+                ? "bg-ink/[0.08] text-ink border-border"
+                : "border-transparent text-muted hover:bg-ink/5 hover:text-ink"
             }`}
           >
-            <Cpu size={13} strokeWidth={2.5} />
-            <span>MODEL CATALOG</span>
-            <span className="text-[9px] font-semibold px-1 border rounded-lg border-border bg-panel text-ink">
+            <Cpu size={13} />
+            <span>Model catalog</span>
+            <span className="font-mono tabular-nums text-[11px] px-1.5 rounded-pill bg-ink/[0.06] text-muted">
               {filteredModels.length}
             </span>
           </button>
@@ -632,16 +640,16 @@ export default function LLMManagementPage() {
             role="tab"
             aria-selected={activeTab === "routing"}
             onClick={() => setActiveTab("routing")}
-            className={`shrink-0 px-3 py-1.5 border rounded-lg border-border text-xs font-medium flex items-center gap-1.5 transition-none ${
+            className={`shrink-0 h-8 px-3 border rounded-pill text-xs font-medium flex items-center gap-1.5 transition-colors ${
               activeTab === "routing"
-                ? "bg-accent/[0.12] text-accent "
-                : "bg-panel text-ink hover:bg-ink/5 "
+                ? "bg-ink/[0.08] text-ink border-border"
+                : "border-transparent text-muted hover:bg-ink/5 hover:text-ink"
             }`}
           >
-            <Sliders size={13} strokeWidth={2.5} />
-            <span>FLEET ROUTING</span>
-            <span className="text-[9px] font-semibold px-1 border rounded-lg border-border bg-ok text-on-ink">
-              {routing.length} AGENTS
+            <Sliders size={13} />
+            <span>Fleet routing</span>
+            <span className="font-mono tabular-nums text-[11px] px-1.5 rounded-pill bg-ink/[0.06] text-muted">
+              {routing.length}
             </span>
           </button>
 
@@ -651,15 +659,15 @@ export default function LLMManagementPage() {
             role="tab"
             aria-selected={activeTab === "providers"}
             onClick={() => setActiveTab("providers")}
-            className={`shrink-0 px-3 py-1.5 border rounded-lg border-border text-xs font-medium flex items-center gap-1.5 transition-none ${
+            className={`shrink-0 h-8 px-3 border rounded-pill text-xs font-medium flex items-center gap-1.5 transition-colors ${
               activeTab === "providers"
-                ? "bg-accent/[0.12] text-accent "
-                : "bg-panel text-ink hover:bg-ink/5 "
+                ? "bg-ink/[0.08] text-ink border-border"
+                : "border-transparent text-muted hover:bg-ink/5 hover:text-ink"
             }`}
           >
-            <Server size={13} strokeWidth={2.5} />
-            <span>PROVIDER GATEWAYS</span>
-            <span className="text-[9px] font-semibold px-1 border rounded-lg border-border bg-info/20 text-ink">
+            <Server size={13} />
+            <span>Provider gateways</span>
+            <span className="font-mono tabular-nums text-[11px] px-1.5 rounded-pill bg-ink/[0.06] text-muted">
               {healthyProvidersCount}/{providers.length}
             </span>
           </button>
@@ -670,15 +678,15 @@ export default function LLMManagementPage() {
             role="tab"
             aria-selected={activeTab === "telemetry"}
             onClick={() => setActiveTab("telemetry")}
-            className={`shrink-0 px-3 py-1.5 border rounded-lg border-border text-xs font-medium flex items-center gap-1.5 transition-none ${
+            className={`shrink-0 h-8 px-3 border rounded-pill text-xs font-medium flex items-center gap-1.5 transition-colors ${
               activeTab === "telemetry"
-                ? "bg-accent/[0.12] text-accent "
-                : "bg-panel text-ink hover:bg-ink/5 "
+                ? "bg-ink/[0.08] text-ink border-border"
+                : "border-transparent text-muted hover:bg-ink/5 hover:text-ink"
             }`}
           >
-            <Activity size={13} strokeWidth={2.5} />
-            <span>COST &amp; TELEMETRY</span>
-            <span className="text-[9px] font-semibold px-1 border rounded-lg border-border bg-surface-high text-ink">
+            <Activity size={13} />
+            <span>Cost &amp; telemetry</span>
+            <span className="font-mono tabular-nums text-[11px] px-1.5 rounded-pill bg-ink/[0.06] text-muted">
               ${totalCost.toFixed(2)}
             </span>
           </button>
@@ -691,10 +699,10 @@ export default function LLMManagementPage() {
               type="button"
               id="btn-view-grid"
               onClick={() => setCatalogViewMode("grid")}
-              className={`p-1.5 border rounded-lg border-border transition-none ${
+              className={`p-1.5 border rounded-pill transition-colors ${
                 catalogViewMode === "grid"
-                  ? "bg-accent/[0.12] text-accent"
-                  : "bg-panel text-ink"
+                  ? "bg-ink/[0.08] text-ink border-border"
+                  : "border-transparent text-muted hover:text-ink"
               }`}
               title="Grid View"
             >
@@ -704,10 +712,10 @@ export default function LLMManagementPage() {
               type="button"
               id="btn-view-table"
               onClick={() => setCatalogViewMode("table")}
-              className={`p-1.5 border rounded-lg border-border transition-none ${
+              className={`p-1.5 border rounded-pill transition-colors ${
                 catalogViewMode === "table"
-                  ? "bg-accent/[0.12] text-accent"
-                  : "bg-panel text-ink"
+                  ? "bg-ink/[0.08] text-ink border-border"
+                  : "border-transparent text-muted hover:text-ink"
               }`}
               title="Table Ledger View"
             >
@@ -725,21 +733,21 @@ export default function LLMManagementPage() {
         id={`models-panel-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`tab-btn-${activeTab}`}
-        className="flex-1 min-h-0 bg-panel border border-border rounded-xl shadow-m3-1 flex flex-col overflow-hidden"
+        className="flex-1 min-h-0 bg-panel border border-border rounded-xl flex flex-col overflow-hidden"
       >
         {/* Module Sub-Header Strip */}
         <div className="h-10 px-4 bg-panel-alt border-b border-border flex items-center justify-between gap-2 shrink-0 text-xs">
           <div className="flex items-center gap-2 truncate">
-            <span className="font-semibold text-ink uppercase flex items-center gap-1.5">
+            <span className="font-medium text-ink flex items-center gap-1.5">
               {activeTab === "catalog" && <Cpu size={13} strokeWidth={2.5} />}
               {activeTab === "routing" && <Sliders size={13} strokeWidth={2.5} />}
               {activeTab === "providers" && <Server size={13} strokeWidth={2.5} />}
               {activeTab === "telemetry" && <Activity size={13} strokeWidth={2.5} />}
               <span>
-                {activeTab === "catalog" && "MODELS_CATALOG.CFG"}
-                {activeTab === "routing" && "AGENT_ROUTER_MAP.SYS"}
-                {activeTab === "providers" && "GATEWAY_CLUSTERS.LOG"}
-                {activeTab === "telemetry" && "TOKEN_CONSUMPTION.CSV"}
+                {activeTab === "catalog" && "Model catalog"}
+                {activeTab === "routing" && "Agent router map"}
+                {activeTab === "providers" && "Gateway clusters"}
+                {activeTab === "telemetry" && "Token consumption"}
               </span>
             </span>
             <span className="text-muted text-[11px] hidden sm:inline">
@@ -750,8 +758,8 @@ export default function LLMManagementPage() {
             </span>
           </div>
 
-          <span className="text-[10px] font-mono font-semibold text-muted uppercase hidden md:inline shrink-0">
-            SYS:\INTELLIGENCE\{activeTab.toUpperCase()}
+          <span className="text-[11px] font-mono text-faint hidden md:inline shrink-0">
+            /admin?tab=llm#{activeTab}
           </span>
         </div>
 
@@ -773,7 +781,7 @@ export default function LLMManagementPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by model, capability (e.g. reasoning, 2M context)..."
-                    className="w-full bg-panel text-xs font-mono font-semibold text-ink placeholder-muted/60 pl-8 pr-7 py-1.5 border rounded-lg border-border focus:outline-none"
+                    className="w-full bg-panel text-xs text-ink placeholder:text-faint pl-8 pr-7 py-1.5 border rounded-pill border-border focus:outline-none focus:ring-2 focus:ring-accent/30"
                   />
                   {searchQuery && (
                     <button
@@ -787,31 +795,31 @@ export default function LLMManagementPage() {
                 </div>
 
                 {/* Filter Selects */}
-                <div className="flex flex-wrap items-center gap-2 font-mono">
+                <div className="flex flex-wrap items-center gap-2">
                   <select
                     id="catalog-filter-provider"
                     value={selectedProviderFilter}
                     onChange={(e) => setSelectedProviderFilter(e.target.value)}
-                    className="bg-panel text-xs font-medium text-ink px-2 py-1.5 border rounded-lg border-border cursor-pointer"
+                    className="bg-panel text-xs font-medium text-ink px-3 py-1.5 border rounded-pill border-border cursor-pointer"
                   >
-                    <option value="all">ALL PROVIDERS</option>
-                    <option value="google">GOOGLE (GEMINI)</option>
-                    <option value="anthropic">ANTHROPIC (CLAUDE)</option>
-                    <option value="openai">OPENAI (GPT)</option>
-                    <option value="deepseek">DEEPSEEK</option>
-                    <option value="groq">GROQ (LLAMA / FAST)</option>
+                    <option value="all">All providers</option>
+                    <option value="google">Google (Gemini)</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="openai">OpenAI (GPT)</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="groq">Groq (Llama / fast)</option>
                   </select>
 
                   <select
                     id="catalog-filter-tier"
                     value={selectedTierFilter}
                     onChange={(e) => setSelectedTierFilter(e.target.value)}
-                    className="bg-panel text-xs font-medium text-ink px-2 py-1.5 border rounded-lg border-border cursor-pointer"
+                    className="bg-panel text-xs font-medium text-ink px-3 py-1.5 border rounded-pill border-border cursor-pointer"
                   >
-                    <option value="all">ALL TIERS</option>
-                    <option value="Flagship">FLAGSHIP REASONING</option>
-                    <option value="Speed &amp; Efficiency">SPEED &amp; EFFICIENCY</option>
-                    <option value="Specialized">SPECIALIZED / CODE</option>
+                    <option value="all">All tiers</option>
+                    <option value="Flagship">Flagship reasoning</option>
+                    <option value="Speed &amp; Efficiency">Speed &amp; efficiency</option>
+                    <option value="Specialized">Specialized / code</option>
                   </select>
 
                   {(searchQuery || selectedProviderFilter !== "all" || selectedTierFilter !== "all") && (
@@ -822,9 +830,9 @@ export default function LLMManagementPage() {
                         setSelectedProviderFilter("all");
                         setSelectedTierFilter("all");
                       }}
-                      className="px-2.5 py-1.5 bg-surface-high text-ink text-xs font-semibold border rounded-lg border-border"
+                      className="px-3 py-1.5 text-muted hover:text-ink hover:bg-ink/5 text-xs font-medium border border-transparent rounded-pill"
                     >
-                      RESET
+                      Reset
                     </button>
                   )}
                 </div>
@@ -832,9 +840,9 @@ export default function LLMManagementPage() {
 
               {/* Models Presentation */}
               {filteredModels.length === 0 ? (
-                <div className="p-8 text-center bg-panel border rounded-xl border-dashed border-border space-y-3 font-mono">
+                <div className="p-8 text-center bg-panel border rounded-xl border-dashed border-border space-y-3">
                   <Cpu size={28} className="mx-auto text-muted" />
-                  <p className="text-xs font-semibold uppercase text-ink">NO MATCHING INFERENCE RUNTIMES FOUND</p>
+                  <p className="text-sm font-medium text-ink">No matching inference runtimes found</p>
                   <p className="text-xs font-sans text-muted max-w-sm mx-auto">
                     Try broadening your search term or reset provider/tier filters to view available models in the fleet.
                   </p>
@@ -845,9 +853,9 @@ export default function LLMManagementPage() {
                       setSelectedProviderFilter("all");
                       setSelectedTierFilter("all");
                     }}
-                    className="px-3 py-1 bg-accent/[0.12] text-accent text-xs font-semibold uppercase border rounded-lg border-transparent"
+                    className="px-3 py-1 border border-glass-border bg-glass text-ink text-xs font-medium rounded-pill hover:bg-ink/10"
                   >
-                    RESET FILTERS
+                    Reset filters
                   </button>
                 </div>
               ) : catalogViewMode === "grid" ? (
@@ -856,8 +864,8 @@ export default function LLMManagementPage() {
                   {filteredModels.map((m) => {
                     const providerColors: Record<string, string> = {
                       google: "bg-info/20 text-ink",
-                      anthropic: "bg-brutal-yellow text-ink",
-                      openai: "bg-ok text-on-ink",
+                      anthropic: "bg-warn/20 text-ink",
+                      openai: "bg-ok/20 text-ink",
                       deepseek: "bg-error/20 text-ink",
                       groq: "bg-warn/20 text-ink",
                     };
@@ -871,50 +879,50 @@ export default function LLMManagementPage() {
                       >
                         <div className="space-y-2.5">
                           {/* Card Header */}
-                          <div className="flex items-center justify-between gap-2 font-mono">
-                            <span className={`px-2 py-0.5 text-[10px] font-semibold uppercase border rounded-lg border-border ${badgeColor}`}>
-                              {m.provider}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`px-2 py-0.5 text-[11px] font-medium capitalize border rounded-pill border-transparent ${badgeColor}`}>
+                              {PROVIDER_LABELS[m.provider] ?? m.provider}
                             </span>
-                            <span className="text-[10px] text-muted font-semibold">
+                            <span className="text-[11px] text-muted">
                               {m.speed || "Fast"}
                             </span>
                           </div>
 
                           {/* Model Name & ID */}
                           <div>
-                            <h3 className=" text-sm font-semibold text-ink">
+                            <h3 className="text-sm font-medium text-ink">
                               {m.displayName || m.name}
                             </h3>
-                            <p className="text-[10px] text-muted select-all">
+                            <p className="text-[11px] font-mono text-muted select-all">
                               {m.name}
                             </p>
                           </div>
 
                           {/* Description */}
-                          <p className="text-xs font-sans text-muted line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-muted line-clamp-2 leading-relaxed">
                             {m.description}
                           </p>
 
                           {/* Badges strip */}
-                          <div className="flex flex-wrap gap-1 font-mono text-[10px]">
-                            <span className="px-1.5 py-0.5 bg-panel text-ink border rounded-lg border-border font-semibold">
+                          <div className="flex flex-wrap gap-1 font-mono tabular-nums text-[11px]">
+                            <span className="px-1.5 py-0.5 bg-ink/[0.04] text-ink border rounded-pill border-border-soft">
                               {m.contextWindow || "128k ctx"}
                             </span>
-                            <span className="px-1.5 py-0.5 bg-panel text-ink border rounded-lg border-border">
+                            <span className="px-1.5 py-0.5 bg-ink/[0.04] text-muted border rounded-pill border-border-soft">
                               in: {m.inputCost || "$1.00"}
                             </span>
-                            <span className="px-1.5 py-0.5 bg-panel text-ink border rounded-lg border-border">
+                            <span className="px-1.5 py-0.5 bg-ink/[0.04] text-muted border rounded-pill border-border-soft">
                               out: {m.outputCost || "$3.00"}
                             </span>
                           </div>
 
                           {/* Capabilities tags */}
                           {m.capabilities && m.capabilities.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-1 font-mono">
+                            <div className="flex flex-wrap gap-1 pt-1">
                               {m.capabilities.slice(0, 3).map((cap, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[9px] font-semibold px-1.5 py-0.2 bg-panel-alt text-muted border rounded-lg border-border"
+                                  className="text-[11px] px-2 py-0.5 bg-ink/[0.06] text-muted rounded-pill"
                                 >
                                   {cap}
                                 </span>
@@ -924,7 +932,7 @@ export default function LLMManagementPage() {
                         </div>
 
                         {/* Card Actions */}
-                        <div className="pt-3 border-t-2 border-border flex items-center justify-between gap-2 font-mono">
+                        <div className="pt-3 border-t border-border-soft flex items-center justify-between gap-2">
                           <button
                             type="button"
                             id={`btn-assign-${m.name}`}
@@ -932,9 +940,9 @@ export default function LLMManagementPage() {
                               setAssigningModel(m);
                               setAssignModalOpen(true);
                             }}
-                            className="px-2.5 py-1 text-xs font-medium border rounded-lg border-border bg-panel text-ink hover:bg-ink/5"
+                            className="px-3 py-1 text-xs font-medium border rounded-pill border-transparent text-muted hover:bg-ink/5 hover:text-ink"
                           >
-                            ASSIGN AGENT
+                            Assign agent
                           </button>
 
                           <button
@@ -946,10 +954,10 @@ export default function LLMManagementPage() {
                               setPlaygroundOpen(true);
                               setTestResponse(null);
                             }}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium border rounded-lg border-border bg-ink text-on-ink hover:brightness-105"
+                            className="flex items-center gap-1 px-3 py-1 text-xs font-medium border rounded-pill border-glass-border bg-glass text-ink hover:bg-ink/10"
                           >
                             <Play size={10} fill="currentColor" />
-                            <span>TEST</span>
+                            <span>Test</span>
                           </button>
                         </div>
                       </div>
@@ -958,37 +966,37 @@ export default function LLMManagementPage() {
                 </div>
               ) : (
                 /* TABLE COMPARISON VIEW */
-                <div className="overflow-x-auto border border-border ">
-                  <table className="w-full text-left font-mono text-xs">
-                    <thead className="bg-panel-alt text-ink border-b-2 border-border font-semibold uppercase text-[11px]">
+                <div className="overflow-x-auto border border-border rounded-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-ink/[0.03] text-muted border-b border-border font-normal text-xs">
                       <tr>
-                        <th className="p-3">MODEL_SPEC</th>
-                        <th className="p-3">GATEWAY</th>
-                        <th className="p-3">CONTEXT</th>
-                        <th className="p-3">PRICING (IN/OUT)</th>
-                        <th className="p-3">SPEED</th>
-                        <th className="p-3">RECOMMENDED_FOR</th>
-                        <th className="p-3 text-right">ACTION</th>
+                        <th className="p-3">Model</th>
+                        <th className="p-3">Gateway</th>
+                        <th className="p-3">Context</th>
+                        <th className="p-3">Pricing (in/out)</th>
+                        <th className="p-3">Speed</th>
+                        <th className="p-3">Recommended for</th>
+                        <th className="p-3 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y-2 divide-border bg-panel">
+                    <tbody className="divide-y divide-border-soft bg-panel">
                       {filteredModels.map((m) => (
                         <tr
                           key={`${m.provider}-${m.name}`}
-                          className="hover:bg-ink/[0.06] dark:hover:bg-brutal-yellow/10"
+                          className="hover:bg-ink/[0.06] "
                         >
                           <td className="p-3">
-                            <p className="font-semibold text-ink">{m.displayName || m.name}</p>
-                            <p className="text-[10px] text-muted">{m.name}</p>
+                            <p className="font-medium text-ink">{m.displayName || m.name}</p>
+                            <p className="text-[11px] font-mono text-muted">{m.name}</p>
                           </td>
-                          <td className="p-3 font-semibold uppercase">{m.provider}</td>
-                          <td className="p-3 font-semibold">{m.contextWindow || "128k"}</td>
-                          <td className="p-3 text-[11px]">
+                          <td className="p-3 capitalize">{m.provider}</td>
+                          <td className="p-3 font-mono tabular-nums">{m.contextWindow || "128k"}</td>
+                          <td className="p-3 text-[11px] font-mono tabular-nums">
                             <div>{m.inputCost || "—"}</div>
                             <div className="text-muted">{m.outputCost || "—"}</div>
                           </td>
                           <td className="p-3">{m.speed || "Fast"}</td>
-                          <td className="p-3 text-muted max-w-xs truncate font-sans text-xs">
+                          <td className="p-3 text-muted max-w-xs truncate text-xs">
                             {m.recommendedFor || m.description}
                           </td>
                           <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
@@ -998,9 +1006,9 @@ export default function LLMManagementPage() {
                                 setAssigningModel(m);
                                 setAssignModalOpen(true);
                               }}
-                              className="px-2 py-1 text-[11px] font-medium border rounded-lg border-border bg-panel text-ink hover:bg-ink/5"
+                              className="px-2.5 py-1 text-[11px] font-medium border rounded-pill border-transparent text-muted hover:bg-ink/5 hover:text-ink"
                             >
-                              ASSIGN
+                              Assign
                             </button>
                             <button
                               type="button"
@@ -1010,9 +1018,9 @@ export default function LLMManagementPage() {
                                 setPlaygroundOpen(true);
                                 setTestResponse(null);
                               }}
-                              className="px-2 py-1 text-[11px] font-medium border rounded-lg border-transparent bg-accent/[0.12] text-accent hover:brightness-105"
+                              className="px-2.5 py-1 text-[11px] font-medium border rounded-pill border-glass-border bg-glass text-ink hover:bg-ink/10"
                             >
-                              TEST
+                              Test
                             </button>
                           </td>
                         </tr>
@@ -1030,41 +1038,41 @@ export default function LLMManagementPage() {
           {activeTab === "routing" && (
             <div className="space-y-5">
               {/* Presets Toolbar */}
-              <div className="p-3.5 bg-panel border rounded-lg border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono">
+              <div className="p-3.5 bg-panel border rounded-lg border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-xs font-semibold text-ink flex items-center gap-1.5">
-                    <SlidersHorizontal size={13} strokeWidth={2.5} />
-                    <span>FLEET_PRESET_PROFILES</span>
+                  <h3 className="text-sm font-medium text-ink flex items-center gap-1.5">
+                    <SlidersHorizontal size={13} />
+                    <span>Fleet preset profiles</span>
                   </h3>
-                  <p className="text-[11px] font-sans text-muted mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     Instantly balance all agents for budget efficiency, frontier reasoning, or resilient multi-cloud failover.
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 font-mono">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     id="btn-preset-speed"
                     onClick={() => applyPresetProfile("speed")}
-                    className="px-3 py-1 bg-panel border rounded-lg border-border text-ink text-xs font-medium hover:bg-ink/[0.06] hover:text-ink"
+                    className="px-3 py-1 border border-transparent rounded-pill text-muted text-xs font-medium hover:bg-ink/5 hover:text-ink"
                   >
-                    ⚡ SPEED &amp; LOW COST
+                    Speed &amp; low cost
                   </button>
                   <button
                     type="button"
                     id="btn-preset-reasoning"
                     onClick={() => applyPresetProfile("reasoning")}
-                    className="px-3 py-1 bg-panel border rounded-lg border-border text-ink text-xs font-medium hover:bg-ink/[0.06] hover:text-ink"
+                    className="px-3 py-1 border border-transparent rounded-pill text-muted text-xs font-medium hover:bg-ink/5 hover:text-ink"
                   >
-                    🧠 FRONTIER REASONING
+                    Frontier reasoning
                   </button>
                   <button
                     type="button"
                     id="btn-preset-balanced"
                     onClick={() => applyPresetProfile("balanced")}
-                    className="px-3 py-1 bg-ink border rounded-lg border-border text-on-ink text-xs font-medium hover:brightness-105"
+                    className="px-3 py-1 border border-glass-border bg-glass rounded-pill text-ink text-xs font-medium hover:bg-ink/10"
                   >
-                    🛡️ BALANCED FLEET
+                    Balanced fleet
                   </button>
                 </div>
               </div>
@@ -1082,7 +1090,7 @@ export default function LLMManagementPage() {
                       className="p-4 bg-panel border rounded-xl border-border space-y-3.5"
                     >
                       {/* Header */}
-                      <div className="flex items-center justify-between border-b-2 border-border pb-2.5">
+                      <div className="flex items-center justify-between border-b border-border-soft pb-2.5">
                         <div className="flex items-center gap-2.5">
                           <span
                             className="h-8 w-8 border rounded-lg border-border flex items-center justify-center text-ink font-semibold"
@@ -1091,24 +1099,25 @@ export default function LLMManagementPage() {
                             <Icon size={16} strokeWidth={2.5} />
                           </span>
                           <div>
-                            <h4 className=" text-sm font-semibold text-ink">
+                            <h4 className="text-sm font-medium text-ink">
                               {assignment.agentName}
                             </h4>
-                            <span className="text-[10px] font-mono text-muted uppercase">
-                              ID: {assignment.agentId}
+                            <span className="text-[11px] text-muted">
+                              ID <span className="font-mono">{assignment.agentId}</span>
                             </span>
                           </div>
                         </div>
 
-                        <span className="px-1.5 py-0.2 bg-ok text-on-ink border rounded-lg border-border text-[10px] font-mono font-semibold uppercase">
-                          ACTIVE
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-accent/[0.12] text-accent text-[11px] font-medium">
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                          Active
                         </span>
                       </div>
 
                       {/* Selectors */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         <label className="space-y-1">
-                          <span className="text-[11px] font-semibold text-muted uppercase">Primary Gateway</span>
+                          <span className="text-xs text-muted">Primary gateway</span>
                           <select
                             value={assignment.provider}
                             onChange={(e) => {
@@ -1123,7 +1132,7 @@ export default function LLMManagementPage() {
                                 assignment.costCapUsd || 0.5
                               );
                             }}
-                            className="w-full bg-panel text-xs font-semibold text-ink px-2 py-1.5 border rounded-lg border-border cursor-pointer"
+                            className="w-full bg-panel text-xs font-medium text-ink px-2.5 py-1.5 border rounded-lg border-border cursor-pointer"
                           >
                             {providers.map((p) => (
                               <option key={p.name} value={p.name}>
@@ -1134,7 +1143,7 @@ export default function LLMManagementPage() {
                         </label>
 
                         <label className="space-y-1">
-                          <span className="text-[11px] font-semibold text-muted uppercase">Model Runtime</span>
+                          <span className="text-xs text-muted">Model runtime</span>
                           <select
                             value={assignment.model}
                             onChange={(e) => {
@@ -1146,7 +1155,7 @@ export default function LLMManagementPage() {
                                 assignment.costCapUsd || 0.5
                               );
                             }}
-                            className="w-full bg-panel text-xs font-semibold text-ink px-2 py-1.5 border rounded-lg border-border cursor-pointer"
+                            className="w-full bg-panel text-xs font-medium text-ink px-2.5 py-1.5 border rounded-lg border-border cursor-pointer"
                           >
                             {models
                               .filter((m) => m.provider === assignment.provider)
@@ -1160,20 +1169,20 @@ export default function LLMManagementPage() {
                       </div>
 
                       {/* Fallback & Caps Box */}
-                      <div className="p-2.5 bg-panel border rounded-lg border-border space-y-1.5 text-[11px] font-mono">
+                      <div className="p-2.5 bg-ink/[0.03] border rounded-lg border-border-soft space-y-1.5 text-xs">
                         <div className="flex items-center justify-between text-muted">
-                          <span>Circuit-Breaker Fallback:</span>
-                          <span className="font-semibold text-ink">
+                          <span>Circuit-breaker fallback</span>
+                          <span className="font-mono text-ink">
                             {assignment.fallbackProvider?.toUpperCase() || "GOOGLE"} / {assignment.fallbackModel || "gemini-2.5-pro"}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-muted">
-                          <span>Max Context Tokens:</span>
-                          <span className="font-semibold text-ink">{assignment.maxTokens.toLocaleString()}</span>
+                          <span>Max context tokens</span>
+                          <span className="font-mono tabular-nums text-ink">{assignment.maxTokens.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center justify-between text-muted">
-                          <span>Per-Request Budget Cap:</span>
-                          <span className="font-semibold text-ink">${assignment.costCapUsd?.toFixed(2) || "0.50"}</span>
+                          <span>Per-request budget cap</span>
+                          <span className="font-mono tabular-nums text-ink">${assignment.costCapUsd?.toFixed(2) || "0.50"}</span>
                         </div>
                       </div>
                     </div>
@@ -1193,54 +1202,54 @@ export default function LLMManagementPage() {
                   <div
                     key={provider.name}
                     id={`provider-card-${provider.name}`}
-                    className="p-4 bg-panel border rounded-xl border-border flex flex-col justify-between space-y-4 font-mono"
+                    className="p-4 bg-panel border rounded-xl border-border flex flex-col justify-between space-y-4"
                   >
                     <div className="space-y-3">
                       {/* Provider Header */}
-                      <div className="flex items-center justify-between border-b-2 border-border pb-2">
+                      <div className="flex items-center justify-between border-b border-border-soft pb-2">
                         <div className="flex items-center gap-2">
-                          <Server size={15} strokeWidth={2.5} />
-                          <h3 className="font-semibold text-sm text-ink">
+                          <Server size={15} className="text-muted" />
+                          <h3 className="font-medium text-sm text-ink capitalize">
                             {provider.name}
                           </h3>
                         </div>
                         <span
-                          className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 border rounded-lg border-border ${
+                          className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 border rounded-pill ${
                             provider.healthy
-                              ? "bg-ok text-on-ink"
-                              : "bg-error text-on-ink"
+                              ? "bg-ok/10 text-ok border-ok/20"
+                              : "bg-error/10 text-error border-error/20"
                           }`}
                         >
                           {provider.healthy ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
-                          <span>{provider.healthy ? "OPERATIONAL" : "DEGRADED"}</span>
+                          <span>{provider.healthy ? "Operational" : "Degraded"}</span>
                         </span>
                       </div>
 
                       {/* Specs */}
                       <div className="space-y-1.5 text-xs">
                         <div className="flex items-center justify-between text-muted">
-                          <span>Failover Priority:</span>
-                          <span className="font-semibold text-ink">RANK #{provider.priority}</span>
+                          <span>Failover priority</span>
+                          <span className="text-ink">Rank <span className="font-mono tabular-nums">#{provider.priority}</span></span>
                         </div>
                         <div className="flex items-center justify-between text-muted">
-                          <span>Default Model:</span>
-                          <span className="font-semibold text-ink truncate max-w-[150px]">
+                          <span>Default model</span>
+                          <span className="font-mono text-ink truncate max-w-[150px]">
                             {provider.default_model || "gemini-2.5-flash"}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-muted">
-                          <span>Streaming SSE:</span>
-                          <span className="font-semibold text-ok">
-                            {provider.supports_stream ? "SUPPORTED" : "BUFFERED"}
+                          <span>Streaming SSE</span>
+                          <span className="font-medium text-ok">
+                            {provider.supports_stream ? "Supported" : "Buffered"}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-muted">
-                          <span>Inference Latency:</span>
-                          <span className="font-semibold text-ink">{provider.latency_ms || 28}ms</span>
+                          <span>Inference latency</span>
+                          <span className="font-mono tabular-nums text-ink">{provider.latency_ms || 28}ms</span>
                         </div>
                         <div className="flex items-center justify-between text-muted">
-                          <span>Endpoint URL:</span>
-                          <span className="text-[10px] text-muted truncate max-w-[150px]">
+                          <span>Endpoint URL</span>
+                          <span className="text-[11px] font-mono text-muted truncate max-w-[150px]">
                             {provider.endpoint || "Managed Cloud"}
                           </span>
                         </div>
@@ -1248,19 +1257,19 @@ export default function LLMManagementPage() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="pt-3 border-t-2 border-border flex items-center justify-between">
-                      <span className="text-[10px] text-muted">
-                        PING: VERIFIED
+                    <div className="pt-3 border-t border-border-soft flex items-center justify-between">
+                      <span className="text-xs text-muted">
+                        Ping verified
                       </span>
 
                       <button
                         type="button"
                         id={`btn-ping-${provider.name}`}
                         onClick={() => handlePingProvider(provider.name)}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-panel text-ink font-medium text-xs border rounded-lg border-border hover:bg-ink/[0.06] hover:text-ink"
+                        className="flex items-center gap-1.5 px-3 py-1 text-ink font-medium text-xs border rounded-pill border-glass-border bg-glass hover:bg-ink/10"
                       >
-                        <Activity size={12} strokeWidth={2.5} />
-                        <span>PING TEST</span>
+                        <Activity size={12} />
+                        <span>Ping test</span>
                       </button>
                     </div>
                   </div>
@@ -1276,54 +1285,54 @@ export default function LLMManagementPage() {
             <div className="space-y-5">
               {/* Gauges Strip */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="p-3.5 bg-panel border rounded-lg border-border space-y-1 font-mono">
-                  <div className="flex items-center justify-between text-xs font-semibold text-muted">
-                    <span>TOTAL BILLED</span>
+                <div className="p-3.5 bg-panel border rounded-xl border-border space-y-1">
+                  <div className="flex items-center justify-between text-caption text-muted">
+                    <span>Total billed</span>
                     <DollarSign size={13} />
                   </div>
-                  <p className="text-2xl font-semibold text-ink">${totalCost.toFixed(4)}</p>
-                  <p className="text-[10px] text-muted">AGGREGATED 30-DAY INFERENCE</p>
+                  <p className="text-2xl font-mono tabular-nums font-medium text-ink">${totalCost.toFixed(4)}</p>
+                  <p className="text-xs text-faint">Aggregated 30-day inference</p>
                 </div>
 
-                <div className="p-3.5 bg-panel border rounded-lg border-border space-y-1 font-mono">
-                  <div className="flex items-center justify-between text-xs font-semibold text-muted">
-                    <span>PROCESSED TOKENS</span>
+                <div className="p-3.5 bg-panel border rounded-xl border-border space-y-1">
+                  <div className="flex items-center justify-between text-caption text-muted">
+                    <span>Processed tokens</span>
                     <Cpu size={13} />
                   </div>
-                  <p className="text-2xl font-semibold text-ink">
+                  <p className="text-2xl font-mono tabular-nums font-medium text-ink">
                     {((totalTokens / 1_000_000).toFixed(2))}M
                   </p>
-                  <p className="text-[10px] text-muted">PROMPT + COMPLETION CACHE</p>
+                  <p className="text-xs text-faint">Prompt + completion cache</p>
                 </div>
 
-                <div className="p-3.5 bg-panel border rounded-lg border-border space-y-1 font-mono">
-                  <div className="flex items-center justify-between text-xs font-semibold text-muted">
-                    <span>AVG HOP LATENCY</span>
+                <div className="p-3.5 bg-panel border rounded-xl border-border space-y-1">
+                  <div className="flex items-center justify-between text-caption text-muted">
+                    <span>Avg hop latency</span>
                     <Gauge size={13} />
                   </div>
-                  <p className="text-2xl font-semibold text-ink">{avgLatency}ms</p>
-                  <p className="text-[10px] text-muted">MULTI-REGION GATEWAY P95</p>
+                  <p className="text-2xl font-mono tabular-nums font-medium text-ink">{avgLatency}ms</p>
+                  <p className="text-xs text-faint">Multi-region gateway p95</p>
                 </div>
 
-                <div className="p-3.5 bg-panel border rounded-lg border-border space-y-1 font-mono">
-                  <div className="flex items-center justify-between text-xs font-semibold text-muted">
-                    <span>ACTIVE AGENTS</span>
+                <div className="p-3.5 bg-panel border rounded-xl border-border space-y-1">
+                  <div className="flex items-center justify-between text-caption text-muted">
+                    <span>Active agents</span>
                     <Activity size={13} />
                   </div>
-                  <p className="text-2xl font-semibold text-ink">{routing.length}</p>
-                  <p className="text-[10px] text-muted">AUTONOMOUS ORCHESTRATION</p>
+                  <p className="text-2xl font-mono tabular-nums font-medium text-ink">{routing.length}</p>
+                  <p className="text-xs text-faint">Autonomous orchestration</p>
                 </div>
               </div>
 
               {/* Spend Distribution Card */}
-              <div className="p-4 bg-panel border rounded-xl border-border space-y-3 font-mono">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-border pb-2 text-xs">
-                  <span className="font-semibold text-ink uppercase flex items-center gap-1.5">
-                    <DollarSign size={14} />
-                    <span>MODEL_SPEND_DISTRIBUTION</span>
+              <div className="p-4 bg-panel border rounded-xl border-border space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-soft pb-2 text-xs">
+                  <span className="font-medium text-ink flex items-center gap-1.5">
+                    <DollarSign size={14} className="text-muted" />
+                    <span>Model spend distribution</span>
                   </span>
                   <span className="text-muted">
-                    CYCLE TOTAL: <strong className="text-ink">${totalCost.toFixed(4)}</strong>
+                    Cycle total <strong className="font-mono tabular-nums font-medium text-ink">${totalCost.toFixed(4)}</strong>
                   </span>
                 </div>
 
@@ -1333,17 +1342,17 @@ export default function LLMManagementPage() {
                     return (
                       <div key={`${u.provider}-${u.model}`} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <div className="font-semibold text-ink">
-                            <span>{u.model || "default"}</span>{" "}
-                            <span className="text-muted uppercase">({u.provider})</span>
+                          <div className="text-ink">
+                            <span className="font-mono">{u.model || "default"}</span>{" "}
+                            <span className="text-muted capitalize">({u.provider})</span>
                           </div>
-                          <span className="font-semibold text-ink">
+                          <span className="font-mono tabular-nums text-ink">
                             ${(u.cost_usd || 0).toFixed(4)} ({pct}%)
                           </span>
                         </div>
-                        <div className="h-2.5 w-full bg-panel-alt border border-border overflow-hidden">
+                        <div className="h-1.5 w-full bg-ink/[0.08] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-accent/[0.12] border-r border-transparent"
+                            className="h-full bg-ink/60 rounded-full"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -1354,20 +1363,20 @@ export default function LLMManagementPage() {
               </div>
 
               {/* Detailed Usage Table */}
-              <div className="overflow-x-auto border border-border ">
-                <table className="w-full text-left font-mono text-xs">
-                  <thead className="bg-panel-alt text-ink border-b-2 border-border font-semibold uppercase text-[11px]">
+              <div className="overflow-x-auto border border-border rounded-xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-ink/[0.03] text-muted border-b border-border font-normal text-xs">
                     <tr>
-                      <th className="p-3">MODEL</th>
-                      <th className="p-3">GATEWAY</th>
-                      <th className="p-3">AGENT</th>
-                      <th className="p-3">PROMPT_TOKENS</th>
-                      <th className="p-3">COMPLETION_TOKENS</th>
-                      <th className="p-3">TOTAL_TOKENS</th>
-                      <th className="p-3 text-right">COST_USD</th>
+                      <th className="p-3">Model</th>
+                      <th className="p-3">Gateway</th>
+                      <th className="p-3">Agent</th>
+                      <th className="p-3">Prompt tokens</th>
+                      <th className="p-3">Completion tokens</th>
+                      <th className="p-3">Total tokens</th>
+                      <th className="p-3 text-right">Cost (USD)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y-2 divide-border bg-panel">
+                  <tbody className="divide-y divide-border-soft bg-panel">
                     {usage.map((entry, idx) => {
                       const prompt = entry.prompt_tokens || 0;
                       const comp = entry.completion_tokens || 0;
@@ -1375,15 +1384,15 @@ export default function LLMManagementPage() {
                       return (
                         <tr
                           key={idx}
-                          className="hover:bg-ink/[0.06] dark:hover:bg-brutal-yellow/10"
+                          className="hover:bg-ink/[0.06] "
                         >
-                          <td className="p-3 font-semibold text-ink">{entry.model || "—"}</td>
-                          <td className="p-3 uppercase font-semibold text-muted">{entry.provider || "—"}</td>
-                          <td className="p-3 font-semibold">{entry.agent || "developer"}</td>
-                          <td className="p-3 text-muted">{prompt.toLocaleString()}</td>
-                          <td className="p-3 text-muted">{comp.toLocaleString()}</td>
-                          <td className="p-3 font-semibold text-ink">{tot.toLocaleString()}</td>
-                          <td className="p-3 text-right font-semibold text-ink">
+                          <td className="p-3 font-mono text-ink">{entry.model || "—"}</td>
+                          <td className="p-3 capitalize text-muted">{entry.provider || "—"}</td>
+                          <td className="p-3">{entry.agent || "developer"}</td>
+                          <td className="p-3 font-mono tabular-nums text-muted">{prompt.toLocaleString()}</td>
+                          <td className="p-3 font-mono tabular-nums text-muted">{comp.toLocaleString()}</td>
+                          <td className="p-3 font-mono tabular-nums text-ink">{tot.toLocaleString()}</td>
+                          <td className="p-3 text-right font-mono tabular-nums text-ink">
                             ${(entry.cost_usd || 0).toFixed(4)}
                           </td>
                         </tr>
@@ -1409,13 +1418,13 @@ export default function LLMManagementPage() {
             id="playground-modal-window"
             role="dialog"
             aria-labelledby="playground-title"
-            className="w-full max-w-2xl border border-border bg-panel overflow-hidden flex flex-col font-mono max-h-[90vh]"
+            className="w-full max-w-2xl border border-border rounded-xl bg-panel overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Titlebar */}
             <div className="h-10 px-3 bg-accent/[0.12] text-accent border-b-2 border-transparent flex items-center justify-between select-none">
-              <div id="playground-title" className="flex items-center gap-2 font-semibold text-xs uppercase">
+              <div id="playground-title" className="flex items-center gap-2 font-medium text-sm">
                 <Terminal size={14} strokeWidth={2.5} />
-                <span>PROMPT_PLAYGROUND.EXE</span>
+                <span>Prompt playground</span>
               </div>
               <button
                 type="button"
@@ -1432,7 +1441,7 @@ export default function LLMManagementPage() {
               {/* Provider & Model Selectors */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <label className="space-y-1">
-                  <span className="font-semibold text-muted uppercase">Target Provider</span>
+                  <span className="text-xs text-muted">Target provider</span>
                   <select
                     id="playground-select-provider"
                     value={testProvider}
@@ -1452,7 +1461,7 @@ export default function LLMManagementPage() {
                 </label>
 
                 <label className="space-y-1">
-                  <span className="font-semibold text-muted uppercase">Model Runtime</span>
+                  <span className="text-xs text-muted">Model runtime</span>
                   <select
                     id="playground-select-model"
                     value={testModel}
@@ -1472,8 +1481,8 @@ export default function LLMManagementPage() {
 
               {/* Prompt Input Area */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-semibold text-muted">
-                  <span>INPUT_PROMPT:</span>
+                <div className="flex items-center justify-between text-caption text-muted">
+                  <span>Input prompt</span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -1489,7 +1498,7 @@ export default function LLMManagementPage() {
                       }
                       className="text-[10px] px-1.5 py-0.5 border rounded-lg border-border bg-panel-alt text-ink hover:bg-ink/[0.06] hover:text-ink"
                     >
-                      CODE_SAMPLE
+                      Code sample
                     </button>
                   </div>
                 </div>
@@ -1540,7 +1549,7 @@ export default function LLMManagementPage() {
                   onClick={() => setPlaygroundOpen(false)}
                   className="px-3 py-1 bg-panel border rounded-lg border-border text-ink font-medium hover:bg-ink/5"
                 >
-                  CLOSE
+                  Close
                 </button>
                 <button
                   type="button"
@@ -1552,12 +1561,12 @@ export default function LLMManagementPage() {
                   {testingModel ? (
                     <>
                       <RefreshCw size={11} className="animate-spin" />
-                      <span>INFERRING...</span>
+                      <span>Inferring…</span>
                     </>
                   ) : (
                     <>
                       <Send size={11} />
-                      <span>EXECUTE</span>
+                      <span>Execute</span>
                     </>
                   )}
                 </button>
@@ -1579,13 +1588,13 @@ export default function LLMManagementPage() {
             id="assign-modal-window"
             role="dialog"
             aria-labelledby="assign-modal-title"
-            className="w-full max-w-md border border-border bg-panel overflow-hidden flex flex-col font-mono"
+            className="w-full max-w-md border border-border rounded-xl bg-panel overflow-hidden flex flex-col"
           >
             {/* Titlebar */}
             <div className="h-10 px-3 bg-accent/[0.12] text-accent border-b-2 border-transparent flex items-center justify-between select-none">
-              <div id="assign-modal-title" className="flex items-center gap-2 font-semibold text-xs uppercase">
+              <div id="assign-modal-title" className="flex items-center gap-2 font-medium text-sm">
                 <Sliders size={13} strokeWidth={2.5} />
-                <span>ASSIGN_MODEL.SYS</span>
+                <span>Assign model</span>
               </div>
               <button
                 type="button"
@@ -1600,17 +1609,18 @@ export default function LLMManagementPage() {
             {/* Body */}
             <div className="p-4 space-y-3.5">
               <div className="p-2.5 bg-panel border rounded-lg border-border space-y-1">
-                <p className="text-xs font-semibold text-ink">
+                <p className="text-sm font-medium text-ink">
                   {assigningModel.displayName || assigningModel.name}
                 </p>
-                <p className="text-[10px] text-muted uppercase">
-                  GATEWAY: {assigningModel.provider} · CONTEXT: {assigningModel.contextWindow || "128k"}
+                <p className="text-xs text-muted">
+                  Gateway <span className="capitalize">{assigningModel.provider}</span> · Context{" "}
+                  <span className="font-mono tabular-nums">{assigningModel.contextWindow || "128k"}</span>
                 </p>
               </div>
 
               <label className="block space-y-1">
-                <span className="text-xs font-semibold text-muted uppercase">
-                  Target Fleet Agent:
+                <span className="text-xs text-muted">
+                  Target fleet agent
                 </span>
                 <select
                   id="target-agent-select"
@@ -1635,7 +1645,7 @@ export default function LLMManagementPage() {
                 onClick={() => setAssignModalOpen(false)}
                 className="px-3 py-1 bg-panel border rounded-lg border-border text-ink font-medium hover:bg-ink/5"
               >
-                CANCEL
+                Cancel
               </button>
 
               <button
@@ -1653,7 +1663,7 @@ export default function LLMManagementPage() {
                 }}
                 className="px-4 py-1 bg-ink text-on-ink font-medium border rounded-lg border-border hover:brightness-105"
               >
-                CONFIRM BINDING
+                Confirm binding
               </button>
             </div>
           </div>

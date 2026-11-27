@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, Layers } from "lucide-react";
 import type { PMSprint, PMStory, PMEpic, PMTask } from "../../../lib/types/api";
+import { Badge } from "../../../components/ui/Badge";
 
 interface SprintScopeViewProps {
   selectedSprint: PMSprint;
@@ -21,9 +22,9 @@ export const SprintScopeView: React.FC<SprintScopeViewProps> = ({
 
   return (
     <div id="sprint-scope-view" className="space-y-4">
-      <div className="rounded-2xl border border-border bg-panel p-5 md:p-6 shadow-2xs space-y-5">
+      <div className="rounded-xl border border-border bg-panel p-5 md:p-6 space-y-5">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">
+          <h3 className="text-sm font-medium text-ink">
             User Stories Committed to Sprint {selectedSprint.sprint_number}
           </h3>
           <p className="text-xs text-muted mt-0.5">
@@ -32,9 +33,9 @@ export const SprintScopeView: React.FC<SprintScopeViewProps> = ({
         </div>
 
         {sprintStories.length === 0 ? (
-          <div className="py-12 text-center text-faint text-xs rounded-xl bg-ink/10 border border-border">
+          <div className="py-12 text-center text-faint text-xs rounded-xl bg-ink/[0.03] border border-border-soft">
             <Layers size={24} className="mx-auto mb-2 text-faint" />
-            <p className="font-semibold text-ink">
+            <p className="font-medium text-ink">
               No user stories directly mapped to this sprint
             </p>
             <p className="text-muted mt-1">
@@ -52,40 +53,40 @@ export const SprintScopeView: React.FC<SprintScopeViewProps> = ({
                 <div
                   key={story.id}
                   id={`sprint-story-${story.id}`}
-                  className="p-4.5 rounded-2xl border border-border bg-ink/10 space-y-3 shadow-2xs"
+                  className="p-4 rounded-xl border border-border-soft bg-ink/[0.03] space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="px-2.5 py-0.5 text-[10px] font-semibold uppercase rounded-full bg-info/10 text-info border border-info/30">
+                      <Badge variant="info" size="sm">
                         {epic?.title || "Core Epic"}
-                      </span>
-                      <h4 className="font-semibold text-sm text-ink">
+                      </Badge>
+                      <h4 className="font-medium text-sm text-ink">
                         {story.title}
                       </h4>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-muted">
-                      <span className="font-semibold text-agent-integration">
-                        {doneTasks.length} / {storyTasks.length} tasks done
+                      <span>
+                        <span className="font-mono tabular-nums text-ink">{doneTasks.length} / {storyTasks.length}</span> tasks done
                       </span>
                     </div>
                   </div>
 
                   {story.description && (
-                    <p className="text-xs text-muted leading-relaxed font-medium">
+                    <p className="text-xs text-muted leading-relaxed">
                       {story.description}
                     </p>
                   )}
 
                   {story.acceptance_criteria && story.acceptance_criteria.length > 0 && (
                     <div className="pt-2.5 border-t border-border">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-faint block mb-1.5">
-                        ACCEPTANCE CRITERIA:
+                      <span className="text-xs text-muted block mb-1.5">
+                        Acceptance criteria
                       </span>
                       <ul className="space-y-1.5 text-xs text-ink">
                         {story.acceptance_criteria.map((crit, idx) => (
                           <li key={idx} className="flex items-start gap-2">
-                            <Check size={13} className="text-agent-integration shrink-0 mt-0.5" />
+                            <Check size={13} className="text-ok shrink-0 mt-0.5" />
                             <span>{crit}</span>
                           </li>
                         ))}
