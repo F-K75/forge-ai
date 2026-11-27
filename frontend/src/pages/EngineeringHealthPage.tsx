@@ -168,7 +168,7 @@ export default function EngineeringHealthPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
+              <h2 className="text-xs font-medium text-faint mb-3">
                 Scores by dimension
               </h2>
               {scoreRows.length > 0 ? (
@@ -216,7 +216,7 @@ export default function EngineeringHealthPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
             >
-              <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
+              <h2 className="text-xs font-medium text-faint mb-3">
                 Tasks by priority
               </h2>
               {priorityRows.length > 0 ? (
@@ -263,7 +263,7 @@ export default function EngineeringHealthPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
+              <h2 className="text-xs font-medium text-faint mb-3">
                 Alerts
               </h2>
               {data.dashboard.alerts.length === 0 ? (
@@ -296,7 +296,7 @@ export default function EngineeringHealthPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
             >
-              <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
+              <h2 className="text-xs font-medium text-faint mb-3">
                 Recent activity
               </h2>
               {data.dashboard.recent_activity.length === 0 ? (

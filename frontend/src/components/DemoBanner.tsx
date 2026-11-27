@@ -11,14 +11,14 @@ export function DemoBanner() {
     <div
       role="status"
       aria-label="Demo notice"
-      className="fixed bottom-0 inset-x-0 z-[1000] border-t-2 border-border bg-brutal-yellow text-ink"
+      className="fixed bottom-0 inset-x-0 z-[1000] border-t-2 border-transparent bg-accent/[0.12] text-accent"
     >
       <div className="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-mono font-semibold">
         <span>Demo with sample data: nothing here is real.</span>
         {PUBLIC_DEMO_APP_URL && (
           <a
             href={`${PUBLIC_DEMO_APP_URL}/signup`}
-            className="px-3 py-1 border-2 border-border bg-ink text-on-ink hover:bg-ink/5 hover:text-ink"
+            className="px-3 py-1 border border-border bg-ink text-on-ink hover:bg-ink/5 hover:text-ink"
           >
             Sign up free →
           </a>

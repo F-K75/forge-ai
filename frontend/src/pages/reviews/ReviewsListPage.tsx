@@ -485,7 +485,7 @@ export default function ReviewsListPage() {
                   Launch Multi-Agent Code Audit
                 </h2>
               </div>
- <p className="mt-0.5 font-mono text-[11px] text-muted">
+ <p className="mt-0.5 text-[11px] text-muted">
                 Audit a workspace folder snapshot or unified diff. Read-only: agents do not alter or commit your code.
               </p>
             </div>
@@ -600,7 +600,7 @@ export default function ReviewsListPage() {
                   onChange={(e) => setDiffText(e.target.value)}
                   rows={6}
  placeholder="Paste git diff or patch (e.g. diff --git a/src/app.ts b/src/app.ts)..."
- className="w-full border-2 border-border bg-ink p-2.5 font-mono text-xs text-muted placeholder:text-muted focus:outline-none focus:border-brutal-yellow"
+ className="w-full border border-border bg-ink p-2.5 font-mono text-xs text-muted placeholder:text-muted focus:outline-none focus:border-brutal-yellow"
                 />
               </div>
             )}
@@ -770,7 +770,7 @@ export default function ReviewsListPage() {
  <h3 className=" text-base md:text-lg font-semibold text-ink">
                 Review Board service not configured
               </h3>
- <p className="mt-2 font-mono text-xs text-muted max-w-lg mx-auto leading-relaxed">
+ <p className="mt-2 text-xs text-muted max-w-lg mx-auto leading-relaxed">
                 Autonomous multi-agent code reviews, architectural analyses, and security gate audits belong here. The Review Board orchestrator service is currently unconfigured in this environment.
               </p>
  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -786,7 +786,7 @@ export default function ReviewsListPage() {
                   Preview Demo Reviews
                 </button>
               </div>
- <p className="mt-4 font-mono text-[11px] text-muted">
+ <p className="mt-4 text-[11px] text-muted">
  To enable live orchestration audits, configure the <code className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
               </p>
             </div>
@@ -794,7 +794,7 @@ export default function ReviewsListPage() {
  <div className="border rounded-xl border-border bg-panel p-12 text-center shadow-m3">
  <ShieldAlert size={36} className="mx-auto text-muted mb-3" />
  <h3 className=" text-base font-semibold text-ink">No review audits match your filter</h3>
- <p className="mt-1 font-mono text-xs text-muted max-w-sm mx-auto">
+ <p className="mt-1 text-xs text-muted max-w-sm mx-auto">
                 Try loosening your search query or launch a new audit with the workbench above.
               </p>
               <button
@@ -870,7 +870,7 @@ export default function ReviewsListPage() {
 
                         {/* Recommendation Note */}
                         {run.consolidated?.summary && (
- <p className="mt-3 font-mono text-xs text-muted line-clamp-2 leading-relaxed bg-panel p-2 border-2 border-border">
+ <p className="mt-3 text-xs text-muted line-clamp-2 leading-relaxed bg-panel p-2 border border-border">
                             {run.consolidated.summary}
                           </p>
                         )}
@@ -927,7 +927,7 @@ export default function ReviewsListPage() {
                               e.stopPropagation();
                               setActiveBacklogModal(run);
                             }}
- className="h-7 px-2.5 border rounded-pill border-border bg-panel text-[11px] font-medium text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 active:translate-x-[1px] active:translate-y-[1px] transition-all"
+ className="h-7 px-2.5 border rounded-pill border-border bg-panel text-[11px] font-medium text-ink hover:bg-accent text-ink hover:text-ink shadow-m3 transition-all"
                           >
                             Quick Backlog
                           </button>
@@ -1109,8 +1109,8 @@ export default function ReviewsListPage() {
                             Impact: {item.impact}/10 · Effort: {item.effort}
                           </div>
                         </div>
- <h4 className="font-mono text-xs font-semibold text-ink">{item.title}</h4>
- <p className="font-mono text-xs text-muted leading-relaxed">{item.description}</p>
+ <h4 className=" text-xs font-semibold text-ink">{item.title}</h4>
+ <p className=" text-xs text-muted leading-relaxed">{item.description}</p>
                         {item.fix && (
  <div className="border rounded-lg border-border bg-panel p-2 text-xs font-mono text-ink">
  <span className="font-semibold text-brutal-orange">Suggested Fix: </span>
@@ -1136,7 +1136,7 @@ export default function ReviewsListPage() {
                     navigator.clipboard.writeText(json);
  toast.success("Backlog JSON copied to clipboard");
                   }}
- className="h-7 px-3 inline-flex items-center gap-1.5 border rounded-pill border-border bg-panel text-xs font-medium text-ink shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all"
+ className="h-7 px-3 inline-flex items-center gap-1.5 border rounded-pill border-border bg-panel text-xs font-medium text-ink shadow-m3 hover:bg-ink/5 transition-all"
                 >
                   <Copy size={12} />
                   Copy JSON

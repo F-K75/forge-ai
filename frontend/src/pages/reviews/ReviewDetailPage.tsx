@@ -289,7 +289,7 @@ export default function ReviewDetailPage() {
             </Link>
           </div>
           {isUnconfigured && (
- <p className="mt-4 font-mono text-[11px] text-muted">
+ <p className="mt-4 text-[11px] text-muted">
  To view live audit reports, configure the <code className="border rounded-lg border-border bg-panel-alt px-1.5 py-0.5 font-semibold text-ink">VITE_ORCHESTRATOR_URL</code> environment variable.
             </p>
           )}
@@ -505,7 +505,7 @@ export default function ReviewDetailPage() {
                   </div>
 
                   <div>
- <h4 className="font-mono text-xs font-semibold text-ink truncate">{humanName}</h4>
+ <h4 className=" text-xs font-semibold text-ink truncate">{humanName}</h4>
  <div className="font-mono text-[11px] text-muted font-semibold">
  Issues flagged: <span className="font-semibold text-ink">{issues}</span>
                     </div>
@@ -539,7 +539,7 @@ export default function ReviewDetailPage() {
                   Prioritized Remediation Backlog ({visibleBacklog.length} items)
                 </h2>
               </div>
- <p className="mt-0.5 font-mono text-xs text-muted font-semibold">
+ <p className="mt-0.5 text-xs text-muted font-semibold">
                 Actionable findings ranked by security risk, architectural impact, and effort.
               </p>
             </div>
@@ -549,7 +549,7 @@ export default function ReviewDetailPage() {
  type="button"
                 onClick={handleExportMarkdown}
                 disabled={!backlog || backlog.length === 0}
- className="h-7 inline-flex items-center gap-1.5 border rounded-pill border-border bg-panel px-3 text-xs font-medium shadow-m3 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-all disabled:opacity-50"
+ className="h-7 inline-flex items-center gap-1.5 border rounded-pill border-border bg-panel px-3 text-xs font-medium shadow-m3 hover:bg-ink/5 transition-all disabled:opacity-50"
               >
                 <Download size={13} />
                 Export Markdown
@@ -620,7 +620,7 @@ export default function ReviewDetailPage() {
  <div className="border rounded-xl border-border bg-panel p-8 text-center shadow-m3">
  <CheckCircle2 size={32} className="mx-auto text-ok mb-2" />
  <div className="font-mono text-sm font-semibold text-ink">No unresolved issues in this filter view.</div>
- <p className="mt-1 font-mono text-xs text-muted font-semibold">All checks in this category are compliant.</p>
+ <p className="mt-1 text-xs text-muted font-semibold">All checks in this category are compliant.</p>
             </div>
           ) : (
  <div className="space-y-3">
@@ -655,7 +655,7 @@ export default function ReviewDetailPage() {
                     {/* Title & Description */}
                     <div>
  <h3 className=" text-sm font-semibold text-ink">{item.title}</h3>
- <p className="mt-1 font-mono text-xs text-muted leading-relaxed font-medium">{item.description}</p>
+ <p className="mt-1 text-xs text-muted leading-relaxed font-medium">{item.description}</p>
                     </div>
 
                     {/* Proposed Fix Box */}
@@ -674,7 +674,7 @@ export default function ReviewDetailPage() {
  {isCopied ? "Copied" : "Copy Fix"}
                           </button>
                         </div>
- <code className="block font-mono text-xs text-muted break-all bg-ink p-2 border-2 border-border">
+ <code className="block font-mono text-xs text-muted break-all bg-ink p-2 border border-border">
                           {item.fix}
                         </code>
                       </div>

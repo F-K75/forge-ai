@@ -650,7 +650,7 @@ export default function AgentEfficiencyHeatmap() {
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-error/20 text-error border border-error/40">
               <Flame size={16} aria-hidden="true" />
             </span>
-            <h3 className="font-mono text-base font-semibold uppercase text-ink tracking-wide">
+            <h3 className=" text-base font-semibold uppercase text-ink tracking-wide">
               Agent Efficiency Heatmap
             </h3>
             <span className="rounded bg-ink text-on-ink px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider font-mono">
@@ -667,7 +667,7 @@ export default function AgentEfficiencyHeatmap() {
             id="heatmap-copy-report-btn"
             type="button"
             onClick={handleCopyReport}
-            className="h-8 px-3 inline-flex items-center gap-1.5 border-2 border-border bg-panel text-xs font-semibold uppercase text-ink hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] transition-transform"
+            className="h-8 px-3 inline-flex items-center gap-1.5 border border-border bg-panel text-xs font-medium text-ink hover:bg-ink/5 transition-transform"
           >
             <Copy size={13} />
             <span>Copy Bottleneck Report</span>
@@ -680,7 +680,7 @@ export default function AgentEfficiencyHeatmap() {
         {/* Card 1: Primary Culprit Alert */}
         <div
           id="heatmap-primary-bottleneck-card"
-          className="border-2 border-error/30 bg-error/10 p-4"
+          className="border border-error/30 bg-error/10 p-4"
         >
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-error flex items-center gap-1">
@@ -695,7 +695,7 @@ export default function AgentEfficiencyHeatmap() {
           </div>
           {topBottleneck ? (
             <div className="mt-2.5">
-              <h4 className="font-mono text-sm font-semibold text-ink">
+              <h4 className=" text-sm font-semibold text-ink">
                 {topBottleneck.agentName}
               </h4>
               <p className="text-xs text-muted mt-0.5">
@@ -718,7 +718,7 @@ export default function AgentEfficiencyHeatmap() {
         {/* Card 2: Development Friction Index */}
         <div
           id="heatmap-friction-index-card"
-          className="border-2 border-border bg-panel p-4 "
+          className="border border-border bg-panel p-4 "
         >
           <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted flex items-center gap-1">
             <Zap size={13} className="text-warn" />
@@ -740,7 +740,7 @@ export default function AgentEfficiencyHeatmap() {
         {/* Card 3: Execution Reliability */}
         <div
           id="heatmap-execution-reliability-card"
-          className="border-2 border-border bg-panel p-4 "
+          className="border border-border bg-panel p-4 "
         >
           <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted flex items-center gap-1">
             <Clock size={13} className="text-accent" />
@@ -762,7 +762,7 @@ export default function AgentEfficiencyHeatmap() {
       </div>
 
       {/* Control Bar: Metric Selector, Cycle Filter, Search & Sort */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-panel-alt border-2 border-border p-3 ">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-panel-alt border border-border p-3 ">
         {/* Metric Mode Toggle */}
         <div className="flex items-center gap-1 flex-wrap">
           <span className="font-mono text-xs font-semibold uppercase text-ink mr-1 flex items-center gap-1">
@@ -773,7 +773,7 @@ export default function AgentEfficiencyHeatmap() {
             id="heatmap-metric-bottleneck-score-btn"
             type="button"
             onClick={() => setMetricMode("bottleneck_score")}
-            className={`h-7 px-2.5 text-xs font-mono font-semibold uppercase border-2 transition-colors ${
+            className={`h-7 px-2.5 text-xs font-medium border transition-colors ${
               metricMode === "bottleneck_score"
                 ? "bg-ink text-on-ink border-border "
                 : "bg-panel text-ink border-border hover:bg-ink/5"
@@ -785,7 +785,7 @@ export default function AgentEfficiencyHeatmap() {
             id="heatmap-metric-duration-btn"
             type="button"
             onClick={() => setMetricMode("duration")}
-            className={`h-7 px-2.5 text-xs font-mono font-semibold uppercase border-2 transition-colors ${
+            className={`h-7 px-2.5 text-xs font-medium border transition-colors ${
               metricMode === "duration"
                 ? "bg-ink text-on-ink border-border "
                 : "bg-panel text-ink border-border hover:bg-ink/5"
@@ -797,7 +797,7 @@ export default function AgentEfficiencyHeatmap() {
             id="heatmap-metric-failure-rate-btn"
             type="button"
             onClick={() => setMetricMode("failure_rate")}
-            className={`h-7 px-2.5 text-xs font-mono font-semibold uppercase border-2 transition-colors ${
+            className={`h-7 px-2.5 text-xs font-medium border transition-colors ${
               metricMode === "failure_rate"
                 ? "bg-ink text-on-ink border-border "
                 : "bg-panel text-ink border-border hover:bg-ink/5"
@@ -809,7 +809,7 @@ export default function AgentEfficiencyHeatmap() {
             id="heatmap-metric-blocked-tasks-btn"
             type="button"
             onClick={() => setMetricMode("blocked_tasks")}
-            className={`h-7 px-2.5 text-xs font-mono font-semibold uppercase border-2 transition-colors ${
+            className={`h-7 px-2.5 text-xs font-medium border transition-colors ${
               metricMode === "blocked_tasks"
                 ? "bg-ink text-on-ink border-border "
                 : "bg-panel text-ink border-border hover:bg-ink/5"
@@ -821,7 +821,7 @@ export default function AgentEfficiencyHeatmap() {
             id="heatmap-metric-run-count-btn"
             type="button"
             onClick={() => setMetricMode("run_count")}
-            className={`h-7 px-2.5 text-xs font-mono font-semibold uppercase border-2 transition-colors ${
+            className={`h-7 px-2.5 text-xs font-medium border transition-colors ${
               metricMode === "run_count"
                 ? "bg-ink text-on-ink border-border "
                 : "bg-panel text-ink border-border hover:bg-ink/5"
@@ -841,7 +841,7 @@ export default function AgentEfficiencyHeatmap() {
               placeholder="Search agent..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-7 w-full pl-8 pr-2 border-2 border-border bg-panel text-xs font-semibold text-ink focus:outline-none"
+              className="h-7 w-full pl-8 pr-2 border border-border bg-panel text-xs font-semibold text-ink focus:outline-none"
             />
           </div>
 
@@ -853,7 +853,7 @@ export default function AgentEfficiencyHeatmap() {
               id="heatmap-cycle-select"
               value={selectedCycleId}
               onChange={(e) => setSelectedCycleId(e.target.value)}
-              className="h-7 border-2 border-border bg-panel px-2 text-xs font-mono font-semibold text-ink focus:outline-none cursor-pointer"
+              className="h-7 border border-border bg-panel px-2 text-xs font-medium text-ink focus:outline-none cursor-pointer"
             >
               <option value="all">All Cycles ({cycles.length})</option>
               {cycles.map((c) => (
@@ -872,7 +872,7 @@ export default function AgentEfficiencyHeatmap() {
               id="heatmap-sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="h-7 border-2 border-border bg-panel px-2 text-xs font-mono font-semibold text-ink focus:outline-none cursor-pointer"
+              className="h-7 border border-border bg-panel px-2 text-xs font-medium text-ink focus:outline-none cursor-pointer"
             >
               <option value="worst">Worst Bottleneck First</option>
               <option value="runs">Most Runs</option>
@@ -905,7 +905,7 @@ export default function AgentEfficiencyHeatmap() {
       </div>
 
       {/* 2D Grid Heatmap Table */}
-      <div className="overflow-x-auto border-2 border-border bg-panel ">
+      <div className="overflow-x-auto border border-border bg-panel ">
         <table id="agent-efficiency-heatmap-table" className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-panel-alt border-b-2 border-border font-mono text-xs text-ink uppercase">
@@ -1061,7 +1061,7 @@ export default function AgentEfficiencyHeatmap() {
       {selectedCell && (
         <div
           id="heatmap-bottleneck-inspector"
-          className="border-2 border-border bg-panel p-5 space-y-5"
+          className="border border-border bg-panel p-5 space-y-5"
         >
           {/* Inspector Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-4">
@@ -1071,7 +1071,7 @@ export default function AgentEfficiencyHeatmap() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-mono text-base font-semibold uppercase text-ink">
+                  <h4 className=" text-base font-semibold uppercase text-ink">
                     {selectedCell.agentName}
                   </h4>
                   <span
@@ -1095,7 +1095,7 @@ export default function AgentEfficiencyHeatmap() {
                 type="button"
                 onClick={handleSimulateRun}
                 disabled={isSimulating}
-                className="h-8 px-3 inline-flex items-center gap-1.5 border-2 border-border bg-ink text-on-ink font-mono text-xs font-semibold uppercase hover:bg-ink/90 disabled:opacity-50 transition-transform active:translate-x-[1px] active:translate-y-[1px]"
+                className="h-8 px-3 inline-flex items-center gap-1.5 border border-border bg-ink text-on-ink text-xs font-medium hover:bg-ink/90 disabled:opacity-50 transition-transform"
               >
                 <RotateCw size={12} className={isSimulating ? "animate-spin" : ""} />
                 <span>{isSimulating ? "Running..." : "Simulate Diagnostic Run"}</span>
@@ -1104,7 +1104,7 @@ export default function AgentEfficiencyHeatmap() {
                 id="heatmap-close-inspector-btn"
                 type="button"
                 onClick={() => setSelectedCell(null)}
-                className="h-8 w-8 inline-flex items-center justify-center border-2 border-border bg-panel text-ink hover:bg-ink/5"
+                className="h-8 w-8 inline-flex items-center justify-center border border-border bg-panel text-ink hover:bg-ink/5"
                 aria-label="Close Inspector"
               >
                 <X size={15} />
@@ -1114,7 +1114,7 @@ export default function AgentEfficiencyHeatmap() {
 
           {/* Key Metric Breakdown Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 border-2 border-border bg-panel">
+            <div className="p-3 border border-border bg-panel">
               <span className="font-mono text-[10px] font-semibold text-muted uppercase">Bottleneck Score</span>
               <div className="mt-1 font-mono text-xl font-semibold text-ink flex items-baseline gap-1">
                 <span>{selectedCell.bottleneckScore}</span>
@@ -1134,7 +1134,7 @@ export default function AgentEfficiencyHeatmap() {
               </div>
             </div>
 
-            <div className="p-3 border-2 border-border bg-panel">
+            <div className="p-3 border border-border bg-panel">
               <span className="font-mono text-[10px] font-semibold text-muted uppercase">Latency (Mean / P95)</span>
               <div className="mt-1 font-mono text-xl font-semibold text-ink flex items-baseline gap-1.5">
                 <span>{formatDuration(selectedCell.avgDurationSeconds)}</span>
@@ -1151,7 +1151,7 @@ export default function AgentEfficiencyHeatmap() {
               </p>
             </div>
 
-            <div className="p-3 border-2 border-border bg-panel">
+            <div className="p-3 border border-border bg-panel">
               <span className="font-mono text-[10px] font-semibold text-muted uppercase">Failure & Retries</span>
               <div className="mt-1 font-mono text-xl font-semibold text-ink">
                 {selectedCell.failureRate}%
@@ -1161,7 +1161,7 @@ export default function AgentEfficiencyHeatmap() {
               </p>
             </div>
 
-            <div className="p-3 border-2 border-border bg-panel">
+            <div className="p-3 border border-border bg-panel">
               <span className="font-mono text-[10px] font-semibold text-muted uppercase">Blocked Tasks</span>
               <div className="mt-1 font-mono text-xl font-semibold text-ink">
                 {selectedCell.blockedDownstreamTasksCount}
@@ -1175,8 +1175,8 @@ export default function AgentEfficiencyHeatmap() {
           {/* Root Causes & Recommendations Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Root Causes */}
-            <div className="border-2 border-border p-3 bg-error/[0.08]">
-              <h5 className="font-mono text-xs font-semibold uppercase text-ink flex items-center gap-1.5 mb-2">
+            <div className="border border-border p-3 bg-error/[0.08]">
+              <h5 className=" text-xs font-semibold uppercase text-ink flex items-center gap-1.5 mb-2">
                 <AlertTriangle size={13} className="text-error" />
                 DETECTED BOTTLENECK FACTORS
               </h5>
@@ -1191,8 +1191,8 @@ export default function AgentEfficiencyHeatmap() {
             </div>
 
             {/* Recommendations */}
-            <div className="border-2 border-border p-3 bg-ok/[0.08]">
-              <h5 className="font-mono text-xs font-semibold uppercase text-ink flex items-center gap-1.5 mb-2">
+            <div className="border border-border p-3 bg-ok/[0.08]">
+              <h5 className=" text-xs font-semibold uppercase text-ink flex items-center gap-1.5 mb-2">
                 <CheckCircle2 size={13} className="text-ok" />
                 RECOMMENDED MITIGATIONS FOR PM
               </h5>
@@ -1252,7 +1252,7 @@ export default function AgentEfficiencyHeatmap() {
           {/* Agent Runs History Timeline */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h5 className="font-mono text-xs font-semibold uppercase text-ink flex items-center gap-1.5">
+              <h5 className=" text-xs font-semibold uppercase text-ink flex items-center gap-1.5">
                 <Terminal size={14} />
                 AGENT EXECUTION RUNS HISTORY ({selectedCell.recentRuns.length})
               </h5>
@@ -1261,7 +1261,7 @@ export default function AgentEfficiencyHeatmap() {
               </span>
             </div>
 
-            <div className="border-2 border-border max-h-60 overflow-y-auto">
+            <div className="border border-border max-h-60 overflow-y-auto">
               <table className="w-full text-left font-mono text-xs border-collapse">
                 <thead>
                   <tr className="bg-panel-alt border-b border-border text-[11px] font-semibold uppercase text-ink sticky top-0">
@@ -1310,7 +1310,7 @@ export default function AgentEfficiencyHeatmap() {
 
             {/* Expanded Run Log Viewer */}
             {selectedRunLog && (
-              <div className="border-2 border-border bg-ink text-muted p-3 rounded font-mono text-xs space-y-2">
+              <div className="border border-border bg-ink text-muted p-3 rounded font-mono text-xs space-y-2">
                 <div className="flex items-center justify-between text-[11px] text-muted border-b border-border pb-1.5">
                   <span className="text-ink font-semibold">EXECUTION LOGS: {selectedRunLog.id}</span>
                   <span>Agent: {selectedRunLog.agent || selectedRunLog.agent_type}</span>

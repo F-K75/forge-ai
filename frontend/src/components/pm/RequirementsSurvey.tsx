@@ -590,17 +590,17 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
       }`}
     >
       <div
-        className={`relative flex flex-col bg-panel-alt border-2 border-border overflow-hidden transition-all duration-150 ${
+        className={`relative flex flex-col bg-panel-alt border border-border overflow-hidden transition-all duration-150 ${
           isFullScreen
-            ? 'w-full h-full max-w-none max-h-none rounded-none sm:rounded-[24px] md:rounded-[32px] p-1.5 sm:p-2.5 md:p-3.5'
+            ? 'w-full h-full max-w-none max-h-none rounded-lg sm:rounded-[24px] md:rounded-[32px] p-1.5 sm:p-2.5 md:p-3.5'
             : 'w-full max-w-5xl xl:max-w-6xl max-h-[94vh] rounded-[28px] sm:rounded-[36px] md:rounded-[42px] p-2.5 sm:p-4 md:p-5'
         }`}
       >
         {/* Inner Window Container */}
         <div
-          className={`relative flex flex-col w-full h-full bg-panel border-2 border-border overflow-hidden ${
+          className={`relative flex flex-col w-full h-full bg-panel border border-border overflow-hidden ${
             isFullScreen
-              ? 'flex-1 max-h-none rounded-none sm:rounded-[18px] md:rounded-[22px]'
+              ? 'flex-1 max-h-none rounded-lg sm:rounded-[18px] md:rounded-[22px]'
               : 'max-h-[calc(94vh-32px)] rounded-[20px] sm:rounded-[26px]'
           }`}
         >
@@ -621,7 +621,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="neural-chatbot-tab-btn"
                   type="button"
                   onClick={() => setViewMode('neural-chat')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-medium rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'neural-chat'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -640,7 +640,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('wizard')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-medium rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'wizard'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -653,7 +653,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('full')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-medium rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'full'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -667,7 +667,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="validation-summary-tab-btn"
                   type="button"
                   onClick={() => setViewMode('summary')}
-                  className={`h-7 px-2.5 text-xs font-semibold rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-medium rounded-pill transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'summary'
                       ? 'bg-ink text-on-ink shadow-xs'
                       : 'text-ink hover:text-ink'
@@ -687,7 +687,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="perspective-business-toggle-btn"
                   type="button"
                   onClick={() => handlePerspectiveChange('business')}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                     surveyPerspective === 'business'
                       ? 'bg-warn text-on-ink shadow-xs ring-1 ring-warn/50'
                       : 'text-muted hover:text-ink'
@@ -701,7 +701,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   id="perspective-technical-toggle-btn"
                   type="button"
                   onClick={() => handlePerspectiveChange('technical')}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                     surveyPerspective === 'technical'
                       ? 'bg-ink text-on-ink shadow-xs ring-1 ring-info/50'
                       : 'text-muted hover:text-ink'
@@ -719,7 +719,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 type="button"
                 onClick={handleSaveDraft}
                 title="Save current survey responses"
-                className={`h-8 px-2.5 sm:px-3 rounded-pill border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                className={`h-8 px-2.5 sm:px-3 rounded-pill border text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all ${
                   saveSuccessFeedback
                     ? 'bg-ok text-on-ink border-ok/30'
                     : 'bg-panel border-border text-ink hover:bg-ink/5'
@@ -804,7 +804,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
 
         {/* Dynamic Branch Notification Banner (if newly unlocked) */}
         {branchToastMessage && (
-          <div className="px-6 py-2 bg-agent-business-improver/10 border-b border-agent-business-improver/30 text-xs font-semibold text-agent-business-improver flex items-center justify-between gap-2 transition-all">
+          <div className="px-6 py-2 bg-agent-business-improver/10 border-b border-agent-business-improver/30 text-xs font-medium text-agent-business-improver flex items-center justify-between gap-2 transition-all">
             <div className="flex items-center gap-2">
               <GitBranch className="w-4 h-4 text-agent-business-improver shrink-0" />
               <span>{branchToastMessage}</span>
@@ -822,7 +822,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
         {/* Dynamic Perspective Notification Banner */}
         {perspectiveToast && (
           <div
-            className={`px-6 py-2.5 border-b text-xs font-semibold flex items-center justify-between gap-2 transition-all ${
+            className={`px-6 py-2.5 border-b text-xs font-medium flex items-center justify-between gap-2 transition-all ${
               surveyPerspective === 'business'
                 ? 'bg-warn/10 border-warn/30 text-warn'
                 : 'bg-info/10 border-info/30 text-info'
@@ -835,7 +835,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
             <button
               type="button"
               onClick={() => setPerspectiveToast(null)}
-              className="hover:opacity-75 font-semibold text-sm px-1.5 cursor-pointer"
+              className="hover:opacity-75 font-medium text-sm px-1.5 cursor-pointer"
             >
               ✕
             </button>
@@ -1000,7 +1000,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                           ↳ Follow-up triggered by your choice in {currentQuestion.parent_question_label}
                         </span>
                       </div>
-                      <p className="text-[11px] mt-0.5 font-mono opacity-80">
+                      <p className="text-[11px] mt-0.5 opacity-80">
                         {currentQuestion.branch_reason}
                       </p>
                     </div>
@@ -1016,7 +1016,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               )}
 
               {/* Single Interactive Question Card */}
-              <div className={`p-5 sm:p-6 space-y-4 rounded-2xl bg-panel border-2 border-border ${
+              <div className={`p-5 sm:p-6 space-y-4 rounded-2xl bg-panel border border-border ${
                 currentQuestion.is_conditional_branch ? 'ring-2 ring-accent/40' : ''
               }`}>
                 {/* Category & Status header with Step Indicator */}
@@ -1025,7 +1025,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <span className="flex items-center justify-center px-2.5 py-1 rounded-pill bg-ink text-on-ink text-xs font-mono font-semibold">
                       {currentStepNumber} of {totalCount}
                     </span>
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-info/10 border-2 border-border text-[11px] font-semibold uppercase text-ink ">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-info/10 border border-border text-[11px] font-semibold uppercase text-ink ">
                       {getCategoryIcon(currentQuestion.category)}
                       <span>{currentQuestion.category}</span>
                     </div>
@@ -1119,7 +1119,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                               SYSTEM ARCHITECTURE
                             </span>
                           </div>
-                          <p className="text-xs text-accent leading-relaxed font-mono">
+                          <p className="text-xs text-accent leading-relaxed">
                             <strong>Why needed:</strong> {currentQuestion.why_needed}
                           </p>
                           <div className="text-[11px] text-accent pt-1.5 border-t border-info/30 flex items-start gap-1 font-mono">
@@ -1169,7 +1169,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                   currentQuestion.allow_multiple
                                 )
                               }
-                              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left flex flex-col justify-between gap-2 select-none ${
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left flex flex-col justify-between gap-2 select-none ${
                                 isSelected
                                   ? 'bg-warn text-on-ink border-border translate-y-0.5'
                                   : 'bg-panel text-ink border-border hover:-translate-y-0.5'
@@ -1177,7 +1177,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                             >
                               <div className="flex items-start gap-2.5">
                                 <span
-                                  className={`w-5 h-5 rounded-md border-2 border-border flex items-center justify-center shrink-0 mt-0.5 text-xs font-semibold transition-all ${
+                                  className={`w-5 h-5 rounded-md border border-border flex items-center justify-center shrink-0 mt-0.5 text-xs font-semibold transition-all ${
                                     isSelected
                                       ? 'bg-ink text-on-ink'
                                       : 'bg-panel'
@@ -1222,7 +1222,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                               </div>
 
                               {isTechOpen && (
-                                <div className="p-2 rounded-xl bg-panel-alt border-2 border-border text-[10px] font-mono text-ink break-words mt-1">
+                                <div className="p-2 rounded-xl bg-panel-alt border border-border text-[10px] font-mono text-ink break-words mt-1">
                                   <span className="font-semibold text-ink">TECHNICAL SPEC: </span>
                                   {opt}
                                 </div>
@@ -1243,14 +1243,14 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                 currentQuestion.allow_multiple
                               )
                             }
-                            className={`p-3 rounded-xl text-xs font-semibold border-2 border-border transition-all text-left flex items-start gap-2.5 cursor-pointer ${
+                            className={`p-3 rounded-xl text-xs font-semibold border border-border transition-all text-left flex items-start gap-2.5 cursor-pointer ${
                               isSelected
                                 ? 'bg-warn text-on-ink translate-y-0.5'
                                 : 'bg-panel text-ink hover:-translate-y-0.5'
                             }`}
                           >
                             <span
-                              className={`w-4 h-4 rounded-md border-2 border-border flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-semibold ${
+                              className={`w-4 h-4 rounded-md border border-border flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-semibold ${
                                 isSelected
                                   ? 'bg-ink text-on-ink'
                                   : 'bg-panel'
@@ -1365,7 +1365,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   type="button"
                   onClick={handlePrev}
                   disabled={safeCurrentIndex === 0}
-                  className="h-9 px-4 rounded-pill border-2 border-border bg-panel text-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer"
+                  className="h-9 px-4 rounded-pill border border-border bg-panel text-ink text-xs font-medium disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Previous</span>
@@ -1375,7 +1375,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                   <button
                     type="button"
                     onClick={() => setViewMode('full')}
-                    className="text-xs font-semibold text-muted hover:text-ink underline px-2 cursor-pointer"
+                    className="text-xs font-medium text-muted hover:text-ink underline px-2 cursor-pointer"
                   >
                     View All
                   </button>
@@ -1384,7 +1384,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="h-9 px-5 rounded-pill border-2 border-border bg-ink text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ink/90"
+                      className="h-9 px-5 rounded-pill border border-border bg-ink text-on-ink text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:bg-ink/90"
                     >
                       <span>Next</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1393,7 +1393,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewMode('summary')}
-                      className="h-9 px-5 rounded-pill border-2 border-border bg-ok text-on-ink text-xs font-semibold active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer hover:bg-ok/90"
+                      className="h-9 px-5 rounded-pill border border-border bg-ok text-on-ink text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:bg-ok/90"
                     >
                       <span>Review Validation Summary</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1513,7 +1513,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                           <button
                             type="button"
                             onClick={() => handleDismissBranch(q.id)}
-                            className="px-2 py-0.5 text-[10px] font-semibold text-error hover:underline mr-1 cursor-pointer"
+                            className="px-2 py-0.5 text-[10px] font-medium text-error hover:underline mr-1 cursor-pointer"
                           >
                             Dismiss branch
                           </button>
@@ -1581,7 +1581,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                   key={opt}
                                   type="button"
                                   onClick={() => handleToggleOption(q.id, opt, q.allow_multiple)}
-                                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all text-left flex items-center gap-2 cursor-pointer ${
+                                  className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all text-left flex items-center gap-2 cursor-pointer ${
                                     isSelected
                                       ? 'bg-[rgb(var(--md-sys-color-secondary-container))] text-[rgb(var(--md-sys-color-on-secondary-container))] border-[rgb(var(--md-sys-color-primary))] shadow-xs'
                                       : 'bg-[rgb(var(--md-sys-color-surface-container-low))] text-[rgb(var(--md-sys-color-on-surface))] border-[rgb(var(--md-sys-color-outline-variant))] hover:bg-[rgb(var(--md-sys-color-surface-container))]'
@@ -1610,7 +1610,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                                 key={opt}
                                 type="button"
                                 onClick={() => handleToggleOption(q.id, opt, q.allow_multiple)}
-                                className={`px-2.5 py-1 text-xs font-semibold rounded-xl border transition-all text-left cursor-pointer ${
+                                className={`px-2.5 py-1 text-xs font-medium rounded-xl border transition-all text-left cursor-pointer ${
                                   isSelected
                                     ? 'bg-[rgb(var(--md-sys-color-secondary-container))] text-[rgb(var(--md-sys-color-on-secondary-container))] border-[rgb(var(--md-sys-color-primary))] shadow-xs'
                                     : 'bg-[rgb(var(--md-sys-color-surface-container-low))] text-[rgb(var(--md-sys-color-on-surface))] border-[rgb(var(--md-sys-color-outline-variant))] hover:bg-[rgb(var(--md-sys-color-surface-container))]'
@@ -1749,7 +1749,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 id="save-survey-draft-bottom-btn"
                 type="button"
                 onClick={handleSaveDraft}
-                className={`text-xs h-10 px-4 font-semibold rounded-xl border-2 border-border uppercase transition-all flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none ${
+                className={`text-xs h-10 px-4 font-medium rounded-xl border border-border transition-all flex items-center gap-1.5 cursor-pointer ${
                   saveSuccessFeedback
                     ? 'bg-ok text-on-ink'
                     : 'bg-panel text-ink hover:bg-ink/5'
@@ -1772,7 +1772,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="h-10 px-4 rounded-xl border-2 border-border bg-panel-alt hover:bg-ink/5 text-ink font-semibold text-xs uppercase cursor-pointer active:translate-y-0.5 active:shadow-none"
+                className="h-10 px-4 rounded-xl border border-border bg-panel-alt hover:bg-ink/5 text-ink font-medium text-xs cursor-pointer"
               >
                 Cancel
               </button>
@@ -1781,7 +1781,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode('summary')}
-                  className="h-10 px-5 rounded-pill border-2 border-border bg-ink text-on-ink font-semibold text-xs uppercase flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 active:shadow-none"
+                  className="h-10 px-5 rounded-pill border border-border bg-ink text-on-ink font-medium text-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-ok" />
                   <span>Review Validation Summary</span>
@@ -1794,7 +1794,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     type="button"
                     onClick={handleTriggerGenerate}
                     disabled={isGenerating}
-                    className="h-10 sm:h-11 px-5 sm:px-6 rounded-pill bg-ink hover:bg-ink/90 text-on-ink font-semibold text-xs sm:text-sm tracking-tight border-2 border-border active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                    className="h-10 sm:h-11 px-5 sm:px-6 rounded-pill bg-ink hover:bg-ink/90 text-on-ink font-medium text-xs sm:text-sm tracking-tight border border-border transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     {isGenerating ? (
                       <>
@@ -1813,7 +1813,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                     type="button"
                     onClick={handleTriggerGenerate}
                     disabled={isGenerating}
-                    className="h-10 sm:h-11 w-10 sm:w-11 rounded-xl bg-info/10 hover:bg-info/20 text-ink border-2 border-border active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    className="h-10 sm:h-11 w-10 sm:w-11 rounded-xl bg-info/10 hover:bg-info/20 text-ink border border-border transition-all flex items-center justify-center cursor-pointer disabled:opacity-50"
                     title="Generate Architecture Blueprint"
                   >
                     <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />
@@ -1920,7 +1920,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <button
                 type="button"
                 onClick={() => setShowBranchDiagram(false)}
-                className="m3-button-filled text-xs h-9 px-4 uppercase cursor-pointer"
+                className="m3-button-filled text-xs h-9 px-4 cursor-pointer"
               >
                 Close Logic Matrix
               </button>
@@ -2005,7 +2005,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRestoreDraft(draft)}
-                        className="m3-button-filled text-[11px] h-8 px-3.5 uppercase flex items-center gap-1.5 cursor-pointer"
+                        className="m3-button-filled text-[11px] h-8 px-3.5 flex items-center gap-1.5 cursor-pointer"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Resume This Draft</span>
@@ -2031,7 +2031,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
                 <button
                   type="button"
                   onClick={handleClearAllDrafts}
-                  className="px-3 py-1.5 rounded-xl text-xs text-error hover:text-error font-semibold hover:bg-error/10 cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-xl text-xs text-error hover:text-error font-medium hover:bg-error/10 cursor-pointer transition-colors"
                 >
                   Clear All Drafts
                 </button>
@@ -2040,7 +2040,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <button
                 type="button"
                 onClick={() => setShowDraftsModal(false)}
-                className="m3-button-outlined text-xs h-9 px-4 uppercase cursor-pointer"
+                className="m3-button-outlined text-xs h-9 px-4 cursor-pointer"
               >
                 Close
               </button>
@@ -2151,7 +2151,7 @@ export const RequirementsSurvey: React.FC<RequirementsSurveyProps> = ({
               <button
                 type="button"
                 onClick={() => setShowJargonModal(false)}
-                className="m3-button-filled text-xs h-9 px-4 uppercase cursor-pointer font-semibold"
+                className="m3-button-filled text-xs h-9 px-4 cursor-pointer font-medium"
               >
                 Got It, Back to Survey
               </button>

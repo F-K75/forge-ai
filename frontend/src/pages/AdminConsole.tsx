@@ -295,7 +295,7 @@ export default function AdminConsole() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <h2 className="text-xs font-medium text-faint uppercase tracking-wide mb-3">
+          <h2 className="text-xs font-medium text-faint mb-3">
             System health
           </h2>
           <motion.div
@@ -326,7 +326,7 @@ export default function AdminConsole() {
           transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
         >
           <div className="px-4 py-3 border-b border-border">
-            <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
+            <h2 className="text-xs font-medium text-faint">
               Recent builds
             </h2>
           </div>
@@ -398,7 +398,7 @@ export default function AdminConsole() {
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
+            <h2 className="text-xs font-medium text-faint">
               Revenue (30d)
             </h2>
             <span className="text-sm font-mono text-ink">${totalRevenue30d.toLocaleString()}</span>
@@ -491,7 +491,7 @@ export default function AdminConsole() {
           transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
+            <h2 className="text-xs font-medium text-faint">
               AI usage (30d)
             </h2>
             <span className="text-sm font-mono text-ink">${totalAiCost30d.toFixed(2)}</span>
@@ -591,7 +591,7 @@ export default function AdminConsole() {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
+          <h2 className="text-xs font-medium text-faint">
             Build success rate (30d)
           </h2>
           <span className="text-sm font-mono text-ink">
@@ -687,7 +687,7 @@ export default function AdminConsole() {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-xs font-medium text-faint uppercase tracking-wide">
+          <h2 className="text-xs font-medium text-faint">
             Security events (30d)
           </h2>
           <span className="text-sm font-mono text-ink">{totalSecurityEvents30d}</span>
@@ -777,7 +777,7 @@ export default function AdminConsole() {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-xs font-medium text-faint uppercase tracking-wide">Users</h2>
+          <h2 className="text-xs font-medium text-faint">Users</h2>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search

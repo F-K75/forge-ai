@@ -31,6 +31,8 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import BrandLogo from "../components/BrandLogo";
 import { LIVE_MODE } from "../lib/env";
 import { marketplaceApi } from "../lib/api";
+import { atmosphereSwatch } from "../lib/coverArt";
+import { COLORS } from "../lib/theme";
 
 export type TemplateCategory =
   | "all"
@@ -571,19 +573,20 @@ export default function MarketplacePage() {
     >
       {/* 1. Header Section */}
       <header className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-border pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
           <div>
             <div className="flex items-center gap-2.5">
               <BrandLogo size="md" />
-              <h1 className=" text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
-                marketplace &amp; starters
+              <h1 className="text-headline font-medium tracking-tight text-ink">
+                Marketplace &amp; starters.{" "}
+                <span className="text-muted">Blueprints that ship.</span>
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border-2 border-border bg-brutal-yellow text-ink text-[11px] font-semibold uppercase">
-                <Sparkles size={12} className="text-ink" />
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-pill border border-transparent bg-accent/[0.12] text-accent text-xs font-medium">
+                <Sparkles size={12} />
                 Verified Starters
               </span>
             </div>
-            <p className="mt-1 text-xs sm:text-sm font-mono text-muted">
+            <p className="mt-1 text-xs sm:text-sm text-muted">
               Pre-built architectural foundations, multi-agent frameworks, and SaaS blueprints for instant workspace scaffolding.
             </p>
           </div>
@@ -593,7 +596,7 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => setPublishModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-border bg-brutal-yellow text-ink text-xs font-semibold uppercase hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill border border-border bg-ink text-on-ink text-xs font-medium hover:bg-ink/90 transition-all"
             >
               <Plus size={14} strokeWidth={2.5} />
               <span>Publish Starter</span>
@@ -602,7 +605,7 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => navigate("/workspace")}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none border-2 border-border bg-ink text-on-ink text-xs font-mono font-semibold uppercase hover:bg-ink/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all "
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill border border-glass-border bg-glass text-ink text-xs font-medium hover:bg-ink/10 transition-all "
             >
               <span>Active Workspace</span>
               <ArrowUpRight size={13} strokeWidth={2.5} />
@@ -613,9 +616,9 @@ export default function MarketplacePage() {
         {/* 2. Telemetry KPI Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Curated Blueprints */}
-          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
+          <div className="relative overflow-hidden border border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-cyan text-ink">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-border bg-brutal-cyan text-ink">
                 <Boxes size={14} strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
@@ -630,9 +633,9 @@ export default function MarketplacePage() {
           </div>
 
           {/* Total Installs */}
-          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
+          <div className="relative overflow-hidden border border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-green text-ink">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-border bg-brutal-green text-ink">
                 <Download size={14} strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
@@ -648,9 +651,9 @@ export default function MarketplacePage() {
           </div>
 
           {/* Quality Score */}
-          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
+          <div className="relative overflow-hidden border border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-yellow text-ink">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-transparent bg-accent/[0.12] text-accent">
                 <Star size={14} strokeWidth={2.5} className="fill-ink text-ink" />
               </span>
               <div className="min-w-0">
@@ -665,9 +668,9 @@ export default function MarketplacePage() {
           </div>
 
           {/* Frontier Engines */}
-          <div className="relative overflow-hidden border-2 border-border bg-panel p-3 transition-all">
+          <div className="relative overflow-hidden border border-border bg-panel p-3 transition-all">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border bg-brutal-pink text-ink">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-border bg-brutal-pink text-ink">
                 <Cpu size={14} strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
@@ -684,7 +687,7 @@ export default function MarketplacePage() {
       </header>
 
       {/* 3. Filter, Search & View Bar */}
-      <section className="border-2 border-border bg-panel p-4 space-y-3.5">
+      <section className="border border-border bg-panel p-4 space-y-3.5">
         {/* Category Pills Row */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-mono font-semibold">
           {CATEGORIES.map((cat) => {
@@ -695,9 +698,9 @@ export default function MarketplacePage() {
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none border-2 transition shrink-0 uppercase text-[11px] font-mono ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill border transition shrink-0 text-[11px] ${
                   isSelected
-                    ? "bg-brutal-yellow text-ink border-border font-semibold"
+                    ? "bg-accent/[0.12] text-accent border-transparent font-semibold"
                     : "bg-panel text-muted border-border hover:border-border hover:text-ink font-semibold"
                 }`}
               >
@@ -721,7 +724,7 @@ export default function MarketplacePage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search starters, tags, stacks..."
-              className="w-full bg-panel text-xs font-semibold font-mono text-ink placeholder-muted/60 pl-9 pr-7 py-2 rounded-none border-2 border-border focus:outline-none focus:bg-brutal-yellow/10 "
+              className="w-full bg-panel text-xs font-semibold font-mono text-ink placeholder-muted/60 pl-9 pr-7 py-2 rounded-lg border border-border focus:outline-none focus:border-accent/50 "
             />
             {search && (
               <button
@@ -737,13 +740,13 @@ export default function MarketplacePage() {
           {/* Right Filters */}
           <div className="flex flex-wrap items-center justify-between md:justify-end w-full md:w-auto gap-2.5">
             {/* Source tabs */}
-            <div className="flex items-center rounded-none border-2 border-border bg-panel-alt p-0.5 text-xs font-mono font-semibold">
+            <div className="flex items-center rounded-lg border border-border bg-panel-alt p-0.5 text-xs font-mono font-semibold">
               {(["all", "official", "community"] as const).map((source) => (
                 <button
                   key={source}
                   type="button"
                   onClick={() => setSourceFilter(source)}
-                  className={`px-2.5 py-1 transition uppercase text-[10px] ${
+                  className={`px-2.5 py-1 transition text-[10px] ${
                     sourceFilter === source
                       ? "bg-panel text-ink border border-border font-semibold"
                       : "text-muted hover:text-ink font-semibold"
@@ -760,7 +763,7 @@ export default function MarketplacePage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-panel text-xs font-mono font-semibold text-ink border-2 border-border rounded-none px-2 py-1 focus:outline-none"
+                className="bg-panel text-xs font-mono font-semibold text-ink border border-border rounded-lg px-2 py-1 focus:outline-none"
               >
                 <option value="popular">Most Installed</option>
                 <option value="rating">Highest Rated</option>
@@ -769,13 +772,13 @@ export default function MarketplacePage() {
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center rounded-none border-2 border-border bg-panel p-0.5">
+            <div className="flex items-center rounded-lg border border-border bg-panel p-0.5">
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 transition ${
                   viewMode === "grid"
-                    ? "bg-brutal-yellow text-ink border border-border"
+                    ? "bg-accent/[0.12] text-accent border border-transparent"
                     : "text-muted hover:text-ink"
                 }`}
                 title="Grid view"
@@ -787,7 +790,7 @@ export default function MarketplacePage() {
                 onClick={() => setViewMode("list")}
                 className={`p-1.5 transition ${
                   viewMode === "list"
-                    ? "bg-brutal-yellow text-ink border border-border"
+                    ? "bg-accent/[0.12] text-accent border border-transparent"
                     : "text-muted hover:text-ink"
                 }`}
                 title="List view"
@@ -817,15 +820,15 @@ export default function MarketplacePage() {
                       handleOpenDetails(template);
                     }
                   }}
-                  className="group relative flex flex-col justify-between rounded-none border-2 border-border bg-panel p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+                  className="group relative flex flex-col justify-between rounded-xl border border-border bg-panel p-5 hover:border-ink/20 transition-all cursor-pointer"
                 >
                   {/* Card Header */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
                         <div
-                          className="h-10 w-10 shrink-0 rounded-none border-2 border-border flex items-center justify-center font-mono font-semibold text-base text-ink"
-                          style={{ backgroundColor: template.hue }}
+                          className="h-10 w-10 shrink-0 rounded-lg border border-border flex items-center justify-center font-mono font-semibold text-base text-ink"
+                          style={{ background: atmosphereSwatch(template.id), color: COLORS.ink }}
                         >
                           {template.name[0]}
                         </div>
@@ -836,7 +839,7 @@ export default function MarketplacePage() {
                           <div className="flex items-center gap-2 text-[11px] font-mono text-muted">
                             <span>{template.author}</span>
                             <span>•</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-border bg-panel-alt font-semibold uppercase text-ink">
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-pill border border-border bg-panel-alt font-semibold uppercase text-ink">
                               {template.source}
                             </span>
                           </div>
@@ -847,9 +850,9 @@ export default function MarketplacePage() {
                       <button
                         type="button"
                         onClick={(e) => toggleBookmark(template.id, e)}
-                        className={`p-1.5 rounded-none border-2 border-border transition ${
+                        className={`p-1.5 rounded-lg border border-border transition ${
                           isBookmarked
-                            ? "bg-brutal-yellow text-ink"
+                            ? "bg-accent/[0.12] text-accent"
                             : "bg-panel text-muted hover:text-ink"
                         }`}
                         title={isBookmarked ? "Saved" : "Save blueprint"}
@@ -862,7 +865,7 @@ export default function MarketplacePage() {
                     </div>
 
                     {/* Description */}
-                    <p className="text-xs font-mono text-muted leading-relaxed line-clamp-2">
+                    <p className="text-xs text-muted leading-relaxed line-clamp-2">
                       {template.description}
                     </p>
 
@@ -871,7 +874,7 @@ export default function MarketplacePage() {
                       {template.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-semibold rounded-none border border-border bg-panel-alt text-ink"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-semibold rounded-pill border border-border bg-panel-alt text-ink"
                         >
                           <Tag size={9} className="text-muted" />
                           {tag}
@@ -913,7 +916,7 @@ export default function MarketplacePage() {
                           e.stopPropagation();
                           handleOpenDetails(template);
                         }}
-                        className="px-2.5 py-1 text-xs font-mono font-semibold rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5 transition active:translate-x-[1px] active:translate-y-[1px]"
+                        className="px-2.5 py-1 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-ink/5 transition"
                       >
                         Inspect
                       </button>
@@ -921,7 +924,7 @@ export default function MarketplacePage() {
                       <button
                         type="button"
                         onClick={(e) => handleInstall(template, e)}
-                        className="flex items-center gap-1 px-3 py-1 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                        className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-pill border border-glass-border bg-glass text-ink hover:bg-ink/10 transition-all"
                       >
                         <span>Deploy</span>
                         <ArrowUpRight size={12} strokeWidth={2.5} />
@@ -934,7 +937,7 @@ export default function MarketplacePage() {
           </div>
         ) : (
           /* List View */
-          <div className="rounded-none border-2 border-border bg-panel overflow-hidden divide-y-2 divide-border">
+          <div className="rounded-lg border border-border bg-panel overflow-hidden divide-y-2 divide-border">
             {filteredTemplates.map((template) => {
               const isBookmarked = bookmarkedIds.includes(template.id);
               return (
@@ -953,8 +956,8 @@ export default function MarketplacePage() {
                 >
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                     <div
-                      className="h-10 w-10 shrink-0 rounded-none border-2 border-border flex items-center justify-center font-mono font-semibold text-base text-ink"
-                      style={{ backgroundColor: template.hue }}
+                      className="h-10 w-10 shrink-0 rounded-lg border border-border flex items-center justify-center font-mono font-semibold text-base text-ink"
+                      style={{ background: atmosphereSwatch(template.id), color: COLORS.ink }}
                     >
                       {template.name[0]}
                     </div>
@@ -963,23 +966,23 @@ export default function MarketplacePage() {
                         <h3 className=" text-sm sm:text-base font-semibold text-ink truncate group-hover:text-warn transition">
                           {template.name}
                         </h3>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-border bg-panel-alt font-semibold uppercase text-muted">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-pill border border-border bg-panel-alt font-semibold uppercase text-muted">
                           {template.source}
                         </span>
                         {template.featured && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded-none border border-border bg-brutal-yellow font-semibold uppercase text-ink">
+                          <span className="text-[10px] px-1.5 py-0.2 rounded-pill border border-transparent bg-accent/[0.12] font-semibold uppercase text-accent">
                             Featured
                           </span>
                         )}
                       </div>
-                      <p className="text-xs font-mono text-muted line-clamp-1 max-w-2xl">
+                      <p className="text-xs text-muted line-clamp-1 max-w-2xl">
                         {template.description}
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {template.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="text-[10px] font-mono px-1.5 py-0.2 rounded-none bg-panel-alt text-muted border border-border"
+                            className="text-[10px] font-mono px-1.5 py-0.2 rounded-pill bg-panel-alt text-muted border border-border"
                           >
                             #{tag}
                           </span>
@@ -1013,9 +1016,9 @@ export default function MarketplacePage() {
                       <button
                         type="button"
                         onClick={(e) => toggleBookmark(template.id, e)}
-                        className={`p-1.5 rounded-none border-2 border-border transition ${
+                        className={`p-1.5 rounded-lg border border-border transition ${
                           isBookmarked
-                            ? "bg-brutal-yellow text-ink"
+                            ? "bg-accent/[0.12] text-accent"
                             : "bg-panel text-muted hover:text-ink"
                         }`}
                         title={isBookmarked ? "Saved" : "Save blueprint"}
@@ -1029,7 +1032,7 @@ export default function MarketplacePage() {
                       <button
                         type="button"
                         onClick={(e) => handleInstall(template, e)}
-                        className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                        className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-medium rounded-pill border border-glass-border bg-glass text-ink hover:bg-ink/10 transition-all"
                       >
                         <span>Deploy</span>
                         <ArrowUpRight size={12} strokeWidth={2.5} />
@@ -1043,14 +1046,14 @@ export default function MarketplacePage() {
         )
       ) : (
         /* Empty State */
-        <div className="rounded-none border-2 border-border bg-panel p-12 text-center space-y-3">
-          <div className="h-12 w-12 mx-auto rounded-none border-2 border-border bg-brutal-yellow flex items-center justify-center font-mono font-semibold text-xl text-ink">
+        <div className="rounded-xl border border-border bg-panel p-12 text-center space-y-3">
+          <div className="h-12 w-12 mx-auto rounded-lg border border-border bg-ink/[0.06] flex items-center justify-center font-mono font-semibold text-xl text-ink">
             !
           </div>
           <h3 className=" text-base font-semibold text-ink">
             No starters found matching your filters
           </h3>
-          <p className="text-xs font-mono text-muted max-w-md mx-auto">
+          <p className="text-xs text-muted max-w-md mx-auto">
             Try adjusting your search terms, changing the category pill, or clearing the query to explore the full library.
           </p>
           <button
@@ -1060,7 +1063,7 @@ export default function MarketplacePage() {
               setSelectedCategory("all");
               setSourceFilter("all");
             }}
-            className="px-4 py-2 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 transition"
+            className="px-4 py-2 text-xs font-medium rounded-pill border border-border bg-ink text-on-ink hover:bg-ink/90 transition"
           >
             Reset Filters
           </button>
@@ -1072,7 +1075,7 @@ export default function MarketplacePage() {
         {detailsModalOpen && selectedTemplate && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-base/70 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-2xl max-h-[90vh] rounded-none border-3 border-border bg-panel overflow-hidden flex flex-col"
+              className="w-full max-w-2xl max-h-[90vh] rounded-lg border-3 border-border bg-panel overflow-hidden flex flex-col"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -1083,14 +1086,14 @@ export default function MarketplacePage() {
                 style={{ backgroundColor: selectedTemplate.hue }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-none border-2 border-border bg-panel flex items-center justify-center font-mono font-semibold text-base text-ink">
+                  <div className="h-9 w-9 rounded-lg border border-border bg-panel flex items-center justify-center font-mono font-semibold text-base text-ink">
                     {selectedTemplate.name[0]}
                   </div>
                   <div>
                     <h2 className=" font-semibold text-base text-ink">
                       {selectedTemplate.name}
                     </h2>
-                    <p className="text-xs font-mono text-ink font-semibold">
+                    <p className="text-xs text-ink font-semibold">
                       by {selectedTemplate.author} • {selectedTemplate.version}
                     </p>
                   </div>
@@ -1098,7 +1101,7 @@ export default function MarketplacePage() {
                 <button
                   type="button"
                   onClick={() => setDetailsModalOpen(false)}
-                  className="p-1 rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5"
+                  className="p-1 rounded-lg border border-border bg-panel text-ink hover:bg-ink/5"
                 >
                   <X size={16} strokeWidth={2.5} />
                 </button>
@@ -1108,10 +1111,10 @@ export default function MarketplacePage() {
               <div className="p-5 overflow-y-auto space-y-5 flex-1">
                 {/* Description */}
                 <div>
-                  <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-1">
+                  <h4 className="text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                     Overview
                   </h4>
-                  <p className="text-xs sm:text-sm font-mono text-ink leading-relaxed">
+                  <p className="text-xs sm:text-sm text-ink leading-relaxed">
                     {selectedTemplate.description}
                   </p>
                 </div>
@@ -1119,36 +1122,36 @@ export default function MarketplacePage() {
                 {/* Architecture & Stack Matrix */}
                 {selectedTemplate.architecture && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
+                  <h4 className="text-xs font-semibold uppercase text-muted tracking-wider">
                     Architectural Specifications
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 font-mono text-xs">
-                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                    <div className="p-2.5 rounded-lg border border-border bg-panel">
                       <span className="text-muted block text-[10px] uppercase font-semibold">Frontend UI</span>
                       <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.frontend}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                    <div className="p-2.5 rounded-lg border border-border bg-panel">
                       <span className="text-muted block text-[10px] uppercase font-semibold">Backend Server</span>
                       <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.backend}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                    <div className="p-2.5 rounded-lg border border-border bg-panel">
                       <span className="text-muted block text-[10px] uppercase font-semibold">Database / State</span>
                       <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.database}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-none border-2 border-border bg-panel">
+                    <div className="p-2.5 rounded-lg border border-border bg-panel">
                       <span className="text-muted block text-[10px] uppercase font-semibold">Authentication</span>
                       <span className="font-semibold text-ink">
                         {selectedTemplate.architecture!.auth}
                       </span>
                     </div>
                     {selectedTemplate.architecture!.aiEngine && (
-                      <div className="p-2.5 rounded-none border-2 border-border bg-brutal-yellow sm:col-span-2">
+                      <div className="p-2.5 rounded-lg border border-transparent bg-accent/[0.12] sm:col-span-2">
                         <span className="text-ink block text-[10px] font-semibold uppercase">Autonomous AI Engine</span>
                         <span className="font-semibold text-ink">
                           {selectedTemplate.architecture!.aiEngine}
@@ -1162,10 +1165,10 @@ export default function MarketplacePage() {
                 {/* File Manifest */}
                 {selectedTemplate.filesList.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
+                  <h4 className="text-xs font-semibold uppercase text-muted tracking-wider">
                     Included File Manifest
                   </h4>
-                  <div className="rounded-none border-2 border-border bg-panel p-2.5 font-mono text-xs space-y-1">
+                  <div className="rounded-lg border border-border bg-panel p-2.5 font-mono text-xs space-y-1">
                     {selectedTemplate.filesList.map((file) => (
                       <div key={file} className="flex items-center gap-2 text-ink font-semibold">
                         <FileCode2 size={13} className="text-ink" />
@@ -1179,7 +1182,7 @@ export default function MarketplacePage() {
                 {/* System Prompt Blueprint with Copy */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
+                    <h4 className="text-xs font-semibold uppercase text-muted tracking-wider">
                       Synthesis Prompt Blueprint
                     </h4>
                     <button
@@ -1191,7 +1194,7 @@ export default function MarketplacePage() {
                       <span>{copiedPrompt ? "Copied" : "Copy Prompt"}</span>
                     </button>
                   </div>
-                  <div className="p-3 rounded-none border-2 border-border bg-panel-alt font-mono text-xs text-ink whitespace-pre-wrap max-h-36 overflow-y-auto">
+                  <div className="p-3 rounded-xl border border-border bg-panel-alt font-mono text-xs text-ink whitespace-pre-wrap max-h-36 overflow-y-auto">
                     {selectedTemplate.prompt}
                   </div>
                 </div>
@@ -1222,7 +1225,7 @@ export default function MarketplacePage() {
                   <button
                     type="button"
                     onClick={() => setDetailsModalOpen(false)}
-                    className="px-3.5 py-1.5 text-xs font-mono font-semibold rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5 transition"
+                    className="px-3.5 py-1.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-ink/5 transition"
                   >
                     Close
                   </button>
@@ -1232,7 +1235,7 @@ export default function MarketplacePage() {
                       setDetailsModalOpen(false);
                       handleInstall(selectedTemplate);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-pill border border-border bg-ink text-on-ink hover:bg-ink/90 transition-all"
                   >
                     <ArrowUpRight size={13} strokeWidth={2.5} />
                     <span>Scaffold Blueprint</span>
@@ -1249,13 +1252,13 @@ export default function MarketplacePage() {
         {publishModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-base/70 backdrop-blur-xs">
             <motion.div
-              className="w-full max-w-lg rounded-none border-3 border-border bg-panel overflow-hidden flex flex-col"
+              className="w-full max-w-lg rounded-lg border-3 border-border bg-panel overflow-hidden flex flex-col"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b-2 border-border bg-brutal-yellow">
+              <div className="flex items-center justify-between p-4 border-b-2 border-transparent bg-accent/[0.12]">
                 <div className="flex items-center gap-2 font-mono font-semibold text-sm text-ink uppercase">
                   <Plus size={16} strokeWidth={2.5} />
                   <span>Publish Community Starter</span>
@@ -1263,7 +1266,7 @@ export default function MarketplacePage() {
                 <button
                   type="button"
                   onClick={() => setPublishModalOpen(false)}
-                  className="p-1 rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5"
+                  className="p-1 rounded-lg border border-border bg-panel text-ink hover:bg-ink/5"
                 >
                   <X size={15} strokeWidth={2.5} />
                 </button>
@@ -1282,7 +1285,7 @@ export default function MarketplacePage() {
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. Next.js SaaS with LemonSqueezy"
-                    className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-none border-2 border-border focus:outline-none focus:bg-brutal-yellow/10 "
+                    className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-lg border border-border focus:outline-none focus:border-accent/50 "
                   />
                 </div>
 
@@ -1295,7 +1298,7 @@ export default function MarketplacePage() {
                       id="starter-category"
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value as any)}
-                      className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
+                      className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-lg border border-border focus:outline-none "
                     >
                       <option value="ai">AI &amp; Agents</option>
                       <option value="saas">SaaS &amp; Billing</option>
@@ -1317,7 +1320,7 @@ export default function MarketplacePage() {
                       value={newAuthor}
                       onChange={(e) => setNewAuthor(e.target.value)}
                       placeholder="e.g. devsmith"
-                      className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
+                      className="w-full bg-panel text-xs font-mono font-semibold text-ink p-2.5 rounded-lg border border-border focus:outline-none "
                     />
                   </div>
                 </div>
@@ -1333,7 +1336,7 @@ export default function MarketplacePage() {
                     value={newDescription}
                     onChange={(e) => setNewDescription(e.target.value)}
                     placeholder="Describe the architectural pattern and core features..."
-                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
+                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-lg border border-border focus:outline-none "
                   />
                 </div>
 
@@ -1347,7 +1350,7 @@ export default function MarketplacePage() {
                     value={newTags}
                     onChange={(e) => setNewTags(e.target.value)}
                     placeholder="e.g. saas, stripe, react, tailwind"
-                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-none border-2 border-border focus:outline-none "
+                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-lg border border-border focus:outline-none "
                   />
                 </div>
 
@@ -1362,7 +1365,7 @@ export default function MarketplacePage() {
                     value={newPrompt}
                     onChange={(e) => setNewPrompt(e.target.value)}
                     placeholder="Detailed prompt that instructs the autonomous agent fleet how to build this stack..."
-                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-none border-2 border-border focus:outline-none focus:bg-brutal-yellow/10 "
+                    className="w-full bg-panel text-xs font-mono text-ink p-2.5 rounded-lg border border-border focus:outline-none focus:border-accent/50 "
                   />
                 </div>
 
@@ -1371,13 +1374,13 @@ export default function MarketplacePage() {
                   <button
                     type="button"
                     onClick={() => setPublishModalOpen(false)}
-                    className="px-3.5 py-1.5 text-xs font-mono font-semibold rounded-none border-2 border-border bg-panel text-ink hover:bg-ink/5 transition"
+                    className="px-3.5 py-1.5 text-xs font-medium rounded-pill border border-border bg-panel text-ink hover:bg-ink/5 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono font-semibold uppercase rounded-none border-2 border-border bg-brutal-yellow text-ink hover:bg-agent-integration/90 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-pill border border-border bg-ink text-on-ink hover:bg-ink/90 transition-all"
                   >
                     <Send size={13} strokeWidth={2.5} />
                     <span>Publish Starter</span>
