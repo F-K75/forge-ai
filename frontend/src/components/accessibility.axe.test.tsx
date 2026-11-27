@@ -7,6 +7,8 @@ import { SummaryChip } from './SummaryChip'
 import { StatusPill } from './StatusPill'
 import { Toggle } from './Toggle'
 import { TopNavBar } from './TopNavBar'
+import { LeftNavRail } from './LeftNavRail'
+import { AvatarStack, ProgressBar, SegmentedControl, StatTile } from './ui'
 import { InitiativeCopilotChat } from './pm/InitiativeCopilotChat'
 import { AgentPayloadModal } from '../pages/pm/agentRun/AgentPayloadModal'
 import { RoadmapEpicModal } from '../pages/pm/roadmap/RoadmapEpicModal'
@@ -54,6 +56,40 @@ describe('accessibility (axe) — core primitives', () => {
 
   it('StatusPill is accessible', async () => {
     const { container } = render(<StatusPill status="complete" />)
+    await axeIt(container)
+  })
+
+  it('LeftNavRail sidebar is accessible (desktop and mobile drawer)', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <LeftNavRail mobileOpen onCloseMobile={vi.fn()} />
+        </BrowserRouter>
+      </QueryClientProvider>
+    )
+    await axeIt(container)
+  })
+
+  it('Ember Night dashboard primitives are accessible', async () => {
+    const { container } = render(
+      <div>
+        <StatTile label="Active runs" value={4} delta="+2" trend="up" hint="vs yesterday" />
+        <ProgressBar value={72} label="Run progress" showValue />
+        <AvatarStack items={[{ name: 'Backend Engineer' }, { name: 'QA Engineer' }]} />
+        <SegmentedControl
+          label="Billing period"
+          value="monthly"
+          onChange={vi.fn()}
+          options={[
+            { value: 'monthly', label: 'Monthly' },
+            { value: 'yearly', label: 'Yearly' },
+          ]}
+        />
+      </div>
+    )
     await axeIt(container)
   })
 

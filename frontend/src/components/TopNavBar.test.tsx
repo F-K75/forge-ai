@@ -1,11 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, within, cleanup } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { axe } from "vitest-axe";
 import { TopNavBar } from "./TopNavBar";
+import { OPEN_COMMAND_PALETTE_EVENT } from "../lib/commandPalette";
 
-describe("TopNavBar Compact Context Bar", () => {
+describe("TopNavBar slim context bar", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -18,76 +19,77 @@ describe("TopNavBar Compact Context Bar", () => {
     });
   });
 
-  const renderTopNavBar = (props = {}) => {
+  const renderTopNavBar = (props = {}, initialEntry = "/command") => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <TopNavBar {...props} />
-        </BrowserRouter>
+        </MemoryRouter>
       </QueryClientProvider>
     );
   };
 
-  it("renders Forge brand identity and active workspace breadcrumb", () => {
-    renderTopNavBar();
-
-    expect(screen.getByText("FORGE")).toBeInTheDocument();
-
-    const projectBtn = document.getElementById("taskbar-project-switcher-btn");
-    expect(projectBtn).toBeInTheDocument();
-    expect(projectBtn).toHaveTextContent(/Forge Core Engine/i);
+  it("shows the current page title as the breadcrumb on top-level pages", () => {
+    renderTopNavBar({}, "/command");
+    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(within(crumbs).getByText("Command Center")).toHaveAttribute("aria-current", "page");
   });
 
-  it("opens and filters the workspace switcher dropdown", () => {
-    renderTopNavBar();
-
-    const projectBtn = document.getElementById("taskbar-project-switcher-btn");
-    expect(projectBtn).toBeInTheDocument();
-    fireEvent.click(projectBtn!);
-
-    const dropdown = document.getElementById("taskbar-project-switcher-dropdown");
-    expect(dropdown).toBeInTheDocument();
-
-    const input = within(dropdown!).getByPlaceholderText(/Filter workspaces.../i);
-    fireEvent.change(input, { target: { value: "Engine" } });
-    expect(within(dropdown!).getByText("Forge Core Engine")).toBeInTheDocument();
+  it("renders a Projects › project › section trail on project pages", () => {
+    renderTopNavBar({}, "/p/demo-project/reviews");
+    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(within(crumbs).getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/projects");
+    expect(within(crumbs).getByRole("link", { name: "Forge Core Engine" })).toHaveAttribute(
+      "href",
+      "/p/demo-project/workspace"
+    );
+    expect(within(crumbs).getByText("Reviews")).toHaveAttribute("aria-current", "page");
   });
 
-  it("triggers agent fleet callback when clicking fleet pill", () => {
+  it("no longer carries primary navigation, the project switcher or the user menu", () => {
+    renderTopNavBar();
+    expect(screen.queryByRole("navigation", { name: "Primary Navigation" })).not.toBeInTheDocument();
+    expect(document.getElementById("taskbar-project-switcher-btn")).not.toBeInTheDocument();
+    expect(document.getElementById("os-user-profile-badge")).not.toBeInTheDocument();
+  });
+
+  it("triggers agent fleet callback when clicking the fleet status pill", () => {
     const onOpenAgentFleet = vi.fn();
     renderTopNavBar({ onOpenAgentFleet, activeAgentCount: 5 });
 
     const fleetBtn = document.getElementById("os-agent-fleet-trigger");
     expect(fleetBtn).toBeInTheDocument();
     expect(fleetBtn).toHaveTextContent("5");
+    expect(fleetBtn).toHaveAccessibleName(/5 agents working/i);
 
     fireEvent.click(fleetBtn!);
     expect(onOpenAgentFleet).toHaveBeenCalledTimes(1);
   });
 
-  it("renders compute credit balance and command palette trigger", () => {
+  it("renders the mono credit balance linking to billing", () => {
     renderTopNavBar({ creditsBalance: 4200 });
 
     const creditsChip = document.getElementById("os-credits-chip");
     expect(creditsChip).toBeInTheDocument();
     expect(creditsChip).toHaveTextContent("4,200");
-
-    const cmdTrigger = document.getElementById("os-terminal-trigger");
-    expect(cmdTrigger).toBeInTheDocument();
-    expect(cmdTrigger).toHaveTextContent("⌘K");
+    expect(creditsChip).toHaveAttribute("href", "/billing");
   });
 
-  it("opens user account menu popover", () => {
+  it("opens the command palette from the compact search button", () => {
+    const listener = vi.fn();
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, listener);
     renderTopNavBar();
 
-    const userBadge = document.getElementById("os-user-profile-badge");
-    expect(userBadge).toBeInTheDocument();
-    fireEvent.click(userBadge!);
+    const cmdTrigger = document.getElementById("os-terminal-trigger");
+    expect(cmdTrigger).toHaveTextContent("⌘K");
+    fireEvent.click(cmdTrigger!);
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, listener);
+  });
 
-    expect(screen.getByText("Account Settings")).toBeInTheDocument();
-    expect(screen.getByText("Billing & Subscriptions")).toBeInTheDocument();
-    expect(screen.getByText("Admin Governance")).toBeInTheDocument();
-    expect(screen.getByText("Sign Out")).toBeInTheDocument();
+  it("renders the theme toggle", () => {
+    renderTopNavBar();
+    expect(screen.getByRole("button", { name: /^Theme:/ })).toBeInTheDocument();
   });
 
   it("calls onToggleMobileNav when clicking the mobile drawer toggle", () => {
@@ -101,7 +103,7 @@ describe("TopNavBar Compact Context Bar", () => {
   });
 
   it("has no axe accessibility violations", async () => {
-    const { container } = renderTopNavBar({ activeAgentCount: 3, creditsBalance: 1200 });
+    const { container } = renderTopNavBar({ activeAgentCount: 3, creditsBalance: 1200 }, "/p/demo-project/workspace");
     const results = await axe(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results).toHaveNoViolations();
   });

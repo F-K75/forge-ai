@@ -21,3 +21,22 @@ export { Table, TableHeader, TableBody, TableRow, TableCell } from './Table'
 export { ErrorBoundary } from './ErrorBoundary'
 export { ClipboardCopyButton } from './ClipboardCopyButton'
 export { EmptyState } from './EmptyState'
+export { StatTile } from './StatTile'
+export type { StatTrend } from './StatTile'
+export { ProgressBar } from './ProgressBar'
+export type { ProgressTone } from './ProgressBar'
+export { AvatarStack } from './AvatarStack'
+export type { AvatarStackItem } from './AvatarStack'
+export { SegmentedControl } from './SegmentedControl'
+export type { SegmentedOption } from './SegmentedControl'
+export {
+  TwoToneHeading,
+  SegmentedControl as CapabilitySegmentedControl,
+  MetricTile,
+  AtmosphereLayer,
+  CapabilityCard,
+  DataTable,
+  InlineNotice,
+} from './CapabilityPrimitives'
+export type { SegmentedItem, AtmosphereHue, DataTableColumn } from './CapabilityPrimitives'
+export { SafeMarkdown } from './SafeMarkdown'

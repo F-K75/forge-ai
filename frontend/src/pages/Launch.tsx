@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
   CornerDownLeft,
   Terminal,
@@ -92,7 +92,9 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function Launch() {
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState("");
+  const [searchParams] = useSearchParams();
+  // Prefilled by the Command Center quick launcher (/launch?prompt=…).
+  const [prompt, setPrompt] = useState(() => searchParams.get("prompt") ?? "");
   const [configIndex, setConfigIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 

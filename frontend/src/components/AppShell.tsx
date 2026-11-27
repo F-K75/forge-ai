@@ -1,66 +1,102 @@
-import { useEffect, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Bot, Box } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { Box, X } from "lucide-react";
 import { AgentFleetGraph } from "./AgentFleetGraph";
 import { CommandPalette } from "./CommandPalette";
-import { OSWindow } from "./OSWindow";
+import { LeftNavRail } from "./LeftNavRail";
 import { TopNavBar } from "./TopNavBar";
+import { Button } from "./ui/Button";
+import { useActiveProject } from "../hooks/useActiveProject";
+import { useFleetOverview } from "../hooks/useFleetOverview";
+import { useAuthStore } from "../store/authStore";
+
+/** Alt-key shortcuts. Keep in sync with SHORTCUTS in LeftNavRail's help dialog. */
+const GLOBAL_SHORTCUTS: Record<string, string> = {
+  "1": "/projects",
+  "6": "/marketplace",
+  "9": "/models",
+  "0": "/billing",
+  c: "/command",
+  l: "/launch",
+  d: "/studio-3d",
+  h: "/home",
+};
+
+const PROJECT_SHORTCUTS: Record<string, string> = {
+  "2": "workspace",
+  "3": "agents",
+  "4": "initiatives",
+  "5": "reviews",
+  "7": "files",
+  "8": "history",
+  ",": "settings",
+};
 
 export default function AppShell() {
-  const location = useLocation();
   const navigate = useNavigate();
+  const { projectPath } = useActiveProject();
+  const user = useAuthStore((s) => s.user);
+  const { data: fleet } = useFleetOverview();
   const [showAgentFleet, setShowAgentFleet] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const fleetCloseRef = useRef<HTMLButtonElement>(null);
 
-  const projectMatch = location.pathname.match(/^\/(?:p|build|project)\/([^/]+)/);
-  const activeProjectId = projectMatch
-    ? projectMatch[1]
-    : localStorage.getItem("forge_last_project") || "demo-project";
-
-  useEffect(() => {
-    if (projectMatch && projectMatch[1] && projectMatch[1] !== "new") {
-      try {
-        localStorage.setItem("forge_last_project", projectMatch[1]);
-      } catch {
-        // ignore storage errors
-      }
-    }
-  }, [projectMatch]);
+  const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey) {
-        if (e.key === "1") navigate("/projects");
-        if (e.key === "2") navigate(`/p/${activeProjectId}/workspace`);
-        if (e.key === "3") navigate(`/p/${activeProjectId}/flow`);
-        if (e.key === "4") navigate(`/p/${activeProjectId}/initiatives`);
-        if (e.key === "5") navigate(`/p/${activeProjectId}/reviews`);
-        if (e.key === "6") navigate("/marketplace");
-        if (e.key === "7") navigate(`/p/${activeProjectId}/files`);
-        if (e.key === "8") navigate(`/p/${activeProjectId}/history`);
-        if (e.key === "9") navigate("/models");
-        if (e.key === "0") navigate("/billing");
-        if (e.key === ",") navigate(`/p/${activeProjectId}/settings`);
-        if (e.key.toLowerCase() === "l") navigate("/launch");
-        if (e.key.toLowerCase() === "d") navigate("/studio-3d");
-        if (e.key.toLowerCase() === "h") navigate("/home");
-      }
+      if (!e.altKey) return;
+      // Use the physical key so macOS Option-combos (e.g. ⌥C → "ç") still work.
+      const key = e.code.startsWith("Digit")
+        ? e.code.slice(5)
+        : e.code.startsWith("Key")
+          ? e.code.slice(3).toLowerCase()
+          : e.code === "Comma"
+            ? ","
+            : e.key.toLowerCase();
+      if (GLOBAL_SHORTCUTS[key]) navigate(GLOBAL_SHORTCUTS[key]);
+      else if (PROJECT_SHORTCUTS[key]) navigate(projectPath(PROJECT_SHORTCUTS[key]));
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navigate, activeProjectId]);
+  }, [navigate, projectPath]);
+
+  useEffect(() => {
+    if (!showAgentFleet) return;
+    fleetCloseRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowAgentFleet(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showAgentFleet]);
+
+  const agentsWorking = fleet?.stats.agentsWorking ?? 0;
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-base font-sans text-ink select-none">
-      <TopNavBar
-        onOpenAgentFleet={() => setShowAgentFleet(true)}
-        activeAgentCount={6}
-        creditsBalance={1247}
-      />
+    <div className="relative flex h-[100dvh] overflow-hidden bg-base font-sans text-ink">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-pill focus:bg-ink focus:px-4 focus:py-2 focus:text-caption focus:font-medium focus:text-[rgb(var(--bg))]"
+      >
+        Skip to main content
+      </a>
 
-      <div className="relative flex flex-1 min-h-0 overflow-hidden">
+      <LeftNavRail mobileOpen={mobileNavOpen} onCloseMobile={closeMobileNav} />
+
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        <TopNavBar
+          onOpenAgentFleet={() => setShowAgentFleet(true)}
+          activeAgentCount={agentsWorking}
+          creditsBalance={user?.credits ?? 1247}
+          onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
+          mobileNavOpen={mobileNavOpen}
+        />
+
         <main
-          id="os-desktop-canvas"
-          className="relative flex flex-1 min-w-0 min-h-0 flex-col overflow-y-auto bg-base"
+          id="main-content"
+          tabIndex={-1}
+          className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-base focus:outline-none"
         >
           <Outlet />
         </main>
@@ -69,37 +105,54 @@ export default function AppShell() {
       <CommandPalette />
 
       {showAgentFleet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-          <div className="h-[520px] w-full max-w-2xl">
-            <OSWindow
-              id="os-modal-agent-fleet"
-              title="Agent Fleet Topology"
-              icon={Bot}
-              status="6 Active Specialists"
-              onClose={() => setShowAgentFleet(false)}
-              className="h-full shadow-apple-float"
-              bodyClassName="p-4"
-            >
-              <div className="flex h-full flex-col gap-3 text-xs">
-                <div className="flex items-center justify-between rounded-lg border border-border bg-panel-alt/60 px-3.5 py-2.5">
-                  <span className="font-medium text-ink">Active Workspace Graph</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAgentFleet(false);
-                      navigate("/studio-3d");
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-ember-glow transition-colors"
-                  >
-                    <Box size={12} />
-                    <span>Open 3D Studio</span>
-                  </button>
-                </div>
-                <div className="flex-1 overflow-hidden rounded-lg border border-border bg-panel p-2">
-                  <AgentFleetGraph />
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-base/70 backdrop-blur-sm"
+            onClick={() => setShowAgentFleet(false)}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="agent-fleet-title"
+            className="relative flex h-[560px] max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-panel shadow-apple-float"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-border-soft px-5 py-3.5">
+              <div className="min-w-0">
+                <h2 id="agent-fleet-title" className="text-body font-medium text-ink">
+                  Agent fleet topology
+                </h2>
+                <p className="text-xs font-normal text-muted">
+                  <span className="font-mono tabular-nums text-ink">{agentsWorking}</span> agents
+                  working right now
+                </p>
               </div>
-            </OSWindow>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setShowAgentFleet(false);
+                    navigate("/studio-3d");
+                  }}
+                >
+                  <Box size={13} aria-hidden="true" />
+                  Open 3D Studio
+                </Button>
+                <button
+                  ref={fleetCloseRef}
+                  type="button"
+                  onClick={() => setShowAgentFleet(false)}
+                  aria-label="Close agent fleet"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 p-3">
+              <AgentFleetGraph />
+            </div>
           </div>
         </div>
       )}

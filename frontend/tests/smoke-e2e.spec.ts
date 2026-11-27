@@ -56,7 +56,7 @@ test.describe('Forge AI revenue path — smoke test', () => {
     await page.getByLabel(/^password$/i).fill(TEST_PASSWORD)
     await page.getByRole('button', { name: /sign in/i }).click()
 
-    await expect.soft(page).toHaveURL(/.*\/projects/, { timeout: 20_000 })
+    await expect.soft(page).toHaveURL(/.*\/command/, { timeout: 20_000 })
     await expect.soft(page.getByRole('heading', { name: /no projects yet/i }).first()).toBeVisible({ timeout: 20_000 })
 
     // ------------------------------------------------------------------

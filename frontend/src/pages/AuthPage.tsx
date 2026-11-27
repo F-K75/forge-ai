@@ -128,7 +128,7 @@ export default function AuthPage() {
         setMfaToken(result.mfaToken);
         return;
       }
-      navigate("/projects", { replace: true });
+      navigate("/command", { replace: true });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setErrors({
@@ -148,7 +148,7 @@ export default function AuthPage() {
     setLoading(true);
     try {
       await verifyMfa(mfaToken, mfaCode.trim());
-      navigate("/projects", { replace: true });
+      navigate("/command", { replace: true });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setMfaError(detail || "The code you entered is invalid. Please try again.");
