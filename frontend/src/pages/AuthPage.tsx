@@ -14,6 +14,7 @@ import {
 import { useAuthStore, API_URL } from "../store/authStore";
 import BrandLogo from "../components/BrandLogo";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { DEMO_LOGIN_ENABLED } from "../lib/env";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -318,7 +319,7 @@ export default function AuthPage() {
                         id="email"
                         type="email"
                         autoComplete="email"
-                        placeholder="developer@forge.ai"
+                        placeholder="you@company.com"
                         value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
@@ -454,7 +455,8 @@ export default function AuthPage() {
                     )}
                   </button>
 
-                  {/* Quick Workspace Access: Admin & Demo */}
+                  {/* Quick Workspace Access: Admin & Demo (demo builds only, see lib/env.ts) */}
+                  {DEMO_LOGIN_ENABLED && (
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
                       id="auth-admin-signin-btn"
@@ -476,6 +478,7 @@ export default function AuthPage() {
                       <span>Auto-fill Demo</span>
                     </button>
                   </div>
+                  )}
 
                   <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">

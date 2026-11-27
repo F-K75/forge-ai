@@ -8,3 +8,11 @@ export const LIVE_MODE = Boolean(import.meta.env.VITE_WS_URL)
 // buttons send visitors there instead.
 export const PUBLIC_DEMO_APP_URL: string = (import.meta.env.VITE_PUBLIC_DEMO_APP_URL || "").replace(/\/$/, "")
 export const IS_PUBLIC_DEMO = !LIVE_MODE && Boolean(PUBLIC_DEMO_APP_URL)
+
+// Demo sign-in shortcuts ("Sign in as Admin", "Auto-fill Demo" and the
+// sign-up "Auto-fill test account" button). They fill in well-known demo
+// credentials, so they belong only in mock-data demo builds. A live build hides
+// them unless VITE_ENABLE_DEMO_LOGIN=true is set explicitly (for example on a
+// staging stack seeded with the demo accounts).
+export const DEMO_LOGIN_ENABLED: boolean =
+  !LIVE_MODE || import.meta.env.VITE_ENABLE_DEMO_LOGIN === "true"

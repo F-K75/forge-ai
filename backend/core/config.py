@@ -246,8 +246,11 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
-    # Admin
-    admin_emails: str = "admin@forge.ai"
+    # Admin allowlist (comma-separated). Registering with, or a migration
+    # finding, one of these emails sets is_admin. Empty by default so a deploy
+    # that forgets ADMIN_EMAILS has no admin account anyone can claim by
+    # signing up first with a well-known demo address such as admin@forge.ai.
+    admin_emails: str = ""
 
     # Test / smoke
     smoke_test_mode: bool = False
