@@ -9,6 +9,8 @@ import {
   X,
 } from "lucide-react";
 import type { PMTask } from "../../../lib/types/api";
+import { SegmentedControl } from "../../../components/ui/SegmentedControl";
+import { Button } from "../../../components/ui/Button";
 
 export const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   backlog: {
@@ -31,15 +33,15 @@ export const STATUS_CONFIG: Record<string, { label: string; color: string; bg: s
   },
   review: {
     label: "Review",
-    color: "text-agent-business-improver",
-    bg: "bg-agent-business-improver/10",
-    border: "border-agent-business-improver/30",
+    color: "text-info",
+    bg: "bg-info/10",
+    border: "border-info/30",
   },
   testing: {
     label: "Testing",
-    color: "text-agent-integration",
-    bg: "bg-agent-integration/10",
-    border: "border-agent-integration/30",
+    color: "text-info",
+    bg: "bg-info/10",
+    border: "border-info/30",
   },
   done: {
     label: "Done",
@@ -113,7 +115,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search tasks by title, ID, or agent…"
-            className="w-full h-9 pl-9 pr-8 rounded-xl bg-panel border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
+            className="w-full h-9 pl-9 pr-8 rounded-xl bg-panel border border-border text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-border"
           />
           {searchQuery && (
             <button
@@ -129,70 +131,53 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
         {/* Filters Group */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           {/* Status Filter */}
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-faint mr-1 hidden sm:inline">
-              Status:
-            </span>
-            {["all", "in_progress", "done", "blocked"].map((st) => (
-              <button
-                key={st}
-                type="button"
-                id={`filter-status-${st}`}
-                onClick={() => setStatusFilter(st)}
-                className={`px-2.5 py-1 text-xs rounded-xl font-medium transition-all cursor-pointer shrink-0 border ${
-                  statusFilter === st
-                    ? "bg-ink text-on-ink border-transparent"
-                    : "bg-panel text-muted border-border hover:border-agent-integration/50"
-                }`}
-              >
-                {st === "all" ? "All Status" : STATUS_CONFIG[st]?.label || st}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Filter by status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            className="shrink-0"
+            options={["all", "in_progress", "done", "blocked"].map((st) => ({
+              value: st,
+              id: `filter-status-${st}`,
+              label: st === "all" ? "All status" : STATUS_CONFIG[st]?.label || st,
+            }))}
+          />
 
           {/* Priority Filter */}
-          <div className="flex items-center gap-1 shrink-0 pl-1 border-l border-border">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-faint mr-1 hidden sm:inline">
-              Priority:
-            </span>
-            {["all", "P0", "P1", "P2", "P3"].map((pr) => (
-              <button
-                key={pr}
-                type="button"
-                id={`filter-priority-${pr}`}
-                onClick={() => setPriorityFilter(pr)}
-                className={`px-2 py-1 text-xs rounded-xl font-medium transition-all cursor-pointer shrink-0 border ${
-                  priorityFilter === pr
-                    ? "bg-ink text-on-ink border-transparent"
-                    : "bg-panel text-muted border-border hover:border-agent-integration/50"
-                }`}
-              >
-                {pr === "all" ? "All" : pr}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Filter by priority"
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+            className="shrink-0"
+            options={["all", "P0", "P1", "P2", "P3"].map((pr) => ({
+              value: pr,
+              id: `filter-priority-${pr}`,
+              label: pr === "all" ? "All" : pr,
+            }))}
+          />
 
           {/* Clear Filters */}
           {hasActiveFilters && (
             <button
               type="button"
               onClick={clearFilters}
-              className="text-[11px] font-semibold text-agent-integration hover:underline px-2 shrink-0 cursor-pointer"
+              className="text-xs text-muted hover:text-ink hover:underline px-2 shrink-0 cursor-pointer"
             >
               Reset
             </button>
           )}
 
           {/* Quick Add Task */}
-          <button
+          <Button
             id="sprint-add-task-btn"
-            type="button"
+            variant="secondary"
+            size="sm"
             onClick={onOpenCreateTaskModal}
-            className="h-9 px-3 rounded-pill bg-agent-integration/10 text-agent-integration border border-agent-integration/30 hover:bg-agent-integration/20 text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
+            className="shrink-0"
           >
             <Plus size={14} />
             <span>Add Task</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -200,7 +185,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
       {filteredTasks.length === 0 ? (
         <div
           id="sprint-empty-tasks"
-          className="rounded-2xl border border-border bg-panel p-10 text-center shadow-xs space-y-3"
+          className="rounded-xl border border-border bg-panel p-10 text-center space-y-3"
         >
           <div className="w-12 h-12 rounded-2xl bg-panel-alt text-faint flex items-center justify-center mx-auto">
             <CheckCircle2 size={24} />
@@ -219,7 +204,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             <button
               type="button"
               onClick={clearFilters}
-              className="h-8.5 px-4 rounded-pill bg-ink text-on-ink text-xs font-medium hover:bg-ink/90 cursor-pointer shadow-2xs"
+              className="h-8 px-4 rounded-pill border border-glass-border bg-glass text-ink text-xs font-medium hover:bg-ink/10 cursor-pointer"
             >
               Clear All Filters
             </button>
@@ -227,7 +212,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
             <button
               type="button"
               onClick={onOpenCreateTaskModal}
-              className="h-8.5 px-4 rounded-pill bg-ink text-on-ink text-xs font-medium hover:bg-ink/90 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+              className="h-8 px-4 rounded-pill border border-glass-border bg-glass text-ink text-xs font-medium hover:bg-ink/10 cursor-pointer inline-flex items-center gap-1.5"
             >
               <Plus size={14} />
               <span>Add First Task</span>
@@ -235,17 +220,17 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
           )}
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-panel shadow-2xs overflow-hidden">
+        <div className="rounded-xl border border-border bg-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="border-b border-border bg-ink/10 text-muted">
                 <tr>
-                  <th className="p-3.5 font-semibold uppercase tracking-wider text-[11px]">Task ID & Title</th>
-                  <th className="p-3.5 font-semibold uppercase tracking-wider text-[11px] w-24">Priority</th>
-                  <th className="p-3.5 font-semibold uppercase tracking-wider text-[11px] w-36">Status</th>
-                  <th className="p-3.5 font-semibold uppercase tracking-wider text-[11px] w-44">Assignee</th>
-                  <th className="p-3.5 font-semibold uppercase tracking-wider text-[11px] w-24 text-right">Points</th>
-                  <th className="p-3.5 font-semibold uppercase tracking-wider text-[11px] w-24 text-right">Action</th>
+                  <th className="p-3.5 font-normal text-xs">Task ID & Title</th>
+                  <th className="p-3.5 font-normal text-xs w-24">Priority</th>
+                  <th className="p-3.5 font-normal text-xs w-36">Status</th>
+                  <th className="p-3.5 font-normal text-xs w-44">Assignee</th>
+                  <th className="p-3.5 font-normal text-xs w-24 text-right">Points</th>
+                  <th className="p-3.5 font-normal text-xs w-24 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-soft">
@@ -262,7 +247,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
                       {/* Title & Description */}
                       <td className="p-3.5">
                         <div className="flex items-start gap-2.5">
-                          <span className="text-[11px] font-mono font-semibold text-faint shrink-0 mt-0.5">
+                          <span className="text-[11px] font-mono text-faint shrink-0 mt-0.5">
                             {task.id}
                           </span>
                           <div>
@@ -285,7 +270,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
                       {/* Priority */}
                       <td className="p-3.5">
                         <span
-                          className={`inline-block px-2 py-0.5 text-[10px] font-semibold uppercase rounded-md border ${
+                          className={`inline-block px-2 py-0.5 font-mono text-[11px] rounded-pill border ${
                             task.priority === "P0"
                               ? "bg-error/10 text-error border-error/30 "
                               : task.priority === "P1"
@@ -304,7 +289,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
                           aria-label={`Status for task ${task.id}`}
                           value={task.status || "backlog"}
                           onChange={(e) => onUpdateTaskStatus(task.id, e.target.value)}
-                          className="px-2.5 py-1 text-xs font-medium rounded-xl border border-border bg-panel text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30 cursor-pointer shadow-2xs"
+                          className="px-2.5 py-1 text-xs font-medium rounded-xl border border-border bg-panel text-ink focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-border cursor-pointer shadow-2xs"
                         >
                           {Object.entries(STATUS_CONFIG).map(([stKey, stCfg]) => (
                             <option key={stKey} value={stKey}>
@@ -317,7 +302,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
                       {/* Assignee */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2 text-ink">
-                          <div className="w-5.5 h-5.5 rounded-lg bg-agent-integration/10 text-agent-integration flex items-center justify-center shrink-0">
+                          <div className="w-5 h-5 rounded-md bg-ink/[0.06] text-muted flex items-center justify-center shrink-0">
                             <Bot size={13} />
                           </div>
                           <span
@@ -340,7 +325,7 @@ export const SprintBacklogView: React.FC<SprintBacklogViewProps> = ({
                           <Link
                             id={`task-board-link-${task.id}`}
                             to={`/initiatives/${initiativeId}/board`}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-agent-integration hover:text-agent-integration transition-colors"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-ink transition-colors"
                           >
                             <span>Board</span>
                             <ArrowRight size={11} />

@@ -65,11 +65,11 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-border-soft">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-agent-integration/10 border border-agent-integration/30 text-agent-integration flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-ink/[0.06] text-muted flex items-center justify-center">
               <Plus size={16} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-ink">
+              <h3 className="text-sm font-medium text-ink">
                 ADD TASK TO SPRINT {sprintNumber}
               </h3>
               <p className="text-[11px] text-muted">
@@ -92,7 +92,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
           <div>
             <label
               htmlFor="sprint-new-task-title"
-              className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
+              className="block text-xs text-muted mb-1.5"
             >
               Task Title
             </label>
@@ -103,14 +103,14 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Implement WebSocket heartbeat & telemetry retry"
               required
-              className="w-full h-9.5 px-3.5 rounded-xl bg-panel border border-border text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
+              className="w-full h-9.5 px-3.5 rounded-xl bg-panel border border-border text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-border"
             />
           </div>
 
           <div>
             <label
               htmlFor="sprint-new-task-desc"
-              className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
+              className="block text-xs text-muted mb-1.5"
             >
               Description & Acceptance Criteria
             </label>
@@ -120,7 +120,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Detail implementation requirements, security constraints, and validation criteria…"
-              className="w-full p-3.5 rounded-xl bg-panel border border-border text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
+              className="w-full p-3.5 rounded-xl bg-panel border border-border text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-border"
             />
           </div>
 
@@ -128,7 +128,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
             <div>
               <label
                 htmlFor="sprint-new-task-priority"
-                className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
+                className="block text-xs text-muted mb-1.5"
               >
                 Priority
               </label>
@@ -136,7 +136,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
                 id="sprint-new-task-priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full h-9.5 px-3 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30 cursor-pointer"
+                className="w-full h-9.5 px-3 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-border cursor-pointer"
               >
                 <option value="P0">P0 - Critical</option>
                 <option value="P1">P1 - High</option>
@@ -148,7 +148,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
             <div>
               <label
                 htmlFor="sprint-new-task-agent"
-                className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
+                className="block text-xs text-muted mb-1.5"
               >
                 Assignee Agent
               </label>
@@ -156,7 +156,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
                 id="sprint-new-task-agent"
                 value={assignedAgent}
                 onChange={(e) => setAssignedAgent(e.target.value)}
-                className="w-full h-9.5 px-3 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30 cursor-pointer"
+                className="w-full h-9.5 px-3 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-border cursor-pointer"
               >
                 <option value="systems_agent">Systems Agent</option>
                 <option value="backend_agent">Backend Agent</option>
@@ -169,7 +169,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
             <div>
               <label
                 htmlFor="sprint-new-task-hours"
-                className="block font-semibold uppercase tracking-wider mb-1.5 text-ink"
+                className="block text-xs text-muted mb-1.5"
               >
                 Estimated Hours
               </label>
@@ -180,7 +180,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
                 max={40}
                 value={estimatedHours}
                 onChange={(e) => setEstimatedHours(Number(e.target.value))}
-                className="w-full h-9.5 px-3 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-agent-integration/20 focus:border-agent-integration/30"
+                className="w-full h-9.5 px-3 rounded-xl bg-panel border border-border text-ink focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-border"
               />
             </div>
           </div>
@@ -197,7 +197,7 @@ export const CreateSprintTaskModal: React.FC<CreateSprintTaskModalProps> = ({
             <button
               id="submit-create-task-btn"
               type="submit"
-              className="h-9 px-5 rounded-pill bg-agent-integration hover:bg-agent-integration/90 text-on-ink font-semibold uppercase tracking-wider cursor-pointer shadow-sm"
+              className="h-9 px-5 rounded-pill bg-ink hover:bg-ink/90 text-on-ink font-medium cursor-pointer"
             >
               Add Task
             </button>

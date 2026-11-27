@@ -117,7 +117,7 @@ export function RoadmapHeader({
         {/* KPI 1: Epics & Priority Scope */}
         <div className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-muted mb-1">
-            <span className="font-medium text-[11px] uppercase tracking-wider">Total Epics</span>
+            <span className="text-caption text-muted">Total Epics</span>
             <Layers size={14} className="text-accent" />
           </div>
           <div>
@@ -134,7 +134,7 @@ export function RoadmapHeader({
         {/* KPI 2: Delivery Completion Progress */}
         <div className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-muted mb-1">
-            <span className="font-medium text-[11px] uppercase tracking-wider">Delivery Progress</span>
+            <span className="text-caption text-muted">Delivery Progress</span>
             <TrendingUp size={14} className="text-ok" />
           </div>
           <div>
@@ -158,7 +158,7 @@ export function RoadmapHeader({
         {/* KPI 3: Committed Points & Hours */}
         <div className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-muted mb-1">
-            <span className="font-medium text-[11px] uppercase tracking-wider">Effort & Capacity</span>
+            <span className="text-caption text-muted">Effort & Capacity</span>
             <Clock size={14} className="text-agent-business-improver" />
           </div>
           <div>
@@ -174,7 +174,7 @@ export function RoadmapHeader({
         {/* KPI 4: Target Horizon & Phases */}
         <div className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-muted mb-1">
-            <span className="font-medium text-[11px] uppercase tracking-wider">Cadence Horizon</span>
+            <span className="text-caption text-muted">Cadence Horizon</span>
             <Calendar size={14} className="text-warn" />
           </div>
           <div>
@@ -190,7 +190,7 @@ export function RoadmapHeader({
         {/* KPI 5: Dependency Graph & Risks */}
         <div className="p-4 sm:p-5 flex flex-col justify-between col-span-2 md:col-span-1">
           <div className="flex items-center justify-between text-muted mb-1">
-            <span className="font-medium text-[11px] uppercase tracking-wider">Critical Path</span>
+            <span className="text-caption text-muted">Critical Path</span>
             <AlertTriangle size={14} className="text-warn" />
           </div>
           <div>

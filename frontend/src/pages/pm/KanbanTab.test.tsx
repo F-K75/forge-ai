@@ -192,14 +192,14 @@ describe("KanbanTab Search and Filter", () => {
     render(<KanbanTab />);
 
     // Click P0 chip
-    const p0Chip = screen.getByRole("button", { name: /^P0 \(\d+\)$/i });
+    const p0Chip = screen.getByRole("radio", { name: /^P0 \(\d+\)$/i });
     fireEvent.click(p0Chip);
 
     expect(screen.getByText(/Implement OAuth token refresh/i)).toBeTruthy();
     expect(screen.queryByText(/Design Responsive Navigation Header/i)).toBeNull();
 
     // Click ALL chip to reset
-    const allChip = screen.getByRole("button", { name: /^ALL \(\d+\)$/i });
+    const allChip = screen.getByRole("radio", { name: /^ALL \(\d+\)$/i });
     fireEvent.click(allChip);
 
     expect(screen.getByText(/Implement OAuth token refresh/i)).toBeTruthy();
@@ -318,17 +318,17 @@ describe("KanbanTab Task Dependencies and Blockers", () => {
     // task-2 is blocked by task-1 (which is in_progress, not done)
     const blockedBadge = document.getElementById("kanban-blocker-badge-task-2");
     expect(blockedBadge).toBeTruthy();
-    expect(blockedBadge?.textContent).toContain("BLOCKED (1)");
+    expect(blockedBadge?.textContent).toContain("Blocked (1)");
 
     // task-1 blocks downstream task-2
     const blocksBadge = document.getElementById("kanban-blocks-badge-task-1");
     expect(blocksBadge).toBeTruthy();
-    expect(blocksBadge?.textContent).toContain("BLOCKS 1");
+    expect(blocksBadge?.textContent).toContain("Blocks 1");
 
     // task-4's prerequisite (task-3) is done, so it shows UNBLOCKED
     const unblockedBadge = document.getElementById("kanban-unblocked-badge-task-4");
     expect(unblockedBadge).toBeTruthy();
-    expect(unblockedBadge?.textContent).toContain("UNBLOCKED");
+    expect(unblockedBadge?.textContent).toContain("Unblocked");
   });
 
   it("filters tasks when clicking the BLOCKED ONLY filter chip", () => {
@@ -354,15 +354,15 @@ describe("KanbanTab Task Dependencies and Blockers", () => {
 
     const arrowToggleBtn = document.getElementById("kanban-toggle-arrows-btn");
     expect(arrowToggleBtn).toBeTruthy();
-    expect(arrowToggleBtn?.textContent).toContain("ARROWS: ON");
+    expect(arrowToggleBtn?.textContent).toContain("Arrows: on");
 
     // Clicking toggles to OFF
     fireEvent.click(arrowToggleBtn!);
-    expect(arrowToggleBtn?.textContent).toContain("ARROWS: OFF");
+    expect(arrowToggleBtn?.textContent).toContain("Arrows: off");
 
     // Clicking again toggles back to ON
     fireEvent.click(arrowToggleBtn!);
-    expect(arrowToggleBtn?.textContent).toContain("ARROWS: ON");
+    expect(arrowToggleBtn?.textContent).toContain("Arrows: on");
   });
 
   it("opens TaskDependencyModal when clicking DEPS button on a card", () => {

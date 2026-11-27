@@ -203,8 +203,8 @@ export default function SprintsTab() {
     return (
       <div id="sprints-tab-empty" className="space-y-6">
         <div className="rounded-2xl border border-border bg-panel p-12 text-center shadow-xs space-y-4 max-w-xl mx-auto mt-12">
-          <div className="w-14 h-14 rounded-2xl bg-agent-integration/10 border border-agent-integration/30 text-agent-integration flex items-center justify-center mx-auto">
-            <Zap size={28} className="fill-current" />
+          <div className="w-14 h-14 rounded-2xl bg-ink/[0.06] border border-border text-muted flex items-center justify-center mx-auto">
+            <Zap size={28} />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-ink">
@@ -272,18 +272,18 @@ export default function SprintsTab() {
           id="tab-sprint-backlog"
           type="button"
           onClick={() => setActiveTab("backlog")}
-          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-caption font-medium flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "backlog"
-              ? "border-agent-integration/30 text-agent-integration"
+              ? "border-ink text-ink"
               : "border-transparent text-muted hover:text-ink"
           }`}
         >
           <ListTodo size={15} />
           <span>Sprint Backlog</span>
           <span
-            className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+            className={`font-mono tabular-nums text-[11px] px-1.5 py-0.5 rounded-full ${
               activeTab === "backlog"
-                ? "bg-agent-integration/10 text-agent-integration"
+                ? "bg-ink/[0.08] text-ink"
                 : "bg-panel-alt text-muted"
             }`}
           >
@@ -295,9 +295,9 @@ export default function SprintsTab() {
           id="tab-burndown-velocity"
           type="button"
           onClick={() => setActiveTab("charts")}
-          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-caption font-medium flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "charts"
-              ? "border-agent-integration/30 text-agent-integration"
+              ? "border-ink text-ink"
               : "border-transparent text-muted hover:text-ink"
           }`}
         >
@@ -309,13 +309,13 @@ export default function SprintsTab() {
           id="tab-scrum-ceremonies"
           type="button"
           onClick={() => setActiveTab("ceremonies")}
-          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-caption font-medium flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "ceremonies"
-              ? "border-agent-integration/30 text-agent-integration"
+              ? "border-ink text-ink"
               : "border-transparent text-muted hover:text-ink"
           }`}
         >
-          <Sparkles size={15} className="text-warn" />
+          <Sparkles size={15} />
           <span>Scrum Ceremonies</span>
         </button>
 
@@ -323,9 +323,9 @@ export default function SprintsTab() {
           id="tab-stories-scope"
           type="button"
           onClick={() => setActiveTab("scope")}
-          className={`h-11 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+          className={`h-11 px-4 text-caption font-medium flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === "scope"
-              ? "border-agent-integration/30 text-agent-integration"
+              ? "border-ink text-ink"
               : "border-transparent text-muted hover:text-ink"
           }`}
         >

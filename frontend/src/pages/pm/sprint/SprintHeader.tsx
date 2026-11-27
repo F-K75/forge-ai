@@ -11,6 +11,8 @@ import {
   Flag,
 } from "lucide-react";
 import type { PMSprint } from "../../../lib/types/api";
+import { Badge } from "../../../components/ui/Badge";
+import { Button } from "../../../components/ui/Button";
 
 interface SprintHeaderProps {
   sprints: PMSprint[];
@@ -82,10 +84,7 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Sprint Picker Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none" id="sprint-switcher-bar">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted shrink-0 mr-1 flex items-center gap-1.5">
-            <Zap size={14} className="text-agent-integration" />
-            <span>Sprints:</span>
-          </span>
+          <span className="text-xs text-muted shrink-0 mr-1">Sprints</span>
 
           {sprints.map((sprint) => {
             const isSel = sprint.id === selectedSprint.id;
@@ -98,51 +97,36 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
                 id={`sprint-select-${sprint.id}`}
                 type="button"
                 onClick={() => onSelectSprint(sprint)}
-                className={`group relative px-3.5 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer flex items-center gap-2 border ${
+                aria-pressed={isSel}
+                className={`group relative h-8 px-3 rounded-pill text-xs font-medium shrink-0 transition-colors cursor-pointer flex items-center gap-2 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   isSel
-                    ? "bg-agent-integration text-on-ink border-agent-integration/30 shadow-sm ring-2 ring-agent-integration/20"
-                    : "bg-panel text-ink border-border hover:border-agent-integration/50 hover:bg-ink/5"
+                    ? "bg-ink/[0.08] text-ink border-border"
+                    : "bg-transparent text-muted border-border-soft hover:text-ink hover:bg-ink/5"
                 }`}
               >
                 {/* Status Dot */}
                 <span className="relative flex h-2 w-2">
                   {sActive && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ok opacity-75" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-60" />
                   )}
                   <span
                     className={`relative inline-flex rounded-full h-2 w-2 ${
-                      sActive
-                        ? "bg-ok"
-                        : sDone
-                        ? isSel
-                          ? "bg-surface-high"
-                          : "bg-ink/30"
-                        : "bg-warn"
+                      sActive ? "bg-accent" : sDone ? "bg-ok" : "bg-warn"
                     }`}
                   />
                 </span>
 
-                <span className="tracking-tight">
-                  Sprint {sprint.sprint_number}
-                </span>
+                <span>Sprint {sprint.sprint_number}</span>
 
                 {sDone && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${
-                      isSel ? "bg-ink/20 text-ink" : "bg-panel-alt text-muted"
-                    }`}
-                  >
+                  <Badge variant="success" size="sm">
                     Done
-                  </span>
+                  </Badge>
                 )}
                 {sActive && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase ${
-                      isSel ? "bg-ink/20 text-ink" : "bg-ok/10 text-ok"
-                    }`}
-                  >
+                  <Badge variant="accent" size="sm">
                     Live
-                  </span>
+                  </Badge>
                 )}
               </button>
             );
@@ -155,68 +139,67 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
             <Link
               id="sprint-header-open-board-link"
               to={`/initiatives/${initiativeId}/board`}
-              className="h-9 px-3.5 rounded-xl border border-border bg-panel text-ink hover:bg-ink/5 text-xs font-semibold flex items-center gap-2 transition-all shadow-2xs"
+              className="h-9 min-h-[44px] sm:min-h-[32px] sm:h-8 px-3.5 rounded-pill border border-transparent text-muted hover:bg-ink/5 hover:text-ink text-xs font-medium flex items-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              <Kanban size={14} className="text-agent-integration" />
+              <Kanban size={14} />
               <span>Board</span>
             </Link>
           )}
 
-          <button
+          <Button
             id="sprint-header-new-sprint-btn"
-            type="button"
+            variant="primary"
+            size="sm"
             onClick={onOpenCreateModal}
-            className="h-9 px-4 rounded-pill bg-agent-integration hover:bg-agent-integration/90 active:bg-agent-integration text-on-ink text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
           >
-            <Zap size={14} className="fill-current" />
-            <span>NEW SPRINT</span>
-          </button>
+            <Zap size={14} />
+            <span>New sprint</span>
+          </Button>
         </div>
       </div>
 
       {/* Main Sprint Commitment Banner */}
       <div
         id="sprint-commitment-banner"
-        className="rounded-2xl border border-border bg-panel p-5 md:p-6 shadow-xs space-y-4"
+        className="rounded-xl border border-border bg-panel p-5 md:p-6 space-y-4"
       >
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div className="space-y-1.5 max-w-3xl">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-agent-integration/10 text-agent-integration border border-agent-integration/30 ">
-                SPRINT {selectedSprint.sprint_number} COMMITMENT
+              <span className="text-xs text-muted">
+                Sprint {selectedSprint.sprint_number} commitment
               </span>
 
               {isActive && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-ok/10 text-ok border border-ok/30 ">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
-                  Active Sprint
-                </span>
+                <Badge variant="accent" dot>
+                  Active sprint
+                </Badge>
               )}
 
               {isCompleted && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-panel-alt text-ink border border-border ">
-                  <CheckCircle2 size={12} className="text-muted" />
+                <Badge variant="success">
+                  <CheckCircle2 size={12} />
                   Completed
-                </span>
+                </Badge>
               )}
 
               {isPlanning && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-warn/10 text-warn border border-warn/30 ">
-                  <Clock size={12} className="text-warn" />
-                  In Planning
-                </span>
+                <Badge variant="warning">
+                  <Clock size={12} />
+                  In planning
+                </Badge>
               )}
             </div>
 
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-ink">
+            <h1 className="text-xl md:text-2xl font-medium tracking-tight text-ink">
               {selectedSprint.name || `Sprint ${selectedSprint.sprint_number}: Delivery Milestone`}
             </h1>
 
             {selectedSprint.goal && (
               <div className="flex items-start gap-2 pt-1 text-muted text-xs md:text-sm leading-relaxed">
-                <Flag size={15} className="text-agent-integration shrink-0 mt-0.5" />
-                <p className="font-medium">
-                  <strong className="text-ink font-semibold mr-1.5">
+                <Flag size={15} className="text-faint shrink-0 mt-0.5" />
+                <p>
+                  <strong className="text-ink font-medium mr-1.5">
                     Sprint Goal:
                   </strong>
                   {selectedSprint.goal}
@@ -234,7 +217,7 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
               </span>
               <span className="w-1 h-1 rounded-full bg-surface-high" />
               <span className="inline-flex items-center gap-1.5 font-medium text-ink">
-                <Clock size={13} className="text-agent-integration" />
+                <Clock size={13} className="text-faint" />
                 <span>{daysRemaining}</span>
               </span>
             </div>
@@ -242,27 +225,27 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
             {/* Lifecycle Buttons */}
             <div className="flex items-center gap-2">
               {isPlanning && (
-                <button
+                <Button
                   id="sprint-start-btn"
-                  type="button"
+                  variant="tonal"
+                  size="sm"
                   onClick={() => onUpdateSprintStatus(selectedSprint.id, "active")}
-                  className="h-8 px-3.5 rounded-pill bg-ok hover:bg-ok/90 text-on-ink text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
                 >
                   <Play size={12} className="fill-current" />
                   <span>Start Sprint</span>
-                </button>
+                </Button>
               )}
 
               {isActive && (
-                <button
+                <Button
                   id="sprint-complete-btn"
-                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => onUpdateSprintStatus(selectedSprint.id, "completed")}
-                  className="h-8 px-3.5 rounded-pill border border-border bg-panel hover:bg-ink/5 text-ink text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
                 >
-                  <CheckCheck size={14} className="text-agent-integration" />
+                  <CheckCheck size={14} />
                   <span>Complete Sprint</span>
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -272,8 +255,10 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
         <div className="pt-3 border-t border-border-soft space-y-2">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-4 text-muted">
-              <span className="font-semibold text-ink">
-                {completedPoints} of {totalPoints} Points Burned ({percentComplete}%)
+              <span className="font-medium text-ink">
+                <span className="font-mono tabular-nums">{completedPoints}</span> of{" "}
+                <span className="font-mono tabular-nums">{totalPoints}</span> points burned (
+                <span className="font-mono tabular-nums">{percentComplete}%</span>)
               </span>
               <span className="hidden sm:inline-flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-ok" />
@@ -289,7 +274,7 @@ export const SprintHeader: React.FC<SprintHeaderProps> = ({
               </span>
             </div>
 
-            <span className="text-[11px] font-semibold text-muted">
+            <span className="text-xs text-muted">
               {completedTasksCount} / {totalTasksCount} tasks completed
             </span>
           </div>

@@ -607,10 +607,10 @@ export default function AnalyticsTab() {
         {/* KPI 1: Sprint Velocity Burndown */}
         <div
           id="kpi-sprint-velocity"
-          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
+          className="rounded-xl border border-border bg-panel p-4"
         >
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Sprint Velocity
             </span>
             <TrendingUp size={15} className="text-accent" />
@@ -632,10 +632,10 @@ export default function AnalyticsTab() {
         {/* KPI 2: Autonomous Fleet Success */}
         <div
           id="kpi-agent-autonomy"
-          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
+          className="rounded-xl border border-border bg-panel p-4"
         >
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Fleet Autonomy Rate
             </span>
             <Bot size={15} className="text-ok" />
@@ -657,10 +657,10 @@ export default function AnalyticsTab() {
         {/* KPI 3: Compute Burn & Inference Cost */}
         <div
           id="kpi-compute-tokens"
-          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
+          className="rounded-xl border border-border bg-panel p-4"
         >
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Compute & Tokens
             </span>
             <Cpu size={15} className="text-warn" />
@@ -682,10 +682,10 @@ export default function AnalyticsTab() {
         {/* KPI 4: Mean Turnaround / Cycle Time */}
         <div
           id="kpi-cycle-latency"
-          className="rounded-2xl border border-border bg-panel p-4 shadow-xs"
+          className="rounded-xl border border-border bg-panel p-4"
         >
           <div className="flex items-center justify-between text-xs text-muted mb-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">
+            <span className="text-caption text-muted">
               Mean Cycle Turnaround
             </span>
             <Clock size={15} className="text-agent-business-improver" />
@@ -833,7 +833,7 @@ export default function AnalyticsTab() {
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-faint">
                         <span>{epic.points} story points</span>
-                        <span className="uppercase font-semibold tracking-wider">{epic.priority}</span>
+                        <span className="font-mono font-medium">{epic.priority.toUpperCase()}</span>
                       </div>
                     </div>
                   ))}
