@@ -16,3 +16,8 @@ export const IS_PUBLIC_DEMO = !LIVE_MODE && Boolean(PUBLIC_DEMO_APP_URL)
 // staging stack seeded with the demo accounts).
 export const DEMO_LOGIN_ENABLED: boolean =
   !LIVE_MODE || import.meta.env.VITE_ENABLE_DEMO_LOGIN === "true"
+
+// Forge OS shell (docs/os/PHASE2_DECISIONS.md #2). On by default: signed-in
+// users land on the prompt-first workspace at /os. Set VITE_OS_SHELL=false to
+// restore the classic sidebar shell with the Command Center as home.
+export const OS_SHELL_ENABLED: boolean = import.meta.env.VITE_OS_SHELL !== "false"

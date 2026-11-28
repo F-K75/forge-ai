@@ -1,6 +1,15 @@
 import React, { useState } from "react";
-import { Minus, Square, X, type LucideIcon } from "lucide-react";
+import { Maximize2, Minimize2, Minus, X, type LucideIcon } from "lucide-react";
 
+/**
+ * Window chrome used by the Forge OS window manager (src/os/shell/WindowManager)
+ * and by any page that wants a framed panel. Controlled when `maximized` /
+ * `minimized` are passed; otherwise it keeps its own state (legacy usage).
+ *
+ * Linear-like precision: one hairline, a 40px title bar, monochrome window
+ * controls on the left (macOS order: close, minimise, zoom) that reveal their
+ * glyphs on hover or focus, and no decorative chrome.
+ */
 export interface OSWindowProps {
   id?: string;
   title: string;
@@ -11,10 +20,31 @@ export interface OSWindowProps {
   onMinimize?: () => void;
   onMaximize?: () => void;
   children: React.ReactNode;
+  /** Extra controls on the right of the title bar (presentation switcher, nav…). */
   extraHeader?: React.ReactNode;
   className?: string;
   bodyClassName?: string;
   initialMaximized?: boolean;
+  /** Controlled maximised state (window manager). */
+  maximized?: boolean;
+  /** Controlled minimised state; the window manager hides minimised windows instead. */
+  minimized?: boolean;
+  /** Focused windows get a stronger hairline and shadow. */
+  focused?: boolean;
+  /** Drag handle: pointer-down on the title bar (not on its buttons). */
+  onTitlePointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onTitleDoubleClick?: () => void;
+  /** Accessible name id for role="dialog"/"region" containers. */
+  titleId?: string;
+  role?: "region" | "dialog";
+  ariaModal?: boolean;
+  style?: React.CSSProperties;
+  onPointerDownCapture?: (e: React.PointerEvent<HTMLElement>) => void;
+  onFocusCapture?: (e: React.FocusEvent<HTMLElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLElement>) => void;
+  /** Hide the minimise button (panels, mobile sheets). */
+  hideMinimize?: boolean;
+  dataAttrs?: Record<string, string>;
 }
 
 export function OSWindow({
@@ -31,18 +61,35 @@ export function OSWindow({
   className = "",
   bodyClassName = "",
   initialMaximized = false,
+  maximized,
+  minimized,
+  focused = true,
+  onTitlePointerDown,
+  onTitleDoubleClick,
+  titleId,
+  role,
+  ariaModal,
+  style,
+  onPointerDownCapture,
+  onFocusCapture,
+  onKeyDown,
+  hideMinimize = false,
+  dataAttrs,
 }: OSWindowProps) {
-  const [isMaximized, setIsMaximized] = useState(initialMaximized);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [localMax, setLocalMax] = useState(initialMaximized);
+  const [localMin, setLocalMin] = useState(false);
+  const isMaximized = maximized ?? localMax;
+  const isMinimized = minimized ?? localMin;
+  const headingId = titleId ?? (id ? `${id}-title` : undefined);
 
   const handleToggleMaximize = () => {
     if (onMaximize) onMaximize();
-    else setIsMaximized((prev) => !prev);
+    else setLocalMax((prev) => !prev);
   };
 
   const handleToggleMinimize = () => {
     if (onMinimize) onMinimize();
-    else setIsMinimized((prev) => !prev);
+    else setLocalMin((prev) => !prev);
   };
 
   const statusDotClass = {
@@ -52,83 +99,106 @@ export function OSWindow({
     idle: "bg-faint",
   }[statusVariant];
 
+  const control =
+    "group/ctl flex h-3 w-3 items-center justify-center rounded-full bg-ink/[0.16] text-transparent transition-colors duration-fast hover:bg-ink/30 hover:text-ink focus-visible:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+
   return (
     <section
       id={id}
-      className={`relative flex flex-col overflow-hidden rounded-lg border border-border bg-panel text-ink shadow-apple transition-all duration-fast ${
-        isMaximized ? "w-full h-full" : "w-full h-full"
-      } ${className}`}
+      role={role}
+      aria-modal={ariaModal}
+      aria-labelledby={headingId}
+      style={style}
+      onPointerDownCapture={onPointerDownCapture}
+      onFocusCapture={onFocusCapture}
+      onKeyDown={onKeyDown}
+      {...dataAttrs}
+      className={`relative flex flex-col overflow-hidden border bg-panel text-ink transition-[box-shadow,border-color] duration-fast ${
+        focused ? "border-border shadow-brutal-lg" : "border-border-soft shadow-brutal-md"
+      } ${isMaximized ? "rounded-none sm:rounded-lg" : "rounded-lg"} ${className}`}
     >
-      {/* Studio Window Header */}
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-border bg-panel-alt/60 px-3.5">
-        <div className="flex min-w-0 items-center gap-2">
+      <div
+        className={`flex h-10 shrink-0 select-none items-center gap-3 border-b border-border-soft px-3 ${
+          focused ? "bg-panel-alt/70" : "bg-panel"
+        } ${onTitlePointerDown ? "cursor-default touch-none" : ""}`}
+        onPointerDown={onTitlePointerDown}
+        onDoubleClick={onTitleDoubleClick}
+      >
+        <div className="group flex shrink-0 items-center gap-2" data-window-controls="">
+          <button
+            type="button"
+            id={`${id || "win"}-btn-close`}
+            onClick={() => {
+              if (onClose) onClose();
+              else setLocalMin(true);
+            }}
+            aria-label={`Close ${title}`}
+            title="Close"
+            className={control}
+          >
+            <X size={8} strokeWidth={3} aria-hidden="true" />
+          </button>
+          {!hideMinimize && (
+            <button
+              type="button"
+              id={`${id || "win"}-btn-minimize`}
+              onClick={handleToggleMinimize}
+              aria-label={isMinimized ? `Restore ${title}` : `Minimize ${title}`}
+              title={isMinimized ? "Restore" : "Minimize"}
+              className={control}
+            >
+              <Minus size={8} strokeWidth={3} aria-hidden="true" />
+            </button>
+          )}
+          <button
+            type="button"
+            id={`${id || "win"}-btn-maximize`}
+            onClick={handleToggleMaximize}
+            aria-label={isMaximized ? `Restore ${title} size` : `Maximize ${title}`}
+            aria-pressed={isMaximized}
+            title={isMaximized ? "Restore size" : "Maximize"}
+            className={control}
+          >
+            {isMaximized ? (
+              <Minimize2 size={7} strokeWidth={3} aria-hidden="true" />
+            ) : (
+              <Maximize2 size={7} strokeWidth={3} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {Icon && (
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center text-muted">
-              <Icon size={14} />
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center text-muted">
+              <Icon size={13} />
             </span>
           )}
-          <h2 className="truncate font-display text-xs font-semibold tracking-tight text-ink">
+          <h2
+            id={headingId}
+            className={`truncate text-caption font-medium tracking-tight ${focused ? "text-ink" : "text-muted"}`}
+          >
             {title}
           </h2>
           {status && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-medium text-muted">
-              <span className="text-border">·</span>
+            <span className="hidden items-center gap-1.5 text-xs text-muted sm:inline-flex">
               <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} aria-hidden="true" />
               <span>{status}</span>
             </span>
           )}
         </div>
 
-        {extraHeader && (
-          <div className="hidden md:flex min-w-0 items-center gap-1.5">{extraHeader}</div>
-        )}
-
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            id={`${id || "win"}-btn-minimize`}
-            onClick={handleToggleMinimize}
-            title={isMinimized ? "Restore Window" : "Minimize Window"}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-high hover:text-ink"
-          >
-            <Minus size={12} />
-          </button>
-          <button
-            type="button"
-            id={`${id || "win"}-btn-maximize`}
-            onClick={handleToggleMaximize}
-            title={isMaximized ? "Restore Window" : "Maximize Window"}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-high hover:text-ink"
-          >
-            <Square size={10} />
-          </button>
-          <button
-            type="button"
-            id={`${id || "win"}-btn-close`}
-            onClick={() => {
-              if (onClose) onClose();
-              else setIsMinimized(true);
-            }}
-            title="Close Window"
-            className="flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-error/10 hover:text-error"
-          >
-            <X size={12} />
-          </button>
-        </div>
+        {extraHeader && <div className="flex min-w-0 shrink-0 items-center gap-1">{extraHeader}</div>}
       </div>
 
-      {/* Window Body */}
       {!isMinimized ? (
-        <div className={`relative flex-1 min-h-0 overflow-auto bg-panel ${bodyClassName}`}>
-          {children}
-        </div>
+        <div className={`relative min-h-0 flex-1 overflow-auto bg-panel ${bodyClassName}`}>{children}</div>
       ) : (
         <div className="flex items-center justify-between bg-panel-alt px-4 py-2.5 text-xs text-muted">
           <span>Panel collapsed</span>
           <button
             type="button"
-            onClick={() => setIsMinimized(false)}
-            className="rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-medium text-ink transition-colors hover:bg-panel-alt"
+            onClick={() => setLocalMin(false)}
+            className="rounded-pill border border-border bg-panel px-2.5 py-1 text-xs font-medium text-ink transition-colors hover:bg-panel-alt"
           >
             Restore
           </button>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search,
@@ -34,7 +34,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import BrandLogo from "./BrandLogo";
 import { useAuthStore } from "../store/authStore";
 import { useActiveProject } from "../hooks/useActiveProject";
-import { OPEN_COMMAND_PALETTE_EVENT } from "../lib/commandPalette";
+import { OPEN_COMMAND_PALETTE_EVENT, filterPaletteItems, type PaletteItem } from "../lib/commandPalette";
 
 type Command = {
   id: string;
@@ -79,24 +79,71 @@ const COMMANDS: Command[] = [
   { id: "logout", label: "Sign out", icon: <LogOut size={15} />, href: "/login", section: "action", keywords: ["sign out", "logout"] },
 ];
 
-export function CommandPalette() {
+const CLASSIC_SECTIONS: Record<Command["section"], string> = {
+  nav: "Navigation",
+  project: "Current project",
+  action: "Actions",
+};
+
+/** The classic shell's static page list as palette items. */
+function useClassicItems(): PaletteItem[] {
+  const navigate = useNavigate();
+  const { logout } = useAuthStore();
+  const { projectPath } = useActiveProject();
+  return useMemo(
+    () =>
+      COMMANDS.map((cmd) => ({
+        id: cmd.id,
+        label: cmd.label,
+        section: CLASSIC_SECTIONS[cmd.section],
+        icon: cmd.icon,
+        keywords: [cmd.section, ...(cmd.keywords ?? [])],
+        hint: cmd.id === "new-build" ? "→" : undefined,
+        run: () => {
+          if (cmd.id === "logout") {
+            logout();
+            navigate("/login", { replace: true });
+          } else if (cmd.projectSub) {
+            navigate(projectPath(cmd.href));
+          } else {
+            navigate(cmd.href);
+          }
+        },
+      })),
+    [logout, navigate, projectPath],
+  );
+}
+
+export interface CommandPaletteProps {
+  /**
+   * Items to show. Omit for the classic page list. The Forge OS shell passes
+   * capabilities, sessions and window actions (src/os/shell/osPalette.tsx).
+   */
+  items?: PaletteItem[];
+  placeholder?: string;
+  /** Extra first row for a free-text query (OS: "Ask Forge …"). */
+  queryAction?: (query: string) => PaletteItem | null;
+}
+
+export function CommandPalette({ items, placeholder, queryAction }: CommandPaletteProps = {}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuthStore();
-  const { projectPath } = useActiveProject();
   const reduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const restoreFocus = useRef<HTMLElement | null>(null);
+  const classic = useClassicItems();
+  const source = items ?? classic;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen((v) => {
           if (!v) {
+            restoreFocus.current = document.activeElement as HTMLElement | null;
             setQuery("");
             setActiveIndex(0);
           }
@@ -108,6 +155,7 @@ export function CommandPalette() {
       }
     };
     const onOpen = () => {
+      restoreFocus.current = document.activeElement as HTMLElement | null;
       setQuery("");
       setActiveIndex(0);
       setOpen(true);
@@ -130,37 +178,35 @@ export function CommandPalette() {
     setOpen(false);
   }, [location.pathname]);
 
-  const filtered = query.trim()
-    ? COMMANDS.filter((c) => {
-        const q = query.toLowerCase();
-        return (
-          c.label.toLowerCase().includes(q) ||
-          c.section.includes(q) ||
-          c.keywords?.some((k) => k.includes(q))
-        );
-      })
-    : COMMANDS;
+  const filtered = useMemo(() => {
+    const ranked = filterPaletteItems(source, query);
+    const extra = query.trim() && queryAction ? queryAction(query.trim()) : null;
+    return extra ? [extra, ...ranked] : ranked;
+  }, [source, query, queryAction]);
 
-  const handleSelect = (cmd: Command) => {
-    if (cmd.id === "logout") {
-      logout();
-      navigate("/login", { replace: true });
-      return;
-    }
-    if (cmd.projectSub) {
-      navigate(projectPath(cmd.href));
-      setOpen(false);
-      return;
-    }
-    navigate(cmd.href);
+  // Group by section in order of first appearance (keeps ranking within sections).
+  const sections = useMemo(() => {
+    const order: string[] = [];
+    for (const item of filtered) if (!order.includes(item.section)) order.push(item.section);
+    return order.map((label) => ({ label, items: filtered.filter((i) => i.section === label) }));
+  }, [filtered]);
+  const flat = useMemo(() => sections.flatMap((s) => s.items), [sections]);
+
+  const close = () => {
     setOpen(false);
+    restoreFocus.current?.focus?.();
   };
 
-  const sections = [
-    { key: "nav", label: "Navigation" },
-    { key: "project", label: "Current project" },
-    { key: "action", label: "Actions" },
-  ] as const;
+  const handleSelect = (item: PaletteItem) => {
+    setOpen(false);
+    item.run();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`);
+    el?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex, open]);
 
   return (
     <AnimatePresence>
@@ -173,7 +219,7 @@ export function CommandPalette() {
         >
           <div
             className="absolute inset-0 bg-base/70 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
+            onClick={close}
             aria-hidden="true"
           />
           <motion.div
@@ -199,19 +245,20 @@ export function CommandPalette() {
                 onKeyDown={(e) => {
                   if (e.key === "ArrowDown") {
                     e.preventDefault();
-                    setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+                    setActiveIndex((i) => Math.min(i + 1, flat.length - 1));
                   } else if (e.key === "ArrowUp") {
                     e.preventDefault();
                     setActiveIndex((i) => Math.max(i - 1, 0));
-                  } else if (e.key === "Enter" && filtered[activeIndex]) {
-                    handleSelect(filtered[activeIndex]);
+                  } else if (e.key === "Enter" && flat[activeIndex]) {
+                    e.preventDefault();
+                    handleSelect(flat[activeIndex]);
                   }
                 }}
-                placeholder="Jump to page, tool, or action…"
+                placeholder={placeholder ?? "Jump to page, tool, or action…"}
                 className="flex-1 bg-transparent py-3.5 text-sm text-ink placeholder:text-faint focus:outline-none"
                 aria-label="Search commands"
                 aria-controls="command-list"
-                aria-activedescendant={filtered[activeIndex] ? `cmd-${filtered[activeIndex].id}` : undefined}
+                aria-activedescendant={flat[activeIndex] ? `cmd-${flat[activeIndex].id}` : undefined}
               />
               <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-panel-alt px-1.5 py-0.5 font-mono text-[10px] text-muted">
                 ESC
@@ -225,49 +272,46 @@ export function CommandPalette() {
               className="max-h-80 overflow-y-auto p-2"
               aria-label="Commands"
             >
-              {filtered.length === 0 ? (
+              {flat.length === 0 ? (
                 <p className="px-3 py-8 text-center text-sm text-muted">
                   No results for &ldquo;{query}&rdquo;
                 </p>
               ) : (
-                sections.map((section) => {
-                  const items = filtered.filter((c) => c.section === section.key);
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={section.key} className="mb-2 last:mb-0">
-                      <p className="px-2.5 pb-1 pt-2 text-[11px] font-medium text-muted">
-                        {section.label}
-                      </p>
-                      {items.map((cmd) => {
-                        const globalIdx = filtered.indexOf(cmd);
-                        const isActive = globalIdx === activeIndex;
-                        return (
-                          <button
-                            key={cmd.id}
-                            id={`cmd-${cmd.id}`}
-                            role="option"
-                            aria-selected={isActive}
-                            onClick={() => handleSelect(cmd)}
-                            onMouseEnter={() => setActiveIndex(globalIdx)}
-                            className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
-                              isActive
-                                ? "bg-ink/[0.06] text-ink font-medium"
-                                : "text-muted hover:bg-ink/[0.04] hover:text-ink"
-                            }`}
-                          >
-                            <span className={isActive ? "text-ink" : "text-faint"}>
-                              {cmd.icon}
-                            </span>
-                            <span className="flex-1 truncate">{cmd.label}</span>
-                            {cmd.id === "new-build" && (
-                              <ArrowRight size={14} className="shrink-0 opacity-70" aria-hidden="true" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })
+                sections.map((section) => (
+                  <div key={section.label} role="group" aria-label={section.label} className="mb-2 last:mb-0">
+                    <p className="px-2.5 pb-1 pt-2 text-[11px] font-medium text-muted" aria-hidden="true">
+                      {section.label}
+                    </p>
+                    {section.items.map((cmd) => {
+                      const globalIdx = flat.indexOf(cmd);
+                      const isActive = globalIdx === activeIndex;
+                      return (
+                        <button
+                          key={cmd.id}
+                          id={`cmd-${cmd.id}`}
+                          data-index={globalIdx}
+                          role="option"
+                          aria-selected={isActive}
+                          onClick={() => handleSelect(cmd)}
+                          onMouseEnter={() => setActiveIndex(globalIdx)}
+                          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
+                            isActive
+                              ? "bg-ink/[0.06] text-ink font-medium"
+                              : "text-muted hover:bg-ink/[0.04] hover:text-ink"
+                          }`}
+                        >
+                          <span className={isActive ? "text-ink" : "text-faint"}>{cmd.icon}</span>
+                          <span className="flex-1 truncate">{cmd.label}</span>
+                          {cmd.hint === "→" ? (
+                            <ArrowRight size={14} className="shrink-0 opacity-70" aria-hidden="true" />
+                          ) : cmd.hint ? (
+                            <span className="shrink-0 font-mono text-[11px] font-normal text-faint">{cmd.hint}</span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))
               )}
             </div>
 
@@ -279,7 +323,7 @@ export function CommandPalette() {
                 </span>
               </span>
               <span className="font-mono tabular-nums">
-                {filtered.length} result{filtered.length === 1 ? "" : "s"}
+                {flat.length} result{flat.length === 1 ? "" : "s"}
               </span>
             </div>
           </motion.div>
