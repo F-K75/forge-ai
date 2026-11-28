@@ -18,14 +18,73 @@ function decodeAttr(value: string): string {
 
 export type MCPAppValidation = { ok: true; csp: string } | { ok: false; reason: string }
 
+export interface MCPAppExpectation {
+  /** The app the host asked for; a resource for any other app is refused. */
+  appId?: string
+  serverId?: string
+  toolName?: string
+}
+
+/**
+ * Directives that, when declared, must be exactly 'none' (the backend always
+ * emits them as 'none'). When absent, object-src falls back to default-src
+ * 'none', and the sandbox (no allow-forms) blocks form submission.
+ */
+const NONE_ONLY_DIRECTIVES = ["object-src", "base-uri", "form-action"]
+/** Source expressions never acceptable in script-src / connect-src / frame-src of a sandboxed app. */
+const FORBIDDEN_SOURCES = new Set(["*", "http:", "https:", "data:", "blob:", "filesystem:", "'unsafe-eval'", "'wasm-unsafe-eval'"])
+
+function parseCsp(csp: string): Map<string, string[]> {
+  const out = new Map<string, string[]>()
+  for (const part of csp.split(";")) {
+    const tokens = part.trim().split(/\s+/).filter(Boolean)
+    if (tokens.length === 0) continue
+    const name = tokens[0].toLowerCase()
+    if (!out.has(name)) out.set(name, tokens.slice(1).map((t) => t.toLowerCase()))
+  }
+  return out
+}
+
+/** Hardening on top of deny-by-default: 'none'-only directives, no wildcard / eval sources. */
+export function checkMCPAppCsp(csp: string): string | null {
+  const directives = parseCsp(csp)
+  for (const name of NONE_ONLY_DIRECTIVES) {
+    const value = directives.get(name)
+    if (value && (value.length !== 1 || value[0] !== "'none'")) {
+      return `MCP App Content-Security-Policy must set ${name} 'none'`
+    }
+  }
+  for (const name of ["script-src", "connect-src", "frame-src", "default-src"]) {
+    for (const source of directives.get(name) ?? []) {
+      // data: is fine for img/font/media; never for code, connections or frames.
+      if (FORBIDDEN_SOURCES.has(source)) return `MCP App Content-Security-Policy allows ${source} in ${name}`
+    }
+  }
+  return null
+}
+
 /** Client-side check that a resource payload is safe to hand to a sandboxed iframe. */
-export function validateMCPAppResource(payload: unknown): MCPAppValidation {
+export function validateMCPAppResource(payload: unknown, expect: MCPAppExpectation = {}): MCPAppValidation {
   if (!payload || typeof payload !== "object") return { ok: false, reason: "Malformed MCP App resource" }
   const p = payload as Partial<MCPAppResourcePayload>
   const sandbox = p.sandbox
   if (typeof p.html !== "string" || !sandbox || typeof sandbox !== "object") {
     return { ok: false, reason: "Malformed MCP App resource" }
   }
+  if (
+    (p.warnings !== undefined && (!Array.isArray(p.warnings) || p.warnings.some((w) => typeof w !== "string"))) ||
+    (p.resource_uri !== undefined && typeof p.resource_uri !== "string")
+  ) {
+    return { ok: false, reason: "Malformed MCP App resource" }
+  }
+  if (
+    (expect.appId !== undefined && p.app_id !== expect.appId) ||
+    (expect.serverId !== undefined && p.server_id !== expect.serverId) ||
+    (expect.toolName !== undefined && p.tool_name !== expect.toolName)
+  ) {
+    return { ok: false, reason: "MCP App resource does not belong to the requested app" }
+  }
+  if (p.html.includes("\u0000")) return { ok: false, reason: "Malformed MCP App resource" }
   if (sandbox.render_mode !== "iframe-srcdoc") {
     return { ok: false, reason: "Unsupported MCP App render mode" }
   }
@@ -50,6 +109,8 @@ export function validateMCPAppResource(payload: unknown): MCPAppValidation {
   if (typeof sandbox.csp === "string" && sandbox.csp.trim() !== csp) {
     return { ok: false, reason: "MCP App Content-Security-Policy does not match its metadata" }
   }
+  const hardening = checkMCPAppCsp(csp)
+  if (hardening) return { ok: false, reason: hardening }
   return { ok: true, csp }
 }
 

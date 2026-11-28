@@ -12,6 +12,10 @@
  * - The document must start with the backend-injected
  *   `<meta http-equiv="Content-Security-Policy">` whose policy matches the
  *   `sandbox.csp` metadata and denies by default; otherwise we refuse.
+ * - The CSP may only set object-src, base-uri and form-action to 'none', and
+ *   must not allow wildcard, scheme-wide, data:/blob: or eval sources for
+ *   scripts, connections or frames (checkMCPAppCsp).
+ * - With `expect`, a resource for a different app/server/tool is refused.
  * - No Permissions-Policy grants (`allow=""`), no referrer.
  * - The HTML is only ever passed as `srcdoc`; it never touches Forge's DOM.
  * - postMessage bridge: only `ui/notifications/size-changed` is accepted, and
@@ -29,6 +33,7 @@ import {
   describeMCPAppError,
   parseSizeChangedMessage,
   validateMCPAppResource,
+  type MCPAppExpectation,
 } from "./mcpAppSecurity"
 
 type FrameState =
@@ -41,15 +46,19 @@ export interface MCPAppFrameProps {
   /** Fetches the sanitized resource (GET .../protocols/mcp/apps/{app_id}/resource). */
   loadResource: () => Promise<MCPAppResourcePayload>
   initialHeight?: number
+  /** Refuse a resource for any other app than the one requested (app/server/tool ids). */
+  expect?: MCPAppExpectation
 }
 
-export function MCPAppFrame({ title, loadResource, initialHeight = MCP_APP_DEFAULT_HEIGHT }: MCPAppFrameProps) {
+export function MCPAppFrame({ title, loadResource, initialHeight = MCP_APP_DEFAULT_HEIGHT, expect }: MCPAppFrameProps) {
   const [state, setState] = useState<FrameState>({ kind: "loading" })
   const [height, setHeight] = useState<number>(initialHeight)
   const [attempt, setAttempt] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const loadRef = useRef(loadResource)
   loadRef.current = loadResource
+  const expectRef = useRef(expect)
+  expectRef.current = expect
 
   useEffect(() => {
     let cancelled = false
@@ -58,7 +67,7 @@ export function MCPAppFrame({ title, loadResource, initialHeight = MCP_APP_DEFAU
       .current()
       .then((payload) => {
         if (cancelled) return
-        const check = validateMCPAppResource(payload)
+        const check = validateMCPAppResource(payload, expectRef.current)
         setState(check.ok ? { kind: "ready", payload } : { kind: "error", message: check.reason })
       })
       .catch((err: unknown) => {
@@ -124,7 +133,7 @@ export function MCPAppFrame({ title, loadResource, initialHeight = MCP_APP_DEFAU
           className="h-full w-full bg-panel"
         />
       </div>
-      {payload.warnings.length > 0 && (
+      {(payload.warnings ?? []).length > 0 && (
         <ul className="text-[10px] text-warn list-disc pl-4">
           {payload.warnings.slice(0, 8).map((w, i) => (
             <li key={i}>{w}</li>
