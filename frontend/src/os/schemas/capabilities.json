@@ -12467,7 +12467,7 @@
           "input_schema": {
             "type": "object",
             "properties": {
-              "name": {
+              "key": {
                 "type": "string",
                 "maxLength": 100,
                 "minLength": 1
@@ -12478,16 +12478,11 @@
               "description": {
                 "type": "string",
                 "maxLength": 500
-              },
-              "rollout_percentage": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 100
               }
             },
             "additionalProperties": false,
             "required": [
-              "name",
+              "key",
               "enabled"
             ]
           }

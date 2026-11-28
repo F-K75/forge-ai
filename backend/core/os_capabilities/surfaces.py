@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.os_contracts import A2UI_VERSION, FORGE_CATALOG_ID
 
@@ -43,7 +43,8 @@ def scrub(value: Any, depth: int = 0) -> Any:
     if depth > 8:
         return None
     if isinstance(value, dict):
-        return {k: scrub(v, depth + 1) for k, v in value.items() if not is_secret_key(str(k))}
+        # Secrets are scalars; containers such as ``{"api_keys": [...]}`` are kept and scrubbed inside.
+        return {k: scrub(v, depth + 1) for k, v in value.items() if isinstance(v, (dict, list)) or not is_secret_key(str(k))}
     if isinstance(value, list):
         return [scrub(v, depth + 1) for v in value]
     return value
@@ -204,11 +205,3 @@ def message_surface(*, capability_id: str, action_id: str, title: str, text: str
     ]
     return [create_surface(surface_id, components)], [placement(surface_id, presentation, title, capability_id)]
 
-
-def take(items: Iterable[Any], n: int) -> List[Any]:
-    out = []
-    for i, item in enumerate(items):
-        if i >= n:
-            break
-        out.append(item)
-    return out
