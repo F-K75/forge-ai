@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest"
 import { render, screen, cleanup, waitFor, fireEvent, within } from "@testing-library/react"
+import { axe } from "vitest-axe"
 
 // Forge OS shell on (the default), demo mode (no backend: the in-browser fake).
 vi.mock("./lib/env", () => ({
@@ -53,6 +54,13 @@ describe("Forge OS shell routing (VITE_OS_SHELL on)", () => {
     expect(screen.queryByTestId("classic-shell")).not.toBeInTheDocument()
     // No permanent dashboards on the home.
     expect(screen.queryByTestId("command-center-page")).not.toBeInTheDocument()
+  })
+
+  it("has no axe violations on the minimal home", async () => {
+    window.history.pushState({}, "", "/os")
+    const { container } = render(<App />)
+    await screen.findByLabelText("Message Forge")
+    expect(await axe(container)).toHaveNoViolations()
   })
 
   it("opens a legacy deep link as a window over the home and keeps the URL", async () => {
