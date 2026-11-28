@@ -175,7 +175,7 @@ const WindowFrame = memo(function WindowFrame({ win, rank, isTop, mobile }: Fram
         win.state === "minimized" || (mobile && !isTop)
           ? "hidden"
           : mobile
-          ? "fixed inset-x-0 bottom-0 top-12 z-[60] flex flex-col animate-fade-in-up motion-reduce:animate-none"
+          ? "absolute inset-x-0 bottom-1 top-0 flex flex-col animate-fade-in-up motion-reduce:animate-none"
           : `absolute flex animate-scale-in flex-col motion-reduce:animate-none ${live ? "select-none" : ""}`
       }
       style={style}
@@ -190,7 +190,7 @@ const WindowFrame = memo(function WindowFrame({ win, rank, isTop, mobile }: Fram
         hideMinimize={mobile}
         role="dialog"
         ariaModal={false}
-        className={`h-full w-full outline-none ${mobile ? "rounded-b-none rounded-t-xl" : ""}`}
+        className={`h-full w-full outline-none ${mobile ? "rounded-xl" : ""}`}
         onClose={() => close(win.id)}
         onMinimize={() => minimize(win.id)}
         onMaximize={() => toggleMaximize(win.id)}

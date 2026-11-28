@@ -131,6 +131,15 @@ export function tileBounds(n: number, area: WorkspaceArea): WindowBounds[] {
   })
 }
 
+/** Shrink/shift bounds so the window fits `area`; returns the same object when it already fits. */
+export function fitBounds(b: WindowBounds, area: WorkspaceArea): WindowBounds {
+  const w = Math.max(MIN_WINDOW_W, Math.min(b.w, area.w - 16))
+  const h = Math.max(MIN_WINDOW_H, Math.min(b.h, area.h - 16))
+  const x = clamp(b.x, 8, Math.max(8, area.w - w - 8))
+  const y = clamp(b.y, 8, Math.max(8, area.h - h - 8))
+  return x === b.x && y === b.y && w === b.w && h === b.h ? b : { x, y, w, h }
+}
+
 function maxZ(windows: WindowState[]): number {
   return windows.reduce((m, w) => Math.max(m, w.z), 0)
 }
@@ -152,6 +161,8 @@ export interface WindowStoreState {
   close: (id: OsId) => void
   closeAll: () => void
   minimize: (id: OsId) => void
+  /** Minimise every visible window (shows the conversation). */
+  minimizeAll: () => void
   restore: (id: OsId) => void
   toggleMaximize: (id: OsId) => void
   setBounds: (id: OsId, bounds: WindowBounds) => void
@@ -182,7 +193,22 @@ export const useWindowStore = create<WindowStoreState>()((set, get) => ({
 
   setArea: (area) => {
     const cur = get().area
-    if (cur.w !== area.w || cur.h !== area.h) set({ area })
+    if (cur.w === area.w && cur.h === area.h) return
+    // Phones show sheets; keep desktop bounds untouched.
+    if (area.w < 640 || area.h < 160) return set({ area })
+    set({ area })
+    const ws = get().workspace
+    if (ws.layout === "tiled") return get().tile()
+    // Keep every window inside the (possibly smaller) workspace area.
+    let changed = false
+    const windows = ws.windows.map((w) => {
+      if (!w.bounds) return w
+      const b = fitBounds(w.bounds, area)
+      if (b === w.bounds) return w
+      changed = true
+      return { ...w, bounds: b }
+    })
+    if (changed) set({ workspace: { ...ws, windows } })
   },
 
   hydrate: (ws) => set({ workspace: { ...ws, windows: normaliseZ(ws.windows) } }),
@@ -268,6 +294,17 @@ export const useWindowStore = create<WindowStoreState>()((set, get) => ({
   },
 
   minimize: (id) => set({ workspace: mapWindow(get().workspace, id, (w) => ({ ...w, state: "minimized" })) }),
+
+  minimizeAll: () => {
+    const ws = get().workspace
+    set({
+      workspace: touch(ws, {
+        windows: ws.windows.map((w) =>
+          isWindowVisible(w, ws.active_session_id) && w.presentation !== "panel" ? { ...w, state: "minimized" } : w,
+        ),
+      }),
+    })
+  },
 
   restore: (id) => get().focus(id),
 

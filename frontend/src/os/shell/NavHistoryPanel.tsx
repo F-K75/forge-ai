@@ -215,7 +215,7 @@ export function NavHistoryPanel({ overlay = false, onClose }: NavHistoryPanelPro
       <button
         type="button"
         onClick={() => openCommandPalette()}
-        className={`${row} mx-2 w-auto text-muted hover:bg-ink/[0.04] hover:text-ink`}
+        className={`${row} mx-2 w-[calc(100%-1rem)] text-muted hover:bg-ink/[0.04] hover:text-ink`}
       >
         <Search size={14} aria-hidden="true" />
         <span className="flex-1">Search</span>

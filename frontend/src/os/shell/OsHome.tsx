@@ -37,6 +37,7 @@ import {
   titleForRoute,
 } from "./sessionController"
 import { DRAFT_SESSION, emptyThread, useSessionStore } from "./sessionStore"
+import { ReplyPeek } from "./ReplyPeek"
 import { Thread } from "./Thread"
 import { MinimizedShelf, WindowManager } from "./WindowManager"
 import { startWorkspaceSync } from "./workspaceClient"
@@ -57,7 +58,7 @@ function greeting(name?: string): string {
   return first ? `${part}, ${first}.` : `${part}.`
 }
 
-const EMPTY = emptyThread(true)
+const EMPTY = emptyThread(false)
 
 /** Keep the URL and the front-most window/session in step (both directions). */
 function useUrlSync() {
@@ -305,8 +306,8 @@ export default function OsHome() {
           )}
 
           {!docked && (
-            <div className="relative mx-auto w-full max-w-[680px] px-4 pb-6 text-center sm:px-6">
-              <h1 className="text-headline text-ink sm:text-display">
+            <div className="relative mx-auto w-full max-w-[880px] px-4 pb-7 text-center sm:px-6">
+              <h1 className="text-balance text-headline text-ink sm:text-display">
                 {greeting(user?.name)} <span className="text-muted">What should we make?</span>
               </h1>
             </div>
@@ -318,6 +319,7 @@ export default function OsHome() {
             transition={{ type: "spring", stiffness: 420, damping: 40, mass: 0.9 }}
             className={`relative z-30 mx-auto w-full px-3 sm:px-6 ${docked ? "max-w-[760px] pb-3 pt-2 sm:pb-4" : "max-w-[680px]"}`}
           >
+            {windowsOut > 0 && !mobile && <ReplyPeek thread={thread} sessionId={activeId} />}
             <Composer
               ref={composerRef}
               variant={docked ? "docked" : "center"}
@@ -348,6 +350,13 @@ export default function OsHome() {
           </motion.div>
           {!docked && <div className="flex-[1.35]" />}
 
+          {/* Quiet scrim: the conversation recedes while windows are out. */}
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-0 z-10 bg-base/80 backdrop-blur-[3px] transition-opacity duration-med ${
+              windowsOut > 0 ? "opacity-100" : "opacity-0"
+            }`}
+          />
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20" style={{ bottom: docked ? dockHeight : 0 }}>
             <WindowManager />
           </div>
