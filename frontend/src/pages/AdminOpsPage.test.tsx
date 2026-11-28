@@ -10,7 +10,7 @@ vi.mock("./OptimizationDashboard", () => ({ default: () => <div data-testid="moc
 vi.mock("./EngineeringHealthPage", () => ({ default: () => <div data-testid="mock-health">EngineeringHealth View</div> }));
 
 // Live mode for App-level redirect tests
-vi.mock("../lib/env", () => ({ LIVE_MODE: true, IS_PUBLIC_DEMO: false, PUBLIC_DEMO_APP_URL: "" }));
+vi.mock("../lib/env", () => ({ LIVE_MODE: true, IS_PUBLIC_DEMO: false, PUBLIC_DEMO_APP_URL: "", OS_SHELL_ENABLED: false }));
 
 import AdminOpsPage from "./AdminOpsPage";
 import App from "../App";
