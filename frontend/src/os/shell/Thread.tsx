@@ -112,7 +112,7 @@ export function Thread({ thread, sessionId }: { thread: SessionThread; sessionId
   const endRef = useRef<HTMLDivElement>(null)
   const lastText = thread.messages[thread.messages.length - 1]?.text
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" })
+    endRef.current?.scrollIntoView?.({ block: "end", behavior: "smooth" })
   }, [thread.messages.length, lastText])
 
   const waiting =

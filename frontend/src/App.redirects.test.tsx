@@ -5,6 +5,8 @@ vi.mock("./lib/env", () => ({
   LIVE_MODE: false,
   IS_PUBLIC_DEMO: false,
   PUBLIC_DEMO_APP_URL: "",
+  // Classic shell: these tests cover the flag-off routing (os-shell tests cover /os).
+  OS_SHELL_ENABLED: false,
 }));
 
 vi.mock("./components/AppShell", async () => {

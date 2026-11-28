@@ -40,6 +40,7 @@ import { DRAFT_SESSION, emptyThread, useSessionStore } from "./sessionStore"
 import { Thread } from "./Thread"
 import { MinimizedShelf, WindowManager } from "./WindowManager"
 import { startWorkspaceSync } from "./workspaceClient"
+import type { WorkspaceState } from "../contracts"
 import { focusedWindow, isWindowVisible, useWindowStore } from "./windowStore"
 
 const SUGGESTIONS = [
@@ -90,23 +91,19 @@ function useUrlSync() {
     }
   }, [current, location.pathname, navigate])
 
-  // State -> URL.
-  const top = focusedWindow(workspace)
-  const desired =
-    top && top.kind === "legacy_route" && top.route
-      ? top.route
-      : workspace.active_session_id
-        ? osSessionPath(workspace.active_session_id)
-        : OS_HOME_PATH
+  // State -> URL. Read the store fresh: the effect above may have just
+  // opened or focused a window in this same commit.
+  const renderDesired = desiredUrl(workspace)
   useEffect(() => {
-    if (desired === current) return
-    // A legacy deep link that has no window yet: the effect above is opening it.
-    if (!isOsPath(location.pathname)) {
-      const pending = !workspace.windows.some((w) => w.kind === "legacy_route" && w.route === current)
-      if (pending) return
-    }
-    navigate(desired, { replace: true })
-  }, [desired, current, location.pathname, navigate, workspace.windows])
+    const desired = desiredUrl(useWindowStore.getState().workspace)
+    if (desired !== current) navigate(desired, { replace: true })
+  }, [renderDesired, current, navigate])
+}
+
+function desiredUrl(ws: WorkspaceState): string {
+  const top = focusedWindow(ws)
+  if (top && top.kind === "legacy_route" && top.route) return top.route
+  return ws.active_session_id ? osSessionPath(ws.active_session_id) : OS_HOME_PATH
 }
 
 function useShellShortcuts(composer: React.RefObject<ComposerHandle>) {

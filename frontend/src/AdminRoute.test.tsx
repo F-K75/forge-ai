@@ -2,7 +2,7 @@ import { describe, expect, it, vi, afterEach } from "vitest"
 import { render, screen, cleanup } from "@testing-library/react"
 
 // Live mode: the gate only applies with a real backend.
-vi.mock("./lib/env", () => ({ LIVE_MODE: true, IS_PUBLIC_DEMO: false, PUBLIC_DEMO_APP_URL: "" }))
+vi.mock("./lib/env", () => ({ LIVE_MODE: true, IS_PUBLIC_DEMO: false, PUBLIC_DEMO_APP_URL: "", OS_SHELL_ENABLED: false }))
 // Stand-in for the real admin page so the test doesn't hit admin APIs.
 vi.mock("./pages/AdminConsole", () => ({ default: () => <div>Admin console page</div> }))
 

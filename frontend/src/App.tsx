@@ -4,7 +4,13 @@ import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams } 
 import { Toaster } from "react-hot-toast"
 import { useAuthStore } from "./store/authStore"
 import { ErrorBoundary } from "./components/ui/ErrorBoundary"
-import { LIVE_MODE } from "./lib/env"
+import { LIVE_MODE, OS_SHELL_ENABLED } from "./lib/env"
+import {
+  LegacyRoutesProvider,
+  OS_HOME_PATH,
+  OS_SESSION_PATH,
+  authenticatedHomePath,
+} from "./os/shell/osRoutes"
 import { lazyWithRetry } from "./lib/lazyRetry"
 import { useActiveProject } from "./hooks/useActiveProject"
 import GlobalBackground from "./components/GlobalBackground"
@@ -21,6 +27,8 @@ const NotFoundPage = lazyWithRetry(() => import("./pages/NotFoundPage"))
 
 // App shell + routed pages (step 1)
 const AppShell = lazyWithRetry(() => import("./components/AppShell"))
+// Forge OS shell (VITE_OS_SHELL, default on): prompt-first home at /os
+const OsHome = lazyWithRetry(() => import("./os/shell/OsHome"))
 const Launch = lazyWithRetry(() => import("./pages/Launch"))
 const ProjectsPage = lazyWithRetry(() => import("./pages/ProjectsPage"))
 const CommandCenterPage = lazyWithRetry(() => import("./pages/CommandCenterPage"))
@@ -134,7 +142,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (LIVE_MODE && isAuthenticated) {
-    return <Navigate to="/command" replace />
+    return <Navigate to={authenticatedHomePath()} replace />
   }
 
   return <>{children}</>
@@ -212,13 +220,14 @@ function RootRoute() {
   const wantsApp = searchParams.get("app") === "true"
 
   if (LIVE_MODE && isAuthenticated) {
-    // The Command Center is the authenticated home. It resolves the user's
-    // real projects, so a stale "last project" id from localStorage can't 404.
-    return <Navigate to="/command" replace />
+    // The OS shell (flag on) or the Command Center is the authenticated home.
+    // Both resolve the user's real projects, so a stale "last project" id
+    // from localStorage can't 404.
+    return <Navigate to={authenticatedHomePath()} replace />
   }
 
   if (wantsApp) {
-    return <Navigate to="/command" replace />
+    return <Navigate to={authenticatedHomePath()} replace />
   }
 
   return (
@@ -242,9 +251,315 @@ function ParamProjectRedirect({ sub }: { sub: string }) {
   return <Navigate to={`/p/${projectId}/${sub}`} replace />
 }
 
+/**
+ * Every in-shell (signed-in) page route. Declared once: the classic AppShell
+ * renders them through its <Outlet>, and the Forge OS shell renders the same
+ * elements inside windows (os/shell/LegacyRouteWindow via LegacyRoutesProvider).
+ */
+const legacyShellRoutes = (
+  <>
+    {/* Backward-compatibility and global aliases */}
+    <Route
+      path="/workspace"
+      element={<ProjectScopedRedirect sub="workspace" />}
+    />
+    <Route
+      path="/build/:projectId"
+      element={<ParamProjectRedirect sub="workspace" />}
+    />
+
+    {/* Layer 3: Project-Scoped Deep Work Context (/p/:projectId/*) */}
+    <Route path="/p/:projectId">
+      <Route index element={<Navigate to="workspace" replace />} />
+      <Route
+        path="workspace"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <WorkspacePage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="flow"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <FlowPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="agents"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <FlowPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="initiatives"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <InitiativesListPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="initiatives/:initiativeId"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <InitiativeLayout />
+          </Suspense>
+        }
+      >
+        <Route index element={<OverviewTab />} />
+        <Route path="board" element={<KanbanTab />} />
+        <Route path="sprints" element={<SprintsTab />} />
+        <Route path="agent-runs" element={<AgentRunsTab />} />
+        <Route path="roadmap" element={<RoadmapTab />} />
+        <Route path="graph" element={<GraphTab />} />
+        <Route path="releases" element={<ReleasesTab />} />
+        <Route path="activity" element={<ActivityTab />} />
+        <Route path="integrations" element={<IntegrationsTab />} />
+        <Route path="analytics" element={<AnalyticsTab />} />
+      </Route>
+      <Route
+        path="reviews"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <ReviewsListPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="reviews/:runId"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <ReviewDetailPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="files"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <FilesPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="history"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            {/* Live mode: the real, API-backed build history. */}
+            {LIVE_MODE ? <ProjectHistory /> : <HistoryPage />}
+          </Suspense>
+        }
+      />
+      <Route
+        path="settings"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <SettingsPage />
+          </Suspense>
+        }
+      />
+    </Route>
+
+    {/* Layer 2: Platform Hub Routes */}
+    <Route
+      path="/launch"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <Launch />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/command"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <CommandCenterPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/skills"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <SkillsPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/protocols"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <ProtocolsPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/approvals"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <ApprovalsPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/projects"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <ProjectsPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/agents"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <FlowPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/files"
+      element={<ProjectScopedRedirect sub="files" />}
+    />
+    <Route
+      path="/history"
+      element={<ProjectScopedRedirect sub="history" />}
+    />
+    <Route
+      path="/models"
+      element={<Navigate to="/admin?tab=llm" replace />}
+    />
+    <Route
+      path="/marketplace"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <MarketplacePage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/billing"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <BillingPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/settings"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <SettingsPage />
+        </Suspense>
+      }
+    />
+    {/* Unified Admin & AI Ops Console */}
+    <Route
+      path="/admin"
+      element={
+        <AdminRoute>
+          <Suspense fallback={<RouteSkeleton />}>
+            <AdminOpsPage />
+          </Suspense>
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/llm-management"
+      element={<Navigate to="/admin?tab=llm" replace />}
+    />
+    <Route
+      path="/optimization-dashboard"
+      element={<Navigate to="/admin?tab=optimization" replace />}
+    />
+    <Route
+      path="/engineering-health"
+      element={<Navigate to="/admin?tab=health" replace />}
+    />
+    <Route
+      path="/prompt-studio"
+      element={<Navigate to="/admin?tab=prompts" replace />}
+    />
+    {/* Step 3: in-shell surfaces */}
+    <Route
+      path="/admin-console"
+      element={<Navigate to="/admin?tab=overview" replace />}
+    />
+    <Route
+      path="/project/:projectId"
+      element={<ParamProjectRedirect sub="history" />}
+    />
+    <Route
+      path="/project/:projectId/org"
+      element={<ParamProjectRedirect sub="agents" />}
+    />
+    <Route
+      path="/reviews"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <ReviewsListPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/reviews/:runId"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <ReviewDetailPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/studio-3d"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <SpatialStudioPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/flow"
+      element={<ProjectScopedRedirect sub="agents" />}
+    />
+    <Route
+      path="/initiatives"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <InitiativesListPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/initiatives/:initiativeId"
+      element={
+        <Suspense fallback={<RouteSkeleton />}>
+          <InitiativeLayout />
+        </Suspense>
+      }
+    >
+      <Route index element={<OverviewTab />} />
+      <Route path="board" element={<KanbanTab />} />
+      <Route path="sprints" element={<SprintsTab />} />
+      <Route path="agent-runs" element={<AgentRunsTab />} />
+      <Route path="roadmap" element={<RoadmapTab />} />
+      <Route path="graph" element={<GraphTab />} />
+      <Route path="releases" element={<ReleasesTab />} />
+      <Route path="activity" element={<ActivityTab />} />
+      <Route path="integrations" element={<IntegrationsTab />} />
+      <Route path="analytics" element={<AnalyticsTab />} />
+    </Route>
+  </>
+)
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <LegacyRoutesProvider routes={legacyShellRoutes}>
       <div className="relative isolate min-h-screen bg-base">
         <GlobalBackground />
         <div className="relative z-50">
@@ -385,317 +700,44 @@ export default function App() {
           <Route path="/" element={<RootRoute />} />
           <Route
             path="/demo"
-            element={<Navigate to="/command" replace />}
+            element={<Navigate to={authenticatedHomePath()} replace />}
           />
 
           {/* Layer 2 & 3: Platform Hub & Project-Scoped Workspaces */}
-          <Route
-            element={
-              <ErrorBoundary>
-                <ProtectedRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <AppShell />
-                  </Suspense>
-                </ProtectedRoute>
-              </ErrorBoundary>
-            }
-          >
-            {/* Backward-compatibility and global aliases */}
+          {OS_SHELL_ENABLED ? (
+            // Forge OS: one shell for the home, sessions and every legacy route.
+            // Legacy pages render inside windows (LegacyRouteWindow); the URL
+            // follows the front window, so old deep links keep working.
             <Route
-              path="/workspace"
-              element={<ProjectScopedRedirect sub="workspace" />}
-            />
-            <Route
-              path="/build/:projectId"
-              element={<ParamProjectRedirect sub="workspace" />}
-            />
-
-            {/* Layer 3: Project-Scoped Deep Work Context (/p/:projectId/*) */}
-            <Route path="/p/:projectId">
-              <Route index element={<Navigate to="workspace" replace />} />
-              <Route
-                path="workspace"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <WorkspacePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="flow"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <FlowPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="agents"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <FlowPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="initiatives"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <InitiativesListPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="initiatives/:initiativeId"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <InitiativeLayout />
-                  </Suspense>
-                }
-              >
-                <Route index element={<OverviewTab />} />
-                <Route path="board" element={<KanbanTab />} />
-                <Route path="sprints" element={<SprintsTab />} />
-                <Route path="agent-runs" element={<AgentRunsTab />} />
-                <Route path="roadmap" element={<RoadmapTab />} />
-                <Route path="graph" element={<GraphTab />} />
-                <Route path="releases" element={<ReleasesTab />} />
-                <Route path="activity" element={<ActivityTab />} />
-                <Route path="integrations" element={<IntegrationsTab />} />
-                <Route path="analytics" element={<AnalyticsTab />} />
-              </Route>
-              <Route
-                path="reviews"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <ReviewsListPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="reviews/:runId"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <ReviewDetailPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="files"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <FilesPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="history"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    {/* Live mode: the real, API-backed build history. */}
-                    {LIVE_MODE ? <ProjectHistory /> : <HistoryPage />}
-                  </Suspense>
-                }
-              />
-              <Route
-                path="settings"
-                element={
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <SettingsPage />
-                  </Suspense>
-                }
-              />
-            </Route>
-
-            {/* Layer 2: Platform Hub Routes */}
-            <Route
-              path="/launch"
               element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <Launch />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/command"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <CommandCenterPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/skills"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <SkillsPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/protocols"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <ProtocolsPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/approvals"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <ApprovalsPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <ProjectsPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/agents"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <FlowPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/files"
-              element={<ProjectScopedRedirect sub="files" />}
-            />
-            <Route
-              path="/history"
-              element={<ProjectScopedRedirect sub="history" />}
-            />
-            <Route
-              path="/models"
-              element={<Navigate to="/admin?tab=llm" replace />}
-            />
-            <Route
-              path="/marketplace"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <MarketplacePage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/billing"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <BillingPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <SettingsPage />
-                </Suspense>
-              }
-            />
-            {/* Unified Admin & AI Ops Console */}
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <Suspense fallback={<RouteSkeleton />}>
-                    <AdminOpsPage />
-                  </Suspense>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/llm-management"
-              element={<Navigate to="/admin?tab=llm" replace />}
-            />
-            <Route
-              path="/optimization-dashboard"
-              element={<Navigate to="/admin?tab=optimization" replace />}
-            />
-            <Route
-              path="/engineering-health"
-              element={<Navigate to="/admin?tab=health" replace />}
-            />
-            <Route
-              path="/prompt-studio"
-              element={<Navigate to="/admin?tab=prompts" replace />}
-            />
-            {/* Step 3: in-shell surfaces */}
-            <Route
-              path="/admin-console"
-              element={<Navigate to="/admin?tab=overview" replace />}
-            />
-            <Route
-              path="/project/:projectId"
-              element={<ParamProjectRedirect sub="history" />}
-            />
-            <Route
-              path="/project/:projectId/org"
-              element={<ParamProjectRedirect sub="agents" />}
-            />
-            <Route
-              path="/reviews"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <ReviewsListPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/reviews/:runId"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <ReviewDetailPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/studio-3d"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <SpatialStudioPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/flow"
-              element={<ProjectScopedRedirect sub="agents" />}
-            />
-            <Route
-              path="/initiatives"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <InitiativesListPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/initiatives/:initiativeId"
-              element={
-                <Suspense fallback={<RouteSkeleton />}>
-                  <InitiativeLayout />
-                </Suspense>
+                <ErrorBoundary>
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <OsHome />
+                    </Suspense>
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             >
-              <Route index element={<OverviewTab />} />
-              <Route path="board" element={<KanbanTab />} />
-              <Route path="sprints" element={<SprintsTab />} />
-              <Route path="agent-runs" element={<AgentRunsTab />} />
-              <Route path="roadmap" element={<RoadmapTab />} />
-              <Route path="graph" element={<GraphTab />} />
-              <Route path="releases" element={<ReleasesTab />} />
-              <Route path="activity" element={<ActivityTab />} />
-              <Route path="integrations" element={<IntegrationsTab />} />
-              <Route path="analytics" element={<AnalyticsTab />} />
+              <Route path={OS_HOME_PATH} element={null} />
+              <Route path={OS_SESSION_PATH} element={null} />
+              {legacyShellRoutes}
             </Route>
-          </Route>
+          ) : (
+            <Route
+              element={
+                <ErrorBoundary>
+                  <ProtectedRoute>
+                    <Suspense fallback={<RouteSkeleton />}>
+                      <AppShell />
+                    </Suspense>
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              }
+            >
+              {legacyShellRoutes}
+            </Route>
+          )}
 
           <Route
             path="*"
@@ -724,6 +766,7 @@ export default function App() {
       </BrowserRouter>
       </div>
     </div>
+      </LegacyRoutesProvider>
     </QueryClientProvider>
   )
 }
