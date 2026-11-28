@@ -186,6 +186,13 @@ async def _migration_backfill_completed_onboarding(db) -> None:
         )
 
 
+@migration(6, "os_indexes", "Forge OS (WS-C): indexes for the os_* collections (docs/os/ARCHITECTURE.md).")
+async def _migration_os_indexes(db) -> None:
+    from core.os.indexes import ensure_os_indexes
+
+    await ensure_os_indexes(db)
+
+
 async def run_downgrades(db, target_version: int = 0) -> List[dict]:
     """Roll back applied migrations down to *target_version* (exclusive).
 

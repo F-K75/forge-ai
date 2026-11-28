@@ -41,6 +41,12 @@ def _matches(doc, query):
 class FakeCollection:
     def __init__(self):
         self.docs = []
+        self.indexes = []
+
+    async def create_index(self, keys, **kwargs):
+        # Index-only migrations (v6, os_* indexes) just need this to succeed.
+        self.indexes.append((keys, kwargs))
+        return kwargs.get("name") or "idx"
 
     async def find_one(self, query, projection=None):
         for d in self.docs:
