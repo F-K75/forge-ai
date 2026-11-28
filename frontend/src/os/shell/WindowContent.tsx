@@ -5,16 +5,15 @@
  *  - capability    -> WS-D renderer, the shell's own system.* views, or a hint
  *  - mcp_app       -> WS-B MCP App host
  */
-import { Suspense, useCallback } from "react"
+import { Suspense } from "react"
 import { Sparkles } from "lucide-react"
 import type { CapabilityRendererProps, WindowState } from "../contracts"
 import { ErrorBoundary } from "../../components/ui/ErrorBoundary"
 import { useActiveProject } from "../../hooks/useActiveProject"
-import { McpAppView, SurfaceView, getCapability, resolveCapabilityRenderer } from "./adapters"
+import { MCPAppSurface, SurfaceView, getCapability, resolveCapabilityRenderer } from "./adapters"
 import { CapabilityLibrary } from "./CapabilityLibrary"
 import { LegacyRouteWindow, type WindowHistory } from "./LegacyRouteWindow"
 import { SessionsList } from "./NavHistoryPanel"
-import { dispatchSurfaceAction } from "./sessionController"
 import { useWindowStore } from "./windowStore"
 
 function CapabilityHint({ title, summary }: { title: string; summary: string }) {
@@ -35,11 +34,6 @@ export function WindowContent({ win, history }: { win: WindowState; history: Win
   const close = useWindowStore((s) => s.close)
   const setTitle = useWindowStore((s) => s.setTitle)
   const { activeProjectId } = useActiveProject()
-  const onAction = useCallback(
-    (action: Parameters<typeof dispatchSurfaceAction>[1], source: string) =>
-      win.surface_id && dispatchSurfaceAction(win.surface_id, action, source),
-    [win.surface_id],
-  )
 
   if (win.kind === "legacy_route" && win.route && history) {
     return <LegacyRouteWindow route={win.route} history={history} />
@@ -47,12 +41,12 @@ export function WindowContent({ win, history }: { win: WindowState; history: Win
   if (win.kind === "surface" && win.surface_id) {
     return (
       <div className="p-5">
-        <SurfaceView surfaceId={win.surface_id} onAction={onAction} />
+        <SurfaceView surfaceId={win.surface_id} title={win.title} capabilityId={win.capability_id ?? null} />
       </div>
     )
   }
   if (win.kind === "mcp_app" && win.app_id) {
-    return <McpAppView appId={win.app_id} params={win.params ?? {}} />
+    return <MCPAppSurface appId={win.app_id} />
   }
   const cap = win.capability_id ? getCapability(win.capability_id) : undefined
   if (win.capability_id === "system.capability_library") return <CapabilityLibrary embedded />

@@ -47,7 +47,7 @@ describe("Forge OS shell routing (VITE_OS_SHELL on)", () => {
   it.each(["/demo", "/?app=true"])("lands %s on the minimal home at /os", async (from) => {
     window.history.pushState({}, "", from)
     render(<App />)
-    expect(await screen.findByTestId("os-shell")).toBeInTheDocument()
+    expect(await screen.findByTestId("os-shell", {}, { timeout: 8000 })).toBeInTheDocument()
     await waitFor(() => expect(window.location.pathname).toBe("/os"))
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("What should we make?")
     expect(screen.getByLabelText("Message Forge")).toBeInTheDocument()

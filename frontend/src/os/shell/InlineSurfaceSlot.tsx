@@ -1,24 +1,18 @@
 /**
  * An inline generated surface in the conversation (approval cards, small
  * summaries). It can be popped out into a window without losing its state:
- * both views read the same surface from the store.
+ * both views read the same surface from the WS-B surface store.
  */
-import { useCallback } from "react"
 import { PictureInPicture2 } from "lucide-react"
 import type { OsId } from "../contracts"
 import { SurfaceView } from "./adapters"
-import { dispatchSurfaceAction } from "./sessionController"
 import { useWindowStore } from "./windowStore"
 
 export function InlineSurfaceSlot({ surfaceId, sessionId, title }: { surfaceId: OsId; sessionId: OsId | null; title?: string }) {
   const open = useWindowStore((s) => s.open)
-  const onAction = useCallback(
-    (action: Parameters<typeof dispatchSurfaceAction>[1], source: string) => dispatchSurfaceAction(surfaceId, action, source),
-    [surfaceId],
-  )
   return (
     <div className="group relative mt-3" data-inline-surface={surfaceId}>
-      <SurfaceView surfaceId={surfaceId} onAction={onAction} />
+      <SurfaceView surfaceId={surfaceId} />
       <button
         type="button"
         onClick={() =>

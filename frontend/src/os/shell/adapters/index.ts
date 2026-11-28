@@ -1,37 +1,34 @@
 /**
  * THE integration seam of the OS shell. Every dependency WS-A has on WS-B
  * (stream + generated UI), WS-C (backend) and WS-D (capabilities) goes through
- * this one file, typed against src/os/contracts.ts. Swapping a fake for the
- * real module is a change here only:
+ * this one file, typed against src/os/contracts.ts.
  *
- *   WS-B  subscribeSession   -> `import { subscribeSession } from "../../stream/osStreamClient"`
- *   WS-B  SurfaceView        -> `import { SurfaceView } from "../../genui/SurfaceView"`
- *   WS-B  McpAppView         -> `import { MCPAppSurface } from "../../genui/mcp/MCPAppSurface"`
- *   WS-B  applySurfaceMessage / hydrateSurface -> the genui surfaceStore (or no-ops
- *         if osStreamClient already feeds the surface store itself)
- *   WS-D  useCapabilities / getCapability     -> `../../capabilities`
- *   WS-D  resolveCapabilityRenderer           -> `../../capabilities`
- *   WS-C  osBackend          -> `liveOsBackend` once `/v1/os/*` is deployed (already
- *         the default in live mode)
+ *   WS-B  stream + surface store + SurfaceView + MCPAppSurface   -> wired (src/os/stream, src/os/genui)
+ *   WS-C  osBackend   -> `liveOsBackend` in live mode; the in-browser fake
+ *                        (../fake/fakeOsBackend) in demo mode, which also
+ *                        stands in for the stream there
+ *   WS-D  useCapabilities / getCapability / resolveCapabilityRenderer
+ *                     -> still ./capabilityShim (index-derived descriptors);
+ *                        swap to `../../capabilities` here when WS-D lands
  */
 import type { ComponentType } from "react"
 import { LIVE_MODE } from "../../../lib/env"
 import { useAuthStore } from "../../../store/authStore"
 import type {
-  A2UIAction,
-  A2UIServerMessage,
   CapabilityDescriptor,
   CapabilityRendererProps,
+  OsEvent,
   OsId,
   StoredSurface,
   SubscribeSession,
 } from "../../contracts"
+import { defaultSurfaceStore, type SurfaceStore } from "../../genui"
+import { subscribeSession as liveSubscribeSession } from "../../stream"
 import { createFakeOsBackend } from "../fake/fakeOsBackend"
 import { liveOsBackend, type OsBackend } from "../sessionsApi"
 import { getShimCapability, useShimCapabilities, type UseCapabilitiesResult } from "./capabilityShim"
-import { liveSubscribeSession } from "./liveStreamShim"
-import { ShimMcpAppView } from "./mcpAppShim"
-import { ShimSurfaceView, shimApplyMessage, shimHasSurface, shimHydrate } from "./surfaceShim"
+
+export { SurfaceView, MCPAppSurface, GenUIProvider, TextFallback, surfaceToText } from "../../genui"
 
 // --- WS-C: backend --------------------------------------------------------
 const fake = LIVE_MODE ? null : createFakeOsBackend()
@@ -40,26 +37,21 @@ const fake = LIVE_MODE ? null : createFakeOsBackend()
 export const osBackend: OsBackend = fake ?? liveOsBackend
 
 // --- WS-B: stream ---------------------------------------------------------
-/** Session event stream (validated, resumable). */
+/** Session event stream (validated, resumable). Demo mode replays the fake's log. */
 export const subscribeSession: SubscribeSession = fake ? fake.subscribe : liveSubscribeSession
 
 // --- WS-B: generated surfaces ----------------------------------------------
-export interface SurfaceViewProps {
-  surfaceId: OsId
-  /** Dispatch an A2UI action from a component (the shell posts it to /actions). */
-  onAction?: (action: A2UIAction, sourceComponentId: string) => void
-}
-/** Renders one generated surface from the surface store, with a text fallback. */
-export const SurfaceView: ComponentType<SurfaceViewProps> = ShimSurfaceView
-/** Apply an `a2ui.message` event to the surface store (in stream order). */
-export const applySurfaceMessage: (message: A2UIServerMessage) => void = shimApplyMessage
+/** The one surface store the shell renders from. */
+export const surfaceStore: SurfaceStore = defaultSurfaceStore
+/** Route every stream event into the surface store (a2ui, placements, progress, action results). */
+export const applySurfaceEvent = (event: OsEvent) => surfaceStore.getState().applyEvent(event)
+/** Record a frame the stream client rejected (marks the affected surface failed). */
+export const rejectSurfaceEvent = (raw: unknown, errors: { path: string; message: string }[]) =>
+  surfaceStore.getState().rejectEvent(raw, errors)
 /** Hydrate a surface snapshot when restoring a session. */
-export const hydrateSurface: (stored: StoredSurface) => void = shimHydrate
+export const hydrateSurface = (stored: StoredSurface) => surfaceStore.getState().hydrate([stored], { sessionId: stored.session_id })
 /** Whether the store holds a generated surface with this id (vs a capability placement). */
-export const hasSurface: (surfaceId: OsId) => boolean = shimHasSurface
-
-/** Hosts an MCP App placed by `mcp_app.placed` (sandboxed iframe in WS-B). */
-export const McpAppView: ComponentType<{ appId: OsId; params: Record<string, unknown> }> = ShimMcpAppView
+export const hasSurface = (surfaceId: OsId): boolean => Boolean(surfaceStore.getState().surfaces[surfaceId])
 
 // --- WS-D: capabilities -------------------------------------------------------
 /** Capabilities the caller may use (React Query over GET /v1/os/capabilities in WS-D). */

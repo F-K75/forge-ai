@@ -12,16 +12,14 @@ import type {
   SurfacePlacement,
   SurfacePresentationKind,
   TurnRequest,
-  UserActionRequest,
-  A2UIAction,
 } from "../contracts"
-import { A2UI_VERSION } from "../contracts"
 import {
-  applySurfaceMessage,
+  applySurfaceEvent,
   getCapability,
   hasSurface,
   hydrateSurface,
   osBackend,
+  rejectSurfaceEvent,
   subscribeSession,
 } from "./adapters"
 import { newId, nowIso } from "./ids"
@@ -149,8 +147,9 @@ function handleEvent(sessionId: OsId, event: OsEvent) {
   const thread = store.threads[sessionId] ?? emptyThread(true)
   const { thread: next, effects } = reduceThread(thread, event)
   if (next === thread) return
-  // Surface messages first: a placement in the same batch must see its surface.
-  for (const m of effects.surfaceMessages) applySurfaceMessage(m)
+  // WS-B's surface store first (a2ui messages, placements, progress, action
+  // results): a placement below must see its surface.
+  applySurfaceEvent(event)
   store.setThread(sessionId, next)
   for (const p of effects.placements) placeSurface(p, sessionId)
   for (const app of effects.mcpApps) {
@@ -177,6 +176,7 @@ export function attachSession(sessionId: OsId) {
     sessionId,
     {
       onEvent: (e) => handleEvent(sessionId, e),
+      onInvalid: (raw, errors) => rejectSurfaceEvent(raw, errors),
       onStatus: (status) => useSessionStore.getState().updateThread(sessionId, (t) => ({ ...t, status })),
     },
     thread?.lastSeq ?? 0,
@@ -314,28 +314,6 @@ export async function cancelActiveTurn() {
   if (!sid) return
   const turn = useSessionStore.getState().threads[sid]?.runningTurnId
   if (turn) await osBackend.cancelTurn(sid, turn).catch(() => undefined)
-}
-
-/** Dispatch an A2UI action from a generated surface to the server. */
-export function dispatchSurfaceAction(surfaceId: OsId, action: A2UIAction, sourceComponentId: string) {
-  const sid = useWindowStore.getState().workspace.active_session_id
-  if (!sid || !action?.event?.name) return
-  const req: UserActionRequest = {
-    action_id: newId("act"),
-    session_id: sid,
-    turn_id: null,
-    a2ui: {
-      version: A2UI_VERSION,
-      action: {
-        name: action.event.name,
-        surfaceId,
-        sourceComponentId,
-        timestamp: nowIso(),
-        context: action.event.context ?? {},
-      },
-    },
-  }
-  void osBackend.sendAction(req).catch(() => undefined)
 }
 
 /** Start a fresh conversation (the minimal home). */

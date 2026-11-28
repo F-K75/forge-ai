@@ -19,7 +19,9 @@ import { DemoBanner } from "../../components/DemoBanner"
 import { NotificationsBell } from "../../components/NotificationsBell"
 import { openCommandPalette } from "../../lib/commandPalette"
 import { useAuthStore } from "../../store/authStore"
-import { osBackend } from "./adapters"
+import type { UserActionRequest } from "../contracts"
+import { GenUIProvider, osBackend, surfaceStore } from "./adapters"
+import { ConfirmDialogHost, requestConfirm } from "./ConfirmDialog"
 import { AccountMenu } from "./AccountMenu"
 import { Composer, type ComposerHandle, type ComposerSubmit } from "./Composer"
 import { useIsMobile, usePrefersReducedMotion } from "./hooks"
@@ -30,6 +32,7 @@ import { PanelDock } from "./PanelDock"
 import {
   cancelActiveTurn,
   newSession,
+  openCapability,
   openLegacyRoute,
   openSession,
   refreshSessions,
@@ -223,6 +226,13 @@ export default function OsHome() {
     "flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors duration-fast hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 
   return (
+    <GenUIProvider
+      sessionId={activeId}
+      store={surfaceStore}
+      confirm={requestConfirm}
+      post={postAction}
+      onOpenCapability={openCapabilityFromSurface}
+    >
     <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-base font-sans text-ink" data-testid="os-shell">
       <a
         href="#os-prompt"
@@ -370,6 +380,14 @@ export default function OsHome() {
         queryAction={queryAction}
         placeholder="Search capabilities, sessions and actions, or ask Forge"
       />
+      <ConfirmDialogHost />
     </div>
+    </GenUIProvider>
   )
+}
+
+/** Generated-surface actions go through the same backend as turns (the fake in demo mode). */
+const postAction = (_sid: string, req: UserActionRequest) => osBackend.sendAction(req)
+const openCapabilityFromSurface = (id: string, params?: Record<string, unknown>) => {
+  openCapability(id, { params: params ?? {} })
 }
