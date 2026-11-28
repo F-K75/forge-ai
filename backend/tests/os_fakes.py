@@ -41,6 +41,8 @@ def _cmp_ok(val: Any, op: str, arg: Any) -> bool:
     if op == "$in":
         return v in arg or (isinstance(v, list) and any(x in arg for x in v))
     if op == "$nin":
+        if isinstance(v, list):
+            return not any(x in arg for x in v)
         return v not in arg
     if v is None:
         return False
