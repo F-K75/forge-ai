@@ -1,13 +1,14 @@
-import { Suspense, type ComponentType, type LazyExoticComponent } from "react"
-import { lazyWithRetry } from "../../../lib/lazyRetry"
-import type { CompositeComponentProps } from "../../contracts"
-import { registerComposite as localRegister, type CompositeComponent, type RegisterComposite, type WsDCompositeName } from "./registry"
+import { registerComposite, type CompositeLoader } from "../../genui/registry"
+import { WS_D_COMPOSITES, type WsDCompositeName } from "./registry"
 
-type Loader = () => Promise<{ default: CompositeComponent }>
-
-// Lazily loaded so the GenUI engine chunk does not pull in reactflow, the
-// preview runtime or the deploy surface until a surface actually uses them.
-const LOADERS: Record<WsDCompositeName, Loader> = {
+/**
+ * Lazy loaders, so the GenUI engine chunk does not pull in reactflow, the
+ * preview runtime or the deploy surface until a surface actually uses them.
+ * Composites receive resolved `CompositeComponentProps` from WS-B's renderer;
+ * form-like composites put their values in the dispatched action `context`
+ * (UserActionRequest carries no data model).
+ */
+export const WS_D_COMPOSITE_LOADERS: Record<WsDCompositeName, CompositeLoader> = {
   LivePreview: () => import("./LivePreview"),
   DeployPanel: () => import("./DeployPanel"),
   WorkflowCanvas: () => import("./WorkflowCanvas"),
@@ -16,37 +17,28 @@ const LOADERS: Record<WsDCompositeName, Loader> = {
   CapabilityLauncher: () => import("./CapabilityLauncher"),
 }
 
-function CompositeFallback() {
-  return <div className="h-24 animate-pulse rounded-xl border border-border bg-panel" aria-busy="true" />
-}
+export type RegisterComposite = (
+  name: string,
+  component: CompositeLoader,
+  opts: { lazy?: boolean }
+) => () => void
 
-function suspended(Lazy: LazyExoticComponent<CompositeComponent>, name: string): ComponentType<CompositeComponentProps> {
-  function SuspendedComposite(props: CompositeComponentProps) {
-    return (
-      <Suspense fallback={<CompositeFallback />}>
-        <Lazy {...props} />
-      </Suspense>
-    )
-  }
-  SuspendedComposite.displayName = `Composite(${name})`
-  return SuspendedComposite
-}
-
-export const WS_D_COMPOSITE_COMPONENTS: Record<WsDCompositeName, ComponentType<CompositeComponentProps>> =
-  Object.fromEntries(
-    Object.entries(LOADERS).map(([name, load]) => [name, suspended(lazyWithRetry(load), name)])
-  ) as Record<WsDCompositeName, ComponentType<CompositeComponentProps>>
+let unregister: (() => void)[] | null = null
 
 /**
- * Register WS-D's composites with a GenUI registry.
- *
- * SWAP POINT: pass WS-B's `registerComposite` once src/os/genui/registry/
- * lands; until then the local shim in ./registry is used.
+ * Register WS-D's six composites with the GenUI registry (src/os/genui).
+ * Idempotent; returns a function that unregisters them. The shell (or the
+ * GenUI bootstrap) calls this once at startup.
  */
-export function registerWsDComposites(register: RegisterComposite = localRegister): void {
-  for (const [name, component] of Object.entries(WS_D_COMPOSITE_COMPONENTS)) {
-    register(name, component)
+export function registerWsDComposites(register: RegisterComposite = registerComposite): () => void {
+  if (register === registerComposite && unregister) return () => undefined
+  const handles = WS_D_COMPOSITES.map((name) => register(name, WS_D_COMPOSITE_LOADERS[name], { lazy: true }))
+  if (register === registerComposite) unregister = handles
+  return () => {
+    handles.forEach((off) => off())
+    if (unregister === handles) unregister = null
   }
 }
 
-export { WS_D_COMPOSITES, getLocalComposite, registerComposite } from "./registry"
+export { WS_D_COMPOSITES } from "./registry"
+export type { WsDCompositeName } from "./registry"

@@ -10,7 +10,8 @@ import AgentConfigForm from "./composites/AgentConfigForm"
 import CapabilityLauncher from "./composites/CapabilityLauncher"
 import ProjectGrid from "./composites/ProjectGrid"
 import { CapabilityLaunchContext } from "./composites/launch"
-import { getLocalComposite } from "./composites/registry"
+import { resolveComponent } from "../genui/registry"
+import "../genui"
 import { toWorkflowGraph } from "./composites/WorkflowCanvas"
 import { CAPABILITY_RENDERERS, RouteScoped } from "./renderers"
 import { useIsEmbedded } from "./embedding"
@@ -31,12 +32,21 @@ function withProviders(ui: React.ReactElement, route = "/os") {
 }
 
 describe("registerWsDComposites", () => {
-  it("registers all six WS-D composites through the (swappable) register function", () => {
-    const register = vi.fn()
+  it("registers all six WS-D composites lazily", () => {
+    const register = vi.fn(() => () => undefined)
     registerWsDComposites(register)
-    expect(register.mock.calls.map((c) => c[0]).sort()).toEqual([...WS_D_COMPOSITES].sort())
+    expect(register.mock.calls.map((c) => (c as unknown[])[0]).sort()).toEqual([...WS_D_COMPOSITES].sort())
+    for (const call of register.mock.calls) expect((call as unknown[])[2]).toEqual({ lazy: true })
+  })
+
+  it("registers with WS-B's GenUI registry, idempotently, and can unregister", () => {
+    const off = registerWsDComposites()
+    for (const name of WS_D_COMPOSITES) expect(resolveComponent(name)?.kind).toBe("composite")
+    expect(resolveComponent("ExecutionTimeline")?.kind).toBe("composite") // WS-B's own
+    registerWsDComposites() // second call is a no-op
+    off()
+    for (const name of WS_D_COMPOSITES) expect(resolveComponent(name)).toBeNull()
     registerWsDComposites()
-    for (const name of WS_D_COMPOSITES) expect(getLocalComposite(name)).toBeTypeOf("function")
   })
 })
 
