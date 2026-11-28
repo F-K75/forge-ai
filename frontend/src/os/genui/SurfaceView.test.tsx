@@ -133,7 +133,7 @@ describe("SurfaceView states and fallbacks", () => {
     store.getState().applyMessage(
       create("s", [
         { id: "root", component: "Column", children: ["prev"] },
-        { id: "prev", component: "LivePreview", projectId: { "@path": "/p" } },
+        { id: "prev", component: "LivePreview", projectId: "proj_9" },
       ], { p: "proj_9" })
     )
     mount(store, "s")

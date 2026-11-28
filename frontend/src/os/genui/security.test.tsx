@@ -7,10 +7,8 @@ import { act, cleanup, render, screen } from "@testing-library/react"
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { FORGE_CATALOG_ID, type OsEvent } from "../contracts"
-import { createFixtureSubscribe } from "../stream/fixtureReplayer"
-import { toSseFrame } from "../stream/fixtureReplayer"
+import { createFixtureFetch, createFixtureSubscribe, toSseFrame } from "../stream/fixtureReplayer"
 import { createOsStreamClient } from "../stream/osStreamClient"
-import { createFixtureFetch } from "../stream/fixtureReplayer"
 import { GenUIProvider } from "./GenUIProvider"
 import { SurfaceView } from "./SurfaceView"
 import { createSurfaceStore, MAX_DATA_MODEL_BYTES, surfaceStreamHandlers } from "./surfaceStore"
@@ -71,7 +69,7 @@ describe("generated UI security", () => {
     view(store, "srf_x")
     expect(screen.getByText(FALLBACK_MESSAGE)).toBeInTheDocument()
     expect(document.querySelector("script")).toBeNull()
-    expect(document.body.innerHTML).not.toContain("evil.example")
+    expect(new XMLSerializer().serializeToString(document.body)).not.toContain("evil.example")
   })
 
   it("never renders components outside the registry even if they reach the store", () => {
