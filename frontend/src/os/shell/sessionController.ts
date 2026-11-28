@@ -39,9 +39,9 @@ let attached: { sessionId: OsId; unsubscribe: () => void } | null = null
 /** Map the composer's tier choice onto the contract's ModelSelection. */
 export function modelSelection(tier: ModelTier, pinned?: { provider: string; model: string } | null): ModelSelection {
   if (pinned) return { mode: "pinned", provider: pinned.provider, model: pinned.model }
-  // Contract gap: ModelSelection has no `tier` field yet; tiers ride in `model`
-  // under mode "auto" ("tier:fast" etc.) until a contract PR adds one.
-  return tier === "auto" ? { mode: "auto" } : { mode: "auto", provider: null, model: `tier:${tier}` }
+  // WS-C convention: a tier rides in `model` under mode "auto" ("fast" |
+  // "balanced" | "best"); ModelSelection has no dedicated `tier` field.
+  return tier === "auto" ? { mode: "auto" } : { mode: "auto", provider: null, model: tier }
 }
 
 export function openCapability(
@@ -196,7 +196,7 @@ export async function openSession(sessionId: OsId): Promise<boolean> {
     try {
       const d = await osBackend.getSession(sessionId)
       for (const s of d.surfaces) hydrateSurface(s)
-      useSessionStore.getState().setThread(sessionId, threadFromHistory(d.messages, d.last_seq))
+      useSessionStore.getState().setThread(sessionId, { ...threadFromHistory(d.messages, d.last_seq), runningTurnId: d.active_turn_id ?? null })
       useSessionStore.getState().upsertSession(d.session)
     } catch {
       return false

@@ -21,7 +21,7 @@ import { openCommandPalette } from "../../lib/commandPalette"
 import { useAuthStore } from "../../store/authStore"
 import type { UserActionRequest } from "../contracts"
 import { GenUIProvider, osBackend, surfaceStore } from "./adapters"
-import { ConfirmDialogHost, requestConfirm } from "./ConfirmDialog"
+import { ConfirmDialogHost, consumeConfirmation, requestConfirm } from "./ConfirmDialog"
 import { AccountMenu } from "./AccountMenu"
 import { Composer, type ComposerHandle, type ComposerSubmit } from "./Composer"
 import { useIsMobile, usePrefersReducedMotion } from "./hooks"
@@ -387,7 +387,13 @@ export default function OsHome() {
 }
 
 /** Generated-surface actions go through the same backend as turns (the fake in demo mode). */
-const postAction = (_sid: string, req: UserActionRequest) => osBackend.sendAction(req)
+const postAction = (_sid: string, req: UserActionRequest) => {
+  const a = req.a2ui.action
+  const confirmed = consumeConfirmation(a.surfaceId, a.sourceComponentId)
+  return osBackend.sendAction(
+    confirmed ? { ...req, a2ui: { ...req.a2ui, action: { ...a, context: { ...a.context, _confirmed: true } } } } : req,
+  )
+}
 const openCapabilityFromSurface = (id: string, params?: Record<string, unknown>) => {
   openCapability(id, { params: params ?? {} })
 }

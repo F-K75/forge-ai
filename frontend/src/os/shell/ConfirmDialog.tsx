@@ -17,12 +17,36 @@ interface Pending {
 
 const useConfirmStore = create<{ pending: Pending | null }>()(() => ({ pending: null }))
 
+/** Confirmations the user granted, waiting for their action POST (surface/component -> expiry). */
+const granted = new Map<string, number>()
+const GRANT_TTL_MS = 30_000
+
 export const requestConfirm: ConfirmHook = (request) =>
   new Promise<boolean>((resolve) => {
     // A newer request replaces (and declines) an unanswered one.
     useConfirmStore.getState().pending?.resolve(false)
-    useConfirmStore.setState({ pending: { request, resolve } })
+    useConfirmStore.setState({
+      pending: {
+        request,
+        resolve: (ok) => {
+          if (ok) granted.set(`${request.surfaceId}/${request.componentId}`, Date.now() + GRANT_TTL_MS)
+          resolve(ok)
+        },
+      },
+    })
   })
+
+/**
+ * One-shot: true if the user just confirmed this component's action. The
+ * shell then sends `_confirmed: true` in the action context (WS-C rejects a
+ * `requires_confirmation` action without it).
+ */
+export function consumeConfirmation(surfaceId: string, componentId: string): boolean {
+  const key = `${surfaceId}/${componentId}`
+  const until = granted.get(key)
+  granted.delete(key)
+  return until !== undefined && until >= Date.now()
+}
 
 function humanise(name: string): string {
   const last = name.split(".").pop() ?? name

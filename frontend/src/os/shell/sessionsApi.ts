@@ -25,6 +25,8 @@ export interface SessionDetail {
   surfaces: StoredSurface[]
   /** Attach the stream after this seq to resume a live turn. */
   last_seq: number
+  /** A turn still running on the server (resume shows it as in progress). */
+  active_turn_id?: OsId | null
 }
 
 /** The composer's tier choice (PHASE2_DECISIONS #7). */
@@ -103,6 +105,7 @@ export const liveOsBackend: OsBackend = {
       messages: d.messages ?? [],
       surfaces: d.surfaces ?? [],
       last_seq: typeof d.last_seq === "number" ? d.last_seq : 0,
+      active_turn_id: typeof d.active_turn_id === "string" ? d.active_turn_id : null,
     }
   },
   async createTurn(sessionId, req) {
