@@ -43,6 +43,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { ForgeScene3D } from "../components/three/ForgeScene3D";
 import { MultiAgentKernelPanel } from "../components/MultiAgentKernelPanel";
 import { COLORS } from "../lib/theme";
+import { useIsEmbedded } from "../os/capabilities/embedding";
 
 type ViewMode = "kernel" | "graph" | "spatial" | "timeline" | "roster" | "artifacts";
 
@@ -98,7 +99,9 @@ const DEFAULT_METRICS: TelemetryMetric[] = [
   },
 ];
 
-export default function FlowPage() {
+export default function FlowPage({ embedded: embeddedProp }: { embedded?: boolean } = {}) {
+  // Inside an OS window/panel the page must not assume it owns the viewport.
+  const embedded = useIsEmbedded(embeddedProp);
   const { projectId } = useParams<{ projectId?: string }>();
   // Deep link from the Command Center: /p/:projectId/agents?run=<runId>
   const [searchParams, setSearchParams] = useSearchParams();
@@ -410,7 +413,7 @@ export default function FlowPage() {
   const modalArtifactData = previewArtifactModal ? MOCK_ARTIFACT_PREVIEWS[previewArtifactModal] : null;
 
   return (
-    <div className="relative min-h-screen pb-24 text-ink">
+    <div className={`relative pb-24 text-ink ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-4">
         {/* =========================================================================
             1. HERO & COMMAND HEADER

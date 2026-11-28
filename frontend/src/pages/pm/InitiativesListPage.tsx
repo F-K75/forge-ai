@@ -42,6 +42,7 @@ import { RequirementsSurvey } from "../../components/pm/RequirementsSurvey";
 import { VoiceInputButton } from "../../components/pm/VoiceInputButton";
 import { SuiWindowFrame, BottomNavItem } from "../../components/pm/SuiWindowFrame";
 import { COLORS } from "../../lib/theme";
+import { useIsEmbedded } from "../../os/capabilities/embedding";
 
 /* ------------------------------------------------------------------ */
 /* Subtle Audio Synthesizer                                           */
@@ -437,7 +438,9 @@ function InitiativeListRow({
 /* Main Page Component                                                */
 /* ------------------------------------------------------------------ */
 
-export default function InitiativesListPage() {
+export default function InitiativesListPage({ embedded: embeddedProp }: { embedded?: boolean } = {}) {
+  // Inside an OS window/panel the page must not assume it owns the viewport.
+  const embedded = useIsEmbedded(embeddedProp);
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
   const [creating, setCreating] = useState(false);
@@ -698,7 +701,7 @@ export default function InitiativesListPage() {
   ], [totalInitiatives, activeCount, planningCount, completedCount, statusFilter, creating, handleSound]);
 
   return (
-    <div className="relative min-h-screen w-full bg-base p-0 sm:p-2 md:p-4 font-sans antialiased text-ink transition-colors duration-200 flex flex-col items-stretch justify-start">
+    <div className={`relative w-full bg-base p-0 sm:p-2 md:p-4 font-sans antialiased text-ink transition-colors duration-200 flex flex-col items-stretch justify-start ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
       <div className="w-full flex-1 flex flex-col">
         <SuiWindowFrame
           title="Forge Initiatives 2026"

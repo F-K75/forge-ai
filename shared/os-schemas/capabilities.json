@@ -547,8 +547,8 @@
       ],
       "default_surface": "panel",
       "renderer": {
-        "kind": "component",
-        "component_key": "system.Notifications"
+        "kind": "a2ui",
+        "catalog_id": "urn:forge:a2ui:catalog:ember:1"
       },
       "actions": [
         {
@@ -3776,8 +3776,8 @@
       ],
       "default_surface": "panel",
       "renderer": {
-        "kind": "component",
-        "component_key": "agents.ProductLead"
+        "kind": "a2ui",
+        "catalog_id": "urn:forge:a2ui:catalog:ember:1"
       },
       "actions": [
         {
@@ -3912,8 +3912,8 @@
       ],
       "default_surface": "panel",
       "renderer": {
-        "kind": "component",
-        "component_key": "agents.Memory"
+        "kind": "a2ui",
+        "catalog_id": "urn:forge:a2ui:catalog:ember:1"
       },
       "actions": [
         {
@@ -4061,8 +4061,8 @@
       ],
       "default_surface": "window",
       "renderer": {
-        "kind": "component",
-        "component_key": "agents.Benchmarks"
+        "kind": "a2ui",
+        "catalog_id": "urn:forge:a2ui:catalog:ember:1"
       },
       "actions": [
         {
@@ -4195,8 +4195,8 @@
       ],
       "default_surface": "window",
       "renderer": {
-        "kind": "component",
-        "component_key": "agents.Traces"
+        "kind": "a2ui",
+        "catalog_id": "urn:forge:a2ui:catalog:ember:1"
       },
       "actions": [
         {
@@ -4353,8 +4353,8 @@
       ],
       "default_surface": "panel",
       "renderer": {
-        "kind": "component",
-        "component_key": "agents.Workload"
+        "kind": "a2ui",
+        "catalog_id": "urn:forge:a2ui:catalog:ember:1"
       },
       "actions": [
         {
@@ -9660,8 +9660,8 @@
       ],
       "default_surface": "panel",
       "renderer": {
-        "kind": "component",
-        "component_key": "governance.Policy"
+        "kind": "a2ui",
+        "catalog_id": "urn:forge:a2ui:catalog:ember:1"
       },
       "actions": [
         {
