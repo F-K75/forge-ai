@@ -423,4 +423,12 @@ def get_capability_registry() -> CapabilityRegistry:
     global _registry
     if _registry is None:
         _registry = CapabilityRegistry.load()
+        # Register WS-D's action handlers and no-LLM surface builders. Imported
+        # lazily: os_capabilities imports this module.
+        try:
+            from core.os_capabilities import install
+
+            install(_registry)
+        except Exception:  # pragma: no cover - registry stays usable without handlers
+            logger.exception("os_capabilities.install failed; capability actions unavailable")
     return _registry

@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CANONICAL = ROOT / "shared" / "os-schemas"
 TARGETS = [ROOT / "frontend" / "src" / "os" / "schemas", ROOT / "backend" / "core" / "os_schemas"]
-FILES = ["os-contracts.schema.json", "forge-ember.catalog.json", "capability-index.json"]
+FILES = ["os-contracts.schema.json", "forge-ember.catalog.json", "capability-index.json", "capabilities.json"]
 
 
 def main(argv: list[str]) -> int:

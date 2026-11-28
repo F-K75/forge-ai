@@ -8,12 +8,10 @@
  *                        (../fake/fakeOsBackend) in demo mode, which also
  *                        stands in for the stream there
  *   WS-D  useCapabilities / getCapability / resolveCapabilityRenderer
- *                     -> still ./capabilityShim (index-derived descriptors);
- *                        swap to `../../capabilities` here when WS-D lands
+ *                     -> wired (src/os/capabilities)
  */
 import type { ComponentType } from "react"
 import { LIVE_MODE } from "../../../lib/env"
-import { useAuthStore } from "../../../store/authStore"
 import type {
   CapabilityDescriptor,
   CapabilityRendererProps,
@@ -26,7 +24,13 @@ import { defaultSurfaceStore, type SurfaceStore } from "../../genui"
 import { subscribeSession as liveSubscribeSession } from "../../stream"
 import { createFakeOsBackend } from "../fake/fakeOsBackend"
 import { liveOsBackend, type OsBackend } from "../sessionsApi"
-import { getShimCapability, useShimCapabilities, type UseCapabilitiesResult } from "./capabilityShim"
+import {
+  getStaticCapability,
+  registerWsDComposites,
+  resolveCapabilityRenderer as resolveWsDRenderer,
+  useCapabilities as useWsDCapabilities,
+  type UseCapabilitiesResult,
+} from "../../capabilities"
 
 export { SurfaceView, MCPAppSurface, GenUIProvider, TextFallback, surfaceToText } from "../../genui"
 
@@ -54,23 +58,26 @@ export const hydrateSurface = (stored: StoredSurface) => surfaceStore.getState()
 export const hasSurface = (surfaceId: OsId): boolean => Boolean(surfaceStore.getState().surfaces[surfaceId])
 
 // --- WS-D: capabilities -------------------------------------------------------
-/** Capabilities the caller may use (React Query over GET /v1/os/capabilities in WS-D). */
+// Register the WS-D composite catalog components (LivePreview, DeployPanel,
+// WorkflowCanvas, AgentConfigForm, ProjectGrid, CapabilityLauncher) once.
+registerWsDComposites()
+
+/** Capabilities the caller may use (React Query over GET /v1/os/capabilities, static fallback). */
 export function useCapabilities(): UseCapabilitiesResult {
-  const isAdmin = useAuthStore((s) => s.user?.is_admin === true)
-  return useShimCapabilities({ isAdmin })
+  return useWsDCapabilities()
 }
 /** Synchronous lookup (placement handling outside React). */
-export const getCapability: (id: string) => CapabilityDescriptor | undefined = getShimCapability
+export const getCapability: (id: string) => CapabilityDescriptor | undefined = getStaticCapability
 
 /**
- * WS-D: `component_key` -> lazily loaded renderer taking CapabilityRendererProps.
+ * `component_key` -> lazily loaded renderer taking CapabilityRendererProps.
  * Returning null lets the shell fall back to the capability's legacy route, its
  * built-in renderers (system.*) or a "ask for it in a prompt" placeholder.
  */
 export function resolveCapabilityRenderer(
-  _capability: CapabilityDescriptor,
+  capability: CapabilityDescriptor,
 ): ComponentType<CapabilityRendererProps> | null {
-  return null
+  return resolveWsDRenderer(capability)
 }
 
 export type { UseCapabilitiesResult }
