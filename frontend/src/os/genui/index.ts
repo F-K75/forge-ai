@@ -49,4 +49,11 @@ export {
   type CompositeLoader,
 } from "./registry"
 export { surfaceToText } from "./surfaceText"
+export { ExecutionTimeline, registerBuiltinComposites } from "./composites"
+export { MCPAppSurface, type MCPAppSurfaceProps } from "./mcp/MCPAppSurface"
+export { defaultLoadMcpResource, MCP_APP_VIEWER } from "./mcp/loadResource"
+
+import { registerBuiltinComposites } from "./composites"
+// WS-B's own composites are available whenever the engine is imported.
+registerBuiltinComposites()
 export * as binding from "./binding"
