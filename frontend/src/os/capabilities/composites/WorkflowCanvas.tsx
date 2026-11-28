@@ -20,6 +20,8 @@ import { Button } from "../../../components/ui/Button"
 export interface WorkflowNode {
   id: string
   title: string
+  /** WS-C's no-key workflow template labels nodes with `label`; used when `title` is absent. */
+  label?: string
   role?: string
   department?: string
   description?: string
@@ -49,7 +51,7 @@ function toFlowNodes(raw: unknown): Node[] {
     .map((n, i) => ({
       id: n.id,
       position: n.position ?? { x: 40 + (i % 4) * 220, y: 40 + Math.floor(i / 4) * 140 },
-      data: { label: n.title || n.id, role: n.role, department: n.department, description: n.description },
+      data: { label: n.title || n.label || n.id, role: n.role, department: n.department, description: n.description },
     }))
 }
 

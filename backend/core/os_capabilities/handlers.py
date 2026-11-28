@@ -462,11 +462,20 @@ async def _load_dataset(ctx: ActionContext, input: Dict[str, Any]) -> Tuple[Any,
     attachment_id = input.get("attachment_id")
     loader = ctx.metadata.get("attachment_loader")
     if attachment_id and loader is not None:
-        # Swap point: WS-C's attachments service (``core/os/attachments.py``) supplies
-        # ``attachment_loader(attachment_id) -> (bytes, mime_type, filename)``, scoped to the caller.
+        # A caller-supplied ``attachment_loader(attachment_id) -> (bytes, mime_type, filename)``.
         content, mime, filename = await loader(attachment_id)
         fmt = "json" if "json" in (mime or "") else "csv" if mime else input.get("format")
         return content, fmt, filename
+    if attachment_id:
+        # WS-C's attachment store, always scoped to the caller's user id (foreign ids read as missing).
+        from core.database import get_db
+        from core.os.attachments import AttachmentRepository
+
+        repo = AttachmentRepository(await get_db())
+        doc = await repo.get(ctx.user.id, attachment_id)
+        raw = await repo.read_bytes(ctx.user.id, attachment_id) if doc else None
+        if raw is not None:
+            return raw, doc.get("ext") or input.get("format"), doc.get("name")
     raise data_analyze.DatasetError("Attach a CSV or JSON file (or paste the data) to analyze it.")
 
 
@@ -596,6 +605,10 @@ async def _approvals_list(ctx: ActionContext, input: Dict[str, Any]) -> ActionOu
         if not ok:
             return listing
         projects = listing.get("projects") or []
+    from core.database import get_db
+    from core.permissions import can_decide_project_gates
+
+    db = await get_db()
     gates: List[Dict[str, Any]] = []
     for project in projects:
         ok, runs = await guarded_call(list_kernel_runs, ctx, {"project_id": project["id"], "limit": 50})
@@ -603,7 +616,11 @@ async def _approvals_list(ctx: ActionContext, input: Dict[str, Any]) -> ActionOu
             if project_id:
                 return runs
             continue
-        gates += approvals.pending_gates(runs.get("runs") or [], project["id"], project.get("name"))
+        # Only offer cards the caller may decide (owner, or org owner/admin): members see none.
+        doc = await db.projects.find_one({"id": project["id"], "deleted_at": None}, {"_id": 0})
+        if not doc or not await can_decide_project_gates(db, ctx.user.id, doc):
+            continue
+        gates += approvals.pending_gates(runs.get("runs") or [], project["id"], doc.get("name") or project.get("name"))
     ctx.metadata["result"] = {"gates": gates}
     messages, places = approvals.approvals_surface(gates, presentation=_presentation(ctx.capability_id))
     return ActionOutcome(status="completed", a2ui_messages=messages, placements=places)

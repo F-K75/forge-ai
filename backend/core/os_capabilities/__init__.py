@@ -24,6 +24,7 @@ from core.os_capabilities.handlers import (
     get_handler,
     register_all,
 )
+from core.os_capabilities.install import install
 
 __all__ = [
     "CAPABILITIES_FILE",
@@ -34,6 +35,7 @@ __all__ = [
     "action_event_name",
     "get_descriptor",
     "get_handler",
+    "install",
     "load_capability_catalog",
     "register_all",
     "resolve_action_event",

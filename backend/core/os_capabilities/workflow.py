@@ -68,7 +68,8 @@ def plan_template(objective: str, nodes: Sequence[Dict[str, Any]], edges: Sequen
     tasks = []
     for nid in order:
         node = by_id[nid]
-        title = str(node.get("title") or nid)[:200]
+        # WS-C's no-key workflow template labels nodes with ``label``; the canvas uses ``title``.
+        title = str(node.get("title") or node.get("label") or nid)[:200]
         tasks.append({
             "id": task_ids[nid],
             "title": title,

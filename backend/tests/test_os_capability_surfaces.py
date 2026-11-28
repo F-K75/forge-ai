@@ -88,7 +88,7 @@ def test_change_chart_reaggregates_from_data_model() -> None:
         data_analyze.change_chart(sid, messages[0]["createSurface"]["dataModel"], x="nope")
 
 
-async def test_analyze_handler_with_attachment_loader() -> None:
+async def test_analyze_handler_with_attachment_loader(monkeypatch) -> None:
     async def loader(attachment_id):
         assert attachment_id == "att_1"
         return SALES_CSV.encode(), "text/csv", "sales.csv"
@@ -98,6 +98,8 @@ async def test_analyze_handler_with_attachment_loader() -> None:
     assert outcome.status == "completed"
     _valid(outcome.a2ui_messages, outcome.placements)
 
+    # Without a loader the handler reads WS-C's attachment store, scoped to the caller: unknown id -> rejected.
+    patch_db(monkeypatch, seeded_db())
     ctx = make_ctx(make_user(OWNER), "data.analyze", "analyze")
     outcome = await get_handler("data.analyze", "analyze")(ctx, {"attachment_id": "att_1"})
     assert outcome.status == "rejected" and ctx.metadata["os_error"]["code"] == "validation_failed"
