@@ -12,23 +12,26 @@ Not to be confused with ``/v1/projects/{project_id}/os/*`` (api/enterprise.py).
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.datastructures import UploadFile
 
 from api.auth import get_current_user
 from core.feature_flags import is_os_shell_enabled
 from core.models import User
 from core.os import actions as os_actions
+from core.os import events as os_events
 from core.os import models_catalog
+from core.os import turns as os_turns
 from core.os.attachments import MAX_ATTACHMENT_BYTES, attachment_ref
 from core.os.common import OsHTTPError
 from core.os.limits import ATTACHMENT_LIMIT, check_rate_limit
 from core.os.runtime import OsRuntime, get_os_runtime
-from core.os.sessions import workspace_wire
-from core.os_contracts import CapabilityInvocation, UserActionRequest, WorkspaceState
+from core.os.sessions import session_summary, workspace_wire
+from core.os_contracts import CapabilityInvocation, TurnRequest, UserActionRequest, WorkspaceState
 
 logger = logging.getLogger(__name__)
 
@@ -208,3 +211,154 @@ async def post_action(
         return await os_actions.handle_user_action(rt, user, session_id, body)
     except OsHTTPError as exc:
         _raise(exc)
+
+
+# --------------------------------------------------------------------------- #
+# Sessions, turns and the event stream
+# --------------------------------------------------------------------------- #
+
+
+class SessionPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    pinned: Optional[bool] = None
+    archived: Optional[bool] = None
+
+
+@router.post("/sessions/new/turns", status_code=202)
+async def create_session_turn(
+    body: TurnRequest,
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    """First prompt: creates the session (title from the prompt) and starts the turn."""
+    try:
+        return await os_turns.submit_turn(rt, user, None, body)
+    except OsHTTPError as exc:
+        _raise(exc)
+
+
+@router.post("/sessions/{session_id}/turns", status_code=202)
+async def create_turn(
+    body: TurnRequest,
+    session_id: str = Path(..., pattern=ID_PATTERN),
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    """Idempotent on ``client_turn_id``; 409 while another turn is running."""
+    try:
+        return await os_turns.submit_turn(rt, user, session_id, body)
+    except OsHTTPError as exc:
+        _raise(exc)
+
+
+@router.post("/sessions/{session_id}/turns/{turn_id}/cancel", status_code=204)
+async def cancel_turn(
+    session_id: str = Path(..., pattern=ID_PATTERN),
+    turn_id: str = Path(..., pattern=ID_PATTERN),
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    try:
+        await os_turns.cancel_turn(rt, user, session_id, turn_id)
+    except OsHTTPError as exc:
+        _raise(exc)
+    return Response(status_code=204)
+
+
+@router.get("/sessions/{session_id}/stream")
+async def stream_session(
+    request: Request,
+    session_id: str = Path(..., pattern=ID_PATTERN),
+    after_seq: int = Query(0, ge=0),
+    last_event_id: Optional[str] = Header(None, alias="Last-Event-ID"),
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    """SSE of ``OsEvent`` (``id`` = seq): replay after ``Last-Event-ID`` / ``after_seq``, then live."""
+    try:
+        await rt.sessions.require(user.id, session_id)  # authorised once, on connect
+    except OsHTTPError as exc:
+        _raise(exc)
+    resume = after_seq
+    if last_event_id and last_event_id.strip().isdigit():
+        resume = max(resume, int(last_event_id.strip()))
+
+    async def _gen():
+        async for event in rt.events.stream(
+            session_id=session_id,
+            user_id=user.id,
+            after_seq=resume,
+            heartbeat_seconds=os_events.HEARTBEAT_SECONDS,
+            max_seconds=os_events.STREAM_MAX_SECONDS,
+        ):
+            if await request.is_disconnected():
+                return
+            yield os_events.to_sse(event)
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get("/sessions")
+async def list_sessions(
+    page: int = Query(1, ge=1, le=10000),
+    per_page: int = Query(30, ge=1, le=100),
+    archived: bool = Query(False),
+    pinned: Optional[bool] = Query(None),
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    """History panel: ``{items: SessionSummary[], total, page, per_page}`` (pinned first, newest first)."""
+    docs, total = await rt.sessions.list(user.id, page=page, per_page=per_page, include_archived=archived, pinned=pinned)
+    return {"items": [session_summary(d) for d in docs], "total": total, "page": page, "per_page": per_page}
+
+
+@router.get("/sessions/{session_id}")
+async def get_session(
+    session_id: str = Path(..., pattern=ID_PATTERN),
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    """Session + ``SessionMessage[]`` + ``StoredSurface[]`` + the seq to resume the stream from."""
+    try:
+        doc = await rt.sessions.require(user.id, session_id)
+    except OsHTTPError as exc:
+        _raise(exc)
+    return {
+        "session": session_summary(doc),
+        "messages": await rt.messages.list(user.id, session_id),
+        "surfaces": await rt.surfaces.list(user.id, session_id),
+        "last_seq": int(doc.get("seq_counter") or 0),
+        "active_turn_id": doc.get("active_turn_id"),
+    }
+
+
+@router.patch("/sessions/{session_id}")
+async def patch_session(
+    body: SessionPatch,
+    session_id: str = Path(..., pattern=ID_PATTERN),
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    try:
+        return session_summary(await rt.sessions.update(user.id, session_id, body.model_dump(exclude_none=True)))
+    except OsHTTPError as exc:
+        _raise(exc)
+
+
+@router.delete("/sessions/{session_id}", status_code=204)
+async def delete_session(
+    session_id: str = Path(..., pattern=ID_PATTERN),
+    user: User = Depends(get_current_user),
+    rt: OsRuntime = Depends(get_os_runtime),
+):
+    """Soft delete (``deleted_at``); the session disappears from every read."""
+    try:
+        await rt.sessions.soft_delete(user.id, session_id)
+    except OsHTTPError as exc:
+        _raise(exc)
+    return Response(status_code=204)

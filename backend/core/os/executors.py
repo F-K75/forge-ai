@@ -183,7 +183,8 @@ async def respond_text(ctx: TurnCtx, step: StepSpec) -> str:
         if not chunks:
             raise StepFailed("llm_unavailable", "The model is unavailable right now. Please try again.", retryable=True) from exc
     text = "".join(chunks) or "(no answer)"
-    _add_usage(ctx, usage_out)
+    # GatewayRequest copies dict fields on validation: read the request's own copy.
+    _add_usage(ctx, request.usage_out or usage_out)
     await ctx.emit("text.completed", {"message_id": message_id, "text": text, "format": "markdown"})
     await _save_assistant(ctx, message_id, text, "markdown")
     return text
