@@ -16,6 +16,7 @@ import BrandLogo from "../components/BrandLogo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { ForgeScene3D } from "../components/three/ForgeScene3D";
 import type { StudioFinish } from "../components/three/proceduralModels";
+import { useIsEmbedded } from "../os/capabilities/embedding";
 
 interface ForgeEngineConfig {
   id: string;
@@ -90,7 +91,9 @@ const QUICK_STACKS = [
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export default function Launch() {
+export default function Launch({ embedded: embeddedProp }: { embedded?: boolean } = {}) {
+  // Inside an OS window/panel the page must not assume it owns the viewport.
+  const embedded = useIsEmbedded(embeddedProp);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // Prefilled by the Command Center quick launcher (/launch?prompt=…).
@@ -119,7 +122,7 @@ export default function Launch() {
   };
 
   return (
-    <div className="min-h-screen bg-base text-ink flex flex-col justify-between transition-colors font-sans antialiased">
+    <div className={`bg-base text-ink flex flex-col justify-between transition-colors font-sans antialiased ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
       {/* 1. Three-Zone Studio Navigation Bar */}
       <header className="sticky top-0 z-30 h-16 border-b border-border bg-panel/95 backdrop-blur-md">
         <div className="max-w-[1440px] mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">

@@ -49,6 +49,7 @@ import { motion } from "../lib/animations";
 import { SuiWindowFrame, BottomNavItem } from "../components/pm/SuiWindowFrame";
 import { AGENTS } from "../lib/agents";
 import { VoiceInputButton } from "../components/pm/VoiceInputButton";
+import { useIsEmbedded } from "../os/capabilities/embedding";
 
 /* ------------------------------------------------------------------ */
 /* Subtle Cyber Audio Synthesizer (matches Initiative Page)            */
@@ -273,7 +274,9 @@ function getStatusBadge(status?: string) {
 /* Main ProjectsPage Component                                        */
 /* ------------------------------------------------------------------ */
 
-export default function ProjectsPage() {
+export default function ProjectsPage({ embedded: embeddedProp }: { embedded?: boolean } = {}) {
+  // Inside an OS window/panel the page must not assume it owns the viewport.
+  const embedded = useIsEmbedded(embeddedProp);
   const navigate = useNavigate();
 
   // Navigation & View Mode
@@ -633,7 +636,7 @@ export default function ProjectsPage() {
   );
 
   return (
-    <div className="relative min-h-screen w-full bg-base p-0 sm:p-2 md:p-4 font-sans antialiased text-ink transition-colors duration-200 flex flex-col items-stretch justify-start">
+    <div className={`relative w-full bg-base p-0 sm:p-2 md:p-4 font-sans antialiased text-ink transition-colors duration-200 flex flex-col items-stretch justify-start ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
       <div className="w-full flex-1 flex flex-col">
         <SuiWindowFrame
           title="Forge Workspaces 2026"

@@ -7,8 +7,11 @@ import {
   type AgentNodeSpec,
   type StudioFinish,
 } from "../components/three/proceduralModels";
+import { useIsEmbedded } from "../os/capabilities/embedding";
 
-export default function SpatialStudioPage() {
+export default function SpatialStudioPage({ embedded: embeddedProp }: { embedded?: boolean } = {}) {
+  // Inside an OS window/panel the page must not assume it owns the viewport.
+  const embedded = useIsEmbedded(embeddedProp);
   const navigate = useNavigate();
   const [selectedAgent, setSelectedAgent] = useState<AgentNodeSpec | null>(null);
   const [finish, setFinish] = useState<StudioFinish>("obsidian");
@@ -16,7 +19,7 @@ export default function SpatialStudioPage() {
   return (
     <div className="relative flex flex-1 flex-col bg-panel-alt text-ink">
       {/* Full-bleed interactive Three.js 3D Architecture Viewport */}
-      <div className="relative flex-1 min-h-[calc(100dvh-56px)] w-full">
+      <div className={`relative flex-1 w-full ${embedded ? "h-full min-h-0" : "min-h-[calc(100dvh-56px)]"}`}>
         <ForgeScene3D
           mode="fullscreen"
           initialFinish={finish}

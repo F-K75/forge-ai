@@ -37,6 +37,7 @@ import { ForgeDebugSurface } from "../components/forge-os/ForgeDebugSurface";
 import { ForgeDeploySurface } from "../components/forge-os/ForgeDeploySurface";
 import { synthesizeCodeForPrompt, SynthesizedFile } from "../lib/codeSynthesizer";
 import type { CanvasNode } from "../components/forge-os/ForgeBuildCanvas";
+import { useIsEmbedded } from "../os/capabilities/embedding";
 
 /* ------------------------------------------------------------------ */
 /* Subtle Cyber Audio Synthesizer (Identical to Projects & Initiatives)*/
@@ -383,7 +384,9 @@ const LIVING_AGENTS_DATA = [
   },
 ];
 
-export default function WorkspacePage() {
+export default function WorkspacePage({ embedded: embeddedProp }: { embedded?: boolean } = {}) {
+  // Inside an OS window/panel the page must not assume it owns the viewport.
+  const embedded = useIsEmbedded(embeddedProp);
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -719,7 +722,7 @@ export default function WorkspacePage() {
   }, [activeSurface, handleSound, navigate]);
 
   return (
-    <div className="relative min-h-screen w-full bg-base p-2 sm:p-3 font-sans antialiased text-ink flex flex-col">
+    <div className={`relative w-full bg-base p-2 sm:p-3 font-sans antialiased text-ink flex flex-col ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
       <div className="w-full flex-1 flex flex-col">
         <SuiWindowFrame
           title={projectName}
@@ -765,7 +768,7 @@ export default function WorkspacePage() {
             </div>
           }
         >
-          <div className="flex-1 flex flex-col gap-3 min-h-[calc(100vh-148px)]">
+          <div className={`flex-1 flex flex-col gap-3 ${embedded ? "h-full min-h-0" : "min-h-[calc(100vh-148px)]"}`}>
             {/* Primary Workspace Surface */}
             <div className="flex-1 rounded-xl border border-border bg-panel shadow-apple overflow-hidden min-h-[540px] flex flex-col">
               {/* Minimal Surface Title Bar */}

@@ -17,6 +17,7 @@ import {
   type PipelineNode,
   type AgentState,
 } from "../components/AgentPipeline";
+import { useIsEmbedded } from "../os/capabilities/embedding";
 
 const KNOWN_AGENT_IDS = new Set(AGENTS.map((a) => a.id as string));
 
@@ -95,7 +96,9 @@ function buildNodes(build: BuildRun): PipelineNode[] {
   });
 }
 
-export default function ProjectHistory() {
+export default function ProjectHistory({ embedded: embeddedProp }: { embedded?: boolean } = {}) {
+  // Inside an OS window/panel the page must not assume it owns the viewport.
+  const embedded = useIsEmbedded(embeddedProp);
   const { projectId } = useParams<{ projectId: string }>();
   const reduceMotion = useReducedMotion();
 
@@ -202,7 +205,7 @@ export default function ProjectHistory() {
   const nodes = buildNodes(selected);
 
   return (
-    <div className="flex h-full min-h-[calc(100vh-56px)] overflow-hidden bg-base text-ink">
+    <div className={`flex h-full overflow-hidden bg-base text-ink ${embedded ? "h-full min-h-0" : "min-h-[calc(100vh-56px)]"}`}>
       {/* Left: Build Timeline Sidebar */}
       <motion.aside
         aria-label="Build history"
