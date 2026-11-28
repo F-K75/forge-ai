@@ -38,6 +38,7 @@ from api.marketplace import router as marketplace_router
 from api.monitoring_webhook import router as monitoring_webhook_router
 from api.optimizer import router as optimizer_router
 from api.org_llm_policy import router as org_llm_policy_router
+from api.os import router as os_router
 from api.planning import router as planning_router
 from api.product_lead import router as product_lead_router
 from api.projects import router as projects_router
@@ -88,6 +89,7 @@ v1_router.include_router(marketplace_router)
 v1_router.include_router(monitoring_webhook_router)
 v1_router.include_router(optimizer_router)
 v1_router.include_router(org_llm_policy_router)
+v1_router.include_router(os_router)
 v1_router.include_router(planning_router)
 v1_router.include_router(product_lead_router)
 v1_router.include_router(projects_router)

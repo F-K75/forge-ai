@@ -34,3 +34,20 @@ async def is_feature_enabled(key: str) -> bool:
     except Exception:
         logger.warning("is_feature_enabled: failed to check flag %r, defaulting to False", key, exc_info=True)
         return False
+
+
+# Forge OS shell (docs/os/ARCHITECTURE.md, "Rollout"). Unlike other flags it
+# defaults ON (PHASE2_DECISIONS.md #2): a missing flag doc means "enabled";
+# an admin turns the OS API off by creating the flag with enabled=false.
+# A failed lookup still resolves to off (fail-closed, as above).
+OS_SHELL_FLAG = "os_shell"
+
+
+async def is_os_shell_enabled() -> bool:
+    try:
+        db = await get_db()
+        doc = await db.feature_flags.find_one({"key": OS_SHELL_FLAG})
+        return True if doc is None else bool(doc.get("enabled"))
+    except Exception:
+        logger.warning("is_os_shell_enabled: failed to check flag, defaulting to False", exc_info=True)
+        return False
